@@ -1,0 +1,129 @@
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Icons } from '../Icons';
+import { ADMIN_Z_INDEX } from '../../constants/admin';
+
+interface ConfirmDialogProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  confirmVariant?: 'danger' | 'primary';
+  requireTyping?: boolean;
+  typeToConfirm?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  preview?: React.ReactNode;
+}
+
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+  isOpen,
+  title,
+  message,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  confirmVariant = 'primary',
+  requireTyping = false,
+  typeToConfirm = '',
+  onConfirm,
+  onCancel,
+  preview,
+}) => {
+  const [typedText, setTypedText] = useState('');
+
+  if (!isOpen) return null;
+
+  const isTypingValid = !requireTyping || typedText === typeToConfirm;
+
+  const handleConfirm = () => {
+    if (!isTypingValid) return;
+    onConfirm();
+    setTypedText('');
+  };
+
+  const handleCancel = () => {
+    onCancel();
+    setTypedText('');
+  };
+
+  const confirmButtonClass =
+    confirmVariant === 'danger'
+      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800'
+      : 'bg-tea-seal hover:bg-tea-seal/90';
+
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
+      style={{ zIndex: ADMIN_Z_INDEX.TEMPLATE_MODAL }}
+      onClick={handleCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        className="bg-tea-paper dark:bg-[#242424] rounded-sm border border-tea-ink/20 dark:border-white/10 w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-ink/10 dark:border-white/10">
+          <h2 id="confirm-dialog-title" className="text-xl font-serif text-tea-ink dark:text-tea-paper">{title}</h2>
+          <button
+            onClick={handleCancel}
+            className="p-2 hover:bg-tea-ink/10 dark:hover:bg-white/10 rounded-sm transition-colors"
+            aria-label="Close dialog"
+          >
+            <Icons.Close className="w-5 h-5 text-tea-ink/60 dark:text-tea-paper/60" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-4 space-y-4">
+          {preview && (
+            <div className="bg-tea-ink/5 dark:bg-white/5 rounded-sm p-4 border border-tea-ink/10 dark:border-white/10">
+              {preview}
+            </div>
+          )}
+
+          <p className="text-tea-ink/80 dark:text-tea-paper/80 text-sm leading-relaxed">{message}</p>
+
+          {requireTyping && typeToConfirm && (
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-tea-ink/70 dark:text-tea-paper/70 mb-2">
+                Type <span className="font-mono font-bold text-tea-ink dark:text-tea-paper">{typeToConfirm}</span> to
+                confirm:
+              </label>
+              <input
+                type="text"
+                value={typedText}
+                onChange={(e) => setTypedText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && isTypingValid && handleConfirm()}
+                className="w-full bg-white dark:bg-[#0a0a0a] border border-tea-ink/20 dark:border-white/20 p-3 text-tea-ink dark:text-tea-paper text-sm outline-none focus:border-tea-seal rounded-sm"
+                placeholder={typeToConfirm}
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-tea-ink/10 dark:border-white/10">
+          <button
+            onClick={handleCancel}
+            className="px-4 py-2 text-tea-ink/80 dark:text-tea-paper/80 hover:text-tea-ink dark:hover:text-tea-paper text-sm uppercase tracking-wider font-medium transition-colors"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!isTypingValid}
+            className={`px-6 py-2 ${confirmButtonClass} text-white text-sm uppercase tracking-wider font-medium rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};

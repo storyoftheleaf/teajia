@@ -1,0 +1,352 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Icons } from '../Icons';
+import { Button } from '../shared/Button';
+import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/consult';
+import { useScrollLock } from '../../hooks/useScrollLock';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+
+interface InquiryFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  preselect?: string;
+}
+
+export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, preselect }) => {
+  const [formData, setFormData] = useState<InquiryFormData>({
+    name: '',
+    email: '',
+    location: '',
+    whatsapp: '',
+    interests: preselect ? [preselect] : [],
+    vision: '',
+    referral: '',
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
+  // Store trigger element to restore focus on close (#14)
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  // Drag-to-dismiss state (mobile bottom sheet)
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const sheetTouchStartY = useRef(0);
+  const isDraggingSheet = useRef(false);
+
+  useScrollLock(isOpen);
+
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Reset and animate in when opened
+  useEffect(() => {
+    if (isOpen) {
+      // Save trigger element for focus restoration (#14)
+      triggerRef.current = document.activeElement as HTMLElement;
+      setSubmitted(false);
+      setFormData({
+        name: '',
+        email: '',
+        location: '',
+        whatsapp: '',
+        interests: preselect ? [preselect] : [],
+        vision: '',
+        referral: '',
+      });
+      setSheetDragY(0);
+      requestAnimationFrame(() => setIsVisible(true));
+    } else {
+      setIsVisible(false);
+      // Restore focus to trigger (#14)
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    }
+  }, [isOpen, preselect]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 300);
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === overlayRef.current) handleClose();
+  };
+
+  // Drag-to-dismiss handlers (mobile)
+  const handleSheetTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.sheet-drag-handle')) {
+      isDraggingSheet.current = true;
+      sheetTouchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleSheetTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingSheet.current) return;
+    const diff = e.touches[0].clientY - sheetTouchStartY.current;
+    if (diff > 0) {
+      setSheetDragY(diff);
+    }
+  };
+
+  const handleSheetTouchEnd = () => {
+    if (!isDraggingSheet.current) return;
+    isDraggingSheet.current = false;
+    if (sheetDragY > 100) {
+      handleClose();
+    }
+    setSheetDragY(0);
+  };
+
+  const toggleInterest = (option: string) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.includes(option)
+        ? prev.interests.filter(i => i !== option)
+        : [...prev.interests, option],
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const entry = { ...formData, timestamp: new Date().toISOString() };
+    console.log('[InquiryForm] Submission:', entry);
+    try {
+      const existing = JSON.parse(localStorage.getItem('teajia_inquiries') || '[]');
+      localStorage.setItem('teajia_inquiries', JSON.stringify([...existing, entry]));
+    } catch (err) {
+      console.error('[InquiryForm] Failed to save:', err);
+    }
+    setSubmitted(true);
+    setTimeout(handleClose, 1500);
+  };
+
+  if (!isOpen) return null;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={handleOverlayClick}
+      className={`fixed inset-0 z-[200] flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-black/40' : 'bg-black/0'}`}
+    >
+      <div
+        ref={focusTrapRef}
+        onTouchStart={handleSheetTouchStart}
+        onTouchMove={handleSheetTouchMove}
+        onTouchEnd={handleSheetTouchEnd}
+        className={`
+          w-full md:max-w-[520px] md:rounded-2xl rounded-t-2xl
+          max-h-[90vh] md:max-h-[85vh] overflow-y-auto
+          bg-[#F3F0E7] dark:bg-[#242424]
+          transition-all ${reducedMotion ? '' : 'duration-250 ease-out'}
+          ${isVisible
+            ? 'translate-y-0 md:translate-y-0 opacity-100 md:scale-100'
+            : 'translate-y-full md:translate-y-0 opacity-0 md:scale-95'
+          }
+        `}
+        style={{ transform: isVisible ? `translateY(${sheetDragY}px)` : undefined }}
+      >
+        {/* Mobile drag handle */}
+        <div className="md:hidden sheet-drag-handle flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+          <div className="w-10 h-1 bg-tea-ink/20 dark:bg-white/20 rounded-full" />
+        </div>
+
+        {/* Close button */}
+        <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-[#F3F0E7] dark:bg-[#242424]">
+          <button
+            onClick={handleClose}
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-ink/5 dark:hover:bg-white/10 transition-colors"
+            aria-label="Close inquiry form"
+          >
+            <Icons.Close className="w-5 h-5 text-tea-ink/40 dark:text-tea-paper/40" />
+          </button>
+        </div>
+
+        <div className="px-8 pb-10 md:px-10 md:pb-12">
+          {submitted ? (
+            <div className="flex items-center justify-center min-h-[200px] animate-[fadeIn_0.4s_ease-out]">
+              <p className="font-serif text-xl text-center text-tea-ink dark:text-tea-paper">
+                Thank you. I'll be in touch soon.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="animate-[fadeIn_0.3s_ease-out]">
+              <p className="font-serif text-lg mb-8 text-tea-ink dark:text-tea-paper">
+                Tell me what you're looking for.
+              </p>
+
+              <FloatingField
+                label="Your name"
+                type="text"
+                value={formData.name}
+                onChange={v => setFormData(p => ({ ...p, name: v }))}
+                required
+                autoComplete="name"
+              />
+
+              <FloatingField
+                label="your@email.com"
+                type="email"
+                value={formData.email}
+                onChange={v => setFormData(p => ({ ...p, email: v }))}
+                required
+                autoComplete="email"
+              />
+
+              <FloatingField
+                label="City or country"
+                type="text"
+                value={formData.location}
+                onChange={v => setFormData(p => ({ ...p, location: v }))}
+                autoComplete="address-level2"
+              />
+
+              <FloatingField
+                label="WhatsApp number (for Bali-based conversations)"
+                type="text"
+                value={formData.whatsapp}
+                onChange={v => setFormData(p => ({ ...p, whatsapp: v }))}
+                autoComplete="tel"
+              />
+
+              {/* Interests checkboxes */}
+              <fieldset className="mb-6">
+                <legend className="font-sans text-sm mb-4 text-tea-ink/70 dark:text-tea-paper/70">
+                  What brings you here?
+                </legend>
+                <div className="space-y-4">
+                  {INQUIRY_OPTIONS.map(option => (
+                    <label
+                      key={option}
+                      className="flex items-center gap-3 cursor-pointer group min-h-[44px]"
+                    >
+                      <span
+                        className={`
+                          w-[18px] h-[18px] rounded-[3px] border flex-shrink-0 flex items-center justify-center
+                          transition-colors duration-200
+                          ${formData.interests.includes(option)
+                            ? 'border-transparent bg-tea-seal'
+                            : 'border-tea-ink/20 dark:border-white/20'
+                          }
+                        `}
+                      >
+                        {formData.interests.includes(option) && (
+                          <Icons.Check className="w-3 h-3 text-white" />
+                        )}
+                      </span>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={formData.interests.includes(option)}
+                        onChange={() => toggleInterest(option)}
+                      />
+                      <span className="font-sans text-sm text-tea-ink dark:text-tea-paper">
+                        {option}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <FloatingField
+                label="Tell me what you're envisioning (a few sentences is perfect)"
+                type="textarea"
+                value={formData.vision}
+                onChange={v => setFormData(p => ({ ...p, vision: v }))}
+                autoComplete="off"
+              />
+
+              <FloatingField
+                label="How did you hear about us? (friend, article, Instagram…)"
+                type="text"
+                value={formData.referral}
+                onChange={v => setFormData(p => ({ ...p, referral: v }))}
+                autoComplete="off"
+              />
+
+              <div className="mt-8">
+                <Button type="submit" variant="primary" fullWidth>
+                  Send
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Floating label input component */
+interface FloatingFieldProps {
+  label: string;
+  type: 'text' | 'email' | 'textarea';
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  autoComplete?: string;
+}
+
+const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onChange, required, autoComplete }) => {
+  const [focused, setFocused] = useState(false);
+  const isActive = focused || value.length > 0;
+
+  const sharedClass = `
+    w-full bg-transparent border-0 border-b font-sans text-base pt-5 pb-2 px-0
+    outline-none transition-colors duration-200
+    text-tea-ink dark:text-tea-paper
+    ${focused ? 'border-tea-seal' : 'border-tea-ink/20 dark:border-white/10'}
+  `;
+
+  return (
+    <div className="relative mb-6">
+      <label
+        className={`
+          absolute left-0 font-sans pointer-events-none
+          transition-all duration-200
+          ${isActive
+            ? 'top-0 text-[11px] tracking-wide text-tea-seal'
+            : 'top-5 text-base text-tea-ink/40 dark:text-tea-paper/40'
+          }
+        `}
+      >
+        {label}
+        {required && <span className="ml-0.5 text-tea-seal">*</span>}
+      </label>
+      {type === 'textarea' ? (
+        <textarea
+          rows={4}
+          className={sharedClass}
+          style={{ resize: 'vertical', minHeight: '6rem' }}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          required={required}
+          aria-label={label}
+          autoComplete={autoComplete}
+        />
+      ) : (
+        <input
+          type={type}
+          className={sharedClass}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          required={required}
+          aria-label={label}
+          autoComplete={autoComplete}
+        />
+      )}
+    </div>
+  );
+};

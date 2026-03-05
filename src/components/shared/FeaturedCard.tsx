@@ -1,0 +1,82 @@
+import React from 'react';
+import { Icons } from '../Icons';
+import { CardContainer } from './CardContainer';
+
+interface FeaturedCardMetadata {
+  label: string;
+  value: string;
+}
+
+interface FeaturedCardProps {
+  badge: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  onCtaClick: () => void;
+  metadata?: FeaturedCardMetadata[];
+  decorativeElement?: React.ReactNode;
+  className?: string;
+}
+
+export const FeaturedCard: React.FC<FeaturedCardProps> = ({
+  badge,
+  title,
+  description,
+  ctaLabel,
+  onCtaClick,
+  metadata,
+  decorativeElement,
+  className = '',
+}) => {
+  return (
+    <CardContainer variant="dark" className={className}>
+      <div className="flex flex-col md:flex-row">
+        {/* Text content */}
+        <div className="flex-1 p-6 md:p-8">
+          <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans mb-4 px-2 py-1 bg-tea-seal/10 rounded-sm">
+            {badge}
+          </span>
+          <h2 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight mb-4">
+            {title}
+          </h2>
+          <p className="text-sm text-tea-paper/60 leading-relaxed mb-6 max-w-lg">
+            {description}
+          </p>
+          <button
+            onClick={onCtaClick}
+            className="text-tea-seal text-sm font-sans flex items-center gap-1.5 group hover:text-tea-seal/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm"
+          >
+            {ctaLabel}
+            <Icons.ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+
+        {/* Decorative area — visible on all screens */}
+        {decorativeElement && (
+          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5 border-t md:border-t-0 md:border-l border-white/5">
+            {decorativeElement}
+          </div>
+        )}
+      </div>
+
+      {/* Metadata bar */}
+      {metadata && metadata.length > 0 && (
+        <div className="border-t border-white/8 px-6 md:px-8 py-3 flex items-center gap-6">
+          {metadata.map((item, i) => (
+            <React.Fragment key={item.label}>
+              {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-paper/20" />}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-tea-paper/40 font-sans">
+                  {item.label}
+                </span>
+                <span className="text-xs text-tea-paper/60 font-sans">
+                  {item.value}
+                </span>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+    </CardContainer>
+  );
+};

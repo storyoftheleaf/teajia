@@ -1,0 +1,241 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Story, ContentType } from '../types';
+import { ArticleCard } from './shared/ArticleCard';
+import { PageHeader } from './shared/PageHeader';
+import { PageHeaderTabs } from './shared/PageHeaderTabs';
+import { LoadingSpinner } from './shared/LoadingSpinner';
+
+interface MagazineTabbedProps {
+  stories: Story[];
+  savedStoryIds: Record<string, boolean>;
+  watchedStoryIds: Record<string, boolean>;
+  onCardClick: (story: Story) => void;
+  onToggleSave: (id: string) => void;
+  onShare: (story: Story) => void;
+  defaultTab?: MagazineTab;
+  onCartClick?: () => void;
+  onAccountClick?: () => void;
+  cartItemCount?: number;
+}
+
+type MagazineTab = 'articles' | 'visual';
+
+export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
+  stories,
+  savedStoryIds,
+  watchedStoryIds,
+  onCardClick,
+  onToggleSave,
+  onShare,
+  defaultTab = 'articles',
+  onCartClick,
+  onAccountClick,
+  cartItemCount = 0,
+}) => {
+  // Read initial tab from URL hash or use defaultTab
+  const [activeTab, setActiveTab] = useState<MagazineTab>(() => {
+    if (typeof window === 'undefined') return defaultTab;
+    const hash = window.location.hash.replace('#', '') as MagazineTab;
+    return ['articles', 'visual'].includes(hash) ? hash : defaultTab;
+  });
+
+  // Handle tab change with URL persistence
+  const handleTabChange = (tab: MagazineTab) => {
+    setActiveTab(tab);
+    window.history.replaceState(null, '', `#${tab}`);
+  };
+
+  // Infinite scroll state
+  const [displayCount, setDisplayCount] = useState(12);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Sync activeTab with defaultTab prop changes (when navigating from other sections)
+  useEffect(() => {
+    // Only sync if URL hash is not set (meaning user navigated here fresh)
+    const hash = window.location.hash.replace('#', '') as MagazineTab;
+    if (!['articles', 'visual'].includes(hash)) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
+
+  // Reset display count when tab changes
+  useEffect(() => {
+    setDisplayCount(12);
+  }, [activeTab]);
+
+  // Filter and sort stories by type
+  const articles = useMemo(() => {
+    const filtered = stories.filter(s => s.type === ContentType.Article && s.status === 'published');
+    // Sort by publishedDate (newest first), fall back to array order if no date
+    return filtered.sort((a, b) => {
+      if (a.publishedDate && b.publishedDate) {
+        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
+      }
+      if (a.publishedDate) return -1;
+      if (b.publishedDate) return 1;
+      return 0; // Keep original order if neither has date
+    });
+  }, [stories]);
+
+  const photoEssays = useMemo(() => {
+    const filtered = stories.filter(s => s.type === ContentType.PhotoEssay && s.status === 'published');
+    return filtered.sort((a, b) => {
+      if (a.publishedDate && b.publishedDate) {
+        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
+      }
+      if (a.publishedDate) return -1;
+      if (b.publishedDate) return 1;
+      return 0;
+    });
+  }, [stories]);
+
+  // Get displayed items based on current count
+  const displayedArticles = articles.slice(0, displayCount);
+  const displayedPhotoEssays = photoEssays.slice(0, displayCount);
+  const hasMoreArticles = displayCount < articles.length;
+  const hasMorePhotoEssays = displayCount < photoEssays.length;
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      // Don't trigger if already loading or no more items
+      const hasMore = activeTab === 'articles' ? hasMoreArticles : hasMorePhotoEssays;
+      if (isLoading || !hasMore) return;
+
+      // Check if scrolled near bottom (200px threshold)
+      const scrolledToBottom = window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 200;
+
+      if (scrolledToBottom) {
+        setIsLoading(true);
+        setDisplayCount(prev => prev + 12);
+        setIsLoading(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoading, hasMoreArticles, hasMorePhotoEssays, activeTab]);
+
+  const tabs = [
+    { id: 'articles' as MagazineTab, label: 'Articles' },
+    { id: 'visual' as MagazineTab, label: 'Visual' },
+  ];
+
+  const renderArticleCards = (storiesList: Story[]) => (
+    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+      {storiesList.map((story) => (
+        <ArticleCard
+          key={story.id}
+          title={story.title}
+          description={story.subtitle}
+          imageUrl={story.thumbnailUrl}
+          aspectRatio="portrait"
+          onClick={() => onCardClick(story)}
+        />
+      ))}
+    </div>
+  );
+
+  const renderVisualCards = (storiesList: Story[]) => (
+    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+      {storiesList.map((story) => (
+        <ArticleCard
+          key={story.id}
+          title={story.title}
+          description={story.subtitle}
+          imageUrl={story.thumbnailUrl}
+          aspectRatio="square"
+          onClick={() => onCardClick(story)}
+        />
+      ))}
+    </div>
+  );
+
+  const renderContent = () => {
+    if (activeTab === 'articles') {
+      return (
+        <>
+          {renderArticleCards(displayedArticles)}
+          {isLoading && (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="md" />
+            </div>
+          )}
+        </>
+      );
+    }
+
+    if (activeTab === 'visual') {
+      return (
+        <>
+          {renderVisualCards(displayedPhotoEssays)}
+          {isLoading && (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="md" />
+            </div>
+          )}
+        </>
+      );
+    }
+
+  };
+
+  const renderEmptyState = (type: string) => {
+    const emptyStateContent = {
+      articles: {
+        icon: <Icons.Book className="w-8 h-8 text-tea-ink/40 dark:text-tea-paper/40" />,
+        title: 'No Articles Yet',
+        message: 'Long-form stories about tea culture, origins, and brewing traditions are coming soon.',
+        suggestion: 'Try exploring Visual while you wait.'
+      },
+      'visual': {
+        icon: <Icons.Grid className="w-8 h-8 text-tea-ink/40 dark:text-tea-paper/40" />,
+        title: 'No Visual Yet',
+        message: 'Visual stories celebrating the artistry and beauty of tea are in the works.',
+        suggestion: 'Check out Articles in the meantime.'
+      }
+    };
+
+    const content = emptyStateContent[type as keyof typeof emptyStateContent];
+
+    return (
+      <div className="flex flex-col items-center justify-center py-32 px-4">
+        <div className="w-20 h-20 bg-white/5 dark:bg-white/5 border border-tea-ink/10 dark:border-tea-paper/10 rounded-full flex items-center justify-center mb-6">
+          {content.icon}
+        </div>
+        <p className="font-serif text-xl text-tea-ink dark:text-tea-paper mb-2">
+          {content.title}
+        </p>
+        <p className="text-tea-ink/60 dark:text-tea-paper/60 text-sm max-w-md text-center mb-4">
+          {content.message}
+        </p>
+        <p className="text-tea-seal text-xs uppercase tracking-wider">
+          {content.suggestion}
+        </p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+      <PageHeader
+        title="Magazine"
+        onCartClick={onCartClick}
+        onAccountClick={onAccountClick}
+        cartItemCount={cartItemCount}
+      >
+        <PageHeaderTabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
+      </PageHeader>
+
+      {/* Tab Content */}
+      <div className="mt-8 mb-24">
+        {activeTab === 'articles' ? (
+          displayedArticles.length > 0 ? renderContent() : renderEmptyState('articles')
+        ) : activeTab === 'visual' ? (
+          displayedPhotoEssays.length > 0 ? renderContent() : renderEmptyState('visual')
+        ) : null}
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,63 @@
+import React from 'react';
+import { TeaItem } from '../TeaInventory';
+import { CardContainer } from './CardContainer';
+
+interface CardGridItemProps {
+  item: TeaItem;
+  onCardClick: (item: TeaItem, e: React.MouseEvent) => void;
+  imageComponent: React.ReactNode;
+  badgesComponent?: React.ReactNode;
+  priceDisplay: React.ReactNode;
+  descriptionComponent?: React.ReactNode;
+  title: string;
+}
+
+/**
+ * Unified grid card component for both Tea and Teaware
+ * Provides consistent styling and structure across both item types
+ * Parent components control content via props
+ */
+export const CardGridItem: React.FC<CardGridItemProps> = ({
+  item,
+  onCardClick,
+  imageComponent,
+  badgesComponent,
+  priceDisplay,
+  descriptionComponent,
+  title,
+}) => {
+  return (
+    <div
+      className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
+      onClick={(e) => onCardClick(item, e)}
+    >
+      <CardContainer className="p-2 md:p-3">
+        {/* Image Container */}
+        <div className="relative w-full overflow-hidden aspect-square bg-tea-ink/90 dark:bg-tea-ink mb-3">
+          {imageComponent}
+          {/* Desktop quick view overlay (#18) */}
+          <div className="hidden lg:flex absolute inset-0 items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-300">
+            <span className="text-xs uppercase tracking-widest text-white font-medium px-4 py-2 bg-tea-seal/90 rounded-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+              Quick View
+            </span>
+          </div>
+        </div>
+
+        {/* Info Section */}
+        <div className="px-1">
+          {/* Title and Price Row */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
+            <h4 className="card-grid-title">{title}</h4>
+            <div className="card-grid-price">{priceDisplay}</div>
+          </div>
+
+          {/* Badges/Metadata */}
+          {badgesComponent && <div className="mb-2">{badgesComponent}</div>}
+
+          {/* Description */}
+          {descriptionComponent && descriptionComponent}
+        </div>
+      </CardContainer>
+    </div>
+  );
+};
