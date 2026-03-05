@@ -1,0 +1,84 @@
+import React, { useState, useEffect } from 'react';
+import { Product, Currency, ExchangeRate } from '../types';
+import { formatCurrency } from '../utils';
+
+interface AddToCartModalProps { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: (quantity: number) => void; 
+  product: Product | null;
+  currency: Currency;
+  rates: ExchangeRate[];
+}
+
+export const AddToCartModal: React.FC<AddToCartModalProps> = ({ 
+  isOpen, onClose, onConfirm, product, currency, rates
+}) => {
+  const [quantity, setQuantity] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) setQuantity('');
+  }, [isOpen]);
+
+  if (!isOpen || !product) return null;
+
+  const currentQty = Number(quantity);
+  const totalUSD = currentQty * product.pricePerGramUSD;
+
+  const teaPresets = [
+    { label: '25g', value: 25 },
+    { label: '50g', value: 50 },
+    { label: '100g', value: 100 },
+    { label: '150g', value: 150 },
+    { label: 'Brick (250g)', value: 250 },
+    { label: 'Cake (357g)', value: 357 },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-2xl font-serif text-tea-text mb-2">Add to Order</h3>
+        <p className="text-tea-muted text-sm mb-6 font-serif italic">{product.givenName} <span className="text-tea-border mx-2">•</span> {product.productName}</p>
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
+            <input 
+              type="number" autoFocus value={quantity} onChange={(e) => setQuantity(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
+              className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text focus:border-tea-muted outline-none text-lg transition-colors placeholder-tea-muted/50"
+              placeholder="0"
+            />
+            {product.type !== 'Teaware' && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                    {teaPresets.map(preset => (
+                        <button key={preset.value} onClick={() => setQuantity(preset.value.toString())} className="px-3 py-1.5 bg-tea-surface text-tea-muted text-xs rounded-md border border-tea-border hover:bg-tea-border/50 hover:text-tea-text hover:border-tea-muted/50 transition-all font-mono">
+                            {preset.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+          </div>
+          <div className="flex justify-between items-center text-sm border-b border-tea-border pb-4">
+            <span className="text-tea-muted">Price per unit:</span>
+            <span className="text-tea-text font-mono">{formatCurrency(product.pricePerGramUSD, currency, rates)}</span>
+          </div>
+          <div className="flex justify-between items-center pt-2">
+            <span className="text-tea-text font-medium text-sm">Total Price:</span>
+            <span className="text-2xl font-serif text-tea-accent">{formatCurrency(totalUSD, currency, rates)}</span>
+          </div>
+          <div className="pt-6 flex gap-4">
+            <button onClick={onClose} className="flex-1 py-3 text-xs font-bold uppercase tracking-[0.2em] text-tea-muted hover:text-tea-text transition-colors border border-transparent hover:border-tea-border rounded-lg">Cancel</button>
+            <button 
+              onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
+              className="flex-1 py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-tea-accent/10"
+              disabled={!quantity || Number(quantity) <= 0}
+            >
+              Add Item
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

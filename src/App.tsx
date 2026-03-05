@@ -1,6 +1,8 @@
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, CartItem, InventoryItem, Section } from './types';
 import { pathToSection, sectionToPath } from './lib/routes';
@@ -398,6 +400,11 @@ const AppContent = () => {
                   <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
                 } />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/admin/*" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#0c0c0c] text-neutral-400 font-sans text-sm">Loading admin...</div>}>
+                    <AdminApp />
+                  </Suspense>
+                } />
                 {/* Catch-all: redirect to home */}
                 <Route path="*" element={
                   <HomePage

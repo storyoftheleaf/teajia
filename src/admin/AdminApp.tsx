@@ -1,0 +1,312 @@
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, X, ArrowRight, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase, isConfigured } from '../lib/supabase';
+import { Product } from './types';
+import { useProducts, useRates } from './hooks/useSupabase';
+import { useAppStore } from './store';
+
+// Import Components
+import { Sidebar } from './components/Sidebar';
+import { TeaTable } from './components/TeaTable';
+import { TeawareCatalog } from './components/TeawareCatalog';
+import { InventoryView } from './components/InventoryView';
+import { InvoiceBuilder } from './components/InvoiceBuilder';
+import { RecordsView } from './components/SoldItemsView';
+import { OrdersView } from './components/OrdersView';
+import { PersonalCollectionView } from './components/PersonalCollectionView';
+import { SettingsView } from './components/SettingsView';
+import { ToastProvider, useToast } from './components/Toast';
+import { CommandPalette } from './components/CommandPalette';
+import { ErrorBoundary } from './components/ErrorBoundary';
+
+// Import Modals
+import { AuthModal } from './components/AuthModal';
+import { CsvImportModal } from './components/CsvImportModal';
+import { AddToCartModal } from './components/AddToCartModal';
+import { AddProductModal } from './components/AddProductModal';
+
+const PageTransition = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.3, ease: "easeOut" }}
+    className="h-full"
+  >
+    {children}
+  </motion.div>
+);
+
+const AdminContent = () => {
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Zustand Store
+  const {
+    cart, isCartOpen, currency, isDevAdmin,
+    addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart
+  } = useAppStore();
+
+  const [session, setSession] = useState<any>(null);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Modals
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
+
+  // React Query Hooks
+  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useProducts();
+  const { data: rates = [], refetch: refetchRates } = useRates();
+
+  const loading = productsLoading;
+
+  useEffect(() => {
+    if (!isConfigured) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Use actual session state OR dev bypass for admin check
+  const isAdmin = !!session || isDevAdmin;
+
+  // Early return for missing configuration (after all hooks)
+  if (!isConfigured) {
+    return (
+      <div className="flex min-h-screen bg-tea-bg text-tea-text items-center justify-center p-6">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-accent/50"></div>
+            <div className="mb-6 flex justify-center">
+              <div className="p-4 bg-tea-accent/10 rounded-full border border-tea-accent/20">
+                <AlertTriangle className="text-tea-accent" size={32} />
+              </div>
+            </div>
+            <h2 className="text-xl font-serif text-tea-text mb-2">Setup Required</h2>
+            <p className="text-tea-muted text-sm mb-6 leading-relaxed">
+                The application cannot connect to the database. Please configure your API credentials to continue.
+            </p>
+            <div className="text-left bg-tea-bg/50 p-4 rounded-xl text-xs font-mono text-tea-muted mb-6 border border-tea-border space-y-2">
+                <p>1. Open <span className="text-tea-text bg-tea-surface px-1 rounded">.env</span> file</p>
+                <p>2. Find <span className="text-tea-accent">VITE_SUPABASE_ANON_KEY</span></p>
+                <p>3. Paste your Supabase Anon Key</p>
+            </div>
+            <button onClick={() => window.location.reload()} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors w-full">
+                I've Updated It, Reload App
+            </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to inventory when entering admin at root
+  useEffect(() => {
+    if (isAdmin && location.pathname === '/admin') {
+      navigate('/admin/inventory');
+    }
+  }, [isAdmin, navigate, location.pathname]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    if (isDevAdmin) toggleDevAdmin();
+    navigate('/');
+  };
+
+  const openAddModal = (product: Product) => {
+    setSelectedProductForCart(product);
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddToCart = (quantity: number) => {
+    if (selectedProductForCart) {
+      addToCart(selectedProductForCart, quantity);
+      setIsAddModalOpen(false);
+      setSelectedProductForCart(null);
+      setIsCartOpen(true);
+      showToast("Item added to registry", 'success');
+    }
+  };
+
+  const handleRefresh = () => {
+    refetchProducts();
+    refetchRates();
+    showToast("Data refreshed", 'info');
+  };
+
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!isAdmin) return <div className="p-12 text-center text-neutral-500 font-serif">Access Restricted</div>;
+    return <>{children}</>;
+  };
+
+  return (
+    <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
+      <button onClick={() => setIsMobileOpen(true)} className="fixed top-4 left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-muted backdrop-blur-md">
+        <Menu size={24} />
+      </button>
+
+      {isMobileOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
+
+      <Sidebar
+        isAdmin={isAdmin}
+        onLoginClick={() => setIsLoginOpen(true)}
+        onLogoutClick={handleLogout}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+        cartItemCount={cart.length}
+        isDevAdmin={isDevAdmin}
+        onToggleDevAdmin={toggleDevAdmin}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
+
+      <main className="flex-1 relative flex flex-col min-w-0">
+        <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-6 py-4 flex justify-end items-center gap-4 flex-none">
+           <button onClick={handleRefresh} className="text-tea-muted hover:text-tea-text transition-colors">
+              <RefreshCw size={16} />
+           </button>
+
+           <div className="relative group">
+              <button className="flex items-center gap-2 text-sm font-medium text-tea-muted hover:text-tea-text transition-colors">
+                {currency} <ChevronDown size={14} />
+              </button>
+              <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden backdrop-blur-xl">
+                {rates.map(rate => (
+                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-white/5 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-muted'}`}>
+                    {rate.currency}
+                  </button>
+                ))}
+              </div>
+           </div>
+
+           <div className="w-px h-4 bg-tea-border"></div>
+
+           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-muted hover:text-tea-text transition-colors">
+             <ShoppingCart size={20} />
+             {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
+           </button>
+        </div>
+
+        <div className="flex-1 overflow-auto relative">
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<Navigate to="inventory" replace />} />
+              <Route path="catalog" element={<PageTransition><TeaTable products={products} currency={currency} rates={rates} onAdd={openAddModal} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} isLoading={loading} /></PageTransition>} />
+              <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} /></PageTransition>} />
+
+              <Route path="inventory" element={
+                <ProtectedRoute>
+                  <PageTransition>
+                    <InventoryView
+                      products={products}
+                      isLoading={loading}
+                      onImportClick={() => setIsImportOpen(true)}
+                      onAddClick={() => setIsCreateModalOpen(true)}
+                      onRefresh={refetchProducts}
+                    />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="personal" element={<ProtectedRoute><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
+              <Route path="orders" element={<ProtectedRoute><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
+              <Route path="records" element={<ProtectedRoute><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
+
+              <Route path="*" element={<Navigate to="inventory" replace />} />
+            </Routes>
+          </AnimatePresence>
+        </div>
+
+        {/* --- PERSISTENT CART BAR (When Drawer Closed) --- */}
+        {cart.length > 0 && !isCartOpen && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in duration-300">
+                <button
+                    onClick={() => setIsCartOpen(true)}
+                    className="bg-tea-accent text-tea-bg px-6 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-4 border border-tea-accent/20"
+                >
+                    <div className="flex items-center gap-2 font-bold text-sm">
+                        <span className="bg-tea-bg text-tea-accent w-5 h-5 rounded-full flex items-center justify-center text-[10px]">{cart.length}</span>
+                        <span className="uppercase tracking-[0.2em] text-xs">View Registry</span>
+                    </div>
+                    <ArrowRight size={16} />
+                </button>
+            </div>
+        )}
+
+        {/* --- PERSISTENT CART DRAWER --- */}
+        <div
+          className={`fixed inset-y-0 right-0 z-50 w-full md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)] transform transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] border-l border-tea-border ${
+            isCartOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="h-full relative">
+            <button
+                onClick={() => setIsCartOpen(false)}
+                className="absolute top-5 right-5 z-20 text-tea-muted hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border"
+            >
+                <X size={20} />
+            </button>
+
+            <InvoiceBuilder
+                products={products}
+                rates={rates}
+                cart={cart}
+                setCart={setCart}
+                onClearCart={clearCart}
+                onSuccess={refetchProducts}
+            />
+          </div>
+        </div>
+
+        {/* --- OVERLAY FOR DRAWER --- */}
+        {isCartOpen && (
+            <div
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-500"
+                onClick={() => setIsCartOpen(false)}
+            />
+        )}
+
+        <AddToCartModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onConfirm={handleAddToCart}
+          product={selectedProductForCart}
+          currency={currency}
+          rates={rates}
+        />
+
+        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+        <CsvImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onComplete={refetchProducts} />
+
+        <AddProductModal
+          isOpen={isCreateModalOpen || !!editingProduct}
+          onClose={() => { setIsCreateModalOpen(false); setEditingProduct(null); }}
+          initialData={editingProduct || undefined}
+          onSuccess={() => { refetchProducts(); setEditingProduct(null); setIsCreateModalOpen(false); }}
+          rates={rates}
+        />
+
+        <CommandPalette onAddProduct={() => setIsCreateModalOpen(true)} />
+
+      </main>
+    </div>
+  );
+};
+
+const AdminApp = () => (
+  <ErrorBoundary>
+    <ToastProvider>
+      <AdminContent />
+    </ToastProvider>
+  </ErrorBoundary>
+);
+
+export default AdminApp;

@@ -1,0 +1,48 @@
+import React from 'react';
+
+interface Props {
+  children: React.ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Application error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen bg-tea-bg text-tea-text items-center justify-center p-6">
+          <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl max-w-md w-full shadow-2xl text-center">
+            <h2 className="text-xl font-serif text-tea-text mb-2">Something went wrong</h2>
+            <p className="text-tea-muted text-sm mb-6">
+              {this.state.error?.message || 'An unexpected error occurred.'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
