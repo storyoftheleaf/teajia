@@ -39,6 +39,12 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: 'hidden',
       minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
       target: 'esnext',
       rollupOptions: {
         output: {
