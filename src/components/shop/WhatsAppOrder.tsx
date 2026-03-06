@@ -2,7 +2,7 @@ import React from 'react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 
-const PLACEHOLDER_PHONE = '6281234567890';
+const DEFAULT_PHONE = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
 interface WhatsAppOrderProps {
   productName?: string;
@@ -20,7 +20,7 @@ function buildWhatsAppUrl(items: string[], phone: string): string {
 export const WhatsAppOrder: React.FC<WhatsAppOrderProps> = ({
   productName,
   cartItems,
-  phone = PLACEHOLDER_PHONE,
+  phone = DEFAULT_PHONE,
 }) => {
   const handleClick = () => {
     const items = cartItems

@@ -153,8 +153,6 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
 
   return (
     <div className="max-w-4xl mx-auto px-2 md:px-0 animate-[fadeIn_0.3s_ease-out]">
-      {/* TODO: remove this test marker */}
-      <p className="text-tea-seal text-xs mb-4">Library v2 loaded</p>
 
       {/* ═══ PICKED FOR YOU ═══ */}
       <section className="mb-10">

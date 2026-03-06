@@ -63,7 +63,7 @@ export const useAppStore = create<AppState>()(
                 productId: product.id,
                 quantity,
                 priceAtSale: product.pricePerGramUSD,
-                product,
+                product: { ...product },
               },
             ],
           };
@@ -93,10 +93,11 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const existing = state.publicCart.find((c) => c.id === item.id);
           if (existing) {
+            const newGrams = existing.quantityGrams + item.quantityGrams;
             return {
               publicCart: state.publicCart.map((c) =>
                 c.id === item.id
-                  ? { ...c, quantityGrams: item.quantityGrams, totalPrice: item.totalPrice }
+                  ? { ...c, quantityGrams: newGrams, totalPrice: c.pricePerGram * newGrams }
                   : c
               ),
             };
