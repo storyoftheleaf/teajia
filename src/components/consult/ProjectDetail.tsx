@@ -5,7 +5,6 @@ import { CardContainer } from '../shared/CardContainer';
 import { useSectionReveal } from '../../hooks/useSectionReveal';
 import { SECTION_GAP_LG } from '../shared/spacing';
 import { useParallax } from '../../hooks/useParallax';
-import { StickyInquiryBar } from './StickyInquiryBar';
 
 const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2 rounded-sm';
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-ink/5 dark:hover:bg-white/5 px-2 -ml-2';
@@ -191,8 +190,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </button>
       </div>
 
-      {/* Sticky inquiry bar */}
-      <StickyInquiryBar onOpenInquiry={() => onOpenInquiry(inquiryPreselect)} />
     </div>
   );
 };
