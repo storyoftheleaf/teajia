@@ -81,6 +81,13 @@ const AdminContent = () => {
   // Use actual session state OR dev bypass for admin check
   const isAdmin = !!session || isDevAdmin;
 
+  // Redirect to inventory when entering admin at root
+  useEffect(() => {
+    if (isAdmin && location.pathname === '/admin') {
+      navigate('/admin/inventory');
+    }
+  }, [isAdmin, navigate, location.pathname]);
+
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
     return (
@@ -108,13 +115,6 @@ const AdminContent = () => {
       </div>
     );
   }
-
-  // Redirect to inventory when entering admin at root
-  useEffect(() => {
-    if (isAdmin && location.pathname === '/admin') {
-      navigate('/admin/inventory');
-    }
-  }, [isAdmin, navigate, location.pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

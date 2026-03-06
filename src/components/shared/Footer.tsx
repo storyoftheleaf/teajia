@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Icons } from '../Icons';
 import { Section } from '../../types';
 
@@ -57,6 +58,16 @@ export default function Footer({ onNavigate }: FooterProps) {
       <p className="text-center text-xs text-tea-ink/40 dark:text-tea-paper/40 font-sans tracking-wide">
         teajia &copy; {new Date().getFullYear()}
       </p>
+
+      {/* Admin access */}
+      <div className="text-center mt-6">
+        <Link
+          to="/admin"
+          className="text-[10px] text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-seal font-mono tracking-widest uppercase transition-colors duration-300"
+        >
+          Admin
+        </Link>
+      </div>
     </footer>
   );
 }

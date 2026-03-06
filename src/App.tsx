@@ -27,6 +27,7 @@ import { MagazineTabbed } from './components/MagazineTabbed';
 import { ConsultPage } from './components/ConsultPage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
+import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
@@ -333,6 +334,19 @@ const AppContent = () => {
     }
   };
 
+  // Admin gets its own full-screen layout — bypass the Grid shell entirely
+  if (location.pathname.startsWith('/admin')) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#0c0c0c] text-neutral-400 font-sans text-sm">Loading admin...</div>}>
+          <Routes>
+            <Route path="/admin/*" element={<AdminApp />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F3F0E7] dark:bg-[#0f0f0f] text-tea-ink dark:text-tea-paper relative selection:bg-tea-seal selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
 
@@ -400,11 +414,6 @@ const AppContent = () => {
                   <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
                 } />
                 <Route path="/about" element={<AboutPage />} />
-                <Route path="/admin/*" element={
-                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#0c0c0c] text-neutral-400 font-sans text-sm">Loading admin...</div>}>
-                    <AdminApp />
-                  </Suspense>
-                } />
                 {/* Catch-all: redirect to home */}
                 <Route path="*" element={
                   <HomePage
