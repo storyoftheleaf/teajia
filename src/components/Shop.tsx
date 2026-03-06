@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { InventoryItem } from '../types';
-import { TheCollection } from './shop/TheCollection';
-import { ForYourPractice } from './shop/ForYourPractice';
+import { CollectionTab } from './shop/CollectionTab';
+import { TeaInventory } from './TeaInventory';
+import { TeawareCatalog } from './TeawareCatalog';
 import { PageHeader } from './shared/PageHeader';
+import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { Icons } from './Icons';
-import type { ShopView, CollectionCategory } from '../types/shop';
+import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
+import { CardImage } from './shared/CardImage';
+import { ShopGridLayout } from './shared/ShopGridLayout';
+import { SectionDivider } from './shared/SectionDivider';
+import type { StarterSet } from '../types';
 
-type PracticeTab = 'sets' | 'tea' | 'teaware' | 'table';
+type ShopTab = 'collection' | 'tea' | 'teaware' | 'sets';
 
 interface ShopProps {
   teaInventory: InventoryItem[];
@@ -17,18 +23,11 @@ interface ShopProps {
   onAccountClick?: () => void;
 }
 
-const COLLECTION_SHORTCUTS: { label: string; category: CollectionCategory }[] = [
-  { label: 'Tables', category: 'tea-tables' },
-  { label: 'Art', category: 'art' },
-  { label: 'Antiques', category: 'antiques' },
-  { label: 'Rare Tea', category: 'rare-tea' },
-];
-
-const PRACTICE_SHORTCUTS: { label: string; tab: PracticeTab }[] = [
-  { label: 'Sets', tab: 'sets' },
-  { label: 'Tea', tab: 'tea' },
-  { label: 'Teaware', tab: 'teaware' },
-  { label: 'At the Table', tab: 'table' },
+const TABS = [
+  { id: 'collection', label: 'Collection', icon: <Icons.Seal className="w-4 h-4" /> },
+  { id: 'tea', label: 'Tea', icon: <Icons.Leaf className="w-4 h-4" /> },
+  { id: 'teaware', label: 'Teaware', icon: <Icons.Teapot className="w-4 h-4" /> },
+  { id: 'sets', label: 'Sets', icon: <Icons.Box className="w-4 h-4" /> },
 ];
 
 export const Shop: React.FC<ShopProps> = ({
@@ -39,187 +38,127 @@ export const Shop: React.FC<ShopProps> = ({
   onCartClick,
   onAccountClick,
 }) => {
-  const [view, setView] = useState<ShopView>('landing');
-  const [hoveredPath, setHoveredPath] = useState<'collection' | 'practice' | null>(null);
-  const [collectionScrollTarget, setCollectionScrollTarget] = useState<CollectionCategory | undefined>();
-  const [practiceInitialTab, setPracticeInitialTab] = useState<PracticeTab>('tea');
+  const [activeTab, setActiveTab] = useState<ShopTab>('tea');
+  const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
 
-  const enterCollection = (scrollTo?: CollectionCategory) => {
-    setCollectionScrollTarget(scrollTo);
-    setView('collection');
+  const allInventory = [...teaInventory, ...teawareInventory];
+
+  const handleAddStarterSet = async (set: StarterSet) => {
+    setIsAddingToCart(prev => ({ ...prev, [set.id]: true }));
+    await new Promise(resolve => setTimeout(resolve, 300));
+    set.items.forEach(({ itemId }) => {
+      const item = allInventory.find(inv => inv.id === itemId);
+      if (item) {
+        const defaultQty = item.category === 'tea' ? 50 : 1;
+        const pricePerUnit = item.category === 'tea'
+          ? parseFloat(item.price_per_gram || '0')
+          : parseFloat(item.price_50g || '0');
+        const total = pricePerUnit * defaultQty;
+        onAddToCart(item, defaultQty, total);
+      }
+    });
+    setIsAddingToCart(prev => ({ ...prev, [set.id]: false }));
   };
 
-  const enterPractice = (tab?: PracticeTab) => {
-    setPracticeInitialTab(tab || 'tea');
-    setView('practice');
-  };
+  const renderSetCard = (set: StarterSet) => (
+    <div
+      key={set.id}
+      className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
+      onClick={() => handleAddStarterSet(set)}
+    >
+      <div className="p-2 md:p-3 bg-tea-ink dark:bg-tea-ink border border-white/10 rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+        <CardImage src={set.image} alt={set.name} aspect="square" />
+        <div className="px-1 mt-3">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
+            <h4 className="card-grid-title">{set.name}</h4>
+            <div className="card-grid-price"><span className="card-grid-price">{set.price}</span></div>
+          </div>
+          <div className="mb-2">
+            <span className="card-grid-badge">{set.items.length} items</span>
+          </div>
+          <p className="card-grid-description">{set.shortDescription}</p>
+          <div className="mt-3">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
+              disabled={isAddingToCart[set.id]}
+              className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
+            >
+              <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
+              <span className="w-[1px] h-3 bg-white/30" />
+              <span className="font-mono text-sm">{set.price}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-  // ── Collection view ──
-  if (view === 'collection') {
-    return (
-      <TheCollection
-        onBack={() => setView('landing')}
-        onNavigateToPractice={() => enterPractice()}
-        scrollToCategory={collectionScrollTarget}
-      />
-    );
-  }
+  const renderSets = () => (
+    <div className="max-w-full mx-auto px-2 md:px-4 pt-4 animate-[fadeIn_0.5s_ease-out]">
+      {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-32 opacity-40">
+          <div className="w-16 h-16 border border-tea-ink/20 dark:border-tea-paper/20 rounded-full flex items-center justify-center mb-4">
+            <Icons.Box className="w-6 h-6 text-tea-ink/50 dark:text-tea-paper/50" />
+          </div>
+          <p className="font-serif italic text-base text-tea-ink/60 dark:text-tea-paper/60">No sets available.</p>
+        </div>
+      ) : (
+        <>
+          <SectionDivider label="Tea Sets" subtitle="Curated tea collections with essential brewing vessels." />
+          <ShopGridLayout>
+            {STARTER_TEA_SETS.map(set => renderSetCard(set))}
+          </ShopGridLayout>
 
-  // ── Practice view ──
-  if (view === 'practice') {
-    return (
-      <ForYourPractice
-        teaInventory={teaInventory}
-        teawareInventory={teawareInventory}
-        onAddToCart={onAddToCart}
-        onBack={() => setView('landing')}
-        onNavigateToCollection={() => enterCollection()}
-        cartItemCount={cartItemCount}
-        onCartClick={onCartClick}
-        onAccountClick={onAccountClick}
-        initialTab={practiceInitialTab}
-      />
-    );
-  }
+          <SectionDivider label="Teaware Sets" subtitle="Complete teaware collections for any brewing style." />
+          <ShopGridLayout>
+            {STARTER_TEAWARE_SETS.map(set => renderSetCard(set))}
+          </ShopGridLayout>
+        </>
+      )}
+    </div>
+  );
 
-  // ── Landing view with ambient mood ──
   return (
-    <div className="flex flex-col flex-1 animate-[fadeIn_0.6s_ease-out]">
+    <div className="flex flex-col flex-1 bg-white dark:bg-tea-ink animate-[fadeIn_0.5s_ease-out]">
       <PageHeader
         title="Shop"
         onCartClick={onCartClick}
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}
-      />
+      >
+        <PageHeaderTabs
+          tabs={TABS}
+          activeTab={activeTab}
+          onChange={(tabId) => setActiveTab(tabId as ShopTab)}
+        />
+      </PageHeader>
 
-      {/* Split-screen landing */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-200px)]">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
+        {activeTab === 'collection' && (
+          <CollectionTab
+            inventory={[...teaInventory, ...teawareInventory]}
+            onAddToCart={onAddToCart}
+          />
+        )}
 
-        {/* ── The Collection — dark gallery side ── */}
-        <div
-          className={`
-            group relative flex flex-col items-center justify-center text-center
-            p-10 md:p-12 lg:p-16 transition-all duration-700 ease-out cursor-pointer
-            ${hoveredPath === 'collection'
-              ? 'bg-[#141414]'
-              : hoveredPath === 'practice'
-                ? 'bg-tea-charcoal/60'
-                : 'bg-tea-charcoal'
-            }
-          `}
-          onMouseEnter={() => setHoveredPath('collection')}
-          onMouseLeave={() => setHoveredPath(null)}
-          onClick={() => enterCollection()}
-        >
-          {/* Subtle accent glow */}
-          <div className={`
-            absolute inset-0 bg-gradient-to-br from-tea-seal/5 to-transparent
-            transition-opacity duration-700 pointer-events-none
-            ${hoveredPath === 'collection' ? 'opacity-100' : 'opacity-0'}
-          `} />
+        {activeTab === 'tea' && (
+          <TeaInventory
+            inventory={teaInventory}
+            onAddToCart={onAddToCart}
+            hideHeader
+          />
+        )}
 
-          <div className="relative z-10 max-w-sm">
-            <Icons.Seal className={`
-              w-14 h-14 md:w-16 md:h-16 mx-auto mb-6 text-tea-seal/70
-              transition-all duration-500
-              ${hoveredPath === 'collection' ? 'scale-110 text-tea-seal' : ''}
-            `} />
+        {activeTab === 'teaware' && (
+          <TeawareCatalog
+            externalInventory={teawareInventory}
+            onAddToCart={onAddToCart}
+            hideHeader
+          />
+        )}
 
-            {/* Badge */}
-            <span className="inline-block text-[10px] uppercase tracking-[0.2em] text-tea-paper/40 mb-3">
-              By inquiry only
-            </span>
-
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-tea-paper mb-3">
-              The Collection
-            </h2>
-            <p className="text-sm md:text-base text-tea-paper/50 mb-8 leading-relaxed">
-              Tea tables, art, antiques, and rare aged teas — each piece has a story. Browse and reach out when something speaks to you.
-            </p>
-
-            {/* Main CTA */}
-            <span className="font-serif text-sm text-tea-seal inline-flex items-center gap-2 group-hover:gap-3 transition-all duration-300 mb-6">
-              Enter the Gallery
-              <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-            </span>
-
-            {/* Category shortcuts */}
-            <div className="flex items-center justify-center gap-3 flex-wrap" onClick={e => e.stopPropagation()}>
-              {COLLECTION_SHORTCUTS.map(({ label, category }) => (
-                <button
-                  key={category}
-                  onClick={() => enterCollection(category)}
-                  className="text-[11px] text-tea-paper/30 hover:text-tea-seal transition-colors duration-200 uppercase tracking-wider"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── For Your Practice — warm paper side ── */}
-        <div
-          className={`
-            group relative flex flex-col items-center justify-center text-center
-            p-10 md:p-12 lg:p-16 transition-all duration-700 ease-out cursor-pointer
-            ${hoveredPath === 'practice'
-              ? 'bg-[#EDE9DD]'
-              : hoveredPath === 'collection'
-                ? 'bg-tea-paper/60'
-                : 'bg-tea-paper'
-            }
-          `}
-          onMouseEnter={() => setHoveredPath('practice')}
-          onMouseLeave={() => setHoveredPath(null)}
-          onClick={() => enterPractice()}
-        >
-          {/* Subtle accent glow */}
-          <div className={`
-            absolute inset-0 bg-gradient-to-br from-tea-green/5 to-transparent
-            transition-opacity duration-700 pointer-events-none
-            ${hoveredPath === 'practice' ? 'opacity-100' : 'opacity-0'}
-          `} />
-
-          <div className="relative z-10 max-w-sm">
-            <Icons.Leaf className={`
-              w-14 h-14 md:w-16 md:h-16 mx-auto mb-6 text-tea-green/60
-              transition-all duration-500
-              ${hoveredPath === 'practice' ? 'scale-110 text-tea-green' : ''}
-            `} />
-
-            {/* Badge */}
-            <span className="inline-block text-[10px] uppercase tracking-[0.2em] text-tea-ink/40 mb-3">
-              Ready to ship
-            </span>
-
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-tea-ink mb-3">
-              For Your Practice
-            </h2>
-            <p className="text-sm md:text-base text-tea-ink/50 mb-8 leading-relaxed">
-              Tea, teaware, and everything for ceremony. Browse, choose quantities, and order.
-            </p>
-
-            {/* Main CTA */}
-            <span className="font-serif text-sm text-tea-seal inline-flex items-center gap-2 group-hover:gap-3 transition-all duration-300 mb-6">
-              Browse the Shop
-              <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-            </span>
-
-            {/* Category shortcuts */}
-            <div className="flex items-center justify-center gap-3 flex-wrap" onClick={e => e.stopPropagation()}>
-              {PRACTICE_SHORTCUTS.map(({ label, tab }) => (
-                <button
-                  key={tab}
-                  onClick={() => enterPractice(tab)}
-                  className="text-[11px] text-tea-ink/30 hover:text-tea-seal transition-colors duration-200 uppercase tracking-wider"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        {activeTab === 'sets' && renderSets()}
       </div>
     </div>
   );

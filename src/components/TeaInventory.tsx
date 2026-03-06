@@ -8,7 +8,7 @@ import { CardGridItem } from './shared/CardGridItem';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { PageHeaderActions } from './shared/PageHeaderActions';
-import { SwipeCarousel } from './shared/SwipeCarousel';
+
 import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
 
@@ -29,7 +29,6 @@ const TEA_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Black', 'Dark', 'Herba
 const FEELINGS_LIST = ['Ancient', 'Balanced', 'Energetic', 'Grounding', 'Meditative', 'Romantic', 'Soft', 'Strong', 'Vibrant', 'Wild'];
 
 // Mock Curated Lists
-const TEAJIA_FAVORITES = ['2', '4', '8', '10', '14', '18', '16'];
 const SALE_ITEMS = ['1', '5', '6', '12', '17', '9'];
 
 export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false }) => {
@@ -38,7 +37,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST' | 'CAROUSEL'>('LIST');
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // User Interaction State
   const [userFavorites, setUserFavorites] = useState<Set<string>>(new Set());
@@ -77,7 +76,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
-      if (specialFilter === 'Curated') matchSpecial = TEAJIA_FAVORITES.includes(item.id);
+      if (specialFilter === 'Curated') matchSpecial = !!item.isFeatured;
       if (specialFilter === 'Sale') matchSpecial = SALE_ITEMS.includes(item.id);
       if (specialFilter === 'Liked') matchSpecial = userFavorites.has(item.id);
 
@@ -103,8 +102,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         .filter(type => groups[type] && groups[type].length > 0)
         .map(type => ({
             type,
-            // Sort items by price per gram (Low to High)
+            // Sort: featured first, then by price per gram (Low to High)
             items: groups[type].sort((a, b) => {
+                const aFeat = a.isFeatured ? 1 : 0;
+                const bFeat = b.isFeatured ? 1 : 0;
+                if (aFeat !== bFeat) return bFeat - aFeat;
                 const priceA = parseFloat(a.price_per_gram || a.price_50g || '0');
                 const priceB = parseFloat(b.price_per_gram || b.price_50g || '0');
                 return priceA - priceB;
@@ -223,7 +225,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }}
       />
 
-      {!hideHeader && (
+      {!hideHeader ? (
         <PageHeader
           title="Tea Ledger"
           onCartClick={onCartClick}
@@ -252,6 +254,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             onChange={(id) => setSpecialFilter(prev => prev === id ? 'None' : id as any)}
           />
         </PageHeader>
+      ) : (
+        /* Compact toolbar when embedded as a tab (hideHeader) */
+        <div className="flex items-center justify-between px-4 py-2 lg:hidden">
+          <PageHeaderActions
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onFilter={() => setIsFilterOpen(true)}
+            onReset={clearFilters}
+            showReset={(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None')}
+            showFilter={true}
+            activeType={activeType}
+            activeFeeling={activeFeeling}
+          />
+        </div>
       )}
 
       {/* --- Filter Modal --- */}
@@ -372,53 +388,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             </div>
          )}
 
-         {/* CAROUSEL VIEW */}
-         {viewMode === 'CAROUSEL' && filteredInventory.length > 0 && (
-            <div className="flex flex-col gap-8 animate-[fadeIn_0.5s_ease-out]">
-               {groupedInventory.map((group) => (
-                  <div key={group.type}>
-                     {/* Category Header */}
-                     {activeType === 'All' && specialFilter === 'None' && (
-                        <div className="flex items-center gap-4 mb-4 opacity-70">
-                           <span className="text-sm uppercase tracking-[0.25em] text-tea-ink dark:text-tea-beige font-serif shrink-0 pl-1">
-                              {group.type}
-                           </span>
-                           <div className="h-[1px] bg-tea-ink/10 dark:bg-white/10 flex-1"></div>
-                        </div>
-                     )}
-
-                     {/* Swipe Carousel for this tea type */}
-                     <SwipeCarousel
-                        itemWidth={240}
-                        gap={12}
-                        showArrows={false}
-                        showDots={false}
-                        peek={8}
-                     >
-                        {group.items.map(item => (
-                           <CardGridItem
-                              key={item.id}
-                              item={item}
-                              title={item.name}
-                              onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
-                              imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" />}
-                              badgesComponent={
-                                 <span className="card-grid-badge">{item.type}</span>
-                              }
-                              priceDisplay={
-                                 <span className="card-grid-price">${parseFloat(item.price_per_gram).toFixed(2)}/g</span>
-                              }
-                              descriptionComponent={
-                                 <p className="card-grid-description">{item.description}</p>
-                              }
-                           />
-                        ))}
-                     </SwipeCarousel>
-                  </div>
-               ))}
-            </div>
-         )}
-
          {/* LIST VIEW */}
          {viewMode === 'LIST' && filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
@@ -436,7 +405,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {group.items.map((item) => {
                         const isExpanded = expandedId === item.id;
                         const isFavorite = userFavorites.has(item.id);
-                        const isTeajiaFav = TEAJIA_FAVORITES.includes(item.id);
+                        const isTeajiaFav = !!item.isFeatured;
 
                         const currentQty = selectedQuantities[item.id] || 25;
                         const maxStock = parseInt(item.stock_g) || 100;
