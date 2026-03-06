@@ -4,33 +4,55 @@ import { api, setToken } from '../../lib/api';
 import { useAppStore } from '../store';
 
 export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean; onClose: () => void; onAuthSuccess?: () => void }) => {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setDevAdmin } = useAppStore();
 
   if (!isOpen) return null;
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setName('');
+    setError('');
+  };
+
+  const toggleMode = () => {
+    setMode(mode === 'login' ? 'signup' : 'login');
+    setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     // Dev bypass
-    if (password === '1234') {
+    if (mode === 'login' && password === '1234') {
       setDevAdmin(true);
       setLoading(false);
+      resetForm();
       onClose();
       return;
     }
 
     try {
-      const { token } = await api.auth.login(password);
-      setToken(token);
+      let result;
+      if (mode === 'login') {
+        result = await api.auth.login(email, password);
+      } else {
+        result = await api.auth.signup(email, password, name);
+      }
+      setToken(result.token);
+      resetForm();
       onAuthSuccess?.();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || (mode === 'login' ? 'Login failed' : 'Signup failed'));
     }
     setLoading(false);
   };
@@ -38,19 +60,39 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-2xl relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-tea-muted hover:text-tea-text transition-colors"><X size={20} /></button>
-        <h3 className="text-2xl font-serif text-tea-text mb-2">Admin Access</h3>
-        <p className="text-tea-muted text-sm mb-6 font-serif italic">Enter your credentials to manage inventory.</p>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <button onClick={() => { resetForm(); onClose(); }} className="absolute top-4 right-4 text-tea-muted hover:text-tea-text transition-colors"><X size={20} /></button>
+        <h3 className="text-2xl font-serif text-tea-text mb-2">
+          {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+        </h3>
+        <p className="text-tea-muted text-sm mb-6 font-serif italic">
+          {mode === 'login' ? 'Sign in to your account.' : 'Join the Teajia community.'}
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Name</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors placeholder-tea-muted/50" placeholder="Your name" />
+            </div>
+          )}
+          <div>
+             <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Email</label>
+             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors placeholder-tea-muted/50" placeholder="you@example.com" required />
+          </div>
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Password</label>
-             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors" required />
+             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
           </div>
           {error && <div className="p-3 bg-tea-accent/10 border border-tea-accent/30 text-tea-accent text-sm rounded-lg">{error}</div>}
           <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-accent/10">
-            {loading ? <Loader2 className="animate-spin" /> : 'Sign In'}
+            {loading ? <Loader2 className="animate-spin" /> : mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
+        <div className="mt-6 text-center">
+          <button onClick={toggleMode} className="text-tea-muted text-sm hover:text-tea-text transition-colors">
+            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+            <span className="text-tea-accent font-medium">{mode === 'login' ? 'Sign up' : 'Sign in'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

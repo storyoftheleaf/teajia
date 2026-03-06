@@ -2,6 +2,9 @@ name = "teajia-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
+[vars]
+ADMIN_PASSWORD_HASH = "ecb6f59fd4ff9ee7f5936d3340b49e81157c42c33c93a3baf8043a4614c9a3fa"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "teajia-db"

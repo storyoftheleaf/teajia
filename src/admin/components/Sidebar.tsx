@@ -72,8 +72,9 @@ const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => {
   );
 };
 
-export const Sidebar = ({ 
-  isAdmin, 
+export const Sidebar = ({
+  isAdmin,
+  isLoggedIn,
   onLoginClick,
   onLogoutClick,
   isMobileOpen,
@@ -82,8 +83,9 @@ export const Sidebar = ({
   isDevAdmin,
   onToggleDevAdmin,
   onOpenCart
-}: { 
-  isAdmin: boolean; 
+}: {
+  isAdmin: boolean;
+  isLoggedIn: boolean;
   onLoginClick: () => void;
   onLogoutClick: () => void;
   isMobileOpen: boolean;
@@ -140,12 +142,12 @@ export const Sidebar = ({
         )}
 
         <div className="pt-8 px-4 border-t border-tea-border space-y-4">
-             <button 
-              onClick={isAdmin ? onLogoutClick : onLoginClick}
+             <button
+              onClick={isLoggedIn ? onLogoutClick : onLoginClick}
               className="w-full flex items-center gap-3 px-2 text-tea-muted hover:text-tea-text transition-colors"
             >
-              {isAdmin ? <LogOut size={16} /> : <User size={16} />}
-              <span className="text-xs font-serif italic">{isAdmin ? 'Sign Out' : 'Admin Access'}</span>
+              {isLoggedIn ? <LogOut size={16} /> : <User size={16} />}
+              <span className="text-xs font-serif italic">{isLoggedIn ? 'Sign Out' : 'Sign In'}</span>
             </button>
 
             <button 

@@ -7,10 +7,10 @@ interface Env {
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
 
 // Simple JWT implementation using Web Crypto
-async function createToken(secret: string): Promise<string> {
+async function createToken(secret: string, claims: { sub: string; email: string; role: string; name: string }): Promise<string> {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const payload = btoa(JSON.stringify({ sub: 'admin', iat: now, exp: now + 86400 })); // 24h
+  const payload = btoa(JSON.stringify({ ...claims, iat: now, exp: now + 86400 })); // 24h
   const data = `${header}.${payload}`;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
@@ -53,12 +53,40 @@ function isAuthed(request: Request): string | null {
   return auth.slice(7);
 }
 
+function parseToken(token: string): Record<string, any> | null {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return null;
+    return JSON.parse(atob(payload));
+  } catch {
+    return null;
+  }
+}
+
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
     return json({ error: 'Unauthorized' }, 401);
   }
   return null;
+}
+
+async function requireAdmin(request: Request, env: Env): Promise<Response | null> {
+  const token = isAuthed(request);
+  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+  const claims = parseToken(token);
+  if (!claims || claims.role !== 'admin') {
+    return json({ error: 'Admin access required' }, 403);
+  }
+  return null;
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function json(data: unknown, status = 200): Response {
@@ -123,12 +151,84 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
 // ── Route Handlers ──
 
 const handleLogin: Handler = async (request, env) => {
-  const { password } = await request.json() as { password: string };
-  if (await checkPassword(password, env.ADMIN_PASSWORD_HASH)) {
-    const token = await createToken(env.JWT_SECRET);
-    return json({ token });
+  const { email, password } = await request.json() as { email?: string; password?: string };
+  if (!email || !password) return json({ error: 'Email and password required' }, 400);
+
+  const computedHash = await hashPassword(password);
+
+  // Try DB-based auth (users table)
+  try {
+    const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+    if (user && user.password_hash === computedHash) {
+      const token = await createToken(env.JWT_SECRET, {
+        sub: user.id as string,
+        email: user.email as string,
+        role: user.role as string,
+        name: user.name as string,
+      });
+      return json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    }
+  } catch {
+    // Table may not exist yet — fall through to env-based auth
   }
+
+  // Fallback: check against env var hash (single admin)
+  const storedHash = env.ADMIN_PASSWORD_HASH?.trim();
+  if (storedHash && computedHash === storedHash) {
+    const token = await createToken(env.JWT_SECRET, {
+      sub: 'env-admin',
+      email,
+      role: 'admin',
+      name: 'Admin',
+    });
+    return json({ token, user: { id: 'env-admin', email, name: 'Admin', role: 'admin' } });
+  }
+
   return json({ error: 'Invalid credentials' }, 401);
+};
+
+const handleSignup: Handler = async (request, env) => {
+  const { email, password, name } = await request.json() as { email?: string; password?: string; name?: string };
+  if (!email || !password) return json({ error: 'Email and password required' }, 400);
+  if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+
+  // Check if email already exists
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (existing) return json({ error: 'An account with this email already exists' }, 409);
+
+  const passwordHash = await hashPassword(password);
+  const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+
+  await env.DB.prepare(
+    'INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)'
+  ).bind(id, email, name || '', passwordHash, 'user').run();
+
+  const token = await createToken(env.JWT_SECRET, {
+    sub: id,
+    email,
+    role: 'user',
+    name: name || '',
+  });
+
+  return json({ token, user: { id, email, name: name || '', role: 'user' } }, 201);
+};
+
+const handleGetMe: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  // Try to fetch fresh user data from DB
+  try {
+    const user = await env.DB.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+    if (user) return json(user);
+  } catch {}
+
+  // Fallback to token claims
+  return json({ id: claims.sub, email: claims.email, name: claims.name, role: claims.role });
 };
 
 const handleGetProducts: Handler = async (_request, env) => {
@@ -151,7 +251,7 @@ const handleGetProducts: Handler = async (_request, env) => {
 };
 
 const handleCreateProduct: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   const body = await request.json() as Record<string, any>;
@@ -174,7 +274,7 @@ const handleCreateProduct: Handler = async (request, env) => {
 };
 
 const handleBulkCreateProducts: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   const { products } = await request.json() as { products: Record<string, any>[] };
@@ -198,7 +298,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
 };
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   const body = await request.json() as Record<string, any>;
@@ -216,7 +316,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
 };
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(params.id).run();
@@ -306,7 +406,7 @@ const handleDeleteInvoice: Handler = async (request, env, params) => {
 
 // ── RPC: Fulfill Invoice ──
 const handleFulfillInvoice: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   const { invoice_id } = await request.json() as { invoice_id: string };
@@ -333,7 +433,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
 
 // ── RPC: Increment Stock (for void restore) ──
 const handleIncrementStock: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   const { product_id, amount } = await request.json() as { product_id: string; amount: number };
@@ -344,7 +444,7 @@ const handleIncrementStock: Handler = async (request, env) => {
 
 // ── RPC: Truncate All Data ──
 const handleTruncateAll: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
   await env.DB.prepare('DELETE FROM invoice_line_items').run();
@@ -382,6 +482,8 @@ const handleUploadImage: Handler = async (request, env) => {
 const routes: [string, string, Handler][] = [
   // Auth
   ['POST', '/api/auth/login', handleLogin],
+  ['POST', '/api/auth/signup', handleSignup],
+  ['GET', '/api/auth/me', handleGetMe],
 
   // Products
   ['GET', '/api/products', handleGetProducts],

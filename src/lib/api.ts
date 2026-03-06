@@ -31,13 +31,39 @@ async function handleResponse(res: Response) {
   return data;
 }
 
+export function getTokenClaims(): { sub: string; email: string; role: string; name: string } | null {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return null;
+    return JSON.parse(atob(payload));
+  } catch {
+    return null;
+  }
+}
+
 export const api = {
   auth: {
-    login: async (password: string) => {
+    login: async (email: string, password: string) => {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
+      });
+      return handleResponse(res);
+    },
+    signup: async (email: string, password: string, name: string) => {
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+      return handleResponse(res);
+    },
+    me: async () => {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: authHeaders(),
       });
       return handleResponse(res);
     },

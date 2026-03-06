@@ -76,7 +76,17 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     price_at_sale REAL NOT NULL
 );
 
--- 5. Activity Logs Table
+-- 5. Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    email TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',  -- 'admin', 'user'
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 6. Activity Logs Table
 CREATE TABLE IF NOT EXISTS activity_logs (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     user_email TEXT,

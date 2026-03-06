@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, X, ArrowRight, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isConfigured, hasToken, clearToken } from '../lib/api';
+import { isConfigured, hasToken, clearToken, getTokenClaims } from '../lib/api';
 import { Product } from './types';
 import { useProducts, useRates } from './hooks/useSupabase';
 import { useAppStore } from './store';
@@ -53,6 +53,10 @@ const AdminContent = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  const claims = getTokenClaims();
+  const userRole = claims?.role || (isDevAdmin ? 'admin' : null);
+  const isAdmin = (isAuthenticated && userRole === 'admin') || isDevAdmin;
+
   // Modals
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -67,15 +71,15 @@ const AdminContent = () => {
 
   const loading = productsLoading;
 
-  // Use token state OR dev bypass for admin check
-  const isAdmin = isAuthenticated || isDevAdmin;
+  // Regular users can browse catalog but not manage inventory
+  const isLoggedIn = isAuthenticated || isDevAdmin;
 
-  // Redirect to inventory when entering admin at root
+  // Redirect when entering admin at root
   useEffect(() => {
-    if (isAdmin && location.pathname === '/admin') {
-      navigate('/admin/inventory');
+    if (isLoggedIn && location.pathname === '/admin') {
+      navigate(isAdmin ? '/admin/inventory' : '/admin/catalog');
     }
-  }, [isAdmin, navigate, location.pathname]);
+  }, [isLoggedIn, isAdmin, navigate, location.pathname]);
 
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
@@ -148,6 +152,7 @@ const AdminContent = () => {
 
       <Sidebar
         isAdmin={isAdmin}
+        isLoggedIn={isLoggedIn}
         onLoginClick={() => setIsLoginOpen(true)}
         onLogoutClick={handleLogout}
         isMobileOpen={isMobileOpen}
