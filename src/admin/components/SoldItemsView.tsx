@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { Download, AlertCircle, Archive, ScrollText, Loader2 } from 'lucide-react';
 import { Product } from '../types';
-import { useActivityLogs } from '../hooks/useSupabase';
+import { useActivityLogs } from '../hooks/useAdminData';
 
 export const RecordsView = ({ products }: { products: Product[] }) => {
   const [activeTab, setActiveTab] = useState<'archive' | 'logs'>('archive');

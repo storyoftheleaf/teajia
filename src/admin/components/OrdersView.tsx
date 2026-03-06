@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Loader2, Search, XCircle, Trash2, Eye, X, CheckSquare, PackageCheck } from 'lucide-react';
-import { useRates } from '../hooks/useSupabase';
+import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 
 export const OrdersView = () => {

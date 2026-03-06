@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
 import { AddProductModal } from './AddProductModal';
-import { useRates } from '../hooks/useSupabase';
+import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from '../store';

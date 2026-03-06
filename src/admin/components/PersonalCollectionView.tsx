@@ -3,7 +3,7 @@ import { Loader2, Search, UserCheck, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Al
 import Fuse from 'fuse.js';
 import { Product } from '../types';
 import { AddProductModal } from './AddProductModal';
-import { useRates } from '../hooks/useSupabase';
+import { useRates } from '../hooks/useAdminData';
 import { formatCurrency } from '../utils';
 
 // Reuse theme styles for consistency

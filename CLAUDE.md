@@ -7,13 +7,15 @@ This is the unified Teajia application combining two previously separate repos:
 1. **Teajia Grid** (magazine/journal/public site) — the customer-facing editorial experience
 2. **Teajia Inventory** (admin/inventory/sales) — the private inventory management and invoicing system
 
-Both are being merged into a single React + TypeScript + Vite app deployed to **Cloudflare Pages** under one domain.
+Both are merged into a single React + TypeScript + Vite app deployed to **Cloudflare Pages** (frontend) and **Cloudflare Workers** (API) under one domain.
 
 ## Architecture Decision
 
 - The **Grid** project is the base/shell. It provides the public-facing pages: Home, Magazine, Learn, Shop, Consult, About.
-- The **Inventory** project becomes the `/admin` route, accessible only after Supabase authentication.
-- Both share one Supabase backend, one set of product data, one deployment.
+- The **Inventory** project becomes the `/admin` route, accessible only after JWT authentication.
+- Both share one Cloudflare D1 database, one set of product data, one deployment.
+- The public shop fetches from `/api/products/public` (no auth, sensitive fields stripped).
+- The admin fetches from `/api/products` (requires admin auth, full product data).
 
 ## Source Repos
 
@@ -32,7 +34,7 @@ The developer (Adrian) has both repos cloned locally. When working on this proje
 | Routing | react-router-dom v7 | Inventory had it. Grid used manual state. Add router to Grid. |
 | Server State | @tanstack/react-query v5 | From Inventory |
 | Client State | zustand v5 | From Inventory. Grid used Context — migrate gradually. |
-| Backend | Supabase | From Inventory. Grid's static data gets replaced. |
+| Backend | Cloudflare Workers + D1 | REST API with JWT auth, SQLite database |
 | Animation | framer-motion | From Inventory. Grid used CSS animations. |
 | Styling | Tailwind (CDN in dev, build for prod) | Both used Tailwind |
 | Search | fuse.js | From Inventory |
@@ -42,7 +44,7 @@ The developer (Adrian) has both repos cloned locally. When working on this proje
 | QR | qrcode.react | From Inventory (invoices) |
 | Command Palette | cmdk | From Inventory |
 | Icons | lucide-react | Both used it (align on one version) |
-| Deploy | Cloudflare Pages | SPA mode with `/* /index.html 200` redirect |
+| Deploy | Cloudflare Pages + Workers | Pages for frontend, Workers for API |
 
 ## Folder Structure (Target)
 
@@ -64,13 +66,13 @@ teajia-unified/
 │   ├── constants.ts       ← Merged constants
 │   │
 │   ├── lib/
-│   │   ├── supabase.ts        ← Supabase client init
+│   │   ├── api.ts             ← Cloudflare Worker API client
 │   │   ├── utils.ts           ← Currency formatting, pricing calc
 │   │   ├── themeUtils.ts      ← Tea type color mapping
 │   │   └── store.ts           ← Zustand store (cart, currency, auth state)
 │   │
 │   ├── hooks/
-│   │   ├── useSupabase.ts     ← React Query hooks (useProducts, useRates)
+│   │   ├── useAdminData.ts    ← React Query hooks (useProducts, useRates)
 │   │   ├── usePullToRefresh.ts
 │   │   └── ...
 │   │
@@ -152,7 +154,7 @@ teajia-unified/
 - Copy Inventory components into `src/admin/`
 - Create `AdminLayout.tsx` that wraps admin pages in dark theme
 - Add admin routes: `/admin`, `/admin/inventory`, `/admin/personal`, `/admin/orders`, `/admin/records`, `/admin/settings`
-- Protect admin routes with auth check (Supabase session or dev bypass)
+- Protect admin routes with auth check (JWT token or dev bypass)
 
 ### Phase 4: Unify Design System
 - Merge Tailwind configs into one
@@ -161,11 +163,11 @@ teajia-unified/
 - Keep BOTH sets in the config. Public pages use Grid tokens, admin uses Inventory tokens.
 - Admin layout applies dark background via wrapper class.
 
-### Phase 5: Connect Supabase Data
-- Add Supabase client, React Query provider, Zustand store at app root
-- Public Shop pulls products where `isPublic === true`
-- Admin sees all products
-- Grid's static InventoryContext becomes a thin wrapper over the real data
+### Phase 5: Connect D1 Data (DONE)
+- Cloudflare Worker API serves product data from D1 database
+- Public Shop pulls from `/api/products/public` (active, public products only, sensitive fields stripped)
+- Admin pulls from `/api/products` (all products, requires auth)
+- InventoryContext is now a thin wrapper over `usePublicProducts` hook
 
 ### Phase 6: Deploy
 - Cloudflare Pages: build command `npm run build`, output `dist`
@@ -175,8 +177,7 @@ teajia-unified/
 ## Environment Variables
 
 ```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_API_URL=https://teajia-api.lightcodes.workers.dev
 VITE_GEMINI_API_KEY=optional-for-ai-features
 VITE_EXCHANGE_RATE_API_KEY=optional-for-live-rates
 ```
@@ -224,10 +225,10 @@ interface Product {
 
 - Adrian prefers natural/organic aesthetic. The Grid's editorial quality is high — preserve it.
 - The Alcove tea card component (`TeaCardNewLayouts.tsx`) is a premium display piece. It should eventually be used on the public shop as well.
-- The Inventory app has a dev admin bypass (`isDevAdmin` toggle) for development without Supabase auth. Keep this.
-- The Grid uses `localStorage` for cart persistence. The Inventory uses Zustand. Migrate to Zustand.
-- Currency conversion logic in the Inventory's `utils.ts` is production-ready. Use it everywhere.
-- The 139+ tea inventory lives in Supabase. The Grid's static tea data is placeholder.
+- The Inventory app has a dev admin bypass (`isDevAdmin` toggle) for development without auth. Keep this.
+- Both public and admin carts use the shared Zustand store (`src/lib/store.ts`) with persist middleware.
+- Currency conversion logic in the admin's `utils.ts` is production-ready. Use it everywhere.
+- The 139+ tea inventory lives in Cloudflare D1. The Grid's static markdown data has been replaced.
 - Both apps use Tailwind via CDN (`<script src="https://cdn.tailwindcss.com">`). For production, consider switching to PostCSS Tailwind for proper tree-shaking, but CDN works fine for now.
 
 ## Commands

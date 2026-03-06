@@ -4,7 +4,7 @@ import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, X, ArrowRigh
 import { motion, AnimatePresence } from 'framer-motion';
 import { isConfigured, hasToken, clearToken, getTokenClaims } from '../lib/api';
 import { Product } from './types';
-import { useProducts, useRates } from './hooks/useSupabase';
+import { useProducts, useRates } from './hooks/useAdminData';
 import { useAppStore } from './store';
 
 // Import Components

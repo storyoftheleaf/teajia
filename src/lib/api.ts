@@ -71,7 +71,13 @@ export const api = {
 
   products: {
     list: async () => {
-      const res = await fetch(`${API_URL}/api/products`);
+      const res = await fetch(`${API_URL}/api/products`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    listPublic: async () => {
+      const res = await fetch(`${API_URL}/api/products/public`);
       return handleResponse(res);
     },
     create: async (data: Record<string, any>) => {

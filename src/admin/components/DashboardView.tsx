@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin } from 'lucide-react';
 import { Product } from '../types';
-import { useRates } from '../hooks/useSupabase';
+import { useRates } from '../hooks/useAdminData';
 
 const TooltipWrapper = (props: any) => (
     <RechartsTooltip 

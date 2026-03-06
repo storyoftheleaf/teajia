@@ -217,6 +217,37 @@ export interface InventoryItem {
   supplier_location?: string; // Location/country where supplier is based (maps to currency)
 }
 
+// Public-safe product type (no cost/vendor fields)
+export type PublicProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Matcha' | 'Flower' | 'Teaware' | 'Misc';
+
+export interface PublicProduct {
+  id: string;
+  type: PublicProductType;
+  givenName: string;
+  chineseName?: string;
+  productName: string;
+  year?: number;
+  originCountry: string;
+  originRegion: string;
+  pricePerGramUSD: number;
+  fixedRetailPriceUSD?: number | null;
+  stockGrams: number;
+  description: string;
+  tastingNotes: string[];
+  imageUrl: string;
+  status: 'Active' | 'Sold Out';
+  isPersonal: boolean;
+  canReorder: boolean;
+  isFeatured?: boolean;
+  isOneOfAKind: boolean;
+  lore?: string;
+  showWisdom?: boolean;
+  processingNotes?: string;
+  mood?: string;
+  experience?: string;
+  liquorColor?: string;
+}
+
 export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;
 export type TeaType = typeof TEA_TYPES[number];
 

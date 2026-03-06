@@ -4,7 +4,8 @@ import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 import { STORIES, LEARN_STORIES } from './constants';
-import { Story, ContentType, ViewState, Person, CartItem, InventoryItem, Section } from './types';
+import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
+import { useAppStore } from './lib/store';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { MediaViewer } from './components/MediaViewer';
 import { Reader } from './components/Reader';
@@ -39,7 +40,15 @@ import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 // Create an inner component to use the context
 const AppContent = () => {
   const { stories } = useStories();
-  const { inventory, updateInventoryItem } = useInventory();
+  const { inventory } = useInventory();
+  const {
+    publicCart: cart,
+    isPublicCartOpen: isCartOpen,
+    addToPublicCart,
+    removeFromPublicCart,
+    updatePublicCartQuantity,
+    setIsPublicCartOpen: setIsCartOpen,
+  } = useAppStore();
   const preloader = useImagePreloader();
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
@@ -119,22 +128,7 @@ const AppContent = () => {
   const [savedStoryIds, setSavedStoryIds] = useState<Record<string, boolean>>({});
   const [watchedStoryIds, setWatchedStoryIds] = useState<Record<string, boolean>>({});
 
-  // Cart State with localStorage persistence
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('teajia_cart');
-      if (!saved) return [];
-      const parsed = JSON.parse(saved) as any[];
-      return parsed.map(item => ({
-        ...item,
-        totalPrice: typeof item.totalPrice === 'string' ? parseFloat(item.totalPrice) || 0 : (item.totalPrice || 0),
-        category: item.category || 'tea',
-      }));
-    } catch {
-      return [];
-    }
-  });
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  // Cart state managed by Zustand store (publicCart)
 
   // Modal State
   const [showContact, setShowContact] = useState(false);
@@ -161,14 +155,7 @@ const AppContent = () => {
     return () => window.removeEventListener('navigate', handleNavigate);
   }, [setActiveSection]);
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('teajia_cart', JSON.stringify(cart));
-    } catch (e) {
-      console.error('[App] Failed to save cart to localStorage:', e);
-    }
-  }, [cart]);
+  // Cart persistence handled by Zustand persist middleware
 
   // Desktop keyboard shortcuts
   useEffect(() => {
@@ -204,55 +191,29 @@ const AppContent = () => {
       image: item.image,
     });
 
-    // Update inventory stock - reduce by quantity added
-    const currentStock = item.stock_g || 0;
-    const newStock = Math.max(0, currentStock - qty);
-    updateInventoryItem({
-        ...item,
-        stock_g: newStock
-    });
+    const pricePerGram = item.category === 'tea'
+      ? parseFloat(item.price_per_gram || '0')
+      : parseFloat(item.price_50g || '0');
 
-    setCart(prev => {
-        const existing = prev.find(c => c.id === item.id);
-        if (existing) {
-            return prev.map(c => c.id === item.id ? {
-                ...c,
-                quantityGrams: qty,
-                totalPrice: total
-            } : c);
-        }
-        return [...prev, {
-            id: item.id,
-            name: item.name,
-            variant: item.variant,
-            category: item.category,
-            quantityGrams: qty,
-            pricePerGram: item.category === 'tea'
-                ? parseFloat(item.price_per_gram || '0')
-                : parseFloat(item.price_50g || '0'),
-            totalPrice: total,
-            image: item.image
-        }];
+    addToPublicCart({
+      id: item.id,
+      name: item.name,
+      variant: item.variant,
+      category: item.category,
+      quantityGrams: qty,
+      pricePerGram,
+      totalPrice: total,
+      image: item.image,
     });
     showToast(`Added ${item.name}`);
   };
 
   const handleRemoveFromCart = (id: string) => {
-      setCart(prev => prev.filter(item => item.id !== id));
+    removeFromPublicCart(id);
   };
 
   const handleUpdateCartQuantity = (id: string, grams: number) => {
-      setCart(prev => prev.map(item => {
-          if (item.id === id) {
-              const newTotal = item.pricePerGram * grams;
-              return {
-                  ...item,
-                  quantityGrams: grams,
-                  totalPrice: newTotal
-              };
-          }
-          return item;
-      }));
+    updatePublicCartQuantity(id, grams);
   };
 
   const handleCardClick = (story: Story) => {

@@ -231,7 +231,10 @@ const handleGetMe: Handler = async (request, env) => {
   return json({ id: claims.sub, email: claims.email, name: claims.name, role: claims.role });
 };
 
-const handleGetProducts: Handler = async (_request, env) => {
+const handleGetProducts: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
   // Get rates for pricing calculation
   const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
   const rates = new Map<string, number>();
@@ -246,6 +249,41 @@ const handleGetProducts: Handler = async (_request, env) => {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
     }
     return addPricingFields(p, rates);
+  });
+  return json(products);
+};
+
+// Public-safe fields whitelist
+const PUBLIC_FIELDS = [
+  'id', 'type', 'given_name', 'chinese_name', 'product_name', 'year',
+  'origin_country', 'origin_region', 'retail_price_per_gram_usd',
+  'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
+  'image_url', 'status', 'is_personal', 'can_reorder', 'is_featured',
+  'lore', 'show_wisdom', 'processing_notes', 'mood', 'experience', 'liquor_color',
+] as const;
+
+const handleGetPublicProducts: Handler = async (_request, env) => {
+  const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
+  const rates = new Map<string, number>();
+  for (const r of ratesResult.results) {
+    rates.set(r.currency as string, r.rate_to_usd as number);
+  }
+
+  const result = await env.DB.prepare(
+    "SELECT * FROM products WHERE is_public = 1 AND status = 'Active' ORDER BY created_at DESC"
+  ).all();
+
+  const products = result.results.map(p => {
+    if (typeof p.tasting_notes === 'string') {
+      try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+    }
+    const withPricing = addPricingFields(p, rates);
+    // Strip sensitive fields — only return whitelisted public fields
+    const safe: Record<string, unknown> = {};
+    for (const key of PUBLIC_FIELDS) {
+      if (key in withPricing) safe[key] = withPricing[key];
+    }
+    return safe;
   });
   return json(products);
 };
@@ -486,6 +524,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/auth/me', handleGetMe],
 
   // Products
+  ['GET', '/api/products/public', handleGetPublicProducts],
   ['GET', '/api/products', handleGetProducts],
   ['POST', '/api/products', handleCreateProduct],
   ['POST', '/api/products/bulk', handleBulkCreateProducts],

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { useActivityLogs } from '../hooks/useSupabase';
+import { useActivityLogs } from '../hooks/useAdminData';
 
 export const ActivityLogView = () => {
   const { data: logs, isLoading } = useActivityLogs();
