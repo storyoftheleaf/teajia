@@ -1,4 +1,4 @@
-export type ConsultView = 'overview' | 'tea-house-design' | 'sourcing-journeys' | 'projects' | 'project-detail';
+export type ConsultView = 'main' | 'projects' | 'project-detail';
 
 export type ConsultProjectType = 'space' | 'event' | 'journey';
 
