@@ -215,6 +215,16 @@ export interface InventoryItem {
   image: string;
   supplier?: string; // Supplier/vendor name for the item
   supplier_location?: string; // Location/country where supplier is based (maps to currency)
+  chineseName?: string;
+  lore?: string;
+  showWisdom?: boolean;
+  processingNotes?: string;
+  mood?: string;
+  experience?: string;
+  liquorColor?: string;
+  isFeatured?: boolean;
+  isOneOfAKind?: boolean;
+  magazineUrl?: string;
 }
 
 // Public-safe product type (no cost/vendor fields)

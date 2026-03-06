@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Icons } from './Icons';
-import { PopupModal } from './shared/PopupModal';
+import { AlcoveModal } from './shop/AlcoveModal';
 import { CardImage } from './shared/CardImage';
 import { CardThumbnail } from './shared/CardThumbnail';
 import { CardGridItem } from './shared/CardGridItem';
@@ -211,8 +211,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   return (
     <div className="w-full pb-32 animate-[fadeIn_0.5s_ease-out]">
 
-      {/* --- Popup Modal --- */}
-      <PopupModal
+      {/* --- Alcove Detail Modal --- */}
+      <AlcoveModal
         item={viewItem}
         items={filteredInventory}
         onClose={() => setViewItem(null)}
@@ -221,10 +221,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           if (onAddToCart) onAddToCart(item, quantity, total);
           setViewItem(null);
         }}
-        showQuantityControls={true}
-        quantityStep={25}
-        defaultQuantity={25}
-        maxQuantity={parseInt(viewItem?.stock_g || '100')}
       />
 
       {!hideHeader && (

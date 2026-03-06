@@ -21,5 +21,14 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     description: p.description,
     tags: p.tastingNotes,
     image: p.imageUrl,
+    chineseName: p.chineseName,
+    lore: p.lore,
+    showWisdom: p.showWisdom,
+    processingNotes: p.processingNotes,
+    mood: p.mood,
+    experience: p.experience,
+    liquorColor: p.liquorColor,
+    isFeatured: p.isFeatured,
+    isOneOfAKind: p.isOneOfAKind,
   };
 }
