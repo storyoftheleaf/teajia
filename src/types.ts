@@ -218,10 +218,8 @@ export interface InventoryItem {
   chineseName?: string;
   lore?: string;
   showWisdom?: boolean;
-  processingNotes?: string;
   mood?: string;
   experience?: string;
-  liquorColor?: string;
   isFeatured?: boolean;
   isOneOfAKind?: boolean;
   magazineUrl?: string;

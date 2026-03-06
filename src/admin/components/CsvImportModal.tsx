@@ -19,8 +19,12 @@ interface StagingRow {
   originCountry: string;
   originRegion: string;
   status: string; // 'Active' or 'Draft'
-  isPersonal: boolean; 
-  canReorder: boolean; 
+  isPersonal: boolean;
+  canReorder: boolean;
+  description: string;
+  lore: string;
+  mood: string;
+  experience: string;
   isValid: boolean;
   errors: string[];
 }
@@ -184,7 +188,11 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             originRegion: (getOriginRegion() || '').trim(),
             isPersonal: isYes(getPersonal()),
             canReorder: isYes(getRestockable()),
-            status: 'Active', 
+            description: (getSafeValue(row, ['Description', 'Desc']) || '').trim(),
+            lore: (getSafeValue(row, ['Lore', 'Story', 'History']) || '').trim(),
+            mood: (getSafeValue(row, ['Mood', 'Feeling']) || '').trim(),
+            experience: (getSafeValue(row, ['Experience', 'Feeling Description']) || '').trim(),
+            status: 'Active',
             isValid: true,
             errors: []
           };
@@ -286,10 +294,13 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           cost_amount: cost,
           cost_currency: curr, 
           vendor: r.vendor,
-          description: '', // FIX: Default to empty, do not create admin text
-          status: r.status, 
-          is_personal: !!r.isPersonal, // Enforce boolean
-          can_reorder: !!r.canReorder  // Enforce boolean
+          description: r.description || '',
+          status: r.status,
+          is_personal: !!r.isPersonal,
+          can_reorder: !!r.canReorder,
+          lore: r.lore || null,
+          mood: r.mood || null,
+          experience: r.experience || null
         };
     });
 
