@@ -1,42 +1,21 @@
-import React, { useMemo, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Story } from '../types';
 import { Icons } from './Icons';
 import { CardContainer } from './shared/CardContainer';
 import { SearchInput } from './shared/SearchInput';
-import { CategoryPills } from './shared/CategoryPills';
-import { FeaturedCard } from './shared/FeaturedCard';
-import { TermPreviewList } from './shared/TermPreviewList';
+import { SwipeCarousel } from './shared/SwipeCarousel';
 import { useSectionReveal } from '../hooks/useSectionReveal';
-import { LEARN_CURRICULUM } from '../constants';
+import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES } from '../data/glossary';
 import { teaMapPins } from '../data/teaMapPins';
+import { COMMUNITY_WISDOM } from '../data/communityWisdom';
+import { CURATED_COLLECTIONS, DIFFICULTY_COLORS } from '../data/curatedCollections';
+import { TEA_SPACES, SPACE_TYPE_LABELS } from '../data/teaSpaces';
 
 // Extended view type matching LearnHub's navigation
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
 const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2 rounded-sm';
-
-// Category pills for in-page navigation
-const ARCHIVE_CATEGORIES = [
-  { id: 'all', label: 'All' },
-  { id: 'courses', label: 'Courses' },
-  { id: 'journeys', label: 'Journeys' },
-  { id: 'glossary', label: 'Glossary' },
-  { id: 'resources', label: 'Resources' },
-];
-
-// Curated glossary terms matching the Stitch design
-const FEATURED_TERM_IDS = ['gongfu', 'gaiwan', 'cha-qi', 'huigan', 'yixing'];
-
-// Resource grid card definitions — archival styling
-const RESOURCE_CARDS: { id: string; label: string; subtitle: string; icon: React.ReactNode; view: LearnView }[] = [
-  { id: 'glossary', label: 'Glossary', subtitle: 'Tea terminology', icon: <Icons.BookOpen className="w-5 h-5" />, view: 'glossary' },
-  { id: 'playlists', label: 'Playlists', subtitle: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, view: 'playlists' },
-  { id: 'videos', label: 'Videos', subtitle: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, view: 'videos' },
-  { id: 'visual-guides', label: 'Visual Guides', subtitle: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, view: 'visual-guides' },
-  { id: 'reading', label: 'Reading', subtitle: 'Books & articles', icon: <Icons.Book className="w-5 h-5" />, view: 'reading' },
-  { id: 'spaces', label: 'Tea Spaces', subtitle: 'Design inspiration', icon: <Icons.Home className="w-5 h-5" />, view: 'spaces' },
-];
 
 // Atlas card type mapping from teaMapPin types
 const PIN_TYPE_LABELS: Record<string, string> = {
@@ -46,53 +25,44 @@ const PIN_TYPE_LABELS: Record<string, string> = {
   space: 'Studio',
 };
 
-// Selected pins for atlas cards
-const ATLAS_PINS = [
-  teaMapPins.find(p => p.id === 'pin-3')!, // Wuyi Origin — farm
-  teaMapPins.find(p => p.id === 'pin-4')!, // Sueyoshi Ceramics — shop
+// Path icon mapping
+const PATH_ICONS: Record<string, React.ReactNode> = {
+  'Leaf': <Icons.Leaf className="w-6 h-6" />,
+  'Teapot': <Icons.Teapot className="w-6 h-6" />,
+  'Location': <Icons.Location className="w-6 h-6" />,
+  'Box': <Icons.Box className="w-6 h-6" />,
+};
+
+// Wisdom type -> left border color
+const WISDOM_BORDER_COLORS: Record<string, string> = {
+  reflection: 'border-l-blue-400/40',
+  tip: 'border-l-emerald-400/40',
+  ritual: 'border-l-purple-400/40',
+  photo: 'border-l-amber-400/40',
+};
+
+// Discovery category tiles
+const DISCOVERY_TILES: { id: string; label: string; icon: React.ReactNode; count: number | null; view: LearnView }[] = [
+  { id: 'course', label: 'Courses', icon: <Icons.BookOpen className="w-5 h-5" />, count: LEARN_CURRICULUM.length, view: 'course' },
+  { id: 'glossary', label: 'Glossary', icon: <Icons.Book className="w-5 h-5" />, count: GLOSSARY_TERMS.length, view: 'glossary' },
+  { id: 'journeys', label: 'Journeys', icon: <Icons.Location className="w-5 h-5" />, count: CURATED_COLLECTIONS.length, view: 'journeys' },
+  { id: 'playlists', label: 'Playlists', icon: <Icons.Music className="w-5 h-5" />, count: null, view: 'playlists' },
+  { id: 'videos', label: 'Videos', icon: <Icons.Film className="w-5 h-5" />, count: null, view: 'videos' },
+  { id: 'visual-guides', label: 'Guides', icon: <Icons.Download className="w-5 h-5" />, count: null, view: 'visual-guides' },
+  { id: 'reading', label: 'Reading', icon: <Icons.Book className="w-5 h-5" />, count: null, view: 'reading' },
+  { id: 'wisdom', label: 'Wisdom', icon: <Icons.Users className="w-5 h-5" />, count: COMMUNITY_WISDOM.length, view: 'wisdom' },
+  { id: 'spaces', label: 'Spaces', icon: <Icons.Home className="w-5 h-5" />, count: TEA_SPACES.length, view: 'spaces' },
 ];
 
-/** Molecular/polyphenol structure diagram — inline SVG */
-const MolecularDiagram: React.FC = () => (
-  <div className="flex flex-col items-center w-full">
-    <span className="text-[9px] font-mono tracking-[0.2em] text-tea-paper/30 mb-3">
-      Fig 1.2 — Polyphenol Structure
-    </span>
-    <svg viewBox="0 0 180 140" className="w-full max-w-[200px]" aria-hidden="true">
-      {/* Connecting lines */}
-      <line x1="90" y1="20" x2="50" y2="50" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="90" y1="20" x2="130" y2="50" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="50" y1="50" x2="30" y2="90" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="50" y1="50" x2="90" y2="80" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="130" y1="50" x2="90" y2="80" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="130" y1="50" x2="155" y2="85" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="90" y1="80" x2="70" y2="120" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      <line x1="90" y1="80" x2="120" y2="115" stroke="rgba(201,148,58,0.25)" strokeWidth="1" />
-      {/* Nodes */}
-      <circle cx="90" cy="20" r="6" fill="#c9943a" />
-      <circle cx="50" cy="50" r="5" fill="#c9943a" opacity="0.8" />
-      <circle cx="130" cy="50" r="5" fill="#c9943a" opacity="0.8" />
-      <circle cx="30" cy="90" r="4" fill="#c9943a" opacity="0.6" />
-      <circle cx="90" cy="80" r="7" fill="#c9943a" />
-      <circle cx="155" cy="85" r="3.5" fill="#c9943a" opacity="0.5" />
-      <circle cx="70" cy="120" r="4" fill="#c9943a" opacity="0.6" />
-      <circle cx="120" cy="115" r="4.5" fill="#c9943a" opacity="0.7" />
-    </svg>
-    {/* Comparison bar */}
-    <div className="mt-4 w-full max-w-[200px]">
-      <span className="text-[8px] font-mono tracking-[0.3em] text-tea-paper/25 block mb-1.5">
-        Comparing
-      </span>
-      <div className="flex items-center gap-2 text-[10px] text-tea-paper/50 font-mono">
-        <span className="whitespace-nowrap">Theaflavin-3</span>
-        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-          <div className="h-full w-3/5 bg-gradient-to-r from-tea-seal/60 to-tea-seal/20 rounded-full" />
-        </div>
-        <span className="whitespace-nowrap">Oxidized</span>
-      </div>
-    </div>
-  </div>
-);
+// Resource grid tiles — prominent, always visible
+const RESOURCE_TILES: { id: string; label: string; subtitle: string; icon: React.ReactNode; view: LearnView }[] = [
+  { id: 'playlists', label: 'Playlists', subtitle: 'Music for tea', icon: <Icons.Music className="w-5 h-5" />, view: 'playlists' },
+  { id: 'videos', label: 'Videos', subtitle: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, view: 'videos' },
+  { id: 'visual-guides', label: 'Guides', subtitle: 'Charts & refs', icon: <Icons.Download className="w-5 h-5" />, view: 'visual-guides' },
+  { id: 'reading', label: 'Reading', subtitle: 'Books & articles', icon: <Icons.Book className="w-5 h-5" />, view: 'reading' },
+  { id: 'spaces', label: 'Spaces', subtitle: 'Design inspo', icon: <Icons.Home className="w-5 h-5" />, view: 'spaces' },
+  { id: 'glossary', label: 'Glossary', subtitle: `${GLOSSARY_TERMS.length}+ terms`, icon: <Icons.BookOpen className="w-5 h-5" />, view: 'glossary' },
+];
 
 interface LearnOverviewProps {
   onStoryClick: (story: Story) => void;
@@ -105,21 +75,22 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
   onStoryClick,
   watchedStories,
   onNavigateTo,
+  onNavigateToConsult,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
 
-  // Section refs for pill navigation
-  const coursesRef = useRef<HTMLDivElement>(null);
-  const journeysRef = useRef<HTMLDivElement>(null);
-  const glossaryRef = useRef<HTMLDivElement>(null);
-  const resourcesRef = useRef<HTMLDivElement>(null);
-
-  const headerReveal = useSectionReveal();
-  const featuredReveal = useSectionReveal();
-  const twoColReveal = useSectionReveal();
+  // Section reveals
+  const heroReveal = useSectionReveal();
+  const discoveryReveal = useSectionReveal();
+  const glossaryReveal = useSectionReveal();
+  const pathsReveal = useSectionReveal();
   const coursesReveal = useSectionReveal();
+  const voicesReveal = useSectionReveal();
+  const journeysReveal = useSectionReveal();
+  const atlasReveal = useSectionReveal();
   const resourcesReveal = useSectionReveal();
+  const spacesReveal = useSectionReveal();
+  const closingReveal = useSectionReveal();
 
   // Module completion tracking
   const moduleCompletion = useMemo(() => {
@@ -130,34 +101,45 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     return map;
   }, [watchedStories]);
 
-  // First incomplete module for featured card
-  const featuredModule = useMemo(() => {
-    return LEARN_CURRICULUM.find(mod => !moduleCompletion[mod.id]) || LEARN_CURRICULUM[0];
-  }, [moduleCompletion]);
-
-  // Find first incomplete lesson in a module
-  const getModuleTarget = (mod: typeof LEARN_CURRICULUM[0]) => {
+  // First incomplete lesson in a module
+  const getModuleTarget = useCallback((mod: typeof LEARN_CURRICULUM[0]) => {
     return mod.lessons.find(l => !watchedStories[l.id]) || mod.lessons[0];
-  };
+  }, [watchedStories]);
 
-  // Lesson l3-1 for atlas card navigation
+  // Geography lesson for atlas cards
   const geographyLesson = useMemo(() => {
     const m3 = LEARN_CURRICULUM.find(m => m.id === 'm3');
     return m3?.lessons.find(l => l.id === 'l3-1') || LEARN_CURRICULUM[0].lessons[0];
   }, []);
 
-  // Glossary terms for preview
-  const previewTerms = useMemo(() => {
-    return FEATURED_TERM_IDS
-      .map(id => GLOSSARY_TERMS.find(t => t.id === id))
-      .filter(Boolean)
-      .map(t => ({
-        id: t!.id,
-        term: t!.term,
-        definition: t!.definition,
-        categoryLabel: GLOSSARY_CATEGORIES[t!.category].label,
-      }));
+  // Daily rotating glossary spotlight term
+  const spotlightTerm = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    const termsWithChinese = GLOSSARY_TERMS.filter(t => t.chineseCharacters);
+    return termsWithChinese[dayOfYear % termsWithChinese.length];
   }, []);
+
+  // Path progress calculation
+  const getPathProgress = useCallback((path: { modules: string[] }) => {
+    const pathModules = LEARN_CURRICULUM.filter(m => path.modules.includes(m.id));
+    const completed = pathModules.filter(m => m.lessons.every(l => watchedStories[l.id])).length;
+    return pathModules.length > 0 ? completed / pathModules.length : 0;
+  }, [watchedStories]);
+
+  // Stat ribbon counts
+  const statLine = useMemo(() => {
+    const parts = [
+      `${GLOSSARY_TERMS.length} terms`,
+      `${LEARN_CURRICULUM.length} courses`,
+      `${CURATED_COLLECTIONS.length} journeys`,
+      `${COMMUNITY_WISDOM.length} voices`,
+      `${TEA_SPACES.length} spaces`,
+    ];
+    return parts.join(' · ');
+  }, []);
+
+  // Tea space teaser (first entry)
+  const featuredSpace = TEA_SPACES[0];
 
   // Cross-section search
   const searchResults = useMemo(() => {
@@ -172,7 +154,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       t => t.term.toLowerCase().includes(q) || t.definition.toLowerCase().includes(q)
     ).slice(0, 5);
 
-    const resources = RESOURCE_CARDS.filter(
+    const resources = RESOURCE_TILES.filter(
       r => r.label.toLowerCase().includes(q) || r.subtitle.toLowerCase().includes(q)
     );
 
@@ -180,55 +162,42 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     return { courses, terms, resources };
   }, [searchQuery]);
 
-  // Pill navigation
-  const handleCategorySelect = useCallback((id: string) => {
-    setActiveCategory(id);
-    const refMap: Record<string, React.RefObject<HTMLDivElement | null>> = {
-      courses: coursesRef,
-      journeys: journeysRef,
-      glossary: glossaryRef,
-      resources: resourcesRef,
-    };
-    const ref = refMap[id];
-    if (ref?.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
-
   return (
     <div className="pb-32">
-      {/* ════════════════════════════════════════════════════════════════
-          Archive Header — title, search, category pills
-          ════════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          Section 1: Hero Header with Editorial Voice
+          ═══════════════════════════════════════════════════════════ */}
       <section
-        ref={headerReveal.ref}
-        className={`mb-8 md:mb-12 ${headerReveal.className}`}
-        style={headerReveal.style}
+        ref={heroReveal.ref}
+        className={`mb-8 ${heroReveal.className}`}
+        style={heroReveal.style}
       >
-        <h2 className="font-serif italic text-3xl md:text-4xl font-light text-tea-ink dark:text-tea-paper mb-2 leading-tight">
+        <h2 className="font-serif italic text-3xl md:text-4xl font-light text-tea-ink dark:text-tea-paper mb-3 leading-tight">
           The Archive
         </h2>
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-6 max-w-xl leading-relaxed">
-          Explore the ancient art and science of tea. From foundational knowledge
-          to the diverse profiles that grace cups worldwide.
+
+        {/* Adrian's editorial voice */}
+        <div className="border-l-2 border-tea-seal/30 pl-3 mb-4">
+          <p className="font-serif italic text-sm text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed">
+            Everything I wish someone had given me when I started. Take what you need.
+          </p>
+        </div>
+
+        {/* Stat ribbon */}
+        <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-tea-seal mb-5">
+          {statLine}
         </p>
 
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search index..."
-          className="mb-4"
-        />
-
-        <CategoryPills
-          categories={ARCHIVE_CATEGORIES}
-          activeId={activeCategory}
-          onSelect={handleCategorySelect}
+          placeholder="Search the archive..."
+          className="mb-2"
         />
 
         {/* Search results dropdown */}
         {searchResults && searchResults !== 'empty' && (
-          <div className="mt-4 bg-tea-paper dark:bg-tea-ink border border-tea-ink/10 dark:border-white/10 rounded-[1px] p-4 space-y-4">
+          <div className="mt-3 bg-tea-paper dark:bg-tea-ink border border-tea-ink/10 dark:border-white/10 rounded-[1px] p-4 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
                 <h4 className="text-[10px] uppercase tracking-[0.3em] text-tea-seal-dark dark:text-tea-seal font-sans mb-2">Courses</h4>
@@ -275,121 +244,183 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </div>
         )}
         {searchResults === 'empty' && (
-          <p className="mt-4 text-sm text-tea-ink/40 dark:text-tea-paper/40 italic">
+          <p className="mt-3 text-sm text-tea-ink/40 dark:text-tea-paper/40 italic">
             No results for &ldquo;{searchQuery}&rdquo;
           </p>
         )}
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════
-          Featured Study — large dark card with molecular diagram
-          ════════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          Section 2: Discovery Map — Horizontal Category Carousel
+          ═══════════════════════════════════════════════════════════ */}
       <section
-        ref={featuredReveal.ref}
-        className={`mb-12 md:mb-16 ${featuredReveal.className}`}
-        style={featuredReveal.style}
+        ref={discoveryReveal.ref}
+        className={`mb-10 ${discoveryReveal.className}`}
+        style={discoveryReveal.style}
       >
-        <FeaturedCard
-          badge="Featured Study"
-          title={featuredModule.title}
-          description={featuredModule.description}
-          ctaLabel="Access Study"
-          onCtaClick={() => onStoryClick(getModuleTarget(featuredModule))}
-          decorativeElement={<MolecularDiagram />}
-          metadata={[
-            { label: 'Module', value: featuredModule.subtitle.replace('Module ', '') },
-            { label: 'Lessons', value: `${featuredModule.lessons.length}` },
-          ]}
-        />
+        <SwipeCarousel
+          itemWidth={100}
+          gap={10}
+          showArrows={false}
+          showDots={false}
+          peek={2}
+        >
+          {DISCOVERY_TILES.map(tile => (
+            <button
+              key={tile.id}
+              onClick={() => onNavigateTo(tile.view)}
+              className={`text-center ${CTA_FOCUS}`}
+            >
+              <CardContainer variant="light" className="hover:-translate-y-0.5 transition-all">
+                <div className="p-3 flex flex-col items-center gap-1.5 min-h-[80px] justify-center">
+                  <span className="text-tea-seal">{tile.icon}</span>
+                  <span className="font-serif text-xs text-tea-ink dark:text-tea-paper leading-tight">{tile.label}</span>
+                  {tile.count !== null && (
+                    <span className="font-mono text-[10px] text-tea-ink/40 dark:text-tea-paper/40">{tile.count}</span>
+                  )}
+                </div>
+              </CardContainer>
+            </button>
+          ))}
+        </SwipeCarousel>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════
-          Two-column: Recently Indexed (atlas cards) + Glossary of Terms
-          ════════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          Section 3: Glossary Spotlight — "Term of the Day"
+          ═══════════════════════════════════════════════════════════ */}
+      {spotlightTerm && (
+        <section
+          ref={glossaryReveal.ref}
+          className={`mb-10 ${glossaryReveal.className}`}
+          style={glossaryReveal.style}
+        >
+          <button
+            onClick={() => onNavigateTo('glossary')}
+            className={`w-full text-left ${CTA_FOCUS}`}
+          >
+            <CardContainer variant="dark">
+              <div className="relative p-6 md:p-8 min-h-[280px] flex flex-col justify-between overflow-hidden">
+                {/* Chinese characters decorative */}
+                {spotlightTerm.chineseCharacters && (
+                  <span className="absolute top-4 right-4 text-4xl md:text-5xl text-tea-seal/15 font-serif select-none pointer-events-none">
+                    {spotlightTerm.chineseCharacters}
+                  </span>
+                )}
+
+                <div>
+                  {/* Category badge */}
+                  <span className="inline-block text-[10px] uppercase tracking-wider text-tea-seal border border-white/15 px-2 py-0.5 rounded-sm mb-4">
+                    {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
+                  </span>
+
+                  {/* Term name */}
+                  <h3 className="font-serif text-2xl text-tea-paper mb-1">{spotlightTerm.term}</h3>
+
+                  {/* Pronunciation */}
+                  {spotlightTerm.pronunciation && (
+                    <p className="font-mono italic text-xs text-tea-paper/50 mb-4">{spotlightTerm.pronunciation}</p>
+                  )}
+
+                  {/* Definition */}
+                  <p className="text-sm text-tea-paper/60 leading-relaxed line-clamp-3 max-w-md">
+                    {spotlightTerm.definition}
+                  </p>
+
+                  {/* Try This callout */}
+                  {spotlightTerm.deepDive?.tryThis && spotlightTerm.deepDive.tryThis.length > 0 && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-sm">
+                      <Icons.Lightbulb className="w-3 h-3 text-emerald-400/70" />
+                      <span className="text-[11px] text-emerald-300/80">{spotlightTerm.deepDive.tryThis[0].title}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider + CTAs */}
+                <div className="border-t border-tea-seal/20 pt-4 mt-5 flex items-center justify-between">
+                  <span className="text-xs text-tea-paper/50 flex items-center gap-1">
+                    Explore term <Icons.ChevronRight className="w-3 h-3" />
+                  </span>
+                  <span className="text-[10px] font-mono text-tea-paper/30">
+                    {GLOSSARY_TERMS.length} terms in glossary
+                  </span>
+                </div>
+              </div>
+            </CardContainer>
+          </button>
+        </section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 4: Learning Paths — Horizontal Swipe Carousel
+          ═══════════════════════════════════════════════════════════ */}
       <section
-        ref={(el) => {
-          glossaryRef.current = el;
-          journeysRef.current = el;
-          (twoColReveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-        }}
-        className={`mb-12 md:mb-20 lg:mb-24 grid grid-cols-1 md:grid-cols-[1fr_1.5fr] gap-8 md:gap-10 ${twoColReveal.className}`}
-        style={twoColReveal.style}
+        ref={pathsReveal.ref}
+        className={`mb-10 ${pathsReveal.className}`}
+        style={pathsReveal.style}
       >
-        {/* LEFT — Recently Indexed */}
-        <div>
-          <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper mb-5">
-            Recently Indexed
-          </h3>
-          <div className="space-y-3">
-            {ATLAS_PINS.map(pin => (
+        <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper mb-4">
+          Learning Paths
+        </h3>
+        <SwipeCarousel
+          itemWidth={280}
+          gap={14}
+          showArrows={false}
+          showDots={false}
+          peek={3}
+        >
+          {LEARN_PATHS.map(path => {
+            const progress = getPathProgress(path);
+            return (
               <button
-                key={pin.id}
-                onClick={() => onStoryClick(geographyLesson)}
-                className={`w-full text-left group ${CTA_FOCUS}`}
+                key={path.id}
+                onClick={() => onNavigateTo('course')}
+                className={`text-left w-full ${CTA_FOCUS}`}
               >
-                <CardContainer variant="dark" className="hover:-translate-y-0.5 transition-all">
-                  <div
-                    className="relative p-5 min-h-[120px] flex flex-col justify-between overflow-hidden"
-                  >
-                    {/* Subtle topographic texture */}
-                    <div
-                      className="absolute inset-0 opacity-[0.04]"
-                      style={{
-                        backgroundImage: `radial-gradient(circle at 30% 40%, rgba(201,148,58,0.4) 0%, transparent 50%),
-                          radial-gradient(circle at 70% 60%, rgba(201,148,58,0.2) 0%, transparent 40%)`,
-                      }}
-                    />
-                    <span className="relative inline-block self-start text-[10px] tracking-wider text-tea-seal font-sans border border-white/15 px-2 py-0.5 rounded-sm mb-3">
-                      {PIN_TYPE_LABELS[pin.type] || pin.type}
-                    </span>
-                    <div className="relative">
-                      <h4 className="font-serif text-base text-tea-paper leading-tight mb-1 group-hover:text-tea-seal transition-colors">
-                        {pin.name}
-                      </h4>
-                      <p className="text-xs text-tea-paper/40 font-sans">
-                        {pin.location}
-                      </p>
+                <CardContainer variant="light" className="hover:-translate-y-0.5 transition-all">
+                  <div className="p-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-tea-seal/70">
+                        {PATH_ICONS[path.icon] || <Icons.Leaf className="w-6 h-6" />}
+                      </span>
+                      <div>
+                        <h4 className="font-serif text-base text-tea-ink dark:text-tea-paper leading-tight">{path.title}</h4>
+                        <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">{path.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] text-tea-ink/40 dark:text-tea-paper/40">
+                        {path.modules.length} modules
+                      </span>
+                      <span className="font-mono text-[10px] text-tea-seal">
+                        {Math.round(progress * 100)}%
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-1 bg-tea-ink/5 dark:bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-tea-seal rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(progress * 100, 2)}%` }}
+                      />
                     </div>
                   </div>
                 </CardContainer>
               </button>
-            ))}
-          </div>
-          <button
-            onClick={() => onNavigateTo('journeys')}
-            className={`mt-4 text-tea-seal-dark dark:text-tea-seal text-sm font-sans flex items-center gap-1 hover:opacity-80 transition-opacity ${CTA_FOCUS}`}
-          >
-            View all journeys
-            <Icons.ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* RIGHT — Glossary of Terms */}
-        <div>
-          <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper mb-5">
-            Glossary of Terms
-          </h3>
-          <TermPreviewList
-            terms={previewTerms}
-            onViewAll={() => onNavigateTo('glossary')}
-          />
-        </div>
+            );
+          })}
+        </SwipeCarousel>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════
-          Course Index — archival catalog style
-          ════════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          Section 5: Course Index — Compact Numbered List
+          ═══════════════════════════════════════════════════════════ */}
       <section
-        ref={(el) => {
-          coursesRef.current = el;
-          (coursesReveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-        }}
-        className={`mb-12 md:mb-20 lg:mb-24 ${coursesReveal.className}`}
+        ref={coursesReveal.ref}
+        className={`mb-10 ${coursesReveal.className}`}
         style={coursesReveal.style}
       >
-        <div className="flex items-baseline justify-between mb-5">
+        <div className="flex items-baseline justify-between mb-4">
           <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
-            Course Index
+            Curriculum
           </h3>
           <button
             onClick={() => onNavigateTo('course')}
@@ -403,6 +434,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           <div className="divide-y divide-tea-ink/8 dark:divide-white/8">
             {LEARN_CURRICULUM.map((mod, index) => {
               const isComplete = moduleCompletion[mod.id];
+              const firstLesson = mod.lessons[0];
               return (
                 <button
                   key={mod.id}
@@ -417,9 +449,12 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                       <span className="font-serif text-sm md:text-base text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors block leading-snug">
                         {mod.title}
                       </span>
-                      <span className="text-[11px] text-tea-ink/35 dark:text-tea-paper/35 font-sans mt-0.5 block">
-                        {mod.description.slice(0, 60)}...
-                      </span>
+                      {/* First lesson preview */}
+                      {firstLesson && (
+                        <span className="text-[11px] italic text-tea-ink/35 dark:text-tea-paper/35 mt-0.5 block">
+                          {firstLesson.title}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 md:gap-5 flex-shrink-0">
@@ -445,41 +480,279 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════
-          Resources & Tools — dark archival index cards
-          ════════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          Section 6: Community Voices — Pull-Quote Carousel
+          ═══════════════════════════════════════════════════════════ */}
       <section
-        ref={(el) => {
-          resourcesRef.current = el;
-          (resourcesReveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-        }}
-        className={`mb-16 ${resourcesReveal.className}`}
+        ref={voicesReveal.ref}
+        className={`mb-10 ${voicesReveal.className}`}
+        style={voicesReveal.style}
+      >
+        <div className="mb-4">
+          <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
+            Community Voices
+          </h3>
+          <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">
+            Reflections from tea practitioners
+          </p>
+        </div>
+        <SwipeCarousel
+          itemWidth={300}
+          gap={14}
+          showArrows={false}
+          showDots={true}
+          peek={3}
+        >
+          {COMMUNITY_WISDOM.slice(0, 6).map(entry => (
+            <button
+              key={entry.id}
+              onClick={() => onNavigateTo('wisdom')}
+              className={`text-left w-full ${CTA_FOCUS}`}
+            >
+              <CardContainer variant="light" className={`border-l-[3px] ${WISDOM_BORDER_COLORS[entry.type] || 'border-l-tea-seal/30'}`}>
+                <div className="relative p-5 min-h-[180px] flex flex-col justify-between">
+                  {/* Decorative quote mark */}
+                  <span className="absolute top-2 right-4 text-5xl text-tea-seal/10 font-serif select-none pointer-events-none leading-none">
+                    &ldquo;
+                  </span>
+                  <div>
+                    <p className="font-serif italic text-sm text-tea-ink/80 dark:text-tea-paper/80 leading-relaxed line-clamp-4 pr-6">
+                      {entry.body.slice(0, 140)}{entry.body.length > 140 ? '...' : ''}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-xs font-sans tracking-wide text-tea-ink/60 dark:text-tea-paper/60">
+                      {entry.authorName}
+                    </span>
+                    {entry.teaReferenced && (
+                      <span className="font-mono text-[10px] text-tea-seal/60">
+                        {entry.teaReferenced}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </CardContainer>
+            </button>
+          ))}
+        </SwipeCarousel>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 7: Guided Journeys — Vertical Card Stack
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        ref={journeysReveal.ref}
+        className={`mb-10 ${journeysReveal.className}`}
+        style={journeysReveal.style}
+      >
+        <div className="mb-4">
+          <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
+            Guided Journeys
+          </h3>
+          <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">
+            Step-by-step tasting experiences
+          </p>
+        </div>
+        <div className="space-y-3">
+          {CURATED_COLLECTIONS.map((journey, index) => (
+            <button
+              key={journey.id}
+              onClick={() => onNavigateTo('journeys')}
+              className={`w-full text-left ${CTA_FOCUS}`}
+            >
+              <CardContainer variant="dark" className="hover:-translate-y-0.5 transition-all">
+                <div className="relative p-5 md:p-6 min-h-[120px] flex flex-col justify-between overflow-hidden">
+                  {/* Radial gradient texture */}
+                  <div
+                    className="absolute inset-0 opacity-[0.04]"
+                    style={{
+                      backgroundImage: `radial-gradient(circle at 30% 40%, rgba(201,148,58,0.4) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(201,148,58,0.2) 0%, transparent 40%)`,
+                    }}
+                  />
+                  {/* Journey number watermark */}
+                  <span className="absolute top-3 left-4 text-5xl text-white/5 font-serif select-none pointer-events-none">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-serif text-lg text-tea-paper">{journey.title}</h4>
+                    </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[journey.difficulty]}`}>
+                        {journey.difficulty}
+                      </span>
+                      <span className="font-mono text-[11px] text-tea-paper/40">{journey.estimatedDuration}</span>
+                    </div>
+                    {journey.guideSteps[0] && (
+                      <p className="font-mono text-[11px] text-tea-paper/50">
+                        Start with: {journey.guideSteps[0].teaName}
+                      </p>
+                    )}
+                  </div>
+                  <div className="relative mt-3 flex items-center justify-between">
+                    <span className="text-[10px] text-tea-paper/30">{journey.guideSteps.length} steps</span>
+                  </div>
+                </div>
+              </CardContainer>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 8: Atlas & Places — Horizontal Carousel
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        ref={atlasReveal.ref}
+        className={`mb-10 ${atlasReveal.className}`}
+        style={atlasReveal.style}
+      >
+        <div className="mb-4">
+          <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
+            Places
+          </h3>
+          <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">
+            Tea locations around the world
+          </p>
+        </div>
+        <SwipeCarousel
+          itemWidth={200}
+          gap={12}
+          showArrows={false}
+          showDots={false}
+          peek={3}
+        >
+          {teaMapPins.map(pin => (
+            <button
+              key={pin.id}
+              onClick={() => onStoryClick(geographyLesson)}
+              className={`text-left w-full ${CTA_FOCUS}`}
+            >
+              <CardContainer variant="dark" className="hover:-translate-y-0.5 transition-all">
+                <div className="relative p-4 min-h-[110px] flex flex-col justify-between overflow-hidden">
+                  {/* Topographic texture */}
+                  <div
+                    className="absolute inset-0 opacity-[0.04]"
+                    style={{
+                      backgroundImage: `radial-gradient(circle at 30% 40%, rgba(201,148,58,0.4) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(201,148,58,0.2) 0%, transparent 40%)`,
+                    }}
+                  />
+                  <span className="relative inline-block self-start text-[10px] tracking-wider text-tea-seal font-sans border border-white/15 px-2 py-0.5 rounded-sm mb-3">
+                    {PIN_TYPE_LABELS[pin.type] || pin.type}
+                  </span>
+                  <div className="relative">
+                    <h4 className="font-serif text-sm text-tea-paper leading-tight mb-0.5">{pin.name}</h4>
+                    <p className="text-[11px] text-tea-paper/40 font-sans">{pin.location}</p>
+                  </div>
+                </div>
+              </CardContainer>
+            </button>
+          ))}
+        </SwipeCarousel>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 9: Resource Library — Prominent Icon Grid
+          Always visible, easy to find, not hidden
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        ref={resourcesReveal.ref}
+        className={`mb-10 ${resourcesReveal.className}`}
         style={resourcesReveal.style}
       >
-        <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper mb-5">
-          Resources & Tools
-        </h3>
+        <div className="flex items-baseline justify-between mb-4">
+          <div>
+            <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
+              Resources & Tools
+            </h3>
+            <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">
+              Deepen your practice
+            </p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {RESOURCE_CARDS.map(card => (
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
+          {RESOURCE_TILES.map(tile => (
             <button
-              key={card.id}
-              onClick={() => onNavigateTo(card.view)}
+              key={tile.id}
+              onClick={() => onNavigateTo(tile.view)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-ink dark:bg-white/[0.04] rounded-[1px] border border-tea-ink/80 dark:border-white/8 p-4 md:p-5 hover:border-tea-seal/30 hover:-translate-y-0.5 transition-all duration-300">
-                <span className="text-tea-paper/30 dark:text-tea-paper/30 mb-3 block">
-                  {card.icon}
+              <div className="h-full bg-tea-ink dark:bg-white/[0.04] rounded-[1px] border border-tea-ink/80 dark:border-white/8 p-3 md:p-4 hover:border-tea-seal/30 hover:-translate-y-0.5 transition-all duration-300">
+                <span className="text-tea-paper/40 dark:text-tea-paper/40 mb-2 block">
+                  {tile.icon}
                 </span>
                 <h4 className="font-serif text-sm text-tea-paper leading-snug mb-0.5 group-hover:text-tea-seal transition-colors">
-                  {card.label}
+                  {tile.label}
                 </h4>
-                <p className="text-[10px] text-tea-paper/35 font-sans">
-                  {card.subtitle}
+                <p className="text-[10px] text-tea-paper/40 font-sans">
+                  {tile.subtitle}
                 </p>
               </div>
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 10: Tea Space Teaser
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        ref={spacesReveal.ref}
+        className={`mb-10 ${spacesReveal.className}`}
+        style={spacesReveal.style}
+      >
+        <button
+          onClick={() => onNavigateTo('spaces')}
+          className={`w-full text-left ${CTA_FOCUS}`}
+        >
+          <CardContainer variant="light" className="bg-tea-beige/10 dark:bg-tea-beige/5">
+            <div className="p-5 md:p-6">
+              <span className="inline-block text-[10px] uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40 font-sans mb-2">
+                {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
+              </span>
+              <h4 className="font-serif text-base text-tea-ink dark:text-tea-paper mb-1.5">
+                {featuredSpace.title}
+              </h4>
+              <p className="font-serif italic text-sm text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed line-clamp-2 mb-3">
+                {featuredSpace.description}
+              </p>
+              <span className="text-tea-seal-dark dark:text-tea-seal text-xs font-sans flex items-center gap-1">
+                See all {TEA_SPACES.length} spaces <Icons.ChevronRight className="w-3 h-3" />
+              </span>
+            </div>
+          </CardContainer>
+        </button>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 11: Closing Editorial Note
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        ref={closingReveal.ref}
+        className={`${closingReveal.className}`}
+        style={closingReveal.style}
+      >
+        <div className="border-t border-tea-ink/10 dark:border-white/10 pt-6">
+          <p className="font-serif italic text-sm text-tea-ink/40 dark:text-tea-paper/40 leading-relaxed max-w-md">
+            This archive grows with every session. If you have a term, a ritual, or a place that should be here
+            {onNavigateToConsult ? (
+              <>
+                {' — '}
+                <button
+                  onClick={onNavigateToConsult}
+                  className="text-tea-seal/60 hover:text-tea-seal underline underline-offset-2 transition-colors"
+                >
+                  reach out
+                </button>
+                .
+              </>
+            ) : (
+              ' — reach out.'
+            )}
+          </p>
         </div>
       </section>
     </div>
