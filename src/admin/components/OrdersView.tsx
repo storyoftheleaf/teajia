@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Loader2, Search, XCircle, Trash2, Eye, X, CheckSquare, PackageCheck } from 'lucide-react';
 import { useRates } from '../hooks/useSupabase';
 import { useToast } from './Toast';
@@ -15,81 +15,59 @@ export const OrdersView = () => {
   const { data: orders = [], isLoading, refetch } = useQuery({
     queryKey: ['orders', pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(pageSize);
-
-      if (error) throw error;
-      return data;
+      return await api.invoices.list(pageSize);
     }
   });
 
   const handleView = async (invoice: any) => {
-    // Fetch line items for this invoice
-    const { data: items, error } = await supabase
-      .from('invoice_line_items')
-      .select('*, products(given_name, product_name)')
-      .eq('invoice_id', invoice.id);
-
-    if (error) {
-        showToast("Could not load invoice details.", 'error');
-        return;
+    try {
+      const items = await api.invoices.getItems(invoice.id);
+      setViewingInvoice({ ...invoice, items });
+    } catch {
+      showToast("Could not load invoice details.", 'error');
     }
-    setViewingInvoice({ ...invoice, items });
   };
 
   const handleFulfill = async (id: string, invoiceNumber: string) => {
     if (!confirm(`Mark ${invoiceNumber} as FILLED?\n\nThis will deduct stock from the inventory.`)) return;
-    
-    // Call RPC function to fulfill
-    const { error } = await supabase.rpc('fulfill_invoice', { invoice_id_input: id });
 
-    if (error) {
-        showToast("Fulfillment failed: " + error.message, 'error');
-    } else {
-        refetch();
+    try {
+      await api.rpc.fulfillInvoice(id);
+      refetch();
+    } catch (err: any) {
+      showToast("Fulfillment failed: " + err.message, 'error');
     }
   };
 
   const handleVoid = async (id: string, invoiceNumber: string) => {
     if (!confirm(`Are you sure you want to VOID invoice ${invoiceNumber}? This will attempt to restore inventory (if it was deducted).`)) return;
 
-    // Check if this invoice had inventory deducted
-    const { data: invoice } = await supabase.from('invoices').select('inventory_deducted').eq('id', id).single();
+    try {
+      // Check if this invoice had inventory deducted by looking at current orders data
+      const invoice = orders.find((o: any) => o.id === id);
 
-    if (invoice?.inventory_deducted) {
-      // Restore inventory: fetch line items and add stock back
-      const { data: items } = await supabase.from('invoice_line_items').select('product_id, quantity').eq('invoice_id', id);
-      if (items) {
+      if (invoice?.inventory_deducted) {
+        const items = await api.invoices.getItems(id);
         for (const item of items) {
-          await supabase.rpc('increment_stock', { product_id_input: item.product_id, amount: item.quantity });
+          await api.rpc.incrementStock(item.product_id, item.quantity);
         }
       }
-    }
 
-    const { error } = await supabase.from('invoices').update({ status: 'Void', inventory_deducted: false }).eq('id', id);
-
-    if (error) {
-        showToast("Void failed: " + error.message, 'error');
-    } else {
-        refetch();
+      await api.invoices.update(id, { status: 'Void', inventory_deducted: 0 });
+      refetch();
+    } catch (err: any) {
+      showToast("Void failed: " + err.message, 'error');
     }
   };
 
   const handleDelete = async (id: string, invoiceNumber: string) => {
       if (!confirm(`Permanently DELETE invoice ${invoiceNumber}? \n\nUse this only for cleaning up invalid records.`)) return;
 
-      // Delete line items first manually to be safe (if cascade isn't set up)
-      await supabase.from('invoice_line_items').delete().eq('invoice_id', id);
-      
-      const { error } = await supabase.from('invoices').delete().eq('id', id);
-
-      if (error) {
-          showToast("Delete failed: " + error.message, 'error');
-      } else {
-          refetch();
+      try {
+        await api.invoices.delete(id);
+        refetch();
+      } catch (err: any) {
+        showToast("Delete failed: " + err.message, 'error');
       }
   };
 

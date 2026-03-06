@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { api, setToken } from '../../lib/api';
 import { useAppStore } from '../store';
 
-export const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  const [email, setEmail] = useState('');
+export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean; onClose: () => void; onAuthSuccess?: () => void }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +16,7 @@ export const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     setLoading(true);
     setError('');
     
-    // Temporary bypass for admin access
+    // Dev bypass
     if (password === '1234') {
       setDevAdmin(true);
       setLoading(false);
@@ -25,10 +24,15 @@ export const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       return;
     }
 
-    const { error } = await (supabase.auth as any).signInWithPassword({ email, password });
+    try {
+      const { token } = await api.auth.login(password);
+      setToken(token);
+      onAuthSuccess?.();
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    }
     setLoading(false);
-    if (error) setError(error.message);
-    else onClose();
   };
 
   return (
@@ -38,10 +42,6 @@ export const AuthModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         <h3 className="text-2xl font-serif text-tea-text mb-2">Admin Access</h3>
         <p className="text-tea-muted text-sm mb-6 font-serif italic">Enter your credentials to manage inventory.</p>
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-             <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Email</label>
-             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors placeholder-tea-muted/50" placeholder="admin@teajia.com" required />
-          </div>
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Password</label>
              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors" required />

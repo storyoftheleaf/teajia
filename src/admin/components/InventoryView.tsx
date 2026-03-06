@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import Papa from 'papaparse';
 import Fuse from 'fuse.js';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
 import { AddProductModal } from './AddProductModal';
@@ -15,7 +15,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from '../store';
 import { getThemeColor } from '../themeUtils';
 
-const MAINTENANCE_SQL = `-- Run in Supabase SQL Editor to reset all data\nSELECT truncate_all_data();`;
+const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
 interface InventoryViewProps {
   products: Product[];
@@ -212,10 +212,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
-    const { error } = await supabase.from('products').update(dbPayload).eq('id', id);
-    if (error) {
-        showToast(`Update failed: ${error.message}`, 'error');
-        onRefresh(); // Revert to server state
+    try {
+      await api.products.update(id, dbPayload);
+    } catch (err: any) {
+      showToast(`Update failed: ${err.message}`, 'error');
+      onRefresh();
     }
   };
 
@@ -306,8 +307,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         show_wisdom: false // Set to false so user has to approve it
                     };
 
-                    const { error } = await supabase.from('products').update(dbPayload).eq('id', tea.id);
-                    if (error) throw error;
+                    await api.products.update(tea.id, dbPayload);
                     
                     successCount++;
                 }
@@ -332,18 +332,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (resetInput !== 'delete') return;
     setIsResetting(true);
     try {
-        const { error: rpcError } = await supabase.rpc('truncate_all_data');
-        if (!rpcError) {
-             showToast("Database wiped.", 'success');
-             setShowResetConfirm(false);
-             onRefresh();
-             return;
-        }
-        await supabase.from('invoice_line_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await supabase.from('invoices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        await supabase.from('activity_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        showToast("Database wiped (Client-side).", 'success');
+        await api.rpc.truncateAll();
+        showToast("Database wiped.", 'success');
         setShowResetConfirm(false);
         onRefresh();
     } catch (error: any) {

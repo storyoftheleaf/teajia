@@ -1,0 +1,15 @@
+{
+  "name": "teajia-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute teajia-db --remote --file=./schema.sql",
+    "db:seed": "wrangler d1 execute teajia-db --remote --file=./seed.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "wrangler": "^3.99.0"
+  }
+}

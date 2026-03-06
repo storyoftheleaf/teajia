@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
@@ -182,31 +182,24 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (isEditMode || !formData.productName || formData.lore) return;
 
     try {
-        const { data, error } = await supabase
-            .from('products')
-            .select('lore, tasting_notes, is_custom_wisdom, show_wisdom, processing_notes, mood, experience, liquor_color')
-            .ilike('product_name', formData.productName)
-            .not('lore', 'is', null)
-            .order('is_custom_wisdom', { ascending: false }) // Prefer handcrafted
-            .limit(1)
-            .single();
+        // Search existing products for wisdom data (using the API)
+        const products = await api.products.list();
+        const match = products
+            .filter((p: any) => p.product_name?.toLowerCase() === formData.productName.toLowerCase() && p.lore)
+            .sort((a: any, b: any) => (b.is_custom_wisdom ? 1 : 0) - (a.is_custom_wisdom ? 1 : 0))[0];
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-            console.error("Error checking memory bank:", error);
-            return;
-        }
-
-        if (data) {
+        if (match) {
+            const tastingNotes = Array.isArray(match.tasting_notes) ? match.tasting_notes : [];
             setFormData(prev => ({
                 ...prev,
-                lore: data.lore || prev.lore,
-                tastingNotes: data.tasting_notes ? data.tasting_notes.join(', ') : prev.tastingNotes,
-                isCustomWisdom: data.is_custom_wisdom,
-                showWisdom: data.show_wisdom,
-                processingNotes: data.processing_notes || prev.processingNotes,
-                mood: data.mood || prev.mood,
-                experience: data.experience || prev.experience,
-                liquorColor: data.liquor_color || prev.liquorColor
+                lore: match.lore || prev.lore,
+                tastingNotes: tastingNotes.length ? tastingNotes.join(', ') : prev.tastingNotes,
+                isCustomWisdom: !!match.is_custom_wisdom,
+                showWisdom: !!match.show_wisdom,
+                processingNotes: match.processing_notes || prev.processingNotes,
+                mood: match.mood || prev.mood,
+                experience: match.experience || prev.experience,
+                liquorColor: match.liquor_color || prev.liquorColor
             }));
         }
     } catch (err) {
@@ -313,11 +306,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { data, error } = await supabase.functions.invoke('upload-image', {
-        body: { filename: fileName, filetype: file.type }
-      });
-
-      if (error) throw new Error("Could not connect to upload server.");
+      const data = await api.uploadImage(fileName, file.type);
       if (!data?.uploadUrl) throw new Error("No upload URL returned.");
 
       const uploadRes = await fetch(data.uploadUrl, {
@@ -382,14 +371,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             liquor_color: formData.liquorColor
         };
 
-        let response;
         if (isEditMode && initialData) {
-            response = await supabase.from('products').update(payload).eq('id', initialData.id);
+            await api.products.update(initialData.id, payload);
         } else {
-            response = await supabase.from('products').insert([payload]);
+            await api.products.create(payload);
         }
-
-        if (response.error) throw response.error;
 
         onSuccess();
         onClose();

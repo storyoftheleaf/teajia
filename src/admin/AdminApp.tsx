@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, X, ArrowRight, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase, isConfigured } from '../lib/supabase';
+import { isConfigured, hasToken, clearToken } from '../lib/api';
 import { Product } from './types';
 import { useProducts, useRates } from './hooks/useSupabase';
 import { useAppStore } from './store';
@@ -50,7 +50,7 @@ const AdminContent = () => {
     addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart
   } = useAppStore();
 
-  const [session, setSession] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Modals
@@ -67,19 +67,8 @@ const AdminContent = () => {
 
   const loading = productsLoading;
 
-  useEffect(() => {
-    if (!isConfigured) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Use actual session state OR dev bypass for admin check
-  const isAdmin = !!session || isDevAdmin;
+  // Use token state OR dev bypass for admin check
+  const isAdmin = isAuthenticated || isDevAdmin;
 
   // Redirect to inventory when entering admin at root
   useEffect(() => {
@@ -105,8 +94,8 @@ const AdminContent = () => {
             </p>
             <div className="text-left bg-tea-bg/50 p-4 rounded-xl text-xs font-mono text-tea-muted mb-6 border border-tea-border space-y-2">
                 <p>1. Open <span className="text-tea-text bg-tea-surface px-1 rounded">.env</span> file</p>
-                <p>2. Find <span className="text-tea-accent">VITE_SUPABASE_ANON_KEY</span></p>
-                <p>3. Paste your Supabase Anon Key</p>
+                <p>2. Find <span className="text-tea-accent">VITE_API_URL</span></p>
+                <p>3. Set it to your Worker API URL</p>
             </div>
             <button onClick={() => window.location.reload()} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors w-full">
                 I've Updated It, Reload App
@@ -116,8 +105,9 @@ const AdminContent = () => {
     );
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    clearToken();
+    setIsAuthenticated(false);
     if (isDevAdmin) toggleDevAdmin();
     navigate('/');
   };
@@ -283,7 +273,7 @@ const AdminContent = () => {
           rates={rates}
         />
 
-        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onAuthSuccess={() => setIsAuthenticated(true)} />
         <CsvImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onComplete={refetchProducts} />
 
         <AddProductModal

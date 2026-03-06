@@ -1,0 +1,8 @@
+name = "teajia-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "teajia-db"
+database_id = "2dbafe5c-10db-4ac6-9f17-4292b5beffc9"

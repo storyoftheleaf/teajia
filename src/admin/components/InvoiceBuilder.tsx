@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, Share2, Loader2, Printer, CreditCard, CheckCircle, RefreshCcw, ArrowRight, AlertCircle, Clock, User, DollarSign, Package, Settings2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { Product, CartItem, Currency, ExchangeRate } from '../types';
 import { formatCurrency } from '../utils';
 import { useToast } from './Toast';
@@ -67,47 +67,38 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({
 
     const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-    // 1. Create Invoice Record (Pending Status, Inventory NOT deducted yet)
-    const { data: invoiceData, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert([{ 
-            invoice_number: invoiceNumber,
-            customer_name: customerName,
-            customer_whatsapp: customerPhone || null,
-            display_currency: displayCurrency,
-            shipping_cost_usd: shippingCostUSD,
-            status: 'Pending', // New Pending Status
-            inventory_deducted: false // Do NOT deduct inventory yet
-        }])
-        .select()
-        .single();
+    // 1. Create Invoice + Line Items in one API call
+    try {
+      const invoiceData = await api.invoices.create(
+        {
+          invoice_number: invoiceNumber,
+          customer_name: customerName,
+          customer_whatsapp: customerPhone || null,
+          display_currency: displayCurrency,
+          shipping_cost_usd: shippingCostUSD,
+          status: 'Pending',
+        },
+        cart.map(item => ({
+          product_id: item.productId,
+          quantity: item.quantity,
+          price_at_sale: item.priceAtSale,
+        }))
+      );
 
-    if (invoiceError || !invoiceData) {
-      showToast('Transaction failed: ' + invoiceError?.message, 'error');
-      setIsProcessing(false);
-      return;
-    }
-
-    // 2. Create Line Items
-    const lineItems = cart.map(item => ({
-        invoice_id: invoiceData.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        price_at_sale: item.priceAtSale
-    }));
-    const { error: linesError } = await supabase.from('invoice_line_items').insert(lineItems);
-    
-    if (linesError) {
-        showToast("Failed to save line items: " + linesError.message, 'error');
+      if (!invoiceData) {
+        showToast('Transaction failed', 'error');
         setIsProcessing(false);
         return;
-    }
+      }
 
     // 4. Finalize
-    onSuccess(); // Triggers generic refresh
+    onSuccess();
     showToast("Order submitted successfully", 'success');
-    setLastInvoice({ ...invoiceData, items: cart }); // Store for receipt view
+    setLastInvoice({ ...invoiceData, items: cart });
     setTransactionComplete(true);
+    } catch (err: any) {
+      showToast('Transaction failed: ' + (err.message || 'Unknown error'), 'error');
+    }
     setIsProcessing(false);
   };
 

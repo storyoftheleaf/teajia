@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, FileQuestion } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { useToast } from './Toast';
 
 interface StagingRow {
@@ -301,12 +301,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     try {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            const { error } = await supabase.from('products').insert(batch);
-            
-            if (error) {
-                console.error("Batch Insert Error:", error);
-                throw new Error(`Failed at batch ${i + 1}: ${error.message}`);
-            }
+            await api.products.bulkCreate(batch);
 
             processedCount += batch.length;
             setUploadProgress(processedCount);
@@ -318,7 +313,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
     } catch (error: any) {
         showToast(`Import stopped: ${error.message}`, 'error');
-        setStage('staging'); // Allow user to fix and retry
+        setStage('staging');
     }
   };
 
