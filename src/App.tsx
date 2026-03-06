@@ -3,17 +3,18 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspens
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
+const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
+const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
+const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
+const Shop = lazy(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import { useAppStore } from './lib/store';
 import { pathToSection, sectionToPath } from './lib/routes';
-import { MediaViewer } from './components/MediaViewer';
-import { Reader } from './components/Reader';
-import { VisualFeatureViewer } from './components/PhotoEssay/VisualFeatureViewer';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
-import { Shop } from './components/Shop';
 import { CartDrawer } from './components/CartDrawer';
 import { LearnHub } from './components/LearnHub';
 import { HomePage } from './components/HomePage';

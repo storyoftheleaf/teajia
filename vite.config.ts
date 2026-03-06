@@ -42,10 +42,16 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            router: ['react-router-dom'],
-            query: ['@tanstack/react-query'],
+          manualChunks(id) {
+            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+              return 'vendor';
+            }
+            if (id.includes('node_modules/react-router')) {
+              return 'router';
+            }
+            if (id.includes('node_modules/@tanstack/react-query')) {
+              return 'query';
+            }
           },
         },
       },
