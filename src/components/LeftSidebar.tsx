@@ -5,6 +5,14 @@ import { Section } from '../types';
 import { getNavIcon, getIconScale } from './navIconConfig';
 import { useTheme } from '../context/ThemeContext';
 
+function getCurrentSeason(): { name: string; icon: string } {
+  const month = new Date().getMonth();
+  if (month >= 2 && month <= 4) return { name: 'Spring', icon: '\u2727' };
+  if (month >= 5 && month <= 7) return { name: 'Summer', icon: '\u2600' };
+  if (month >= 8 && month <= 10) return { name: 'Autumn', icon: '\u2618' };
+  return { name: 'Winter', icon: '\u2744' };
+}
+
 interface LeftSidebarProps {
   activeSection: Section;
   onNavigate: (section: Section) => void;
@@ -21,6 +29,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   cartItemCount = 0
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const season = getCurrentSeason();
 
   const sections = [
     { id: 'MAGAZINE' as Section, label: 'Read' },
@@ -101,8 +110,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       {/* Flexible spacing */}
       <div className="flex-1" />
 
+      {/* Seasonal indicator — xl only */}
+      <div className="hidden xl:flex items-center gap-2 px-6 py-3 text-tea-seal/40">
+        <span className="text-sm">{season.icon}</span>
+        <span className="text-[10px] uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
+      </div>
+
       {/* Utility Area - Cart & Account at Bottom */}
-      <div className="border-t border-tea-ink/10 dark:border-white/10 py-4 xl:px-3">
+      <div className="border-t border-tea-ink/10 dark:border-white/10 relative py-4 xl:px-3">
+        {/* Decorative seal accent on the border */}
+        <div className="hidden xl:block absolute top-0 left-6 w-6 h-[2px] bg-tea-seal/20"></div>
         <button
           onClick={onCartClick}
           className="w-full flex flex-col xl:flex-row items-center gap-2 xl:gap-3 px-2 xl:px-4 py-4 xl:py-3 rounded-md transition-all duration-300 group relative min-h-[56px] xl:min-h-0 xl:hover:bg-tea-ink/5 xl:dark:hover:bg-white/5"
