@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Story } from '../types';
 import { Icons } from './Icons';
 import { LearnCurriculum } from './LearnCurriculum';
@@ -15,6 +16,8 @@ import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
+
+const VALID_VIEWS = new Set<string>(['course', 'glossary', 'playlists', 'videos', 'visual-guides', 'reading', 'journeys', 'wisdom', 'spaces']);
 
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-ink/5 dark:hover:bg-white/5 px-2 -ml-2';
 
@@ -35,24 +38,25 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   cartItemCount = 0,
   onNavigateToConsult,
 }) => {
-  const [currentView, setCurrentView] = useState<LearnView>('overview');
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
+  const [searchParams, setSearchParams] = useSearchParams();
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const navigateTo = useCallback((view: LearnView) => {
-    if (reducedMotion) {
-      setCurrentView(view);
-      window.scrollTo(0, 0);
-      return;
+  const currentView: LearnView = useMemo(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam && VALID_VIEWS.has(viewParam)) {
+      return viewParam as LearnView;
     }
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView(view);
-      window.scrollTo(0, 0);
-      requestAnimationFrame(() => setIsTransitioning(false));
-    }, 150);
-  }, [reducedMotion]);
+    return 'overview';
+  }, [searchParams]);
+
+  const navigateTo = useCallback((view: LearnView) => {
+    if (view === 'overview') {
+      setSearchParams({}, { replace: false });
+    } else {
+      setSearchParams({ view }, { replace: false });
+    }
+    window.scrollTo(0, 0);
+  }, [setSearchParams]);
 
   const navigateBack = useCallback(() => {
     navigateTo('overview');
@@ -108,7 +112,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
       )}
 
       <div
-        className={`${isSubView ? 'mt-8' : 'mt-0'} max-w-[1400px] mx-auto transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+        className={`${isSubView ? 'mt-8' : 'mt-0'} max-w-[1400px] mx-auto`}
       >
         {isSubView ? (
           renderSubView()
