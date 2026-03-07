@@ -22,7 +22,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
             <div className="w-full max-w-xs text-center">
                 <div className="w-12 h-12 bg-tea-seal rounded-[1px] mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">T</div>
                 <h2 className="text-white font-serif text-xl mb-6">Editor Access</h2>
-
+                
                 {!createdKey ? (
                     <>
                         <input
@@ -34,7 +34,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                             className="w-full bg-[#0f0f0f] border border-white/20 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-seal rounded-sm mb-4 placeholder:text-white/30"
                         />
                         <button onClick={checkLogin} className="w-full bg-tea-paper text-black py-3 uppercase tracking-widest text-xs font-bold hover:bg-white transition-colors rounded-sm mb-6">Enter</button>
-
+                        
                         <div className="border-t border-white/20 pt-6">
                             <p className="text-white/80 text-xs mb-3">No access key?</p>
                             <p className="text-white/70 text-xs mb-4 italic">Try: <span className="text-white/80 font-mono">admin</span>, <span className="text-white/80 font-mono">tea</span>, or <span className="text-white/80 font-mono">passkey1234</span></p>
@@ -54,8 +54,8 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                         <div className="bg-black border border-white/20 p-3 mb-4 select-all cursor-text">
                             <span className="text-white font-mono text-lg tracking-widest">{createdKey}</span>
                         </div>
-                        <button
-                            onClick={() => { setPwd(createdKey); setCreatedKey(null); }}
+                        <button 
+                            onClick={() => { setPwd(createdKey); setCreatedKey(null); }} 
                             className="w-full bg-tea-paper text-black py-3 uppercase tracking-widest text-xs font-bold hover:bg-white transition-colors rounded-sm"
                         >
                             Login Now
