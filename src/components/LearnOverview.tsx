@@ -233,8 +233,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </span>
         </div>
 
-        {/* Stat ribbon — spaced, elegant, not a list */}
-        <div className="flex items-center gap-6 md:gap-10 mb-10 overflow-x-auto hide-scrollbar pb-1">
+        {/* Stat ribbon — wraps naturally on small screens */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-10 mb-10">
           {[
             { n: counts.glossary, label: 'Terms' },
             { n: counts.courses, label: 'Courses' },
@@ -242,7 +242,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             { n: counts.wisdom, label: 'Voices' },
             { n: counts.playlists, label: 'Playlists' },
           ].map((stat, i) => (
-            <div key={i} className="flex flex-col items-center flex-shrink-0">
+            <div key={i} className="flex flex-col items-center">
               <span className="font-serif text-2xl md:text-3xl text-tea-ink dark:text-tea-paper tabular-nums">{stat.n}</span>
               <span className="text-[9px] font-sans uppercase tracking-[0.35em] text-tea-ink/30 dark:text-tea-paper/30 mt-0.5">{stat.label}</span>
             </div>
@@ -334,15 +334,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group w-full ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/20 transition-all duration-300 hover:-translate-y-1">
-                {/* Each tile gets its own ink-wash mood */}
+              <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/20 transition-colors duration-300">
                 <InkWashPlaceholder aspectRatio="3/4" mood={tile.mood} />
+                {/* Gradient scrim for text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-tea-paper/90 via-tea-paper/30 to-transparent dark:from-tea-ink/90 dark:via-tea-ink/30" />
                 <div className="absolute inset-0 flex flex-col justify-end p-4">
-                  <span className="text-tea-seal/50 mb-2 group-hover:text-tea-seal transition-colors">{tile.icon}</span>
+                  <span className="text-tea-seal/60 mb-1.5 group-hover:text-tea-seal transition-colors">{tile.icon}</span>
                   <span className="font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors leading-tight">
                     {tile.label}
                   </span>
-                  <span className="text-[10px] font-sans text-tea-ink/35 dark:text-tea-paper/35 mt-0.5">
+                  <span className="text-[10px] font-sans text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">
                     {tile.sub}
                   </span>
                 </div>
@@ -482,6 +483,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           showArrows={true}
           showDots={true}
           peek={3}
+          arrowTheme="light"
         >
           {LEARN_PATHS.map((path, i) => {
             const progress = getPathProgress(path);
@@ -493,7 +495,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 onClick={() => onNavigateTo('course')}
                 className={`text-left w-full group ${CTA_FOCUS}`}
               >
-                <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/20 transition-all duration-300">
+                <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/20 transition-colors duration-300">
                   {/* Atmospheric top image */}
                   <InkWashPlaceholder
                     aspectRatio="16/10"
@@ -710,10 +712,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={journeysReveal.ref}
-        className={`mb-20 md:mb-28 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-12 md:py-16 bg-tea-ink dark:bg-black/30 ${journeysReveal.className}`}
+        className={`mb-20 md:mb-28 rounded-[1px] bg-tea-ink dark:bg-black/30 py-10 md:py-14 px-5 md:px-8 ${journeysReveal.className}`}
         style={journeysReveal.style}
       >
-        <div className="max-w-[1400px] mx-auto">
+        <div>
           <div className="flex items-center gap-4 mb-2">
             <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-seal/60">
               Guided Journeys
@@ -733,13 +735,12 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               >
                 <div className="relative overflow-hidden rounded-[1px] border border-white/[0.06] hover:border-tea-seal/15 transition-all duration-300">
                   <div className="flex flex-col md:flex-row">
-                    {/* Journey image */}
-                    <div className="md:w-1/3 lg:w-2/5 flex-shrink-0">
+                    {/* Journey image — hidden on mobile for cleaner layout, shown on md+ */}
+                    <div className="hidden md:block md:w-1/3 lg:w-2/5 flex-shrink-0 overflow-hidden">
                       <InkWashPlaceholder
                         aspectRatio="16/10"
                         mood="dark"
                         label={`${collection.guideSteps[0]?.teaName?.toLowerCase()}`}
-                        className="h-full"
                       />
                     </div>
 
@@ -784,7 +785,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
       </section>
 
-
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 8 — ATLAS & PLACES
           Location cards that feel like postcards from origin.
@@ -804,6 +804,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           gap={14}
           showArrows={true}
           peek={3}
+          arrowTheme="light"
         >
           {teaMapPins.map((pin, i) => {
             const moods: Array<'warm' | 'cool' | 'neutral'> = ['warm', 'cool', 'neutral'];
@@ -813,7 +814,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 onClick={() => onStoryClick(geographyLesson)}
                 className={`text-left w-full group ${CTA_FOCUS}`}
               >
-                <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/15 transition-all duration-300 hover:-translate-y-1">
+                <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/15 transition-colors duration-300">
                   {/* Location postcard image */}
                   <InkWashPlaceholder
                     aspectRatio="4/3"
@@ -865,7 +866,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-ink dark:bg-white/[0.03] rounded-[1px] border border-white/[0.06] p-5 md:p-6 hover:border-tea-seal/20 hover:-translate-y-0.5 transition-all duration-300">
+              <div className="h-full bg-tea-ink dark:bg-white/[0.03] rounded-[1px] border border-white/[0.06] p-5 md:p-6 hover:border-tea-seal/20 transition-colors duration-300">
                 <span className="text-tea-seal/30 mb-4 block group-hover:text-tea-seal/50 transition-colors">
                   {tile.icon}
                 </span>
@@ -895,26 +896,23 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           onClick={() => onNavigateTo('spaces')}
           className={`w-full text-left group ${CTA_FOCUS}`}
         >
-          <div className="relative overflow-hidden rounded-[1px]">
-            {/* Full-bleed warm atmospheric image */}
+          <div className="overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8">
+            {/* Atmospheric image */}
             <InkWashPlaceholder
-              aspectRatio="2.2/1"
+              aspectRatio="21/9"
               mood="warm"
               label="Morning light on a minimalist tea corner"
             />
 
-            {/* Gradient overlay for text legibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-
-            {/* Content overlaid on image */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-              <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-white/50 font-sans mb-3">
+            {/* Content below image — clean, no overlay legibility issues */}
+            <div className="p-5 md:p-7 bg-tea-paper dark:bg-tea-ink">
+              <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
-              <h4 className="font-serif text-xl md:text-2xl text-white mb-2 group-hover:text-tea-seal transition-colors tracking-tight">
+              <h4 className="font-serif text-lg md:text-xl text-tea-ink dark:text-tea-paper mb-2 group-hover:text-tea-seal transition-colors tracking-tight">
                 {featuredSpace.title}
               </h4>
-              <p className="font-serif italic text-sm text-white/60 leading-relaxed mb-4 max-w-md">
+              <p className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed mb-4 max-w-md">
                 {featuredSpace.description}
               </p>
               <span className="text-tea-seal text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
