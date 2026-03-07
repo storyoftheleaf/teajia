@@ -4,34 +4,32 @@ import react from '@vitejs/plugin-react';
 import fs from 'fs';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  const env = loadEnv(mode, '.', 'VITE_');
   return {
     server: {
       port: 3000,
-      host: '0.0.0.0',
+      host: 'localhost',
       cors: true,
     },
     preview: {
       port: 4173,
-      host: '0.0.0.0',
+      host: 'localhost',
     },
     plugins: [
       react(),
       {
-        name: 'copy-redirects',
+        name: 'copy-cloudflare-files',
         writeBundle() {
-          const redirectsPath = path.resolve(__dirname, '_redirects');
-          const distPath = path.resolve(__dirname, 'dist', '_redirects');
-          if (fs.existsSync(redirectsPath)) {
-            fs.copyFileSync(redirectsPath, distPath);
+          for (const file of ['_redirects', '_headers']) {
+            const src = path.resolve(__dirname, file);
+            const dest = path.resolve(__dirname, 'dist', file);
+            if (fs.existsSync(src)) {
+              fs.copyFileSync(src, dest);
+            }
           }
         },
       },
     ],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
@@ -39,16 +37,27 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: false,
+      sourcemap: 'hidden',
       minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
       target: 'esnext',
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            router: ['react-router-dom'],
-            query: ['@tanstack/react-query'],
-            supabase: ['@supabase/supabase-js'],
+          manualChunks(id) {
+            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+              return 'vendor';
+            }
+            if (id.includes('node_modules/react-router')) {
+              return 'router';
+            }
+            if (id.includes('node_modules/@tanstack/react-query')) {
+              return 'query';
+            }
           },
         },
       },
