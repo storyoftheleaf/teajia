@@ -7,6 +7,7 @@ const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ d
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
 const Shop = lazy(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
@@ -381,6 +382,11 @@ const AppContent = () => {
                 } />
                 <Route path="/consult" element={
                   <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
+                } />
+                <Route path="/collection" element={
+                  <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <SharedCollection />
+                  </Suspense>
                 } />
                 <Route path="/about" element={<AboutPage />} />
                 {/* 404 Page */}

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { InventoryItem } from '../../types';
+import { useAppStore } from '../../lib/store';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -28,9 +29,10 @@ function ShareIcon({ color }: { color: string }) {
 }
 
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
+  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
-  const [favorited, setFavorited] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
@@ -419,7 +421,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               padding: "0 16px",
             }}>
               <button
-                onClick={() => setFavorited(!favorited)}
+                onClick={() => toggleFavoriteTea(item.id)}
                 onMouseEnter={() => setHovered("fav")}
                 onMouseLeave={() => setHovered(null)}
                 aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
