@@ -507,7 +507,7 @@ const AppContent = () => {
       </div>
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} />
+      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} onAccountClick={handleOpenAccount} />
 
       </div>
     </div>

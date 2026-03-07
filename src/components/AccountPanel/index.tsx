@@ -149,9 +149,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
     auth.logout();
   };
 
-  const handleGoToAdmin = () => {
+  const handleGoToAdmin = (path: string = '/admin/inventory') => {
     onClose();
-    window.location.href = '/admin';
+    window.location.href = path;
   };
 
   const swipeProgress = touchOffset / 150;
@@ -452,21 +452,34 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
                   </div>
                 )}
 
-                {/* Admin Link — only for admins */}
+                {/* Admin Navigation — only for admins */}
                 {auth.isAuthenticated && auth.isAdmin && (
                   <div>
                     <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block mb-4">Administration</span>
-                    <button
-                      onClick={handleGoToAdmin}
-                      className="w-full flex items-center gap-4 px-4 py-4 bg-tea-seal/5 dark:bg-tea-seal/10 border border-tea-seal/15 dark:border-tea-seal/20 hover:bg-tea-seal/10 dark:hover:bg-tea-seal/15 transition-colors group"
-                    >
-                      <Icons.Shield className="w-5 h-5 text-tea-seal" />
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-serif text-tea-charcoal dark:text-white">Admin Dashboard</span>
-                        <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">Inventory, orders, invoices</span>
-                      </div>
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-seal/50 ml-auto" />
-                    </button>
+                    <div className="border border-tea-seal/15 dark:border-tea-seal/20 overflow-hidden">
+                      {[
+                        { path: '/admin/inventory', label: 'Inventory', desc: 'Manage products & stock', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
+                        { path: '/admin/personal', label: 'Collection', desc: 'Personal tea collection', icon: <Icons.Heart className="w-4.5 h-4.5" /> },
+                        { path: '/admin/orders', label: 'Orders', desc: 'Track & manage orders', icon: <Icons.Clock className="w-4.5 h-4.5" /> },
+                        { path: '/admin/records', label: 'Records', desc: 'Sales logs & history', icon: <Icons.BookOpen className="w-4.5 h-4.5" /> },
+                        { path: '/admin/settings', label: 'Settings', desc: 'System configuration', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
+                      ].map((item, i, arr) => (
+                        <button
+                          key={item.path}
+                          onClick={() => handleGoToAdmin(item.path)}
+                          className={`w-full flex items-center gap-4 px-4 py-3.5 bg-tea-seal/5 dark:bg-tea-seal/10 hover:bg-tea-seal/10 dark:hover:bg-tea-seal/15 transition-colors group ${
+                            i < arr.length - 1 ? 'border-b border-tea-seal/10 dark:border-tea-seal/15' : ''
+                          }`}
+                        >
+                          <div className="text-tea-seal">{item.icon}</div>
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="text-sm font-serif text-tea-charcoal dark:text-white">{item.label}</span>
+                            <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">{item.desc}</span>
+                          </div>
+                          <Icons.ChevronRight className="w-4 h-4 text-tea-seal/30 group-hover:text-tea-seal/60 transition-colors" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
