@@ -1,6 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { PageHeader } from './shared/PageHeader';
-import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { CardContainer } from './shared/CardContainer';
 import { SwipeCarousel } from './shared/SwipeCarousel';
 import { Icons } from './Icons';
@@ -8,36 +7,62 @@ import { ConsultView } from '../types/consult';
 import { consultProjects } from '../data/consultProjects';
 import { consultTestimonials } from '../data/consultTestimonials';
 import { InquiryForm } from './consult/InquiryForm';
-import { TeaHouseDesign } from './consult/TeaHouseDesign';
-import { SourcingJourneys } from './consult/SourcingJourneys';
 import { Projects } from './consult/Projects';
 import { ProjectDetail } from './consult/ProjectDetail';
+import { ServiceContent } from './consult/ServiceContent';
 import { useSectionReveal } from '../hooks/useSectionReveal';
-import { SECTION_GAP_LG } from './shared/spacing';
 
-const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2 rounded-sm';
+/* =====================================================
+   PATH_CARDS data
+   ===================================================== */
 
-const CONSULT_TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'design', label: 'Design' },
-  { id: 'sourcing', label: 'Sourcing' },
-  { id: 'projects', label: 'Projects' },
-];
+const PATH_CARDS = [
+  {
+    id: 'design',
+    headline: 'I want to create a tea space',
+    subline: 'Hotels, retreats, homes, community spaces',
+    service: 'Design & Curation',
+    badge: 'By Inquiry',
+    inquiryPreselect: 'Space design or tea integration',
+    flagship: true,
+  },
+  {
+    id: 'sessions',
+    headline: 'I want to deepen my practice',
+    subline: 'Sessions, guidance, building a practice',
+    service: 'Sessions & Guidance',
+    badge: 'From $50',
+    inquiryPreselect: 'A session or practice guidance',
+  },
+  {
+    id: 'journeys',
+    headline: 'I want to travel to tea origins',
+    subline: 'Sourcing journeys through Asia',
+    service: 'Sourcing Journeys',
+    badge: 'Seasonal',
+    inquiryPreselect: 'A sourcing journey',
+  },
+  {
+    id: 'sourcing',
+    headline: 'I need quality tea for my space',
+    subline: 'Sourcing for businesses and collectors',
+    service: 'Tea Sourcing',
+    badge: 'By Inquiry',
+    inquiryPreselect: 'Tea sourcing',
+  },
+  {
+    id: 'events',
+    headline: 'I want a tea experience for an event',
+    subline: 'Retreats, dinners, celebrations, gatherings',
+    service: 'Events',
+    badge: 'From $500',
+    inquiryPreselect: 'An event or group experience',
+  },
+] as const;
 
-const TAB_TO_VIEW: Record<string, ConsultView> = {
-  overview: 'overview',
-  design: 'tea-house-design',
-  sourcing: 'sourcing-journeys',
-  projects: 'projects',
-};
-
-const VIEW_TO_TAB: Record<string, string> = {
-  overview: 'overview',
-  'tea-house-design': 'design',
-  'sourcing-journeys': 'sourcing',
-  projects: 'projects',
-  'project-detail': 'projects',
-};
+/* =====================================================
+   ConsultPage — main shell
+   ===================================================== */
 
 interface ConsultPageProps {
   onCartClick?: () => void;
@@ -46,11 +71,15 @@ interface ConsultPageProps {
 }
 
 export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccountClick, cartItemCount = 0 }) => {
-  const [currentView, setCurrentView] = useState<ConsultView>('overview');
+  const [currentView, setCurrentView] = useState<ConsultView>('main');
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryPreselect, setInquiryPreselect] = useState('');
-  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const [cardsVisible, setCardsVisible] = useState(true);
 
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -60,451 +89,386 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   }, []);
 
   const navigateTo = useCallback((view: ConsultView, projectId?: string) => {
-    if (reducedMotion) {
-      setCurrentView(view);
-      if (projectId) setSelectedProjectId(projectId);
-      window.scrollTo(0, 0);
-      return;
-    }
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView(view);
-      if (projectId) setSelectedProjectId(projectId);
-      window.scrollTo(0, 0);
-      requestAnimationFrame(() => setIsTransitioning(false));
-    }, 150);
-  }, [reducedMotion]);
+    setCurrentView(view);
+    if (projectId) setSelectedProjectId(projectId);
+    window.scrollTo(0, 0);
+  }, []);
 
-  const navigateProjects = useCallback(() => {
-    navigateTo('projects');
-  }, [navigateTo]);
+  // IntersectionObserver for sticky mobile bar
+  useEffect(() => {
+    if (!cardsRef.current) return;
+    const obs = new IntersectionObserver(([e]) => setCardsVisible(e.isIntersecting), { threshold: 0 });
+    obs.observe(cardsRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  const handleSelectPath = useCallback((pathId: string) => {
+    const next = selectedPath === pathId ? null : pathId;
+    setSelectedPath(next);
+    // Mobile: scroll to content when selecting
+    if (next && window.innerWidth < 768) {
+      setTimeout(() => contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [selectedPath]);
+
+  const navigateToSection = useCallback((section: string) => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { section } }));
+  }, []);
 
   const selectedProject = selectedProjectId
     ? consultProjects.find(p => p.id === selectedProjectId)
     : null;
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'tea-house-design':
-        return (
-          <TeaHouseDesign
-            onBack={() => navigateTo('overview')}
-            onOpenInquiry={openInquiry}
-            onNavigateProjects={navigateProjects}
-          />
-        );
-      case 'sourcing-journeys':
-        return (
-          <SourcingJourneys
-            onBack={() => navigateTo('overview')}
-            onOpenInquiry={openInquiry}
-            onNavigateProjects={navigateProjects}
-          />
-        );
-      case 'projects':
-        return (
-          <Projects
-            onBack={() => navigateTo('overview')}
-            onSelectProject={(id) => navigateTo('project-detail', id)}
-          />
-        );
-      case 'project-detail':
-        if (!selectedProject) return null;
-        return (
+  // Sub-views: Projects and ProjectDetail
+  if (currentView === 'projects') {
+    return (
+      <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+        <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <div className="mt-8">
+          <Projects onBack={() => navigateTo('main')} onSelectProject={(id) => navigateTo('project-detail', id)} />
+        </div>
+        <InquiryForm isOpen={inquiryOpen} onClose={() => setInquiryOpen(false)} preselect={inquiryPreselect} />
+      </div>
+    );
+  }
+
+  if (currentView === 'project-detail' && selectedProject) {
+    return (
+      <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+        <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <div className="mt-8">
           <ProjectDetail
             project={selectedProject}
             onBack={() => navigateTo('projects')}
             onOpenInquiry={openInquiry}
             onNavigateProjects={() => navigateTo('projects')}
           />
-        );
-      default:
-        return <Overview onOpenInquiry={openInquiry} onNavigateTo={navigateTo} />;
-    }
-  };
+        </div>
+        <InquiryForm isOpen={inquiryOpen} onClose={() => setInquiryOpen(false)} preselect={inquiryPreselect} />
+      </div>
+    );
+  }
 
-  const handleTabChange = useCallback((tabId: string) => {
-    const view = TAB_TO_VIEW[tabId];
-    if (view) navigateTo(view);
-  }, [navigateTo]);
-
-  const activeTab = VIEW_TO_TAB[currentView] || 'overview';
-
+  // Main layout
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
-      <PageHeader
-        title="Consult"
-        onCartClick={onCartClick}
-        onAccountClick={onAccountClick}
-        cartItemCount={cartItemCount}
-      >
-        <PageHeaderTabs
-          tabs={CONSULT_TABS}
-          activeTab={activeTab}
-          onChange={handleTabChange}
-        />
-      </PageHeader>
+      <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
 
-      <div
-        className={`mt-8 transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
-      >
-        {renderView()}
+      {/* Mobile sticky selection indicator */}
+      {selectedPath && !cardsVisible && (
+        <div className="md:hidden sticky top-[var(--header-height,56px)] z-20 bg-white/80 dark:bg-[#1a1a1a]/80
+                        backdrop-blur-xl border-b border-tea-ink/5 dark:border-white/5 px-4 py-2.5
+                        flex items-center justify-between animate-[fadeIn_0.2s_ease-out]">
+          <span className="font-serif text-sm text-tea-ink dark:text-tea-paper">
+            {PATH_CARDS.find(c => c.id === selectedPath)?.service}
+          </span>
+          <button onClick={() => cardsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-tea-seal text-xs uppercase tracking-wider min-h-[44px] flex items-center">
+            Change
+          </button>
+        </div>
+      )}
+
+      <div className="max-w-[1400px] mx-auto">
+        {/* Opening */}
+        <div className="pt-8 md:pt-12 lg:pt-16">
+          <h2 className="font-serif text-2xl md:text-3xl font-light text-tea-ink dark:text-tea-paper">
+            What brings you here?
+          </h2>
+          <div className="w-12 h-[1px] bg-tea-seal mt-4 mb-8 md:mb-10" />
+        </div>
+
+        {/* Path Cards */}
+        <div ref={cardsRef}>
+          <PathCardGrid selectedPath={selectedPath} onSelect={handleSelectPath} />
+        </div>
+
+        {/* "Just talk" link */}
+        <button
+          onClick={() => openInquiry('')}
+          className="mt-4 font-sans text-sm text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-seal
+                     transition-colors duration-200 flex items-center gap-1 min-h-[44px]
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm"
+        >
+          Or, just start a conversation
+          <Icons.ChevronRight className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Expanded service content */}
+        {selectedPath && (
+          <div
+            ref={contentRef}
+            key={selectedPath}
+            className="mt-10 md:mt-12 animate-[fadeIn_0.4s_ease-out]"
+            aria-live="polite"
+          >
+            <ServiceContent
+              path={selectedPath}
+              onOpenInquiry={openInquiry}
+              onNavigateToProjects={() => navigateTo('projects')}
+              onNavigateToShop={() => navigateToSection('SHOP')}
+              onNavigateToMagazine={() => navigateToSection('MAGAZINE')}
+            />
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="border-t border-tea-ink/5 dark:border-white/5 mt-16 md:mt-20" />
+
+        {/* Adrian */}
+        <AdrianSection />
+
+        {/* Projects Preview */}
+        <ProjectsPreview
+          selectedPath={selectedPath}
+          onSelectProject={(id) => navigateTo('project-detail', id)}
+          onViewAll={() => navigateTo('projects')}
+        />
+
+        {/* Testimonials */}
+        <TestimonialRotator />
+
+        {/* Closing CTA */}
+        <ClosingCTA onOpenInquiry={() => openInquiry('')} />
       </div>
 
-      <InquiryForm
-        isOpen={inquiryOpen}
-        onClose={() => setInquiryOpen(false)}
-        preselect={inquiryPreselect}
-      />
+      <InquiryForm isOpen={inquiryOpen} onClose={() => setInquiryOpen(false)} preselect={inquiryPreselect} />
     </div>
   );
 };
 
 /* =====================================================
-   OVERVIEW — the default landing view for Consult
+   PathCardGrid
    ===================================================== */
 
-interface OverviewProps {
-  onOpenInquiry: (preselect: string) => void;
-  onNavigateTo: (view: ConsultView, projectId?: string) => void;
+interface PathCardGridProps {
+  selectedPath: string | null;
+  onSelect: (id: string) => void;
 }
 
-const DESIGN_SHORTCUTS = [
-  { label: 'Tea Houses', action: 'tea-house-design' as ConsultView },
-  { label: 'Sourcing', action: 'sourcing-journeys' as ConsultView },
-  { label: 'Tea Supply', action: null }, // opens inquiry
-];
+const PathCardGrid: React.FC<PathCardGridProps> = ({ selectedPath, onSelect }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {PATH_CARDS.map(card => (
+      <button
+        key={card.id}
+        aria-pressed={selectedPath === card.id}
+        onClick={() => onSelect(card.id)}
+        className={`
+          ${'flagship' in card && card.flagship ? 'md:col-span-2' : ''}
+          group text-left p-5 md:p-6 rounded-[1px] transition-all duration-300
+          border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2
+          ${selectedPath === card.id
+            ? 'border-tea-seal/40 bg-tea-seal/[4%] dark:bg-tea-seal/[6%]'
+            : 'border-tea-ink/10 dark:border-white/10 hover:border-tea-ink/20 dark:hover:border-white/20 hover:bg-tea-ink/[2%] dark:hover:bg-white/[2%]'
+          }
+        `}
+      >
+        <div className="flex flex-col gap-1.5">
+          <span className="font-serif text-base md:text-lg text-tea-ink dark:text-tea-paper">
+            {card.headline}
+          </span>
+          <span className="font-sans text-sm text-tea-ink/50 dark:text-tea-paper/50">
+            {card.subline}
+          </span>
+        </div>
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-tea-ink/5 dark:border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40">
+              {card.service}
+            </span>
+            <span className="text-tea-ink/20 dark:text-tea-paper/20">&middot;</span>
+            <span className="text-[11px] uppercase tracking-wider text-tea-seal">
+              {card.badge}
+            </span>
+          </div>
+          <Icons.ChevronRight className="w-4 h-4 text-tea-ink/20 dark:text-tea-paper/20 group-hover:text-tea-seal transition-colors" />
+        </div>
+      </button>
+    ))}
+  </div>
+);
 
-const SESSION_SHORTCUTS = [
-  { label: 'Private Session', preselect: 'A session or practice guidance' },
-  { label: 'Guidance', preselect: 'A session or practice guidance' },
-  { label: 'Events', preselect: 'An event or group experience' },
-];
+/* =====================================================
+   AdrianSection
+   ===================================================== */
 
-const Overview: React.FC<OverviewProps> = ({ onOpenInquiry, onNavigateTo }) => {
-  const [hoveredPath, setHoveredPath] = useState<'design' | 'sessions' | null>(null);
-  const reveal1 = useSectionReveal();
-  const reveal2 = useSectionReveal();
-  const reveal3 = useSectionReveal();
-  const reveal4 = useSectionReveal();
+const AdrianSection: React.FC = () => {
+  const reveal = useSectionReveal();
+  return (
+    <section ref={reveal.ref} className={`mt-16 md:mt-20 ${reveal.className}`} style={reveal.style}>
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+        {/* Photo placeholder */}
+        <div className="w-full md:w-40 md:h-40 aspect-[4/3] md:aspect-square bg-tea-ink/5 dark:bg-white/5
+                        rounded-[1px] flex items-center justify-center shrink-0">
+          <span className="text-sm text-tea-ink/30 dark:text-tea-paper/30 uppercase tracking-widest">Photo</span>
+        </div>
+        {/* Text */}
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-tea-ink/40 dark:text-tea-paper/40 mb-2">
+            Adrian Rasmussen
+          </p>
+          <p className="font-serif text-lg text-tea-ink dark:text-tea-paper mb-3">
+            Twenty years in tea culture. Taiwan, China, Bali, and beyond.
+          </p>
+          <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed max-w-[480px]">
+            Adrian's background in design and visual art shapes everything he creates — from the way
+            tea is presented to the spaces where it's shared. Two decades of sourcing relationships
+            across Asia. A practice rooted in Bali with international reach.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
 
-  const featuredProjects = consultProjects.filter(p => p.featured);
+/* =====================================================
+   ProjectsPreview
+   ===================================================== */
+
+interface ProjectsPreviewProps {
+  selectedPath: string | null;
+  onSelectProject: (id: string) => void;
+  onViewAll: () => void;
+}
+
+const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ selectedPath, onSelectProject, onViewAll }) => {
+  const reveal = useSectionReveal();
+
+  const getProjects = () => {
+    const filterMap: Record<string, string> = {
+      design: 'space',
+      journeys: 'journey',
+      events: 'event',
+    };
+    const typeFilter = selectedPath ? filterMap[selectedPath] : null;
+    let filtered = typeFilter
+      ? consultProjects.filter(p => p.type === typeFilter)
+      : consultProjects.filter(p => p.featured);
+
+    // Pad to 3 if needed
+    if (filtered.length < 3) {
+      const featured = consultProjects.filter(p => p.featured && !filtered.includes(p));
+      filtered = [...filtered, ...featured].slice(0, 3);
+    }
+    return filtered.slice(0, 3);
+  };
+
+  const projects = getProjects();
 
   return (
-    <>
-      {/* ========== Split-Screen Landing ========== */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 min-h-[calc(100vh-200px)] -mt-8 ${SECTION_GAP_LG}`}>
+    <section ref={reveal.ref} className={`mt-16 md:mt-20 ${reveal.className}`} style={reveal.style}>
+      <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">Portfolio</p>
+      <h3 className="font-serif text-2xl md:text-3xl font-normal text-tea-ink dark:text-tea-paper">Projects</h3>
+      <div className="w-12 h-[1px] bg-tea-seal mt-3 mb-8" />
 
-        {/* ── Design & Curation — dark side ── */}
-        <div
-          role="button"
-          tabIndex={0}
-          className={`
-            group relative flex flex-col items-center justify-center text-center
-            p-10 md:p-12 lg:p-16 transition-all duration-700 ease-out cursor-pointer
-            focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-tea-seal/50
-            ${hoveredPath === 'design'
-              ? 'bg-[#141414]'
-              : hoveredPath === 'sessions'
-                ? 'bg-tea-charcoal/60'
-                : 'bg-tea-charcoal'
-            }
-          `}
-          onMouseEnter={() => setHoveredPath('design')}
-          onMouseLeave={() => setHoveredPath(null)}
-          onClick={() => onNavigateTo('tea-house-design')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigateTo('tea-house-design'); } }}
-          aria-label="Design & Curation — explore tea house design and sourcing"
-        >
-          {/* Accent glow */}
-          <div className={`
-            absolute inset-0 bg-gradient-to-br from-tea-seal/5 to-transparent
-            transition-opacity duration-700 pointer-events-none
-            ${hoveredPath === 'design' ? 'opacity-100' : 'opacity-0'}
-          `} />
-
-          <div className="relative z-10 max-w-sm">
-            <Icons.Seal className={`
-              w-14 h-14 md:w-16 md:h-16 mx-auto mb-6 text-tea-seal/70
-              transition-all duration-500
-              ${hoveredPath === 'design' ? 'scale-110 text-tea-seal' : ''}
-            `} />
-
-            <span className="inline-block text-[10px] uppercase tracking-[0.2em] text-tea-paper/40 mb-3">
-              By inquiry
-            </span>
-
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-tea-paper mb-3">
-              Design & Curation
-            </h2>
-            <p className="text-sm md:text-base text-tea-paper/50 mb-8 leading-relaxed">
-              Tea house design, sourcing journeys, and tea supply. Every project begins with a conversation.
-            </p>
-
-            <span className="font-serif text-sm text-tea-seal inline-flex items-center gap-2 group-hover:gap-3 transition-all duration-300 mb-6">
-              Explore offerings
-              <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-            </span>
-
-            {/* Category shortcuts */}
-            <div className="flex items-center justify-center gap-3 flex-wrap" onClick={e => e.stopPropagation()}>
-              {DESIGN_SHORTCUTS.map(({ label, action }) => (
-                <button
-                  key={label}
-                  onClick={() => action ? onNavigateTo(action) : onOpenInquiry('Tea sourcing')}
-                  className="text-[11px] text-tea-paper/30 hover:text-tea-seal transition-colors duration-200 uppercase tracking-wider"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Sessions & Guidance — warm paper side ── */}
-        <div
-          role="button"
-          tabIndex={0}
-          className={`
-            group relative flex flex-col items-center justify-center text-center
-            p-10 md:p-12 lg:p-16 transition-all duration-700 ease-out cursor-pointer
-            focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-tea-seal/50
-            ${hoveredPath === 'sessions'
-              ? 'bg-[#EDE9DD]'
-              : hoveredPath === 'design'
-                ? 'bg-tea-paper/60'
-                : 'bg-tea-paper'
-            }
-          `}
-          onMouseEnter={() => setHoveredPath('sessions')}
-          onMouseLeave={() => setHoveredPath(null)}
-          onClick={() => onOpenInquiry('A session or practice guidance')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenInquiry('A session or practice guidance'); } }}
-          aria-label="Sessions & Guidance — private sessions and group experiences"
-        >
-          {/* Accent glow */}
-          <div className={`
-            absolute inset-0 bg-gradient-to-br from-tea-green/5 to-transparent
-            transition-opacity duration-700 pointer-events-none
-            ${hoveredPath === 'sessions' ? 'opacity-100' : 'opacity-0'}
-          `} />
-
-          <div className="relative z-10 max-w-sm">
-            <Icons.Leaf className={`
-              w-14 h-14 md:w-16 md:h-16 mx-auto mb-6 text-tea-green/60
-              transition-all duration-500
-              ${hoveredPath === 'sessions' ? 'scale-110 text-tea-green' : ''}
-            `} />
-
-            <span className="inline-block text-[10px] uppercase tracking-[0.2em] text-tea-ink/40 mb-3">
-              Bali & Remote
-            </span>
-
-            <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-tea-ink mb-3">
-              Sessions & Guidance
-            </h2>
-            <p className="text-sm md:text-base text-tea-ink/50 mb-8 leading-relaxed">
-              Private tea sessions, practice guidance, and group experiences. In the studio or wherever you are.
-            </p>
-
-            <span className="font-serif text-sm text-tea-seal inline-flex items-center gap-2 group-hover:gap-3 transition-all duration-300 mb-6">
-              Start a conversation
-              <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-            </span>
-
-            {/* Category shortcuts */}
-            <div className="flex items-center justify-center gap-3 flex-wrap" onClick={e => e.stopPropagation()}>
-              {SESSION_SHORTCUTS.map(({ label, preselect }) => (
-                <button
-                  key={label}
-                  onClick={() => onOpenInquiry(preselect)}
-                  className="text-[11px] text-tea-ink/30 hover:text-tea-seal transition-colors duration-200 uppercase tracking-wider"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Desktop grid */}
+      <div className="hidden md:grid md:grid-cols-3 gap-5 mb-8">
+        {projects.map(project => (
+          <ProjectCard key={project.id} project={project} onClick={() => onSelectProject(project.id)} />
+        ))}
       </div>
 
-      <div className="max-w-[1400px] mx-auto">
-      {/* ========== Sourcing Journeys ========== */}
-      <section ref={reveal1.ref} className={`${SECTION_GAP_LG} border-b border-tea-ink/5 dark:border-white/5 pb-20 md:pb-28 lg:pb-36 ${reveal1.className}`} style={reveal1.style}>
-        <CardContainer variant="dark" className="w-full overflow-hidden mb-10">
-          <div className="w-full h-[40vh] md:h-[30vh] bg-tea-ink/90" role="img" aria-label="Sourcing journey through tea origins" />
-        </CardContainer>
-        <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">
-          Travel
-        </p>
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-ink dark:text-tea-paper">
-          Sourcing Journeys
-        </h2>
-        <p className="font-sans text-base font-light mb-6 text-tea-ink/70 dark:text-tea-paper/70">
-          Travel to tea origins with a guide who knows the way.
-        </p>
-        <div className="w-12 h-[1px] bg-tea-seal mb-8" />
-        <div className="max-w-[640px]">
-          <p className="font-sans text-sm leading-relaxed mb-8 text-tea-ink/70 dark:text-tea-paper/70">
-            For two decades, I've traveled through Taiwan, China, and beyond, building relationships with farmers, masters, and artisans. These aren't tours. Each journey is shaped around what calls to you: farms you want to visit, teas you want to source, makers you want to meet. I handle the language, the logistics, and the introductions.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4">
-          <button
-            onClick={() => onOpenInquiry('A sourcing journey')}
-            className={`text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
-          >
-            Start a conversation
-            <Icons.ChevronRight className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => onNavigateTo('sourcing-journeys')}
-            className={`text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-seal text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
-          >
-            See past journeys
-            <Icons.ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </section>
-
-      {/* ========== Tea Sourcing ========== */}
-      <section ref={reveal2.ref} className={`${SECTION_GAP_LG} border-b border-tea-ink/5 dark:border-white/5 pb-20 md:pb-28 lg:pb-36 ${reveal2.className}`} style={reveal2.style}>
-        <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">
-          Supply
-        </p>
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-ink dark:text-tea-paper">
-          Tea Sourcing
-        </h2>
-        <p className="font-sans text-base font-light mb-6 text-tea-ink/70 dark:text-tea-paper/70">
-          Quality tea for your space, your collection, or your community.
-        </p>
-        <div className="w-12 h-[1px] bg-tea-seal mb-8" />
-        <div className="max-w-[640px]">
-          <p className="font-sans text-sm leading-relaxed mb-8 text-tea-ink/70 dark:text-tea-paper/70">
-            I source directly from trusted origins in Taiwan, China, and beyond. For individual collectors seeking access to exceptional teas. For retreat centers, hotels, and communities wanting quality tea as part of what they offer. Whether it's a single order or an ongoing relationship, we start with a conversation about what you're looking for.
-          </p>
-        </div>
-        <button
-          onClick={() => onOpenInquiry('Tea sourcing')}
-          className={`text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
-        >
-          Inquire
-          <Icons.ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </section>
-
-      {/* ========== Projects ========== */}
-      <section ref={reveal3.ref} className={`${SECTION_GAP_LG} ${reveal3.className}`} style={reveal3.style}>
-        <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">
-          Portfolio
-        </p>
-        <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-ink dark:text-tea-paper">
-          Projects
-        </h2>
-        <p className="font-sans text-base font-light mb-6 text-tea-ink/70 dark:text-tea-paper/70">
-          Spaces, events, and journeys I've brought to life.
-        </p>
-        <div className="w-12 h-[1px] bg-tea-seal mb-10" />
-
-        {/* Mobile: SwipeCarousel */}
-        <div className="md:hidden mb-10">
-          <SwipeCarousel showDots peek={12}>
-            {featuredProjects.map(project => (
-              <button
-                key={project.id}
-                onClick={() => onNavigateTo('project-detail', project.id)}
-                className={`text-left group w-full ${CTA_FOCUS}`}
-              >
-                <CardContainer variant="dark" className="overflow-hidden mb-4 md:hover:-translate-y-1 transition-all duration-300">
-                  <div className="w-full bg-tea-ink/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
-                </CardContainer>
-                <h3 className="font-serif text-lg font-medium text-tea-ink dark:text-tea-paper">
-                  {project.name}
-                </h3>
-                <p className="text-xs uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40">
-                  {project.location}
-                </p>
-              </button>
-            ))}
-          </SwipeCarousel>
-        </div>
-
-        {/* Desktop: 2-column grid */}
-        <div className="hidden md:grid md:grid-cols-2 gap-6 mb-10">
-          {featuredProjects.map(project => (
-            <button
-              key={project.id}
-              onClick={() => onNavigateTo('project-detail', project.id)}
-              className={`text-left group w-full ${CTA_FOCUS}`}
-            >
-              <CardContainer variant="dark" className="overflow-hidden mb-4 md:hover:-translate-y-1 transition-all duration-300">
-                <div className="w-full bg-tea-ink/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
-              </CardContainer>
-              <h3 className="font-serif text-lg font-medium text-tea-ink dark:text-tea-paper">
-                {project.name}
-              </h3>
-              <p className="text-xs uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40">
-                {project.location}
-              </p>
-            </button>
+      {/* Mobile carousel */}
+      <div className="md:hidden mb-8">
+        <SwipeCarousel showDots peek={12}>
+          {projects.map(project => (
+            <ProjectCard key={project.id} project={project} onClick={() => onSelectProject(project.id)} />
           ))}
-        </div>
-
-        <button
-          onClick={() => onNavigateTo('projects')}
-          className={`text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
-        >
-          View all projects
-          <Icons.ChevronRight className="w-3.5 h-3.5" />
-        </button>
-      </section>
-
-      {/* ========== Testimonials ========== */}
-      <section ref={reveal4.ref} className={`${SECTION_GAP_LG} ${reveal4.className}`} style={reveal4.style}>
-        <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">
-          What Clients Say
-        </p>
-        <h2 className="font-serif text-3xl md:text-4xl font-normal mb-10 text-tea-ink dark:text-tea-paper">
-          Words from past projects
-        </h2>
-
-        {/* Mobile: SwipeCarousel */}
-        <div className="md:hidden">
-          <SwipeCarousel showDots peek={10}>
-            {consultTestimonials.map(t => (
-              <CardContainer key={t.id} variant="light" className="p-6">
-                <p className="font-serif text-base italic leading-relaxed mb-4 text-tea-ink dark:text-tea-paper">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <p className="text-xs uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50">
-                  {t.name}
-                </p>
-                <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40">
-                  {t.title}
-                </p>
-              </CardContainer>
-            ))}
-          </SwipeCarousel>
-        </div>
-
-        {/* Desktop: grid */}
-        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {consultTestimonials.map(t => (
-            <CardContainer key={t.id} variant="light" className="p-6">
-              <p className="font-serif text-base italic leading-relaxed mb-4 text-tea-ink dark:text-tea-paper">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-              <p className="text-xs uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50">
-                {t.name}
-              </p>
-              <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40">
-                {t.title}
-              </p>
-            </CardContainer>
-          ))}
-        </div>
-      </section>
+        </SwipeCarousel>
       </div>
-    </>
+
+      <button onClick={onViewAll}
+        className="text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium
+                   flex items-center gap-1 transition-colors duration-300 min-h-[44px]
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
+        View all projects <Icons.ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </section>
+  );
+};
+
+/* =====================================================
+   ProjectCard
+   ===================================================== */
+
+interface ProjectCardProps {
+  project: typeof consultProjects[number];
+  onClick: () => void;
+}
+
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => (
+  <button onClick={onClick} className="text-left group w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
+    <CardContainer variant="dark" className="overflow-hidden mb-3 group-hover:-translate-y-1 transition-all duration-300">
+      <div className="w-full bg-tea-ink/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
+    </CardContainer>
+    <h4 className="font-serif text-base font-medium text-tea-ink dark:text-tea-paper">{project.name}</h4>
+    <p className="text-xs uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40">{project.location}</p>
+  </button>
+);
+
+/* =====================================================
+   TestimonialRotator
+   ===================================================== */
+
+const TestimonialRotator: React.FC = () => {
+  const reveal = useSectionReveal();
+  const [index, setIndex] = useState(0);
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    if (reducedMotion || consultTestimonials.length <= 1) return;
+    const interval = setInterval(() => {
+      setIndex(i => (i + 1) % consultTestimonials.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [reducedMotion]);
+
+  const t = consultTestimonials[index];
+
+  return (
+    <section ref={reveal.ref} className={`mt-16 md:mt-20 text-center ${reveal.className}`} style={reveal.style}>
+      <div className="relative max-w-[640px] mx-auto">
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 font-serif text-6xl text-tea-seal/20 select-none pointer-events-none">
+          &ldquo;
+        </span>
+        <p key={t.id} className="font-serif text-lg md:text-xl italic text-tea-ink dark:text-tea-paper leading-relaxed
+                                  animate-[fadeIn_0.4s_ease-out]">
+          {t.quote}
+        </p>
+        <div className="mt-4">
+          <p className="text-xs uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50">{t.name}</p>
+          <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40">{t.title}</p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* =====================================================
+   ClosingCTA
+   ===================================================== */
+
+interface ClosingCTAProps {
+  onOpenInquiry: () => void;
+}
+
+const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => {
+  const reveal = useSectionReveal();
+  return (
+    <section ref={reveal.ref}
+      className={`border-t border-tea-ink/5 dark:border-white/5 mt-16 md:mt-20 pt-16 md:pt-20 pb-24 md:pb-32 text-center ${reveal.className}`}
+      style={reveal.style}>
+      <h3 className="font-serif text-2xl md:text-3xl font-light text-tea-ink dark:text-tea-paper">
+        Every project begins with a conversation.
+      </h3>
+      <div className="w-12 h-[1px] bg-tea-seal mx-auto mt-4 mb-8" />
+      <button onClick={onOpenInquiry}
+        className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium
+                   py-3.5 px-8 rounded-[1px] transition-colors min-h-[44px] mx-auto inline-flex items-center gap-2
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2">
+        Start a Conversation
+        <Icons.ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </section>
   );
 };
