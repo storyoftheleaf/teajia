@@ -41,7 +41,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const noteOpacities = [1, 0.82, 0.65, 0.5];
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
-  const accent = "#b5651d";
+  // Themeable color tokens — override via CSS custom properties on a parent element
+  const alcoveColors = {
+    bg: 'var(--alcove-bg, #1c1b19)',
+    title: 'var(--alcove-title, #ede6d8)',
+    subtitle: 'var(--alcove-subtitle, #8a7e6a)',
+    body: 'var(--alcove-body, #c0b49a)',
+    bodyHighlight: 'var(--alcove-body-highlight, #d0c4aa)',
+    note: 'var(--alcove-note, #c4b89a)',
+    accent: 'var(--alcove-accent, #b5651d)',
+    muted: 'var(--alcove-muted, #9a9080)',
+    mutedDark: 'var(--alcove-muted-dark, #6a6050)',
+    success: 'var(--alcove-success, #7a9a72)',
+  };
+  const accent = alcoveColors.accent;
 
   // Derive display values from InventoryItem
   const productName = item.variant || item.name;
@@ -87,7 +100,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     <div style={{
       width: "100%", maxWidth: "480px",
       minHeight: "580px", maxHeight: "720px",
-      background: "#1c1b19",
+      background: alcoveColors.bg,
       position: "relative",
       overflow: "hidden",
       borderRadius: "3px",
@@ -134,7 +147,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         <div style={{ padding: "24px 20px 8px", position: "relative" }}>
           <h1 style={{
             fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "30px", fontWeight: 300, color: "#ede6d8",
+            fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
             margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
           }}>
             {productName}
@@ -143,7 +156,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             <p style={{
               fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
               fontSize: "18px", fontStyle: "italic", fontWeight: 300,
-              color: "#8a7e6a", margin: "0",
+              color: alcoveColors.subtitle, margin: "0",
             }}>
               {givenName}
             </p>
@@ -182,7 +195,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             <p style={{
               fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
               fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-              color: "#8a7e6a", margin: 0, textAlign: "center",
+              color: alcoveColors.subtitle, margin: 0, textAlign: "center",
             }}>
               {teaType}
               {origin && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{origin}</>}
@@ -208,7 +221,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 <p style={{
                   fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                   fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                  color: hovered === "magazine" ? "#d0c4aa" : "#c0b49a", margin: 0,
+                  color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body, margin: 0,
                   display: "-webkit-box",
                   WebkitLineClamp: 4,
                   WebkitBoxOrient: "vertical",
@@ -226,7 +239,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 }}>
                   <span style={{
                     fontSize: "14px", letterSpacing: "0.3em",
-                    color: hovered === "magazine" ? "#c0b49a" : "#6a6050",
+                    color: hovered === "magazine" ? alcoveColors.body : alcoveColors.mutedDark,
                     transition: "color 0.2s ease",
                   }}>···</span>
                 </div>
@@ -236,7 +249,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 <p style={{
                   fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                   fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                  color: "#c0b49a", margin: 0,
+                  color: alcoveColors.body, margin: 0,
                   display: "-webkit-box",
                   WebkitLineClamp: 4,
                   WebkitBoxOrient: "vertical",
@@ -288,7 +301,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     <span style={{
                       fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                      color: "#c4b89a", opacity: noteOpacities[0],
+                      color: alcoveColors.note, opacity: noteOpacities[0],
                       textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
                       {feeling}
@@ -306,7 +319,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     <span style={{
                       fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                      color: "#c4b89a",
+                      color: alcoveColors.note,
                       opacity: noteOpacities[i] ?? 0.5,
                       textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
@@ -323,7 +336,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           <p style={{
             fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
             fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-            color: "#c0b49a", margin: 0,
+            color: alcoveColors.body, margin: 0,
             padding: "10px 20px",
             lineHeight: 1.6,
           }}>
@@ -345,14 +358,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             <div style={{ display: "flex", alignItems: "baseline", flexShrink: 0, marginRight: "auto" }}>
               <span style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "15px", fontWeight: 300, color: "#c0b49a",
+                fontSize: "15px", fontWeight: 300, color: alcoveColors.body,
                 lineHeight: 1,
               }}>
                 ${pricePerGram.toFixed(2)}
               </span>
               <span style={{
                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "11px", fontWeight: 300, color: "#8a7e6a",
+                fontSize: "11px", fontWeight: 300, color: alcoveColors.subtitle,
                 marginLeft: "2px",
               }}>/g</span>
             </div>
@@ -377,10 +390,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                         ? "rgba(200,170,120,0.08)"
                         : "transparent",
                     color: grams === g
-                      ? "#c0b49a"
+                      ? alcoveColors.body
                       : hovered === `preset-${g}`
-                        ? "#9a9080"
-                        : "#8a7e6a",
+                        ? alcoveColors.muted
+                        : alcoveColors.subtitle,
                   }}
                 >
                   {g}<span style={{ fontSize: "8px", opacity: 0.6 }}>g</span>
@@ -399,8 +412,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     ? "rgba(200,170,120,0.08)"
                     : "transparent",
                   color: hovered === "preset-other"
-                    ? "#9a9080"
-                    : "#8a7e6a",
+                    ? alcoveColors.muted
+                    : alcoveColors.subtitle,
                 }}
               >
                 Other
@@ -430,12 +443,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
                 }}
               >
-                <BookmarkIcon filled={favorited} color={accent} strokeColor="#9a9080" />
+                <BookmarkIcon filled={favorited} color={accent} strokeColor={alcoveColors.muted} />
                 <span style={{
                   fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
                   fontSize: "11px", fontWeight: 400,
                   letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: favorited ? accent : "#8a7e6a",
+                  color: favorited ? accent : alcoveColors.subtitle,
                 }}>Save</span>
               </button>
               <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.15)" }} />
@@ -450,12 +463,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   opacity: hovered === "share" ? 0.9 : 0.7,
                 }}
               >
-                <ShareIcon color="#9a9080" />
+                <ShareIcon color={alcoveColors.muted} />
                 <span style={{
                   fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
                   fontSize: "11px", fontWeight: 400,
                   letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: "#8a7e6a",
+                  color: alcoveColors.subtitle,
                 }}>Share</span>
               </button>
             </div>
@@ -469,14 +482,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
                 fontSize: "12px", fontWeight: 400,
                 letterSpacing: "0.06em", textTransform: "uppercase",
-                color: added ? "#1c1b19" : (hovered === "cart" ? "#c4b89a" : "#9a9080"),
+                color: added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
                 background: added
-                  ? "#7a9a72"
+                  ? alcoveColors.success
                   : hovered === "cart"
                     ? "rgba(200,170,120,0.06)"
                     : "transparent",
                 border: added
-                  ? "1px solid #7a9a72"
+                  ? `1px solid ${alcoveColors.success}`
                   : `1px solid rgba(200,170,120,${hovered === "cart" ? 0.3 : 0.2})`,
                 borderRadius: "3px", cursor: "pointer",
                 transition: "all 0.25s ease",
@@ -498,7 +511,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       {/* Bottom fade indicator */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
-        background: "linear-gradient(to top, #1c1b19, transparent)",
+        background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
         pointerEvents: "none", zIndex: 2,
         opacity: showFade ? 1 : 0,
         transition: "opacity 0.3s ease",

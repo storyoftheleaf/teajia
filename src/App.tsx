@@ -332,67 +332,79 @@ const AppContent = () => {
             viewState === 'BROWSE' && (
               <Routes>
                 <Route path="/" element={
-                  <HomePage
-                    onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
-                      setActiveSection(section);
-                      if (magazineTab) {
-                        setMagazineDefaultTab(magazineTab);
-                      }
-                    }}
-                    savedStoryIds={savedStoryIds}
-                    watchedStoryIds={watchedStoryIds}
-                    onCardClick={handleCardClick}
-                    onToggleSave={toggleSave}
-                    onShare={handleShare}
-                    onCartClick={handleOpenCart}
-                    onAccountClick={handleOpenAccount}
-                    cartItemCount={cart.length}
-                  />
+                  <ErrorBoundary>
+                    <HomePage
+                      onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
+                        setActiveSection(section);
+                        if (magazineTab) {
+                          setMagazineDefaultTab(magazineTab);
+                        }
+                      }}
+                      savedStoryIds={savedStoryIds}
+                      watchedStoryIds={watchedStoryIds}
+                      onCardClick={handleCardClick}
+                      onToggleSave={toggleSave}
+                      onShare={handleShare}
+                      onCartClick={handleOpenCart}
+                      onAccountClick={handleOpenAccount}
+                      cartItemCount={cart.length}
+                    />
+                  </ErrorBoundary>
                 } />
                 <Route path="/magazine" element={
-                  <MagazineTabbed
-                    stories={publishedStories}
-                    savedStoryIds={savedStoryIds}
-                    watchedStoryIds={watchedStoryIds}
-                    onCardClick={handleCardClick}
-                    onToggleSave={toggleSave}
-                    onShare={handleShare}
-                    defaultTab={magazineDefaultTab}
-                    onCartClick={handleOpenCart}
-                    onAccountClick={handleOpenAccount}
-                    cartItemCount={cart.length}
-                  />
+                  <ErrorBoundary>
+                    <MagazineTabbed
+                      stories={publishedStories}
+                      savedStoryIds={savedStoryIds}
+                      watchedStoryIds={watchedStoryIds}
+                      onCardClick={handleCardClick}
+                      onToggleSave={toggleSave}
+                      onShare={handleShare}
+                      defaultTab={magazineDefaultTab}
+                      onCartClick={handleOpenCart}
+                      onAccountClick={handleOpenAccount}
+                      cartItemCount={cart.length}
+                    />
+                  </ErrorBoundary>
                 } />
                 <Route path="/learn" element={
-                  <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToConsult={() => setActiveSection('OFFERINGS')} />
+                  <ErrorBoundary>
+                    <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToConsult={() => setActiveSection('OFFERINGS')} />
+                  </ErrorBoundary>
                 } />
                 <Route path="/shop" element={
-                  <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                    <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} />
-                  </div>
+                  <ErrorBoundary>
+                    <div className="w-full animate-[fadeIn_0.5s_ease-out]">
+                      <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} />
+                    </div>
+                  </ErrorBoundary>
                 } />
                 <Route path="/consult" element={
-                  <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
+                  <ErrorBoundary>
+                    <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
+                  </ErrorBoundary>
                 } />
-                <Route path="/about" element={<AboutPage />} />
+                <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 {/* Catch-all: redirect to home */}
                 <Route path="*" element={
-                  <HomePage
-                    onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
-                      setActiveSection(section);
-                      if (magazineTab) {
-                        setMagazineDefaultTab(magazineTab);
-                      }
-                    }}
-                    savedStoryIds={savedStoryIds}
-                    watchedStoryIds={watchedStoryIds}
-                    onCardClick={handleCardClick}
-                    onToggleSave={toggleSave}
-                    onShare={handleShare}
-                    onCartClick={handleOpenCart}
-                    onAccountClick={handleOpenAccount}
-                    cartItemCount={cart.length}
-                  />
+                  <ErrorBoundary>
+                    <HomePage
+                      onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
+                        setActiveSection(section);
+                        if (magazineTab) {
+                          setMagazineDefaultTab(magazineTab);
+                        }
+                      }}
+                      savedStoryIds={savedStoryIds}
+                      watchedStoryIds={watchedStoryIds}
+                      onCardClick={handleCardClick}
+                      onToggleSave={toggleSave}
+                      onShare={handleShare}
+                      onCartClick={handleOpenCart}
+                      onAccountClick={handleOpenAccount}
+                      cartItemCount={cart.length}
+                    />
+                  </ErrorBoundary>
                 } />
               </Routes>
             )
