@@ -149,7 +149,7 @@ export const DESIGN_TOKENS = {
 
   // Background Images
   backgroundImage: {
-    'paper-texture': "url('https://www.transparenttextures.com/patterns/cream-paper.png')",
+    'paper-texture': "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(180, 165, 140, 0.03) 1px, rgba(180, 165, 140, 0.03) 2px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(180, 165, 140, 0.02) 2px, rgba(180, 165, 140, 0.02) 3px)",
   },
 } as const;
 

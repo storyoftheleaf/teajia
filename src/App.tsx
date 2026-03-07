@@ -312,8 +312,7 @@ const AppContent = () => {
     <div className="min-h-screen bg-[#F3F0E7] dark:bg-[#0f0f0f] text-tea-ink dark:text-tea-paper relative selection:bg-tea-seal selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
 
       <div className="texture-overlay"></div>
-      <div className="fixed inset-0 wood-texture pointer-events-none opacity-[0.15] dark:opacity-[0.15] mix-blend-color-burn z-0"></div>
-      <div className="fixed inset-0 wood-texture pointer-events-none opacity-[0.05] dark:opacity-[0.1] z-0 invert filter brightness-150"></div>
+      <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.15] dark:opacity-[0.12] z-0"></div>
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-white/0 dark:via-[#1a1a1a]/40 to-white/10 dark:to-[#121212]/90 pointer-events-none z-0"></div>
 
       {/* Pull to Refresh Indicator */}
