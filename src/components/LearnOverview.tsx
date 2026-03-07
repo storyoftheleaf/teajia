@@ -251,7 +251,50 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          Section 2: Discovery Map — Horizontal Category Carousel
+          Section 2: Resource Library — Prominent Icon Grid
+          The top thing. Immediately visible after the hero.
+          ═══════════════════════════════════════════════════════════ */}
+      <section
+        ref={resourcesReveal.ref}
+        className={`mb-10 ${resourcesReveal.className}`}
+        style={resourcesReveal.style}
+      >
+        <div className="flex items-baseline justify-between mb-4">
+          <div>
+            <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
+              Resources & Tools
+            </h3>
+            <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">
+              Deepen your practice
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
+          {RESOURCE_TILES.map(tile => (
+            <button
+              key={tile.id}
+              onClick={() => onNavigateTo(tile.view)}
+              className={`text-left group ${CTA_FOCUS}`}
+            >
+              <div className="h-full bg-tea-ink dark:bg-white/[0.04] rounded-[1px] border border-tea-ink/80 dark:border-white/8 p-3 md:p-4 hover:border-tea-seal/30 hover:-translate-y-0.5 transition-all duration-300">
+                <span className="text-tea-paper/40 dark:text-tea-paper/40 mb-2 block">
+                  {tile.icon}
+                </span>
+                <h4 className="font-serif text-sm text-tea-paper leading-snug mb-0.5 group-hover:text-tea-seal transition-colors">
+                  {tile.label}
+                </h4>
+                <p className="text-[10px] text-tea-paper/40 font-sans">
+                  {tile.subtitle}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          Section 3: Discovery Map — Horizontal Category Carousel
           ═══════════════════════════════════════════════════════════ */}
       <section
         ref={discoveryReveal.ref}
@@ -651,49 +694,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             </button>
           ))}
         </SwipeCarousel>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          Section 9: Resource Library — Prominent Icon Grid
-          Always visible, easy to find, not hidden
-          ═══════════════════════════════════════════════════════════ */}
-      <section
-        ref={resourcesReveal.ref}
-        className={`mb-10 ${resourcesReveal.className}`}
-        style={resourcesReveal.style}
-      >
-        <div className="flex items-baseline justify-between mb-4">
-          <div>
-            <h3 className="font-serif text-lg md:text-xl font-normal text-tea-ink dark:text-tea-paper">
-              Resources & Tools
-            </h3>
-            <p className="font-serif italic text-xs text-tea-ink/50 dark:text-tea-paper/50 mt-0.5">
-              Deepen your practice
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
-          {RESOURCE_TILES.map(tile => (
-            <button
-              key={tile.id}
-              onClick={() => onNavigateTo(tile.view)}
-              className={`text-left group ${CTA_FOCUS}`}
-            >
-              <div className="h-full bg-tea-ink dark:bg-white/[0.04] rounded-[1px] border border-tea-ink/80 dark:border-white/8 p-3 md:p-4 hover:border-tea-seal/30 hover:-translate-y-0.5 transition-all duration-300">
-                <span className="text-tea-paper/40 dark:text-tea-paper/40 mb-2 block">
-                  {tile.icon}
-                </span>
-                <h4 className="font-serif text-sm text-tea-paper leading-snug mb-0.5 group-hover:text-tea-seal transition-colors">
-                  {tile.label}
-                </h4>
-                <p className="text-[10px] text-tea-paper/40 font-sans">
-                  {tile.subtitle}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
