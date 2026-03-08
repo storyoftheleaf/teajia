@@ -420,8 +420,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 key={item.id}
                                 className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : ''}`}
                             >
-                                {/* Row */}
-                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 select-none">
+                                {/* Row — tap to expand accordion */}
+                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 cursor-pointer select-none" onClick={() => toggleExpand(item.id)}>
 
                                     {/* Left: name + metadata */}
                                     <div className="flex-1 min-w-0">
@@ -438,7 +438,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                     </div>
 
-                                    {/* Right: price, info, heart, details button */}
+                                    {/* Right: price, heart, info (detail) */}
                                     <div className="flex items-center gap-3 shrink-0">
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
@@ -464,27 +464,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 <Icons.Edit className="w-3.5 h-3.5" />
                                             </button>
                                         )}
-                                        {/* Info button — toggles accordion */}
                                         <button
-                                            onClick={() => toggleExpand(item.id)}
-                                            className={`-my-1 p-2 transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text/25 hover:text-tea-text/50'}`}
-                                            aria-label={`More info about ${item.name}`}
-                                        >
-                                            <Icons.Info className="w-4.5 h-4.5" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => toggleUserFavorite(e, item.id)}
+                                            onClick={(e) => { e.stopPropagation(); toggleUserFavorite(e, item.id); }}
                                             className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
                                         >
                                             <Icons.Heart filled={isFavorite} className="w-5 h-5" />
                                         </button>
-                                        {/* Details button — opens AlcoveCard */}
+                                        {/* Info button — opens AlcoveCard detail view */}
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                            className="-my-1 p-2 text-tea-text/30 hover:text-tea-gold active:text-tea-gold transition-colors"
+                                            className={`-my-1 p-2 transition-colors text-tea-text/25 hover:text-tea-gold active:text-tea-gold`}
                                             aria-label={`View details for ${item.name}`}
                                         >
-                                            <Icons.ChevronRight className="w-5 h-5" />
+                                            <Icons.Info className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
