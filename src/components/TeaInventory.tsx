@@ -465,7 +465,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
                                 {/* --- Expanded Content --- */}
                                 <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="pl-16 pr-2 pb-3 pt-0">
+                                    <div className="pl-20 pr-2 pb-3 pt-0">
 
                                         <p className="font-serif text-sm text-tea-ink/80 dark:text-tea-paper/80 mb-3 leading-relaxed max-w-2xl">
                                             {item.description}
