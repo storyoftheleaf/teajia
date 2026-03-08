@@ -34,6 +34,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [storyExpanded, setStoryExpanded] = useState(false);
+  const [imageExpanded, setImageExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
 
@@ -247,18 +249,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </div>
               </a>
             ) : (
-              <div style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid rgba(200,170,120,0.08)" }}>
+              <div
+                onClick={() => setStoryExpanded(prev => !prev)}
+                style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid rgba(200,170,120,0.08)", cursor: "pointer" }}
+              >
                 <p style={{
                   fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                   fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
                   color: alcoveColors.body, margin: 0,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
+                  ...(!storyExpanded ? {
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical" as const,
+                    overflow: "hidden",
+                  } : {}),
+                  transition: "color 0.2s ease",
                 }}>
                   {story}
                 </p>
+                {!storyExpanded && (
+                  <div style={{
+                    position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
+                    background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                    pointerEvents: "none",
+                    display: "flex", alignItems: "flex-end", justifyContent: "center",
+                    paddingBottom: "4px",
+                  }}>
+                    <span style={{
+                      fontSize: "14px", letterSpacing: "0.3em",
+                      color: alcoveColors.mutedDark,
+                    }}>···</span>
+                  </div>
+                )}
               </div>
             )
           )}
@@ -272,10 +294,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           }}>
             {/* Photo behind notes */}
             {photoUrl && (
-              <div style={{
-                position: "absolute", top: 0, right: 0, bottom: 0, width: "60%",
-                overflow: "hidden",
-              }}>
+              <div
+                onClick={() => setImageExpanded(true)}
+                style={{
+                  position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
+                  overflow: "hidden", cursor: "pointer",
+                }}
+              >
                 <img
                   src={photoUrl}
                   alt="Tea leaves"
@@ -283,12 +308,28 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     width: "100%", height: "100%",
                     objectFit: "cover", objectPosition: "center right",
                     transform: "scale(1.05)",
-                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.6) 70%, black 90%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
                     WebkitMaskComposite: "destination-in",
-                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.6) 70%, black 90%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
                     maskComposite: "intersect",
                   }}
                 />
+                {/* Expand icon hint */}
+                <div style={{
+                  position: "absolute", bottom: "8px", right: "8px",
+                  width: "28px", height: "28px",
+                  background: "rgba(0,0,0,0.45)", borderRadius: "4px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: 0.7, transition: "opacity 0.2s ease",
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                </div>
               </div>
             )}
 
@@ -518,6 +559,44 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         opacity: showFade ? 1 : 0,
         transition: "opacity 0.3s ease",
       }} />
+
+      {/* Fullscreen image overlay */}
+      {imageExpanded && photoUrl && (
+        <div
+          onClick={() => setImageExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={photoUrl}
+            alt={item.name}
+            style={{
+              maxWidth: "90vw", maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: "4px",
+            }}
+          />
+          <button
+            style={{
+              position: "absolute", top: "16px", right: "16px",
+              width: "36px", height: "36px",
+              background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
