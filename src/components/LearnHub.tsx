@@ -70,7 +70,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
           <div className="w-full pb-32">
             <button onClick={navigateBack} className={BACK_BTN}>
               <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-ink/70 dark:text-tea-paper/70" />
-              <span className="font-serif text-sm text-tea-ink/70 dark:text-tea-paper/70">Learn</span>
+              <span className="font-serif text-sm text-tea-ink/70 dark:text-tea-paper/70">Go Deeper</span>
             </button>
             <LearnCurriculum onStoryClick={onStoryClick} watchedStories={watchedStories} />
           </div>
@@ -99,7 +99,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       {!isSubView && (
-        <PageHeader title="Learn" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <PageHeader title="Go Deeper" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}
 
       <div

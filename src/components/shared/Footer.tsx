@@ -5,7 +5,7 @@ import { Section } from '../../types';
 
 const NAV_LINKS: { label: string; section?: Section }[] = [
   { label: 'Read', section: 'MAGAZINE' },
-  { label: 'Learn', section: 'LEARN' },
+  { label: 'Go Deeper', section: 'LEARN' },
   { label: 'Shop', section: 'SHOP' },
   { label: 'Consult', section: 'OFFERINGS' },
 ];

@@ -55,7 +55,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   const leftSections = [
     { id: 'MAGAZINE' as Section, label: 'Read', hint: NAV_ONBOARDING_MESSAGES.magazine },
-    { id: 'LEARN' as Section, label: 'Learn', hint: NAV_ONBOARDING_MESSAGES.learn },
+    { id: 'LEARN' as Section, label: 'Go Deeper', hint: NAV_ONBOARDING_MESSAGES.learn },
   ];
 
   const rightSections = [
