@@ -13,6 +13,7 @@ import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from '../store';
+import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
@@ -505,11 +506,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="grid grid-cols-2 gap-4 py-2 border-t border-tea-border mt-1">
                         <div>
                             <label className="text-[10px] text-tea-muted uppercase tracking-wider">Stock</label>
-                            <div className="text-tea-text font-mono">{product.stockGrams}g</div>
+                            <div className="text-tea-text num">{product.stockGrams}g</div>
                         </div>
                         <div>
                              <label className="text-[10px] text-tea-muted uppercase tracking-wider">Retail</label>
-                             <div className="text-tea-text font-mono">${product.pricePerGramUSD.toFixed(2)}</div>
+                             <div className="text-tea-text num">${fmtNum(product.pricePerGramUSD)}</div>
                         </div>
                     </div>
 
@@ -655,10 +656,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)}
                                             type="number"
                                             align="right"
-                                            className="font-mono text-xs"
+                                            className="num text-xs"
                                         />
                                     ) : (
-                                        <span className={`font-mono text-xs tabular-nums ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
+                                        <span className={`num text-xs ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
                                             {product.stockGrams}g
                                         </span>
                                     )}
@@ -672,9 +673,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)}
                                             type="number"
                                             align="right"
-                                            className="font-mono text-xs"
+                                            className="num text-xs"
                                         />
-                                    ) : <span className="font-mono text-xs text-tea-muted tabular-nums">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
+                                    ) : <span className="num text-xs text-tea-muted">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
                                 </td>
 
                                 {/* Retail */}
@@ -685,9 +686,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             onSave={(val) => handleProductUpdate(product.id, 'pricePerGramUSD', val)}
                                             type="number"
                                             align="right"
-                                            className="font-mono text-xs"
+                                            className="num text-xs"
                                         />
-                                    ) : <span className="font-mono text-xs text-tea-text tabular-nums">{product.pricePerGramUSD?.toFixed(2)}</span>}
+                                    ) : <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? fmtNum(product.pricePerGramUSD) : '-'}</span>}
                                 </td>
 
                                 {/* Actions */}
@@ -760,7 +761,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="w-full pt-4">
                         <input 
                             type="text" 
-                            className="w-full bg-black border border-tea-accent/30 rounded-lg p-3 text-center text-tea-accent font-mono text-xs outline-none focus:border-tea-accent transition-colors"
+                            className="w-full bg-black border border-tea-accent/30 rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
                             value={resetInput}
                             onChange={(e) => setResetInput(e.target.value)}
                             placeholder='Type "delete" to confirm'

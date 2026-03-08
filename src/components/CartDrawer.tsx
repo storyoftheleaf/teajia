@@ -4,6 +4,7 @@ import { CartItem } from '../types';
 import { Icons } from './Icons';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { fmtNum, fmtPrice } from '../utils/formatNumber';
 
 // CONFIG
 const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
@@ -205,10 +206,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
     msg += `\nITEMS:\n`;
     cart.forEach(item => {
         const qtyLabel = item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`;
-        msg += `- ${item.name} (${item.variant}): ${qtyLabel} @ $${item.totalPrice.toFixed(2)}\n`;
+        msg += `- ${item.name} (${item.variant}): ${qtyLabel} @ $${fmtNum(item.totalPrice)}\n`;
     });
 
-    msg += `\nTOTAL ESTIMATE: $${subtotal.toFixed(2)}\n\n`;
+    msg += `\nTOTAL ESTIMATE: ${fmtPrice(subtotal)}\n\n`;
     msg += `Please confirm availability and shipping costs.`;
     return msg;
   }, [cart, details, subtotal]);
@@ -383,9 +384,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                                      const val = parseInt(e.target.value);
                                                      if (isNaN(val) || val < 1) onUpdateQuantity(item.id, 1);
                                                    }}
-                                                   className="w-12 bg-transparent font-mono text-xs text-tea-charcoal dark:text-white border-b border-tea-charcoal/20 dark:border-white/20 focus:outline-none focus:border-tea-seal text-center"
+                                                   className="w-12 bg-transparent num text-xs text-tea-charcoal dark:text-white border-b border-tea-charcoal/20 dark:border-white/20 focus:outline-none focus:border-tea-seal text-center"
                                                />
-                                               {item.category === 'tea' && <span className="font-mono text-xs text-tea-charcoal/50 dark:text-white/50">g</span>}
+                                               {item.category === 'tea' && <span className="num text-xs text-tea-charcoal/50 dark:text-white/50">g</span>}
                                            </div>
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + (item.category === 'tea' ? 10 : 1)))}
@@ -393,8 +394,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                                aria-label="Increase quantity"
                                            >+</button>
                                        </div>
-                                       <span className="font-mono text-sm text-tea-charcoal dark:text-white font-medium">
-                                           ${item.totalPrice.toFixed(2)}
+                                       <span className="num text-sm text-tea-charcoal dark:text-white font-medium">
+                                           {fmtPrice(item.totalPrice)}
                                        </span>
                                    </div>
                                </div>
@@ -577,7 +578,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center font-serif text-xl text-tea-charcoal dark:text-white">
                         <span>Total</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span className="num">{fmtPrice(subtotal)}</span>
                     </div>
                     <button
                         onClick={handleNext}

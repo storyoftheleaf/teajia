@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminOverlay } from '../../hooks/useAdminOverlay';
 import { Icons } from '../Icons';
+import { fmtDollars } from '../../utils/formatNumber';
 
 export const AdminToolbar: React.FC = () => {
   const { isAdmin, stats } = useAdminOverlay();
@@ -57,8 +58,8 @@ export const AdminToolbar: React.FC = () => {
           className="flex items-center gap-1.5 shrink-0 group"
           title="Revenue this week"
         >
-          <span className="text-[10px] uppercase tracking-widest text-white/50 group-hover:text-white/80 transition-colors font-mono">
-            ${stats.revenueThisWeek.toFixed(0)} <span className="font-sans opacity-60">this week</span>
+          <span className="text-[10px] uppercase tracking-widest text-white/50 group-hover:text-white/80 transition-colors num">
+            {fmtDollars(stats.revenueThisWeek)} <span className="font-sans opacity-60">this week</span>
           </span>
         </button>
 

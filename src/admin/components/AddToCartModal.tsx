@@ -52,7 +52,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             {product.type !== 'Teaware' && (
                 <div className="flex flex-wrap gap-2 mt-3">
                     {teaPresets.map(preset => (
-                        <button key={preset.value} onClick={() => setQuantity(preset.value.toString())} className="px-3 py-1.5 bg-tea-surface text-tea-muted text-xs rounded-md border border-tea-border hover:bg-tea-border/50 hover:text-tea-text hover:border-tea-muted/50 transition-all font-mono">
+                        <button key={preset.value} onClick={() => setQuantity(preset.value.toString())} className="px-3 py-1.5 bg-tea-surface text-tea-muted text-xs rounded-md border border-tea-border hover:bg-tea-border/50 hover:text-tea-text hover:border-tea-muted/50 transition-all num">
                             {preset.label}
                         </button>
                     ))}
@@ -61,7 +61,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           </div>
           <div className="flex justify-between items-center text-sm border-b border-tea-border pb-4">
             <span className="text-tea-muted">Price per unit:</span>
-            <span className="text-tea-text font-mono">{formatCurrency(product.pricePerGramUSD, currency, rates)}</span>
+            <span className="text-tea-text num">{formatCurrency(product.pricePerGramUSD, currency, rates)}</span>
           </div>
           <div className="flex justify-between items-center pt-2">
             <span className="text-tea-text font-medium text-sm">Total Price:</span>

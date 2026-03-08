@@ -1,4 +1,17 @@
 /* ============================================
+   Numeric Display — consistent across entire site
+   Uses JetBrains Mono with tabular (equal-width),
+   lining (uniform-height) figures for clean alignment.
+   ============================================ */
+
+.num {
+  font-family: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================
    Unified Card Grid Item Styles
    Single source of truth for Tea & Teaware cards
    ============================================ */
@@ -92,7 +105,8 @@
 }
 
 .card-grid-price {
-  font-family: 'Menlo', 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums lining-nums;
   font-size: 0.6875rem;
   color: var(--color-tea-seal);
   letter-spacing: 0.05em;

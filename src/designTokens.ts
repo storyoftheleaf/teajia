@@ -10,7 +10,7 @@ export const DESIGN_TOKENS = {
   fontFamily: {
     serif: ['Lora', 'Noto Serif SC', 'serif'],
     sans: ['Inter', 'sans-serif'],
-    mono: ['Menlo', 'Courier New', 'monospace'],
+    mono: ['JetBrains Mono', 'Menlo', 'Courier New', 'monospace'],
   },
 
   // Font Sizes - Current scale, easy to adjust
@@ -160,7 +160,7 @@ export const FONT_THEMES = {
     name: 'Default (Lora)',
     serif: ['Lora', 'Noto Serif SC', 'serif'],
     sans: ['Inter', 'sans-serif'],
-    mono: ['Menlo', 'Courier New', 'monospace'],
+    mono: ['JetBrains Mono', 'Menlo', 'Courier New', 'monospace'],
   },
   georgia: {
     name: 'Georgia Classic',

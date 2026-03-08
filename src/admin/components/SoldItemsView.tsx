@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import { Download, AlertCircle, Archive, ScrollText, Loader2 } from 'lucide-react';
 import { Product } from '../types';
 import { useActivityLogs } from '../hooks/useAdminData';
+import { fmtNum } from '../../utils/formatNumber';
 
 export const RecordsView = ({ products }: { products: Product[] }) => {
   const [activeTab, setActiveTab] = useState<'archive' | 'logs'>('archive');
@@ -99,8 +100,8 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                             </td>
                             <td className="p-4 text-tea-muted">{product.type}</td>
                             <td className="p-4 text-tea-muted">{product.vendor || '—'}</td>
-                            <td className="p-4 text-right text-tea-muted">${product.costPerGramUSD?.toFixed(2)}</td>
-                            <td className="p-4 text-right text-tea-text">${product.pricePerGramUSD?.toFixed(2)}</td>
+                            <td className="p-4 text-right text-tea-muted num">{product.costPerGramUSD != null ? `$${fmtNum(product.costPerGramUSD)}` : '-'}</td>
+                            <td className="p-4 text-right text-tea-text num">{product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}</td>
                             <td className="p-4 text-center"><span className="text-[10px] uppercase font-bold tracking-wider bg-tea-bg text-tea-muted border border-tea-border px-2 py-1 rounded-sm">Sold Out</span></td>
                             </tr>
                         ))

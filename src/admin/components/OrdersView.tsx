@@ -121,9 +121,9 @@ export const OrdersView = () => {
                     return (
                      <tr key={order.id} className="hover:bg-tea-bg/50 group transition-colors">
                        <td className="p-4 text-tea-muted">{new Date(order.created_at).toLocaleDateString()}</td>
-                       <td className="p-4 font-mono text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</td>
+                       <td className="p-4 num text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</td>
                        <td className="p-4 text-tea-text">{order.customer_name}</td>
-                       <td className="p-4 text-right text-tea-text font-mono">
+                       <td className="p-4 text-right text-tea-text num">
                            {order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}
                        </td>
                        <td className="p-4 text-center">
@@ -200,7 +200,7 @@ export const OrdersView = () => {
                 
                 <div className="mb-8">
                     <h3 className="text-2xl font-serif text-tea-text mb-1">Invoice Details</h3>
-                    <p className="text-tea-muted text-sm font-mono">{viewingInvoice.invoice_number}</p>
+                    <p className="text-tea-muted text-sm num">{viewingInvoice.invoice_number}</p>
                 </div>
 
                 <div className="space-y-4 mb-8">
@@ -232,8 +232,8 @@ export const OrdersView = () => {
                                     <div className="text-[10px] text-tea-muted">{item.products?.product_name}</div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-tea-text font-mono">{item.quantity}g/u</div>
-                                    <div className="text-tea-muted text-xs font-mono">@ {item.price_at_sale} USD</div>
+                                    <div className="text-tea-text num">{item.quantity}g/u</div>
+                                    <div className="text-tea-muted text-xs num">@ {item.price_at_sale} USD</div>
                                 </div>
                             </div>
                         ))}

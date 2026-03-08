@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin } from 'lucide-react';
 import { Product } from '../types';
 import { useRates } from '../hooks/useAdminData';
+import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 
 const TooltipWrapper = (props: any) => (
     <RechartsTooltip 
@@ -101,8 +102,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
              <DollarSign size={80} strokeWidth={1} />
           </div>
           <p className="text-tea-muted text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Total Asset Cost</p>
-          <h3 className="text-5xl font-serif font-light text-tea-text">${metrics.totalCostUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-          <p className="text-xs text-tea-muted/70 mt-4 font-mono">Capital deployed in inventory</p>
+          <h3 className="text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
+          <p className="text-xs text-tea-muted/70 mt-4 num">Capital deployed in inventory</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-accent/50 transition-colors">
@@ -110,14 +111,14 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
              <PieIcon size={80} strokeWidth={1} />
           </div>
           <p className="text-tea-muted text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Retail Valuation</p>
-          <h3 className="text-5xl font-serif font-light text-tea-text">${metrics.totalRetailUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-          <p className="text-xs text-tea-muted/70 mt-4 font-mono">Potential revenue at current prices</p>
+          <h3 className="text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
+          <p className="text-xs text-tea-muted/70 mt-4 num">Potential revenue at current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-accent/50 transition-colors">
           <p className="text-tea-muted text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Unrealized P&L</p>
-          <h3 className="text-5xl font-serif font-light text-tea-accent">+${metrics.potentialProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-          <p className="text-xs text-tea-muted/70 mt-4 font-mono">Projected Margin: {metrics.totalCostUSD > 0 ? ((metrics.potentialProfit / metrics.totalCostUSD) * 100).toFixed(1) : '0.0'}%</p>
+          <h3 className="text-5xl font-serif font-light text-tea-accent num">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <p className="text-xs text-tea-muted/70 mt-4 num">Projected Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
 
@@ -147,7 +148,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
               </Pie>
               <RechartsTooltip 
                  contentStyle={{ backgroundColor: '#141210', borderColor: '#26221D', color: '#E8E3D9', fontSize: '12px', borderRadius: '8px' }}
-                 formatter={(value: number) => `$${value.toLocaleString(undefined, {maximumFractionDigits: 0})}`}
+                 formatter={(value: number) => fmtDollars(value)}
               />
               <Legend 
                 verticalAlign="bottom" 
@@ -187,7 +188,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono text-tea-text">{rate.rateToUSD.toFixed(2)}</div>
+                  <div className="num text-tea-text">{fmtNum(rate.rateToUSD)}</div>
                   <div className="text-[10px] text-tea-muted">per USD</div>
                 </div>
               </div>

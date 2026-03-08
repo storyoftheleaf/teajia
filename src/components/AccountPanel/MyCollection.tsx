@@ -4,6 +4,7 @@ import { Icons, SealIcon } from '../Icons';
 import { useAppStore } from '../../lib/store';
 import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
+import { fmtPricePerGram } from '../../utils/formatNumber';
 
 interface MyCollectionProps {
   onBack: () => void;
@@ -160,8 +161,8 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
 
             {/* Price + Remove */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-mono text-xs text-tea-charcoal/60 dark:text-white/50">
-                ${parseFloat(item.price_per_gram || '0').toFixed(2)}/g
+              <span className="num text-xs text-tea-charcoal/60 dark:text-white/50">
+                {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
               </span>
               <button
                 onClick={() => toggleFavoriteTea(item.id)}
