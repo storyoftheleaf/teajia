@@ -151,7 +151,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                     No results found. Try a different search term.
                   </p>
                 ) : (
-                  <div className="flex flex-col divide-y divide-tea-ink/5">
+                  <div className="flex flex-col divide-y divide-tea-border">
                     {searchResults.map(result => (
                       <button
                         key={`${result.type}-${result.id}`}

@@ -239,7 +239,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
            {isGenerating && (
               <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm z-30 flex items-center justify-center">
                   <div className="flex flex-col items-center">
-                      <div className="w-6 h-6 border-2 border-tea-text/20 border-t-tea-ink rounded-full animate-spin mb-2"></div>
+                      <div className="w-6 h-6 border-2 border-tea-text/20 border-t-tea-text rounded-full animate-spin mb-2"></div>
                       <span className="text-[10px] uppercase tracking-widest text-tea-text/60">Preparing Leaf...</span>
                   </div>
               </div>

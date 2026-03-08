@@ -175,7 +175,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                 placeholder="Search by location, name, or interest..."
                 value={communitySearchLocation}
                 onChange={(e) => setCommunitySearchLocation(e.target.value)}
-                className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-lg text-tea-text placeholder-tea-ink/50 placeholder-tea-text-dim focus:outline-none focus:ring-2 focus:ring-tea-gold"
+                className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-lg text-tea-text placeholder-tea-text-dim focus:outline-none focus:ring-2 focus:ring-tea-gold"
               />
               <Icons.Search className="absolute right-3 top-3.5 w-5 h-5 text-tea-text/40" />
             </div>

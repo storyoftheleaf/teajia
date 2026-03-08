@@ -200,7 +200,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
           title="Brewing Guides"
           subtitle="Quick reference PDFs and charts"
         />
-        <div className="flex flex-col divide-y divide-tea-ink/5">
+        <div className="flex flex-col divide-y divide-tea-border">
           {GUIDES.map(item => (
             <button
               key={item.id}

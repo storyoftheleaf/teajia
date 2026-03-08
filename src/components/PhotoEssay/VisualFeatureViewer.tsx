@@ -247,7 +247,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
               onClick={() => onPersonClick(story.author!)}
               className="flex items-center gap-3 active:opacity-70 transition-opacity py-2"
             >
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-tea-text/10 ring-1 ring-tea-ink/10 dark:ring-white/10">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-tea-text/10 ring-1 ring-tea-border dark:ring-white/10">
                 {story.author.avatarUrl ? (
                   <img
                     src={story.author.avatarUrl}

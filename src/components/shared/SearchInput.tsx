@@ -16,13 +16,13 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   return (
     <div className={`relative ${className}`}>
-      <Icons.Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text/40 pointer-events-none" />
+      <Icons.Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-dim pointer-events-none" />
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2.5 bg-tea-bg border border-tea-border rounded-[1px] text-sm text-tea-text placeholder:text-tea-text/40 font-sans focus:outline-none focus:border-tea-gold/50 focus:ring-1 focus:ring-tea-gold/20 transition-colors"
+        className="w-full pl-10 pr-4 py-2.5 bg-tea-elevated border border-tea-border rounded-[2px] text-sm text-tea-text placeholder:text-tea-text-dim font-sans focus:outline-none focus:border-tea-gold/30 transition-colors"
       />
       {value && (
         <button

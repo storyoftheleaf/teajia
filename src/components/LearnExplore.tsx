@@ -424,7 +424,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
         <div className="animate-[fadeIn_0.3s_ease-out]">
           <SubPageHeader title="Brewing Guides" subtitle="Quick reference PDFs and charts" />
 
-          <div className="flex flex-col divide-y divide-tea-ink/5">
+          <div className="flex flex-col divide-y divide-tea-border">
             {GUIDES.map(item => (
               <button
                 key={item.id}
