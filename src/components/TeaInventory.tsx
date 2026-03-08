@@ -445,10 +445,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                      <span>{item.variant}</span>
                                                 </div>
                                             </div>
-                                            {/* Desktop inline description */}
-                                            <p className="hidden lg:block text-xs text-tea-ink/50 dark:text-tea-paper/50 line-clamp-1 flex-1 min-w-0">
-                                                {item.description}
-                                            </p>
+                                            {/* Description shown only in expanded section */}
                                         </div>
 
                                         {/* Price & Controls */}

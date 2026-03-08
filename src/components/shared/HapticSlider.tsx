@@ -22,12 +22,10 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   size = 'md',
 }) => {
   const lastStepRef = useRef(value);
-  const trackRef = useRef<HTMLDivElement>(null);
 
-  const steps = Math.floor((max - min) / step) + 1;
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
-  const thumbSize = size === 'sm' ? 10 : 14;
-  const trackHeight = size === 'sm' ? 2 : 3;
+  const thumbSize = size === 'sm' ? 10 : 12;
+  const trackHeight = size === 'sm' ? 2 : 2;
 
   // Haptic feedback on step change
   useEffect(() => {
@@ -43,20 +41,10 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
     onChange(parseInt(e.target.value));
   }, [onChange]);
 
-  // Generate tick positions — show at most 10 ticks to avoid clutter
-  const tickInterval = steps > 10 ? Math.ceil(steps / 8) : 1;
-  const ticks: number[] = [];
-  for (let i = 0; i < steps; i++) {
-    if (i % tickInterval === 0 || i === steps - 1) {
-      ticks.push(min + i * step);
-    }
-  }
-
   return (
-    <div className="slider-area relative flex-1 flex flex-col gap-1 select-none">
+    <div className="slider-area relative flex-1 flex flex-col gap-1.5 select-none">
       {/* Track + Thumb */}
       <div
-        ref={trackRef}
         className="relative w-full flex items-center group cursor-pointer"
         style={{ height: thumbSize + 8 }}
       >
@@ -74,41 +62,19 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-white/15 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-ink/10 dark:bg-white/10 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
           <div
-            className={`absolute h-full ${accentColor} rounded-full transition-[width] duration-75`}
+            className={`absolute h-full ${accentColor} opacity-60 rounded-full transition-[width] duration-75`}
             style={{ width: `${percentage}%` }}
           />
         </div>
 
-        {/* Tick marks */}
-        <div className="absolute w-full pointer-events-none" style={{ top: '50%' }}>
-          {ticks.map((tickValue) => {
-            const tickPercent = ((tickValue - min) / (max - min)) * 100;
-            const isActive = tickValue <= value;
-            return (
-              <div
-                key={tickValue}
-                className={`absolute transition-all duration-100 rounded-full ${
-                  isActive ? 'bg-white/50' : 'bg-white/15'
-                }`}
-                style={{
-                  left: `${tickPercent}%`,
-                  width: 2,
-                  height: isActive ? 6 : 4,
-                  transform: 'translate(-50%, -50%)',
-                }}
-              />
-            );
-          })}
-        </div>
-
         {/* Thumb */}
         <div
-          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-[1.4]"
+          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-[1.3]"
           style={{
             left: `calc(${percentage}% - ${thumbSize / 2}px)`,
             width: thumbSize,
@@ -116,20 +82,15 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-paper rounded-full shadow-lg ring-2 ring-white/20 transition-shadow group-active:shadow-xl group-active:ring-tea-seal/40"
-          />
-          {/* Pulse animation on step */}
-          <div
-            key={value}
-            className="absolute inset-0 rounded-full bg-tea-paper/30 animate-[scaleIn_0.15s_ease-out]"
+            className="w-full h-full bg-tea-seal rounded-full shadow-sm transition-shadow group-active:shadow-md"
           />
         </div>
       </div>
 
-      {/* Step labels (min and max) */}
+      {/* Min and max labels */}
       <div className="flex justify-between px-0.5">
-        <span className="text-[9px] font-mono text-white/30">{min}{unit}</span>
-        <span className="text-[9px] font-mono text-white/30">{max}{unit}</span>
+        <span className="text-[9px] font-mono text-tea-ink/30 dark:text-white/30">{min}{unit}</span>
+        <span className="text-[9px] font-mono text-tea-ink/30 dark:text-white/30">{max}{unit}</span>
       </div>
     </div>
   );
