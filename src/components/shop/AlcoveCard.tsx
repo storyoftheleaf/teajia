@@ -438,53 +438,51 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         )}
 
         {/* Block 4: Commerce */}
-        <div style={{ padding: "4px 20px 14px", marginTop: "auto", flexShrink: 0 }}>
+        <div style={{ padding: "2px 20px 12px", marginTop: "auto", flexShrink: 0 }}>
 
-          {/* Price per gram + selected grams */}
+          {/* Price + slider + grams — single compact block */}
           <div style={{
-            display: "flex", alignItems: "baseline", justifyContent: "space-between",
-            padding: "5px 14px",
+            padding: "4px 12px",
             background: "rgba(200,170,120,0.03)",
-            borderRadius: "3px 3px 0 0",
+            borderRadius: "3px",
+            marginBottom: "5px",
           }}>
-            <div style={{ display: "flex", alignItems: "baseline" }}>
-              <span style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "13px", fontWeight: 300, color: alcoveColors.body,
-                lineHeight: 1,
-              }}>
-                ${fmtNum(pricePerGram)}
-              </span>
-              <span style={{
-                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "10px", fontWeight: 300, color: alcoveColors.subtitle,
-                marginLeft: "2px",
-              }}>/g</span>
+            {/* Price / grams labels */}
+            <div style={{
+              display: "flex", alignItems: "baseline", justifyContent: "space-between",
+              marginBottom: "2px",
+            }}>
+              <div style={{ display: "flex", alignItems: "baseline" }}>
+                <span style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
+                  lineHeight: 1,
+                }}>
+                  ${fmtNum(pricePerGram)}
+                </span>
+                <span style={{
+                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                  fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
+                  marginLeft: "1px",
+                }}>/g</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline" }}>
+                <span style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
+                  lineHeight: 1,
+                }}>
+                  {grams}
+                </span>
+                <span style={{
+                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                  fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
+                  marginLeft: "1px",
+                }}>g</span>
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline" }}>
-              <span style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "13px", fontWeight: 300, color: alcoveColors.body,
-                lineHeight: 1,
-              }}>
-                {grams}
-              </span>
-              <span style={{
-                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "10px", fontWeight: 300, color: alcoveColors.subtitle,
-                marginLeft: "2px",
-              }}>g</span>
-            </div>
-          </div>
-
-          {/* Slider — clean, no ticks or labels */}
-          <div style={{
-            padding: "4px 14px 6px",
-            background: "rgba(200,170,120,0.03)",
-            borderRadius: "0 0 3px 3px",
-            marginBottom: "6px",
-          }}>
-            <div style={{ position: "relative", width: "100%", height: "22px", display: "flex", alignItems: "center" }}>
+            {/* Slider with tick marks */}
+            <div style={{ position: "relative", width: "100%", height: "18px", display: "flex", alignItems: "center" }}>
               <input
                 type="range"
                 min={sliderMin}
@@ -506,12 +504,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
                 }}
               />
+              {/* Track with snap tick marks */}
               <div style={{
                 width: "100%", height: "4px",
                 background: "rgba(200,170,120,0.1)",
-                borderRadius: "2px", overflow: "hidden",
+                borderRadius: "2px",
                 position: "relative",
               }}>
+                {/* Fill */}
                 <div style={{
                   position: "absolute", height: "100%",
                   width: `${sliderPercentage}%`,
@@ -519,7 +519,28 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   borderRadius: "2px",
                   transition: "width 0.075s ease",
                 }} />
+                {/* Tick marks at snap points */}
+                {snapPoints.map((sp) => {
+                  const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+                  return (
+                    <div
+                      key={sp}
+                      style={{
+                        position: "absolute",
+                        left: `${pct}%`,
+                        top: "-3px",
+                        width: "1px", height: "10px",
+                        background: grams === sp
+                          ? "rgba(200,170,120,0.35)"
+                          : "rgba(200,170,120,0.12)",
+                        transition: "background 0.15s ease",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  );
+                })}
               </div>
+              {/* Thumb */}
               <div style={{
                 position: "absolute",
                 left: `calc(${sliderPercentage}% - 6px)`,
@@ -534,14 +555,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
 
           {/* Action row: Save/Share + Cart */}
-          <div style={{ display: "flex", gap: "6px" }}>
+          <div style={{ display: "flex", gap: "5px" }}>
             <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "14px",
-              height: "44px", boxSizing: "border-box",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "12px",
+              height: "38px", boxSizing: "border-box",
               border: "1px solid rgba(200,170,120,0.2)",
               borderRadius: "3px",
               flexShrink: 0,
-              padding: "0 16px",
+              padding: "0 12px",
             }}>
               <button
                 onClick={() => toggleFavoriteTea(item.id)}
@@ -590,9 +611,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               onMouseEnter={() => setHovered("cart")}
               onMouseLeave={() => setHovered(null)}
               style={{
-                flex: 1, height: "44px", boxSizing: "border-box",
+                flex: 1, height: "38px", boxSizing: "border-box",
                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "12px", fontWeight: 400,
+                fontSize: "11px", fontWeight: 400,
                 letterSpacing: "0.06em", textTransform: "uppercase",
                 color: added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
                 background: added
