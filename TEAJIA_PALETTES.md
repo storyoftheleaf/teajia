@@ -1,6 +1,6 @@
-# Teajia Palettes — Site-Wide Design Overhaul Plan
+# Teajia Palettes — "Espresso + Gold / The Whisper + Storyteller"
 
-A comprehensive plan for unifying all fonts, colors, logos, SVGs, text sizing, and visual identity across the entire Teajia application. The goal: every pixel resonates with a single, intentional palette system.
+A complete design system overhaul: new color palette (warm espresso-and-gold), new typography (Vollkorn/Spectral/Jost/Space Mono), unified dark/light mode via CSS variables. Source of truth: `plan/teajia-palettes.html`. Textures and atmosphere effects are preserved.
 
 ---
 
@@ -47,11 +47,11 @@ A comprehensive plan for unifying all fonts, colors, logos, SVGs, text sizing, a
 | `#f3f4f6` | card-utilities light mode image bg | Use `tea-paper-dark` |
 | `rgba(201,148,58,*)` | card-utilities focus ring, price bg | Should reference `tea-seal` via token |
 
-**Font inconsistencies:**
-- `card-grid-badge` uses system font stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI'`) instead of `Inter`
-- `card-grid-price` hardcodes `'Menlo', 'Courier New', monospace` instead of token `font-mono`
-- Body `line-height: 1.625` in index.html but `1.85` in `.article-body` — intentional but undocumented
-- Fraunces + Bricolage Grotesque loaded but only used in Alcove cards, not documented in token system
+**Font inconsistencies (all getting replaced with new stack):**
+- `card-grid-badge` uses system font stack — will become Jost via `var(--font-sans)`
+- `card-grid-price` hardcodes Menlo — will become Space Mono via `var(--font-mono)`
+- Body `line-height: 1.625` in index.html but `1.85` in `.article-body` — Spectral body uses 1.85, UI text (Jost) uses ~1.5
+- Fraunces + Bricolage Grotesque loaded for Alcove cards — evaluate if still needed alongside Vollkorn
 
 **Logo color mismatches:**
 - `LogoEmblem` defaults to `#010101` (near-black) — wrong on dark backgrounds
@@ -67,142 +67,153 @@ A comprehensive plan for unifying all fonts, colors, logos, SVGs, text sizing, a
 
 ---
 
-## 2. Color Palette Redesign
+## 2. Color Palette Redesign — "Espresso + Gold"
 
-### Expanded Token System
+Source of truth: `plan/teajia-palettes.html`
 
-Add missing intermediate colors and eliminate all hardcoded hex values.
+The palette is a warm espresso-and-gold system with full dark/light mode support. Every token maps to a semantic role, not a raw color name.
 
-#### Light Theme (Public Site)
-
-```
-tea-cream:        #FFFDF5    — Lightest background (sidebar, tab bar, panels)
-tea-paper:        #F3F0E7    — Primary light background (pages)
-tea-paper-dark:   #E6E2D6    — Secondary light background (headers, footers)
-tea-warm:         #E8DDCC    — Warm text on dark backgrounds, logo text
-tea-beige:        #D8D0C0    — Tertiary, decorative borders
-tea-beige-dark:   #8A8070    — Accessible muted text (dark mode)
-tea-drift:        #8B7D6B    — Warm muted (inactive icons, subtle labels)
-tea-ink-light:    #555555    — Secondary text
-tea-ink:          #2C2C2C    — Primary text
-tea-charcoal:     #1a1a1a    — Dark background
-```
-
-#### Accent Colors
+### Dark Mode (Default — "Espresso")
 
 ```
-tea-seal:         #b8882d    — Primary accent (gold), buttons, active states
-tea-seal-dark:    #a07830    — Darker gold for text-on-light (WCAG AA)
-tea-ember:        #7A2E2E    — Active logo tint, warm emphasis
-tea-green:        #5A6E5A    — Nature accent, success states
-tea-moss:         #2A3430    — Deep green-grey, favicon bg
+tea-bg:          #18130e    — Page background (deep espresso)
+tea-surface:     #28211a    — Card/panel surface
+tea-elevated:    #3a3126    — Raised elements (modals, code blocks, hover states)
+tea-text:        #ede4d4    — Primary text (warm cream)
+tea-text-sec:    #b5a892    — Secondary text (body copy, descriptions)
+tea-text-dim:    #80735f    — Dim text (labels, metadata, placeholders)
+tea-gold:        #b8924e    — Primary accent (gold), buttons, active states
+tea-gold-lt:     #d4ac66    — Light gold (hover states, highlights)
+tea-border:      rgba(181,168,146,0.14) — Subtle borders
+tea-accent-sub:  rgba(184,146,78,0.1)   — Gold tint backgrounds (email capture, badges)
 ```
 
-#### Dark Theme (Admin + Public Dark Mode)
+### Light Mode — "Parchment"
 
 ```
-tea-bg:           #0c0c0c    — Deepest background
-tea-surface:      #121212    — Card/panel surface
-tea-surface-deep: #1c1b19   — Button backgrounds, deep UI
-tea-surface-alt:  #242424    — Alternate surface (headers in dark)
-tea-surface-raised: #2a2a2a — Raised elements (code blocks, modals)
-tea-overlay:      #0e0d0c    — Modal overlays (with /90 opacity)
-tea-border:       #262626    — Default borders
-tea-text:         #e5e5e5    — Primary text
-tea-muted:        #737373    — Muted text, labels
-tea-warm-muted:   #8a7e6a    — Warm-toned muted text
-tea-accent:       #b8882d    — Same as tea-seal (gold accent)
+tea-bg:          #f4ece0    — Page background (warm parchment)
+tea-surface:     #e6dbcc    — Card/panel surface
+tea-elevated:    #d5c8b4    — Raised elements
+tea-text:        #18130e    — Primary text (espresso)
+tea-text-sec:    #5e5342    — Secondary text
+tea-text-dim:    #9a8c78    — Dim text
+tea-gold:        #8e6d2e    — Primary accent (darker gold for WCAG AA on light bg)
+tea-gold-lt:     #a88340    — Light gold accent
+tea-border:      rgba(24,19,14,0.1)     — Subtle borders
+tea-accent-sub:  rgba(142,109,46,0.07)  — Gold tint backgrounds
 ```
 
-#### Utility
+### Legacy Token Mapping
+
+These old tokens map to the new system for backwards compatibility during migration:
 
 ```
-tea-shadow:       rgba(0,0,0,0.15) — Subtle shadows
+OLD TOKEN            → NEW TOKEN (dark)        → NEW TOKEN (light)
+tea-paper (#F3F0E7)  → tea-bg (#f4ece0)        → (light mode bg)
+tea-charcoal (#1a1a1a) → tea-bg (#18130e)      → (dark mode bg)
+tea-ink (#2C2C2C)    → tea-text (#18130e)       → (light mode text)
+tea-seal (#b8882d)   → tea-gold (#b8924e dark / #8e6d2e light)
+tea-beige (#D8D0C0)  → tea-elevated (#d5c8b4)  → (light mode elevated)
+tea-ink-light (#555) → tea-text-sec (#5e5342)   → (light mode secondary)
 ```
 
 ### CSS Variables (add to `:root`)
 
-Every token gets a CSS variable so `card-utilities.css` and other raw CSS can reference them:
-
 ```css
+/* Dark mode (default) */
 :root {
-  --color-tea-cream: #FFFDF5;
-  --color-tea-paper: #F3F0E7;
-  --color-tea-paper-dark: #E6E2D6;
-  --color-tea-warm: #E8DDCC;
-  --color-tea-beige: #D8D0C0;
-  --color-tea-drift: #8B7D6B;
-  --color-tea-ink-light: #555555;
-  --color-tea-ink: #2C2C2C;
-  --color-tea-charcoal: #1a1a1a;
-  --color-tea-seal: #b8882d;
-  --color-tea-seal-dark: #a07830;
-  --color-tea-ember: #7A2E2E;
-  --color-tea-green: #5A6E5A;
-  --color-tea-moss: #2A3430;
-  --color-tea-bg: #0c0c0c;
-  --color-tea-surface: #121212;
-  --color-tea-surface-deep: #1c1b19;
-  --color-tea-surface-alt: #242424;
-  --color-tea-surface-raised: #2a2a2a;
-  --color-tea-border: #262626;
-  --color-tea-text: #e5e5e5;
-  --color-tea-muted: #737373;
-  --color-tea-warm-muted: #8a7e6a;
+  --tea-bg: #18130e;
+  --tea-surface: #28211a;
+  --tea-elevated: #3a3126;
+  --tea-text: #ede4d4;
+  --tea-text-sec: #b5a892;
+  --tea-text-dim: #80735f;
+  --tea-gold: #b8924e;
+  --tea-gold-lt: #d4ac66;
+  --tea-border: rgba(181,168,146,0.14);
+  --tea-accent-sub: rgba(184,146,78,0.1);
+}
+
+/* Light mode */
+:root.light, .light {
+  --tea-bg: #f4ece0;
+  --tea-surface: #e6dbcc;
+  --tea-elevated: #d5c8b4;
+  --tea-text: #18130e;
+  --tea-text-sec: #5e5342;
+  --tea-text-dim: #9a8c78;
+  --tea-gold: #8e6d2e;
+  --tea-gold-lt: #a88340;
+  --tea-border: rgba(24,19,14,0.1);
+  --tea-accent-sub: rgba(142,109,46,0.07);
 }
 ```
 
 ---
 
-## 3. Typography System
+## 3. Typography System — "The Whisper + Storyteller"
 
-### Font Stack (No Changes Needed — Just Enforce Consistency)
+Source of truth: `plan/teajia-palettes.html`
 
-| Role | Stack | Usage |
-|------|-------|-------|
-| **Serif** | `Lora`, `Noto Serif SC`, `serif` | Headlines, editorial body, brand text |
-| **Sans** | `Inter`, `sans-serif` | UI labels, badges, metadata, navigation |
-| **Mono** | `Menlo`, `Courier New`, `monospace` | Prices, code, technical data |
-| **Display** | `Fraunces` (variable) | Alcove card headlines only |
-| **Display Sans** | `Bricolage Grotesque` | Alcove card labels/metadata only |
-| **Chinese** | `Ma Shan Zheng`, `Noto Serif SC` | Chinese tea names, calligraphic display |
+### Font Stack (NEW — Replacing Lora/Inter/Menlo)
+
+| Role | Font | Weight | Usage |
+|------|------|--------|-------|
+| **Display** | `Vollkorn`, serif | 400-600 | Article titles, page headings, hero text, card titles, brand wordmark |
+| **Subtitle** | `Spectral`, serif | 300 italic | Descriptive subtitles, poetic text, place names, tea descriptions |
+| **Body** | `Spectral`, serif | 400 | Article text, long-form reading (17px / 1.85 line-height) |
+| **Body Light** | `Spectral`, serif | 300 | Captions, secondary text, descriptions (15px / 1.8 line-height) |
+| **Label / Nav** | `Jost`, sans-serif | 300-400 | Tags, categories, metadata, navigation, buttons, CTAs |
+| **Mono** | `Space Mono`, monospace | 400 | Hex codes, specs, technical metadata (internal/dev use) |
+| **Chinese** | `Noto Serif SC`, serif | — | Chinese tea names (fallback from Vollkorn/Spectral) |
+
+### Google Fonts Import
+
+```
+Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500
+Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400
+Jost:ital,wght@0,300;0,400;0,500;1,300;1,400
+Space Mono (regular only)
+```
+
+### Tailwind Font Family Mapping
+
+```js
+fontFamily: {
+  serif: ['Vollkorn', 'Noto Serif SC', 'serif'],       // Display / headings
+  body: ['Spectral', 'Noto Serif SC', 'serif'],         // Body / reading
+  sans: ['Jost', 'sans-serif'],                          // Labels / nav / UI
+  mono: ['Space Mono', 'monospace'],                     // Technical
+}
+```
+
+### Type Scale (from HTML reference)
+
+| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
+|------|------|------|--------|-------------|----------------|-------|
+| Display (h1) | Vollkorn | clamp(32-48px) | 400 | 1.12 | 0.01em | Hero headlines, article titles |
+| Heading 2 | Vollkorn | clamp(24-32px) | 400 | 1.2 | 0.01em | Section headings, card titles |
+| Subtitle | Spectral italic | 17-18px | 300 | 1.4 | normal | Descriptive lines, tea origins |
+| Body | Spectral | 17px | 400 | 1.85 | normal | Long-form article text (max-width 540px) |
+| Body Light | Spectral | 15px | 300 | 1.8 | normal | Captions, secondary passages |
+| Label | Jost | 10px | 400 | 1.4 | 2px | Tags, categories, eyebrows (UPPERCASE) |
+| Navigation | Jost | 11px | 400 | 1.4 | 1.5px | Nav items, section headers (UPPERCASE) |
+| Links / CTA | Jost | 13px | 400 | — | 0.3px | Interactive text, buttons, inline links |
+| Mono | Space Mono | 9px | 400 | — | — | Hex codes, specs (internal use only) |
+
+### Icon Guidance (from HTML reference)
+
+Hairline to thin stroke weight (0.75-1px). Geometric and minimal. Avoid rounded, playful, or heavy icon styles. Icons should feel like they were drawn with a fine pen, matching the delicacy of Spectral at light weights. Phosphor Thin or custom SVG line icons are the best match. Icons at 18-22px in navigation and 14-16px inline with text.
 
 ### Fixes Required
 
-1. **`card-grid-badge`** in `card-utilities.css` — Replace `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif` with `var(--font-sans)` or `font-family: inherit` + `font-sans` class
-2. **`card-grid-price`** in `card-utilities.css` — Replace hardcoded `'Menlo', 'Courier New', monospace` with `var(--font-mono)`
-3. **`LogoText`** — Consider loading at `font-serif` weight to match brand identity
-4. **Admin sidebar** — Uses `font-serif` for "TEAJIA" header and `font-sans` for nav — correct, keep as-is
-
-### Font Size Scale (Keep Current — It Works)
-
-```
-xs:   0.75rem  (12px) — badges, fine print, tracking labels
-sm:   0.875rem (14px) — secondary text, meta, captions
-base: 1rem     (16px) — body text, nav labels
-lg:   1.125rem (18px) — emphasized body
-xl:   1.25rem  (20px) — small headings
-2xl:  1.5rem   (24px) — section headings
-3xl:  1.875rem (30px) — page headings (mobile)
-4xl:  2.25rem  (36px) — page headings (desktop)
-5xl:  3rem     (48px) — hero headlines
-```
-
-### Text Sizing Patterns to Enforce
-
-| Element | Class Pattern | Notes |
-|---------|--------------|-------|
-| Page titles | `text-4xl md:text-5xl font-serif font-light` | Collapsed: `text-base` on mobile |
-| Section headers | `text-3xl md:text-4xl font-serif` | |
-| Card titles | `text-base lg:text-[17px] font-medium` | `1rem` → `1.0625rem` on desktop |
-| Nav labels | `text-[10px] uppercase tracking-widest font-sans` | Both sidebar & tab bar |
-| Badges | `text-[10px] uppercase tracking-[0.05em-0.2em] font-sans` | |
-| Prices | `text-xs font-mono tracking-wider` | `0.6875rem` mobile, `0.75rem` desktop |
-| Body text | `text-base font-sans leading-relaxed` | |
-| Article body | `text-base font-serif leading-[1.85]` | `.article-body` class |
-| Chinese names | `font-serif` (Noto Serif SC auto-falls) | |
-| Footer links | `text-sm font-sans` | |
-| Admin labels | `text-[10px] uppercase tracking-[0.2em] font-sans` | |
+1. **Replace Lora with Vollkorn** everywhere — `designTokens.ts`, `index.html` font imports, Tailwind config
+2. **Replace Inter with Jost** everywhere — same files
+3. **Replace Menlo with Space Mono** everywhere — same files
+4. **Add Spectral** as new `font-body` family for reading/body text
+5. **`card-grid-badge`** in `card-utilities.css` — Replace system font stack with `var(--font-sans)` (Jost)
+6. **`card-grid-price`** in `card-utilities.css` — Replace hardcoded Menlo stack with `var(--font-mono)` (Space Mono)
+7. **Body `line-height`** — Standardize on `1.85` for article body (Spectral), `1.625` for UI text (Jost)
 
 ---
 
@@ -242,146 +253,154 @@ xl:   1.25rem  (20px) — small headings
 
 ## 5. Component-by-Component Plan
 
+All replacements use the new Espresso+Gold token system. Components use CSS variable-driven classes so dark/light mode is handled by switching `:root` variables, not by `dark:` prefixes on every element.
+
 ### Navigation
 
 #### `LeftSidebar.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#FFFDF5]` | `bg-tea-cream` |
-| Hardcoded active indicator `w-1 h-8 bg-tea-seal` | Keep — correct |
-| `text-tea-ink/40 dark:text-tea-paper/60` inactive | Keep |
-| `text-tea-seal` active | Keep |
+| `bg-[#FFFDF5]` | `bg-[var(--tea-surface)]` |
+| `bg-tea-seal` active indicator | `bg-[var(--tea-gold)]` |
+| `text-tea-ink/40` inactive | `text-[var(--tea-text-dim)]` |
+| `text-tea-seal` active | `text-[var(--tea-gold)]` |
+| `font-serif` (Lora) | `font-serif` (Vollkorn — changed at config level) |
 
 #### `BottomTabBar.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#FFFDF5]/80` | `bg-tea-cream/80` |
-| `border-[#FFFDF5]` (cart badge) | `border-tea-cream` |
-| Logo `color="#7A2E2E"` | `color="var(--color-tea-ember)"` or token reference |
-| Logo `color="#8B7D6B"` | `color="var(--color-tea-drift)"` or token reference |
-| `rgba(0,0,0,0.15)` emblem | Keep as-is (opacity shadow) |
+| `bg-[#FFFDF5]/80` | `bg-[var(--tea-surface)]/80` |
+| `border-[#FFFDF5]` (cart badge) | `border-[var(--tea-surface)]` |
+| Logo `color="#7A2E2E"` active | `color="var(--tea-gold)"` |
+| Logo `color="#8B7D6B"` inactive | `color="var(--tea-text-dim)"` |
+| `rgba(0,0,0,0.15)` emblem shadow | Keep as-is |
 
 ### Panels & Drawers
 
 #### `CartDrawer.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#F3F0E7]` | `bg-tea-paper` |
-| `bg-[#1a1a1a]` (dark) | `bg-tea-charcoal` or `dark:bg-tea-charcoal` |
-| `bg-[#E6E2D6]` headers | `bg-tea-paper-dark` |
-| `bg-[#242424]` dark headers | `dark:bg-tea-surface-alt` |
-| `bg-[#FFFDF5]` code block | `bg-tea-cream` |
-| `bg-[#2a2a2a]` dark code | `dark:bg-tea-surface-raised` |
+| `bg-[#F3F0E7]` | `bg-[var(--tea-bg)]` |
+| `bg-[#1a1a1a]` (dark) | `bg-[var(--tea-bg)]` (handled by CSS var) |
+| `bg-[#E6E2D6]` headers | `bg-[var(--tea-surface)]` |
+| `bg-[#242424]` dark headers | `bg-[var(--tea-surface)]` (handled by CSS var) |
+| `bg-[#FFFDF5]` code block | `bg-[var(--tea-elevated)]` |
+| `bg-[#2a2a2a]` dark code | `bg-[var(--tea-elevated)]` (handled by CSS var) |
 
 #### `AccountPanel/index.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#F3F0E7]` | `bg-tea-paper` |
-| `bg-[#1a1a1a]` | `dark:bg-tea-charcoal` |
-| `bg-[#E6E2D6]` | `bg-tea-paper-dark` |
-| `bg-[#242424]` | `dark:bg-tea-surface-alt` |
+| `bg-[#F3F0E7]` | `bg-[var(--tea-bg)]` |
+| `bg-[#1a1a1a]` | `bg-[var(--tea-bg)]` |
+| `bg-[#E6E2D6]` | `bg-[var(--tea-surface)]` |
+| `bg-[#242424]` | `bg-[var(--tea-surface)]` |
 
 #### `QuickPeekDrawer.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#1a1a1a]` (dark) | `dark:bg-tea-charcoal` |
+| `bg-[#1a1a1a]` (dark) | `bg-[var(--tea-bg)]` |
 
 #### `ContributorBioPage.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#FFFDF5]` | `bg-tea-cream` |
+| `bg-[#FFFDF5]` | `bg-[var(--tea-surface)]` |
 
 ### Content Pages
 
 #### `Reader.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#F3F0E7]` | `bg-tea-paper` |
-| `bg-[#2a2a2a]` (dark) | `dark:bg-tea-surface-raised` |
-| `bg-[#1a1a1a]` fullscreen | `bg-tea-charcoal` |
+| `bg-[#F3F0E7]` | `bg-[var(--tea-bg)]` |
+| `bg-[#2a2a2a]` (dark) | `bg-[var(--tea-elevated)]` |
+| `bg-[#1a1a1a]` fullscreen | `bg-[var(--tea-bg)]` |
 
 #### `SinglePageRenderer.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#F3F0E7]` (6 instances) | `bg-tea-paper` |
-| `bg-[#1a1a1a]` (2 instances) | `bg-tea-charcoal` |
-| `border-[#E6E2D6]` | `border-tea-paper-dark` |
-| `border-[#121212]` | `border-tea-surface` |
-| `bg-[#e8e4d9]` | `bg-tea-paper-dark` (close enough) or new token |
-| `text-[#F3F0E7]` | `text-tea-paper` |
+| `bg-[#F3F0E7]` (6 instances) | `bg-[var(--tea-bg)]` |
+| `bg-[#1a1a1a]` (2 instances) | `bg-[var(--tea-bg)]` |
+| `border-[#E6E2D6]` | `border-[var(--tea-border)]` |
+| `border-[#121212]` | `border-[var(--tea-border)]` |
+| `bg-[#e8e4d9]` | `bg-[var(--tea-surface)]` |
+| `text-[#F3F0E7]` | `text-[var(--tea-text)]` |
 
 #### `TeaInventory.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#F3F0E7]` | `bg-tea-paper` |
-| `bg-[#E6E2D6]` | `bg-tea-paper-dark` |
+| `bg-[#F3F0E7]` | `bg-[var(--tea-bg)]` |
+| `bg-[#E6E2D6]` | `bg-[var(--tea-surface)]` |
 
 #### `DesignPortfolio.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#F3F0E7]` | `bg-tea-paper` |
-| `bg-[#1a1a1a]` | `dark:bg-tea-charcoal` |
+| `bg-[#F3F0E7]` | `bg-[var(--tea-bg)]` |
+| `bg-[#1a1a1a]` | `bg-[var(--tea-bg)]` |
 
 #### `GalleryImage.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#1a1a1a]` | `bg-tea-charcoal` |
+| `bg-[#1a1a1a]` | `bg-[var(--tea-bg)]` |
 
 #### `InsightOverlay.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#242424]` (dark) | `dark:bg-tea-surface-alt` |
+| `bg-[#242424]` (dark) | `bg-[var(--tea-elevated)]` |
 
 #### `ProductInquiry.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#0a0a0a]` (dark) | `dark:bg-tea-bg` |
+| `bg-[#0a0a0a]` (dark) | `bg-[var(--tea-bg)]` |
 
 ### Admin Components
 
 #### `TeaDetailsModal.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#0e0d0c]/90` overlay | `bg-tea-overlay/90` |
-| `text-[#8a7e6a]` | `text-tea-warm-muted` |
-| `hover:text-[#c0b49a]` | `hover:text-tea-beige` |
-| `bg-[#1c1b19]/50` | `bg-tea-surface-deep/50` |
-| `bg-[#1c1b19]` | `bg-tea-surface-deep` |
-| `border-[rgba(200,170,120,0.2)]` | `border-tea-seal/20` |
+| `bg-[#0e0d0c]/90` overlay | `bg-[var(--tea-bg)]/90` |
+| `text-[#8a7e6a]` | `text-[var(--tea-text-dim)]` |
+| `hover:text-[#c0b49a]` | `hover:text-[var(--tea-text-sec)]` |
+| `bg-[#1c1b19]/50` | `bg-[var(--tea-surface)]/50` |
+| `bg-[#1c1b19]` | `bg-[var(--tea-surface)]` |
+| `border-[rgba(200,170,120,0.2)]` | `border-[var(--tea-border)]` |
 
 #### `AddProductModal.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#859F85]/10` | `bg-tea-green/10` |
-| `text-[#859F85]` | `text-tea-green` |
-| `border-[#859F85]/30` | `border-tea-green/30` |
+| `bg-[#859F85]/10` | Keep (green is distinct from gold palette — semantic "reorder" color) |
+| `text-[#859F85]` | Keep |
+| `border-[#859F85]/30` | Keep |
 
 #### `LoginScreen.tsx`
 | Current | Change To |
 |---------|-----------|
-| `bg-[#1a1a1a]` | `bg-tea-charcoal` |
+| `bg-[#1a1a1a]` | `bg-[var(--tea-bg)]` |
 
 #### `App.tsx` (admin fallback)
 | Current | Change To |
 |---------|-----------|
-| `bg-[#0c0c0c]` | `bg-tea-bg` |
+| `bg-[#0c0c0c]` | `bg-[var(--tea-bg)]` |
 
 ---
 
 ## 6. Admin Theme Alignment
 
-The admin uses a dedicated dark palette. It's already well-defined but needs the new intermediate tokens:
+The admin now uses the same Espresso+Gold dark mode tokens as the public site. No separate admin palette needed — the dark mode IS the admin aesthetic.
 
-**Keep existing:** `tea-bg`, `tea-surface`, `tea-border`, `tea-text`, `tea-muted`, `tea-accent`
+**Admin maps directly to dark mode tokens:**
+- `tea-bg (#18130e)` — admin page background
+- `tea-surface (#28211a)` — admin card/panel surfaces
+- `tea-elevated (#3a3126)` — admin modals, raised elements
+- `tea-text (#ede4d4)` — admin primary text
+- `tea-text-sec (#b5a892)` — admin secondary text
+- `tea-text-dim (#80735f)` — admin muted labels
+- `tea-gold (#b8924e)` — admin accent (was `tea-accent`)
+- `tea-border (rgba(181,168,146,0.14))` — admin borders
 
-**Add:**
-- `tea-surface-deep: #1c1b19` — for button backgrounds in TeaDetailsModal
-- `tea-surface-alt: #242424` — for secondary surfaces (headers in dark mode)
-- `tea-surface-raised: #2a2a2a` — for elevated elements (code blocks, nested panels)
-- `tea-overlay: #0e0d0c` — for modal backdrop overlays
-- `tea-warm-muted: #8a7e6a` — warm-toned muted text (TeaDetailsModal nav buttons)
-
-The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. Keep both aliases for semantic clarity (public uses "seal", admin uses "accent").
+**Old admin tokens that get retired:**
+- `tea-bg: #0c0c0c` → now `#18130e` (warmer)
+- `tea-surface: #121212` → now `#28211a` (warmer)
+- `tea-border: #262626` → now `rgba(181,168,146,0.14)` (subtler)
+- `tea-accent: #b8882d` → now `tea-gold: #b8924e` (unified name)
 
 ---
 
@@ -390,92 +409,83 @@ The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. 
 ### `card-utilities.css` Changes
 
 ```css
-/* Replace all hardcoded colors with CSS variables */
+/* All colors now reference CSS variables — dark/light mode handled at :root level */
 
 .card-grid-item {
-  background-color: var(--color-tea-charcoal);  /* was #1a1a1a */
+  background-color: var(--tea-surface);  /* was #1a1a1a */
 }
 
 .card-grid-image-container {
-  background-color: var(--color-tea-charcoal);  /* was #1a1a1a */
+  background-color: var(--tea-surface);  /* was #1a1a1a */
 }
 
 .card-grid-title {
-  color: var(--color-tea-warm);  /* was #E8DDCC */
+  font-family: var(--font-serif);  /* Vollkorn */
+  color: var(--tea-text);  /* was #E8DDCC */
 }
 
 .card-grid-price {
-  font-family: var(--font-mono);  /* was hardcoded Menlo stack */
-  color: var(--color-tea-seal);
+  font-family: var(--font-mono);  /* Space Mono — was hardcoded Menlo stack */
+  color: var(--tea-gold);  /* was hardcoded seal color */
 }
 
 .card-grid-badge {
-  color: rgba(232, 221, 204, 0.7);  /* keep — opacity on tea-warm */
-  font-family: var(--font-sans);  /* was system font stack */
+  color: var(--tea-text-dim);  /* was rgba(232, 221, 204, 0.7) */
+  font-family: var(--font-sans);  /* Jost — was system font stack */
 }
 
 .card-grid-description {
-  color: rgba(232, 221, 204, 0.8);  /* keep — opacity on tea-warm */
+  font-family: var(--font-body);  /* Spectral */
+  color: var(--tea-text-sec);  /* was rgba(232, 221, 204, 0.8) */
 }
 
-/* Light mode */
-.light .card-grid-item {
-  background-color: white;
-  border: 1px solid var(--color-tea-beige);  /* was #e5e7eb */
-}
-
-.light .card-grid-image-container {
-  background-color: var(--color-tea-paper-dark);  /* was #f3f4f6 */
-  border: 1px solid var(--color-tea-beige);  /* was #d1d5db */
-}
-
-.light .card-grid-title {
-  color: var(--color-tea-ink);  /* was #111827 */
-}
-
-.light .card-grid-price {
-  color: var(--color-tea-seal);  /* was #2563eb (blue?!) */
-}
+/* Light mode — handled automatically via CSS variable switching */
+/* No more .light overrides needed for colors */
 
 /* Focus ring */
 .card-grid-item:focus-visible {
-  outline: 2px solid var(--color-tea-seal);
-  box-shadow: 0 0 0 4px rgba(184, 136, 45, 0.2);  /* aligned to tea-seal */
+  outline: 2px solid var(--tea-gold);
+  box-shadow: 0 0 0 4px var(--tea-accent-sub);
 }
 ```
 
 ---
 
-## 8. Texture & Atmosphere
+## 8. Texture & Atmosphere — DO NOT REMOVE
 
-### Keep These (They Work Beautifully)
+**Textures are a core part of the design. They stay.**
+
+### Preserve These Exactly
 
 - `.texture-overlay` — SVG noise at 6% opacity
 - `.grain-texture` — Fractal grain with multiply blend
 - `.fabric-texture` — Subtle diagonal lines at 3% opacity
 - `.paper-texture` — Repeating linear gradient simulating paper fiber
+- `backgroundImage['paper-texture']` in `designTokens.ts` — keep
 - Article image filters: `sepia-[0.15] brightness-[0.9] contrast-[1.05] saturate-[0.8]`
 
-### Ensure Consistency
+### Color References in Textures — Update to New Tokens
 
-- The `tea-card-scroll` scrollbar thumb uses `rgba(200,170,120,0.15)` — this is tea-seal territory, keep
-- Article `::after` underlines use `var(--color-tea-seal)` — correct
-- Drop caps use `var(--color-tea-seal)` — correct
-- Pull quotes border uses `var(--color-tea-seal)` — correct
-- Pull quote text uses `#555555` — should use `var(--color-tea-ink-light)`
-- Side note text uses `#555555` — should use `var(--color-tea-ink-light)`
-- Side note bg `rgba(244, 240, 230, 0.5)` — close to tea-paper, keep
-- Section break `rgba(44, 44, 44, 0.3)` — close to tea-ink/30, keep
+- The `tea-card-scroll` scrollbar thumb `rgba(200,170,120,0.15)` — keep (warm gold territory, matches tea-gold)
+- Article `::after` underlines — update from `var(--color-tea-seal)` to `var(--tea-gold)`
+- Drop caps — update from `var(--color-tea-seal)` to `var(--tea-gold)`
+- Pull quotes border — update to `var(--tea-gold)`
+- Pull quote text `#555555` — update to `var(--tea-text-sec)` (which is `#5e5342` in light mode)
+- Side note text `#555555` — update to `var(--tea-text-sec)`
+- Side note bg `rgba(244, 240, 230, 0.5)` — update to use `var(--tea-surface)` with opacity
+- Section break `rgba(44, 44, 44, 0.3)` — update to `var(--tea-border)`
 
 ---
 
 ## 9. Implementation Phases
 
-### Phase 0: Cleanup — Remove Experimental Font Theme Infrastructure
+### Phase 0: Cleanup + Font Foundation
 1. Delete `src/components/FontThemeTester.tsx`
 2. Remove `FONT_THEMES` and `FONT_SIZE_SCALES` exports from `designTokens.ts`
 3. Remove `FontThemeTester` comments from `index.html` CSS variable section
-4. The font stack is already locked in (`Lora`/`Inter`/`Menlo`) — no tester UI needed
+4. Replace font imports: Lora → Vollkorn, Inter → Jost, add Spectral, Menlo → Space Mono
+5. Update Tailwind fontFamily config in `index.html`
+6. Update `designTokens.ts` with new font stacks and Espresso+Gold color palette
 
 ### Phase 1: Token Foundation (Non-Breaking)
 1. Add new color tokens to Tailwind config in `index.html`
@@ -584,8 +594,16 @@ The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. 
 
 ## Summary
 
-Teajia Palettes transforms the current design from "mostly consistent with scattered hardcoded values" to "a fully token-driven system where every color, font, and visual element traces back to a single source of truth." The palette itself doesn't change much — the existing aesthetic is strong. The work is primarily about **consolidation**: replacing ~60+ hardcoded hex values with named tokens, ensuring logos use `currentColor` or explicit tokens, and making the CSS files reference variables instead of raw values.
+Teajia Palettes is a full design system overhaul — "Espresso + Gold / The Whisper + Storyteller."
 
-As part of this consolidation, the experimental `FontThemeTester` component and its `FONT_THEMES`/`FONT_SIZE_SCALES` infrastructure are removed. The font stack is settled (Lora/Inter/Menlo) — no runtime switching UI is needed. All design decisions live in the token files, not in a component.
+**What changes:**
+- **Colors**: The old scattered hex values (tea-paper, tea-ink, tea-seal) are replaced by a unified warm espresso-and-gold system with proper dark/light mode tokens, all derived from `plan/teajia-palettes.html`
+- **Typography**: Lora/Inter/Menlo are replaced by Vollkorn (display), Spectral (body/reading), Jost (labels/UI), Space Mono (technical) — a more refined editorial stack
+- **Cleanup**: The experimental `FontThemeTester` component and its `FONT_THEMES`/`FONT_SIZE_SCALES` infrastructure are deleted
 
-The end result: change one value in the Tailwind config, and it propagates everywhere. No bloat, no tester UI, just clean tokens. That's what a palette system should be.
+**What stays:**
+- **Textures are preserved**: `.texture-overlay` (SVG noise), `.grain-texture` (fractal grain), `.fabric-texture` (diagonal lines), `.paper-texture` (linear gradient fibers), article image filters (sepia/brightness/contrast/saturate) — these are core to the atmosphere and remain untouched
+- **Layout/structure**: No component restructuring, routing changes, or feature additions
+- **Admin functionality**: All admin features stay, just re-skinned with the unified palette
+
+The end result: a cohesive, warm, editorial design system where every color and font traces back to a single source of truth (`designTokens.ts` + Tailwind config). Change one token value, it propagates everywhere.
