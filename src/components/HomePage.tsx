@@ -3,10 +3,10 @@ import { useStories } from '../context/StoryContext';
 import { useInventory } from '../context/InventoryContext';
 import { Story } from '../types';
 import { Icons } from './Icons';
-import { Card } from './Card';
 import { LEARN_CURRICULUM } from '../constants';
 
 import { CardContainer } from './shared/CardContainer';
+import { ArticleCard } from './shared/ArticleCard';
 import { PageHeader } from './shared/PageHeader';
 import { EmailCapture } from './EmailCapture';
 
@@ -202,51 +202,17 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
-          {/* Mobile: 2-col, exactly 2 stories — staggered entrance */}
-          <div className="md:hidden grid grid-cols-2 gap-3">
-            {latestStories.slice(0, 2).map((story, index) => (
-              <button
-                key={story.id}
-                onClick={() => handleCardClick(story)}
-                className="text-left group animate-[fadeIn_0.4s_ease-out]"
-                style={{ animationDelay: `${index * 80}ms`, animationFillMode: 'both' }}
-              >
-                <CardContainer variant="dark" className="overflow-hidden p-1.5">
-                  <div className="aspect-[3/4] overflow-hidden relative">
-                    <img
-                      src={story.thumbnailUrl}
-                      alt={story.title}
-                      className="w-full h-full object-cover sepia-[0.15] brightness-[0.9] group-hover:sepia-0 group-hover:brightness-100 transition-all duration-500"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  </div>
-                </CardContainer>
-                <div className="pt-2 px-0.5">
-                  <h3 className="font-serif text-sm text-tea-ink dark:text-tea-paper leading-snug mb-0.5 group-hover:text-tea-seal transition-colors duration-300 line-clamp-2">
-                    {story.title}
-                  </h3>
-                  <p className="text-[10px] text-tea-ink/50 dark:text-tea-paper/50 uppercase tracking-wider font-sans truncate">
-                    {story.subtitle}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Desktop: 3-column grid, 4 on large screens */}
-          <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* Unified grid — same ArticleCard format as Magazine */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {latestStories.slice(0, 4).map((story) => (
-              <div key={story.id}>
-                <Card
-                  story={story}
-                  onClick={handleCardClick}
-                  isSaved={savedStoryIds[story.id]}
-                  isWatched={watchedStoryIds[story.id]}
-                  onToggleSave={onToggleSave}
-                  onShare={onShare}
-                />
-              </div>
+              <ArticleCard
+                key={story.id}
+                title={story.title}
+                description={story.subtitle}
+                imageUrl={story.thumbnailUrl}
+                aspectRatio="portrait"
+                onClick={() => handleCardClick(story)}
+              />
             ))}
           </div>
         </section>

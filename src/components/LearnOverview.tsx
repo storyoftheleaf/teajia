@@ -7,7 +7,7 @@ import { SwipeCarousel } from './shared/SwipeCarousel';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES } from '../data/glossary';
-import { CURATED_COLLECTIONS, DIFFICULTY_COLORS } from '../data/curatedCollections';
+import { CURATED_COLLECTIONS } from '../data/curatedCollections';
 import { TEA_SPACES, SPACE_TYPE_LABELS } from '../data/teaSpaces';
 import { teaMapPins } from '../data/teaMapPins';
 
@@ -22,12 +22,6 @@ const PIN_TYPE_LABELS: Record<string, string> = {
   space: 'Studio',
 };
 
-const PATH_ICON_MAP: Record<string, React.ReactNode> = {
-  Leaf: <Icons.Leaf className="w-5 h-5" />,
-  Teapot: <Icons.Coffee className="w-5 h-5" />,
-  Location: <Icons.MapPin className="w-5 h-5" />,
-  Box: <Icons.Box className="w-5 h-5" />,
-};
 
 // ═══════════════════════════════════════════════════════════════
 // Curated Unsplash tea photography
@@ -70,8 +64,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
   onNavigateToConsult,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [activePath, setActivePath] = useState<string | null>(null);
 
   const heroReveal = useSectionReveal();
   const glossaryReveal = useSectionReveal();
@@ -116,24 +108,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     spaces: TEA_SPACES.length,
     playlists: 6,
   }), []);
-
-  const getPathProgress = useCallback((path: typeof LEARN_PATHS[0]) => {
-    const pathModules = LEARN_CURRICULUM.filter(m => path.modules.includes(m.id));
-    const completed = pathModules.filter(m => m.lessons.every(l => watchedStories[l.id])).length;
-    return pathModules.length > 0 ? completed / pathModules.length : 0;
-  }, [watchedStories]);
-
-  // Path-filtered modules for unified curriculum section
-  const activePathData = useMemo(() => {
-    return activePath ? LEARN_PATHS.find(p => p.id === activePath) || null : null;
-  }, [activePath]);
-
-  const displayModules = useMemo(() => {
-    if (!activePathData) return LEARN_CURRICULUM;
-    return activePathData.modules
-      .map(id => LEARN_CURRICULUM.find(m => m.id === id))
-      .filter(Boolean) as typeof LEARN_CURRICULUM;
-  }, [activePathData]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
@@ -375,9 +349,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 4 — CURRICULUM (unified with Practice)
-          Paths are entry points. Modules are the content.
-          Practice journeys are integrated at the end of the module list.
+          SECTION 4 — CURRICULUM ENTRY
+          A doorway, not the room. Shows progress summary, the next module
+          to tackle, and a clear CTA into the full curriculum.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={coursesReveal.ref}
@@ -386,145 +360,98 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel>Curriculum</SectionLabel>
 
-        {/* Path selector — horizontally scrollable on mobile, no wrapping */}
-        <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8 -mx-1 px-1">
-          <button
-            onClick={() => setActivePath(null)}
-            className={`px-3 py-1.5 rounded-sm text-xs font-sans transition-colors min-h-[36px] flex-shrink-0 whitespace-nowrap ${
-              activePath === null
-                ? 'bg-tea-ink dark:bg-white/10 text-tea-paper dark:text-tea-paper'
-                : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50 hover:text-tea-ink dark:hover:text-tea-paper'
-            } ${CTA_FOCUS}`}
-          >
-            All Modules
-          </button>
-          {LEARN_PATHS.map(path => {
-            const pathIcon = PATH_ICON_MAP[path.icon] || <Icons.BookOpen className="w-3.5 h-3.5" />;
-            const progress = getPathProgress(path);
-            return (
-              <button
-                key={path.id}
-                onClick={() => setActivePath(activePath === path.id ? null : path.id)}
-                className={`px-3 py-1.5 rounded-sm text-xs font-sans flex items-center gap-1.5 transition-colors min-h-[36px] flex-shrink-0 whitespace-nowrap ${
-                  activePath === path.id
-                    ? 'bg-tea-ink dark:bg-white/10 text-tea-paper dark:text-tea-paper'
-                    : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50 hover:text-tea-ink dark:hover:text-tea-paper'
-                } ${CTA_FOCUS}`}
-              >
-                <span className="text-tea-seal/60">{pathIcon}</span>
-                {path.title}
-                {progress > 0 && (
-                  <span className="text-tea-seal/60 text-[10px] ml-0.5">{Math.round(progress * 100)}%</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* Summary line */}
+        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 font-sans mb-8">
+          {counts.courses} modules across {LEARN_PATHS.length} learning paths
+          {(() => {
+            const completedCount = LEARN_CURRICULUM.filter(m => moduleCompletion[m.id]).length;
+            return completedCount > 0
+              ? <span className="text-tea-seal/70 ml-2">&middot; {completedCount} completed</span>
+              : null;
+          })()}
+        </p>
 
-        {/* Active path description */}
-        {activePathData && (
-          <div className="mb-6 border-l-2 border-tea-seal/20 pl-4">
-            <p className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed">
-              {activePathData.description}
-            </p>
-            <span className="text-[10px] font-mono text-tea-ink/30 dark:text-tea-paper/30 mt-1 block">
-              {activePathData.modules.length} modules in this path
-            </span>
-          </div>
-        )}
+        {/* Featured / next module — single card */}
+        {(() => {
+          const nextModule = LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0];
+          const nextIndex = LEARN_CURRICULUM.indexOf(nextModule);
+          const firstLesson = nextModule.lessons[0];
+          const completedLessons = nextModule.lessons.filter(l => watchedStories[l.id]).length;
+          const hasStarted = completedLessons > 0;
+          return (
+            <button
+              onClick={() => onStoryClick(getModuleTarget(nextModule))}
+              className={`w-full text-left group ${CTA_FOCUS}`}
+            >
+              <CardContainer variant="dark">
+                <div className="relative overflow-hidden">
+                  {/* Atmospheric gradient */}
+                  <div className="absolute inset-0" style={{
+                    backgroundImage: `radial-gradient(ellipse at 0% 100%, rgba(201,148,58,0.06) 0%, transparent 60%)`
+                  }} />
 
-        {/* Module list */}
-        <div className="space-y-0 mb-6">
-          {displayModules.map((mod, index) => {
-            const isComplete = moduleCompletion[mod.id];
-            const firstLesson = mod.lessons[0];
-            return (
-              <button
-                key={mod.id}
-                onClick={() => onStoryClick(getModuleTarget(mod))}
-                className={`w-full flex items-start gap-5 md:gap-8 py-5 md:py-6 group text-left hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
-              >
-                <span className={`font-serif text-3xl md:text-4xl tabular-nums leading-none flex-shrink-0 w-12 transition-colors ${
-                  isComplete ? 'text-tea-seal/40' : 'text-tea-ink/10 dark:text-tea-paper/10 group-hover:text-tea-seal/30'
-                }`}>
-                  {String(index + 1).padStart(2, '0')}
-                </span>
+                  <div className="relative p-7 md:p-10">
+                    {/* Module number + status */}
+                    <div className="flex items-center gap-3 mb-5">
+                      <span className="font-serif text-4xl md:text-5xl text-tea-seal/15 leading-none">
+                        {String(nextIndex + 1).padStart(2, '0')}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans border border-tea-seal/20 px-2.5 py-1 rounded-sm">
+                        {hasStarted ? 'Continue' : 'Up next'}
+                      </span>
+                    </div>
 
-                <div className="flex-1 pt-1">
-                  <span className="font-serif text-base md:text-lg text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors block leading-snug tracking-tight">
-                    {mod.title}
-                  </span>
-                  <span className="text-xs text-tea-ink/35 dark:text-tea-paper/35 font-sans mt-1.5 block leading-relaxed">
-                    {mod.description}
-                  </span>
-                  {firstLesson && (
-                    <span className="text-[11px] italic text-tea-ink/25 dark:text-tea-paper/25 font-serif mt-2 block">
-                      Begin: {firstLesson.title}
-                    </span>
-                  )}
-                </div>
+                    {/* Title */}
+                    <h3 className="font-serif text-xl md:text-2xl text-tea-paper leading-snug mb-2 group-hover:text-tea-seal transition-colors tracking-tight">
+                      {nextModule.title}
+                    </h3>
 
-                <div className="flex items-center gap-3 flex-shrink-0 pt-2">
-                  <span className="text-[10px] font-mono text-tea-ink/25 dark:text-tea-paper/25 whitespace-nowrap hidden sm:inline">
-                    {mod.lessons.length}
-                  </span>
-                  <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${
-                    isComplete
-                      ? 'border-tea-seal/30 bg-tea-seal/8'
-                      : 'border-tea-ink/8 dark:border-white/8 group-hover:border-tea-seal/20'
-                  }`}>
-                    {isComplete ? (
-                      <Icons.Check className="w-3 h-3 text-tea-seal" />
-                    ) : (
-                      <Icons.Play className="w-2.5 h-2.5 text-tea-seal/40 ml-0.5" />
+                    {/* Description */}
+                    <p className="text-sm text-tea-paper/50 leading-relaxed mb-6 max-w-lg">
+                      {nextModule.description}
+                    </p>
+
+                    {/* Progress + lesson count */}
+                    <div className="flex items-center gap-4 mb-6">
+                      <span className="text-xs font-mono text-tea-paper/30">
+                        {nextModule.lessons.length} lessons
+                      </span>
+                      {hasStarted && (
+                        <>
+                          <span className="text-tea-paper/15">&middot;</span>
+                          <span className="text-xs font-mono text-tea-seal/60">
+                            {completedLessons}/{nextModule.lessons.length} watched
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* First lesson preview */}
+                    {firstLesson && !hasStarted && (
+                      <p className="text-[11px] italic text-tea-paper/30 font-serif mb-6">
+                        Begin: {firstLesson.title}
+                      </p>
                     )}
+
+                    {/* CTA */}
+                    <span className="text-tea-seal text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+                      {hasStarted ? 'Continue learning' : 'Start this module'}
+                      <Icons.ChevronRight className="w-4 h-4" />
+                    </span>
                   </div>
                 </div>
-              </button>
-            );
-          })}
-
-          {/* Practice — Guided Journeys integrated as curriculum items */}
-          {CURATED_COLLECTIONS.map((collection) => (
-            <button
-              key={collection.id}
-              onClick={() => onNavigateTo('journeys')}
-              className={`w-full flex items-start gap-5 md:gap-8 py-5 md:py-6 group text-left hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
-            >
-              <span className="flex-shrink-0 w-12 flex items-start justify-center">
-                <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-sm font-sans ${DIFFICULTY_COLORS[collection.difficulty]}`}>
-                  Practice
-                </span>
-              </span>
-
-              <div className="flex-1 pt-1">
-                <span className="font-serif text-base md:text-lg text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors block leading-snug tracking-tight">
-                  {collection.title}
-                </span>
-                <span className="text-xs text-tea-ink/35 dark:text-tea-paper/35 font-sans mt-1.5 block leading-relaxed">
-                  {collection.description}
-                </span>
-                <span className="text-[11px] italic text-tea-ink/25 dark:text-tea-paper/25 font-serif mt-2 block">
-                  {collection.estimatedDuration} &middot; {collection.difficulty}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 flex-shrink-0 pt-2">
-                <div className="w-7 h-7 rounded-full border border-tea-ink/8 dark:border-white/8 group-hover:border-tea-seal/20 flex items-center justify-center transition-colors">
-                  <Icons.Play className="w-2.5 h-2.5 text-tea-seal/40 ml-0.5" />
-                </div>
-              </div>
+              </CardContainer>
             </button>
-          ))}
-        </div>
+          );
+        })()}
 
-        {/* Full curriculum CTA */}
-        <div className="mt-4 pt-6">
+        {/* Enter curriculum CTA */}
+        <div className="mt-6">
           <button
             onClick={() => onNavigateTo('course')}
             className={`text-tea-seal text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
           >
-            View full curriculum <Icons.ChevronRight className="w-4 h-4" />
+            Enter the curriculum <Icons.ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </section>
