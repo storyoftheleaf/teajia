@@ -398,21 +398,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     }`}>
                       {mod.description}
                     </p>
-                    <div className="mt-2 flex items-center gap-2 text-[10px] font-sans text-tea-ink/20 dark:text-tea-paper/20">
-                      <span>{mod.lessons.length} {mod.lessons.length === 1 ? 'lesson' : 'lessons'}</span>
-                      {isDone && (
-                        <>
-                          <span>&middot;</span>
-                          <span className="text-tea-seal/50">complete</span>
-                        </>
-                      )}
-                      {!isDone && completedLessons > 0 && (
-                        <>
-                          <span>&middot;</span>
-                          <span className="text-tea-seal/50">{completedLessons}/{mod.lessons.length}</span>
-                        </>
-                      )}
-                    </div>
+                    {(isDone || completedLessons > 0) && (
+                      <div className="mt-2 text-[10px] font-sans text-tea-seal/50">
+                        {isDone ? 'complete' : `${completedLessons}/${mod.lessons.length}`}
+                      </div>
+                    )}
                   </div>
                 </div>
               </button>
