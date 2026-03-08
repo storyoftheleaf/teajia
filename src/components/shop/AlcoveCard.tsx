@@ -226,7 +226,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story — inline scrollable area */}
+          {/* Story — inline scrollable, expandable */}
           {story && (
             <div style={{
               position: "relative",
@@ -244,9 +244,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ref={storyScrollRef}
                 className="tea-card-scroll"
                 style={{
-                  maxHeight: "130px",
+                  maxHeight: storyExpanded ? "400px" : "130px",
                   overflowY: "auto",
                   padding: "12px 16px",
+                  transition: "max-height 0.4s ease",
                 }}
               >
                 {magazineUrl ? (
@@ -285,6 +286,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 opacity: storyFadeBottom ? 1 : 0,
                 transition: "opacity 0.2s ease",
               }} />
+              {/* Expand/collapse toggle — only show when story overflows */}
+              {(storyFadeBottom || storyExpanded) && (
+                <button
+                  onClick={() => setStoryExpanded(prev => !prev)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    gap: "6px", width: "100%",
+                    padding: "4px 0",
+                    background: "none", border: "none", cursor: "pointer",
+                  }}
+                >
+                  <span style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "11px", fontWeight: 300, fontStyle: "italic",
+                    color: alcoveColors.mutedDark,
+                    letterSpacing: "0.05em",
+                    transition: "color 0.2s ease",
+                  }}>
+                    {storyExpanded ? 'less' : 'more'}
+                  </span>
+                  <svg
+                    width="10" height="10" viewBox="0 0 24 24" fill="none"
+                    stroke={alcoveColors.mutedDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{
+                      transition: "transform 0.3s ease",
+                      transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
             </div>
           )}
 
