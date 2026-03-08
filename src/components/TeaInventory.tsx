@@ -14,8 +14,9 @@ import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
+import type { Product } from '../admin/types';
 
-// Use shared type alias for backward compatibility in this component if needed, 
+// Use shared type alias for backward compatibility in this component if needed,
 // or directly use InventoryItem
 export type TeaItem = InventoryItem;
 
@@ -26,6 +27,9 @@ interface TeaInventoryProps {
   onAccountClick?: () => void;
   cartItemCount?: number;
   hideHeader?: boolean;
+  isAdmin?: boolean;
+  adminProductMap?: Map<string, Product>;
+  onAdminEdit?: (itemId: string) => void;
 }
 
 const TEA_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Black', 'Dark', 'Herbal'];
@@ -33,7 +37,7 @@ const FEELINGS_LIST = ['Ancient', 'Balanced', 'Energetic', 'Grounding', 'Meditat
 
 // Sale items imported from data/curatedCollections
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false }) => {
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
@@ -450,9 +454,30 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
                                         {/* Price & Controls */}
                                         <div className="flex items-center gap-4 shrink-0">
+                                            {/* Admin: stock indicator */}
+                                            {isAdmin && adminProductMap?.has(item.id) && (() => {
+                                                const ap = adminProductMap.get(item.id)!;
+                                                const stockColor = ap.stockGrams < 50 ? 'bg-red-400' : ap.stockGrams < (ap.lowStockThreshold || 100) ? 'bg-amber-400' : 'bg-emerald-400';
+                                                return (
+                                                    <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams}g in stock`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
+                                                        <span className="text-[10px] font-mono text-tea-ink/40 dark:text-tea-paper/40">{ap.stockGrams}g</span>
+                                                    </span>
+                                                );
+                                            })()}
                                             <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
                                                 ${pricePerGram.toFixed(2)}/g
                                             </span>
+                                            {/* Admin: edit button */}
+                                            {isAdmin && onAdminEdit && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
+                                                    className="p-1 text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-seal transition-colors"
+                                                    title="Edit product"
+                                                >
+                                                    <Icons.Edit className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={(e) => toggleUserFavorite(e, item.id)}
                                                 className={`p-1 transition-colors ${isFavorite ? 'text-tea-seal' : 'text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-ink/50 dark:hover:text-tea-paper/50'}`}

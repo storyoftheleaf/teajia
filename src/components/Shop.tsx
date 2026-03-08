@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { InventoryItem } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { TeaInventory } from './TeaInventory';
@@ -10,7 +10,12 @@ import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { SectionDivider } from './shared/SectionDivider';
+import { useAdminOverlay } from '../hooks/useAdminOverlay';
+import { useRates } from '../admin/hooks/useAdminData';
 import type { StarterSet } from '../types';
+import type { Product } from '../admin/types';
+
+const AddProductModal = lazy(() => import('../admin/components/AddProductModal').then(m => ({ default: m.AddProductModal })));
 
 type ShopTab = 'collection' | 'tea' | 'teaware' | 'sets';
 
@@ -40,6 +45,17 @@ export const Shop: React.FC<ShopProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
+
+  // Admin overlay state
+  const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
+  const { data: rates = [] } = useRates();
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const handleAdminEdit = (itemId: string) => {
+    const product = productMap.get(itemId);
+    if (product) setEditingProduct(product);
+  };
 
   const allInventory = [...teaInventory, ...teawareInventory];
 
@@ -147,6 +163,9 @@ export const Shop: React.FC<ShopProps> = ({
             inventory={teaInventory}
             onAddToCart={onAddToCart}
             hideHeader
+            isAdmin={isAdmin}
+            adminProductMap={productMap}
+            onAdminEdit={handleAdminEdit}
           />
         )}
 
@@ -155,11 +174,38 @@ export const Shop: React.FC<ShopProps> = ({
             externalInventory={teawareInventory}
             onAddToCart={onAddToCart}
             hideHeader
+            isAdmin={isAdmin}
+            adminProductMap={productMap}
+            onAdminEdit={handleAdminEdit}
           />
         )}
 
         {activeTab === 'sets' && renderSets()}
       </div>
+
+      {/* Admin: Floating Action Button for quick product creation */}
+      {isAdmin && (
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="fixed bottom-28 right-6 lg:bottom-8 z-[50] w-12 h-12 rounded-full bg-tea-seal text-white shadow-lg hover:bg-tea-seal/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
+          title="Add new product"
+        >
+          <Icons.Plus className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Admin: Edit/Create Product Modal */}
+      {(editingProduct || showCreateModal) && (
+        <Suspense fallback={null}>
+          <AddProductModal
+            isOpen={true}
+            onClose={() => { setEditingProduct(null); setShowCreateModal(false); }}
+            onSuccess={() => { setEditingProduct(null); setShowCreateModal(false); refetchProducts(); }}
+            initialData={editingProduct}
+            rates={rates}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

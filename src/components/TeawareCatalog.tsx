@@ -10,11 +10,15 @@ import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { SectionDivider } from './shared/SectionDivider';
 import { TeaItem } from './TeaInventory';
+import type { Product } from '../admin/types';
 
-interface TeawareCatalogProps {
+export interface TeawareCatalogProps {
   onAddToCart?: (item: TeaItem, qty: number, total: number) => void;
   externalInventory?: TeaItem[];
   hideHeader?: boolean;
+  isAdmin?: boolean;
+  adminProductMap?: Map<string, Product>;
+  onAdminEdit?: (itemId: string) => void;
 }
 
 const CATEGORIES_META = [
@@ -29,7 +33,7 @@ const FILTER_TABS = [
   ...CATEGORIES_META.map(c => ({ id: c.id, label: c.label })),
 ];
 
-export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false }) => {
+export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
@@ -270,6 +274,22 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                                   <div className="text-right hidden md:block">
                                                       <span className={`font-mono text-sm tracking-wide block ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/90 dark:text-tea-paper/90'}`}>${unitPrice.toLocaleString()}</span>
                                                   </div>
+                                                  {/* Admin: stock + edit */}
+                                                  {isAdmin && adminProductMap?.has(item.id) && (() => {
+                                                      const ap = adminProductMap.get(item.id)!;
+                                                      const stockColor = ap.stockGrams < 2 ? 'bg-red-400' : ap.stockGrams < 5 ? 'bg-amber-400' : 'bg-emerald-400';
+                                                      return (
+                                                          <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams} in stock`}>
+                                                              <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
+                                                              <span className="text-[10px] font-mono text-tea-ink/40 dark:text-tea-paper/40">{ap.stockGrams}</span>
+                                                          </span>
+                                                      );
+                                                  })()}
+                                                  {isAdmin && onAdminEdit && (
+                                                      <button onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }} className="p-1 text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-seal transition-colors" title="Edit product">
+                                                          <Icons.Edit className="w-3.5 h-3.5" />
+                                                      </button>
+                                                  )}
                                                   <button onClick={(e) => toggleFavorite(e, item.id)} className={`p-1 transition-colors ${isFavorite ? 'text-tea-seal' : 'text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-ink/50 dark:hover:text-tea-paper/50'}`}><Icons.Heart filled={isFavorite} className="w-4 h-4" /></button>
                                                   <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180 text-tea-ink dark:text-tea-paper' : 'text-tea-ink/30 dark:text-tea-paper/30'}`}><Icons.ChevronDown className="w-4 h-4" /></div>
                                               </div>

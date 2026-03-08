@@ -12,6 +12,7 @@ const SharedCollection = lazy(() => import('./components/SharedCollection').then
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import { useAppStore } from './lib/store';
+import { useAuth } from './hooks/useAuth';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
@@ -31,6 +32,7 @@ import { ConsultPage } from './components/ConsultPage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
+import { AdminToolbar } from './components/admin-overlay/AdminToolbar';
 import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
@@ -52,6 +54,7 @@ const AppContent = () => {
     setIsPublicCartOpen: setIsCartOpen,
   } = useAppStore();
   const preloader = useImagePreloader();
+  const { isAdmin } = useAuth();
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
 
@@ -324,6 +327,9 @@ const AppContent = () => {
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.15] dark:opacity-[0.12] z-0"></div>
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-white/0 dark:via-[#1a1a1a]/40 to-white/10 dark:to-[#121212]/90 pointer-events-none z-0"></div>
+
+      {/* Admin Toolbar — visible only for admin users */}
+      {isAdmin && <AdminToolbar />}
 
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />

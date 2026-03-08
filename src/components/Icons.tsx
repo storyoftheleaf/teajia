@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Play, BookOpen, Headphones, Film, Share2, X, ChevronLeft, ChevronRight, Camera, Heart, Eye, EyeOff, LayoutGrid, Link as LinkIcon, Check, Twitter, MessageCircle, Instagram, Download, SlidersHorizontal, ChevronDown, ChevronUp, ShoppingBag, List, ArrowUpDown, ArrowUp, ArrowDown, Copy, Trash, Plus, Sun, Moon, GraduationCap, Coffee, MoreHorizontal, Mail, Info, Settings, User, Users, Music, Image, ExternalLink, Palette, Package, Lightbulb, Send, Sparkles, MapPin, Search, ZoomIn, Star, Home, Calendar, LogOut, LogIn, Shield, Clock, KeyRound, AlertCircle } from 'lucide-react';
+import { Play, BookOpen, Headphones, Film, Share2, X, ChevronLeft, ChevronRight, Camera, Heart, Eye, EyeOff, LayoutGrid, Link as LinkIcon, Check, Twitter, MessageCircle, Instagram, Download, SlidersHorizontal, ChevronDown, ChevronUp, ShoppingBag, List, ArrowUpDown, ArrowUp, ArrowDown, Copy, Trash, Plus, Sun, Moon, GraduationCap, Coffee, MoreHorizontal, Mail, Info, Settings, User, Users, Music, Image, ExternalLink, Palette, Package, Lightbulb, Send, Sparkles, MapPin, Search, ZoomIn, Star, Home, Calendar, LogOut, LogIn, Shield, Clock, KeyRound, AlertCircle, Pencil } from 'lucide-react';
 
 export const SealIcon = ({ className, style, ...props }: { className?: string, style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 100 100" className={className} style={style} fill="currentColor" {...props}>
@@ -127,6 +127,7 @@ export const Icons = {
   Info,
   Mail,
   Settings,
+  Edit: Pencil,
   User,
   Users,
   Music,

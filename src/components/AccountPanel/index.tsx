@@ -7,6 +7,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
 import { MyCollection } from './MyCollection';
+import { AdminMiniDashboard } from '../admin-overlay/AdminMiniDashboard';
 import type { Currency } from '../../admin/types';
 
 type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'saved-stories' | 'reading-history';
@@ -599,6 +600,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       Sign in to track orders, save favorites, and more
                     </p>
                   </div>
+                )}
+
+                {/* Admin Mini Dashboard — quick overview */}
+                {auth.isAuthenticated && auth.isAdmin && (
+                  <AdminMiniDashboard onClose={onClose} />
                 )}
 
                 {/* Admin Navigation — only for admins */}

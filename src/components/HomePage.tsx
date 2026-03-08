@@ -11,6 +11,7 @@ import { PageHeader } from './shared/PageHeader';
 import { EmailCapture } from './EmailCapture';
 
 import { useSectionReveal } from '../hooks/useSectionReveal';
+import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { SECTION_GAP } from './shared/spacing';
 
 const TEA_INSIGHTS = [
@@ -81,6 +82,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const { stories } = useStories();
   const { inventory } = useInventory();
+  const { isAdmin, productMap, updateProduct } = useAdminOverlay();
   const season = getCurrentSeason();
 
   // Random tea insight on mount
@@ -296,7 +298,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
-          <div className="flex gap-5 md:gap-8 items-start">
+          <div className="flex gap-5 md:gap-8 items-start relative">
             <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden">
               <div className="aspect-square overflow-hidden">
                 <img
@@ -325,6 +327,34 @@ export const HomePage: React.FC<HomePageProps> = ({
                   ${parseFloat(curatedTea.price_per_gram).toFixed(2)}/g
                 </p>
               )}
+
+              {/* Admin: featured & visibility toggles */}
+              {isAdmin && productMap.has(curatedTea.id) && (() => {
+                const ap = productMap.get(curatedTea.id)!;
+                return (
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-tea-ink/5 dark:border-white/5">
+                    <button
+                      onClick={() => updateProduct(curatedTea.id, { is_featured: !ap.isFeatured })}
+                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-seal' : 'text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-ink/60 dark:hover:text-tea-paper/60'}`}
+                      title={ap.isFeatured ? 'Remove from featured' : 'Mark as featured'}
+                    >
+                      <Icons.Star className="w-3 h-3" />
+                      Featured
+                    </button>
+                    <button
+                      onClick={() => updateProduct(curatedTea.id, { is_public: !ap.isPublic })}
+                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isPublic ? 'text-tea-seal' : 'text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-ink/60 dark:hover:text-tea-paper/60'}`}
+                      title={ap.isPublic ? 'Hide from public' : 'Make public'}
+                    >
+                      {ap.isPublic ? <Icons.Eye className="w-3 h-3" /> : <Icons.EyeSlash className="w-3 h-3" />}
+                      {ap.isPublic ? 'Public' : 'Hidden'}
+                    </button>
+                    <span className="text-[10px] font-mono text-tea-ink/25 dark:text-tea-paper/25 ml-auto">
+                      {ap.stockGrams}g
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </section>
