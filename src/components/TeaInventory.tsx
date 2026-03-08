@@ -397,11 +397,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                {groupedInventory.map((group) => (
                 <React.Fragment key={group.type}>
                     
-                    {/* Categorization Separator - Left Aligned & Bigger */}
+                    {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
-                        <div className="flex items-center gap-4 py-4 mt-8 first:mt-2">
-                            <span className="text-[13px] uppercase tracking-[0.25em] text-tea-gold/70 font-sans shrink-0 pl-1">{group.type}</span>
-                            <div className="h-px bg-tea-gold/[0.08] flex-1"></div>
+                        <div className="pt-10 pb-2 first:pt-4 pl-2">
+                            <span className="font-serif italic text-[15px] text-tea-text/30">{group.type}</span>
                         </div>
                     )}
 
@@ -419,9 +418,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         return (
                             <div
                                 key={item.id}
-                                className={`relative border-b border-tea-gold/[0.06] transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : 'hover:bg-tea-elevated/50'}`}
+                                className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : ''}`}
                             >
-                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 lg:gap-5 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
+                                <div className="flex items-center py-2.5 lg:py-3 px-2 gap-3 lg:gap-5 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
 
                                     {/* Text Content */}
                                     <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -429,27 +428,27 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {/* Title & Tags */}
                                             <div className="flex flex-col justify-center lg:min-w-[180px]">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text group-hover:text-tea-text/90'}`}>
+                                                    <h3 className={`font-serif text-[17px] leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80 group-hover:text-tea-text'}`}>
                                                         {item.name}
                                                     </h3>
-                                                    {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
+                                                    {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-60" />}
                                                 </div>
-                                                <div className="text-[11px] uppercase tracking-wider text-tea-text/25 mt-1 truncate flex items-center gap-2">
+                                                <div className="text-[11px] tracking-wider text-tea-text/20 mt-1 truncate flex items-center gap-2">
                                                      <span className="font-mono">{item.year}</span>
-                                                     <span className="opacity-40">·</span>
-                                                     <span className="text-tea-text/20">{item.variant}</span>
+                                                     <span className="opacity-30">·</span>
+                                                     <span className="font-serif italic text-tea-text/15">{item.variant}</span>
                                                 </div>
                                             </div>
                                             {/* Desktop inline description — hidden when expanded */}
                                             {!isExpanded && (
-                                              <p className="hidden lg:block text-xs text-tea-text/35 line-clamp-1 flex-1 min-w-0">
+                                              <p className="hidden lg:block text-xs text-tea-text/30 line-clamp-1 flex-1 min-w-0 font-serif italic">
                                                   {item.description}
                                               </p>
                                             )}
                                         </div>
 
-                                        {/* Price & Controls */}
-                                        <div className="flex items-center gap-4 shrink-0">
+                                        {/* Price + View + Fav */}
+                                        <div className="flex items-center gap-3 shrink-0">
                                             {/* Admin: stock indicator */}
                                             {isAdmin && adminProductMap?.has(item.id) && (() => {
                                                 const ap = adminProductMap.get(item.id)!;
@@ -461,7 +460,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                     </span>
                                                 );
                                             })()}
-                                            <span className={`num text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
+                                            <span className={`num text-[13px] tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/50'}`}>
                                                 {fmtPricePerGram(pricePerGram)}
                                             </span>
                                             {/* Admin: edit button */}
@@ -475,12 +474,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 </button>
                                             )}
                                             <button
+                                                onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                className="text-tea-text/20 hover:text-tea-gold transition-colors p-1"
+                                                title="View details"
+                                            >
+                                                <Icons.Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
                                                 onClick={(e) => toggleUserFavorite(e, item.id)}
-                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/15 hover:text-tea-text/40'}`}
                                             >
                                                 <Icons.Heart filled={isFavorite} className="w-3.5 h-3.5" />
                                             </button>
-                                            <Icons.ChevronDown className={`w-3 h-3 text-tea-text/30 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-tea-gold/60' : ''}`} />
                                         </div>
                                     </div>
                                 </div>
