@@ -169,14 +169,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         {/* Explore — flows directly from the hero, no separator */}
         <div>
           {[
-            { id: 'course' as LearnView, label: 'Go Deeper', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-5 h-5" /> },
-            { id: 'glossary' as LearnView, label: 'Glossary', sub: `${counts.glossary} terms`, icon: <Icons.Book className="w-5 h-5" /> },
-            { id: 'journeys' as LearnView, label: 'Journeys', sub: `${counts.journeys} paths`, icon: <Icons.MapPin className="w-5 h-5" /> },
-            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Listen', icon: <Icons.Music className="w-5 h-5" /> },
-            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch', icon: <Icons.Film className="w-5 h-5" /> },
-            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & more', icon: <Icons.Book className="w-5 h-5" /> },
-            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Visual refs', icon: <Icons.Download className="w-5 h-5" /> },
-            { id: 'spaces' as LearnView, label: 'Spaces', sub: `${counts.spaces} designs`, icon: <Icons.Home className="w-5 h-5" /> },
+            { id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" /> },
+            { id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" /> },
+            { id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" /> },
+            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" /> },
+            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" /> },
+            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & articles', icon: <Icons.Book className="w-5 h-5" /> },
+            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" /> },
+            { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" /> },
           ].map(tile => (
             <button
               key={tile.id}
