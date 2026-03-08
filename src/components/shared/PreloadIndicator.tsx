@@ -30,7 +30,7 @@ export const PreloadIndicator: React.FC = () => {
       }`}
     >
       <div
-        className="h-full bg-tea-seal/70 transition-all duration-300 ease-out"
+        className="h-full bg-tea-gold/70 transition-all duration-300 ease-out"
         style={{
           width: pendingCount > 0 ? '70%' : '100%',
           animation: pendingCount > 0 ? 'preloadSlide 1.5s ease-in-out infinite' : 'none',

@@ -120,7 +120,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
           <section className="px-4 md:px-6">
             <button
               onClick={() => onCardClick(featuredArticle)}
-              className="w-full group relative overflow-hidden bg-tea-ink dark:bg-tea-ink rounded-sm"
+              className="w-full group relative overflow-hidden bg-tea-elevated rounded-sm"
               style={{ aspectRatio: '16/7' }}
             >
               {/* Background Image */}
@@ -140,13 +140,13 @@ const ReadPage: React.FC<ReadPageProps> = ({
                 <p className="text-[10px] uppercase tracking-[0.25em] text-tea-paper/50 font-sans mb-3">
                   Featured
                 </p>
-                <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl text-tea-paper font-light leading-[1.1] mb-3 group-hover:text-tea-seal transition-colors duration-500">
+                <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl text-tea-paper font-light leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500">
                   {featuredArticle.title}
                 </h2>
                 <p className="font-sans text-sm md:text-base text-tea-paper/70 max-w-lg leading-relaxed mb-4">
                   {featuredArticle.description}
                 </p>
-                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-tea-paper/60 font-sans group-hover:text-tea-seal transition-colors">
+                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-tea-paper/60 font-sans group-hover:text-tea-gold transition-colors">
                   Read
                   <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -161,14 +161,14 @@ const ReadPage: React.FC<ReadPageProps> = ({
         {newToYouArticles.length > 0 ? (
           <section>
             <div className="flex items-center justify-between px-4 md:px-6 mb-4">
-              <h3 className="font-serif text-xl md:text-2xl text-tea-ink dark:text-tea-paper font-normal">
+              <h3 className="font-serif text-xl md:text-2xl text-tea-text font-normal">
                 New To You
               </h3>
               {/* Scroll arrows for desktop */}
               <div className="hidden md:flex items-center gap-1">
                 <button
                   onClick={handleScrollLeft}
-                  className="p-1.5 text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+                  className="p-1.5 text-tea-text/40 hover:text-tea-text transition-colors"
                   aria-label="Scroll left"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
                 </button>
                 <button
                   onClick={handleScrollRight}
-                  className="p-1.5 text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+                  className="p-1.5 text-tea-text/40 hover:text-tea-text transition-colors"
                   aria-label="Scroll right"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,13 +213,13 @@ const ReadPage: React.FC<ReadPageProps> = ({
         ) : (
           /* All caught up state */
           <section className="px-4 md:px-6">
-            <div className="flex items-center gap-3 py-6 border-y border-tea-ink/5 dark:border-tea-paper/5">
+            <div className="flex items-center gap-3 py-6 border-y border-tea-text/5 ">
               <div className="w-8 h-8 rounded-full bg-tea-green/10 flex items-center justify-center">
                 <svg className="w-4 h-4 text-tea-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-sm font-sans text-tea-ink/50 dark:text-tea-paper/50">
+              <p className="text-sm font-sans text-tea-text/50">
                 You're all caught up
               </p>
             </div>
@@ -229,7 +229,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
         {/* ===== Section 3: Start Here ===== */}
         {startHereArticles.length > 0 && (
           <section className="px-4 md:px-6">
-            <h3 className="font-serif text-xl md:text-2xl text-tea-ink dark:text-tea-paper font-normal mb-4">
+            <h3 className="font-serif text-xl md:text-2xl text-tea-text font-normal mb-4">
               Start Here
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -251,7 +251,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
         {/* ===== Section 4: The Collection ===== */}
         <section className="px-4 md:px-6">
           <div className="flex items-start justify-between mb-4">
-            <h3 className="font-serif text-xl md:text-2xl text-tea-ink dark:text-tea-paper font-normal">
+            <h3 className="font-serif text-xl md:text-2xl text-tea-text font-normal">
               The Collection
             </h3>
             <TagFilter
@@ -268,7 +268,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
                 <button
                   key={tag}
                   onClick={() => handleTagToggle(tag)}
-                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider font-sans bg-tea-seal/10 text-tea-seal border border-tea-seal/20 hover:bg-tea-seal/20 transition-colors"
+                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider font-sans bg-tea-gold/10 text-tea-gold border border-tea-gold/20 hover:bg-tea-gold/20 transition-colors"
                 >
                   {tag}
                   <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,7 +278,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
               ))}
               <button
                 onClick={handleClearTags}
-                className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-sans text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-seal transition-colors"
+                className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-sans text-tea-text/40 hover:text-tea-gold transition-colors"
               >
                 Clear
               </button>
@@ -301,12 +301,12 @@ const ReadPage: React.FC<ReadPageProps> = ({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20">
-              <p className="font-serif text-lg text-tea-ink/40 dark:text-tea-paper/40 mb-2">
+              <p className="font-serif text-lg text-tea-text/40 mb-2">
                 No articles match these tags
               </p>
               <button
                 onClick={handleClearTags}
-                className="text-xs uppercase tracking-widest font-sans text-tea-seal hover:text-tea-seal/80 transition-colors"
+                className="text-xs uppercase tracking-[0.15em] font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
               >
                 Clear filters
               </button>

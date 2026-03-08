@@ -312,7 +312,7 @@ const AppContent = () => {
   if (location.pathname.startsWith('/admin')) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#0c0c0c] text-neutral-400 font-sans text-sm">Loading admin...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-neutral-400 font-sans text-sm">Loading admin...</div>}>
           <Routes>
             <Route path="/admin/*" element={<AdminApp />} />
           </Routes>
@@ -322,11 +322,11 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-tea-paper dark:bg-tea-bg text-tea-ink dark:text-tea-paper relative selection:bg-tea-seal selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
 
       <div className="texture-overlay"></div>
-      <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.15] dark:opacity-[0.12] z-0"></div>
-      <div className="fixed inset-0 bg-gradient-radial from-transparent via-white/0 dark:via-[#1a1a1a]/40 to-white/10 dark:to-[#121212]/90 pointer-events-none z-0"></div>
+      <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.12] z-0"></div>
+      <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
 
       {/* Admin Toolbar — visible only for admin users */}
       {isAdmin && <AdminToolbar />}
@@ -410,10 +410,10 @@ const AppContent = () => {
                 {/* 404 Page */}
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
-                    <h1 className="text-6xl font-serif text-tea-seal mb-4">404</h1>
-                    <p className="text-xl font-serif text-tea-ink dark:text-tea-paper mb-2">Page not found</p>
-                    <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
-                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-seal text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-seal/90 transition-colors">Return Home</button>
+                    <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
+                    <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
+                    <p className="text-sm text-tea-text-dim mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
+                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors">Return Home</button>
                   </div>
                 } />
               </Routes>
@@ -489,23 +489,23 @@ const AppContent = () => {
       {/* --- CONTACT MODAL --- */}
       {showContact && (
         <div className="fixed inset-0 z-[210] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
-            <div className="bg-tea-paper dark:bg-tea-surface max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-ink/40 hover:text-tea-seal transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
-                <h2 className="text-2xl font-serif text-tea-ink mb-8 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '150ms' }}>Contact Us</h2>
+            <div className="bg-tea-surface max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-text-dim hover:text-tea-gold transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
+                <h2 className="text-2xl font-serif text-tea-text mb-8 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '150ms' }}>Contact Us</h2>
 
                 <div className="space-y-6 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '200ms' }}>
                     <div className="flex flex-col items-center">
-                        <Icons.Mail className="w-6 h-6 text-tea-seal mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
-                        <span className="text-sm uppercase tracking-widest text-tea-ink/50 mb-1">General Inquiries</span>
-                        <a href="mailto:hello@teajia.com" className="font-serif text-xl text-tea-ink hover:text-tea-seal transition-colors duration-300">hello@teajia.com</a>
+                        <Icons.Mail className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
+                        <span className="text-sm uppercase tracking-widest text-tea-text-dim mb-1">General Inquiries</span>
+                        <a href="mailto:hello@teajia.com" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">hello@teajia.com</a>
                     </div>
 
-                    <div className="w-full h-[1px] bg-tea-ink/10"></div>
+                    <div className="w-full h-[1px] bg-tea-border"></div>
 
                     <div className="flex flex-col items-center">
-                        <Icons.Instagram className="w-6 h-6 text-tea-seal mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
-                        <span className="text-sm uppercase tracking-widest text-tea-ink/50 mb-1">Follow Us</span>
-                        <a href="#" className="font-serif text-xl text-tea-ink hover:text-tea-seal transition-colors duration-300">@teajia.journal</a>
+                        <Icons.Instagram className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
+                        <span className="text-sm uppercase tracking-widest text-tea-text-dim mb-1">Follow Us</span>
+                        <a href="#" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@teajia.journal</a>
                     </div>
                 </div>
             </div>
@@ -525,8 +525,8 @@ const AppContent = () => {
       {/* Preload indicator */}
       <PreloadIndicator />
 
-      <div role="status" aria-live="polite" className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-paper text-tea-ink px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-[250] flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <Icons.Seal className="w-4 h-4 text-tea-seal" />
+      <div role="status" aria-live="polite" className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-[250] flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>
 

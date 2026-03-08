@@ -31,8 +31,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('teajia_theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
     }
   }, [theme]);
 
@@ -90,7 +92,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           className="fixed inset-0 z-[9999] pointer-events-none transition-[clip-path] duration-500 ease-out"
           style={{
             clipPath: revealClip,
-            backgroundColor: theme === 'dark' ? '#0f0f0f' : '#F3F0E7',
+            backgroundColor: 'var(--tea-bg)',
           }}
         />
       )}

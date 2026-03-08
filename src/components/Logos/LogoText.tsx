@@ -9,7 +9,7 @@ interface LogoTextProps {
 
 export const LogoText: React.FC<LogoTextProps> = ({
   size = 'md',
-  color = '#E8DDCC',
+  color = 'currentColor',
   className = '',
   ariaLabel = 'Teajia text logo'
 }) => {

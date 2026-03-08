@@ -23,11 +23,11 @@ export const GridItem: React.FC<GridItemProps> = ({ image, index, onClick }) => 
     <button
       onClick={onClick}
       style={isLoaded ? { aspectRatio: aspectRatio.toString() } : { aspectRatio: '1' }}
-      className="group relative rounded-lg overflow-hidden bg-tea-ink/5 dark:bg-white/5 hover:shadow-xl transition-all duration-300 cursor-pointer w-full"
+      className="group relative rounded-lg overflow-hidden bg-tea-text/5 hover:shadow-xl transition-all duration-300 cursor-pointer w-full"
     >
       {/* Loading State */}
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 bg-tea-ink/10 dark:bg-white/10 animate-pulse" />
+        <div className="absolute inset-0 bg-tea-text/10 animate-pulse" />
       )}
 
       {/* Image */}
@@ -43,8 +43,8 @@ export const GridItem: React.FC<GridItemProps> = ({ image, index, onClick }) => 
           }`}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-tea-ink/10 dark:bg-white/10">
-          <Icons.Image className="w-8 h-8 text-tea-ink/30 dark:text-tea-paper/30" />
+        <div className="w-full h-full flex items-center justify-center bg-tea-text/10">
+          <Icons.Image className="w-8 h-8 text-tea-text/30" />
         </div>
       )}
     </button>

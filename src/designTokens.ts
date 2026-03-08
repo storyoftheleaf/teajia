@@ -1,19 +1,35 @@
 /**
- * Design Tokens - Single source of truth for all design decisions
+ * Design Tokens — "Espresso + Gold / The Whisper + Storyteller"
  *
- * Edit this file to change fonts, colors, spacing, and sizes across the entire site.
- * Change `fontFamily.serif` or `fontFamily.sans` to experiment with different typefaces.
+ * Single source of truth for all design decisions.
+ * Source of truth for palette: plan/teajia-palettes.html
+ *
+ * Fonts: Vollkorn (display), Spectral (body), Jost (labels/nav), Space Mono (technical)
+ * Colors: Warm espresso-and-gold with dark/light mode via CSS variables
  */
 
 export const DESIGN_TOKENS = {
-  // Typography - EASILY SWAPPABLE
+  // Typography — "The Whisper + Storyteller"
   fontFamily: {
     serif: ['Lora', 'Noto Serif SC', 'serif'],
     sans: ['Inter', 'sans-serif'],
     mono: ['JetBrains Mono', 'Menlo', 'Courier New', 'monospace'],
   },
 
-  // Font Sizes - Current scale, easy to adjust
+  // Type Scale (from plan/teajia-palettes.html)
+  typeScale: {
+    display: { family: 'serif', weight: 400, size: 'clamp(32px, 4.8vw, 48px)', lineHeight: 1.12, letterSpacing: '0.01em' },
+    h2: { family: 'serif', weight: 400, size: 'clamp(24px, 3.5vw, 32px)', lineHeight: 1.2, letterSpacing: '0.01em' },
+    subtitle: { family: 'body', weight: 300, style: 'italic', size: '17px', lineHeight: 1.4 },
+    body: { family: 'body', weight: 400, size: '17px', lineHeight: 1.85 },
+    bodyLight: { family: 'body', weight: 300, size: '15px', lineHeight: 1.8 },
+    label: { family: 'sans', weight: 400, size: '10px', lineHeight: 1.4, letterSpacing: '2px', textTransform: 'uppercase' },
+    nav: { family: 'sans', weight: 400, size: '11px', lineHeight: 1.4, letterSpacing: '1.5px', textTransform: 'uppercase' },
+    link: { family: 'sans', weight: 400, size: '13px', letterSpacing: '0.3px' },
+    mono: { family: 'mono', weight: 400, size: '9px' },
+  },
+
+  // Font Sizes — Tailwind scale (kept for utility classes)
   fontSize: {
     xs: '0.75rem',      // 12px
     sm: '0.875rem',     // 14px
@@ -37,52 +53,60 @@ export const DESIGN_TOKENS = {
 
   // Line Heights
   lineHeight: {
-    tight: '1.25',
-    snug: '1.375',
-    normal: '1.5',
-    relaxed: '1.625',
-    loose: '1.75',
+    tight: '1.12',     // Display headings
+    snug: '1.2',       // H2 headings
+    normal: '1.4',     // Subtitles, labels
+    relaxed: '1.625',  // UI text
+    loose: '1.8',      // Body light
+    reading: '1.85',   // Body / article text
   },
 
-  // Typography Presets (for reference)
+  // Typography Presets (Tailwind class strings)
   typography: {
-    h1: 'font-serif text-4xl md:text-5xl lg:text-6xl font-light leading-tight',
-    h2: 'font-serif text-3xl md:text-4xl font-normal leading-snug',
-    h3: 'font-serif text-xl md:text-2xl font-medium leading-snug',
-    body: 'font-sans text-base font-normal leading-relaxed',
-    bodySmall: 'font-sans text-sm font-normal leading-relaxed',
+    h1: 'font-serif text-[clamp(32px,4.8vw,48px)] font-normal leading-[1.12] tracking-[0.01em]',
+    h2: 'font-serif text-[clamp(24px,3.5vw,32px)] font-normal leading-[1.2] tracking-[0.01em]',
+    subtitle: 'font-body text-[17px] font-light italic leading-[1.4]',
+    body: 'font-body text-[17px] font-normal leading-[1.85]',
+    bodyLight: 'font-body text-[15px] font-light leading-[1.8]',
+    label: 'font-sans text-[10px] font-normal uppercase tracking-[2px] leading-[1.4]',
+    nav: 'font-sans text-[11px] font-normal uppercase tracking-[1.5px] leading-[1.4]',
+    link: 'font-sans text-[13px] font-normal tracking-[0.3px]',
   },
 
   // Animation Timing
   timing: {
     micro: '150ms',    // hover states, badges, small feedback
     standard: '300ms', // transitions, modals, buttons
-    emphasis: '500ms', // page transitions, image reveals
+    emphasis: '500ms', // page transitions, image reveals, color mode
   },
 
-  // Color Palette - Tea theme
+  // Color Palette — "Espresso + Gold"
+  // These are the canonical values. At runtime, CSS variables (--tea-*) handle mode switching.
   colors: {
-    // Primary backgrounds
-    'tea-charcoal': '#1a1a1a',    // Dark background
-    'tea-paper': '#F3F0E7',       // Light background (paper aesthetic)
-    'tea-paper-dark': '#E6E2D6',  // Lighter variant
-
-    // Neutrals
-    'tea-beige': '#D8D0C0',
-    'tea-beige-dark': '#8A8070',     // Dark mode accessible beige
-    'tea-ink': '#2C2C2C',         // Primary dark text
-    'tea-ink-light': '#555555',   // Secondary text
-    'tea-ink-secondary': '#555555',      // Accessible secondary text (light mode)
-    'tea-paper-secondary': '#B8B4AA',    // Accessible secondary text (dark mode)
-
-    // Accents
-    'tea-seal': '#b8882d',        // Primary accent (warm gold, WCAG AA on tea-paper)
-    'tea-seal-dark': '#a07830',   // Accessible gold for text on light backgrounds
-    'tea-green': '#5A6E5A',       // Accent green
-    'tea-moss': '#2A3430',        // Dark green/grey
-
-    // Utilities
-    'tea-shadow': 'rgba(0,0,0,0.15)',
+    dark: {
+      bg: '#18130e',
+      surface: '#28211a',
+      elevated: '#3a3126',
+      text: '#ede4d4',
+      textSec: '#b5a892',
+      textDim: '#80735f',
+      gold: '#b8924e',
+      goldLt: '#d4ac66',
+      border: 'rgba(181,168,146,0.14)',
+      accentSub: 'rgba(184,146,78,0.1)',
+    },
+    light: {
+      bg: '#f4ece0',
+      surface: '#e6dbcc',
+      elevated: '#d5c8b4',
+      text: '#18130e',
+      textSec: '#5e5342',
+      textDim: '#9a8c78',
+      gold: '#8e6d2e',
+      goldLt: '#a88340',
+      border: 'rgba(24,19,14,0.1)',
+      accentSub: 'rgba(142,109,46,0.07)',
+    },
   },
 
   // Spacing Scale
@@ -113,15 +137,18 @@ export const DESIGN_TOKENS = {
     md: '0.375rem',
     lg: '0.5rem',
     xl: '0.75rem',
+    '2xl': '0.875rem',   // 14px — cards in HTML reference
+    '3xl': '1.125rem',   // 18px — panels in HTML reference
+    full: '9999px',       // pills, tags
   },
 
-  // Animations (Tailwind keyframes) - Using consistent timing
+  // Animations (Tailwind keyframes) — Using consistent timing
   animations: {
-    fadeIn: 'fadeIn 0.5s ease-out',       // emphasis timing
-    slideIn: 'slideIn 0.3s ease-out',     // standard timing
-    slideInWidth: 'slideInWidth 0.3s ease-out', // standard timing
-    slideUp: 'slideUp 0.3s ease-out',     // standard timing (was 0.4s)
-    scaleIn: 'scaleIn 0.15s ease-out',    // micro timing (was 0.2s)
+    fadeIn: 'fadeIn 0.5s ease-out',
+    slideIn: 'slideIn 0.3s ease-out',
+    slideInWidth: 'slideInWidth 0.3s ease-out',
+    slideUp: 'slideUp 0.3s ease-out',
+    scaleIn: 'scaleIn 0.15s ease-out',
   },
 
   // Keyframe definitions for animations
@@ -148,7 +175,7 @@ export const DESIGN_TOKENS = {
     },
   },
 
-  // Background Images
+  // Background Images — Textures (DO NOT REMOVE — core to the design atmosphere)
   backgroundImage: {
     'paper-texture': "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(180, 165, 140, 0.03) 1px, rgba(180, 165, 140, 0.03) 2px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(180, 165, 140, 0.02) 2px, rgba(180, 165, 140, 0.02) 3px)",
   },

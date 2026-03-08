@@ -30,29 +30,29 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-tea-paper dark:bg-tea-ink overflow-y-auto animate-[fadeIn_0.6s_ease-out]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-tea-surface overflow-y-auto animate-[fadeIn_0.6s_ease-out]">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-tea-paper dark:bg-tea-ink border-b border-tea-ink/10 dark:border-tea-paper/10">
+      <div className="sticky top-0 z-10 bg-tea-surface border-b border-tea-text/10 ">
         <div className="flex items-center justify-between px-4 py-4">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-tea-ink/5 dark:hover:bg-white/5 rounded transition-colors"
+            className="p-2 hover:bg-tea-text/5 rounded transition-colors"
             aria-label="Close photo essay"
           >
-            <Icons.ChevronLeft className="w-6 h-6 text-tea-ink dark:text-tea-paper" />
+            <Icons.ChevronLeft className="w-6 h-6 text-tea-text" />
           </button>
           <div className="flex gap-2">
             {onToggleSave && (
               <button
                 onClick={onToggleSave}
-                className="p-2 hover:bg-tea-ink/5 dark:hover:bg-white/5 rounded transition-colors"
+                className="p-2 hover:bg-tea-text/5 rounded transition-colors"
                 aria-label={isSaved ? 'Remove save' : 'Save'}
               >
                 <Icons.Heart
                   className={`w-6 h-6 ${
                     isSaved
-                      ? 'fill-tea-seal text-tea-seal'
-                      : 'text-tea-ink dark:text-tea-paper'
+                      ? 'fill-tea-seal text-tea-gold'
+                      : 'text-tea-text'
                   }`}
                 />
               </button>
@@ -60,10 +60,10 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
             {onShare && (
               <button
                 onClick={() => onShare(story)}
-                className="p-2 hover:bg-tea-ink/5 dark:hover:bg-white/5 rounded transition-colors"
+                className="p-2 hover:bg-tea-text/5 rounded transition-colors"
                 aria-label="Share"
               >
-                <Icons.Share2 className="w-6 h-6 text-tea-ink dark:text-tea-paper" />
+                <Icons.Share2 className="w-6 h-6 text-tea-text" />
               </button>
             )}
           </div>
@@ -74,14 +74,14 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
       <div className="flex-1 px-4 md:px-6 py-8 overflow-y-auto">
         {/* Title Section */}
         <div className="mb-8">
-          <h1 className="font-serif text-4xl md:text-5xl text-tea-ink dark:text-tea-paper mb-2">
+          <h1 className="font-serif text-4xl md:text-5xl text-tea-text mb-2">
             {story.title}
           </h1>
-          <p className="font-serif text-xl text-tea-ink/60 dark:text-tea-paper/60 mb-4">
+          <p className="font-serif text-xl text-tea-text/60 mb-4">
             {story.subtitle}
           </p>
           {story.description && (
-            <p className="text-tea-ink/70 dark:text-tea-paper/70 max-w-2xl leading-relaxed">
+            <p className="text-tea-text/70 max-w-2xl leading-relaxed">
               {story.description}
             </p>
           )}
@@ -93,9 +93,9 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
             onClick={() => onPersonClick(story.author!)}
             className="mb-12 w-full max-w-sm group"
           >
-            <div className="bg-white dark:bg-white/5 rounded-lg p-6 hover:shadow-md dark:hover:shadow-lg transition-all duration-300 border border-tea-ink/5 dark:border-white/10">
+            <div className="bg-tea-surface rounded-sm p-6 hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-tea-ink/10 dark:bg-white/10 flex-shrink-0">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-tea-text/10 flex-shrink-0">
                   {story.author.avatarUrl ? (
                     <img
                       src={story.author.avatarUrl}
@@ -104,21 +104,21 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Icons.User className="w-8 h-8 text-tea-ink/40 dark:text-white/40" />
+                      <Icons.User className="w-8 h-8 text-tea-text-dim" />
                     </div>
                   )}
                 </div>
                 <div className="text-left">
-                  <h3 className="font-semibold text-tea-ink dark:text-tea-paper group-hover:text-tea-seal dark:group-hover:text-tea-seal transition-colors">
+                  <h3 className="font-semibold text-tea-text group-hover:text-tea-gold dark:group-hover:text-tea-gold transition-colors">
                     {story.author.name}
                   </h3>
-                  <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60">
+                  <p className="text-sm text-tea-text/60">
                     {story.author.role}
                   </p>
                 </div>
               </div>
               {story.author.bio && (
-                <p className="text-sm text-tea-ink/70 dark:text-tea-paper/70 text-left line-clamp-2">
+                <p className="text-sm text-tea-text/70 text-left line-clamp-2">
                   {story.author.bio}
                 </p>
               )}
@@ -133,11 +133,11 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
               {story.gallery.map((image, index) => (
                 <div
                   key={`${story.id}-${index}`}
-                  className="relative aspect-square rounded-lg overflow-hidden bg-tea-ink/5 dark:bg-white/5 group"
+                  className="relative aspect-square rounded-lg overflow-hidden bg-tea-text/5 group"
                 >
                   {/* Loading skeleton */}
                   {imageLoading[`${index}`] === true && (
-                    <div className="absolute inset-0 bg-tea-ink/10 dark:bg-white/10 animate-pulse" />
+                    <div className="absolute inset-0 bg-tea-text/10 animate-pulse" />
                   )}
 
                   {/* Image */}
@@ -164,8 +164,8 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
         {/* Empty State */}
         {(!story.gallery || story.gallery.length === 0) && (
           <div className="flex flex-col items-center justify-center py-24">
-            <Icons.Image className="w-12 h-12 text-tea-ink/30 dark:text-tea-paper/30 mb-4" />
-            <p className="text-tea-ink/50 dark:text-tea-paper/50">No images available</p>
+            <Icons.Image className="w-12 h-12 text-tea-text/30 mb-4" />
+            <p className="text-tea-text/50">No images available</p>
           </div>
         )}
       </div>

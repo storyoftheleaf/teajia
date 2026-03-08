@@ -5,8 +5,8 @@ import { Play, BookOpen, Headphones, Film, Share2, X, ChevronLeft, ChevronRight,
 export const SealIcon = ({ className, style, ...props }: { className?: string, style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 100 100" className={className} style={style} fill="currentColor" {...props}>
     <rect x="10" y="10" width="80" height="80" rx="5" fill="currentColor" />
-    <path d="M30 30 L70 30 M30 50 L70 50 M30 70 L70 70" stroke="#F3F0E7" strokeWidth="4" />
-    <path d="M50 20 L50 80" stroke="#F3F0E7" strokeWidth="4" />
+    <path d="M30 30 L70 30 M30 50 L70 50 M30 70 L70 70" stroke="currentColor" strokeWidth="4" />
+    <path d="M50 20 L50 80" stroke="currentColor" strokeWidth="4" />
   </svg>
 );
 

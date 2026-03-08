@@ -29,13 +29,13 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
   return (
     <div className="flex items-center gap-4 md:gap-6">
       {/* View Mode Toggle */}
-      <div className="flex items-center bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-0.5 border border-tea-ink/10 dark:border-white/10">
+      <div className="flex items-center bg-tea-text/5 rounded-lg p-0.5 border border-tea-border">
         <button
           onClick={() => onViewModeChange('GRID')}
-          className={`p-1.5 rounded-[1px] transition-all ${
+          className={`p-1.5 rounded-lg transition-all ${
             viewMode === 'GRID'
-              ? 'bg-tea-ink text-white dark:bg-tea-paper dark:text-tea-charcoal shadow-sm'
-              : 'text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper'
+              ? 'bg-tea-elevated text-tea-text shadow-sm'
+              : 'text-tea-text/40 hover:text-tea-text'
           }`}
           title="Grid View"
         >
@@ -43,10 +43,10 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
         </button>
         <button
           onClick={() => onViewModeChange('LIST')}
-          className={`p-1.5 rounded-[1px] transition-all ${
+          className={`p-1.5 rounded-lg transition-all ${
             viewMode === 'LIST'
-              ? 'bg-tea-ink text-white dark:bg-tea-paper dark:text-tea-charcoal shadow-sm'
-              : 'text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper'
+              ? 'bg-tea-elevated text-tea-text shadow-sm'
+              : 'text-tea-text/40 hover:text-tea-text'
           }`}
           title="List View"
         >
@@ -57,7 +57,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       {/* Item Count */}
       {showItemCount && itemCount !== undefined && (
         <div className="pr-2 opacity-60 hidden md:block">
-          <span className="text-xs uppercase tracking-[0.2em] text-tea-ink dark:text-tea-paper">
+          <span className="text-xs uppercase tracking-[0.2em] text-tea-text">
             {itemCount} Items
           </span>
         </div>
@@ -67,7 +67,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       {showReset && (activeType !== 'All' || activeFeeling !== 'All') && (
         <button
           onClick={onReset}
-          className="text-xs uppercase tracking-[0.2em] text-tea-seal hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+          className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
         >
           Reset
         </button>
@@ -77,12 +77,12 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       {showFilter && (
         <button
           onClick={onFilter}
-          className="flex items-center gap-2 text-tea-ink/70 dark:text-tea-paper/70 hover:text-tea-ink dark:hover:text-tea-paper transition-colors group"
+          className="flex items-center gap-2 text-tea-text/70 hover:text-tea-text transition-colors group"
         >
-          <Icons.Filter className="w-3.5 h-3.5 group-hover:text-tea-seal transition-colors" />
+          <Icons.Filter className="w-3.5 h-3.5 group-hover:text-tea-gold transition-colors" />
           <span className="text-xs uppercase tracking-[0.2em] font-medium">Filter</span>
           {(activeType !== 'All' || activeFeeling !== 'All') && (
-            <div className="w-1 h-1 rounded-full bg-tea-seal"></div>
+            <div className="w-1 h-1 rounded-full bg-tea-gold"></div>
           )}
         </button>
       )}

@@ -16,44 +16,49 @@ import {
   JourneysSection,
   SourcingSection,
   EventsSection,
-  PrimaryCTA,
 } from './consult/ServiceContent';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 
 /* =====================================================
-   SERVICE_ITEMS — icon-led directory for wayfinding
+   TILE_DATA — compact overview for visual grid
    ===================================================== */
 
-const SERVICE_ITEMS = [
+const TILE_DATA = [
   {
     id: 'design',
-    label: 'Full Tea House Design',
-    desc: 'Architecture, materials, layout, atmosphere. The whole picture.',
-    icon: 'home' as const,
-  },
-  {
-    id: 'sourcing',
-    label: 'Tea Curation & Sourcing',
-    desc: 'Building a tea collection that tells a story. Every leaf chosen with intention.',
-    icon: 'leaf' as const,
+    label: 'Space Design',
+    badge: 'By Inquiry',
+    ariaLabel: 'Tea house and space design services',
+    flagship: true,
+    img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80&auto=format',
   },
   {
     id: 'sessions',
-    label: 'Training & Ceremony',
-    desc: 'Learning to hold space through tea. For yourself, for your guests, for the room.',
-    icon: 'book' as const,
+    label: 'Sessions',
+    badge: 'From $50',
+    ariaLabel: 'Tea sessions and guided practice',
+    img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&auto=format',
   },
   {
     id: 'journeys',
-    label: 'Sourcing Journeys',
-    desc: 'Travel to tea origins with twenty years of relationships opening the door.',
-    icon: 'map' as const,
+    label: 'Journeys',
+    badge: 'Seasonal',
+    ariaLabel: 'Sourcing journeys to tea origins',
+    img: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&q=80&auto=format',
+  },
+  {
+    id: 'sourcing',
+    label: 'Sourcing',
+    badge: 'By Inquiry',
+    ariaLabel: 'Tea sourcing for businesses and collectors',
+    img: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=600&q=80&auto=format',
   },
   {
     id: 'events',
-    label: 'Events & Experiences',
-    desc: 'Tea brought to your gathering. Retreats, dinners, celebrations.',
-    icon: 'calendar' as const,
+    label: 'Events',
+    badge: 'From $500',
+    ariaLabel: 'Tea experiences for gatherings and events',
+    img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80&auto=format',
   },
 ] as const;
 
@@ -181,25 +186,25 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
       <div className="max-w-[1400px] mx-auto">
         {/* Hero statement */}
         <div className="pt-8 md:pt-12 lg:pt-16">
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-light text-tea-ink dark:text-tea-paper leading-snug">
+          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-light text-tea-text leading-snug">
             Tea spaces, sourcing, guidance.
           </h2>
-          <p className="font-sans text-sm text-tea-ink/50 dark:text-tea-paper/50 mt-3 max-w-[480px]">
+          <p className="font-sans text-sm text-tea-text/50 mt-3 max-w-[480px]">
             Twenty years of practice across Taiwan, China, and Bali — distilled into services for those
             who take tea seriously.
           </p>
-          <div className="w-12 h-[1px] bg-tea-seal mt-6 mb-8 md:mb-10" />
+          <div className="w-12 h-[1px] bg-tea-gold mt-6 mb-8 md:mb-10" />
         </div>
 
-        {/* Service Directory */}
-        <ServiceDirectory onItemClick={scrollToSection} />
+        {/* Visual Tile Grid */}
+        <TileGrid onTileClick={scrollToSection} />
 
         {/* Adrian — between overview and depth */}
         <AdrianSection />
 
         {/* All service sections — always visible, scroll-revealed */}
         <div className="mt-12 md:mt-16">
-          <p className="text-xs uppercase tracking-[0.2em] text-tea-ink/30 dark:text-tea-paper/30 font-sans mb-0">
+          <p className="text-xs uppercase tracking-[0.2em] text-tea-text/30 font-sans mb-0">
             Services
           </p>
         </div>
@@ -247,49 +252,54 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
 };
 
 /* =====================================================
-   ServiceDirectory — icon-led cards for wayfinding
+   TileGrid — visual overview, mobile-first
    ===================================================== */
 
-const SERVICE_ICONS: Record<string, React.FC<{ className?: string }>> = {
-  home: Icons.Home,
-  leaf: ({ className }) => <Icons.Leaf className={className} />,
-  book: Icons.BookOpen,
-  map: Icons.Location,
-  calendar: Icons.Calendar,
-};
-
-interface ServiceDirectoryProps {
-  onItemClick: (sectionId: string) => void;
+interface TileGridProps {
+  onTileClick: (sectionId: string) => void;
 }
 
-const ServiceDirectory: React.FC<ServiceDirectoryProps> = ({ onItemClick }) => (
-  <div className="space-y-2">
-    {SERVICE_ITEMS.map(item => {
-      const Icon = SERVICE_ICONS[item.icon];
-      return (
-        <button
-          key={item.id}
-          onClick={() => onItemClick(item.id)}
-          className="w-full text-left group rounded-lg bg-tea-ink dark:bg-tea-ink
-                     border border-white/[0.08] hover:border-white/[0.15]
-                     px-5 py-4 flex items-start gap-4
-                     transition-all duration-300
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2"
-        >
-          <span className="mt-0.5 text-tea-seal shrink-0">
-            <Icon className="w-5 h-5" />
+const TileGrid: React.FC<TileGridProps> = ({ onTileClick }) => (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+    {TILE_DATA.map(tile => (
+      <button
+        key={tile.id}
+        aria-label={tile.ariaLabel}
+        onClick={() => onTileClick(tile.id)}
+        className={`
+          ${tile.flagship ? 'col-span-2 md:col-span-2 md:row-span-2' : ''}
+          group relative overflow-hidden rounded-lg
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2
+          transition-transform duration-300 md:hover:scale-[1.02]
+        `}
+      >
+        {/* Image with aspect ratio */}
+        <img
+          src={tile.img}
+          alt=""
+          aria-hidden="true"
+          className={`
+            w-full object-cover bg-tea-text/[0.06] 
+            ${tile.flagship ? 'aspect-[2/1] md:aspect-[4/3]' : 'aspect-[3/2]'}
+          `}
+          loading="lazy"
+        />
+
+        {/* Gradient overlay for text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent
+                        md:group-hover:from-black/70 transition-all duration-300" />
+
+        {/* Content overlay */}
+        <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4">
+          <span className="font-serif text-base md:text-lg text-tea-paper leading-tight">
+            {tile.label}
           </span>
-          <div className="min-w-0">
-            <span className="font-serif text-base text-tea-paper font-medium leading-tight block">
-              {item.label}
-            </span>
-            <span className="text-sm text-tea-paper/40 leading-relaxed mt-0.5 block">
-              {item.desc}
-            </span>
-          </div>
-        </button>
-      );
-    })}
+          <span className="text-[10px] md:text-[11px] uppercase tracking-wider text-tea-paper/60 mt-1">
+            {tile.badge}
+          </span>
+        </div>
+      </button>
+    ))}
   </div>
 );
 
@@ -306,26 +316,26 @@ const AdrianSection: React.FC = () => {
         <img
           src="https://images.unsplash.com/photo-1545239351-ef35f43d514b?w=600&q=80&auto=format"
           alt="Adrian Rasmussen"
-          className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-ink/[0.06] dark:bg-white/[0.06]
-                     rounded-[2px] shrink-0"
+          className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-text/[0.06] 
+                     rounded-lg shrink-0"
           loading="lazy"
         />
 
         {/* Text */}
         <div className="flex flex-col justify-center">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-tea-seal font-sans mb-3">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-tea-gold font-sans mb-3">
             Adrian Rasmussen
           </p>
-          <p className="font-serif text-xl md:text-2xl text-tea-ink dark:text-tea-paper leading-snug mb-4">
+          <p className="font-serif text-xl md:text-2xl text-tea-text leading-snug mb-4">
             Twenty years in tea culture.<br className="hidden md:block" />
             Taiwan, China, Bali, and beyond.
           </p>
-          <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed max-w-[520px] mb-3">
+          <p className="text-sm text-tea-text/60 leading-relaxed max-w-[520px] mb-3">
             Adrian's background in design and visual art shapes everything he creates — from the way
             tea is presented to the spaces where it's shared. Two decades of sourcing relationships
             across Asia. A practice rooted in Bali with international reach.
           </p>
-          <p className="text-sm text-tea-ink/40 dark:text-tea-paper/40 leading-relaxed max-w-[520px]">
+          <p className="text-sm text-tea-text/40 leading-relaxed max-w-[520px]">
             Whether you're building a tea room for a resort, seeking rare teas for your collection,
             or looking to deepen your personal practice — the approach is always the same: listen first,
             then create something that lasts.
@@ -350,10 +360,10 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
   const projects = consultProjects.filter(p => p.featured).slice(0, 3);
 
   return (
-    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
-      <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">Portfolio</p>
-      <h3 className="font-serif text-2xl md:text-3xl font-normal text-tea-ink dark:text-tea-paper">Projects</h3>
-      <div className="w-12 h-[1px] bg-tea-seal mt-3 mb-8" />
+    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 border-t border-tea-border ${reveal.className}`} style={reveal.style}>
+      <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-2">Portfolio</p>
+      <h3 className="font-serif text-2xl md:text-3xl font-normal text-tea-text">Projects</h3>
+      <div className="w-12 h-[1px] bg-tea-gold mt-3 mb-8" />
 
       {/* Mobile carousel */}
       <div className="md:hidden mb-8">
@@ -372,9 +382,9 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
       </div>
 
       <button onClick={onViewAll}
-        className="text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium
+        className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
                    flex items-center gap-1 transition-colors duration-300 min-h-[44px]
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
         View all projects <Icons.ChevronRight className="w-3.5 h-3.5" />
       </button>
     </section>
@@ -397,18 +407,18 @@ const PROJECT_PLACEHOLDER_IMGS: Record<string, string> = {
 };
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => (
-  <button onClick={onClick} className="text-left group w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
+  <button onClick={onClick} className="text-left group w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     <CardContainer variant="dark" className="overflow-hidden mb-3 md:group-hover:-translate-y-1 transition-all duration-300">
       <img
         src={PROJECT_PLACEHOLDER_IMGS[project.id] || 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80&auto=format'}
         alt={`${project.name} project`}
-        className="w-full object-cover bg-tea-ink/90"
+        className="w-full object-cover bg-tea-elevated/90"
         style={{ aspectRatio: '16/10' }}
         loading="lazy"
       />
     </CardContainer>
-    <h4 className="font-serif text-base font-medium text-tea-ink dark:text-tea-paper">{project.name}</h4>
-    <p className="text-xs uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40">{project.location}</p>
+    <h4 className="font-serif text-base font-medium text-tea-text">{project.name}</h4>
+    <p className="text-xs uppercase tracking-wider text-tea-text/40">{project.location}</p>
   </button>
 );
 
@@ -424,17 +434,17 @@ const SingleTestimonial: React.FC = () => {
   });
 
   return (
-    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 text-center border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
+    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 text-center border-t border-tea-border ${reveal.className}`} style={reveal.style}>
       <div className="relative max-w-[640px] mx-auto">
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 font-serif text-6xl text-tea-seal/20 select-none pointer-events-none">
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 font-serif text-6xl text-tea-gold/20 select-none pointer-events-none">
           &ldquo;
         </span>
-        <p className="font-serif text-lg md:text-xl italic text-tea-ink dark:text-tea-paper leading-relaxed">
+        <p className="font-serif text-lg md:text-xl italic text-tea-text leading-relaxed">
           {testimonial.quote}
         </p>
         <div className="mt-4">
-          <p className="text-xs uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50">{testimonial.name}</p>
-          <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40">{testimonial.title}</p>
+          <p className="text-xs uppercase tracking-wider text-tea-text/50">{testimonial.name}</p>
+          <p className="text-xs text-tea-text/40">{testimonial.title}</p>
         </div>
       </div>
     </section>
@@ -453,13 +463,19 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => {
   const reveal = useSectionReveal();
   return (
     <section ref={reveal.ref}
-      className={`border-t border-tea-ink/5 dark:border-white/5 mt-12 md:mt-16 pt-12 md:pt-16 pb-24 md:pb-32 text-center ${reveal.className}`}
+      className={`border-t border-tea-border mt-12 md:mt-16 pt-12 md:pt-16 pb-24 md:pb-32 text-center ${reveal.className}`}
       style={reveal.style}>
-      <h3 className="font-serif text-2xl md:text-3xl font-light text-tea-ink dark:text-tea-paper">
+      <h3 className="font-serif text-2xl md:text-3xl font-light text-tea-text">
         Every project begins with a conversation.
       </h3>
-      <div className="w-12 h-[1px] bg-tea-seal mx-auto mt-4 mb-8" />
-      <PrimaryCTA label="Start a Conversation" onClick={onOpenInquiry} />
+      <div className="w-12 h-[1px] bg-tea-gold mx-auto mt-4 mb-8" />
+      <button onClick={onOpenInquiry}
+        className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium
+                   py-3.5 px-8 rounded-lg transition-colors min-h-[44px] mx-auto inline-flex items-center gap-2
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2">
+        Start a Conversation
+        <Icons.ChevronRight className="w-3.5 h-3.5" />
+      </button>
     </section>
   );
 };

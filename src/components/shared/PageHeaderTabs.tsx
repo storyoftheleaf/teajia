@@ -21,7 +21,7 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`w-full px-4 md:px-6 lg:px-10 border-y border-tea-ink/10 dark:border-white/10 overflow-x-auto no-scrollbar ${className}`}>
+    <div className={`w-full px-4 md:px-6 lg:px-10 border-y border-tea-border overflow-x-auto no-scrollbar ${className}`}>
       <div className="flex items-center gap-7 md:gap-10 min-w-max">
         {tabs.map((tab) => (
           <button
@@ -29,8 +29,8 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
             onClick={() => onChange(tab.id)}
             className={`text-xs uppercase tracking-[0.25em] transition-all duration-300 relative group py-4 ${
               activeTab === tab.id
-                ? 'text-tea-ink dark:text-tea-paper opacity-100 font-medium'
-                : 'text-tea-ink/60 dark:text-tea-paper/60 hover:text-tea-ink/90 dark:hover:text-tea-paper/90'
+                ? 'text-tea-text opacity-100 font-medium'
+                : 'text-tea-text/60 hover:text-tea-text/90/90'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -41,7 +41,7 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
               )}
             </div>
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-tea-seal transition-all duration-300"></span>
+              <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-tea-gold transition-all duration-300"></span>
             )}
           </button>
         ))}

@@ -37,13 +37,13 @@ const CollectionSection: React.FC<{
             filter: 'brightness(0.3) saturate(0.7)',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-tea-charcoal/40 via-transparent to-tea-charcoal" />
+        <div className="absolute inset-0 bg-gradient-to-b from-tea-border via-transparent to-tea-bg" />
       </div>
 
       {/* Content scrolls over the fixed image */}
       <div className="relative z-10 px-6 md:px-10 py-16 md:py-24 max-w-4xl mx-auto">
         <div className="mb-12">
-          <div className="w-12 h-[1px] bg-tea-seal mb-4" />
+          <div className="w-12 h-[1px] bg-tea-gold mb-4" />
           <h2 className="font-serif text-3xl md:text-4xl text-tea-paper mb-2">{title}</h2>
           <p className="text-tea-paper/60 font-serif italic">{subtitle}</p>
         </div>
@@ -64,7 +64,7 @@ const CollectionCard: React.FC<{
   onInquire: (item: CollectionItem) => void;
 }> = ({ item, onInquire }) => {
   return (
-    <div className="bg-tea-charcoal/80 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden hover:border-white/20 transition-colors duration-300">
+    <div className="bg-tea-bg/80 backdrop-blur-md border border-tea-gold/10 rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300">
       <div className="flex flex-col md:flex-row">
         {/* Image */}
         <div className="w-full md:w-2/5 aspect-[3/4] md:aspect-auto overflow-hidden">
@@ -99,7 +99,7 @@ const CollectionCard: React.FC<{
           {/* Actions — always inquiry in The Collection */}
           <div className="flex items-center gap-3">
             {item.price && (
-              <span className="font-serif text-xl text-tea-seal mr-2">
+              <span className="font-serif text-xl text-tea-gold mr-2">
                 ${item.price}
               </span>
             )}
@@ -135,7 +135,7 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
     COLLECTION_ITEMS.filter(i => i.category === cat);
 
   return (
-    <div className="w-full bg-tea-charcoal text-tea-paper min-h-screen animate-[fadeIn_0.5s_ease-out]">
+    <div className="w-full bg-tea-bg text-tea-paper min-h-screen animate-[fadeIn_0.5s_ease-out]">
       <PageHeader
         title="The Collection"
         onBack={onBack}
@@ -167,14 +167,14 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
       ))}
 
       {/* Cross-pollination CTA */}
-      <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-white/10">
+      <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-tea-gold/10">
         <h3 className="font-serif text-2xl md:text-3xl text-tea-paper mb-3">Begin Your Practice</h3>
         <p className="text-tea-paper/60 mb-8 max-w-md">
           Explore everyday teas, teaware, and ceremony essentials to support your daily ritual.
         </p>
         <button
           onClick={onNavigateToPractice}
-          className="font-serif text-base group inline-flex items-center gap-2 text-tea-seal min-h-[44px]"
+          className="font-serif text-base group inline-flex items-center gap-2 text-tea-gold min-h-[44px]"
         >
           <span className="group-hover:underline">Browse the Shop</span>
           <span className="inline-block group-hover:translate-x-[3px] transition-transform">&rarr;</span>

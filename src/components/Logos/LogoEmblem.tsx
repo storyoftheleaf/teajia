@@ -9,7 +9,7 @@ interface LogoEmblemProps {
 
 export const LogoEmblem: React.FC<LogoEmblemProps> = ({
   size = 48,
-  color = '#010101',
+  color = 'currentColor',
   className = '',
   ariaLabel = 'Teajia logo emblem'
 }) => {

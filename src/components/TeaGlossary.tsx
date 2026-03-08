@@ -3,9 +3,9 @@ import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, GlossaryTerm, GlossaryCategory } f
 import { Icons } from './Icons';
 
 interface TeaGlossaryProps {
-  initialTermCount?: number; // Number of terms to show initially (undefined = show all)
-  onExpandClick?: () => void; // Callback when "View Full Glossary" is clicked
-  isFullView?: boolean; // Whether this is the full glossary view
+  initialTermCount?: number;
+  onExpandClick?: () => void;
+  isFullView?: boolean;
 }
 
 export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
@@ -18,17 +18,14 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
   const [expandedTermId, setExpandedTermId] = useState<string | null>(null);
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
 
-  // Get all unique first letters from terms
   const alphabet = useMemo(() => {
     const letters = new Set(GLOSSARY_TERMS.map(t => t.term[0].toUpperCase()));
     return Array.from(letters).sort();
   }, []);
 
-  // Filter terms based on search, category, and letter
   const filteredTerms = useMemo(() => {
     let terms = GLOSSARY_TERMS;
 
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       terms = terms.filter(t =>
@@ -38,20 +35,16 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
       );
     }
 
-    // Filter by category
     if (activeCategory !== 'all') {
       terms = terms.filter(t => t.category === activeCategory);
     }
 
-    // Filter by letter
     if (activeLetter) {
       terms = terms.filter(t => t.term[0].toUpperCase() === activeLetter);
     }
 
-    // Sort alphabetically
     terms = [...terms].sort((a, b) => a.term.localeCompare(b.term));
 
-    // Limit if initialTermCount is set
     if (initialTermCount && !searchQuery && activeCategory === 'all' && !activeLetter) {
       terms = terms.slice(0, initialTermCount);
     }
@@ -59,7 +52,6 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
     return terms;
   }, [searchQuery, activeCategory, activeLetter, initialTermCount]);
 
-  // Group terms by first letter for display
   const groupedTerms = useMemo(() => {
     const groups: Record<string, GlossaryTerm[]> = {};
     filteredTerms.forEach(term => {
@@ -92,42 +84,42 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
     <div className="w-full">
       {/* Header */}
       {isFullView && (
-        <div className="mb-8">
-          <h2 className="font-serif text-3xl md:text-4xl text-tea-ink dark:text-tea-paper mb-3">
+        <div className="mb-10">
+          <h2 className="font-serif text-3xl md:text-4xl text-tea-text mb-3">
             Tea Glossary
           </h2>
-          <p className="text-tea-ink/70 dark:text-tea-paper/70 text-base md:text-lg leading-relaxed max-w-2xl">
+          <p className="text-tea-text-sec text-sm md:text-base leading-relaxed max-w-xl">
             Essential terminology for understanding tea culture, processing, and appreciation.
           </p>
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Bar — dark, blends with theme */}
       <div className="relative mb-6">
-        <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-tea-ink/40 dark:text-tea-paper/40" />
+        <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-dim" />
         <input
           type="text"
           placeholder="Search terms..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
-            setActiveLetter(null); // Clear letter filter when searching
+            setActiveLetter(null);
           }}
-          className="w-full pl-12 pr-4 py-3 bg-tea-ink/5 dark:bg-white/10 border border-tea-ink/10 dark:border-white/10 rounded-lg text-tea-ink dark:text-tea-paper placeholder-tea-ink/40 dark:placeholder-tea-paper/40 focus:outline-none focus:ring-2 focus:ring-tea-seal/50"
+          className="w-full pl-11 pr-4 py-3 bg-tea-surface border border-tea-border rounded-[1px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:border-tea-gold/30 transition-colors"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text"
           >
             <Icons.Close className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Category Filters */}
-      <div className="mb-6 overflow-x-auto no-scrollbar">
-        <div className="flex gap-2 pb-2">
+      {/* Category Filters — refined pills */}
+      <div className="mb-5 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1.5 pb-1">
           {categoryButtons.map((cat) => (
             <button
               key={cat.id}
@@ -135,10 +127,10 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                 setActiveCategory(cat.id);
                 setActiveLetter(null);
               }}
-              className={`px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300
+              className={`px-3.5 py-1.5 rounded-full text-[10px] uppercase tracking-[0.15em] font-sans whitespace-nowrap transition-all duration-300
                 ${activeCategory === cat.id
-                  ? 'bg-tea-seal text-white'
-                  : 'bg-tea-ink/5 dark:bg-white/10 text-tea-ink/70 dark:text-tea-paper/70 hover:bg-tea-ink/10 dark:hover:bg-white/20'
+                  ? 'text-tea-gold border border-tea-gold/30'
+                  : 'text-tea-text-sec border border-tea-border hover:text-tea-text'
                 }`}
             >
               {cat.label}
@@ -150,13 +142,13 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
       {/* Alphabetical Index */}
       {isFullView && (
         <div className="mb-8 overflow-x-auto no-scrollbar">
-          <div className="flex gap-1 pb-2">
+          <div className="flex gap-0.5 pb-1">
             <button
               onClick={() => setActiveLetter(null)}
-              className={`w-9 h-9 flex items-center justify-center rounded text-sm font-medium transition-all
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-sans transition-all
                 ${!activeLetter
-                  ? 'bg-tea-ink dark:bg-tea-paper text-tea-paper dark:text-tea-ink'
-                  : 'text-tea-ink/60 dark:text-tea-paper/60 hover:bg-tea-ink/10 dark:hover:bg-white/10'
+                  ? 'bg-tea-gold/15 text-tea-gold'
+                  : 'text-tea-text-dim hover:text-tea-text-sec'
                 }`}
             >
               All
@@ -165,10 +157,10 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
               <button
                 key={letter}
                 onClick={() => setActiveLetter(activeLetter === letter ? null : letter)}
-                className={`w-9 h-9 flex items-center justify-center rounded text-sm font-medium transition-all
+                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-mono transition-all
                   ${activeLetter === letter
-                    ? 'bg-tea-ink dark:bg-tea-paper text-tea-paper dark:text-tea-ink'
-                    : 'text-tea-ink/60 dark:text-tea-paper/60 hover:bg-tea-ink/10 dark:hover:bg-white/10'
+                    ? 'bg-tea-gold/15 text-tea-gold'
+                    : 'text-tea-text-dim hover:text-tea-text-sec'
                   }`}
               >
                 {letter}
@@ -179,15 +171,15 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
       )}
 
       {/* Terms Display */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {Object.keys(groupedTerms).length > 0 ? (
           Object.entries(groupedTerms).map(([letter, terms]) => (
             <div key={letter}>
               {/* Letter Header */}
               {isFullView && (
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-3xl font-serif text-tea-seal">{letter}</span>
-                  <div className="flex-1 h-px bg-tea-ink/10 dark:bg-white/10" />
+                  <span className="text-2xl font-serif text-tea-gold/70">{letter}</span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-tea-gold/15 to-transparent" />
                 </div>
               )}
 
@@ -197,145 +189,88 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                   <button
                     key={term.id}
                     onClick={() => handleTermClick(term.id)}
-                    className={`text-left p-4 rounded-lg border transition-all duration-300
+                    className={`text-left rounded-[1px] border transition-all duration-300
                       ${expandedTermId === term.id
-                        ? 'bg-tea-seal/8 dark:bg-tea-seal/15 border-tea-seal/25'
-                        : 'bg-tea-ink/5 dark:bg-white/5 border-tea-ink/10 dark:border-white/10 hover:bg-tea-ink/10 dark:hover:bg-white/10'
+                        ? 'bg-tea-surface border-tea-gold/25'
+                        : 'bg-tea-surface border-tea-border hover:border-tea-gold/15'
                       }`}
                   >
-                    {/* Term Header */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                          <h3 className="text-lg font-serif text-tea-ink dark:text-tea-paper">
-                            {term.term}
-                          </h3>
-                          {term.chineseCharacters && (
-                            <span className="text-tea-ink/50 dark:text-tea-paper/50 text-sm">
-                              {term.chineseCharacters}
-                            </span>
+                    <div className="p-4">
+                      {/* Term Header */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <h3 className="text-base font-serif text-tea-text leading-tight">
+                              {term.term}
+                            </h3>
+                            {term.chineseCharacters && (
+                              <span className="text-tea-gold/50 text-[13px] font-serif">
+                                {term.chineseCharacters}
+                              </span>
+                            )}
+                          </div>
+                          {term.pronunciation && (
+                            <p className="text-tea-text-dim text-xs font-mono italic mt-0.5">
+                              /{term.pronunciation}/
+                            </p>
                           )}
                         </div>
-                        {term.pronunciation && (
-                          <p className="text-tea-ink/50 dark:text-tea-paper/50 text-sm italic">
-                            /{term.pronunciation}/
-                          </p>
-                        )}
+                        <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-sans flex-shrink-0 mt-1">
+                          {GLOSSARY_CATEGORIES[term.category].label}
+                        </span>
                       </div>
-                      <span className="px-2 py-0.5 bg-tea-ink/10 dark:bg-white/10 text-tea-ink/60 dark:text-tea-paper/60 text-[10px] uppercase tracking-wider rounded flex-shrink-0">
-                        {GLOSSARY_CATEGORIES[term.category].label}
-                      </span>
-                    </div>
 
-                    {/* Definition */}
-                    <p className={`text-tea-ink/70 dark:text-tea-paper/70 text-sm leading-relaxed
-                      ${expandedTermId === term.id ? '' : 'line-clamp-2'}`}
-                    >
-                      {term.definition}
-                    </p>
+                      {/* Definition */}
+                      <p className={`text-tea-text-sec text-[13px] leading-relaxed
+                        ${expandedTermId === term.id ? '' : 'line-clamp-2'}`}
+                      >
+                        {term.definition}
+                      </p>
 
-                    {/* Expanded Content */}
-                    {expandedTermId === term.id && (
-                      <div className="mt-4 pt-4 border-t border-tea-ink/10 dark:border-white/10 space-y-3 animate-[fadeIn_0.3s_ease-out]">
-                        {/* Audio Pronunciation */}
-                        {term.audioUrl && (
-                          <div className="flex items-center gap-2">
+                      {/* Expanded Content */}
+                      {expandedTermId === term.id && (
+                        <div className="mt-4 pt-4 border-t border-tea-border/50 space-y-4 animate-[fadeIn_0.3s_ease-out]">
+                          {/* Audio */}
+                          {term.audioUrl && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const audio = new Audio(term.audioUrl);
                                 audio.play();
                               }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-seal/8 dark:bg-tea-seal/15 text-tea-seal rounded-full text-xs font-medium hover:bg-tea-seal/15 dark:hover:bg-tea-seal/25 transition-colors"
+                              className="flex items-center gap-1.5 text-tea-gold text-xs hover:text-tea-gold/80 transition-colors"
                             >
                               <Icons.Audio className="w-3.5 h-3.5" />
-                              <span>Listen</span>
+                              <span>Listen to pronunciation</span>
                             </button>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Deep Dive Extended Description */}
-                        {term.deepDive?.extendedDescription && (
-                          <div>
-                            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-wider mb-1">
-                              Deep Dive
-                            </p>
-                            <p className="text-tea-ink/70 dark:text-tea-paper/70 text-sm leading-relaxed">
+                          {/* Extended Description */}
+                          {term.deepDive?.extendedDescription && (
+                            <p className="text-tea-text-sec text-[13px] leading-relaxed">
                               {term.deepDive.extendedDescription}
                             </p>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Cultural Context */}
-                        {term.deepDive?.culturalContext && (
-                          <div>
-                            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-wider mb-1">
-                              Cultural Context
-                            </p>
-                            <p className="text-tea-ink/70 dark:text-tea-paper/70 text-sm leading-relaxed">
-                              {term.deepDive.culturalContext}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Try This Suggestions */}
-                        {term.deepDive?.tryThis && term.deepDive.tryThis.length > 0 && (
-                          <div>
-                            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-wider mb-2">
-                              Try This
-                            </p>
-                            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                              {term.deepDive.tryThis.map(suggestion => (
-                                <div
-                                  key={suggestion.id}
-                                  className="min-w-[200px] max-w-[240px] shrink-0 p-3 rounded-lg bg-tea-ink/5 dark:bg-white/5 border border-tea-ink/10 dark:border-white/10"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <div className="flex items-center gap-2 mb-1.5">
-                                    <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${
-                                      suggestion.difficulty === 'easy' ? 'bg-green-500/10 text-green-700 dark:text-green-300 border border-green-400/30' :
-                                      suggestion.difficulty === 'moderate' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-400/30' :
-                                      'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-400/30'
-                                    }`}>
-                                      {suggestion.difficulty}
-                                    </span>
-                                    {suggestion.timeRequired && (
-                                      <span className="text-[10px] text-tea-ink/40 dark:text-tea-paper/40">
-                                        {suggestion.timeRequired}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <h5 className="font-serif text-sm text-tea-ink dark:text-tea-paper mb-1">
-                                    {suggestion.title}
-                                  </h5>
-                                  <p className="text-[11px] text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed">
-                                    {suggestion.description}
-                                  </p>
-                                </div>
-                              ))}
+                          {/* Cultural Context */}
+                          {term.deepDive?.culturalContext && (
+                            <div className="pl-3 border-l border-tea-gold/20">
+                              <p className="text-tea-text-dim text-[13px] leading-relaxed italic font-serif">
+                                {term.deepDive.culturalContext}
+                              </p>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Example Usage */}
-                        {term.exampleUsage && (
-                          <div>
-                            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-wider mb-1">
-                              Example
-                            </p>
-                            <p className="text-tea-ink/80 dark:text-tea-paper/80 text-sm italic">
+                          {/* Example Usage */}
+                          {term.exampleUsage && (
+                            <p className="text-tea-text/60 text-[13px] italic">
                               "{term.exampleUsage}"
                             </p>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Related Terms */}
-                        {term.relatedTerms && term.relatedTerms.length > 0 && (
-                          <div>
-                            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-wider mb-2">
-                              Related Terms
-                            </p>
-                            <div className="flex flex-wrap gap-2.5">
+                          {/* Related Terms */}
+                          {term.relatedTerms && term.relatedTerms.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
                               {term.relatedTerms.map((relatedId) => {
                                 const related = getRelatedTerm(relatedId);
                                 return related ? (
@@ -348,17 +283,28 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                                       setActiveCategory('all');
                                       setActiveLetter(null);
                                     }}
-                                    className="px-2.5 py-1.5 bg-tea-seal/15 text-tea-seal text-xs rounded cursor-pointer hover:bg-tea-seal/25 transition-colors"
+                                    className="px-2 py-1 text-tea-gold/80 text-[11px] font-sans border border-tea-gold/15 rounded-lg cursor-pointer hover:border-tea-gold/30 hover:bg-tea-gold/5 transition-colors"
                                   >
                                     {related.term}
+                                    {related.chineseCharacters && (
+                                      <span className="ml-1 text-tea-gold/40">{related.chineseCharacters}</span>
+                                    )}
                                   </span>
                                 ) : null;
                               })}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+
+                          {/* Related lessons link */}
+                          {term.relatedLessonIds && term.relatedLessonIds.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-tea-gold text-xs">
+                              <Icons.BookOpen className="w-3.5 h-3.5" />
+                              <span>{term.relatedLessonIds.length} related {term.relatedLessonIds.length === 1 ? 'lesson' : 'lessons'}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -366,8 +312,8 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Icons.Search className="w-10 h-10 text-tea-ink/20 dark:text-tea-paper/20 mb-4" />
-            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-sm">
+            <Icons.Search className="w-8 h-8 text-tea-text/15 mb-3" />
+            <p className="text-tea-text-dim text-sm">
               No terms found matching your search.
             </p>
             <button
@@ -376,7 +322,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                 setActiveCategory('all');
                 setActiveLetter(null);
               }}
-              className="mt-3 text-tea-seal text-sm hover:underline"
+              className="mt-3 text-tea-gold text-xs hover:underline"
             >
               Clear filters
             </button>
@@ -384,18 +330,18 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         )}
       </div>
 
-      {/* Expand Button (for embedded view) */}
+      {/* Expand Button (embedded view) */}
       {initialTermCount && !searchQuery && activeCategory === 'all' && !activeLetter && onExpandClick && (
-        <div className="mt-8 text-center">
+        <div className="mt-10 text-center">
           <button
             onClick={onExpandClick}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-tea-ink/5 dark:bg-white/10 text-tea-ink dark:text-tea-paper rounded-lg hover:bg-tea-ink/10 dark:hover:bg-white/20 transition-colors text-sm font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border border-tea-border text-tea-text-sec rounded-lg hover:border-tea-gold/30 hover:text-tea-gold transition-colors text-xs uppercase tracking-[0.12em] font-sans"
           >
             View Full Glossary
-            <Icons.ChevronRight className="w-4 h-4" />
+            <Icons.ChevronRight className="w-3.5 h-3.5" />
           </button>
-          <p className="mt-2 text-tea-ink/50 dark:text-tea-paper/50 text-xs">
-            {GLOSSARY_TERMS.length} terms total
+          <p className="mt-2 text-tea-text-dim text-[10px] font-mono">
+            {GLOSSARY_TERMS.length} terms
           </p>
         </div>
       )}

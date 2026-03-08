@@ -4,8 +4,8 @@ import type { ShippingType } from '../../types/shop';
 
 const BADGE_CONFIG: Record<ShippingType, { icon: React.FC<{ className?: string }>; label: string; className: string }> = {
   international: { icon: Icons.ExternalLink, label: 'Ships Worldwide', className: 'text-tea-green' },
-  'bali-only': { icon: Icons.MapPin, label: 'Bali Only', className: 'text-tea-seal' },
-  'inquiry-only': { icon: Icons.Seal, label: 'Inquire', className: 'text-tea-ink/40 dark:text-tea-paper/40' },
+  'bali-only': { icon: Icons.MapPin, label: 'Bali Only', className: 'text-tea-gold' },
+  'inquiry-only': { icon: Icons.Seal, label: 'Inquire', className: 'text-tea-text/40' },
 };
 
 interface ShippingBadgeProps {

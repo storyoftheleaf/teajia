@@ -151,28 +151,28 @@ export const HomePage: React.FC<HomePageProps> = ({
         style={identityReveal.style}
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-[1px] bg-tea-seal/30" />
-          <p className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-tea-seal/70 font-sans">
+          <div className="w-8 h-[1px] bg-tea-gold/30" />
+          <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-tea-gold/70 font-sans">
             {currentInsight.label}
           </p>
         </div>
 
-        <h2 className="font-serif text-2xl md:text-4xl lg:text-4xl font-light text-tea-ink dark:text-tea-paper mb-3 md:mb-5 leading-[1.2] max-w-3xl">
+        <h2 className="font-serif text-2xl md:text-4xl lg:text-4xl font-light text-tea-text mb-3 md:mb-5 leading-[1.2] max-w-3xl">
           {currentInsight.insight}
         </h2>
 
-        <p className="text-sm md:text-base text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed max-w-2xl mb-5">
+        <p className="text-sm md:text-base text-tea-text/60 leading-relaxed max-w-2xl mb-5">
           {currentInsight.detail}
         </p>
 
-        <div className="w-8 h-[1px] bg-tea-seal/30 mb-3" />
-        <div className="flex flex-wrap items-center gap-2 text-xs text-tea-ink/35 dark:text-tea-paper/35 font-sans">
+        <div className="w-8 h-[1px] bg-tea-gold/30 mb-3" />
+        <div className="flex flex-wrap items-center gap-2 text-xs text-tea-text/35 font-sans">
           <span>Magazine</span>
-          <span className="w-1 h-1 rounded-full bg-tea-ink/20 dark:bg-tea-paper/20" />
+          <span className="w-1 h-1 rounded-full bg-tea-text/20/20" />
           <span>Courses</span>
-          <span className="w-1 h-1 rounded-full bg-tea-ink/20 dark:bg-tea-paper/20" />
+          <span className="w-1 h-1 rounded-full bg-tea-text/20/20" />
           <span>Shop</span>
-          <span className="w-1 h-1 rounded-full bg-tea-ink/20 dark:bg-tea-paper/20" />
+          <span className="w-1 h-1 rounded-full bg-tea-text/20/20" />
           <span>Space Design</span>
         </div>
       </section>
@@ -189,16 +189,16 @@ export const HomePage: React.FC<HomePageProps> = ({
         >
           <div className="flex items-baseline justify-between mb-4">
             <div>
-              <h2 className="font-serif text-xl md:text-2xl font-normal text-tea-ink dark:text-tea-paper">
+              <h2 className="font-serif text-xl md:text-2xl font-normal text-tea-text">
                 Latest
               </h2>
-              <p className="text-[9px] font-mono text-tea-ink/30 dark:text-tea-paper/30 uppercase tracking-wider mt-0.5">
+              <p className="text-[9px] font-mono text-tea-text/30 uppercase tracking-wider mt-0.5">
                 Updated {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </p>
             </div>
             <button
               onClick={() => onNavigateToSection('MAGAZINE')}
-              className="text-tea-seal-dark dark:text-tea-seal hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300"
+              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
             >
               All
               <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -227,13 +227,13 @@ export const HomePage: React.FC<HomePageProps> = ({
       {pullQuote && (
         <section
           ref={quoteReveal.ref}
-          className={`${SECTION_GAP} border-l-2 border-tea-seal pl-6 md:pl-8 ${quoteReveal.className}`}
+          className={`${SECTION_GAP} border-l-2 border-tea-gold pl-6 md:pl-8 ${quoteReveal.className}`}
           style={quoteReveal.style}
         >
-          <p className="font-serif text-lg md:text-xl text-tea-ink/80 dark:text-tea-paper/80 leading-relaxed italic mb-3">
+          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3">
             &ldquo;{pullQuote.description}&rdquo;
           </p>
-          <p className="text-xs uppercase tracking-widest text-tea-ink/40 dark:text-tea-paper/40 font-sans">
+          <p className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans">
             &mdash; From &ldquo;{pullQuote.title}&rdquo;
           </p>
         </section>
@@ -244,30 +244,30 @@ export const HomePage: React.FC<HomePageProps> = ({
           ============================================ */}
       <section
         ref={learnReveal.ref}
-        className={`${SECTION_GAP} bg-white/50 dark:bg-white/5 p-6 md:p-10 rounded-lg ${learnReveal.className}`}
+        className={`${SECTION_GAP} bg-tea-surface p-6 md:p-10 rounded-lg ${learnReveal.className}`}
         style={learnReveal.style}
       >
         <div className="flex items-baseline justify-between mb-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-tea-seal-dark dark:text-tea-seal font-sans">
+            <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans">
               From the curriculum
             </p>
-            <p className="text-[9px] font-mono text-tea-ink/30 dark:text-tea-paper/30 uppercase tracking-wider mt-0.5">
+            <p className="text-[9px] font-mono text-tea-text/30 uppercase tracking-wider mt-0.5">
               {LEARN_CURRICULUM.length} modules available
             </p>
           </div>
           <button
             onClick={() => onNavigateToSection('LEARN')}
-            className="text-tea-seal-dark dark:text-tea-seal hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300"
+            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
           >
             All courses
             <Icons.ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
-        <h2 className="font-serif text-xl md:text-2xl font-normal text-tea-ink dark:text-tea-paper mb-3 max-w-lg leading-snug">
+        <h2 className="font-serif text-xl md:text-2xl font-normal text-tea-text mb-3 max-w-lg leading-snug">
           Why does the same tea taste different in porcelain and clay?
         </h2>
-        <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 max-w-md">
+        <p className="text-sm text-tea-text/60 max-w-md">
           Material, heat, and surface — the science behind what your vessel does to the leaf.
         </p>
       </section>
@@ -283,16 +283,16 @@ export const HomePage: React.FC<HomePageProps> = ({
         >
           <div className="flex items-baseline justify-between mb-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-tea-seal-dark dark:text-tea-seal font-sans">
+              <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans">
                 {season} pick
               </p>
-              <p className="text-[9px] font-mono text-tea-ink/30 dark:text-tea-paper/30 uppercase tracking-wider mt-0.5">
+              <p className="text-[9px] font-mono text-tea-text/30 uppercase tracking-wider mt-0.5">
                 {season} {new Date().getFullYear()}
               </p>
             </div>
             <button
               onClick={() => onNavigateToSection('SHOP')}
-              className="text-tea-seal-dark dark:text-tea-seal hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300"
+              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
             >
               Shop
               <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -311,20 +311,20 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
             </CardContainer>
             <div className="flex-1 min-w-0 pt-1">
-              <h3 className="font-serif text-xl md:text-2xl text-tea-ink dark:text-tea-paper mb-1">
+              <h3 className="font-serif text-xl md:text-2xl text-tea-text mb-1">
                 {curatedTea.name}
               </h3>
-              <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40 uppercase tracking-wider mb-3">
+              <p className="text-xs text-tea-text/40 uppercase tracking-wider mb-3">
                 {curatedTea.type} · {curatedTea.origin}
               </p>
-              <p className="text-sm text-tea-ink/70 dark:text-tea-paper/70 leading-relaxed line-clamp-3 mb-2">
+              <p className="text-sm text-tea-text/70 leading-relaxed line-clamp-3 mb-2">
                 {curatedTea.description}
               </p>
-              <p className="text-xs text-tea-seal/70 italic font-serif mb-2">
+              <p className="text-xs text-tea-gold/70 italic font-serif mb-2">
                 {SEASONAL_REASONS[season]}
               </p>
               {curatedTea.price_per_gram && (
-                <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50 font-sans">
+                <p className="text-xs text-tea-text/50 font-sans">
                   {fmtPricePerGram(parseFloat(curatedTea.price_per_gram))}
                 </p>
               )}
@@ -333,10 +333,10 @@ export const HomePage: React.FC<HomePageProps> = ({
               {isAdmin && productMap.has(curatedTea.id) && (() => {
                 const ap = productMap.get(curatedTea.id)!;
                 return (
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-tea-ink/5 dark:border-white/5">
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-tea-border">
                     <button
                       onClick={() => updateProduct(curatedTea.id, { is_featured: !ap.isFeatured })}
-                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-seal' : 'text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-ink/60 dark:hover:text-tea-paper/60'}`}
+                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-gold' : 'text-tea-text/30 hover:text-tea-text/60'}`}
                       title={ap.isFeatured ? 'Remove from featured' : 'Mark as featured'}
                     >
                       <Icons.Star className="w-3 h-3" />
@@ -344,13 +344,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                     </button>
                     <button
                       onClick={() => updateProduct(curatedTea.id, { is_public: !ap.isPublic })}
-                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isPublic ? 'text-tea-seal' : 'text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-ink/60 dark:hover:text-tea-paper/60'}`}
+                      className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isPublic ? 'text-tea-gold' : 'text-tea-text/30 hover:text-tea-text/60'}`}
                       title={ap.isPublic ? 'Hide from public' : 'Make public'}
                     >
                       {ap.isPublic ? <Icons.Eye className="w-3 h-3" /> : <Icons.EyeSlash className="w-3 h-3" />}
                       {ap.isPublic ? 'Public' : 'Hidden'}
                     </button>
-                    <span className="text-[10px] font-mono text-tea-ink/25 dark:text-tea-paper/25 ml-auto">
+                    <span className="text-[10px] font-mono text-tea-text/25 ml-auto">
                       {ap.stockGrams}g
                     </span>
                   </div>
@@ -366,21 +366,21 @@ export const HomePage: React.FC<HomePageProps> = ({
           ============================================ */}
       <section
         ref={consultReveal.ref}
-        className={`${SECTION_GAP} border-t border-b border-tea-ink/10 dark:border-white/10 py-6 md:py-10 ${consultReveal.className}`}
+        className={`${SECTION_GAP} border-t border-b border-tea-border py-6 md:py-10 ${consultReveal.className}`}
         style={consultReveal.style}
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-tea-seal-dark dark:text-tea-seal font-sans mb-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-2">
               Design &amp; Curation
             </p>
-            <p className="font-serif text-lg md:text-xl text-tea-ink dark:text-tea-paper">
+            <p className="font-serif text-lg md:text-xl text-tea-text">
               We design tea spaces — from a quiet corner to a full room
             </p>
           </div>
           <button
             onClick={() => onNavigateToSection('OFFERINGS')}
-            className="text-tea-seal-dark dark:text-tea-seal hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
+            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
           >
             Learn more
             <Icons.ChevronRight className="w-3.5 h-3.5" />
