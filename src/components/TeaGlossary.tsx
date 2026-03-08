@@ -259,7 +259,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
                           {/* Cultural Context */}
                           {term.deepDive?.culturalContext && (
-                            <div className="pl-3 border-l border-tea-gold/20">
+                            <div className="pl-3" style={{ boxShadow: 'inset 2px 0 0 rgba(184,146,78,0.15)' }}>
                               <p className="text-tea-text-dim text-[13px] leading-relaxed italic font-serif">
                                 {term.deepDive.culturalContext}
                               </p>
