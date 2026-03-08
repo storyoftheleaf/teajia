@@ -31,24 +31,44 @@ const ServiceDivider = () => (
   <div className="w-12 h-[1px] bg-tea-seal mt-3 mb-6" />
 );
 
+/** Primary CTA — filled button with visual weight */
 const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium
-               flex items-center gap-1 transition-colors duration-300 min-h-[44px]
+    className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium
+               py-3 px-6 rounded-[1px] transition-colors duration-300 min-h-[44px]
+               inline-flex items-center gap-2
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2">
+    {label}
+    <Icons.ChevronRight className="w-3.5 h-3.5" />
+  </button>
+);
+
+/** Secondary CTA — outlined/ghost style, clearly subordinate */
+const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
+  <button onClick={onClick}
+    className="border border-tea-ink/15 dark:border-white/15 hover:border-tea-seal/40 hover:text-tea-seal
+               text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-widest
+               font-medium py-2.5 px-5 rounded-[1px] inline-flex items-center gap-1.5
+               transition-all duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
     {label}
     <Icons.ChevronRight className="w-3.5 h-3.5" />
   </button>
 );
 
-const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
-  <button onClick={onClick}
-    className="text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-seal text-xs uppercase tracking-widest
-               font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
-    {label}
-    <Icons.ChevronRight className="w-3.5 h-3.5" />
-  </button>
+/** Subtle content panel — creates visual separation from the flat background */
+const ContentPanel = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-tea-ink/[0.025] dark:bg-white/[0.03] border border-tea-ink/[0.06] dark:border-white/[0.06]
+                   rounded-[2px] p-5 md:p-6 ${className}`}>
+    {children}
+  </div>
+);
+
+/** Accent callout — left border highlight for pricing or key info */
+const AccentCallout = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`border-l-2 border-tea-seal/40 pl-4 py-1 ${className}`}>
+    {children}
+  </div>
 );
 
 /* =====================================================
@@ -91,58 +111,73 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <ServiceHeading>Tea House Design & Curation</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-10">
+        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-8">
           Complete tea space creation — from concept through opening. Design, curation, tea selection,
           training, and operations. For hotels, resorts, retreat centers, private residences, and new
           tea house owners.
         </p>
 
-        {/* Pillars */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-3">
-          What's Involved
-        </p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-8">
-          {PILLARS.map((p, i) => (
-            <span key={p} className="text-sm text-tea-ink/60 dark:text-tea-paper/60">
-              {p}{i < PILLARS.length - 1 && <span className="text-tea-ink/20 dark:text-tea-paper/20 ml-3">&middot;</span>}
-            </span>
-          ))}
-        </div>
+        {/* Pillars — contained chips with visual weight */}
+        <ContentPanel className="mb-8 max-w-[640px]">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-3">
+            What's Involved
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {PILLARS.map(p => (
+              <span key={p} className="text-sm text-tea-ink/70 dark:text-tea-paper/70 bg-tea-paper dark:bg-white/[0.05]
+                                       border border-tea-ink/[0.08] dark:border-white/[0.08] px-3 py-1.5 rounded-[1px]">
+                {p}
+              </span>
+            ))}
+          </div>
+        </ContentPanel>
 
-        {/* Process */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-4">
-          The Process
-        </p>
-        {/* Mobile (base) */}
-        <div className="md:hidden space-y-3 mb-8">
-          {PROCESS.map(({ step, title, desc }) => (
-            <div key={step} className="flex items-baseline gap-3">
-              <span className="text-tea-seal font-mono text-sm w-4 shrink-0">{step}</span>
-              <div>
-                <span className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper">{title}</span>
-                <span className="text-tea-ink/30 dark:text-tea-paper/30 mx-1.5">&mdash;</span>
-                <span className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40">{desc}</span>
+        {/* Process — visually distinct panel with step cards */}
+        <ContentPanel className="mb-8">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-4">
+            The Process
+          </p>
+          {/* Mobile */}
+          <div className="md:hidden space-y-3">
+            {PROCESS.map(({ step, title, desc }) => (
+              <div key={step} className="flex items-start gap-3 bg-tea-paper dark:bg-white/[0.03]
+                                          border border-tea-ink/[0.05] dark:border-white/[0.05]
+                                          rounded-[1px] p-3">
+                <span className="text-tea-seal font-mono text-sm w-5 h-5 flex items-center justify-center
+                                 bg-tea-seal/10 rounded-full shrink-0">{step}</span>
+                <div>
+                  <span className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper">{title}</span>
+                  <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">{desc}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-        {/* Desktop */}
-        <div className="hidden md:flex gap-8 relative mb-8">
-          <div className="absolute top-4 left-0 right-0 h-[1px] bg-tea-ink/5 dark:bg-white/5" />
-          {PROCESS.map(({ step, title, desc }) => (
-            <div key={step} className="flex-1 relative z-10">
-              <span className="text-tea-seal font-mono text-sm">{step}</span>
-              <h4 className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper mt-1">{title}</h4>
-              <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">{desc}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          {/* Desktop */}
+          <div className="hidden md:grid md:grid-cols-5 gap-3">
+            {PROCESS.map(({ step, title, desc }) => (
+              <div key={step} className="bg-tea-paper dark:bg-white/[0.03]
+                                          border border-tea-ink/[0.05] dark:border-white/[0.05]
+                                          rounded-[1px] p-3 text-center">
+                <span className="text-tea-seal font-mono text-sm w-6 h-6 flex items-center justify-center
+                                 bg-tea-seal/10 rounded-full mx-auto mb-2">{step}</span>
+                <h4 className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper">{title}</h4>
+                <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </ContentPanel>
 
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-8">
-          Projects range from $5,000 to $100,000+. Every project is scoped through conversation.
-        </p>
+        {/* Pricing — accent callout with clear emphasis */}
+        <AccentCallout className="mb-10 max-w-[640px]">
+          <p className="text-sm font-medium text-tea-ink/70 dark:text-tea-paper/70">
+            Projects range from $5,000 to $100,000+
+          </p>
+          <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">
+            Every project is scoped through conversation.
+          </p>
+        </AccentCallout>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('Space design or tea integration')} />
           {onNavigateToProjects && (
             <SecondaryCTA label="See completed spaces" onClick={() => onNavigateToProjects('space')} />
@@ -186,35 +221,40 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <ServiceHeading>Sessions & Guidance</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-10">
+        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-8">
           Tea experiences and practice support — in the Bali studio or wherever you are.
         </p>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-2">
-          Offerings
-        </p>
-        <div className="max-w-[640px]">
-          {OFFERINGS.map(({ name, price, desc }) => (
-            <div key={name} className="flex items-start justify-between py-5 border-b border-tea-ink/5 dark:border-white/5 last:border-0">
+        {/* Offerings — contained in a panel with distinct rows */}
+        <ContentPanel className="max-w-[640px] mb-8">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-3">
+            Offerings
+          </p>
+          {OFFERINGS.map(({ name, price, desc }, i) => (
+            <div key={name} className={`flex items-start justify-between py-4 ${i < OFFERINGS.length - 1 ? 'border-b border-tea-ink/[0.06] dark:border-white/[0.06]' : ''}`}>
               <div>
                 <h4 className="font-serif text-base text-tea-ink dark:text-tea-paper">{name}</h4>
                 <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mt-1">{desc}</p>
               </div>
-              <span className="font-sans text-sm text-tea-seal whitespace-nowrap ml-4">{price}</span>
+              <span className="font-sans text-sm text-tea-seal whitespace-nowrap ml-4 bg-tea-seal/[0.08] px-2 py-0.5 rounded-[1px]">{price}</span>
             </div>
           ))}
-        </div>
+        </ContentPanel>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mt-8 mb-3">
-          What You Walk Away With
-        </p>
-        <ul className="space-y-1.5 mb-8">
-          {WALKAWAY.map(item => (
-            <li key={item} className="text-sm text-tea-ink/60 dark:text-tea-paper/60 flex items-start gap-2">
-              <span className="text-tea-seal mt-0.5">&middot;</span> {item}
-            </li>
-          ))}
-        </ul>
+        {/* Walkaway — distinct panel */}
+        <ContentPanel className="max-w-[640px] mb-10">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-3">
+            What You Walk Away With
+          </p>
+          <ul className="space-y-2">
+            {WALKAWAY.map(item => (
+              <li key={item} className="text-sm text-tea-ink/60 dark:text-tea-paper/60 flex items-start gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-tea-seal/50 mt-1.5 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </ContentPanel>
 
         <PrimaryCTA label="Book a session" onClick={() => onOpenInquiry('A session or practice guidance')} />
       </section>
@@ -241,7 +281,7 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <ServiceHeading>Sourcing Journeys</ServiceHeading>
         <ServiceDivider />
 
-        <div className="max-w-[640px] space-y-4 mb-8">
+        <div className="max-w-[640px] space-y-4 mb-6">
           <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70">
             Travel to tea origins with a guide who knows the way. Taiwan, China, and beyond.
           </p>
@@ -251,9 +291,14 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
           </p>
         </div>
 
-        <p className="text-sm text-tea-seal uppercase tracking-wider mb-8">Seasonal &middot; By invitation</p>
+        {/* Badge — distinct visual treatment */}
+        <div className="inline-flex items-center gap-2 bg-tea-seal/[0.08] border border-tea-seal/20
+                        text-tea-seal text-xs uppercase tracking-wider px-3.5 py-2 rounded-[1px] mb-10">
+          <Icons.Calendar className="w-3.5 h-3.5" />
+          Seasonal &middot; By invitation
+        </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('A sourcing journey')} />
           {onNavigateToMagazine && (
             <SecondaryCTA label="Read stories from tea origins" onClick={onNavigateToMagazine} />
@@ -285,13 +330,13 @@ export const SourcingSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <p className="font-serif text-lg italic text-tea-ink dark:text-tea-paper max-w-[640px] mb-4">
           Quality tea for your space, your collection, or your community.
         </p>
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-8">
+        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-10">
           Direct sourcing from Taiwan, China, and trusted origins. For individual collectors seeking access
           to exceptional teas. For retreat centers, hotels, and communities wanting quality tea as part of
           what they offer.
         </p>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <PrimaryCTA label="Inquire" onClick={() => onOpenInquiry('Tea sourcing')} />
           {onNavigateToShop && (
             <SecondaryCTA label="Browse the shop" onClick={onNavigateToShop} />
@@ -321,14 +366,18 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <ServiceHeading>Tea Experiences for Gatherings</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-6">
+        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-8">
           I bring everything — tea, teaware, the setup, and the atmosphere — to your gathering.
           Retreats, dinners, brand activations, celebrations.
         </p>
-        <p className="text-sm text-tea-seal mb-1">From $500 for a half-day.</p>
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-8">
-          Full-day and multi-day experiences quoted based on scope.
-        </p>
+
+        {/* Pricing — accent callout */}
+        <AccentCallout className="mb-10 max-w-[640px]">
+          <p className="text-sm font-medium text-tea-seal">From $500 for a half-day.</p>
+          <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">
+            Full-day and multi-day experiences quoted based on scope.
+          </p>
+        </AccentCallout>
 
         <PrimaryCTA label="Inquire" onClick={() => onOpenInquiry('An event or group experience')} />
       </section>
