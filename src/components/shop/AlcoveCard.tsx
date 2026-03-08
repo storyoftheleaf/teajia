@@ -140,7 +140,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         backgroundSize: "120px",
       }} />
 
-      {/* Close button — top right, thin and subtle */}
+      {/* Close button — top right, minimal glyph */}
       {onClose && (
         <button
           onClick={onClose}
@@ -148,20 +148,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           onMouseLeave={() => setHovered(null)}
           aria-label="Close"
           style={{
-            position: "absolute", top: "12px", right: "12px", zIndex: 30,
-            width: "24px", height: "24px",
+            position: "absolute", top: "10px", right: "14px", zIndex: 30,
             background: "none", border: "none",
             cursor: "pointer", padding: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            opacity: hovered === "close" ? 0.8 : 0.35,
+            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+            fontSize: "20px", fontWeight: 200, lineHeight: 1,
+            color: alcoveColors.subtitle,
+            opacity: hovered === "close" ? 0.7 : 0.3,
             transition: "opacity 0.2s ease",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke={alcoveColors.subtitle} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          &#xd7;
         </button>
       )}
 
@@ -239,31 +236,25 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </p>
               )}
             </div>
-            {/* Collapse button at bottom */}
+            {/* Collapse — subtle italic text */}
             <button
               onClick={() => setStoryExpanded(false)}
-              onMouseEnter={() => setHovered("expand")}
+              onMouseEnter={() => setHovered("collapse")}
               onMouseLeave={() => setHovered(null)}
               style={{
                 position: "absolute",
-                bottom: "8px", right: "10px", zIndex: 10,
-                width: "26px", height: "26px",
-                background: "rgba(184,146,78,0.08)",
-                border: `1px solid rgba(184,146,78,${hovered === "expand" ? 0.2 : 0.08})`,
-                borderRadius: "3px",
+                bottom: "8px", right: "12px", zIndex: 10,
+                background: "none", border: "none",
                 cursor: "pointer", padding: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                opacity: hovered === "expand" ? 1 : 0.65,
-                transition: "all 0.2s ease",
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "11px", fontWeight: 300, fontStyle: "italic",
+                color: alcoveColors.mutedDark,
+                opacity: hovered === "collapse" ? 0.9 : 0.55,
+                letterSpacing: "0.03em",
+                transition: "opacity 0.2s ease",
               }}
             >
-              <svg
-                width="11" height="11" viewBox="0 0 24 24" fill="none"
-                stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                style={{ transform: "rotate(180deg)" }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              less
             </button>
           </div>
         )}
@@ -379,7 +370,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
                 pointerEvents: "none",
               }} />
-              {/* Expand chevron — opens full overlay */}
+              {/* Expand — subtle italic text */}
               <button
                 onClick={() => setStoryExpanded(true)}
                 onMouseEnter={() => setHovered("expand")}
@@ -387,28 +378,25 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 aria-label="Read more"
                 style={{
                   position: "absolute",
-                  bottom: "4px", right: "6px", zIndex: 10,
-                  width: "24px", height: "24px",
-                  background: "rgba(0,0,0,0.4)",
-                  border: `1px solid rgba(184,146,78,${hovered === "expand" ? 0.2 : 0.08})`,
-                  borderRadius: "3px",
+                  bottom: "5px", right: "10px", zIndex: 10,
+                  background: "none", border: "none",
                   cursor: "pointer", padding: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: hovered === "expand" ? 1 : 0.65,
-                  transition: "all 0.2s ease",
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "11px", fontWeight: 300, fontStyle: "italic",
+                  color: alcoveColors.mutedDark,
+                  opacity: hovered === "expand" ? 0.9 : 0.55,
+                  letterSpacing: "0.03em",
+                  transition: "opacity 0.2s ease",
                 }}
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                  stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                more
               </button>
             </div>
           )}
 
           {/* Notes + photo section — always visible */}
           <div style={{
-            padding: "12px 14px",
+            padding: "14px 14px",
             background: "rgba(184,146,78,0.03)",
             position: "relative",
             overflow: "hidden",
@@ -479,7 +467,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           </div>
 
-          {/* Feeling description — always visible */}
+          {/* Feeling description — clamped to 3 lines */}
           {feelingDescription && (
             <p style={{
               fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
@@ -488,6 +476,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               padding: "8px 14px",
               lineHeight: 1.5,
               flexShrink: 0,
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical" as const,
+              overflow: "hidden",
             }}>
               {feelingDescription}
             </p>
