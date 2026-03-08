@@ -8,7 +8,16 @@
 
 ## Executive Summary
 
-This audit identified **127 specific design system inconsistencies** across the Teajia unified application. The issues fall into 12 categories: spacing, typography scale, font weight/line-height, color/opacity, border radius, shadows, transitions/animations, icon sizing, button styles, heading hierarchy, mixed units, and global config conflicts. Each finding includes the exact file, line number, and problematic value.
+This audit identified **154 specific design system inconsistencies** across the Teajia unified application. The issues fall into 14 categories: triple-config drift, spacing, typography scale, font weight/line-height, color/opacity, border radius, shadows, transitions/animations, icon sizing, button styles, heading hierarchy, z-index chaos, missing token scales, and mixed units. Each finding includes the exact file, line number, and problematic value.
+
+### The Biggest Structural Problem
+
+The design system is defined in **three places simultaneously** with values drifting apart:
+1. `src/designTokens.ts` — the intended single source of truth
+2. `tailwind.config.ts` — extends from designTokens but incompletely
+3. `index.html` inline `<script>` — a **separate, duplicate** Tailwind config that overrides #2 at runtime (CDN loads last)
+
+This means `tailwind.config.ts` is effectively dead code when using CDN Tailwind. The inline config in `index.html` is what actually runs, and it has already drifted from `designTokens.ts`.
 
 ---
 
@@ -240,30 +249,101 @@ This audit identified **127 specific design system inconsistencies** across the 
 
 ---
 
+## 13. TRIPLE-CONFIG DRIFT (9 findings)
+
+These are the most architecturally damaging issues — values defined in `designTokens.ts` that have drifted from the inline config in `index.html` (which is what actually runs via CDN Tailwind).
+
+| # | Files | Issue |
+|---|-------|-------|
+| 128 | `designTokens.ts:123` vs `index.html:160` | **slideUp animation**: designTokens says `0.3s`, index.html says `0.4s` — 33% timing difference |
+| 129 | `designTokens.ts:124` vs `index.html:161` | **scaleIn animation**: designTokens says `0.15s`, index.html says `0.2s` — 33% timing difference |
+| 130 | `tailwind.config.ts:12` vs `index.html:60-82` | **Colors**: tailwind.config extends `DESIGN_TOKENS.colors` (no admin tokens), but index.html inline config adds `tea-bg`, `tea-surface`, `tea-border`, `tea-text`, `tea-muted`, `tea-accent` — 6 admin colors exist ONLY in index.html |
+| 131 | `tailwind.config.ts:14-15` vs `index.html:83-86` | **fontFamily.mono**: tailwind.config only extends `serif` and `sans`, SKIPS `mono` — but index.html includes all three |
+| 132 | `designTokens.ts:39-45` vs `tailwind.config.ts:11-25` | **lineHeight**: defined in designTokens (`tight`, `snug`, `normal`, `relaxed`, `loose`) but **NOT extended** in tailwind.config.ts — tokens exist but are never consumed |
+| 133 | `designTokens.ts:57-61` vs `tailwind.config.ts:11-25` | **timing**: defined in designTokens (`micro: 150ms`, `standard: 300ms`, `emphasis: 500ms`) but **NOT extended** in tailwind.config — transition durations remain arbitrary |
+| 134 | `designTokens.ts:47-54` | **typography presets**: `h1`, `h2`, `h3`, `body`, `bodySmall` class strings defined but **never imported or used** by any component — dead code |
+| 135 | `index.html:33-52` vs `designTokens.ts` | **CSS custom properties** (`--font-size-xs` through `--font-size-5xl`, `--font-serif`, `--font-sans`, `--font-mono`) are a third copy of the same values — never referenced by any component |
+| 136 | `index.html:56-170` vs `tailwind.config.ts:1-30` | **Two Tailwind configs**: the CDN `tailwind.config` in index.html completely shadows the file-based config when running in dev (CDN mode). The file-based config only applies during `npm run build`. Different behavior in dev vs prod. |
+
+---
+
+## 14. Z-INDEX CHAOS (5 findings)
+
+No z-index scale is defined anywhere — not in designTokens, not in Tailwind config. Components use arbitrary values creating an undocumented stacking context.
+
+| # | File/Pattern | Value | Issue |
+|---|-------------|-------|-------|
+| 137 | `ThemeContext.tsx` | `z-[9999]` | Radial reveal overlay uses maximum z-index — will overlay everything including browser devtools overlays |
+| 138 | `App.tsx` | `z-[250]` | Toast messages at 250, but modals are at `z-[100]` — toast can appear over modals but gap between 100-250 is undocumented |
+| 139 | `App.tsx` | `z-[210]` | Contact modal at 210 vs other modals at `z-[100]` — same-type elements at different z-indices |
+| 140 | Multiple admin components | `z-[100]` | 80+ instances use `z-[100]` for modals, drawers, overlays — everything fights for the same layer |
+| 141 | Alcove modal buttons | `z-[70]`, `z-[61]`, `z-[60]` | Three adjacent z-values for related elements — fragile stacking that will break with any additions |
+
+---
+
+## 15. MISSING TOKEN SCALES (7 findings)
+
+| # | Token Type | Issue |
+|---|-----------|-------|
+| 142 | `letterSpacing` | Not defined anywhere. Components use `tracking-wider`, `tracking-widest`, `tracking-[0.2em]`, `tracking-[0.15em]`, inline `0.01em`, inline `0.2px` — 6+ arbitrary values |
+| 143 | `zIndex` | Not defined. 10+ arbitrary values from `z-10` to `z-[9999]` |
+| 144 | `transitionDuration` | `timing` defined in designTokens but not wired to Tailwind. Components use `duration-200`, `duration-300`, `duration-500`, `duration-700` arbitrarily |
+| 145 | `backdropBlur` | Not defined. Components use `backdrop-blur-sm`, `backdrop-blur-md`, `backdrop-blur-2xl` |
+| 146 | `borderRadius` scale stops at `xl: 0.75rem` | Components use `rounded-2xl` (55 instances), `rounded-3xl`, `rounded-full`, `rounded-t-[2000px]` — all outside the defined scale |
+| 147 | `boxShadow` scale stops at `xl` | Components use `shadow-2xl` extensively (admin modals, tables) — falls back to Tailwind default, not the custom scale |
+| 148 | Admin dark theme colors | `tea-bg`, `tea-surface`, `tea-border`, `tea-text`, `tea-muted`, `tea-accent` only in `index.html` inline config, not in `designTokens.ts` — admin has no typed color tokens |
+
+---
+
+## 16. HARDCODED HEX VALUES IN COMPONENTS (6 findings)
+
+Colors used in components that exist in no config or token file.
+
+| # | File | Line(s) | Hex Value | What It Should Be |
+|---|------|---------|-----------|-------------------|
+| 149 | `admin/components/TeaDetailsModal.tsx` | 167 | `#0e0d0c` | Near `tea-bg` (#0c0c0c) but 2 shades off — use token |
+| 150 | `admin/components/TeaDetailsModal.tsx` | 199 | `#1c1b19` | Warm near-black not in any palette |
+| 151 | `admin/components/TeaDetailsModal.tsx` | 199 | `#8a7e6a` | Muted gold — should be `tea-beige-dark` (#8A8070) or a new token |
+| 152 | `admin/components/TeaDetailsModal.tsx` | 199 | `#c0b49a` | Light gold — between `tea-beige` and `tea-paper-secondary`, no match |
+| 153 | `admin/components/TeaDetailsModal.tsx` | 243-244 | `rgba(180,120,40,...)` | Warm amber gradient — not `tea-seal` (184,136,45), close but off |
+| 154 | `styles/card-utilities.css` | 84 | `#E8DDCC` | Card title color — not `tea-paper` (#F3F0E7), not `tea-beige` (#D8D0C0), a unique warm cream |
+
+---
+
 ## Priority Recommendations
 
-### Critical (fix immediately)
-1. **Unify the gold color** — `#b8882d` (tea-seal), `#C9943A` (card-utilities), `#a07830` (tea-seal-dark) should be rationalized into a single gold palette with clear light/dark variants
-2. **Eliminate duplicate color maps** — `themeUtils.ts`, `TeaDetailsModal.tsx`, and `PersonalCollectionView.tsx` all define tea type colors independently
-3. **Fix shimmer animation conflict** — two `@keyframes shimmer` with different end values will cause unpredictable behavior
-4. **Remove duplicate CSS/Tailwind definitions** — font sizes, font families, and color variables are double-defined in `:root` and Tailwind config
+### P0 — Architectural (fix first, everything else depends on this)
+1. **Resolve the triple-config problem** — Remove the inline `tailwind.config` from `index.html` and switch from CDN to build-time Tailwind. This is the root cause of config drift. Until this is fixed, changes to `designTokens.ts` have no effect in dev mode.
+2. **Add admin colors to `designTokens.ts`** — `tea-bg`, `tea-surface`, `tea-border`, `tea-text`, `tea-muted`, `tea-accent` must live in the single source of truth, not only in `index.html`
+3. **Wire missing token scales to Tailwind** — `lineHeight`, `timing` (as `transitionDuration`), and `letterSpacing` are defined or needed but not extended in `tailwind.config.ts`
+4. **Fix animation timing drift** — `slideUp` (0.3s vs 0.4s) and `scaleIn` (0.15s vs 0.2s) between designTokens and index.html
 
-### High (design consistency)
-5. **Standardize modal border radius** — pick one: `rounded-xl` or `rounded-2xl` for all modals
-6. **Standardize button padding** — define sm/md/lg button sizes and enforce them
-7. **Standardize transition timing** — pick 2-3 durations (200ms fast, 300ms normal, 500ms emphasis) and a single easing function
-8. **Standardize heading scale** — admin view headers should all use the same size (recommend `text-2xl`)
-9. **Standardize input styling** — either underline inputs (`rounded-none border-b`) or boxed inputs (`rounded-lg border`), not both
+### P1 — Critical (design correctness)
+5. **Unify the gold color** — `#b8882d` (tea-seal), `#C9943A` (card-utilities.css), `#a07830` (tea-seal-dark) are three different golds. Rationalize into one palette.
+6. **Eliminate duplicate color maps** — `themeUtils.ts`, `TeaDetailsModal.tsx`, and `PersonalCollectionView.tsx` all independently define tea type colors
+7. **Fix shimmer animation conflict** — two `@keyframes shimmer` with different `translateX` end values (100% vs 200%)
+8. **Define z-index scale** — Add `zIndex` to designTokens: `sticky: 10`, `dropdown: 40`, `modal: 100`, `toast: 200`, `overlay: 1000`. Replace all `z-[9999]`, `z-[250]`, `z-[210]` with tokens
+9. **Remove dead CSS custom properties** — `--font-size-*` and `--font-*` vars in `:root` are never referenced
 
-### Medium (polish)
-10. **Align shadow scale** — complete the config with `2xl` and ensure progression is gradual
-11. **Standardize icon sizes** — define 4 sizes (12, 16, 20, 24) and enforce across all components
-12. **Fix the card-utilities.css spacing** — align to 4px/8px grid (10px → 8px or 12px)
-13. **Remove hardcoded colors** — replace all `#555555`, `#E8DDCC`, `#859F85`, `blue-400` with tokens
-14. **Standardize opacity notation** — use either `/10` or `/[0.1]` consistently, not both
+### P2 — High (design consistency)
+10. **Standardize modal border radius** — pick `rounded-xl` or `rounded-2xl` for all modals, not both
+11. **Standardize button padding** — define sm (`py-2`), md (`py-3`), lg (`py-4`) and enforce across all modals
+12. **Standardize transition timing** — use designTokens timing: `150ms` (micro), `300ms` (standard), `500ms` (emphasis) and one easing function
+13. **Standardize heading scale** — use the typography presets in `designTokens.ts:47-54` that are already defined but never imported
+14. **Standardize input styling** — pick one paradigm: underline (`rounded-none border-b`) OR boxed (`rounded-lg border`), not both in admin
+15. **Complete the borderRadius scale** — add `2xl`, `3xl`, `full` to designTokens to cover the 55+ instances of `rounded-2xl`
+16. **Complete the shadow scale** — add `2xl` to designTokens to cover admin modals and tables
 
-### Low (refinement)
-15. **Register all loaded fonts** — add Playfair Display, Fraunces, Bricolage Grotesque, JetBrains Mono, Ma Shan Zheng to Tailwind config
-16. **Standardize line-height** — define a scale (1.25 tight, 1.5 normal, 1.7 relaxed, 1.85 reading) and use consistently
-17. **Fix letter-spacing units** — convert `0.2px` to `em` to match rest of system
-18. **Rationalize `tea-ink-light` and `tea-ink-secondary`** — they're the same color, pick one name
+### P3 — Medium (polish)
+17. **Standardize icon sizes** — define 4 sizes (12, 16, 20, 24) and enforce. Remove hardcoded `w-[22px]`
+18. **Fix card-utilities.css spacing** — replace `0.625rem`/`0.75rem`/`0.875rem` with 4px-grid-aligned values
+19. **Replace all hardcoded hex colors** — `#555555` → `tea-ink-light`, `#E8DDCC` → new token, `#859F85` → new token, `blue-400` → remove
+20. **Standardize opacity notation** — use `/10` everywhere, not `[0.05]` or `[0.02]`
+21. **Register all loaded fonts** — add Playfair Display, Fraunces, Bricolage Grotesque, JetBrains Mono, Ma Shan Zheng to fontFamily config
+22. **Add letterSpacing tokens** — define `tight`, `normal`, `wide`, `wider`, `widest` and convert the 6+ arbitrary values
+
+### P4 — Low (refinement)
+23. **Rationalize `tea-ink-light` and `tea-ink-secondary`** — both are `#555555`, pick one name
+24. **Delete unused `typography` presets** or actually wire them into a utility — currently dead code in designTokens
+25. **Fix line-height inconsistency** — body `1.625`, p `1.7`, card title `1.25`, article `1.85` — map to the lineHeight tokens already defined
+26. **Convert inline `letter-spacing: 0.2px`** to `em` to match rest of system
