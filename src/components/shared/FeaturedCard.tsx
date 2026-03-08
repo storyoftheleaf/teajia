@@ -33,18 +33,18 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
       <div className="flex flex-col md:flex-row">
         {/* Text content */}
         <div className="flex-1 p-6 md:p-8">
-          <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
+          <span className="inline-block text-[10px] uppercase tracking-[0.2em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
             {badge}
           </span>
-          <h2 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight mb-4">
+          <h2 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-4">
             {title}
           </h2>
-          <p className="text-sm text-tea-paper/60 leading-relaxed mb-6 max-w-lg">
+          <p className="font-serif text-[17px] text-tea-text-sec leading-[1.85] mb-6 max-w-lg">
             {description}
           </p>
           <button
             onClick={onCtaClick}
-            className="text-tea-gold text-sm font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+            className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm border-b border-tea-gold pb-0.5"
           >
             {ctaLabel}
             <Icons.ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

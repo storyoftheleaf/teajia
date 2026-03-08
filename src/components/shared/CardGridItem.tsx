@@ -37,7 +37,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           {imageComponent}
           {/* Desktop quick view overlay (#18) */}
           <div className="hidden lg:flex absolute inset-0 items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-300">
-            <span className="text-xs uppercase tracking-widest text-white font-medium px-4 py-2 bg-tea-gold/90 rounded-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+            <span className="text-xs uppercase tracking-[0.15em] text-white font-medium px-4 py-2 bg-tea-gold/90 rounded-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
               Quick View
             </span>
           </div>

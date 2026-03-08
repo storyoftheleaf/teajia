@@ -152,7 +152,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-[1px] bg-tea-gold/30" />
-          <p className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-tea-gold/70 font-sans">
+          <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-tea-gold/70 font-sans">
             {currentInsight.label}
           </p>
         </div>
@@ -198,7 +198,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <button
               onClick={() => onNavigateToSection('MAGAZINE')}
-              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300"
+              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
             >
               All
               <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -233,7 +233,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3">
             &ldquo;{pullQuote.description}&rdquo;
           </p>
-          <p className="text-xs uppercase tracking-widest text-tea-text/40 font-sans">
+          <p className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans">
             &mdash; From &ldquo;{pullQuote.title}&rdquo;
           </p>
         </section>
@@ -258,7 +258,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
           <button
             onClick={() => onNavigateToSection('LEARN')}
-            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300"
+            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
           >
             All courses
             <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -292,7 +292,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <button
               onClick={() => onNavigateToSection('SHOP')}
-              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300"
+              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
             >
               Shop
               <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -380,7 +380,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
           <button
             onClick={() => onNavigateToSection('OFFERINGS')}
-            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
+            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
           >
             Learn more
             <Icons.ChevronRight className="w-3.5 h-3.5" />

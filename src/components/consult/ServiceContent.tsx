@@ -33,7 +33,7 @@ const ServiceDivider = () => (
 
 const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-widest font-medium
+    className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
                flex items-center gap-1 transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
@@ -43,7 +43,7 @@ const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) 
 
 const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-widest
+    className="text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-[0.15em]
                font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}

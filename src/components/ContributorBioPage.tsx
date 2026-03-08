@@ -34,7 +34,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
           {/* Avatar & Role */}
           <div className="flex gap-8 md:flex-row flex-col">
             {contributor.avatarUrl && (
-              <div className="w-48 h-48 md:w-40 md:h-40 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+              <div className="w-48 h-48 md:w-40 md:h-40 rounded-[1px] overflow-hidden bg-white/5 flex-shrink-0">
                 <img
                   src={contributor.avatarUrl}
                   alt={contributor.name}
@@ -70,7 +70,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                 {authoredArticles.map((article: any) => (
                   <div
                     key={article.id}
-                    className="p-4 border border-tea-border rounded-xl hover:bg-white/50 cursor-pointer transition-colors"
+                    className="p-4 border border-tea-border rounded-[1px] hover:bg-white/50 cursor-pointer transition-colors"
                   >
                     <h4 className="font-serif text-tea-text mb-1">{article.title}</h4>
                     <p className="text-xs text-tea-text/60">

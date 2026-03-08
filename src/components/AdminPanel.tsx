@@ -70,20 +70,20 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                     className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group px-2 py-1 rounded-sm hover:bg-white/5"
                 >
                     <Icons.Back className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-xs uppercase tracking-widest font-bold hidden md:inline">Exit Studio</span>
-                    <span className="text-xs uppercase tracking-widest font-bold md:hidden">Exit</span>
+                    <span className="text-xs uppercase tracking-[0.15em] font-bold hidden md:inline">Exit Studio</span>
+                    <span className="text-xs uppercase tracking-[0.15em] font-bold md:hidden">Exit</span>
                 </button>
 
                 <div className="flex bg-tea-bg rounded-lg p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>
                         {isMedia ? 'Poster' : 'Canvas'}
                     </button>
-                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>Meta</button>
+                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>Meta</button>
                 </div>
 
                 <button 
                     onClick={() => onSave(currentStory, pages)} 
-                    className="flex items-center gap-2 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-widest transition-colors shadow-lg"
+                    className="flex items-center gap-2 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-[0.15em] transition-colors shadow-lg"
                 >
                     <Icons.Check className="w-4 h-4" />
                     <span className="hidden md:inline">Save</span>
@@ -142,7 +142,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         {!isMedia && (
                             <button
                                 onClick={() => setShowTemplateModal(true)}
-                                className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-widest font-medium transition-colors z-50 shadow-lg"
+                                className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-[0.15em] font-medium transition-colors z-50 shadow-lg"
                             >
                                 Choose Template
                             </button>
@@ -180,7 +180,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                             {/* Media Specific Fields */}
                             {isMedia && (
                                 <div className="p-4 border border-tea-gold/30 bg-tea-gold/5 rounded-sm space-y-4">
-                                     <h3 className="text-xs uppercase tracking-widest text-tea-gold mb-2">Media Configuration</h3>
+                                     <h3 className="text-xs uppercase tracking-[0.15em] text-tea-gold mb-2">Media Configuration</h3>
                                      <div>
                                         <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Duration</label>
                                         <input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
@@ -255,7 +255,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 if (filtered.length === 0 && templateSearch) return null;
                                 return (
                             <div>
-                                <h3 className="text-sm uppercase tracking-widest text-tea-gold mb-3 font-semibold">Covers & Front Matter</h3>
+                                <h3 className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3 font-semibold">Covers & Front Matter</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                     {filtered.map(v => (
                                         <button
@@ -282,7 +282,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 if (filtered.length === 0 && templateSearch) return null;
                                 return (
                             <div>
-                                <h3 className="text-sm uppercase tracking-widest text-tea-gold mb-3 font-semibold">Text Layouts</h3>
+                                <h3 className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3 font-semibold">Text Layouts</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                     {filtered.map(v => (
                                         <button
@@ -309,7 +309,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 if (filtered.length === 0 && templateSearch) return null;
                                 return (
                             <div>
-                                <h3 className="text-sm uppercase tracking-widest text-tea-gold mb-3 font-semibold">Image Layouts</h3>
+                                <h3 className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3 font-semibold">Image Layouts</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                     {filtered.map(v => (
                                         <button
@@ -336,7 +336,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 if (filtered.length === 0 && templateSearch) return null;
                                 return (
                             <div>
-                                <h3 className="text-sm uppercase tracking-widest text-tea-gold mb-3 font-semibold">Poetic & Artsy</h3>
+                                <h3 className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3 font-semibold">Poetic & Artsy</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                     {filtered.map(v => (
                                         <button
@@ -363,7 +363,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 if (filtered.length === 0 && templateSearch) return null;
                                 return (
                             <div>
-                                <h3 className="text-sm uppercase tracking-widest text-tea-gold mb-3 font-semibold">Editorial & Data</h3>
+                                <h3 className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3 font-semibold">Editorial & Data</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                     {filtered.map(v => (
                                         <button
@@ -390,7 +390,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 if (filtered.length === 0 && templateSearch) return null;
                                 return (
                             <div>
-                                <h3 className="text-sm uppercase tracking-widest text-tea-gold mb-3 font-semibold">Tea Specific</h3>
+                                <h3 className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3 font-semibold">Tea Specific</h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                                     {filtered.map(v => (
                                         <button
@@ -422,7 +422,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                     <p className="text-white/60 text-sm">No templates found matching "{templateSearch}"</p>
                                     <button
                                         onClick={() => setTemplateSearch('')}
-                                        className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-widest rounded-sm transition-colors"
+                                        className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.15em] rounded-sm transition-colors"
                                     >
                                         Clear Search
                                     </button>
@@ -688,7 +688,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
              <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 gap-3 bg-tea-bg">
                  <div className="flex items-center gap-3">
                      <div className="w-8 h-8 bg-tea-gold rounded-lg flex items-center justify-center text-black font-serif font-bold">T</div>
-                     <span className="text-xs uppercase tracking-widest text-white/70 hidden md:inline">Admin</span>
+                     <span className="text-xs uppercase tracking-[0.15em] text-white/70 hidden md:inline">Admin</span>
                  </div>
                  <div className="flex items-center gap-2 md:hidden">
                      <button onClick={onClose} className="px-2 py-1 text-white/80 hover:text-white text-xs uppercase transition-colors" title="Exit">Exit</button>
@@ -733,7 +733,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <input type="file" accept="application/json" onChange={handleImportStories} className="hidden" id="story-import-input" />
                             <button
                                 onClick={() => document.getElementById('story-import-input')?.click()}
-                                className="px-3 py-2 bg-white/10 text-white/80 text-xs uppercase tracking-widest hover:bg-white/20 rounded-sm flex items-center gap-2"
+                                className="px-3 py-2 bg-white/10 text-white/80 text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-2"
                                 title="Import stories from JSON"
                                 aria-label="Import stories"
                             >
@@ -741,13 +741,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             </button>
                             <button
                                 onClick={handleExportStories}
-                                className="px-3 py-2 bg-white/10 text-white/80 text-xs uppercase tracking-widest hover:bg-white/20 rounded-sm flex items-center gap-2"
+                                className="px-3 py-2 bg-white/10 text-white/80 text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-2"
                                 title="Export all stories to JSON"
                                 aria-label="Export stories"
                             >
                                 <Icons.Download className="w-4 h-4" />
                             </button>
-                            <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                            <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                                 <Icons.Plus className="w-4 h-4" /> New Article
                             </button>
                         </div>
@@ -781,7 +781,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <h2 className="text-2xl font-serif text-tea-text mb-1">Media Vault</h2>
                             <p className="text-white/80 text-xs uppercase tracking-wider">Reels, Films & Audio for future release</p>
                         </div>
-                        <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                        <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                             <Icons.Plus className="w-4 h-4" /> New Media
                         </button>
                     </div>
@@ -810,7 +810,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                         <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg text-white/70 border border-white/10`}>
                                             {s.type}
                                         </span>
-                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-widest bg-black/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
+                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-[0.15em] bg-black/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
                                     </div>
 
                                     {/* Bottom Meta */}
@@ -850,13 +850,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                         </div>
                         <div className="flex gap-2 flex-wrap">
                             <div className="flex bg-tea-bg p-1 rounded-sm border border-white/10">
-                                <button onClick={() => setInventoryTab('TEA')} className={`px-4 py-1 text-xs uppercase tracking-widest transition-colors ${inventoryTab === 'TEA' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Tea</button>
-                                <button onClick={() => setInventoryTab('WARE')} className={`px-4 py-1 text-xs uppercase tracking-widest transition-colors ${inventoryTab === 'WARE' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Ware</button>
+                                <button onClick={() => setInventoryTab('TEA')} className={`px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors ${inventoryTab === 'TEA' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Tea</button>
+                                <button onClick={() => setInventoryTab('WARE')} className={`px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors ${inventoryTab === 'WARE' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Ware</button>
                             </div>
-                            <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 bg-white/10 text-white text-xs uppercase tracking-widest hover:bg-white/20 rounded-sm flex items-center gap-1 border border-white/20" title="Import">
+                            <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 bg-white/10 text-white text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-1 border border-white/20" title="Import">
                                 <Icons.Download className="w-3 h-3" />
                             </button>
-                            <button onClick={handleExportInventory} className="px-2 py-1 bg-white/10 text-white text-xs uppercase tracking-widest hover:bg-white/20 rounded-sm flex items-center gap-1 border border-white/20" title="Export">
+                            <button onClick={handleExportInventory} className="px-2 py-1 bg-white/10 text-white text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-1 border border-white/20" title="Export">
                                 <Icons.ArrowUp className="w-3 h-3" />
                             </button>
                             <input
@@ -866,7 +866,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 onChange={handleImportInventory}
                                 className="hidden"
                             />
-                            <button onClick={handleInventoryCreate} className="px-4 py-1 bg-tea-gold text-tea-paper text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                            <button onClick={handleInventoryCreate} className="px-4 py-1 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                                 <Icons.Plus className="w-3 h-3" /> Add Item
                             </button>
                         </div>
@@ -874,7 +874,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
 
                     <div className="bg-tea-bg border border-white/10 overflow-hidden rounded-sm">
                         <table className="w-full text-left text-sm text-white/80">
-                            <thead className="bg-white/5 text-xs uppercase tracking-widest text-white/80">
+                            <thead className="bg-white/5 text-xs uppercase tracking-[0.15em] text-white/80">
                                 <tr>
                                     <th className="p-4 font-normal w-12">Img</th>
                                     <th className="p-4 font-normal">Name</th>
@@ -956,7 +956,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 <h3 className="text-lg font-serif text-white mb-2">Shopping Cart</h3>
                                 <p className="text-white/80 text-sm">Manage your product selections and generate orders</p>
                             </div>
-                            <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2">
+                            <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.15em] rounded-sm transition-colors flex items-center gap-2">
                                 <Icons.Bag className="w-4 h-4" />
                                 View Cart
                             </a>
@@ -1001,7 +1001,7 @@ const ThemeSettings = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-sm text-white text-xs uppercase tracking-widest flex items-center gap-2 transition-colors"
+      className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-sm text-white text-xs uppercase tracking-[0.15em] flex items-center gap-2 transition-colors"
     >
       {theme === 'dark' ? (
         <>

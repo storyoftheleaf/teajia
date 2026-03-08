@@ -79,7 +79,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
           {reference.map(item => (
             <button
               key={item.id}
-              className="group rounded-xl p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors text-left min-h-[44px]"
+              className="group rounded-[1px] p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors text-left min-h-[44px]"
             >
               <div className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
                 {(item.iconKey && ICON_MAP[item.iconKey]) || <Icons.Book className="w-6 h-6" />}

@@ -85,11 +85,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-            <h3 className="font-serif text-lg text-tea-paper leading-tight line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
+            <h3 className="font-serif text-[19px] text-tea-paper leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
               {title}
             </h3>
             {description && (
-              <p className="text-[11px] text-tea-paper/70 uppercase tracking-[0.15em] font-sans line-clamp-1">
+              <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] font-sans line-clamp-1">
                 {description}
               </p>
             )}

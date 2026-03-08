@@ -42,7 +42,7 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
             <p className="font-serif text-lg text-tea-text">
               {guest.name}
             </p>
-            <p className="text-xs text-tea-text/50 uppercase tracking-widest font-sans mt-1">
+            <p className="text-xs text-tea-text/50 uppercase tracking-[0.15em] font-sans mt-1">
               {guest.role}
             </p>
           </div>

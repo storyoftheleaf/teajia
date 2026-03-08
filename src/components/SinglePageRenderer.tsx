@@ -441,7 +441,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.TEXT_VERTICAL_CJK:
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-row-reverse items-start justify-center pt-24`}>
-                         <div className="h-[85%] writing-vertical text-4xl font-serif leading-[3rem] tracking-widest text-justify opacity-90">
+                         <div className="h-[85%] writing-vertical text-4xl font-serif leading-[3rem] tracking-[0.15em] text-justify opacity-90">
                              <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="" placeholder="Vertical text..." tag="p" readOnly={readOnly} />
                          </div>
                     </div>
@@ -468,7 +468,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.CHAPTER_BOLD:
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col justify-center pl-24`}>
-                        <span className="text-2xl uppercase tracking-[0.4em] opacity-50 mb-8 block">Chapter</span>
+                        <span className="text-2xl uppercase tracking-[0.2em] opacity-50 mb-8 block">Chapter</span>
                         <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-[150px] font-serif font-bold leading-none mb-12" placeholder="01" tag="h1" readOnly={readOnly} />
                          <div className={`w-32 h-3 bg-tea-gold opacity-80`}></div>
                     </div>
@@ -501,7 +501,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute bottom-0 left-0 w-full p-12 pt-32 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none">
-                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-tea-paper/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
+                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-[0.15em] text-tea-paper/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
                         </div>
                     </div>
                 );
@@ -539,7 +539,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="row-span-2 relative bg-black"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="relative bg-black"><SafeImage index={1} className="w-full h-full" /></div>
                         <div className={`relative ${theme.bg} flex items-center justify-center p-8 text-center`}>
-                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-xl uppercase tracking-widest opacity-80" placeholder="GRID CAPTION" tag="p" readOnly={readOnly} />
+                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-xl uppercase tracking-[0.15em] opacity-80" placeholder="GRID CAPTION" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -581,7 +581,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              ))}
                          </div>
                          <div className="w-[80%] text-center">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest opacity-80" placeholder="Strip Caption" tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-[0.15em] opacity-80" placeholder="Strip Caption" tag="p" readOnly={readOnly} />
                          </div>
                     </div>
                 );
@@ -635,7 +635,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col justify-end text-center pb-24`}>
                          <div className="w-16 h-16 bg-current mx-auto mb-16 mask-icon-seal opacity-20 rounded-full"></div>
-                         <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl leading-loose uppercase tracking-widest opacity-60 font-sans" placeholder="Credits..." tag="div" readOnly={readOnly} />
+                         <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl leading-loose uppercase tracking-[0.15em] opacity-60 font-sans" placeholder="Credits..." tag="div" readOnly={readOnly} />
                     </div>
                 );
 
@@ -651,7 +651,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              </svg>
                              <div className="relative z-10 text-center bg-white/60 backdrop-blur-sm p-16 border border-black/10 shadow-sm rounded-sm">
                                  <Icons.Grid className="w-16 h-16 mx-auto mb-6 opacity-50" />
-                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-5xl font-serif tracking-widest uppercase font-bold" placeholder="Location Name" tag="h2" readOnly={readOnly} />
+                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-5xl font-serif tracking-[0.15em] uppercase font-bold" placeholder="Location Name" tag="h2" readOnly={readOnly} />
                                  <p className="text-2xl font-mono mt-6 opacity-60">32.4° N, 118.2° E</p>
                              </div>
                          </div>
@@ -662,7 +662,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex items-center justify-center`}>
                          <div className={`w-full border-4 border-current/20 p-16 relative`}>
-                             <div className={`absolute -top-6 left-1/2 -translate-x-1/2 px-8 ${theme.bg} text-2xl uppercase tracking-widest border-x-4 border-current/10`}>Brewing Guide</div>
+                             <div className={`absolute -top-6 left-1/2 -translate-x-1/2 px-8 ${theme.bg} text-2xl uppercase tracking-[0.15em] border-x-4 border-current/10`}>Brewing Guide</div>
                              <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-3xl font-serif leading-loose whitespace-pre-wrap" placeholder="1. Boil water..." tag="div" readOnly={readOnly} />
                          </div>
                     </div>
@@ -737,7 +737,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                         <Icons.ExternalLink className="w-5 h-5 opacity-40 group-hover:opacity-80 flex-shrink-0 mt-1" />
                                     </div>
                                     {link.source && (
-                                        <div className={`text-sm uppercase tracking-widest ${theme.subtext} mb-3`}>
+                                        <div className={`text-sm uppercase tracking-[0.15em] ${theme.subtext} mb-3`}>
                                             {link.source}
                                         </div>
                                     )}
@@ -757,7 +757,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         </div>
 
                         <div className="mt-auto pt-8 text-center">
-                            <p className={`text-sm uppercase tracking-widest ${theme.subtext}`}>
+                            <p className={`text-sm uppercase tracking-[0.15em] ${theme.subtext}`}>
                                 Curated with care
                             </p>
                         </div>
@@ -806,7 +806,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 <div className={`${isVertical ? 'w-[60%] aspect-[9/16]' : 'w-full aspect-video'} bg-black/10 rounded-sm flex items-center justify-center border-2 border-dashed border-current/20`}>
                                     <div className="text-center opacity-40">
                                         <Icons.Play className="w-12 h-12 mx-auto mb-2" />
-                                        <span className="text-sm uppercase tracking-widest">Video ID required</span>
+                                        <span className="text-sm uppercase tracking-[0.15em]">Video ID required</span>
                                     </div>
                                 </div>
                             </div>
@@ -840,7 +840,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col`}>
                         <div className="mb-12 pb-6 border-b border-current/10 opacity-30">
-                            <h3 className="text-xl uppercase tracking-widest select-none">{variant}</h3>
+                            <h3 className="text-xl uppercase tracking-[0.15em] select-none">{variant}</h3>
                         </div>
                         <div className="flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-4xl leading-loose text-justify opacity-90" placeholder="Content..." tag="p" readOnly={readOnly} />

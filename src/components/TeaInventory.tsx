@@ -341,7 +341,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          <div className="flex-1 min-w-0">
          {/* Results Count */}
          <div className="flex items-center justify-between mb-4 px-0">
-            <p className="text-xs uppercase tracking-widest text-tea-text/50">
+            <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50">
                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
                {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
                   <button
@@ -506,7 +506,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {/* Slider */}
                                             <div className="flex-1 flex items-center gap-3 px-2">
                                                 <div className="flex flex-col min-w-[60px]">
-                                                    <span className="text-[10px] uppercase tracking-widest text-tea-text/50">Qty</span>
+                                                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Qty</span>
                                                     <span className="num text-sm text-tea-text">
                                                         {currentQty}g <span className="opacity-30 mx-0.5">/</span> <span className="opacity-40">{maxStock}g</span>
                                                     </span>
@@ -526,13 +526,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-gold hover:text-tea-gold/80 text-[11px] uppercase tracking-widest font-medium py-2 px-3 rounded-lg transition-all border border-tea-gold/20 hover:border-tea-gold/40"
+                                                    className="text-tea-gold hover:text-tea-gold/80 text-[11px] uppercase tracking-[0.15em] font-medium py-2 px-3 rounded-lg transition-all border border-tea-gold/20 hover:border-tea-gold/40"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                    className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
                                                 >
                                                     <span>Add</span>
                                                     <span className="w-[1px] h-2.5 bg-white/30"></span>

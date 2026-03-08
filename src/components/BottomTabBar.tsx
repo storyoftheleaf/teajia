@@ -78,8 +78,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         </div>
 
         {/* Label */}
-        <span className={`text-[10px] font-sans uppercase tracking-widest font-medium mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
-          isActive ? 'text-tea-gold' : 'text-tea-paper/60 group-hover:text-tea-paper/85'
+        <span className={`text-[11px] font-sans font-normal uppercase tracking-[0.15em] mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
+          isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
         }`}>
           {section.label}
         </span>

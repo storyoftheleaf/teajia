@@ -62,7 +62,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           className="flex items-center gap-2 text-tea-text-dim hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-xs uppercase tracking-widest">Back</span>
+          <span className="text-xs uppercase tracking-[0.15em]">Back</span>
         </button>
 
         <div className="flex flex-col items-center justify-center py-16">
@@ -85,14 +85,14 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         className="flex items-center gap-2 text-tea-text-dim hover:text-tea-text transition-colors mb-4"
       >
         <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-widest">Back</span>
+        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
       </button>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-serif text-lg text-tea-text ">My Collection</h3>
-          <span className="text-[10px] uppercase tracking-widest text-tea-text-dim">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">
             {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'}
           </span>
         </div>
@@ -103,12 +103,12 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           {copied ? (
             <>
               <Icons.Check className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-[10px] uppercase tracking-widest text-green-600 font-medium">Copied!</span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-green-600 font-medium">Copied!</span>
             </>
           ) : (
             <>
               <Icons.Share className="w-3.5 h-3.5 text-tea-gold" />
-              <span className="text-[10px] uppercase tracking-widest text-tea-gold font-medium">Share</span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-medium">Share</span>
             </>
           )}
         </button>

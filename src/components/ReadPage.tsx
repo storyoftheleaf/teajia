@@ -146,7 +146,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
                 <p className="font-sans text-sm md:text-base text-tea-paper/70 max-w-lg leading-relaxed mb-4">
                   {featuredArticle.description}
                 </p>
-                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-tea-paper/60 font-sans group-hover:text-tea-gold transition-colors">
+                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-tea-paper/60 font-sans group-hover:text-tea-gold transition-colors">
                   Read
                   <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -306,7 +306,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
               </p>
               <button
                 onClick={handleClearTags}
-                className="text-xs uppercase tracking-widest font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
+                className="text-xs uppercase tracking-[0.15em] font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
               >
                 Clear filters
               </button>

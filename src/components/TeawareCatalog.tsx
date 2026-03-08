@@ -300,8 +300,8 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                               <p className="font-serif text-sm md:text-base text-tea-text/80 mb-6 leading-relaxed max-w-3xl italic border-l-2 border-tea-border pl-4">"{item.description}"</p>
                                               <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-tea-text/5 rounded-lg p-3 pr-4 border border-tea-border">
                                                   <div className="flex items-center gap-4 px-2">
-                                                      <span className="text-[10px] uppercase tracking-widest text-tea-text/50">Quantity</span>
-                                                      <div className="flex items-center border border-tea-border rounded-xl bg-tea-text/10 dark:bg-black/20">
+                                                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Quantity</span>
+                                                      <div className="flex items-center border border-tea-border rounded-[1px] bg-tea-text/10 dark:bg-black/20">
                                                           <button onClick={() => updateQuantity(item.id, Math.max(1, currentQty - 1))} disabled={currentQty <= 1} className="px-3 py-1 hover:bg-tea-text/10 transition-colors text-tea-text  disabled:opacity-30">-</button>
                                                           <span className="px-3 py-1 font-mono text-sm border-l border-r border-tea-border min-w-[40px] text-center text-tea-text ">{currentQty}</span>
                                                           <button onClick={() => updateQuantity(item.id, Math.min(maxStock, currentQty + 1))} disabled={currentQty >= maxStock} className="px-3 py-1 hover:bg-tea-text/10 transition-colors text-tea-text  disabled:opacity-30">+</button>
@@ -309,7 +309,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                                       <span className="text-[10px] text-tea-text/40 font-mono">{maxStock} available</span>
                                                   </div>
                                                   <div className="flex-1"></div>
-                                                  <button onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)} className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-3 px-8 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg min-w-[200px]">
+                                                  <button onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)} className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-3 px-8 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg min-w-[200px]">
                                                       <span>Add to Cart</span>
                                                       <span className="w-[1px] h-3 bg-white/30"></span>
                                                       <span className="font-mono text-sm">${totalPrice.toLocaleString()}</span>

@@ -33,7 +33,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
           <Icons.Grid className="w-5 h-5 text-tea-gold" />
-          <span className="text-xs uppercase tracking-widest text-tea-gold font-medium">Portfolio</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-tea-gold font-medium">Portfolio</span>
         </div>
         <h3 className="font-serif text-2xl md:text-3xl text-tea-text mb-2">
           Our Work

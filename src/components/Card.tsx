@@ -83,29 +83,29 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                             <Icons.Audio className="w-5 h-5 text-tea-paper/60 group-hover:text-tea-gold transition-colors" />
                        </div>
 
-                       <h3 className="font-serif text-xl md:text-2xl text-tea-paper mb-2 leading-tight group-hover:text-tea-gold transition-colors duration-500">
+                       <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-paper mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500">
                            {story.title}
                        </h3>
-                       <p className="text-xs text-tea-paper/70 font-sans uppercase tracking-widest mb-4">
+                       <p className="text-[10px] text-tea-text-dim font-sans uppercase tracking-[0.2em] mb-4">
                            {story.subtitle}
                        </p>
 
                        <div className="w-6 h-[1px] bg-white/10 mb-4"></div>
 
-                       <span className="text-xs font-mono text-tea-paper/60 tracking-wider">{story.durationOrTime}</span>
+                       <span className="text-[9px] font-mono text-tea-text-dim">{story.durationOrTime}</span>
                    </div>
                 ) : (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
-                        <h3 className="font-serif text-xl md:text-2xl text-tea-paper leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
+                        <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-paper leading-[1.2] tracking-[0.01em] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
                            {story.title}
                         </h3>
                         <div className="flex flex-col gap-1.5 items-center">
-                             <p className="text-xs text-tea-paper/70 font-sans uppercase tracking-widest">
+                             <p className="text-[10px] text-tea-text-dim font-sans uppercase tracking-[0.2em]">
                                 {story.subtitle}
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
                                 <div className="w-6 h-[0.5px] bg-white/20 mt-2 shrink-0"></div>
-                                <p className="text-sm text-tea-paper/80 font-serif italic leading-relaxed line-clamp-2 text-center max-w-[80%]">
+                                <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]">
                                     {story.description}
                                 </p>
                                 <div className="w-6 h-[0.5px] bg-white/20 mt-2 shrink-0"></div>
@@ -155,7 +155,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {/* Category Badge */}
                {story.category && CATEGORY_BADGES[story.category] && (
-                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-tea-paper text-[10px] uppercase tracking-widest font-sans rounded-sm shadow-md`}>
+                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-tea-paper text-[10px] uppercase tracking-[0.15em] font-sans rounded-sm shadow-md`}>
                    {CATEGORY_BADGES[story.category].label}
                  </div>
                )}
@@ -170,7 +170,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                         <div className="flex justify-between items-end text-tea-paper">
                            <div className="flex items-center gap-2">
                               <Icons.Audio className="w-3 h-3 opacity-90" />
-                              <span className="text-xs uppercase tracking-widest opacity-90">Listen</span>
+                              <span className="text-xs uppercase tracking-[0.15em] opacity-90">Listen</span>
                            </div>
                            <span className="text-xs font-mono opacity-80">{story.durationOrTime}</span>
                         </div>
@@ -192,11 +192,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
         {!isTextOnly && (
             <div className="pt-3 pb-1 px-0.5 flex justify-between items-start gap-3">
                 <div className="text-left min-w-0 flex-1">
-                    <h3 className="text-lg font-serif text-tea-paper/95 leading-none mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate">
+                    <h3 className="text-[17px] font-serif text-tea-text leading-[1.2] mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate">
                         {story.title}
                     </h3>
                     <div className="flex items-center gap-2">
-                        <p className="text-[11px] text-tea-paper/70 uppercase tracking-[0.15em] font-sans truncate">
+                        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] font-sans truncate">
                             {story.subtitle}
                         </p>
                     </div>

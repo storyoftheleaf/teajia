@@ -189,7 +189,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <div className="flex flex-col min-w-[60px] text-left">
-              <span className="text-[10px] uppercase tracking-widest text-tea-bg/60">Qty</span>
+              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-bg/60">Qty</span>
               <span className="num text-sm text-tea-bg">{currentQuantity}g</span>
             </div>
             <HapticSlider
@@ -212,7 +212,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-[10px] uppercase tracking-widest text-tea-paper/60">Quantity</span>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-paper/60">Quantity</span>
             <div className="flex items-center border border-white/20 rounded-lg bg-black/20 ml-auto">
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
@@ -267,7 +267,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center justify-center gap-3 text-tea-paper/70 text-xs uppercase tracking-widest mb-4">
+              <div className="flex items-center justify-center gap-3 text-tea-paper/70 text-xs uppercase tracking-[0.15em] mb-4">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
@@ -315,7 +315,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center gap-3 text-tea-paper/70 text-xs uppercase tracking-widest mb-3">
+              <div className="flex items-center gap-3 text-tea-paper/70 text-xs uppercase tracking-[0.15em] mb-3">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}

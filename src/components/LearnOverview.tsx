@@ -76,7 +76,7 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
 /** Section label — tiny, uppercase, tracked */
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="mb-5">
-    <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-gold/80">
+    <span className="text-[9px] font-sans uppercase tracking-[0.2em] text-tea-text-dim">
       {children}
     </span>
     <div className="mt-2 h-px bg-gradient-to-r from-tea-gold/25 via-tea-gold/10 to-transparent" />
@@ -172,7 +172,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         style={heroReveal.style}
       >
         {/* Hero image — wide, cinematic */}
-        <div className="relative overflow-hidden rounded-xl mb-6 md:mb-8">
+        <div className="relative overflow-hidden rounded-[1px] mb-6 md:mb-8">
           <img
             src={TEA_IMAGES.hero}
             alt="Tea ceremony with gaiwan and morning light"
@@ -183,10 +183,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           {/* Quote overlaid at the bottom of the image */}
           <div className="absolute inset-0 bg-gradient-to-t from-tea-ink/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
-            <p className="font-serif italic text-sm md:text-base text-tea-paper/80 leading-relaxed max-w-md">
+            <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] max-w-md">
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
-            <span className="block mt-2 text-[9px] font-sans uppercase tracking-[0.4em] text-tea-paper/40">
+            <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.2em] text-tea-text-dim">
               Adrian
             </span>
           </div>
@@ -216,15 +216,15 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <button
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
-              className={`w-full flex items-center gap-4 py-3.5 px-1 border-b border-tea-ink/[0.06] dark:border-white/[0.06] last:border-b-0 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
+              className={`w-full flex items-center gap-4 py-3.5 px-1 border-b border-tea-border last:border-b-0 hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
             >
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}
               </span>
-              <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
+              <span className="flex-1 font-serif text-[15px] text-tea-text leading-[1.4] group-hover:text-tea-gold transition-colors">
                 {tile.label}
               </span>
-              <span className="text-[11px] text-tea-text-sec font-sans">
+              <span className="text-[11px] text-tea-text-sec font-sans tracking-[0.15em]">
                 {tile.sub}
               </span>
             </button>
@@ -233,15 +233,15 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         {/* Search results */}
         {searchResults && searchResults !== 'empty' && (
-          <div className="mt-4 bg-tea-surface border border-tea-border rounded-xl p-5 space-y-4">
+          <div className="mt-4 bg-tea-surface border border-tea-border rounded-[1px] p-5 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans block mb-2">Courses</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans block mb-2">Courses</span>
                 {searchResults.courses.map(mod => (
                   <button
                     key={mod.id}
                     onClick={() => { onStoryClick(getModuleTarget(mod)); setSearchQuery(''); }}
-                    className={`block w-full text-left py-2 text-sm text-tea-ink dark:text-tea-paper hover:text-tea-seal transition-colors ${CTA_FOCUS}`}
+                    className={`block w-full text-left py-2 text-sm text-tea-text hover:text-tea-gold transition-colors ${CTA_FOCUS}`}
                   >
                     {mod.title}
                   </button>
@@ -250,15 +250,15 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             )}
             {searchResults.terms.length > 0 && (
               <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans block mb-2">Terms</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans block mb-2">Terms</span>
                 {searchResults.terms.map(term => (
                   <button
                     key={term.id}
                     onClick={() => { onNavigateTo('glossary'); setSearchQuery(''); }}
-                    className={`block w-full text-left py-2 text-sm text-tea-ink dark:text-tea-paper hover:text-tea-seal transition-colors ${CTA_FOCUS}`}
+                    className={`block w-full text-left py-2 text-sm text-tea-text hover:text-tea-gold transition-colors ${CTA_FOCUS}`}
                   >
                     <span className="font-serif">{term.term}</span>
-                    {term.chineseCharacters && <span className="text-tea-seal/30 ml-2">{term.chineseCharacters}</span>}
+                    {term.chineseCharacters && <span className="text-tea-gold/30 ml-2">{term.chineseCharacters}</span>}
                     <span className="text-tea-ink/30 dark:text-tea-paper/30 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
                   </button>
                 ))}
@@ -299,34 +299,34 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <div className="relative p-7 md:p-10 lg:p-12">
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans border border-tea-seal/20 px-2.5 py-1 rounded-sm">
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans border border-tea-gold/20 px-2.5 py-1 rounded-sm">
                     {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
                   </span>
                 </div>
 
                 {/* Term name */}
-                <h3 className="font-serif text-3xl md:text-4xl lg:text-5xl text-tea-paper leading-[1.1] mb-2 tracking-tight">
+                <h3 className="font-serif text-[clamp(32px,4.8vw,48px)] text-tea-text leading-[1.12] mb-2 tracking-[0.01em]">
                   {spotlightTerm.term}
                 </h3>
 
                 {spotlightTerm.pronunciation && (
-                  <p className="font-mono italic text-sm text-tea-paper/40 mb-6 md:mb-8">
+                  <p className="font-mono text-[9px] text-tea-text-dim mb-6 md:mb-8">
                     /{spotlightTerm.pronunciation}/
                   </p>
                 )}
 
-                {/* Definition */}
-                <p className="text-sm md:text-base text-tea-paper/55 leading-relaxed mb-8 max-w-lg">
+                {/* Definition — Body role */}
+                <p className="font-serif text-[17px] text-tea-text-sec leading-[1.85] mb-8 max-w-lg">
                   {spotlightTerm.definition}
                 </p>
 
                 {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
-                  <div className="border-l-2 border-tea-seal/25 pl-4 mb-8 max-w-md">
-                    <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans block mb-1.5">
+                  <div className="border-l-2 border-tea-gold/25 pl-4 mb-8 max-w-md">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim font-sans block mb-1.5">
                       Try this
                     </span>
-                    <p className="text-sm text-tea-paper/60 leading-relaxed font-serif italic">
+                    <p className="text-[15px] text-tea-text-dim leading-[1.8] font-serif font-light italic">
                       {spotlightTerm.deepDive.tryThis[0].description}
                     </p>
                   </div>
@@ -334,11 +334,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
                 {/* CTA */}
                 <div className="flex items-center gap-6">
-                  <span className="text-tea-seal text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+                  <span className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all border-b border-tea-gold pb-0.5">
                     Explore full glossary
                     <Icons.ChevronRight className="w-4 h-4" />
                   </span>
-                  <span className="text-tea-paper/25 text-xs font-mono">
+                  <span className="text-tea-text-dim text-[9px] font-mono">
                     {counts.glossary} terms
                   </span>
                 </div>
@@ -359,7 +359,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   <span className="text-sm text-tea-gold/30 font-serif">{secondTerm.chineseCharacters}</span>
                 )}
                 <div>
-                  <span className="font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
+                  <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
                     {secondTerm.term}
                   </span>
                   <span className="text-xs text-tea-ink/30 dark:text-tea-paper/30 ml-2">
@@ -403,20 +403,24 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     {String(i + 1).padStart(2, '0')}
                   </span>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h4 className={`font-serif text-base md:text-lg leading-snug transition-colors ${
+                    <div className="relative">
+                      <h4 className={`font-serif text-[clamp(24px,3.5vw,32px)] leading-[1.2] tracking-[0.01em] transition-colors mb-4 ${
                         isNext ? 'text-tea-text group-hover:text-tea-gold' :
                         isDone ? 'text-tea-text/30' :
                         'text-tea-text/55 group-hover:text-tea-gold/80'
                       }`}>
                         {mod.title}
                       </h4>
-                      <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
-                        isNext ? 'text-tea-gold/40 group-hover:text-tea-gold group-hover:translate-x-0.5' :
-                        'text-tea-text/10 group-hover:text-tea-gold/40'
-                      }`} />
+
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-sans uppercase tracking-[0.2em] ${isDone ? 'text-tea-gold/50' : 'text-tea-text-dim'}`}>
+                          {isDone ? 'complete' : `${completedLessons > 0 ? `${completedLessons}/` : ''}${mod.lessons.length} lessons`}
+                        </span>
+                        <span className="text-tea-gold text-[13px] font-sans flex items-center gap-1 group-hover:gap-2 transition-all border-b border-tea-gold pb-0.5">
+                          {isNext ? 'Begin' : isDone ? 'Review' : 'Start'}
+                          <Icons.ChevronRight className="w-4 h-4" />
+                        </span>
+                      </div>
                     </div>
                     <p className={`mt-1.5 text-[13px] leading-relaxed font-serif italic ${
                       isDone ? 'text-tea-text/20' : 'text-tea-text/35'
@@ -462,14 +466,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-surface rounded-[14px] border border-tea-border p-5 md:p-6 hover:border-tea-gold/20 transition-colors duration-300">
+              <div className="h-full bg-tea-surface rounded-[1px] border border-tea-border p-5 md:p-6 hover:border-tea-gold/20 transition-colors duration-300">
                 <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
-                <h4 className="font-serif text-sm text-tea-paper leading-snug mb-1 group-hover:text-tea-seal transition-colors">
+                <h4 className="font-serif text-[15px] text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors">
                   {tile.label}
                 </h4>
-                <p className="text-[10px] text-tea-paper/30 font-sans leading-relaxed">
+                <p className="text-[10px] text-tea-text-dim font-sans uppercase tracking-[0.2em] leading-[1.4]">
                   {tile.subtitle}
                 </p>
               </div>
@@ -506,7 +510,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onStoryClick(geographyLesson)}
               className={`text-left w-full group ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-xl border border-tea-border hover:border-tea-gold/15 transition-colors duration-300">
+              <div className="relative overflow-hidden rounded-[1px] border border-tea-border hover:border-tea-gold/15 transition-colors duration-300">
                 {/* Location photo */}
                 <img
                   src={TEA_IMAGES.places[i % TEA_IMAGES.places.length]}
@@ -517,10 +521,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 />
 
                 <div className="p-4 bg-tea-paper dark:bg-tea-ink">
-                  <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans mb-2">
+                  <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-2">
                     {PIN_TYPE_LABELS[pin.type] || pin.type}
                   </span>
-                  <h4 className="font-serif text-sm text-tea-ink dark:text-tea-paper leading-tight mb-0.5 group-hover:text-tea-seal transition-colors">
+                  <h4 className="font-serif text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors">
                     {pin.name}
                   </h4>
                   <p className="text-[11px] text-tea-ink/35 dark:text-tea-paper/35 font-sans">
@@ -547,7 +551,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           onClick={() => onNavigateTo('spaces')}
           className={`w-full text-left group ${CTA_FOCUS}`}
         >
-          <div className="overflow-hidden rounded-xl border border-tea-border">
+          <div className="overflow-hidden rounded-[1px] border border-tea-border">
             {/* Atmospheric image */}
             <img
               src={TEA_IMAGES.teaSpace}
@@ -559,16 +563,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
             {/* Content below image */}
             <div className="p-5 md:p-7 bg-tea-paper dark:bg-tea-ink">
-              <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans mb-3">
+              <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
-              <h4 className="font-serif text-lg md:text-xl text-tea-ink dark:text-tea-paper mb-2 group-hover:text-tea-seal transition-colors tracking-tight">
+              <h4 className="font-serif text-lg md:text-xl text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight">
                 {featuredSpace.title}
               </h4>
               <p className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed mb-4 max-w-md">
                 {featuredSpace.description}
               </p>
-              <span className="text-tea-seal text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+              <span className="text-tea-gold text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                 See all {counts.spaces} spaces
                 <Icons.ChevronRight className="w-4 h-4" />
               </span>
@@ -596,17 +600,17 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             {onNavigateToConsult ? (
               <button
                 onClick={onNavigateToConsult}
-                className={`text-tea-seal text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+                className={`text-tea-gold text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
               >
                 Let&rsquo;s talk <Icons.ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <span className="text-tea-seal/50 text-sm font-sans">reach out</span>
+              <span className="text-tea-gold/50 text-sm font-sans">reach out</span>
             )}
 
             <div className="mt-10 flex items-center gap-3">
-              <div className="w-8 h-[0.5px] bg-tea-seal/20" />
-              <span className="text-[9px] font-sans uppercase tracking-[0.4em] text-tea-ink/20 dark:text-tea-paper/20">
+              <div className="w-8 h-[0.5px] bg-tea-gold/20" />
+              <span className="text-[9px] font-sans uppercase tracking-[0.2em] text-tea-text/20">
                 Teajia
               </span>
             </div>

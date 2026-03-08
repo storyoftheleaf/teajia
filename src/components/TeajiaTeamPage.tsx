@@ -105,7 +105,7 @@ export const TeajiaTeamPage: React.FC<TeajiaTeamPageProps> = ({ teamMembers = []
               <h3 className="font-serif text-xl text-tea-text mb-1">
                 {member.name}
               </h3>
-              <p className="text-sm uppercase tracking-widest text-tea-gold mb-3">
+              <p className="text-sm uppercase tracking-[0.15em] text-tea-gold mb-3">
                 {member.role}
               </p>
               <p className="text-tea-text/70 text-sm leading-relaxed mb-4">

@@ -35,7 +35,7 @@ export const Videos: React.FC<VideosProps> = ({ onBack }) => {
             href={item.externalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group rounded-xl p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors"
+            className="group rounded-[1px] p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">

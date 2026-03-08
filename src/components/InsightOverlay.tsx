@@ -42,7 +42,7 @@ export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose
         </button>
 
         {/* Category Badge */}
-        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${INSIGHT_COLORS[insight.type]} text-white text-xs font-medium uppercase tracking-widest mb-6`}>
+        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${INSIGHT_COLORS[insight.type]} text-white text-xs font-medium uppercase tracking-[0.15em] mb-6`}>
           <span>{insight.type}</span>
         </div>
 
@@ -60,7 +60,7 @@ export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose
         {insight.relatedLink && (
           <a
             href={insight.relatedLink.href}
-            className="inline-flex items-center gap-2 text-tea-gold hover:text-tea-gold/80 transition-colors duration-300 font-medium uppercase tracking-widest text-xs"
+            className="inline-flex items-center gap-2 text-tea-gold hover:text-tea-gold/80 transition-colors duration-300 font-medium uppercase tracking-[0.15em] text-xs"
           >
             {insight.relatedLink.label}
             <Icons.ChevronRight className="w-4 h-4" />

@@ -149,7 +149,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         {!isPlaying && (
             <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-tea-paper pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
-                <span className="px-2 py-0.5 border border-white/30 text-[9px] uppercase tracking-widest rounded-full">
+                <span className="px-2 py-0.5 border border-white/30 text-[9px] uppercase tracking-[0.15em] rounded-full">
                     {story.type}
                 </span>
             </div>
@@ -269,7 +269,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
          {/* Content */}
          <div className="p-6 text-tea-paper flex-1">
             <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] tracking-widest uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
+                <span className="text-[10px] tracking-[0.15em] uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
                 <div className="flex gap-4">
                     <button onClick={onToggleSave} className={isSaved ? 'text-tea-gold' : ''}>
                        <Icons.Leaf filled={isSaved} className="w-5 h-5" />
@@ -358,7 +358,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-tea-bg rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
              </div>
-             <div className="flex justify-between text-[10px] text-tea-paper/50 mb-10 font-mono tracking-widest">
+             <div className="flex justify-between text-[10px] text-tea-paper/50 mb-10 font-mono tracking-[0.15em]">
                 <span>04:20</span>
                 <span>{story.durationOrTime}</span>
              </div>
@@ -435,7 +435,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
                {/* Progress Bar */}
                <div className="mb-4 group">
-                    <div className="flex justify-between text-[10px] text-tea-paper/40 mb-2 font-mono tracking-widest">
+                    <div className="flex justify-between text-[10px] text-tea-paper/40 mb-2 font-mono tracking-[0.15em]">
                         <span>00:00</span>
                         <span>{story.durationOrTime}</span>
                     </div>

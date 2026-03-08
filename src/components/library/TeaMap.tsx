@@ -46,7 +46,7 @@ export const TeaMap: React.FC<TeaMapProps> = ({ onBack }) => {
           return (
             <div
               key={pin.id}
-              className="rounded-xl border border-tea-border bg-tea-text/[0.02]  p-4 md:p-5"
+              className="rounded-[1px] border border-tea-border bg-tea-text/[0.02]  p-4 md:p-5"
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0 mt-0.5">

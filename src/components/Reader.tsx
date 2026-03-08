@@ -463,7 +463,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                          </div>
                          <div className="flex-1">
                              <div className="flex justify-between items-start">
-                                 <span className="text-[11px] uppercase tracking-widest text-tea-text/60 mb-1 block">{s.type}</span>
+                                 <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text/60 mb-1 block">{s.type}</span>
                                  {watchedStories?.[s.id] && <Icons.Check className="w-3 h-3 text-tea-green opacity-70" />}
                              </div>
                              <h4 className="text-tea-text font-serif text-lg leading-tight group-hover:text-tea-gold transition-colors mb-1">{s.title}</h4>
@@ -488,7 +488,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
 
         {/* --- TOP BAR (Universal) --- */}
         <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-white/70 pointer-events-none bg-gradient-to-b from-black/40 to-transparent">
-             <button onClick={onBack} className="flex items-center gap-2 text-xs uppercase tracking-widest hover:text-white pointer-events-auto transition-colors">
+             <button onClick={onBack} className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] hover:text-white pointer-events-auto transition-colors">
                  <Icons.Close className="w-5 h-5" />
                  <span className="hidden md:inline">Close</span>
              </button>

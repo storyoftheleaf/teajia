@@ -36,7 +36,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           href="https://instagram.com/teajia.journal"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-tea-gold hover:text-tea-gold/80 uppercase tracking-widest text-xs font-medium inline-flex items-center gap-2 transition-colors duration-300"
+          className="text-tea-gold hover:text-tea-gold/80 uppercase tracking-[0.15em] text-xs font-medium inline-flex items-center gap-2 transition-colors duration-300"
         >
           Explore Adrian's Art Studio
           <Icons.ExternalLink className="w-3.5 h-3.5" />
@@ -63,7 +63,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="text-center mt-6">
         <Link
           to="/admin"
-          className="text-[10px] text-tea-text/20 hover:text-tea-gold font-mono tracking-widest uppercase transition-colors duration-300"
+          className="text-[10px] text-tea-text/20 hover:text-tea-gold font-mono tracking-[0.15em] uppercase transition-colors duration-300"
         >
           Admin
         </Link>

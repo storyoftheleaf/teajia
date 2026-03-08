@@ -105,7 +105,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
             setSearchQuery(e.target.value);
             setActiveLetter(null);
           }}
-          className="w-full pl-11 pr-4 py-3 bg-tea-surface border border-tea-border rounded-[10px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:border-tea-gold/30 transition-colors"
+          className="w-full pl-11 pr-4 py-3 bg-tea-surface border border-tea-border rounded-[1px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:border-tea-gold/30 transition-colors"
         />
         {searchQuery && (
           <button
@@ -189,7 +189,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                   <button
                     key={term.id}
                     onClick={() => handleTermClick(term.id)}
-                    className={`text-left rounded-xl border transition-all duration-300
+                    className={`text-left rounded-[1px] border transition-all duration-300
                       ${expandedTermId === term.id
                         ? 'bg-tea-surface border-tea-gold/25'
                         : 'bg-tea-surface border-tea-border hover:border-tea-gold/15'

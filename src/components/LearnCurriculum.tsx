@@ -228,7 +228,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                         <Icons.ChevronDown className="w-6 h-6" />
                                     </div>
                                 </div>
-                                <p className="text-xs uppercase tracking-widest text-tea-text/50 mb-3 font-medium">
+                                <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50 mb-3 font-medium">
                                     {module.lessons.length} Lessons • {module.subtitle}
                                 </p>
                                 <div className={`grid transition-all duration-500 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -263,7 +263,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                          <div className={`w-3 h-3 rounded-full border z-10 shrink-0 transition-all duration-300 ${isWatched ? 'bg-tea-gold border-tea-gold' : 'border-tea-text/40  bg-white group-hover/lesson:border-tea-border dark:group-hover/lesson:border-tea-paper'}`}></div>
 
                                          {/* Lesson Card */}
-                                         <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-border rounded-xl p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
+                                         <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-border rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
                                              <div className="flex items-center gap-4">
                                                  {/* Type Icon Box */}
                                                  <div className="w-11 h-11 bg-tea-text/10 rounded-lg flex items-center justify-center text-tea-text/70 shrink-0">

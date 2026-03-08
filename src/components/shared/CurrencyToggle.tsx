@@ -24,7 +24,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] uppercase tracking-widest font-mono text-tea-paper/70 bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] uppercase tracking-[0.15em] font-mono text-tea-paper/70 bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 transition-colors"
       >
         <span>{CURRENCY_SYMBOLS[currency as CostCurrency]}</span>
         <span className="opacity-50">·</span>
@@ -37,7 +37,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
           <div className="absolute top-full right-0 mt-1 z-[101] bg-tea-elevated border border-tea-border rounded-sm shadow-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] origin-top-right min-w-[140px]">
             {/* Currency options */}
             <div className="border-b border-white/5 px-3 py-2">
-              <span className="text-[9px] uppercase tracking-widest text-white/40">Currency</span>
+              <span className="text-[9px] uppercase tracking-[0.15em] text-white/40">Currency</span>
             </div>
             {DISPLAY_CURRENCIES.map((c) => (
               <button
@@ -54,7 +54,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
 
             {/* Unit options */}
             <div className="border-t border-white/5 border-b border-white/5 px-3 py-2">
-              <span className="text-[9px] uppercase tracking-widest text-white/40">Weight</span>
+              <span className="text-[9px] uppercase tracking-[0.15em] text-white/40">Weight</span>
             </div>
             {(['g', 'oz'] as const).map((u) => (
               <button

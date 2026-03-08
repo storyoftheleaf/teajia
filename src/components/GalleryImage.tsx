@@ -122,7 +122,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
           <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-tea-paper text-xs">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-tea-paper/80 uppercase tracking-widest text-[10px] mb-1">
+                <p className="text-tea-paper/80 uppercase tracking-[0.15em] text-[10px] mb-1">
                   {image.attribution.label}
                 </p>
                 <p className="font-serif text-sm">{image.attribution.name}</p>

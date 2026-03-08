@@ -138,7 +138,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
         )}
 
         {resource.category && (
-          <p className="text-xs uppercase tracking-widest text-tea-gold mb-2">
+          <p className="text-xs uppercase tracking-[0.15em] text-tea-gold mb-2">
             {resource.category}
           </p>
         )}
@@ -226,7 +226,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
                     {/* Interests */}
                     <div className="flex-1 mb-4">
-                      <p className="text-[11px] uppercase tracking-widest text-tea-paper/50 mb-2">Interests</p>
+                      <p className="text-[11px] uppercase tracking-[0.15em] text-tea-paper/50 mb-2">Interests</p>
                       <div className="flex flex-wrap gap-2">
                         {member.interests.map((interest: string) => (
                           <span

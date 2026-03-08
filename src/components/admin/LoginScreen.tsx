@@ -41,7 +41,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
 
         <button
           onClick={checkLogin}
-          className="w-full bg-tea-bg text-black py-3 uppercase tracking-widest text-xs font-bold hover:bg-white transition-colors rounded-sm"
+          className="w-full bg-tea-bg text-black py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-white transition-colors rounded-sm"
         >
           Enter
         </button>

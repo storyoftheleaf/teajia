@@ -156,7 +156,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
         <button
           onClick={() => onOpenInquiry(inquiryPreselect)}
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] mb-6 ${CTA_FOCUS}`}
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] mb-6 ${CTA_FOCUS}`}
         >
           Start a conversation
           <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -165,7 +165,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <div>
           <button
             onClick={onNavigateProjects}
-            className={`text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+            className={`text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
           >
             See more projects
             <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -183,7 +183,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { section: 'SHOP' } }))}
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-widest font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
         >
           Browse the Shop
           <Icons.ChevronRight className="w-3.5 h-3.5" />

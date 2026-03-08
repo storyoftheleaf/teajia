@@ -316,7 +316,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                onUpdateQuantity(removedItem.item.id, removedItem.item.quantityGrams);
                                setRemovedItem(null);
                            }}
-                           className="text-tea-gold text-xs uppercase tracking-widest font-medium ml-4 hover:text-tea-gold/80 transition-colors"
+                           className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors"
                        >
                            Undo
                        </button>
@@ -335,7 +335,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    ) : (
                        cart.map(item => (
                            <div key={item.id} className="flex gap-4 border-b border-tea-border  pb-4">
-                               <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-xl shrink-0">
+                               <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-[1px] shrink-0">
                                    {item.image ? (
                                        <img src={item.image} className="w-full h-full object-cover sepia-[0.3]" alt={item.name} loading="eager" />
                                    ) : (
@@ -415,7 +415,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    {/* Required Fields Form */}
                    <div className="space-y-4 p-4 bg-white/30 rounded-lg border border-tea-border ">
                        <div>
-                           <label className="block text-[10px] uppercase tracking-widest text-tea-text-dim mb-1">Name *</label>
+                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Name *</label>
                            <div className="relative">
                                <input
                                    type="text"
@@ -440,7 +440,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            )}
                        </div>
                        <div>
-                           <label className="block text-[10px] uppercase tracking-widest text-tea-text-dim mb-1">Contact *</label>
+                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Contact *</label>
                            <div className="relative">
                                <input
                                    type="email"
@@ -467,7 +467,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            )}
                        </div>
                        <div>
-                           <label className="block text-[10px] uppercase tracking-widest text-tea-text-dim mb-1">Shipping Location *</label>
+                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Shipping Location *</label>
                            <div className="relative">
                                <input
                                    type="text"
@@ -492,7 +492,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            )}
                        </div>
                        <div>
-                           <label className="block text-[10px] uppercase tracking-widest text-tea-text-dim mb-1">Special Requests (Optional)</label>
+                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Special Requests (Optional)</label>
                            <textarea
                                value={details.notes}
                                onChange={(e) => setDetails({...details, notes: e.target.value})}
@@ -504,7 +504,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
 
                    {/* Message Preview */}
                    <div>
-                       <label className="block text-[10px] uppercase tracking-widest text-tea-text-dim mb-2">Order Inquiry Preview</label>
+                       <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2">Order Inquiry Preview</label>
                        <div className="bg-tea-elevated border border-tea-border  p-4 font-mono text-xs leading-relaxed text-tea-text/80 /80 shadow-inner overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
                            {orderMessage}
                        </div>
@@ -514,7 +514,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    {successMessage.show && (
                        <div className="animate-[fadeIn_0.3s_ease-out] bg-tea-green/10 border border-tea-green/30 text-tea-green px-4 py-3 rounded-lg flex items-center gap-2">
                            <Icons.Check className="w-4 h-4" />
-                           <span className="text-xs uppercase tracking-widest font-medium">
+                           <span className="text-xs uppercase tracking-[0.15em] font-medium">
                                {successMessage.type === 'whatsapp' && 'Opening WhatsApp...'}
                                {successMessage.type === 'email' && 'Opening email client...'}
                                {successMessage.type === 'copy' && 'Copied to clipboard!'}
@@ -534,7 +534,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            }`}
                        >
                            <Icons.Message className="w-4 h-4" />
-                           <span className="text-[10px] uppercase tracking-widest">Send via WhatsApp</span>
+                           <span className="text-[10px] uppercase tracking-[0.15em]">Send via WhatsApp</span>
                            {preferredChannel === 'whatsapp' && <span className="text-xs ml-1">✓</span>}
                        </button>
                        <button
@@ -546,7 +546,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    : 'border-tea-border  hover:bg-tea-bg/5 text-tea-text '
                            }`}
                        >
-                           <span className="text-[10px] uppercase tracking-widest">Send via Email</span>
+                           <span className="text-[10px] uppercase tracking-[0.15em]">Send via Email</span>
                            {preferredChannel === 'email' && <span className="text-xs ml-1">✓</span>}
                        </button>
                        <button
@@ -554,7 +554,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            disabled={!details.name || !details.contact || !details.location}
                            className="flex items-center justify-center gap-2 py-3 border border-tea-border  hover:bg-tea-bg/5 text-tea-text  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                        >
-                           <span className="text-[10px] uppercase tracking-widest">Copy to Clipboard</span>
+                           <span className="text-[10px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
                        </button>
                    </div>
 

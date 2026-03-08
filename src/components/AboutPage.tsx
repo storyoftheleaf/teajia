@@ -15,7 +15,7 @@ export default function AboutPage() {
 
         {/* Photo placeholder */}
         <div className="aspect-[4/3] bg-tea-text/5 rounded-lg mb-12 flex items-center justify-center">
-          <span className="text-sm text-tea-text/30 uppercase tracking-widest">
+          <span className="text-sm text-tea-text/30 uppercase tracking-[0.15em]">
             Photo
           </span>
         </div>

@@ -449,7 +449,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
         <div className="px-5 md:px-8 lg:px-12 pb-16">
           <button
             onClick={handleShareFeature}
-            className="w-full max-w-sm mx-auto py-4 min-h-[56px] bg-tea-elevated text-tea-text font-medium text-sm uppercase tracking-widest rounded-full shadow-md active:scale-[0.98] active:shadow-sm transition-all flex items-center justify-center gap-3"
+            className="w-full max-w-sm mx-auto py-4 min-h-[56px] bg-tea-elevated text-tea-text font-medium text-sm uppercase tracking-[0.15em] rounded-full shadow-md active:scale-[0.98] active:shadow-sm transition-all flex items-center justify-center gap-3"
           >
             <Icons.Share className="w-4 h-4" />
             Share this Feature

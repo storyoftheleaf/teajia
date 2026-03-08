@@ -22,15 +22,15 @@ export const CardMetadata: React.FC<CardMetadataProps> = ({
   return (
     <div className={`flex-1 min-w-0 ${className}`}>
       {type && (
-        <div className="text-[10px] uppercase tracking-wider text-tea-paper/60 mb-1">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">
           {type}
         </div>
       )}
-      <h3 className="font-serif text-base text-tea-paper group-hover:text-tea-gold transition-colors leading-tight mb-1">
+      <h3 className="font-serif text-[17px] text-tea-text leading-[1.2] group-hover:text-tea-gold transition-colors mb-1">
         {title}
       </h3>
       {subtitle && (
-        <p className="text-xs uppercase tracking-widest text-tea-paper/50 mb-2">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-2">
           {subtitle}
         </p>
       )}
