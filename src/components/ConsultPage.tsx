@@ -21,45 +21,39 @@ import {
 import { useSectionReveal } from '../hooks/useSectionReveal';
 
 /* =====================================================
-   TILE_DATA — compact overview for visual grid
+   SERVICE_ITEMS — icon-led directory for wayfinding
    ===================================================== */
 
-const TILE_DATA = [
+const SERVICE_ITEMS = [
   {
     id: 'design',
-    label: 'Space Design',
-    badge: 'By Inquiry',
-    ariaLabel: 'Tea house and space design services',
-    flagship: true,
-    img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80&auto=format',
-  },
-  {
-    id: 'sessions',
-    label: 'Sessions',
-    badge: 'From $50',
-    ariaLabel: 'Tea sessions and guided practice',
-    img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&auto=format',
-  },
-  {
-    id: 'journeys',
-    label: 'Journeys',
-    badge: 'Seasonal',
-    ariaLabel: 'Sourcing journeys to tea origins',
-    img: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&q=80&auto=format',
+    label: 'Full Tea House Design',
+    desc: 'Architecture, materials, layout, atmosphere. The whole picture.',
+    icon: 'home' as const,
   },
   {
     id: 'sourcing',
-    label: 'Sourcing',
-    badge: 'By Inquiry',
-    ariaLabel: 'Tea sourcing for businesses and collectors',
-    img: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=600&q=80&auto=format',
+    label: 'Tea Curation & Sourcing',
+    desc: 'Building a tea collection that tells a story. Every leaf chosen with intention.',
+    icon: 'leaf' as const,
+  },
+  {
+    id: 'sessions',
+    label: 'Training & Ceremony',
+    desc: 'Learning to hold space through tea. For yourself, for your guests, for the room.',
+    icon: 'book' as const,
+  },
+  {
+    id: 'journeys',
+    label: 'Sourcing Journeys',
+    desc: 'Travel to tea origins with twenty years of relationships opening the door.',
+    icon: 'map' as const,
   },
   {
     id: 'events',
-    label: 'Events',
-    badge: 'From $500',
-    ariaLabel: 'Tea experiences for gatherings and events',
-    img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80&auto=format',
+    label: 'Events & Experiences',
+    desc: 'Tea brought to your gathering. Retreats, dinners, celebrations.',
+    icon: 'calendar' as const,
   },
 ] as const;
 
@@ -197,8 +191,8 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
           <div className="w-12 h-[1px] bg-tea-seal mt-6 mb-8 md:mb-10" />
         </div>
 
-        {/* Visual Tile Grid */}
-        <TileGrid onTileClick={scrollToSection} />
+        {/* Service Directory */}
+        <ServiceDirectory onItemClick={scrollToSection} />
 
         {/* Adrian — between overview and depth */}
         <AdrianSection />
@@ -253,54 +247,49 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
 };
 
 /* =====================================================
-   TileGrid — visual overview, mobile-first
+   ServiceDirectory — icon-led cards for wayfinding
    ===================================================== */
 
-interface TileGridProps {
-  onTileClick: (sectionId: string) => void;
+const SERVICE_ICONS: Record<string, React.FC<{ className?: string }>> = {
+  home: Icons.Home,
+  leaf: ({ className }) => <Icons.Leaf className={className} />,
+  book: Icons.BookOpen,
+  map: Icons.Location,
+  calendar: Icons.Calendar,
+};
+
+interface ServiceDirectoryProps {
+  onItemClick: (sectionId: string) => void;
 }
 
-const TileGrid: React.FC<TileGridProps> = ({ onTileClick }) => (
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-    {TILE_DATA.map(tile => (
-      <button
-        key={tile.id}
-        aria-label={tile.ariaLabel}
-        onClick={() => onTileClick(tile.id)}
-        className={`
-          ${tile.flagship ? 'col-span-2 md:col-span-2 md:row-span-2' : ''}
-          group relative overflow-hidden rounded-[2px]
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2
-          transition-transform duration-300 md:hover:scale-[1.02]
-        `}
-      >
-        {/* Image with aspect ratio */}
-        <img
-          src={tile.img}
-          alt=""
-          aria-hidden="true"
-          className={`
-            w-full object-cover bg-tea-ink/[0.06] dark:bg-white/[0.06]
-            ${tile.flagship ? 'aspect-[2/1] md:aspect-[4/3]' : 'aspect-[3/2]'}
-          `}
-          loading="lazy"
-        />
-
-        {/* Gradient overlay for text legibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-tea-ink/60 via-tea-ink/20 to-transparent
-                        md:group-hover:from-tea-ink/70 transition-all duration-300" />
-
-        {/* Content overlay */}
-        <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4">
-          <span className="font-serif text-base md:text-lg text-white leading-tight">
-            {tile.label}
+const ServiceDirectory: React.FC<ServiceDirectoryProps> = ({ onItemClick }) => (
+  <div className="space-y-2">
+    {SERVICE_ITEMS.map(item => {
+      const Icon = SERVICE_ICONS[item.icon];
+      return (
+        <button
+          key={item.id}
+          onClick={() => onItemClick(item.id)}
+          className="w-full text-left group rounded-lg bg-tea-ink dark:bg-tea-ink
+                     border border-white/[0.08] hover:border-white/[0.15]
+                     px-5 py-4 flex items-start gap-4
+                     transition-all duration-300
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2"
+        >
+          <span className="mt-0.5 text-tea-seal shrink-0">
+            <Icon className="w-5 h-5" />
           </span>
-          <span className="text-[10px] md:text-[11px] uppercase tracking-wider text-white/60 mt-1">
-            {tile.badge}
-          </span>
-        </div>
-      </button>
-    ))}
+          <div className="min-w-0">
+            <span className="font-serif text-base text-tea-paper font-medium leading-tight block">
+              {item.label}
+            </span>
+            <span className="text-sm text-tea-paper/40 leading-relaxed mt-0.5 block">
+              {item.desc}
+            </span>
+          </div>
+        </button>
+      );
+    })}
   </div>
 );
 
