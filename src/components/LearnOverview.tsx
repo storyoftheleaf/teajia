@@ -223,7 +223,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
                 {tile.label}
               </span>
-              <span className="text-[11px] text-tea-ink/30 dark:text-tea-paper/30 font-sans">
+              <span className="text-[11px] text-tea-text-dim font-sans">
                 {tile.sub}
               </span>
             </button>

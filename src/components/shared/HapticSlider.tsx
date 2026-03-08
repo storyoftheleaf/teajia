@@ -74,7 +74,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-white/15 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-text/15 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
@@ -93,7 +93,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
               <div
                 key={tickValue}
                 className={`absolute transition-all duration-100 rounded-full ${
-                  isActive ? 'bg-white/50' : 'bg-white/15'
+                  isActive ? 'bg-tea-text/50' : 'bg-tea-text/15'
                 }`}
                 style={{
                   left: `${tickPercent}%`,
@@ -116,7 +116,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-bg rounded-full shadow-lg ring-2 ring-white/20 transition-shadow group-active:shadow-xl group-active:ring-tea-gold/40"
+            className="w-full h-full bg-tea-bg rounded-full shadow-lg ring-2 ring-tea-text/20 transition-shadow group-active:shadow-xl group-active:ring-tea-gold/40"
           />
           {/* Pulse animation on step */}
           <div
@@ -128,8 +128,8 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
       {/* Step labels (min and max) */}
       <div className="flex justify-between px-0.5">
-        <span className="text-[9px] font-mono text-white/30">{min}{unit}</span>
-        <span className="text-[9px] font-mono text-white/30">{max}{unit}</span>
+        <span className="text-[9px] font-mono text-tea-text/30">{min}{unit}</span>
+        <span className="text-[9px] font-mono text-tea-text/30">{max}{unit}</span>
       </div>
     </div>
   );

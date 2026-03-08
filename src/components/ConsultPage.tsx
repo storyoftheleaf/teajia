@@ -286,8 +286,8 @@ const TileGrid: React.FC<TileGridProps> = ({ onTileClick }) => (
         />
 
         {/* Gradient overlay for text legibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-tea-ink/60 via-tea-ink/20 to-transparent
-                        md:group-hover:from-tea-ink/70 transition-all duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent
+                        md:group-hover:from-black/70 transition-all duration-300" />
 
         {/* Content overlay */}
         <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4">
