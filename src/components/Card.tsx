@@ -192,7 +192,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
         {!isTextOnly && (
             <div className="pt-3 pb-1 px-0.5 flex justify-between items-start gap-3">
                 <div className="text-left min-w-0 flex-1">
-                    <h3 className="text-lg font-serif text-tea-bg/95 leading-none mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate">
+                    <h3 className="text-lg font-serif text-tea-paper/95 leading-none mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate">
                         {story.title}
                     </h3>
                     <div className="flex items-center gap-2">

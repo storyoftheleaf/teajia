@@ -71,7 +71,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
           <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-3">
             {project.type === 'space' ? 'Space Design' : project.type === 'event' ? 'Event' : 'Sourcing Journey'}
           </p>
-          <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-bg">
+          <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-paper">
             {project.name}
           </h1>
           <p className="font-sans text-sm text-tea-paper/50">

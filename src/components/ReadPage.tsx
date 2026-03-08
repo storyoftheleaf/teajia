@@ -120,7 +120,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
           <section className="px-4 md:px-6">
             <button
               onClick={() => onCardClick(featuredArticle)}
-              className="w-full group relative overflow-hidden bg-tea-text rounded-sm"
+              className="w-full group relative overflow-hidden bg-tea-elevated rounded-sm"
               style={{ aspectRatio: '16/7' }}
             >
               {/* Background Image */}
@@ -140,7 +140,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
                 <p className="text-[10px] uppercase tracking-[0.25em] text-tea-paper/50 font-sans mb-3">
                   Featured
                 </p>
-                <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl text-tea-bg font-light leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500">
+                <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl text-tea-paper font-light leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500">
                   {featuredArticle.title}
                 </h2>
                 <p className="font-sans text-sm md:text-base text-tea-paper/70 max-w-lg leading-relaxed mb-4">

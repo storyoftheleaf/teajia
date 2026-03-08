@@ -58,7 +58,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
           </div>
         </>
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-tea-text">
+        <div className="w-full h-full flex items-center justify-center bg-tea-elevated">
           <span className="text-tea-paper/20 text-[8px]">—</span>
         </div>
       )}

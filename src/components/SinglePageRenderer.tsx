@@ -339,7 +339,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     const isDarkText = textColor === 'dark'; 
     const theme = {
       bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
-      text: isDarkText ? 'text-tea-text' : 'text-tea-bg',
+      text: isDarkText ? 'text-tea-text' : 'text-tea-paper',
       subtext: isDarkText ? 'text-tea-text/60' : 'text-tea-paper/60',
       border: isDarkText ? 'border-tea-text/10' : 'border-white/10',
       softBg: isDarkText ? 'bg-tea-text/5' : 'bg-white/5',
@@ -377,17 +377,17 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className={`absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none`}></div>
                         <div className="relative z-20 border-t border-white/30 pt-6 flex justify-between items-center mt-auto mb-8">
                             <div className="w-12 h-12 bg-tea-bg text-black flex items-center justify-center font-bold text-xl">T</div>
-                            <span className="text-2xl uppercase tracking-[0.3em] text-tea-bg opacity-80">Journal</span>
+                            <span className="text-2xl uppercase tracking-[0.3em] text-tea-paper opacity-80">Journal</span>
                         </div>
                         <div className="relative z-20 pb-8">
-                            <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-8xl font-serif tracking-tight leading-[0.9] mb-6 text-tea-bg" placeholder="Title" tag="h1" readOnly={readOnly} />
+                            <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-8xl font-serif tracking-tight leading-[0.9] mb-6 text-tea-paper" placeholder="Title" tag="h1" readOnly={readOnly} />
                             <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-tea-paper/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
             case LayoutVariant.COVER_TYPOGRAPHIC:
                 return (
-                    <div className={`${paperBase} ${isDarkText ? 'bg-tea-bg text-tea-gold' : 'bg-tea-gold text-tea-bg'} ${STD_PAD} flex flex-col justify-center`}>
+                    <div className={`${paperBase} ${isDarkText ? 'bg-tea-bg text-tea-gold' : 'bg-tea-gold text-tea-paper'} ${STD_PAD} flex flex-col justify-center`}>
                         <div className="flex-1 flex items-center"><EditableText value={storyTitle || 'Title'} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-[120px] font-serif leading-[0.8] tracking-tighter uppercase opacity-90 break-words w-full" placeholder="TITLE" tag="h1" readOnly={readOnly} /></div>
                         <div className="border-t-4 border-current/20 pt-8"><EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-5xl font-serif italic opacity-80" placeholder="Subtitle" tag="p" readOnly={readOnly} /></div>
                     </div>

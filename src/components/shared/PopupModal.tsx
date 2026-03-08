@@ -260,7 +260,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-3xl font-serif text-tea-bg mb-1">{item.name}</h2>
+            <h2 className="text-3xl font-serif text-tea-paper mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
@@ -308,7 +308,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
 
           <div className="px-6 pb-6">
-            <h2 className="text-2xl font-serif text-tea-bg mb-1">{item.name}</h2>
+            <h2 className="text-2xl font-serif text-tea-paper mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}

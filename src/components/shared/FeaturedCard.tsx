@@ -36,7 +36,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
             {badge}
           </span>
-          <h2 className="font-serif text-2xl md:text-3xl text-tea-bg leading-tight mb-4">
+          <h2 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight mb-4">
             {title}
           </h2>
           <p className="text-sm text-tea-paper/60 leading-relaxed mb-6 max-w-lg">

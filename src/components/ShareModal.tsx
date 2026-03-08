@@ -189,7 +189,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         className="relative w-full max-w-sm bg-tea-bg rounded-sm shadow-2xl overflow-hidden flex flex-col animate-[slideUp_0.3s_ease-out]"
       >
         {/* Header with Logo */}
-        <div className="h-12 bg-tea-text border-b border-white/10 flex items-center px-4 justify-between">
+        <div className="h-12 bg-tea-elevated border-b border-white/10 flex items-center px-4 justify-between">
           <LogoEmblem size={20} ariaLabel="Teajia" className="opacity-70 hover:opacity-90 transition-opacity" />
           <span className="flex-1 text-center text-tea-paper/80 text-xs uppercase tracking-wider font-semibold">Share</span>
           {/* Close */}

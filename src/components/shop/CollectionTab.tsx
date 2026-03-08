@@ -86,7 +86,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                     {item.year && <><span className="mx-2 opacity-40">·</span>{item.year}</>}
                   </p>
 
-                  <h3 className="font-serif text-2xl text-tea-bg mb-1 group-hover:text-tea-gold transition-colors">
+                  <h3 className="font-serif text-2xl text-tea-paper mb-1 group-hover:text-tea-gold transition-colors">
                     {item.name}
                   </h3>
                   {item.variant && item.variant !== item.name && (

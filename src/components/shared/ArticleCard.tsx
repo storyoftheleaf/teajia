@@ -34,11 +34,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       onClick={onClick}
     >
       <CardContainer className="p-0 overflow-hidden">
-        <div className={`relative w-full ${aspect} bg-tea-text`}>
+        <div className={`relative w-full ${aspect} bg-tea-elevated`}>
           {hasImage ? (
             <>
               {imageLoading && (
-                <div className="absolute inset-0 z-20 overflow-hidden bg-tea-text/40">
+                <div className="absolute inset-0 z-20 overflow-hidden bg-tea-elevated/40">
                   <div
                     className="absolute inset-0 animate-shimmer"
                     style={{
@@ -74,7 +74,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           ) : (
             <>
               {/* No-image fallback */}
-              <div className="absolute inset-0 bg-tea-text flex items-center justify-center">
+              <div className="absolute inset-0 bg-tea-elevated flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
                   <Icons.BookOpen className="w-5 h-5 text-tea-paper/30" />
                 </div>
@@ -85,7 +85,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-            <h3 className="font-serif text-lg text-tea-bg leading-tight line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
+            <h3 className="font-serif text-lg text-tea-paper leading-tight line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
               {title}
             </h3>
             {description && (

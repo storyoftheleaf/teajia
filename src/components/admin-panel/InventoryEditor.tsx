@@ -94,7 +94,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
         <div className="fixed inset-0 z-[150] bg-[#1a1a1a] flex flex-col">
             {/* Header with Title and Action Buttons */}
             <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-white/20 shrink-0 bg-[#0f0f0f]">
-                <h2 className="text-xl md:text-2xl font-serif text-tea-bg">Edit Inventory Item</h2>
+                <h2 className="text-xl md:text-2xl font-serif text-tea-paper">Edit Inventory Item</h2>
                 <div className="flex gap-3">
                     <button
                         onClick={onCancel}

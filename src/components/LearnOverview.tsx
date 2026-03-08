@@ -223,7 +223,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
                 {tile.label}
               </span>
-              <span className="text-[11px] text-tea-text-dim font-sans">
+              <span className="text-[11px] text-tea-text-sec font-sans">
                 {tile.sub}
               </span>
             </button>
@@ -292,8 +292,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <div className="relative overflow-hidden">
               {/* The character — massive, the visual anchor */}
               {spotlightTerm.chineseCharacters && (
-                <div className="absolute top-0 right-0 w-1/2 h-full flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
-                  <span className="text-[120px] md:text-[180px] lg:text-[220px] text-tea-seal/[0.06] font-serif leading-none">
+                <div className="absolute top-0 -right-4 w-2/5 h-full flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
+                  <span className="text-[120px] md:text-[180px] lg:text-[220px] text-tea-gold/[0.03] font-serif leading-none">
                     {spotlightTerm.chineseCharacters}
                   </span>
                 </div>

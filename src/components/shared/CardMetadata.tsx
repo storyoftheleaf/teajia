@@ -26,7 +26,7 @@ export const CardMetadata: React.FC<CardMetadataProps> = ({
           {type}
         </div>
       )}
-      <h3 className="font-serif text-base text-tea-bg group-hover:text-tea-gold transition-colors leading-tight mb-1">
+      <h3 className="font-serif text-base text-tea-paper group-hover:text-tea-gold transition-colors leading-tight mb-1">
         {title}
       </h3>
       {subtitle && (
