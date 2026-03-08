@@ -45,15 +45,12 @@ const TEA_IMAGES = {
   teaSpace: 'https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=1200&h=514&fit=crop',
 };
 
-/** Section label — tiny, uppercase, tracked, with optional line */
-const SectionLabel: React.FC<{ children: React.ReactNode; withLine?: boolean }> = ({ children, withLine = false }) => (
-  <div className={`flex items-center gap-4 mb-4 ${withLine ? '' : ''}`}>
+/** Section label — tiny, uppercase, tracked */
+const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="mb-4">
     <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-seal-dark dark:text-tea-seal/80">
       {children}
     </span>
-    {withLine && (
-      <div className="flex-1 h-[0.5px] bg-tea-ink/8 dark:bg-white/8" />
-    )}
   </div>
 );
 
@@ -77,7 +74,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
   const [activePath, setActivePath] = useState<string | null>(null);
 
   const heroReveal = useSectionReveal();
-  const discoveryReveal = useSectionReveal();
   const glossaryReveal = useSectionReveal();
   const coursesReveal = useSectionReveal();
   const atlasReveal = useSectionReveal();
@@ -158,21 +154,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     <div className="pb-32">
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 1 — HERO
-          Simplified: subtitle instead of giant title, real photo, full quote.
+          SECTION 1 — HERO + EXPLORE (integrated)
+          Image, quote, and navigation flow as one opening gesture.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={heroReveal.ref}
-        className={`mb-16 md:mb-24 ${heroReveal.className}`}
+        className={`mb-20 md:mb-28 ${heroReveal.className}`}
         style={heroReveal.style}
       >
-        {/* Subtitle — editorial, not competing with page header */}
-        <p className="font-serif italic text-lg md:text-xl text-tea-ink/45 dark:text-tea-paper/45 mb-8 md:mb-10">
-          The Archive
-        </p>
-
         {/* Hero image — wide, cinematic */}
-        <div className="relative overflow-hidden rounded-[1px] mb-8 md:mb-12">
+        <div className="relative overflow-hidden rounded-[1px] mb-6 md:mb-8">
           <img
             src={TEA_IMAGES.hero}
             alt="Tea ceremony with gaiwan and morning light"
@@ -180,39 +171,57 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             style={{ aspectRatio: '2.35/1' }}
             loading="eager"
           />
-        </div>
-
-        {/* Editorial voice — full quote, no forced line breaks */}
-        <div className="md:ml-[15%] max-w-md mb-8 md:mb-10">
-          <p className="font-serif italic text-base md:text-lg text-tea-ink/55 dark:text-tea-paper/55 leading-relaxed">
-            "Everything I wish someone had given me when I started. Take what you need."
-          </p>
-          <span className="block mt-3 text-[10px] font-sans uppercase tracking-[0.4em] text-tea-seal/60">
-            Adrian
-          </span>
-        </div>
-
-        {/* Stat ribbon */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-10 mb-10">
-          {[
-            { n: counts.glossary, label: 'Terms' },
-            { n: counts.courses, label: 'Courses' },
-            { n: counts.journeys, label: 'Journeys' },
-            { n: counts.playlists, label: 'Playlists' },
-          ].map((stat, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <span className="font-serif text-2xl md:text-3xl text-tea-ink dark:text-tea-paper tabular-nums">{stat.n}</span>
-              <span className="text-[9px] font-sans uppercase tracking-[0.35em] text-tea-ink/30 dark:text-tea-paper/30 mt-0.5">{stat.label}</span>
-            </div>
-          ))}
+          {/* Quote overlaid at the bottom of the image */}
+          <div className="absolute inset-0 bg-gradient-to-t from-tea-ink/60 via-transparent to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
+            <p className="font-serif italic text-sm md:text-base text-tea-paper/80 leading-relaxed max-w-md">
+              "Everything I wish someone had given me when I started. Take what you need."
+            </p>
+            <span className="block mt-2 text-[9px] font-sans uppercase tracking-[0.4em] text-tea-paper/40">
+              Adrian
+            </span>
+          </div>
         </div>
 
         {/* Search */}
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search terms, courses, resources..."
-        />
+        <div className="mb-6 md:mb-8">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search terms, courses, resources..."
+          />
+        </div>
+
+        {/* Explore — flows directly from the hero, no separator */}
+        <div>
+          {[
+            { id: 'course' as LearnView, label: 'Courses', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-5 h-5" /> },
+            { id: 'glossary' as LearnView, label: 'Glossary', sub: `${counts.glossary} terms`, icon: <Icons.Book className="w-5 h-5" /> },
+            { id: 'journeys' as LearnView, label: 'Journeys', sub: `${counts.journeys} paths`, icon: <Icons.MapPin className="w-5 h-5" /> },
+            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Listen', icon: <Icons.Music className="w-5 h-5" /> },
+            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch', icon: <Icons.Film className="w-5 h-5" /> },
+            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & more', icon: <Icons.Book className="w-5 h-5" /> },
+            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Visual refs', icon: <Icons.Download className="w-5 h-5" /> },
+            { id: 'spaces' as LearnView, label: 'Spaces', sub: `${counts.spaces} designs`, icon: <Icons.Home className="w-5 h-5" /> },
+          ].map(tile => (
+            <button
+              key={tile.id}
+              onClick={() => onNavigateTo(tile.id)}
+              className={`w-full flex items-center gap-4 py-3.5 px-1 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
+            >
+              <span className="text-tea-seal/40 group-hover:text-tea-seal/70 transition-colors flex-shrink-0">
+                {tile.icon}
+              </span>
+              <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
+                {tile.label}
+              </span>
+              <span className="text-[11px] text-tea-ink/30 dark:text-tea-paper/30 font-sans">
+                {tile.sub}
+              </span>
+              <Icons.ChevronRight className="w-4 h-4 text-tea-ink/15 dark:text-tea-paper/15 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
 
         {/* Search results */}
         {searchResults && searchResults !== 'empty' && (
@@ -254,49 +263,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             Nothing found for &ldquo;{searchQuery}&rdquo;
           </p>
         )}
-      </section>
-
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 2 — EXPLORE
-          Vertical icon list — all destinations visible at once, no swiping.
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section
-        ref={discoveryReveal.ref}
-        className={`mb-20 md:mb-28 ${discoveryReveal.className}`}
-        style={discoveryReveal.style}
-      >
-        <SectionLabel withLine>Explore</SectionLabel>
-
-        <div className="border-t border-tea-ink/6 dark:border-white/6">
-          {[
-            { id: 'course' as LearnView, label: 'Courses', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-5 h-5" /> },
-            { id: 'glossary' as LearnView, label: 'Glossary', sub: `${counts.glossary} terms`, icon: <Icons.Book className="w-5 h-5" /> },
-            { id: 'journeys' as LearnView, label: 'Journeys', sub: `${counts.journeys} paths`, icon: <Icons.MapPin className="w-5 h-5" /> },
-            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Listen', icon: <Icons.Music className="w-5 h-5" /> },
-            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch', icon: <Icons.Film className="w-5 h-5" /> },
-            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & more', icon: <Icons.Book className="w-5 h-5" /> },
-            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Visual refs', icon: <Icons.Download className="w-5 h-5" /> },
-            { id: 'spaces' as LearnView, label: 'Spaces', sub: `${counts.spaces} designs`, icon: <Icons.Home className="w-5 h-5" /> },
-          ].map(tile => (
-            <button
-              key={tile.id}
-              onClick={() => onNavigateTo(tile.id)}
-              className={`w-full flex items-center gap-4 py-3.5 px-1 border-b border-tea-ink/6 dark:border-white/6 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
-            >
-              <span className="text-tea-seal/40 group-hover:text-tea-seal/70 transition-colors flex-shrink-0">
-                {tile.icon}
-              </span>
-              <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
-                {tile.label}
-              </span>
-              <span className="text-[11px] text-tea-ink/30 dark:text-tea-paper/30 font-sans">
-                {tile.sub}
-              </span>
-              <Icons.ChevronRight className="w-4 h-4 text-tea-ink/15 dark:text-tea-paper/15 flex-shrink-0" />
-            </button>
-          ))}
-        </div>
       </section>
 
 
@@ -418,7 +384,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${coursesReveal.className}`}
         style={coursesReveal.style}
       >
-        <SectionLabel withLine>Curriculum</SectionLabel>
+        <SectionLabel>Curriculum</SectionLabel>
 
         {/* Path selector — horizontally scrollable on mobile, no wrapping */}
         <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8 -mx-1 px-1">
@@ -476,7 +442,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <button
                 key={mod.id}
                 onClick={() => onStoryClick(getModuleTarget(mod))}
-                className={`w-full flex items-start gap-5 md:gap-8 py-6 md:py-7 group text-left border-b border-tea-ink/6 dark:border-white/6 first:border-t hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
+                className={`w-full flex items-start gap-5 md:gap-8 py-5 md:py-6 group text-left hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
               >
                 <span className={`font-serif text-3xl md:text-4xl tabular-nums leading-none flex-shrink-0 w-12 transition-colors ${
                   isComplete ? 'text-tea-seal/40' : 'text-tea-ink/10 dark:text-tea-paper/10 group-hover:text-tea-seal/30'
@@ -523,7 +489,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <button
               key={collection.id}
               onClick={() => onNavigateTo('journeys')}
-              className={`w-full flex items-start gap-5 md:gap-8 py-6 md:py-7 group text-left border-b border-tea-ink/6 dark:border-white/6 hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
+              className={`w-full flex items-start gap-5 md:gap-8 py-5 md:py-6 group text-left hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
             >
               <span className="flex-shrink-0 w-12 flex items-start justify-center">
                 <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-sm font-sans ${DIFFICULTY_COLORS[collection.difficulty]}`}>
@@ -553,7 +519,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
 
         {/* Full curriculum CTA */}
-        <div className="mt-4 pt-6 border-t border-tea-ink/6 dark:border-white/6">
+        <div className="mt-4 pt-6">
           <button
             onClick={() => onNavigateTo('course')}
             className={`text-tea-seal text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
@@ -573,7 +539,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${resourcesReveal.className}`}
         style={resourcesReveal.style}
       >
-        <SectionLabel withLine>Resources & Tools</SectionLabel>
+        <SectionLabel>Resources & Tools</SectionLabel>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {[
@@ -615,7 +581,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${atlasReveal.className}`}
         style={atlasReveal.style}
       >
-        <SectionLabel withLine>Places</SectionLabel>
+        <SectionLabel>Places</SectionLabel>
         <p className="font-serif italic text-sm text-tea-ink/40 dark:text-tea-paper/40 mb-8 max-w-md">
           Tea locations, farms, and cultural landmarks across Asia
         </p>
@@ -714,7 +680,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-16 ${closingReveal.className}`}
         style={closingReveal.style}
       >
-        <div className="border-t border-tea-ink/8 dark:border-white/8 pt-12 md:pt-16">
+        <div className="pt-12 md:pt-16">
           <div className="max-w-md md:ml-[10%]">
             <p className="font-serif italic text-base md:text-lg text-tea-ink/35 dark:text-tea-paper/35 leading-relaxed mb-6">
               This archive grows with every session, every conversation, every cup.
