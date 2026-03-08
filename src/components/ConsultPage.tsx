@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from './shared/PageHeader';
 import { CardContainer } from './shared/CardContainer';
@@ -80,6 +80,10 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryPreselect, setInquiryPreselect] = useState('');
 
+  // Scroll position memory per sub-view
+  const scrollPositions = useRef<Record<string, number>>({});
+  const prevView = useRef<ConsultView>(currentView);
+
   // Section refs for scroll-to-depth
   const designRef = useRef<HTMLElement>(null);
   const sessionsRef = useRef<HTMLElement>(null);
@@ -94,6 +98,18 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
     sourcing: sourcingRef,
     events: eventsRef,
   };
+
+  // Save/restore scroll position when sub-view changes (including browser back)
+  useEffect(() => {
+    if (prevView.current !== currentView) {
+      scrollPositions.current[prevView.current] = window.scrollY;
+      const savedPosition = scrollPositions.current[currentView] ?? 0;
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedPosition);
+      });
+      prevView.current = currentView;
+    }
+  }, [currentView]);
 
   const openInquiry = useCallback((preselect: string) => {
     setInquiryPreselect(preselect);
@@ -113,7 +129,8 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
       }
       return next;
     }, { replace: false });
-    window.scrollTo(0, 0);
+    // Clear saved position for the target so it starts at top
+    delete scrollPositions.current[view];
   }, [setSearchParams]);
 
   const scrollToSection = useCallback((sectionId: string) => {
