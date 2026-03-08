@@ -181,7 +181,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <button
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
-              className={`w-full flex items-center gap-4 py-3.5 px-1 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
+              className={`w-full flex items-center gap-4 py-3.5 px-1 border-b border-tea-ink/[0.06] dark:border-white/[0.06] last:border-b-0 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
             >
               <span className="text-tea-seal/40 group-hover:text-tea-seal/70 transition-colors flex-shrink-0">
                 {tile.icon}
@@ -192,7 +192,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <span className="text-[11px] text-tea-ink/30 dark:text-tea-paper/30 font-sans">
                 {tile.sub}
               </span>
-              <Icons.ChevronRight className="w-4 h-4 text-tea-ink/15 dark:text-tea-paper/15 flex-shrink-0" />
             </button>
           ))}
         </div>
