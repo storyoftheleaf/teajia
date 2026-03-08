@@ -16,14 +16,14 @@ interface FooterProps {
 
 export default function Footer({ onNavigate }: FooterProps) {
   return (
-    <footer className="border-t border-tea-ink/10 dark:border-white/10 pt-12 pb-16 md:pt-16 md:pb-20 lg:pb-20 mt-20">
+    <footer className="border-t border-tea-border pt-12 pb-16 md:pt-16 md:pb-20 lg:pb-20 mt-20">
       {/* Navigation links */}
       <nav className="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-8">
         {NAV_LINKS.map((link) => (
           <button
             key={link.label}
             onClick={() => link.section && onNavigate?.(link.section)}
-            className="text-sm text-tea-ink/60 dark:text-tea-paper/60 hover:text-tea-seal transition-colors duration-300 font-sans"
+            className="text-sm text-tea-text/60 hover:text-tea-gold transition-colors duration-300 font-sans"
           >
             {link.label}
           </button>
@@ -36,7 +36,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           href="https://instagram.com/teajia.journal"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-tea-seal hover:text-tea-seal/80 uppercase tracking-widest text-xs font-medium inline-flex items-center gap-2 transition-colors duration-300"
+          className="text-tea-gold hover:text-tea-gold/80 uppercase tracking-widest text-xs font-medium inline-flex items-center gap-2 transition-colors duration-300"
         >
           Explore Adrian's Art Studio
           <Icons.ExternalLink className="w-3.5 h-3.5" />
@@ -44,18 +44,18 @@ export default function Footer({ onNavigate }: FooterProps) {
       </div>
 
       {/* Contact */}
-      <p className="text-center text-sm text-tea-ink/50 dark:text-tea-paper/50 font-sans mb-4">
+      <p className="text-center text-sm text-tea-text/50 font-sans mb-4">
         Questions?{' '}
         <a
           href="mailto:hello@teajia.com"
-          className="hover:text-tea-seal transition-colors duration-300"
+          className="hover:text-tea-gold transition-colors duration-300"
         >
           hello@teajia.com
         </a>
       </p>
 
       {/* Copyright */}
-      <p className="text-center text-xs text-tea-ink/40 dark:text-tea-paper/40 font-sans tracking-wide">
+      <p className="text-center text-xs text-tea-text/40 font-sans tracking-wide">
         teajia &copy; {new Date().getFullYear()}
       </p>
 
@@ -63,7 +63,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="text-center mt-6">
         <Link
           to="/admin"
-          className="text-[10px] text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-seal font-mono tracking-widest uppercase transition-colors duration-300"
+          className="text-[10px] text-tea-text/20 hover:text-tea-gold font-mono tracking-widest uppercase transition-colors duration-300"
         >
           Admin
         </Link>

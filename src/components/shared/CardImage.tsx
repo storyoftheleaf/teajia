@@ -30,11 +30,11 @@ export const CardImage: React.FC<CardImageProps> = ({
     video: 'aspect-video'
   };
 
-  const placeholderBg = 'bg-tea-ink/90 dark:bg-tea-ink';
+  const placeholderBg = 'bg-tea-elevated/90';
 
   return (
     <div
-      className={`relative w-full ${aspectClasses[aspect]} overflow-hidden bg-tea-ink/90 dark:bg-tea-ink cursor-pointer group/img ${className}`}
+      className={`relative w-full ${aspectClasses[aspect]} overflow-hidden bg-tea-elevated/90 cursor-pointer group/img ${className}`}
       onClick={onClick}
     >
       {src && !hasError ? (
@@ -63,7 +63,7 @@ export const CardImage: React.FC<CardImageProps> = ({
         </>
       ) : (
         <div className={`w-full h-full ${placeholderBg} flex items-center justify-center`}>
-          <span className="text-tea-paper/30 text-xs">No image</span>
+          <span className="text-tea-bg/30 text-xs">No image</span>
         </div>
       )}
     </div>

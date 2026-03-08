@@ -31,8 +31,8 @@ export const LearnReadingLists: React.FC = () => {
             onClick={() => setActiveListId(list.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
               activeListId === list.id
-                ? 'bg-tea-seal text-white'
-                : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/60 dark:text-tea-paper/60 hover:bg-tea-ink/10 dark:hover:bg-white/10'
+                ? 'bg-tea-gold text-white'
+                : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
             }`}
           >
             {ICON_MAP[list.iconName]}
@@ -44,15 +44,15 @@ export const LearnReadingLists: React.FC = () => {
       {/* Active list content */}
       {activeList && (
         <div className="animate-[fadeIn_0.3s_ease-out]">
-          <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 font-serif italic mb-4">
+          <p className="text-sm text-tea-text/50 font-serif italic mb-4">
             {activeList.subtitle}
           </p>
 
-          <div className="flex flex-col divide-y divide-tea-ink/5 dark:divide-white/5">
+          <div className="flex flex-col divide-y divide-tea-ink/5">
             {activeList.items.map(item => (
               <div
                 key={item.id}
-                className="flex items-start gap-4 py-3.5 px-1 group hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                className="flex items-start gap-4 py-3.5 px-1 group hover:bg-tea-elevated/50 transition-colors"
               >
                 {/* Format icon */}
                 <div className={`w-9 h-9 rounded-sm flex items-center justify-center shrink-0 mt-0.5 ${
@@ -69,7 +69,7 @@ export const LearnReadingLists: React.FC = () => {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <h4 className="font-serif text-sm text-tea-ink dark:text-tea-paper truncate">
+                    <h4 className="font-serif text-sm text-tea-text truncate">
                       {item.title}
                     </h4>
                     <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${FORMAT_COLORS[item.format]}`}>
@@ -77,11 +77,11 @@ export const LearnReadingLists: React.FC = () => {
                     </span>
                   </div>
                   {item.author && (
-                    <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mb-0.5">
+                    <p className="text-[11px] text-tea-text/40 mb-0.5">
                       {item.author}
                     </p>
                   )}
-                  <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-tea-text/50 line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
@@ -89,11 +89,11 @@ export const LearnReadingLists: React.FC = () => {
                 {/* Duration & arrow */}
                 <div className="flex items-center gap-2 shrink-0 mt-1">
                   {item.duration && (
-                    <span className="text-[10px] text-tea-ink/30 dark:text-tea-paper/30 hidden sm:inline">
+                    <span className="text-[10px] text-tea-text/30 hidden sm:inline">
                       {item.duration}
                     </span>
                   )}
-                  <Icons.Next className="w-4 h-4 text-tea-ink/20 dark:text-tea-paper/20 group-hover:text-tea-seal transition-colors" />
+                  <Icons.Next className="w-4 h-4 text-tea-text/20 group-hover:text-tea-gold transition-colors" />
                 </div>
               </div>
             ))}

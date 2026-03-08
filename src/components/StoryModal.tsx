@@ -20,17 +20,17 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
       onClick={onClose} // Close on backdrop click
     >
       {/* Backdrop Dim */}
-      <div className="absolute inset-0 bg-tea-charcoal/90 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-tea-bg/90 backdrop-blur-sm"></div>
 
       {/* Modal Content */}
       <div 
-        className="relative w-full max-w-5xl bg-tea-paper overflow-hidden shadow-2xl rounded-sm flex flex-col md:flex-row max-h-[90vh]"
+        className="relative w-full max-w-5xl bg-tea-bg overflow-hidden shadow-2xl rounded-sm flex flex-col md:flex-row max-h-[90vh]"
         onClick={handleContentClick}
       >
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 p-2 rounded-full bg-tea-paper/50 hover:bg-tea-paper text-tea-ink transition-colors"
+          className="absolute top-4 right-4 z-50 p-2 rounded-full bg-tea-bg/50 hover:bg-tea-bg text-tea-text transition-colors"
         >
           <Icons.Close className="w-6 h-6" />
         </button>
@@ -42,8 +42,8 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
              <div className="w-full h-full flex items-center justify-center bg-zinc-900 relative group">
                 <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-50" alt="video thumb"/>
                 <div className="absolute inset-0 flex items-center justify-center">
-                   <div className="w-16 h-16 border border-tea-paper/30 rounded-full flex items-center justify-center hover:bg-tea-paper/10 transition-all cursor-pointer">
-                     <Icons.Play className="w-8 h-8 text-tea-paper fill-tea-paper/20" />
+                   <div className="w-16 h-16 border border-tea-paper/30 rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
+                     <Icons.Play className="w-8 h-8 text-tea-bg fill-tea-paper/20" />
                    </div>
                 </div>
                 {/* Custom Player Frame */}
@@ -60,11 +60,11 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                   ))}
                </div>
                <div className="flex items-center space-x-6">
-                 <Icons.Play className="w-10 h-10 text-tea-paper cursor-pointer hover:text-tea-green transition-colors" />
+                 <Icons.Play className="w-10 h-10 text-tea-bg cursor-pointer hover:text-tea-green transition-colors" />
                  <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
-                   <div className="w-1/3 h-full bg-tea-paper"></div>
+                   <div className="w-1/3 h-full bg-tea-bg"></div>
                  </div>
-                 <span className="text-xs text-tea-paper/60 font-mono">08:12 / {story.durationOrTime}</span>
+                 <span className="text-xs text-tea-bg/60 font-mono">08:12 / {story.durationOrTime}</span>
                </div>
                <img src={story.thumbnailUrl || 'https://picsum.photos/400/400'} className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay" alt="audio bg"/>
              </div>
@@ -76,8 +76,8 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                  {story.thumbnailUrl ? (
                    <img src={story.thumbnailUrl} className="w-full h-full object-cover" alt="article cover"/>
                  ) : (
-                   <div className="w-full h-full bg-tea-paper-dark flex items-center justify-center">
-                     <Icons.Leaf className="w-32 h-32 text-tea-ink opacity-10" />
+                   <div className="w-full h-full bg-tea-bg-dark flex items-center justify-center">
+                     <Icons.Leaf className="w-32 h-32 text-tea-text opacity-10" />
                    </div>
                  )}
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -86,41 +86,41 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
         </div>
 
         {/* Right Side: Info (Or Bottom on Mobile) */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col bg-tea-paper relative overflow-y-auto">
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col bg-tea-bg relative overflow-y-auto">
           
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-4">
-              <span className="px-3 py-1 border border-tea-ink/20 text-xs uppercase tracking-widest rounded-full text-tea-ink-light">
+              <span className="px-3 py-1 border border-tea-text/20 text-xs uppercase tracking-widest rounded-full text-tea-text-light">
                 {story.type}
               </span>
-              <span className="text-xs text-tea-ink-light/60 font-serif italic">
+              <span className="text-xs text-tea-text-light/60 font-serif italic">
                 {story.origin} • {story.durationOrTime}
               </span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-serif text-tea-ink leading-tight mb-2">
+            <h2 className="text-4xl md:text-5xl font-serif text-tea-text leading-tight mb-2">
               {story.title}
             </h2>
-            <h3 className="text-xl font-serif text-tea-ink-light italic font-light">
+            <h3 className="text-xl font-serif text-tea-text-light italic font-light">
               {story.subtitle}
             </h3>
           </div>
 
           {/* Description */}
-          <div className="prose prose-stone prose-lg flex-grow mb-8 text-tea-ink-light/90 font-serif leading-relaxed">
+          <div className="prose prose-stone prose-lg flex-grow mb-8 text-tea-text-light/90 font-serif leading-relaxed">
             <p>{story.description}</p>
           </div>
 
           {/* Actions */}
           <div className="mt-auto pt-8 border-t border-tea-beige flex items-center justify-between">
-             <button className="p-2 hover:bg-tea-beige/20 rounded-full transition-colors text-tea-ink-light">
+             <button className="p-2 hover:bg-tea-beige/20 rounded-full transition-colors text-tea-text-light">
                <Icons.Share className="w-5 h-5" />
              </button>
           </div>
 
           {/* Decorative Stamp */}
           <div className="absolute top-8 right-8 opacity-20 pointer-events-none">
-             <Icons.Seal className="w-16 h-16 text-tea-seal" />
+             <Icons.Seal className="w-16 h-16 text-tea-gold" />
           </div>
 
         </div>

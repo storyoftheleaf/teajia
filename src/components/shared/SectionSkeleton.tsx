@@ -5,7 +5,7 @@ interface SectionSkeletonProps {
 }
 
 const ShimmerBar: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`relative overflow-hidden bg-tea-ink/5 dark:bg-white/5 rounded-sm ${className}`}>
+  <div className={`relative overflow-hidden bg-tea-text/5 rounded-sm ${className}`}>
     <div
       className="absolute inset-0 animate-shimmer"
       style={{
@@ -44,7 +44,7 @@ export const SectionSkeleton: React.FC<SectionSkeletonProps> = ({ variant = 'gri
       <div className="animate-[fadeIn_0.15s_ease-out] px-4 pt-4">
         <ShimmerBar className="h-10 w-full mb-4" />
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 py-3 border-b border-tea-ink/5 dark:border-white/5">
+          <div key={i} className="flex items-center gap-4 py-3 border-b border-tea-border">
             <ShimmerBar className="w-12 h-12 rounded-sm flex-shrink-0" />
             <div className="flex-1 flex flex-col gap-1.5">
               <ShimmerBar className="h-4 w-3/5" />

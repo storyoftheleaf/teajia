@@ -34,16 +34,16 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
 
   return (
     <div className={`${className}`}>
-      <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal text-tea-ink dark:text-tea-paper mb-3">
+      <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal text-tea-text mb-3">
         {heading}
       </h2>
-      <div className="w-12 h-[1px] bg-tea-seal mb-6" />
-      <p className="text-tea-ink/70 dark:text-tea-paper/70 mb-8 max-w-2xl">
+      <div className="w-12 h-[1px] bg-tea-gold mb-6" />
+      <p className="text-tea-text/70 mb-8 max-w-2xl">
         {subtitle}
       </p>
 
       {submitted ? (
-        <p className="text-tea-green dark:text-tea-green font-sans text-base animate-[fadeIn_0.3s_ease-out]">
+        <p className="text-tea-green font-sans text-base animate-[fadeIn_0.3s_ease-out]">
           Thank you — we'll be in touch.
         </p>
       ) : (
@@ -54,7 +54,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
             required
-            className="flex-1 px-4 py-3 rounded-sm border border-tea-ink/20 dark:border-white/20 bg-transparent text-tea-ink dark:text-tea-paper placeholder:text-tea-ink/40 dark:placeholder:text-tea-paper/40 font-sans text-base focus:outline-none focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/20 transition-colors"
+            className="flex-1 px-4 py-3 rounded-sm border border-tea-border bg-transparent text-tea-text placeholder:text-tea-text/40 dark:placeholder:text-tea-bg/40 font-sans text-base focus:outline-none focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/20 transition-colors"
           />
           <Button type="submit" variant="primary" size="md">
             Subscribe

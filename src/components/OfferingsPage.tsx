@@ -223,22 +223,22 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
       </PageHeader>
 
       {/* Process Section - How It Works */}
-      <div className="bg-tea-seal/5 dark:bg-tea-seal/5 py-16 lg:py-20 px-4 mb-16 lg:mb-24 mt-8">
+      <div className="bg-tea-gold/5/5 py-16 lg:py-20 px-4 mb-16 lg:mb-24 mt-8">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-serif text-3xl lg:text-4xl text-tea-ink dark:text-tea-paper mb-12 text-center">
+          <h2 className="font-serif text-3xl lg:text-4xl text-tea-text mb-12 text-center">
             How It Works
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-10">
             {HOW_IT_WORKS_STEPS.map((item) => (
               <div key={item.id} className="text-center">
-                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-tea-seal text-white rounded-full flex items-center justify-center mx-auto mb-4 font-serif text-lg lg:text-xl font-bold">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-tea-gold text-white rounded-full flex items-center justify-center mx-auto mb-4 font-serif text-lg lg:text-xl font-bold">
                   {item.step}
                 </div>
-                <h4 className="font-serif text-lg lg:text-xl text-tea-ink dark:text-tea-paper mb-2">
+                <h4 className="font-serif text-lg lg:text-xl text-tea-text mb-2">
                   {item.title}
                 </h4>
-                <p className="text-sm text-tea-ink/70 dark:text-tea-paper/70">
+                <p className="text-sm text-tea-text/70">
                   {item.description}
                 </p>
               </div>
@@ -255,11 +255,11 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
           return (
             <div key={category.id} className="mb-16 lg:mb-24">
               {/* Category Header */}
-              <div className="flex items-center gap-4 mb-8 lg:mb-12 pb-6 border-b border-tea-ink/10 dark:border-white/10">
-                <div className="text-tea-seal">{category.icon}</div>
+              <div className="flex items-center gap-4 mb-8 lg:mb-12 pb-6 border-b border-tea-border">
+                <div className="text-tea-gold">{category.icon}</div>
                 <div className="flex-1">
-                  <h2 className="text-2xl lg:text-3xl font-serif text-tea-paper">{category.title}</h2>
-                  <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60">{category.description}</p>
+                  <h2 className="text-2xl lg:text-3xl font-serif text-tea-bg">{category.title}</h2>
+                  <p className="text-sm text-tea-text/60">{category.description}</p>
                 </div>
               </div>
 
@@ -268,46 +268,46 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                 {categoryOfferings.map((offering) => (
                   <div
                     key={offering.id}
-                    className="group bg-tea-paper dark:bg-white/5 rounded-lg p-8 border border-tea-seal/10 hover:border-tea-seal/30 transition-all duration-300 hover:shadow-lg md:hover:-translate-y-1 animate-[fadeIn_0.6s_ease-out]"
+                    className="group bg-tea-bg rounded-lg p-8 border border-tea-gold/10 hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg md:hover:-translate-y-1 animate-[fadeIn_0.6s_ease-out]"
                   >
                     {/* Category Label */}
                     <div className="mb-4">
-                      <span className="text-[11px] uppercase tracking-wider font-medium text-tea-seal">
+                      <span className="text-[11px] uppercase tracking-wider font-medium text-tea-gold">
                         {offering.categoryLabel}
                       </span>
                     </div>
 
                     {/* Icon */}
-                    <div className="w-14 h-14 bg-tea-seal/8 dark:bg-tea-seal/15 rounded-lg flex items-center justify-center mb-6 group-hover:bg-tea-seal/15 dark:group-hover:bg-tea-seal/25 transition-colors text-tea-seal">
+                    <div className="w-14 h-14 bg-tea-gold/8 rounded-lg flex items-center justify-center mb-6 group-hover:bg-tea-gold/15 dark:group-hover:bg-tea-gold/25 transition-colors text-tea-gold">
                       {offering.icon}
                     </div>
 
                     {/* Title */}
-                    <h3 className="font-serif text-2xl text-tea-ink dark:text-tea-paper mb-3 group-hover:text-tea-seal transition-colors">
+                    <h3 className="font-serif text-2xl text-tea-text mb-3 group-hover:text-tea-gold transition-colors">
                       {offering.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-tea-ink/70 dark:text-tea-paper/70 mb-6">
+                    <p className="text-tea-text/70 mb-6">
                       {offering.description}
                     </p>
 
                     {/* Details List */}
                     <ul className="space-y-3 mb-6">
                       {offering.details.map((detail, idx) => (
-                        <li key={idx} className="flex gap-3 text-sm text-tea-ink/80 dark:text-tea-paper/80">
-                          <Icons.Check className="w-5 h-5 text-tea-seal flex-shrink-0 mt-0.5" />
+                        <li key={idx} className="flex gap-3 text-sm text-tea-text/80">
+                          <Icons.Check className="w-5 h-5 text-tea-gold flex-shrink-0 mt-0.5" />
                           <span>{detail}</span>
                         </li>
                       ))}
                     </ul>
 
                     {/* Price & CTA */}
-                    <div className="flex flex-col gap-3 pt-4 border-t border-tea-seal/10">
+                    <div className="flex flex-col gap-3 pt-4 border-t border-tea-gold/10">
                       {offering.price && (
-                        <p className="text-sm text-tea-seal font-medium">{offering.price}</p>
+                        <p className="text-sm text-tea-gold font-medium">{offering.price}</p>
                       )}
-                      <button onClick={() => handleLearnMore(offering)} className="w-full py-3 px-4 bg-tea-seal/8 dark:bg-tea-seal/15 text-tea-seal hover:bg-tea-seal/15 dark:hover:bg-tea-seal/25 rounded-lg font-medium transition-all duration-300 group-hover:bg-tea-seal group-hover:text-white">
+                      <button onClick={() => handleLearnMore(offering)} className="w-full py-3 px-4 bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/15 dark:hover:bg-tea-gold/25 rounded-lg font-medium transition-all duration-300 group-hover:bg-tea-gold group-hover:text-white">
                         Learn More
                       </button>
                     </div>
@@ -321,11 +321,11 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
 
       {/* Tea Space Inspiration Section */}
       <div className="max-w-6xl mx-auto px-4 mb-16 lg:mb-24">
-        <div className="flex items-center gap-4 mb-8 lg:mb-12 pb-6 border-b border-tea-ink/10 dark:border-white/10">
-          <div className="text-tea-seal"><Icons.Palette className="w-6 h-6" /></div>
+        <div className="flex items-center gap-4 mb-8 lg:mb-12 pb-6 border-b border-tea-border">
+          <div className="text-tea-gold"><Icons.Palette className="w-6 h-6" /></div>
           <div className="flex-1">
-            <h2 className="text-2xl lg:text-3xl font-serif text-tea-paper">Tea Space Inspiration</h2>
-            <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60">Ideas and guidance for creating your own ceremony environment</p>
+            <h2 className="text-2xl lg:text-3xl font-serif text-tea-bg">Tea Space Inspiration</h2>
+            <p className="text-sm text-tea-text/60">Ideas and guidance for creating your own ceremony environment</p>
           </div>
         </div>
 
@@ -333,19 +333,19 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
           {TEA_SPACES.map(space => (
             <CardContainer key={space.id} variant="dark" className="hover:-translate-y-0.5 transition-all">
               <div className="p-5">
-                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-seal/8 dark:bg-tea-seal/15 text-tea-seal border border-tea-seal/15">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-gold/15">
                   {SPACE_TYPE_LABELS[space.spaceType]}
                 </span>
-                <h3 className="font-serif text-lg text-tea-ink dark:text-tea-paper mt-3 mb-2">
+                <h3 className="font-serif text-lg text-tea-text mt-3 mb-2">
                   {space.title}
                 </h3>
-                <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 mb-4 leading-relaxed">
+                <p className="text-sm text-tea-text/60 mb-4 leading-relaxed">
                   {space.description}
                 </p>
                 <ul className="space-y-2">
                   {space.tips.slice(0, 2).map((tip, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-tea-ink/50 dark:text-tea-paper/50">
-                      <Icons.Check className="w-3.5 h-3.5 text-tea-seal shrink-0 mt-0.5" />
+                    <li key={i} className="flex items-start gap-2 text-xs text-tea-text/50">
+                      <Icons.Check className="w-3.5 h-3.5 text-tea-gold shrink-0 mt-0.5" />
                       <span>{tip}</span>
                     </li>
                   ))}
@@ -357,20 +357,20 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
 
         <button
           onClick={openDesignInquiry}
-          className="flex items-center justify-between w-full py-4 px-5 rounded-lg bg-tea-seal/5 dark:bg-tea-seal/10 hover:bg-tea-seal/10 dark:hover:bg-tea-seal/15 transition-colors group"
+          className="flex items-center justify-between w-full py-4 px-5 rounded-lg bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
         >
           <div className="flex items-center gap-3">
-            <Icons.Sparkles className="w-5 h-5 text-tea-seal" />
+            <Icons.Sparkles className="w-5 h-5 text-tea-gold" />
             <div className="text-left">
-              <span className="text-base font-medium text-tea-ink dark:text-tea-paper">
+              <span className="text-base font-medium text-tea-text">
                 Want a Custom Tea Space?
               </span>
-              <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50">
+              <p className="text-sm text-tea-text/50">
                 Let us help you design and curate the perfect ceremony environment
               </p>
             </div>
           </div>
-          <Icons.Next className="w-5 h-5 text-tea-seal group-hover:translate-x-0.5 transition-transform" />
+          <Icons.Next className="w-5 h-5 text-tea-gold group-hover:translate-x-0.5 transition-transform" />
         </button>
       </div>
 
@@ -381,15 +381,15 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
 
       {/* Contact CTA */}
       <div className="max-w-3xl mx-auto px-4 mb-24 lg:mb-36 text-center">
-        <h2 className="font-serif text-2xl lg:text-4xl text-tea-ink dark:text-tea-paper mb-4 lg:mb-6">
+        <h2 className="font-serif text-2xl lg:text-4xl text-tea-text mb-4 lg:mb-6">
           Ready to Begin?
         </h2>
-        <p className="text-tea-ink/70 dark:text-tea-paper/70 mb-8 lg:max-w-xl lg:mx-auto">
+        <p className="text-tea-text/70 mb-8 lg:max-w-xl lg:mx-auto">
           Get in touch to discuss which offering is right for you. We're excited to share the gift of tea.
         </p>
         <button
           onClick={() => setInquiryModalOpen(true)}
-          className="px-8 lg:px-12 py-3 lg:py-4 bg-tea-seal text-white font-medium rounded-lg hover:bg-tea-seal/90 transition-colors"
+          className="px-8 lg:px-12 py-3 lg:py-4 bg-tea-gold text-white font-medium rounded-lg hover:bg-tea-gold/90 transition-colors"
         >
           Contact Us
         </button>

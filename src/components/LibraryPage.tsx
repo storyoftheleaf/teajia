@@ -42,8 +42,8 @@ const SECTION_CARDS: {
     title: 'Tea Map',
     description: 'Tea houses, shops, and spaces worth visiting',
     icon: <Icons.Location className="w-7 h-7" />,
-    accentBg: 'bg-tea-seal/10 dark:bg-tea-seal/20',
-    accentText: 'text-tea-seal',
+    accentBg: 'bg-tea-gold/10',
+    accentText: 'text-tea-gold',
   },
   {
     id: 'playlists',
@@ -59,7 +59,7 @@ const SECTION_CARDS: {
     description: 'Curated watching',
     icon: <Icons.Play className="w-7 h-7" />,
     accentBg: 'bg-red-500/10 dark:bg-red-500/20',
-    accentText: 'text-red-600 dark:text-red-400',
+    accentText: 'text-red-600',
   },
   {
     id: 'visual-guides',
@@ -143,35 +143,35 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             {/* Search results */}
             {hasSearchResults ? (
               <div>
-                <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40 mb-4">
+                <p className="text-xs text-tea-text/40 mb-4">
                   {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &ldquo;{searchQuery}&rdquo;
                 </p>
                 {searchResults.length === 0 ? (
-                  <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 text-center py-8">
+                  <p className="text-sm text-tea-text/50 text-center py-8">
                     No results found. Try a different search term.
                   </p>
                 ) : (
-                  <div className="flex flex-col divide-y divide-tea-ink/5 dark:divide-white/5">
+                  <div className="flex flex-col divide-y divide-tea-ink/5">
                     {searchResults.map(result => (
                       <button
                         key={`${result.type}-${result.id}`}
                         onClick={() => navigateTo(RESULT_TYPE_TO_VIEW[result.type])}
-                        className="flex items-start gap-3 py-3 px-1 text-left hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group"
+                        className="flex items-start gap-3 py-3 px-1 text-left hover:bg-tea-elevated/50 transition-colors group"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
+                            <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
                               {result.title}
                             </span>
-                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-ink/5 dark:bg-white/5 text-tea-ink/40 dark:text-tea-paper/40">
+                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/40">
                               {RESULT_TYPE_LABELS[result.type]}
                             </span>
                           </div>
-                          <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50">
+                          <p className="text-xs text-tea-text/50">
                             {result.snippet}
                           </p>
                         </div>
-                        <Icons.Next className="w-4 h-4 text-tea-ink/20 dark:text-tea-paper/20 group-hover:text-tea-seal transition-colors shrink-0 mt-1" />
+                        <Icons.Next className="w-4 h-4 text-tea-text/20 group-hover:text-tea-gold transition-colors shrink-0 mt-1" />
                       </button>
                     ))}
                   </div>
@@ -192,10 +192,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                           <span className={card.accentText}>{card.icon}</span>
                         </div>
                         <div>
-                          <h3 className="font-serif text-base text-tea-ink dark:text-tea-paper mb-0.5">
+                          <h3 className="font-serif text-base text-tea-text mb-0.5">
                             {card.title}
                           </h3>
-                          <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50">
+                          <p className="text-xs text-tea-text/50">
                             {card.description}
                           </p>
                         </div>

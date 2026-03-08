@@ -30,13 +30,13 @@ interface GalleryImageProps {
 }
 
 const INSIGHT_COLORS: Record<Insight['type'], string> = {
-  design: 'bg-tea-seal',
-  curation: 'bg-tea-seal',
-  layout: 'bg-tea-seal',
-  material: 'bg-tea-seal',
-  philosophy: 'bg-tea-seal',
-  story: 'bg-tea-seal',
-  work: 'bg-tea-seal',
+  design: 'bg-tea-gold',
+  curation: 'bg-tea-gold',
+  layout: 'bg-tea-gold',
+  material: 'bg-tea-gold',
+  philosophy: 'bg-tea-gold',
+  story: 'bg-tea-gold',
+  work: 'bg-tea-gold',
 };
 
 const INSIGHT_ICONS: Record<Insight['type'], React.ReactNode> = {
@@ -57,7 +57,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
   return (
     <>
       <div
-        className="relative group overflow-hidden rounded-sm cursor-pointer bg-white/10 dark:bg-white/5"
+        className="relative group overflow-hidden rounded-sm cursor-pointer bg-white/10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -108,7 +108,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
                 href={image.attribution.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-tea-seal transition-colors duration-300 p-1"
+                className="text-white hover:text-tea-gold transition-colors duration-300 p-1"
                 title={`Visit ${image.attribution.name}`}
               >
                 <Icons.ExternalLink className="w-4 h-4" />
@@ -122,7 +122,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
           <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-white text-xs">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-tea-paper/80 uppercase tracking-widest text-[10px] mb-1">
+                <p className="text-tea-bg/80 uppercase tracking-widest text-[10px] mb-1">
                   {image.attribution.label}
                 </p>
                 <p className="font-serif text-sm">{image.attribution.name}</p>

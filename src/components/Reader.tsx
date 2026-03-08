@@ -144,7 +144,7 @@ const ScaledPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))',
                     contain: 'layout style paint'
                 }}
-                className="shrink-0 bg-tea-bg dark:bg-tea-elevated"
+                className="shrink-0 bg-tea-bg"
             >
                 {children}
             </div>
@@ -447,27 +447,27 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-end animate-[fadeIn_0.2s_ease-out]" 
         onClick={() => setShowNav(false)}
     >
-        <div className="w-full max-w-sm bg-tea-bg h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-ink/10 animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-10 border-b border-tea-ink/10 pb-4">
-                <span className="text-tea-ink font-serif italic text-xl">Journal Index</span>
-                <button onClick={() => setShowNav(false)} className="p-2 hover:bg-tea-ink/5 rounded-full transition-colors">
-                    <Icons.Close className="w-5 h-5 text-tea-ink/60" />
+        <div className="w-full max-w-sm bg-tea-bg h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-text/10 animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-10 border-b border-tea-text/10 pb-4">
+                <span className="text-tea-text font-serif italic text-xl">Journal Index</span>
+                <button onClick={() => setShowNav(false)} className="p-2 hover:bg-tea-text/5 rounded-full transition-colors">
+                    <Icons.Close className="w-5 h-5 text-tea-text/60" />
                 </button>
             </div>
             <div className="space-y-8">
                 {recommendations.map(s => (
                     <div key={s.id} onClick={() => { onNavigate(s); setShowNav(false); }} className="group cursor-pointer flex gap-5">
                          {/* Thumbnail */}
-                         <div className="w-16 h-20 bg-tea-ink/5 shrink-0 relative overflow-hidden">
+                         <div className="w-16 h-20 bg-tea-text/5 shrink-0 relative overflow-hidden">
                              <img src={s.thumbnailUrl} className="w-full h-full object-cover sepia-[0.3] group-hover:sepia-0 transition-all duration-500" alt="thumb" loading="lazy" />
                          </div>
                          <div className="flex-1">
                              <div className="flex justify-between items-start">
-                                 <span className="text-[11px] uppercase tracking-widest text-tea-ink/60 mb-1 block">{s.type}</span>
+                                 <span className="text-[11px] uppercase tracking-widest text-tea-text/60 mb-1 block">{s.type}</span>
                                  {watchedStories?.[s.id] && <Icons.Check className="w-3 h-3 text-tea-green opacity-70" />}
                              </div>
-                             <h4 className="text-tea-ink font-serif text-lg leading-tight group-hover:text-tea-seal transition-colors mb-1">{s.title}</h4>
-                             <p className="text-tea-ink/60 text-xs uppercase tracking-wider">{s.subtitle}</p>
+                             <h4 className="text-tea-text font-serif text-lg leading-tight group-hover:text-tea-gold transition-colors mb-1">{s.title}</h4>
+                             <p className="text-tea-text/60 text-xs uppercase tracking-wider">{s.subtitle}</p>
                          </div>
                     </div>
                 ))}
@@ -502,7 +502,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                         <Icons.Share className="w-5 h-5" />
                      </button>
                  )}
-                 <button onClick={onToggleSave} className={`hover:text-white transition-colors ${isSaved ? 'text-tea-seal' : ''}`}>
+                 <button onClick={onToggleSave} className={`hover:text-white transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                     <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                  </button>
              </div>

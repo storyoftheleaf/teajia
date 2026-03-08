@@ -172,7 +172,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         className={`
           w-full md:max-w-[520px] md:rounded-2xl rounded-t-2xl
           max-h-[90vh] md:max-h-[85vh] overflow-y-auto
-          bg-tea-bg dark:bg-tea-elevated
+          bg-tea-bg
           transition-all ${reducedMotion ? '' : 'duration-250 ease-out'}
           ${isVisible
             ? 'translate-y-0 md:translate-y-0 opacity-100 md:scale-100'
@@ -183,30 +183,30 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
       >
         {/* Mobile drag handle */}
         <div className="md:hidden sheet-drag-handle flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
-          <div className="w-10 h-1 bg-tea-ink/20 dark:bg-white/20 rounded-full" />
+          <div className="w-10 h-1 bg-tea-text/20 rounded-full" />
         </div>
 
         {/* Close button */}
-        <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-tea-bg dark:bg-tea-elevated">
+        <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-tea-bg">
           <button
             onClick={handleClose}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-ink/5 dark:hover:bg-white/10 transition-colors"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-text/5 transition-colors"
             aria-label="Close inquiry form"
           >
-            <Icons.Close className="w-5 h-5 text-tea-ink/40 dark:text-tea-paper/40" />
+            <Icons.Close className="w-5 h-5 text-tea-text/40" />
           </button>
         </div>
 
         <div className="px-8 pb-10 md:px-10 md:pb-12">
           {submitted ? (
             <div className="flex items-center justify-center min-h-[200px] animate-[fadeIn_0.4s_ease-out]">
-              <p className="font-serif text-xl text-center text-tea-ink dark:text-tea-paper">
+              <p className="font-serif text-xl text-center text-tea-text">
                 Thank you. I'll be in touch soon.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="animate-[fadeIn_0.3s_ease-out]">
-              <p className="font-serif text-lg mb-8 text-tea-ink dark:text-tea-paper">
+              <p className="font-serif text-lg mb-8 text-tea-text">
                 Tell me what you're looking for.
               </p>
 
@@ -246,7 +246,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
 
               {/* Interests checkboxes */}
               <fieldset className="mb-6">
-                <legend className="font-sans text-sm mb-4 text-tea-ink/70 dark:text-tea-paper/70">
+                <legend className="font-sans text-sm mb-4 text-tea-text/70">
                   What brings you here?
                 </legend>
                 <div className="space-y-4">
@@ -260,8 +260,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                           w-[18px] h-[18px] rounded-[3px] border flex-shrink-0 flex items-center justify-center
                           transition-colors duration-200
                           ${formData.interests.includes(option)
-                            ? 'border-transparent bg-tea-seal'
-                            : 'border-tea-ink/20 dark:border-white/20'
+                            ? 'border-transparent bg-tea-gold'
+                            : 'border-tea-border'
                           }
                         `}
                       >
@@ -275,7 +275,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                         checked={formData.interests.includes(option)}
                         onChange={() => toggleInterest(option)}
                       />
-                      <span className="font-sans text-sm text-tea-ink dark:text-tea-paper">
+                      <span className="font-sans text-sm text-tea-text">
                         {option}
                       </span>
                     </label>
@@ -329,8 +329,8 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
   const sharedClass = `
     w-full bg-transparent border-0 border-b font-sans text-base pt-5 pb-2 px-0
     outline-none transition-colors duration-200
-    text-tea-ink dark:text-tea-paper
-    ${focused ? 'border-tea-seal' : 'border-tea-ink/20 dark:border-white/10'}
+    text-tea-text
+    ${focused ? 'border-tea-gold' : 'border-tea-border'}
   `;
 
   return (
@@ -340,13 +340,13 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
           absolute left-0 font-sans pointer-events-none
           transition-all duration-200
           ${isActive
-            ? 'top-0 text-[11px] tracking-wide text-tea-seal'
-            : 'top-5 text-base text-tea-ink/40 dark:text-tea-paper/40'
+            ? 'top-0 text-[11px] tracking-wide text-tea-gold'
+            : 'top-5 text-base text-tea-text/40'
           }
         `}
       >
         {label}
-        {required && <span className="ml-0.5 text-tea-seal">*</span>}
+        {required && <span className="ml-0.5 text-tea-gold">*</span>}
       </label>
       {type === 'textarea' ? (
         <textarea

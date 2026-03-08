@@ -33,18 +33,18 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
       <div className="flex flex-col md:flex-row">
         {/* Text content */}
         <div className="flex-1 p-6 md:p-8">
-          <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans mb-4 px-2 py-1 bg-tea-seal/10 rounded-sm">
+          <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
             {badge}
           </span>
-          <h2 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight mb-4">
+          <h2 className="font-serif text-2xl md:text-3xl text-tea-bg leading-tight mb-4">
             {title}
           </h2>
-          <p className="text-sm text-tea-paper/60 leading-relaxed mb-6 max-w-lg">
+          <p className="text-sm text-tea-bg/60 leading-relaxed mb-6 max-w-lg">
             {description}
           </p>
           <button
             onClick={onCtaClick}
-            className="text-tea-seal text-sm font-sans flex items-center gap-1.5 group hover:text-tea-seal/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm"
+            className="text-tea-gold text-sm font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
           >
             {ctaLabel}
             <Icons.ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -64,12 +64,12 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
         <div className="border-t border-white/8 px-6 md:px-8 py-3 flex items-center gap-6">
           {metadata.map((item, i) => (
             <React.Fragment key={item.label}>
-              {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-paper/20" />}
+              {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-tea-paper/40 font-sans">
+                <span className="text-[10px] uppercase tracking-wider text-tea-bg/40 font-sans">
                   {item.label}
                 </span>
-                <span className="text-xs text-tea-paper/60 font-sans">
+                <span className="text-xs text-tea-bg/60 font-sans">
                   {item.value}
                 </span>
               </div>

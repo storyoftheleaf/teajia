@@ -111,11 +111,11 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       href={resource.content || '#'}
       target={resource.content ? '_blank' : undefined}
       rel={resource.content ? 'noopener noreferrer' : undefined}
-      className="group relative bg-tea-paper dark:bg-white/5 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-tea-bg rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
     >
       {/* Image */}
       {resource.image && (
-        <div className="w-full h-40 md:h-48 overflow-hidden bg-tea-ink/5 dark:bg-white/10">
+        <div className="w-full h-40 md:h-48 overflow-hidden bg-tea-text/5">
           <img
             src={resource.image}
             alt={resource.title}
@@ -126,29 +126,29 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
       {/* Content */}
       <div className="p-4 md:p-5 flex-1 flex flex-col">
-        <h3 className="font-serif text-lg text-tea-ink dark:text-tea-paper mb-2 line-clamp-2 group-hover:text-tea-seal transition-colors">
+        <h3 className="font-serif text-lg text-tea-text mb-2 line-clamp-2 group-hover:text-tea-gold transition-colors">
           {resource.title}
         </h3>
 
         {resource.location && (
-          <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 mb-2 flex items-center gap-1">
+          <p className="text-sm text-tea-text/60 mb-2 flex items-center gap-1">
             <Icons.Info className="w-4 h-4" />
             {resource.location}
           </p>
         )}
 
         {resource.category && (
-          <p className="text-xs uppercase tracking-widest text-tea-seal mb-2">
+          <p className="text-xs uppercase tracking-widest text-tea-gold mb-2">
             {resource.category}
           </p>
         )}
 
-        <p className="text-sm text-tea-ink/70 dark:text-tea-paper/70 line-clamp-3 flex-1">
+        <p className="text-sm text-tea-text/70 line-clamp-3 flex-1">
           {resource.description}
         </p>
 
         {resource.content && (
-          <div className="mt-3 pt-3 border-t border-tea-ink/10 dark:border-white/10 flex items-center gap-2 text-tea-seal text-sm font-medium">
+          <div className="mt-3 pt-3 border-t border-tea-border flex items-center gap-2 text-tea-gold text-sm font-medium">
             <Icons.ExternalLink className="w-4 h-4" />
             View Resource
           </div>
@@ -175,9 +175,9 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                 placeholder="Search by location, name, or interest..."
                 value={communitySearchLocation}
                 onChange={(e) => setCommunitySearchLocation(e.target.value)}
-                className="w-full px-4 py-3 bg-tea-paper dark:bg-white/5 border border-tea-ink/20 dark:border-white/10 rounded-lg text-tea-ink dark:text-tea-paper placeholder-tea-ink/50 dark:placeholder-tea-paper/50 focus:outline-none focus:ring-2 focus:ring-tea-seal"
+                className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-lg text-tea-text placeholder-tea-ink/50 placeholder-tea-text-dim focus:outline-none focus:ring-2 focus:ring-tea-gold"
               />
-              <Icons.Search className="absolute right-3 top-3.5 w-5 h-5 text-tea-ink/40 dark:text-tea-paper/40" />
+              <Icons.Search className="absolute right-3 top-3.5 w-5 h-5 text-tea-text/40" />
             </div>
           </div>
         </div>
@@ -200,15 +200,15 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                       <img
                         src={member.avatar}
                         alt={member.name}
-                        className="w-20 h-20 rounded-full object-cover border-2 border-tea-seal/30"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-tea-gold/30"
                       />
                     </div>
 
                     {/* Name & Location */}
-                    <h3 className="font-serif text-lg text-tea-paper text-center mb-1">
+                    <h3 className="font-serif text-lg text-tea-bg text-center mb-1">
                       {member.name}
                     </h3>
-                    <div className="flex items-center justify-center gap-1 text-xs text-tea-paper/60 mb-3">
+                    <div className="flex items-center justify-center gap-1 text-xs text-tea-bg/60 mb-3">
                       <Icons.Location className="w-3.5 h-3.5" />
                       {member.location}
                     </div>
@@ -216,7 +216,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     {/* Expertise Badge */}
                     <div className="flex justify-center mb-4">
                       <span className={`text-[10px] uppercase tracking-wider px-3 py-1 rounded-sm ${
-                        member.expertise === 'Advanced' ? 'bg-tea-seal/20 text-tea-seal border border-tea-seal/40' :
+                        member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-gold/40' :
                         member.expertise === 'Intermediate' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40' :
                         'bg-tea-green/20 text-tea-green border border-tea-green/40'
                       }`}>
@@ -226,12 +226,12 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
                     {/* Interests */}
                     <div className="flex-1 mb-4">
-                      <p className="text-[11px] uppercase tracking-widest text-tea-paper/50 mb-2">Interests</p>
+                      <p className="text-[11px] uppercase tracking-widest text-tea-bg/50 mb-2">Interests</p>
                       <div className="flex flex-wrap gap-2">
                         {member.interests.map((interest: string) => (
                           <span
                             key={interest}
-                            className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded text-tea-paper/70"
+                            className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded text-tea-bg/70"
                           >
                             {interest}
                           </span>
@@ -240,7 +240,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     </div>
 
                     {/* Action */}
-                    <button className="w-full py-2 px-3 bg-tea-seal/20 border border-tea-seal text-tea-seal text-sm font-medium rounded hover:bg-tea-seal/30 transition-colors">
+                    <button className="w-full py-2 px-3 bg-tea-gold/20 border border-tea-gold text-tea-gold text-sm font-medium rounded hover:bg-tea-gold/30 transition-colors">
                       Connect
                     </button>
                   </div>
@@ -254,13 +254,13 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
           )
         ) : (
           <div className="flex flex-col items-center justify-center py-32">
-            <div className="w-16 h-16 bg-tea-ink/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-              <Icons.Grid className="w-8 h-8 text-tea-ink/40 dark:text-tea-paper/40" />
+            <div className="w-16 h-16 bg-tea-text/5 rounded-full flex items-center justify-center mb-4">
+              <Icons.Grid className="w-8 h-8 text-tea-text/40" />
             </div>
-            <p className="font-serif text-lg text-tea-ink/60 dark:text-tea-paper/60">
+            <p className="font-serif text-lg text-tea-text/60">
               {activeTab === 'community' ? 'No community members found' : 'No resources in this category yet'}
             </p>
-            <p className="text-sm text-tea-ink/40 dark:text-tea-paper/40 mt-2">
+            <p className="text-sm text-tea-text/40 mt-2">
               {activeTab === 'community' ? 'Try adjusting your search' : 'Check back soon for curated recommendations'}
             </p>
           </div>

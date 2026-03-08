@@ -34,8 +34,8 @@ export const TeaInspirationGallery: React.FC = () => {
             onClick={() => setActiveSection(section.id)}
             className={`px-4 md:px-6 py-2 md:py-3 rounded-sm transition-all duration-300 text-sm md:text-base font-medium uppercase tracking-wider ${
               activeSection === section.id
-                ? 'bg-tea-seal text-white shadow-lg'
-                : 'bg-white/50 dark:bg-white/5 text-tea-ink dark:text-tea-paper border border-tea-ink/10 dark:border-white/10 hover:bg-white/70 dark:hover:bg-white/10'
+                ? 'bg-tea-gold text-white shadow-lg'
+                : 'bg-white/50 text-tea-text border border-tea-border hover:bg-white/70'
             }`}
           >
             {section.label}
@@ -45,7 +45,7 @@ export const TeaInspirationGallery: React.FC = () => {
 
       {/* Section Description */}
       <div className="mb-10">
-        <p className="text-tea-ink/70 dark:text-tea-paper/70 max-w-2xl">
+        <p className="text-tea-text/70 max-w-2xl">
           {GALLERY_SECTIONS.find(s => s.id === activeSection)?.description}
         </p>
       </div>
@@ -60,8 +60,8 @@ export const TeaInspirationGallery: React.FC = () => {
           ))
         ) : (
           <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <Icons.Image className="w-12 h-12 text-tea-paper/30 mb-4" />
-            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-sm">
+            <Icons.Image className="w-12 h-12 text-tea-bg/30 mb-4" />
+            <p className="text-tea-text/50 text-sm">
               Gallery coming soon. Check back for inspiration.
             </p>
           </div>
@@ -70,14 +70,14 @@ export const TeaInspirationGallery: React.FC = () => {
 
       {/* Submit Your Space CTA */}
       {sectionImages.length > 0 && (
-        <div className="mt-14 md:mt-20 flex flex-col items-center text-center bg-white/50 dark:bg-white/5 p-8 md:p-12 rounded-sm">
-          <h3 className="font-serif text-2xl md:text-3xl text-tea-ink dark:text-tea-paper mb-3">
+        <div className="mt-14 md:mt-20 flex flex-col items-center text-center bg-white/50 p-8 md:p-12 rounded-sm">
+          <h3 className="font-serif text-2xl md:text-3xl text-tea-text mb-3">
             Have a Tea Space to Share?
           </h3>
-          <p className="text-tea-ink/70 dark:text-tea-paper/70 mb-6 max-w-md">
+          <p className="text-tea-text/70 mb-6 max-w-md">
             We celebrate community creativity. Share your space and inspire others.
           </p>
-          <button className="px-6 md:px-8 py-2 md:py-3 border border-tea-seal text-tea-seal hover:bg-tea-seal hover:text-white uppercase tracking-wider text-xs font-medium rounded-sm transition-colors duration-300">
+          <button className="px-6 md:px-8 py-2 md:py-3 border border-tea-gold text-tea-gold hover:bg-tea-gold hover:text-white uppercase tracking-wider text-xs font-medium rounded-sm transition-colors duration-300">
             Submit Your Space
           </button>
         </div>

@@ -49,8 +49,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const confirmButtonClass =
     confirmVariant === 'danger'
-      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800'
-      : 'bg-tea-seal hover:bg-tea-seal/90';
+      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700'
+      : 'bg-tea-gold hover:bg-tea-gold/90';
 
   return createPortal(
     <div
@@ -62,35 +62,35 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-tea-paper dark:bg-tea-elevated rounded-sm border border-tea-ink/20 dark:border-white/10 w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
+        className="bg-tea-bg rounded-sm border border-tea-border w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-ink/10 dark:border-white/10">
-          <h2 id="confirm-dialog-title" className="text-xl font-serif text-tea-ink dark:text-tea-paper">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
+          <h2 id="confirm-dialog-title" className="text-xl font-serif text-tea-text">{title}</h2>
           <button
             onClick={handleCancel}
-            className="p-2 hover:bg-tea-ink/10 dark:hover:bg-white/10 rounded-sm transition-colors"
+            className="p-2 hover:bg-tea-text/10 rounded-sm transition-colors"
             aria-label="Close dialog"
           >
-            <Icons.Close className="w-5 h-5 text-tea-ink/60 dark:text-tea-paper/60" />
+            <Icons.Close className="w-5 h-5 text-tea-text/60" />
           </button>
         </div>
 
         {/* Content */}
         <div className="px-6 py-4 space-y-4">
           {preview && (
-            <div className="bg-tea-ink/5 dark:bg-white/5 rounded-sm p-4 border border-tea-ink/10 dark:border-white/10">
+            <div className="bg-tea-text/5 rounded-sm p-4 border border-tea-border">
               {preview}
             </div>
           )}
 
-          <p className="text-tea-ink/80 dark:text-tea-paper/80 text-sm leading-relaxed">{message}</p>
+          <p className="text-tea-text/80 text-sm leading-relaxed">{message}</p>
 
           {requireTyping && typeToConfirm && (
             <div>
-              <label className="block text-xs uppercase tracking-wider text-tea-ink/70 dark:text-tea-paper/70 mb-2">
-                Type <span className="font-mono font-bold text-tea-ink dark:text-tea-paper">{typeToConfirm}</span> to
+              <label className="block text-xs uppercase tracking-wider text-tea-text/70 mb-2">
+                Type <span className="font-mono font-bold text-tea-text">{typeToConfirm}</span> to
                 confirm:
               </label>
               <input
@@ -98,7 +98,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 value={typedText}
                 onChange={(e) => setTypedText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && isTypingValid && handleConfirm()}
-                className="w-full bg-white dark:bg-tea-bg border border-tea-ink/20 dark:border-white/20 p-3 text-tea-ink dark:text-tea-paper text-sm outline-none focus:border-tea-seal rounded-sm"
+                className="w-full bg-white  border border-tea-border p-3 text-tea-text text-sm outline-none focus:border-tea-gold rounded-sm"
                 placeholder={typeToConfirm}
                 autoFocus
               />
@@ -107,10 +107,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-tea-ink/10 dark:border-white/10">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-tea-border">
           <button
             onClick={handleCancel}
-            className="px-4 py-2 text-tea-ink/80 dark:text-tea-paper/80 hover:text-tea-ink dark:hover:text-tea-paper text-sm uppercase tracking-wider font-medium transition-colors"
+            className="px-4 py-2 text-tea-text/80 hover:text-tea-text text-sm uppercase tracking-wider font-medium transition-colors"
           >
             {cancelText}
           </button>

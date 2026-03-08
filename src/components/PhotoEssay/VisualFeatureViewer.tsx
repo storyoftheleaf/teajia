@@ -135,11 +135,11 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
 
   if (!story.gallery || story.gallery.length === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-tea-paper dark:bg-tea-ink">
+      <div className="fixed inset-0 z-50 flex flex-col bg-tea-surface">
         <div className="flex items-center justify-center flex-1">
           <div className="text-center">
-            <Icons.Image className="w-12 h-12 text-tea-ink/30 dark:text-tea-paper/30 mb-4 mx-auto" />
-            <p className="text-tea-ink/50 dark:text-tea-paper/50">No images available</p>
+            <Icons.Image className="w-12 h-12 text-tea-text/30 mb-4 mx-auto" />
+            <p className="text-tea-text/50">No images available</p>
           </div>
         </div>
       </div>
@@ -187,42 +187,42 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
       {/* Main Scroll Container */}
       <div
         ref={containerRef}
-        className="fixed inset-0 z-50 bg-tea-paper dark:bg-tea-ink overflow-y-auto animate-[fadeIn_0.3s_ease-out]"
+        className="fixed inset-0 z-50 bg-tea-surface overflow-y-auto animate-[fadeIn_0.3s_ease-out]"
       >
         {/* Sticky Header - Elevated with touch targets */}
-        <div className="sticky top-0 z-20 bg-tea-paper/95 dark:bg-tea-ink/95 backdrop-blur-md border-b border-tea-ink/5 dark:border-tea-paper/5">
+        <div className="sticky top-0 z-20 bg-tea-bg/95/95 backdrop-blur-md border-b border-tea-text/5 ">
           <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
             <button
               onClick={onBack}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-tea-ink/5 dark:bg-white/5 active:bg-tea-ink/10 dark:active:bg-white/10 active:scale-95 transition-all"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-tea-text/5 active:bg-tea-text/10 dark:active:bg-white/10 active:scale-95 transition-all"
               aria-label="Close"
             >
-              <Icons.ChevronLeft className="w-5 h-5 text-tea-ink dark:text-tea-paper" />
+              <Icons.ChevronLeft className="w-5 h-5 text-tea-text" />
             </button>
 
             <div className="flex gap-2">
               {onToggleSave && (
                 <button
                   onClick={onToggleSave}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full active:bg-tea-ink/10 dark:active:bg-white/10 active:scale-95 transition-all"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full active:bg-tea-text/10 dark:active:bg-white/10 active:scale-95 transition-all"
                   aria-label={isSaved ? 'Remove save' : 'Save'}
                 >
                   <Icons.Heart
                     className={`w-5 h-5 ${
                       isSaved
-                        ? 'fill-tea-seal text-tea-seal'
-                        : 'text-tea-ink dark:text-tea-paper'
+                        ? 'fill-tea-seal text-tea-gold'
+                        : 'text-tea-text'
                     }`}
                   />
                 </button>
               )}
               <button
                 onClick={handleShareFeature}
-                className="flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-full bg-tea-ink/5 dark:bg-white/5 active:bg-tea-ink/10 dark:active:bg-white/10 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-full bg-tea-text/5 active:bg-tea-text/10 dark:active:bg-white/10 active:scale-95 transition-all"
                 aria-label="Share"
               >
-                <Icons.Share className="w-4 h-4 text-tea-ink dark:text-tea-paper" />
-                <span className="text-xs font-medium uppercase tracking-wider text-tea-ink dark:text-tea-paper hidden sm:inline">Share</span>
+                <Icons.Share className="w-4 h-4 text-tea-text" />
+                <span className="text-xs font-medium uppercase tracking-wider text-tea-text hidden sm:inline">Share</span>
               </button>
             </div>
           </div>
@@ -230,14 +230,14 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
 
         {/* Hero Section - Premium Typography */}
         <div className="px-5 md:px-8 lg:px-12 pt-10 md:pt-14 pb-8">
-          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-tea-ink dark:text-tea-paper leading-[1.1] tracking-tight mb-4">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-tea-text leading-[1.1] tracking-tight mb-4">
             {story.title}
           </h1>
 
           {/* Accent line */}
-          <div className="w-12 h-[1px] bg-tea-seal/40 mb-5" />
+          <div className="w-12 h-[1px] bg-tea-gold/40 mb-5" />
 
-          <p className="font-serif text-xl md:text-2xl text-tea-ink/50 dark:text-tea-paper/50 mb-6">
+          <p className="font-serif text-xl md:text-2xl text-tea-text/50 mb-6">
             {story.subtitle}
           </p>
 
@@ -247,7 +247,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
               onClick={() => onPersonClick(story.author!)}
               className="flex items-center gap-3 active:opacity-70 transition-opacity py-2"
             >
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-tea-ink/10 dark:bg-white/10 ring-1 ring-tea-ink/10 dark:ring-white/10">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-tea-text/10 ring-1 ring-tea-ink/10 dark:ring-white/10">
                 {story.author.avatarUrl ? (
                   <img
                     src={story.author.avatarUrl}
@@ -256,11 +256,11 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Icons.User className="w-4 h-4 text-tea-ink/40 dark:text-white/40" />
+                    <Icons.User className="w-4 h-4 text-tea-text-dim" />
                   </div>
                 )}
               </div>
-              <span className="text-sm text-tea-ink/60 dark:text-tea-paper/60">
+              <span className="text-sm text-tea-text/60">
                 {story.author.name}
               </span>
             </button>
@@ -270,7 +270,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
         {/* Description */}
         {story.description && (
           <div className="px-5 md:px-8 lg:px-12 pb-8 md:pb-10">
-            <p className="text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed text-base md:text-lg max-w-2xl">
+            <p className="text-tea-text/60 leading-relaxed text-base md:text-lg max-w-2xl">
               {story.description}
             </p>
           </div>
@@ -300,7 +300,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                     />
                     {/* Shimmer loading */}
                     {imageLoadingStates[group.items[0].index] !== false && (
-                      <div className="absolute inset-0 z-20 overflow-hidden bg-tea-ink/20 dark:bg-tea-ink/40">
+                      <div className="absolute inset-0 z-20 overflow-hidden bg-tea-text/20/40">
                         <div
                           className="absolute inset-0 animate-shimmer"
                           style={{
@@ -319,7 +319,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   {/* Caption with left accent */}
                   {group.items[0].image.caption && (
                     <div className="px-5 md:px-8 lg:px-12 mt-4 mb-2">
-                      <p className="border-l-2 border-tea-seal/30 pl-4 text-[13px] md:text-sm text-tea-ink/50 dark:text-tea-paper/50 italic leading-relaxed">
+                      <p className="border-l-2 border-tea-gold/30 pl-4 text-[13px] md:text-sm text-tea-text/50 italic leading-relaxed">
                         {group.items[0].image.caption}
                       </p>
                     </div>
@@ -342,7 +342,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                           }}
                         />
                         {imageLoadingStates[index] !== false && (
-                          <div className="absolute inset-0 z-20 overflow-hidden bg-tea-ink/20 dark:bg-tea-ink/40">
+                          <div className="absolute inset-0 z-20 overflow-hidden bg-tea-text/20/40">
                             <div
                               className="absolute inset-0 animate-shimmer"
                               style={{
@@ -359,7 +359,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                         />
                       </div>
                       {image.caption && (
-                        <p className="px-1 mt-3 text-[11px] md:text-xs text-tea-ink/45 dark:text-tea-paper/45 italic">
+                        <p className="px-1 mt-3 text-[11px] md:text-xs text-tea-text/45 italic">
                           {image.caption}
                         </p>
                       )}
@@ -376,12 +376,12 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
           <>
             {/* Divider */}
             <div className="px-5 md:px-8 lg:px-12">
-              <div className="w-full h-[1px] bg-tea-ink/10 dark:bg-tea-paper/10" />
+              <div className="w-full h-[1px] bg-tea-text/10/10" />
             </div>
 
-            <div className="px-5 md:px-8 lg:px-12 py-10 md:py-14 bg-tea-ink/[0.02] dark:bg-white/[0.02]">
+            <div className="px-5 md:px-8 lg:px-12 py-10 md:py-14 bg-tea-text/[0.02] ">
               <div className="flex items-start gap-5">
-                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-tea-ink/10 dark:bg-white/10 flex-shrink-0 ring-2 ring-tea-seal/20">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-tea-text/10 flex-shrink-0 ring-2 ring-tea-gold/20">
                   {story.author.avatarUrl ? (
                     <img
                       src={story.author.avatarUrl}
@@ -390,7 +390,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Icons.User className="w-8 h-8 text-tea-ink/40 dark:text-white/40" />
+                      <Icons.User className="w-8 h-8 text-tea-text-dim" />
                     </div>
                   )}
                 </div>
@@ -399,15 +399,15 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                     onClick={() => onPersonClick(story.author!)}
                     className="text-left w-full active:opacity-70 transition-opacity"
                   >
-                    <h3 className="font-serif text-xl md:text-2xl text-tea-ink dark:text-tea-paper mb-1">
+                    <h3 className="font-serif text-xl md:text-2xl text-tea-text mb-1">
                       {story.author.name}
                     </h3>
-                    <p className="text-[10px] uppercase tracking-[0.15em] text-tea-ink/50 dark:text-tea-paper/50 mb-3">
+                    <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50 mb-3">
                       {story.author.role}
                     </p>
                   </button>
                   {story.author.bio && (
-                    <p className="text-sm md:text-base text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed mb-5">
+                    <p className="text-sm md:text-base text-tea-text/60 leading-relaxed mb-5">
                       {story.author.bio}
                     </p>
                   )}
@@ -420,7 +420,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                           href={(story as any).photographerLinks.instagram}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-ink/5 dark:bg-white/5 rounded-full text-sm text-tea-seal active:bg-tea-ink/10 dark:active:bg-white/10 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-text/5 rounded-full text-sm text-tea-gold active:bg-tea-text/10 dark:active:bg-white/10 transition-colors"
                         >
                           <Icons.Instagram className="w-4 h-4" />
                           <span>Instagram</span>
@@ -431,7 +431,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                           href={(story as any).photographerLinks.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-ink/5 dark:bg-white/5 rounded-full text-sm text-tea-seal active:bg-tea-ink/10 dark:active:bg-white/10 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-text/5 rounded-full text-sm text-tea-gold active:bg-tea-text/10 dark:active:bg-white/10 transition-colors"
                         >
                           <Icons.ExternalLink className="w-4 h-4" />
                           <span>Website</span>
@@ -449,7 +449,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
         <div className="px-5 md:px-8 lg:px-12 pb-16">
           <button
             onClick={handleShareFeature}
-            className="w-full max-w-sm mx-auto py-4 min-h-[56px] bg-tea-ink dark:bg-tea-paper text-tea-paper dark:text-tea-ink font-medium text-sm uppercase tracking-widest rounded-full shadow-md active:scale-[0.98] active:shadow-sm transition-all flex items-center justify-center gap-3"
+            className="w-full max-w-sm mx-auto py-4 min-h-[56px] bg-tea-elevated text-tea-text font-medium text-sm uppercase tracking-widest rounded-full shadow-md active:scale-[0.98] active:shadow-sm transition-all flex items-center justify-center gap-3"
           >
             <Icons.Share className="w-4 h-4" />
             Share this Feature

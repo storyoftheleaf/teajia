@@ -45,11 +45,11 @@ export const CartFlyAnimation: React.FC<CartFlyAnimationProps> = ({
       {imageUrl ? (
         <img
           src={imageUrl}
-          className="w-full h-full object-cover rounded-full shadow-lg ring-2 ring-tea-seal"
+          className="w-full h-full object-cover rounded-full shadow-lg ring-2 ring-tea-gold"
           alt=""
         />
       ) : (
-        <div className="w-full h-full bg-tea-seal rounded-full shadow-lg" />
+        <div className="w-full h-full bg-tea-gold rounded-full shadow-lg" />
       )}
     </div>
   );

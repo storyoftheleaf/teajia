@@ -3,7 +3,7 @@ import { Icons } from '../Icons';
 import { ArticleCard } from '../shared/ArticleCard';
 import { READING_LIST, READING_LIST_CATEGORIES } from '../../data/readingList';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-ink/5 dark:hover:bg-white/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const PILL_ICONS: Record<string, React.ReactNode> = {
   'Beginner Reading': <Icons.Book className="w-3.5 h-3.5" />,
@@ -26,14 +26,14 @@ export const ReadingList: React.FC<ReadingListProps> = ({ onBack }) => {
   return (
     <div className="w-full">
       <button onClick={onBack} className={BACK_BTN}>
-        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-ink/70 dark:text-tea-paper/70" />
-        <span className="font-serif text-sm text-tea-ink/70 dark:text-tea-paper/70">Learn</span>
+        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text/70" />
+        <span className="font-serif text-sm text-tea-text/70">Learn</span>
       </button>
 
-      <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-3 text-tea-ink dark:text-tea-paper">
+      <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-3 text-tea-text">
         Reading
       </h1>
-      <p className="font-serif text-base text-tea-ink/60 dark:text-tea-paper/60 mb-8">
+      <p className="font-serif text-base text-tea-text/60 mb-8">
         Articles from around the web
       </p>
 
@@ -45,8 +45,8 @@ export const ReadingList: React.FC<ReadingListProps> = ({ onBack }) => {
             onClick={() => setActiveCategory(cat)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
               activeCategory === cat
-                ? 'bg-tea-seal text-white'
-                : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/60 dark:text-tea-paper/60 hover:bg-tea-ink/10 dark:hover:bg-white/10'
+                ? 'bg-tea-gold text-white'
+                : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
             }`}
           >
             {PILL_ICONS[cat]}

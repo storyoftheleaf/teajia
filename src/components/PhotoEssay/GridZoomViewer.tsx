@@ -50,11 +50,11 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
 
   if (!story.gallery || story.gallery.length === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-tea-paper dark:bg-tea-ink">
+      <div className="fixed inset-0 z-50 flex flex-col bg-tea-surface">
         <div className="flex items-center justify-center flex-1">
           <div className="text-center">
-            <Icons.Image className="w-12 h-12 text-tea-ink/30 dark:text-tea-paper/30 mb-4 mx-auto" />
-            <p className="text-tea-ink/50 dark:text-tea-paper/50">No images available</p>
+            <Icons.Image className="w-12 h-12 text-tea-text/30 mb-4 mx-auto" />
+            <p className="text-tea-text/50">No images available</p>
           </div>
         </div>
       </div>
@@ -67,30 +67,30 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
       {mode === 'grid' && (
         <div
           ref={gridContainerRef}
-          className="fixed inset-0 z-50 bg-tea-paper dark:bg-tea-ink overflow-y-auto animate-[fadeIn_0.3s_ease-out]"
+          className="fixed inset-0 z-50 bg-tea-surface overflow-y-auto animate-[fadeIn_0.3s_ease-out]"
         >
           {/* Sticky Header */}
-          <div className="sticky top-0 z-10 bg-tea-paper dark:bg-tea-ink border-b border-tea-ink/10 dark:border-tea-paper/10">
+          <div className="sticky top-0 z-10 bg-tea-surface border-b border-tea-text/10 ">
             <div className="flex items-center justify-between px-4 py-4">
               <button
                 onClick={onBack}
-                className="p-2 hover:bg-tea-ink/5 dark:hover:bg-white/5 rounded transition-colors"
+                className="p-2 hover:bg-tea-text/5 rounded transition-colors"
                 aria-label="Close photo album"
               >
-                <Icons.ChevronLeft className="w-6 h-6 text-tea-ink dark:text-tea-paper" />
+                <Icons.ChevronLeft className="w-6 h-6 text-tea-text" />
               </button>
               <div className="flex gap-2">
                 {onToggleSave && (
                   <button
                     onClick={onToggleSave}
-                    className="p-2 hover:bg-tea-ink/5 dark:hover:bg-white/5 rounded transition-colors"
+                    className="p-2 hover:bg-tea-text/5 rounded transition-colors"
                     aria-label={isSaved ? 'Remove save' : 'Save'}
                   >
                     <Icons.Heart
                       className={`w-6 h-6 ${
                         isSaved
-                          ? 'fill-tea-seal text-tea-seal'
-                          : 'text-tea-ink dark:text-tea-paper'
+                          ? 'fill-tea-seal text-tea-gold'
+                          : 'text-tea-text'
                       }`}
                     />
                   </button>
@@ -98,10 +98,10 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                 {onShare && (
                   <button
                     onClick={() => onShare(story)}
-                    className="p-2 hover:bg-tea-ink/5 dark:hover:bg-white/5 rounded transition-colors"
+                    className="p-2 hover:bg-tea-text/5 rounded transition-colors"
                     aria-label="Share"
                   >
-                    <Icons.Share className="w-6 h-6 text-tea-ink dark:text-tea-paper" />
+                    <Icons.Share className="w-6 h-6 text-tea-text" />
                   </button>
                 )}
               </div>
@@ -112,21 +112,21 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
           <div className="px-6 md:px-8 lg:px-12 py-8">
             {/* Album Title Section */}
             <div className="mb-12 md:mb-16">
-              <h1 className="font-serif text-5xl md:text-6xl text-tea-ink dark:text-tea-paper mb-3 tracking-tight leading-tight">
+              <h1 className="font-serif text-5xl md:text-6xl text-tea-text mb-3 tracking-tight leading-tight">
                 {story.title}
               </h1>
-              <p className="font-serif text-xl md:text-2xl text-tea-ink/70 dark:text-tea-paper/70 mb-4">
+              <p className="font-serif text-xl md:text-2xl text-tea-text/70 mb-4">
                 {story.subtitle}
               </p>
               {/* Photo count indicator */}
-              <p className="text-sm uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40 mt-3">
+              <p className="text-sm uppercase tracking-wider text-tea-text/40 mt-3">
                 {story.gallery.length} {story.gallery.length === 1 ? 'Photograph' : 'Photographs'}
               </p>
             </div>
 
             {/* Album Description (always visible) */}
             {story.description && (
-              <p className="text-tea-ink/70 dark:text-tea-paper/70 leading-relaxed mb-8 md:mb-12 max-w-3xl text-base md:text-lg">
+              <p className="text-tea-text/70 leading-relaxed mb-8 md:mb-12 max-w-3xl text-base md:text-lg">
                 {story.description}
               </p>
             )}
@@ -136,7 +136,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
               <div className="mb-8 md:mb-12 max-w-3xl">
                 <button
                   onClick={() => setContextExpanded(!contextExpanded)}
-                  className="flex items-center gap-2 text-sm text-tea-seal hover:text-tea-ink dark:hover:text-tea-paper transition-colors mb-4"
+                  className="flex items-center gap-2 text-sm text-tea-gold hover:text-tea-text transition-colors mb-4"
                 >
                   <span className="font-medium uppercase tracking-wider">About this album</span>
                   <Icons.ChevronDown
@@ -147,7 +147,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                 </button>
 
                 {contextExpanded && (
-                  <div className="text-sm md:text-base text-tea-ink/70 dark:text-tea-paper/70 leading-relaxed space-y-4 animate-[fadeIn_0.3s_ease-out]">
+                  <div className="text-sm md:text-base text-tea-text/70 leading-relaxed space-y-4 animate-[fadeIn_0.3s_ease-out]">
                     {((story as any).context as string).split('\n\n').map((paragraph: string, i: number) => (
                       <p key={i}>{paragraph}</p>
                     ))}
@@ -158,9 +158,9 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
 
             {/* Author/Photographer Info */}
             {story.author && (
-              <div className="border-t border-b border-tea-ink/10 dark:border-tea-paper/10 py-6 md:py-8 mb-12 md:mb-16">
+              <div className="border-t border-b border-tea-text/10  py-6 md:py-8 mb-12 md:mb-16">
                 <div className="flex items-center gap-4 flex-wrap">
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden bg-tea-ink/10 dark:bg-white/10 flex-shrink-0">
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden bg-tea-text/10 flex-shrink-0">
                     {story.author.avatarUrl ? (
                       <img
                         src={story.author.avatarUrl}
@@ -169,7 +169,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Icons.User className="w-7 h-7 text-tea-ink/40 dark:text-white/40" />
+                        <Icons.User className="w-7 h-7 text-tea-text-dim" />
                       </div>
                     )}
                   </div>
@@ -178,10 +178,10 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                       onClick={() => onPersonClick(story.author!)}
                       className="text-left w-full group"
                     >
-                      <h3 className="font-serif text-lg md:text-xl text-tea-ink dark:text-tea-paper group-hover:text-tea-seal dark:group-hover:text-tea-seal transition-colors">
+                      <h3 className="font-serif text-lg md:text-xl text-tea-text group-hover:text-tea-gold dark:group-hover:text-tea-gold transition-colors">
                         {(story as any).photographerLinks?.name || story.author.name}
                       </h3>
-                      <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 uppercase tracking-wider">
+                      <p className="text-sm text-tea-text/60 uppercase tracking-wider">
                         {story.author.role}
                       </p>
                     </button>
@@ -195,7 +195,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                           href={(story as any).photographerLinks.instagram}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-tea-seal hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+                          className="flex items-center gap-2 text-sm text-tea-gold hover:text-tea-text transition-colors"
                           title="Instagram"
                         >
                           <Icons.Instagram className="w-5 h-5" />
@@ -206,7 +206,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                           href={(story as any).photographerLinks.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-tea-seal hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+                          className="flex items-center gap-2 text-sm text-tea-gold hover:text-tea-text transition-colors"
                           title="Website"
                         >
                           <Icons.ExternalLink className="w-5 h-5" />

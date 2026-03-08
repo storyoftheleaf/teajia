@@ -189,8 +189,8 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <div className="flex flex-col min-w-[60px] text-left">
-              <span className="text-[10px] uppercase tracking-widest text-tea-paper/60">Qty</span>
-              <span className="num text-sm text-tea-paper">{currentQuantity}g</span>
+              <span className="text-[10px] uppercase tracking-widest text-tea-bg/60">Qty</span>
+              <span className="num text-sm text-tea-bg">{currentQuantity}g</span>
             </div>
             <HapticSlider
               min={quantityStep}
@@ -202,7 +202,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -212,7 +212,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-[10px] uppercase tracking-widest text-tea-paper/60">Quantity</span>
+            <span className="text-[10px] uppercase tracking-widest text-tea-bg/60">Quantity</span>
             <div className="flex items-center border border-white/20 rounded-[1px] bg-black/20 ml-auto">
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
@@ -229,7 +229,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -260,26 +260,26 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-3xl font-serif text-tea-paper mb-1">{item.name}</h2>
+            <h2 className="text-3xl font-serif text-tea-bg mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
-              <div className="text-tea-seal text-xs uppercase tracking-[0.2em] mb-2 font-medium">
+              <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center justify-center gap-3 text-tea-paper/70 text-xs uppercase tracking-widest mb-4">
+              <div className="flex items-center justify-center gap-3 text-tea-bg/70 text-xs uppercase tracking-widest mb-4">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-paper/80 leading-relaxed mb-4">{item.description}</p>
+              <p className="font-serif italic text-sm text-tea-bg/80 leading-relaxed mb-4">{item.description}</p>
             )}
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-paper/70 hover:text-tea-paper transition-colors" onClick={onClose}>
+        <button className="absolute top-6 right-6 text-tea-bg/70 hover:text-tea-bg transition-colors" onClick={onClose}>
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>
@@ -308,21 +308,21 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
 
           <div className="px-6 pb-6">
-            <h2 className="text-2xl font-serif text-tea-paper mb-1">{item.name}</h2>
+            <h2 className="text-2xl font-serif text-tea-bg mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
-              <div className="text-tea-seal text-xs uppercase tracking-[0.2em] mb-2 font-medium">
+              <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center gap-3 text-tea-paper/70 text-xs uppercase tracking-widest mb-3">
+              <div className="flex items-center gap-3 text-tea-bg/70 text-xs uppercase tracking-widest mb-3">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-paper/80 leading-relaxed mb-3">{item.description}</p>
+              <p className="font-serif italic text-sm text-tea-bg/80 leading-relaxed mb-3">{item.description}</p>
             )}
             {purchaseControls}
           </div>

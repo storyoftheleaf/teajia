@@ -13,12 +13,12 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', cla
   };
 
   return (
-    <div className={`${sizeClasses[size]} border-tea-ink/20 dark:border-tea-paper/20 border-t-tea-seal rounded-full animate-spin ${className}`} />
+    <div className={`${sizeClasses[size]} border-tea-text/20  border-t-tea-seal rounded-full animate-spin ${className}`} />
   );
 };
 
 export const LoadingSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
-    <div className={`animate-pulse bg-tea-ink/10 dark:bg-white/10 rounded ${className}`} />
+    <div className={`animate-pulse bg-tea-text/10 rounded ${className}`} />
   );
 };

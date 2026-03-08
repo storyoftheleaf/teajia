@@ -18,7 +18,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   value,
   onChange,
   unit = 'g',
-  accentColor = 'bg-tea-seal',
+  accentColor = 'bg-tea-gold',
   size = 'md',
 }) => {
   const lastStepRef = useRef(value);
@@ -116,12 +116,12 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-paper rounded-full shadow-lg ring-2 ring-white/20 transition-shadow group-active:shadow-xl group-active:ring-tea-seal/40"
+            className="w-full h-full bg-tea-bg rounded-full shadow-lg ring-2 ring-white/20 transition-shadow group-active:shadow-xl group-active:ring-tea-gold/40"
           />
           {/* Pulse animation on step */}
           <div
             key={value}
-            className="absolute inset-0 rounded-full bg-tea-paper/30 animate-[scaleIn_0.15s_ease-out]"
+            className="absolute inset-0 rounded-full bg-tea-bg/30 animate-[scaleIn_0.15s_ease-out]"
           />
         </div>
       </div>

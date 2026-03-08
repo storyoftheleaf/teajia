@@ -24,7 +24,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
       </button>
 
       <div className="w-full max-w-xs text-center">
-        <div className="w-12 h-12 bg-tea-seal rounded-[1px] mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">
+        <div className="w-12 h-12 bg-tea-gold rounded-[1px] mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">
           T
         </div>
         <h2 className="text-white font-serif text-xl mb-6">Editor Access</h2>
@@ -35,13 +35,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
           onChange={e => setPwd(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && checkLogin()}
           placeholder="Passkey"
-          className="w-full bg-[#0f0f0f] border border-white/20 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-seal rounded-sm mb-4 placeholder:text-white/30"
+          className="w-full bg-[#0f0f0f] border border-white/20 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-white/30"
           aria-label="Enter passkey"
         />
 
         <button
           onClick={checkLogin}
-          className="w-full bg-tea-paper text-black py-3 uppercase tracking-widest text-xs font-bold hover:bg-white transition-colors rounded-sm"
+          className="w-full bg-tea-bg text-black py-3 uppercase tracking-widest text-xs font-bold hover:bg-white transition-colors rounded-sm"
         >
           Enter
         </button>

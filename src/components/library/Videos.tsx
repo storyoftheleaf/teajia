@@ -2,7 +2,7 @@ import React from 'react';
 import { Icons } from '../Icons';
 import { VIDEOS } from '../../data/videos';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-ink/5 dark:hover:bg-white/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const FORMAT_COLORS: Record<string, string> = {
   documentary: 'bg-teal-500/10 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-400/30',
@@ -17,14 +17,14 @@ export const Videos: React.FC<VideosProps> = ({ onBack }) => {
   return (
     <div className="w-full">
       <button onClick={onBack} className={BACK_BTN}>
-        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-ink/70 dark:text-tea-paper/70" />
-        <span className="font-serif text-sm text-tea-ink/70 dark:text-tea-paper/70">Learn</span>
+        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text/70" />
+        <span className="font-serif text-sm text-tea-text/70">Learn</span>
       </button>
 
-      <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-3 text-tea-ink dark:text-tea-paper">
+      <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-3 text-tea-text">
         Videos
       </h1>
-      <p className="font-serif text-base text-tea-ink/60 dark:text-tea-paper/60 mb-8">
+      <p className="font-serif text-base text-tea-text/60 mb-8">
         Curated watching
       </p>
 
@@ -35,7 +35,7 @@ export const Videos: React.FC<VideosProps> = ({ onBack }) => {
             href={item.externalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="group rounded-xl p-5 bg-tea-paper-dark/50 dark:bg-white/5 hover:bg-tea-paper-dark/80 dark:hover:bg-white/[0.07] transition-colors"
+            className="group rounded-xl p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
@@ -44,19 +44,19 @@ export const Videos: React.FC<VideosProps> = ({ onBack }) => {
               <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${FORMAT_COLORS[item.format] || ''}`}>
                 {item.format}
               </span>
-              <span className="text-[10px] text-tea-ink/30 dark:text-tea-paper/30 ml-auto">
+              <span className="text-[10px] text-tea-text/30 ml-auto">
                 {item.duration}
               </span>
             </div>
 
-            <h3 className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper mb-1.5">
+            <h3 className="font-serif text-sm font-medium text-tea-text mb-1.5">
               {item.title}
             </h3>
-            <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed line-clamp-3">
+            <p className="text-xs text-tea-text/50 leading-relaxed line-clamp-3">
               {item.description}
             </p>
 
-            <div className="mt-3 flex items-center gap-1 text-tea-seal">
+            <div className="mt-3 flex items-center gap-1 text-tea-gold">
               <span className="font-serif text-xs group-hover:underline">Watch</span>
               <Icons.Next className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>

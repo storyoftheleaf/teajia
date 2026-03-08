@@ -20,10 +20,10 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   if (featuredItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-32 opacity-40">
-        <div className="w-16 h-16 border border-tea-ink/20 dark:border-tea-paper/20 rounded-full flex items-center justify-center mb-4">
-          <Icons.Seal className="w-6 h-6 text-tea-ink/50 dark:text-tea-paper/50" />
+        <div className="w-16 h-16 border border-tea-text/20  rounded-full flex items-center justify-center mb-4">
+          <Icons.Seal className="w-6 h-6 text-tea-text/50" />
         </div>
-        <p className="font-serif italic text-base text-tea-ink/60 dark:text-tea-paper/60">
+        <p className="font-serif italic text-base text-tea-text/60">
           No featured teas at the moment.
         </p>
       </div>
@@ -45,11 +45,11 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
 
       {/* Intro */}
       <div className="mb-8">
-        <div className="w-12 h-[1px] bg-tea-seal mb-4" />
-        <h2 className="font-serif text-2xl md:text-3xl text-tea-ink dark:text-tea-paper mb-2">
+        <div className="w-12 h-[1px] bg-tea-gold mb-4" />
+        <h2 className="font-serif text-2xl md:text-3xl text-tea-text mb-2">
           Our Picks
         </h2>
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 font-serif italic">
+        <p className="text-sm text-tea-text/50 font-serif italic">
           Teas we keep coming back to.
         </p>
       </div>
@@ -65,7 +65,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
             <div
               key={item.id}
               onClick={() => setViewItem(item)}
-              className="group cursor-pointer bg-tea-charcoal/80 dark:bg-tea-charcoal/90 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden hover:border-white/20 transition-colors duration-300"
+              className="group cursor-pointer bg-tea-bg/80/90 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden hover:border-white/20 transition-colors duration-300"
             >
               <div className="flex flex-col md:flex-row">
                 {/* Image */}
@@ -80,24 +80,24 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                 {/* Details */}
                 <div className="flex-1 p-5 md:p-8 flex flex-col">
                   {/* Type · Origin · Year */}
-                  <p className="font-serif text-xs italic text-tea-paper/40 mb-2">
+                  <p className="font-serif text-xs italic text-tea-bg/40 mb-2">
                     {item.type}
                     {item.origin && <><span className="mx-2 opacity-40">·</span>{item.origin}</>}
                     {item.year && <><span className="mx-2 opacity-40">·</span>{item.year}</>}
                   </p>
 
-                  <h3 className="font-serif text-2xl text-tea-paper mb-1 group-hover:text-tea-seal transition-colors">
+                  <h3 className="font-serif text-2xl text-tea-bg mb-1 group-hover:text-tea-gold transition-colors">
                     {item.name}
                   </h3>
                   {item.variant && item.variant !== item.name && (
-                    <p className="font-serif italic text-sm text-tea-paper/50 mb-3">
+                    <p className="font-serif italic text-sm text-tea-bg/50 mb-3">
                       {item.variant}
                     </p>
                   )}
 
                   {/* Lore / Description */}
                   {(item.lore || item.description) && (
-                    <p className="font-serif text-sm text-tea-paper/70 leading-relaxed mb-4 line-clamp-3">
+                    <p className="font-serif text-sm text-tea-bg/70 leading-relaxed mb-4 line-clamp-3">
                       {item.lore || item.description}
                     </p>
                   )}
@@ -111,7 +111,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                             className="w-[18px] h-[2px] rounded-[1px] shrink-0"
                             style={{ background: accent, opacity: 0.7 }}
                           />
-                          <span className="font-serif italic text-xs text-tea-paper/70">
+                          <span className="font-serif italic text-xs text-tea-bg/70">
                             {item.mood}
                           </span>
                         </div>
@@ -139,7 +139,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
 
                   {/* Price */}
                   <div className="mt-auto">
-                    <span className="num text-sm text-tea-seal">
+                    <span className="num text-sm text-tea-gold">
                       {fmtPricePerGram(pricePerGram)}
                     </span>
                   </div>

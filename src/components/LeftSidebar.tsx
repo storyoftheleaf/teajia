@@ -41,7 +41,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-20 xl:w-56 bg-tea-surface dark:bg-tea-surface text-tea-text border-r border-tea-border h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40">
+    <aside className="hidden lg:flex flex-col w-20 xl:w-56 bg-tea-surface  text-tea-text border-r border-tea-border h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40">
       {/* Logo/Brand - Home Button */}
       <button
         onClick={() => onNavigate('HOME')}

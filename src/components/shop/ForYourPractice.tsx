@@ -94,7 +94,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
         className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
         onClick={() => handleAddStarterSet(set)}
       >
-        <div className="p-2 md:p-3 bg-tea-ink dark:bg-tea-ink border border-white/10 rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+        <div className="p-2 md:p-3 bg-tea-elevated border border-tea-border rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
           <CardImage src={set.image} alt={set.name} aspect="square" />
           <div className="px-1 mt-3">
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
@@ -109,7 +109,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
+                className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
               >
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
                 <span className="w-[1px] h-3 bg-white/30" />
@@ -126,10 +126,10 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
     <div className="max-w-full mx-auto px-2 md:px-4 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 opacity-40">
-          <div className="w-16 h-16 border border-tea-ink/20 dark:border-tea-paper/20 rounded-full flex items-center justify-center mb-4">
-            <Icons.Box className="w-6 h-6 text-tea-ink/50 dark:text-tea-paper/50" />
+          <div className="w-16 h-16 border border-tea-text/20  rounded-full flex items-center justify-center mb-4">
+            <Icons.Box className="w-6 h-6 text-tea-text/50" />
           </div>
-          <p className="font-serif italic text-base text-tea-ink/60 dark:text-tea-paper/60">No sets available.</p>
+          <p className="font-serif italic text-base text-tea-text/60">No sets available.</p>
         </div>
       ) : (
         <>
@@ -151,10 +151,10 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
     <div className="max-w-full mx-auto px-2 md:px-4 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {allTableItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 opacity-40">
-          <div className="w-16 h-16 border border-tea-ink/20 dark:border-tea-paper/20 rounded-full flex items-center justify-center mb-4">
-            <Icons.Coffee className="w-6 h-6 text-tea-ink/50 dark:text-tea-paper/50" />
+          <div className="w-16 h-16 border border-tea-text/20  rounded-full flex items-center justify-center mb-4">
+            <Icons.Coffee className="w-6 h-6 text-tea-text/50" />
           </div>
-          <p className="font-serif italic text-base text-tea-ink/60 dark:text-tea-paper/60">No items available.</p>
+          <p className="font-serif italic text-base text-tea-text/60">No items available.</p>
         </div>
       ) : (
         <>
@@ -204,14 +204,14 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
 
   // Cross-pollination CTA
   const renderCollectionCTA = () => (
-    <div className="px-2 md:px-4 py-12 border-t border-tea-ink/10 dark:border-white/10">
-      <h3 className="font-serif text-xl text-tea-ink dark:text-tea-paper mb-2">See the Artisan Pieces</h3>
-      <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 mb-6 max-w-md">
+    <div className="px-2 md:px-4 py-12 border-t border-tea-border">
+      <h3 className="font-serif text-xl text-tea-text mb-2">See the Artisan Pieces</h3>
+      <p className="text-sm text-tea-text/60 mb-6 max-w-md">
         Explore handcrafted tea tables, rare antiques, and ceremonial art from The Collection.
       </p>
       <button
         onClick={onNavigateToCollection}
-        className="font-serif text-base group inline-flex items-center gap-2 text-tea-seal min-h-[44px]"
+        className="font-serif text-base group inline-flex items-center gap-2 text-tea-gold min-h-[44px]"
       >
         <span className="group-hover:underline">Browse The Collection</span>
         <span className="inline-block group-hover:translate-x-[3px] transition-transform">&rarr;</span>
@@ -220,7 +220,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
   );
 
   return (
-    <div className="flex flex-col flex-1 bg-white dark:bg-tea-ink animate-[fadeIn_0.5s_ease-out]">
+    <div className="flex flex-col flex-1 bg-white animate-[fadeIn_0.5s_ease-out]">
       <PageHeader
         title="For Your Practice"
         onBack={onBack}
@@ -230,7 +230,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
         cartItemCount={cartItemCount}
         toolbar={
           <div className="flex items-center justify-between">
-            <p className="text-xs text-tea-ink/40 dark:text-tea-paper/40 italic">
+            <p className="text-xs text-tea-text/40 italic">
               {TAB_INTROS[activeTab]}
             </p>
             <CurrencyToggle

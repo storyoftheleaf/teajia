@@ -323,8 +323,8 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
             onClick={handlePlay}
             className="absolute inset-0 flex items-center justify-center group cursor-pointer"
           >
-            <div className="w-20 h-20 bg-tea-paper/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-seal/30 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-white group-active:scale-95">
-              <Icons.Play className="w-8 h-8 text-tea-charcoal ml-1" />
+            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-gold/30 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-white group-active:scale-95">
+              <Icons.Play className="w-8 h-8 text-tea-text ml-1" />
             </div>
           </button>
         </>
@@ -339,11 +339,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     const isDarkText = textColor === 'dark'; 
     const theme = {
       bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
-      text: isDarkText ? 'text-tea-ink' : 'text-tea-paper',
-      subtext: isDarkText ? 'text-tea-ink/60' : 'text-tea-paper/60',
-      border: isDarkText ? 'border-tea-ink/10' : 'border-white/10',
-      softBg: isDarkText ? 'bg-tea-ink/5' : 'bg-white/5',
-      seal: 'text-tea-seal',
+      text: isDarkText ? 'text-tea-text' : 'text-tea-bg',
+      subtext: isDarkText ? 'text-tea-text/60' : 'text-tea-bg/60',
+      border: isDarkText ? 'border-tea-text/10' : 'border-white/10',
+      softBg: isDarkText ? 'bg-tea-text/5' : 'bg-white/5',
+      seal: 'text-tea-gold',
     };
     const updateContent = (newContent: string) => { if (onPageUpdate && !readOnly) onPageUpdate({ content: newContent }); };
     const updateImage = (idx: number, url: string) => { if (onPageUpdate && !readOnly) { const newImages = [...(images || [])]; newImages[idx] = url; onPageUpdate({ images: newImages }); } };
@@ -376,18 +376,18 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className={`absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none`}></div>
                         <div className="relative z-20 border-t border-white/30 pt-6 flex justify-between items-center mt-auto mb-8">
-                            <div className="w-12 h-12 bg-tea-paper text-black flex items-center justify-center font-bold text-xl">T</div>
-                            <span className="text-2xl uppercase tracking-[0.3em] text-tea-paper opacity-80">Journal</span>
+                            <div className="w-12 h-12 bg-tea-bg text-black flex items-center justify-center font-bold text-xl">T</div>
+                            <span className="text-2xl uppercase tracking-[0.3em] text-tea-bg opacity-80">Journal</span>
                         </div>
                         <div className="relative z-20 pb-8">
-                            <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-8xl font-serif tracking-tight leading-[0.9] mb-6 text-tea-paper" placeholder="Title" tag="h1" readOnly={readOnly} />
-                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-tea-paper/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-8xl font-serif tracking-tight leading-[0.9] mb-6 text-tea-bg" placeholder="Title" tag="h1" readOnly={readOnly} />
+                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-tea-bg/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
             case LayoutVariant.COVER_TYPOGRAPHIC:
                 return (
-                    <div className={`${paperBase} ${isDarkText ? 'bg-tea-bg text-tea-seal' : 'bg-tea-seal text-tea-paper'} ${STD_PAD} flex flex-col justify-center`}>
+                    <div className={`${paperBase} ${isDarkText ? 'bg-tea-bg text-tea-gold' : 'bg-tea-gold text-tea-bg'} ${STD_PAD} flex flex-col justify-center`}>
                         <div className="flex-1 flex items-center"><EditableText value={storyTitle || 'Title'} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-[120px] font-serif leading-[0.8] tracking-tighter uppercase opacity-90 break-words w-full" placeholder="TITLE" tag="h1" readOnly={readOnly} /></div>
                         <div className="border-t-4 border-current/20 pt-8"><EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-5xl font-serif italic opacity-80" placeholder="Subtitle" tag="p" readOnly={readOnly} /></div>
                     </div>
@@ -470,7 +470,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${STD_PAD} flex flex-col justify-center pl-24`}>
                         <span className="text-2xl uppercase tracking-[0.4em] opacity-50 mb-8 block">Chapter</span>
                         <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-[150px] font-serif font-bold leading-none mb-12" placeholder="01" tag="h1" readOnly={readOnly} />
-                         <div className={`w-32 h-3 bg-tea-seal opacity-80`}></div>
+                         <div className={`w-32 h-3 bg-tea-gold opacity-80`}></div>
                     </div>
                 );
             case LayoutVariant.POEM_CENTERED:
@@ -501,7 +501,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute bottom-0 left-0 w-full p-12 pt-32 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none">
-                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-tea-paper/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
+                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-tea-bg/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
                         </div>
                     </div>
                 );
@@ -642,7 +642,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.MAP_CARTOGRAPHY:
                 return (
                     <div className={`${paperBase} flex flex-col`}>
-                         <div className="flex-1 relative bg-tea-surface text-tea-ink p-12 flex items-center justify-center overflow-hidden">
+                         <div className="flex-1 relative bg-tea-surface text-tea-text p-12 flex items-center justify-center overflow-hidden">
                              <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]"></div>
                              <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
                                  <path d="M0,50 Q25,40 50,50 T100,50" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
@@ -692,7 +692,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                         className="group cursor-pointer py-6 border-b border-current/5 flex items-start gap-6 hover:pl-4 transition-all duration-300"
                                     >
                                         <span className="font-mono text-sm opacity-30 pt-1">{(i + 1).toString().padStart(2, '0')}</span>
-                                        <h3 className="text-3xl md:text-4xl font-serif leading-tight group-hover:text-tea-seal transition-colors">
+                                        <h3 className="text-3xl md:text-4xl font-serif leading-tight group-hover:text-tea-gold transition-colors">
                                             {story.title}
                                         </h3>
                                     </div>
@@ -731,7 +731,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div className="flex items-start justify-between gap-4 mb-3">
-                                        <h3 className="text-2xl font-serif leading-snug group-hover:text-tea-seal transition-colors">
+                                        <h3 className="text-2xl font-serif leading-snug group-hover:text-tea-gold transition-colors">
                                             {link.title}
                                         </h3>
                                         <Icons.ExternalLink className="w-5 h-5 opacity-40 group-hover:opacity-80 flex-shrink-0 mt-1" />

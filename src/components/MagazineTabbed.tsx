@@ -184,13 +184,13 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   const renderEmptyState = (type: string) => {
     const emptyStateContent = {
       articles: {
-        icon: <Icons.Book className="w-8 h-8 text-tea-ink/40 dark:text-tea-paper/40" />,
+        icon: <Icons.Book className="w-8 h-8 text-tea-text/40" />,
         title: 'No Articles Yet',
         message: 'Long-form stories about tea culture, origins, and brewing traditions are coming soon.',
         suggestion: 'Try exploring Visual while you wait.'
       },
       'visual': {
-        icon: <Icons.Grid className="w-8 h-8 text-tea-ink/40 dark:text-tea-paper/40" />,
+        icon: <Icons.Grid className="w-8 h-8 text-tea-text/40" />,
         title: 'No Visual Yet',
         message: 'Visual stories celebrating the artistry and beauty of tea are in the works.',
         suggestion: 'Check out Articles in the meantime.'
@@ -201,16 +201,16 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
     return (
       <div className="flex flex-col items-center justify-center py-32 px-4">
-        <div className="w-20 h-20 bg-white/5 dark:bg-white/5 border border-tea-ink/10 dark:border-tea-paper/10 rounded-full flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-white/5 border border-tea-text/10  rounded-full flex items-center justify-center mb-6">
           {content.icon}
         </div>
-        <p className="font-serif text-xl text-tea-ink dark:text-tea-paper mb-2">
+        <p className="font-serif text-xl text-tea-text mb-2">
           {content.title}
         </p>
-        <p className="text-tea-ink/60 dark:text-tea-paper/60 text-sm max-w-md text-center mb-4">
+        <p className="text-tea-text/60 text-sm max-w-md text-center mb-4">
           {content.message}
         </p>
-        <p className="text-tea-seal text-xs uppercase tracking-wider">
+        <p className="text-tea-gold text-xs uppercase tracking-wider">
           {content.suggestion}
         </p>
       </div>
