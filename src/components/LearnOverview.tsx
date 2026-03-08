@@ -387,11 +387,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   }} />
 
                   <div className="relative p-7 md:p-10 flex flex-col justify-between min-h-[180px] md:min-h-[220px]">
-                    {/* Top: title */}
+                    {/* Top: title + description */}
                     <div>
                       <h3 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight tracking-tight group-hover:text-tea-seal transition-colors max-w-[70%]">
                         {nextModule.title}
                       </h3>
+                      <p className="mt-3 text-sm text-tea-paper/40 leading-relaxed max-w-md font-serif italic">
+                        {nextModule.description}
+                      </p>
                     </div>
 
                     {/* Bottom: metadata + CTA on one line */}
@@ -402,12 +405,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                           <>
                             <span className="text-tea-paper/15">&middot;</span>
                             <span className="text-tea-seal/60">{completedLessons}/{nextModule.lessons.length}</span>
-                          </>
-                        )}
-                        {completedCount > 0 && (
-                          <>
-                            <span className="text-tea-paper/15">&middot;</span>
-                            <span>{completedCount}/{counts.courses} modules</span>
                           </>
                         )}
                       </div>
@@ -423,13 +420,34 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           );
         })()}
 
-        {/* See all curriculum */}
-        <button
-          onClick={() => onNavigateTo('course')}
-          className={`mt-5 text-tea-seal/50 hover:text-tea-seal text-[11px] font-sans flex items-center gap-1 transition-colors ${CTA_FOCUS}`}
-        >
-          All {counts.courses} modules <Icons.ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        {/* All modules list */}
+        <div className="mt-6 space-y-0">
+          {LEARN_CURRICULUM.map((mod, i) => {
+            const isNext = mod.id === (LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0]).id;
+            const isDone = moduleCompletion[mod.id];
+            return (
+              <button
+                key={mod.id}
+                onClick={() => onNavigateTo('course')}
+                className={`w-full flex items-baseline gap-3 py-3 text-left group border-b border-tea-ink/5 dark:border-white/5 last:border-0 ${CTA_FOCUS}`}
+              >
+                <span className={`text-[11px] font-mono tabular-nums w-5 flex-shrink-0 ${isDone ? 'text-tea-seal/50' : 'text-tea-ink/20 dark:text-tea-paper/20'}`}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className={`font-serif text-sm leading-snug flex-1 transition-colors ${
+                  isNext ? 'text-tea-ink dark:text-tea-paper group-hover:text-tea-seal' :
+                  isDone ? 'text-tea-ink/35 dark:text-tea-paper/35 line-through decoration-tea-seal/30' :
+                  'text-tea-ink/50 dark:text-tea-paper/50 group-hover:text-tea-seal/80'
+                }`}>
+                  {mod.title}
+                </span>
+                <span className="text-[10px] font-sans text-tea-ink/20 dark:text-tea-paper/20 flex-shrink-0">
+                  {mod.lessons.length} {mod.lessons.length === 1 ? 'lesson' : 'lessons'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
 
