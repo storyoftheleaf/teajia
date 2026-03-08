@@ -154,7 +154,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </p>
         </div>
 
-        <h2 className="font-serif text-2xl md:text-4xl lg:text-5xl font-light text-tea-ink dark:text-tea-paper mb-3 md:mb-5 leading-[1.2] max-w-3xl">
+        <h2 className="font-serif text-2xl md:text-4xl lg:text-4xl font-light text-tea-ink dark:text-tea-paper mb-3 md:mb-5 leading-[1.2] max-w-3xl">
           {currentInsight.insight}
         </h2>
 
@@ -234,9 +234,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </div>
 
-          {/* Desktop: 3-column grid */}
-          <div className="hidden md:grid md:grid-cols-3 gap-5">
-            {latestStories.slice(0, 3).map((story) => (
+          {/* Desktop: 3-column grid, 4 on large screens */}
+          <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {latestStories.slice(0, 4).map((story) => (
               <div key={story.id}>
                 <Card
                   story={story}
@@ -331,7 +331,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="flex gap-5 md:gap-8 items-start">
-            <CardContainer variant="dark" className="w-32 md:w-48 flex-shrink-0 overflow-hidden">
+            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden">
               <div className="aspect-square overflow-hidden">
                 <img
                   src={curatedTea.image}

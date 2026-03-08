@@ -1,27 +1,39 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Icons, SealIcon } from '../Icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
+import { useAppStore } from '../../lib/store';
+import { MyCollection } from './MyCollection';
+import type { Currency } from '../../admin/types';
 
-type PanelView = 'main' | 'signin' | 'signup';
+type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'saved-stories' | 'reading-history';
 
 interface AccountPanelProps {
   onClose: () => void;
+  onNavigateToStory?: (storyId: string) => void;
 }
 
-export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
+const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
+  { code: 'USD', label: 'US Dollar', symbol: '$' },
+  { code: 'NT', label: 'Taiwan Dollar', symbol: 'NT$' },
+  { code: 'Yuan', label: 'Chinese Yuan', symbol: '\u00a5' },
+  { code: 'JPY', label: 'Japanese Yen', symbol: '\u00a5' },
+  { code: 'MYR', label: 'Malaysian Ringgit', symbol: 'RM' },
+  { code: 'IDR', label: 'Indonesian Rupiah', symbol: 'Rp' },
+];
+
+export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory }) => {
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
+  const { favoriteTeas, currency, setCurrency, publicCart } = useAppStore();
   useScrollLock(true);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
   const triggerRef = useRef<HTMLElement | null>(null);
 
   const [isVisible, setIsVisible] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
-  const [progressCount, setProgressCount] = useState(0);
   const [panelView, setPanelView] = useState<PanelView>('main');
 
   // Auth form state
@@ -36,6 +48,45 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchOffset, setTouchOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Derived stats
+  const cartCount = publicCart.length;
+
+  const progressCount = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('teajia_progress_')) count++;
+    }
+    return count;
+  }, []);
+
+  const savedStoryCount = useMemo(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('teajia_saved_stories') || '{}');
+      return Object.values(saved).filter(Boolean).length;
+    } catch { return 0; }
+  }, []);
+
+  const savedStoryEntries = useMemo(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('teajia_saved_stories') || '{}');
+      return Object.entries(saved).filter(([, v]) => v).map(([id]) => id);
+    } catch { return []; }
+  }, []);
+
+  const readingHistory = useMemo(() => {
+    const entries: { storyId: string; page: number }[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('teajia_progress_')) {
+        const storyId = key.replace('teajia_progress_', '');
+        const page = parseInt(localStorage.getItem(key) || '0');
+        entries.push({ storyId, page });
+      }
+    }
+    return entries;
+  }, []);
 
   // Save trigger and animate in on mount
   useEffect(() => {
@@ -61,21 +112,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose, panelView]);
-
-  // Read localStorage stats on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('teajia_cart');
-      if (saved) setCartCount(JSON.parse(saved).length);
-    } catch {}
-
-    let count = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('teajia_progress_')) count++;
-    }
-    setProgressCount(count);
-  }, []);
 
   const resetForm = () => {
     setEmail('');
@@ -149,9 +185,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
     auth.logout();
   };
 
-  const handleGoToAdmin = () => {
+  const handleGoToAdmin = (path: string = '/admin/inventory') => {
     onClose();
-    window.location.href = '/admin';
+    window.location.href = path;
   };
 
   const swipeProgress = touchOffset / 150;
@@ -166,8 +202,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
       .slice(0, 2);
   };
 
+  const isSubView = panelView !== 'main' && panelView !== 'signin' && panelView !== 'signup';
+
   // Header title based on view
-  const headerTitle = panelView === 'signin' ? 'Sign In' : panelView === 'signup' ? 'Create Account' : 'Account';
+  const headerTitle = (() => {
+    switch (panelView) {
+      case 'signin': return 'Sign In';
+      case 'signup': return 'Create Account';
+      case 'collection': return 'My Collection';
+      case 'saved-stories': return 'Saved Stories';
+      case 'reading-history': return 'Reading History';
+      default: return 'Account';
+    }
+  })();
 
   return (
     <>
@@ -398,6 +445,108 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
               </div>
             )}
 
+            {/* ============ MY COLLECTION SUB-VIEW ============ */}
+            {panelView === 'collection' && (
+              <MyCollection onBack={() => setPanelView('main')} />
+            )}
+
+            {/* ============ SAVED STORIES SUB-VIEW ============ */}
+            {panelView === 'saved-stories' && (
+              <div className="animate-[fadeIn_0.3s_ease-out]">
+                <button
+                  onClick={() => setPanelView('main')}
+                  className="flex items-center gap-2 text-tea-charcoal/50 dark:text-white/50 hover:text-tea-charcoal dark:hover:text-white transition-colors mb-6"
+                >
+                  <Icons.Back className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-widest">Back</span>
+                </button>
+
+                {savedStoryEntries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="w-16 h-16 rounded-full bg-tea-seal/10 dark:bg-tea-seal/20 flex items-center justify-center mb-4">
+                      <Icons.Leaf className="w-7 h-7 text-tea-seal/40" />
+                    </div>
+                    <h3 className="font-serif text-lg text-tea-charcoal dark:text-white mb-2">No Saved Stories</h3>
+                    <p className="text-sm text-tea-charcoal/50 dark:text-white/50 text-center max-w-[260px] leading-relaxed">
+                      Tap the leaf icon while reading to save stories for later.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-tea-charcoal/5 dark:border-white/10 overflow-hidden">
+                    {savedStoryEntries.map((storyId, i) => (
+                      <button
+                        key={storyId}
+                        onClick={() => {
+                          onNavigateToStory?.(storyId);
+                          onClose();
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/30 dark:hover:bg-white/5 transition-colors group text-left ${
+                          i < savedStoryEntries.length - 1 ? 'border-b border-tea-charcoal/5 dark:border-white/5' : ''
+                        }`}
+                      >
+                        <Icons.Leaf filled className="w-4 h-4 text-tea-seal shrink-0" />
+                        <span className="font-serif text-sm text-tea-charcoal dark:text-white group-hover:text-tea-seal transition-colors truncate">
+                          Story #{storyId}
+                        </span>
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-charcoal/20 dark:text-white/20 ml-auto shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ============ READING HISTORY SUB-VIEW ============ */}
+            {panelView === 'reading-history' && (
+              <div className="animate-[fadeIn_0.3s_ease-out]">
+                <button
+                  onClick={() => setPanelView('main')}
+                  className="flex items-center gap-2 text-tea-charcoal/50 dark:text-white/50 hover:text-tea-charcoal dark:hover:text-white transition-colors mb-6"
+                >
+                  <Icons.Back className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-widest">Back</span>
+                </button>
+
+                {readingHistory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="w-16 h-16 rounded-full bg-tea-seal/10 dark:bg-tea-seal/20 flex items-center justify-center mb-4">
+                      <Icons.BookOpen className="w-7 h-7 text-tea-seal/40" />
+                    </div>
+                    <h3 className="font-serif text-lg text-tea-charcoal dark:text-white mb-2">No Reading History</h3>
+                    <p className="text-sm text-tea-charcoal/50 dark:text-white/50 text-center max-w-[260px] leading-relaxed">
+                      Your reading progress will appear here as you explore articles.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-tea-charcoal/5 dark:border-white/10 overflow-hidden">
+                    {readingHistory.map((entry, i) => (
+                      <button
+                        key={entry.storyId}
+                        onClick={() => {
+                          onNavigateToStory?.(entry.storyId);
+                          onClose();
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/30 dark:hover:bg-white/5 transition-colors group text-left ${
+                          i < readingHistory.length - 1 ? 'border-b border-tea-charcoal/5 dark:border-white/5' : ''
+                        }`}
+                      >
+                        <Icons.BookOpen className="w-4 h-4 text-tea-charcoal/40 dark:text-white/40 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-serif text-sm text-tea-charcoal dark:text-white group-hover:text-tea-seal transition-colors truncate block">
+                            Story #{entry.storyId}
+                          </span>
+                          <span className="text-[10px] text-tea-charcoal/40 dark:text-white/30">
+                            Page {entry.page + 1}
+                          </span>
+                        </div>
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-charcoal/20 dark:text-white/20 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ============ MAIN VIEW (GUEST or AUTHENTICATED) ============ */}
             {panelView === 'main' && (
               <>
@@ -452,30 +601,48 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
                   </div>
                 )}
 
-                {/* Admin Link — only for admins */}
+                {/* Admin Navigation — only for admins */}
                 {auth.isAuthenticated && auth.isAdmin && (
                   <div>
                     <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block mb-4">Administration</span>
-                    <button
-                      onClick={handleGoToAdmin}
-                      className="w-full flex items-center gap-4 px-4 py-4 bg-tea-seal/5 dark:bg-tea-seal/10 border border-tea-seal/15 dark:border-tea-seal/20 hover:bg-tea-seal/10 dark:hover:bg-tea-seal/15 transition-colors group"
-                    >
-                      <Icons.Shield className="w-5 h-5 text-tea-seal" />
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-serif text-tea-charcoal dark:text-white">Admin Dashboard</span>
-                        <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">Inventory, orders, invoices</span>
-                      </div>
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-seal/50 ml-auto" />
-                    </button>
+                    <div className="border border-tea-seal/15 dark:border-tea-seal/20 overflow-hidden">
+                      {[
+                        { path: '/admin/inventory', label: 'Inventory', desc: 'Manage products & stock', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
+                        { path: '/admin/personal', label: 'Collection', desc: 'Personal tea collection', icon: <Icons.Heart className="w-4.5 h-4.5" /> },
+                        { path: '/admin/orders', label: 'Orders', desc: 'Track & manage orders', icon: <Icons.Clock className="w-4.5 h-4.5" /> },
+                        { path: '/admin/records', label: 'Records', desc: 'Sales logs & history', icon: <Icons.BookOpen className="w-4.5 h-4.5" /> },
+                        { path: '/admin/settings', label: 'Settings', desc: 'System configuration', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
+                      ].map((item, i, arr) => (
+                        <button
+                          key={item.path}
+                          onClick={() => handleGoToAdmin(item.path)}
+                          className={`w-full flex items-center gap-4 px-4 py-3.5 bg-tea-seal/5 dark:bg-tea-seal/10 hover:bg-tea-seal/10 dark:hover:bg-tea-seal/15 transition-colors group ${
+                            i < arr.length - 1 ? 'border-b border-tea-seal/10 dark:border-tea-seal/15' : ''
+                          }`}
+                        >
+                          <div className="text-tea-seal">{item.icon}</div>
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="text-sm font-serif text-tea-charcoal dark:text-white">{item.label}</span>
+                            <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">{item.desc}</span>
+                          </div>
+                          <Icons.ChevronRight className="w-4 h-4 text-tea-seal/30 group-hover:text-tea-seal/60 transition-colors" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Activity Stats */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Activity Stats — 3 columns now */}
+                <div className="grid grid-cols-3 gap-3">
                   <div className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-4 flex flex-col items-center gap-2">
                     <Icons.Bag className="w-5 h-5 text-tea-charcoal/40 dark:text-white/40" />
                     <span className="font-mono text-2xl text-tea-charcoal dark:text-white">{cartCount}</span>
-                    <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50">Cart Items</span>
+                    <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50">Cart</span>
+                  </div>
+                  <div className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-4 flex flex-col items-center gap-2">
+                    <Icons.Heart className="w-5 h-5 text-tea-charcoal/40 dark:text-white/40" />
+                    <span className="font-mono text-2xl text-tea-charcoal dark:text-white">{favoriteTeas.length}</span>
+                    <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50">Favorites</span>
                   </div>
                   <div className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-4 flex flex-col items-center gap-2">
                     <Icons.BookOpen className="w-5 h-5 text-tea-charcoal/40 dark:text-white/40" />
@@ -484,27 +651,109 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
                   </div>
                 </div>
 
-                {/* Theme Toggle */}
+                {/* My Collection — shareable favorites */}
                 <div>
-                  <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block mb-4">Appearance</span>
+                  <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block mb-4">Your Tea Collection</span>
                   <button
-                    onClick={toggleTheme}
-                    className="w-full flex items-center justify-between px-4 py-4 bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+                    onClick={() => setPanelView('collection')}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 hover:bg-white/50 dark:hover:bg-white/10 transition-colors group"
                   >
-                    <div className="flex items-center gap-3">
-                      {theme === 'light' ? (
-                        <Icons.Sun className="w-5 h-5 text-tea-seal" />
-                      ) : (
-                        <Icons.Moon className="w-5 h-5 text-tea-seal" />
-                      )}
-                      <span className="font-serif text-sm text-tea-charcoal dark:text-white">
-                        {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
+                    <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-seal' : 'text-tea-charcoal/40 dark:text-white/40'} group-hover:text-tea-seal transition-colors`} />
+                    <div className="flex flex-col items-start flex-1">
+                      <span className="font-serif text-sm text-tea-charcoal dark:text-white">My Favorites</span>
+                      <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">
+                        {favoriteTeas.length === 0 ? 'No teas saved yet' : `${favoriteTeas.length} ${favoriteTeas.length === 1 ? 'tea' : 'teas'} — shareable`}
                       </span>
                     </div>
-                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${theme === 'dark' ? 'bg-tea-seal' : 'bg-tea-charcoal/20'}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <div className="flex items-center gap-2">
+                      {favoriteTeas.length > 0 && (
+                        <Icons.Share className="w-3.5 h-3.5 text-tea-seal/40" />
+                      )}
+                      <Icons.ChevronRight className="w-4 h-4 text-tea-charcoal/20 dark:text-white/20 group-hover:text-tea-charcoal/40 dark:group-hover:text-white/40 transition-colors" />
                     </div>
                   </button>
+                </div>
+
+                {/* Reading & Stories */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block mb-4">Reading</span>
+                  <div className="border border-tea-charcoal/5 dark:border-white/10 overflow-hidden">
+                    <button
+                      onClick={() => setPanelView('saved-stories')}
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-charcoal/5 dark:border-white/5 hover:bg-white/30 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-seal' : 'text-tea-charcoal/40 dark:text-white/40'} group-hover:text-tea-seal transition-colors`} />
+                      <div className="flex flex-col items-start flex-1">
+                        <span className="font-serif text-sm text-tea-charcoal dark:text-white">Saved Stories</span>
+                        <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">
+                          {savedStoryCount === 0 ? 'None saved' : `${savedStoryCount} saved`}
+                        </span>
+                      </div>
+                      <Icons.ChevronRight className="w-4 h-4 text-tea-charcoal/20 dark:text-white/20" />
+                    </button>
+                    <button
+                      onClick={() => setPanelView('reading-history')}
+                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-white/30 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <Icons.BookOpen className={`w-5 h-5 ${progressCount > 0 ? 'text-tea-seal' : 'text-tea-charcoal/40 dark:text-white/40'} group-hover:text-tea-seal transition-colors`} />
+                      <div className="flex flex-col items-start flex-1">
+                        <span className="font-serif text-sm text-tea-charcoal dark:text-white">Reading History</span>
+                        <span className="text-[10px] text-tea-charcoal/40 dark:text-white/40">
+                          {progressCount === 0 ? 'No articles read' : `${progressCount} ${progressCount === 1 ? 'article' : 'articles'}`}
+                        </span>
+                      </div>
+                      <Icons.ChevronRight className="w-4 h-4 text-tea-charcoal/20 dark:text-white/20" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preferences: Theme + Currency */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block mb-4">Preferences</span>
+                  <div className="border border-tea-charcoal/5 dark:border-white/10 overflow-hidden">
+                    {/* Theme Toggle */}
+                    <button
+                      onClick={toggleTheme}
+                      className="w-full flex items-center justify-between px-4 py-4 border-b border-tea-charcoal/5 dark:border-white/5 hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {theme === 'light' ? (
+                          <Icons.Sun className="w-5 h-5 text-tea-seal" />
+                        ) : (
+                          <Icons.Moon className="w-5 h-5 text-tea-seal" />
+                        )}
+                        <span className="font-serif text-sm text-tea-charcoal dark:text-white">
+                          {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
+                        </span>
+                      </div>
+                      <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${theme === 'dark' ? 'bg-tea-seal' : 'bg-tea-charcoal/20'}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </div>
+                    </button>
+
+                    {/* Currency Selector */}
+                    <div className="px-4 py-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-tea-seal font-mono text-sm font-bold">$</span>
+                        <span className="font-serif text-sm text-tea-charcoal dark:text-white">Currency</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CURRENCY_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.code}
+                            onClick={() => setCurrency(opt.code)}
+                            className={`px-2.5 py-1.5 text-[11px] uppercase tracking-wider border transition-colors ${
+                              currency === opt.code
+                                ? 'bg-tea-seal text-white border-tea-seal'
+                                : 'border-tea-charcoal/10 dark:border-white/10 text-tea-charcoal/60 dark:text-white/50 hover:border-tea-seal/30'
+                            }`}
+                          >
+                            {opt.symbol} {opt.code}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Quick Actions */}
@@ -522,20 +771,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose }) => {
                       )}
                       <Icons.ChevronRight className="w-4 h-4 text-tea-charcoal/20 dark:text-white/20 ml-auto" />
                     </button>
-
-                    {auth.isAuthenticated && (
-                      <button
-                        onClick={() => {
-                          // TODO: navigate to order history when implemented
-                          onClose();
-                        }}
-                        className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-charcoal/5 dark:border-white/5 hover:bg-white/30 dark:hover:bg-white/5 transition-colors group"
-                      >
-                        <Icons.Clock className="w-5 h-5 text-tea-charcoal/40 dark:text-white/40 group-hover:text-tea-seal transition-colors" />
-                        <span className="text-sm font-serif text-tea-charcoal dark:text-white">Order History</span>
-                        <Icons.ChevronRight className="w-4 h-4 text-tea-charcoal/20 dark:text-white/20 ml-auto" />
-                      </button>
-                    )}
 
                     <a
                       href="mailto:hello@teajia.com"

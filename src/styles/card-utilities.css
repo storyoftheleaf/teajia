@@ -39,6 +39,15 @@
   }
 }
 
+@media (min-width: 1024px) {
+  .card-grid-item {
+    padding: 0.875rem;
+  }
+  .card-grid-title {
+    font-size: 1.0625rem;
+  }
+}
+
 .card-grid-image-container {
   aspect-ratio: 1 / 1;
   overflow: hidden;

@@ -6,7 +6,7 @@ import { useScrollLock } from '../hooks/useScrollLock';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // CONFIG
-const TEAJIA_WHATSAPP_NUMBER = '+18313259164';
+const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
 
 interface CartDrawerProps {
   isOpen: boolean;

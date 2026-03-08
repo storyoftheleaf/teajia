@@ -35,6 +35,12 @@ interface AppState {
   // AI Settings
   aiPromptTemplate: string;
   setAiPromptTemplate: (prompt: string) => void;
+
+  // Favorite Teas (shareable collection)
+  favoriteTeas: string[];
+  toggleFavoriteTea: (id: string) => void;
+  isFavoriteTea: (id: string) => boolean;
+  clearFavoriteTeas: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -63,7 +69,7 @@ export const useAppStore = create<AppState>()(
                 productId: product.id,
                 quantity,
                 priceAtSale: product.pricePerGramUSD,
-                product,
+                product: { ...product },
               },
             ],
           };
@@ -93,10 +99,11 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const existing = state.publicCart.find((c) => c.id === item.id);
           if (existing) {
+            const newGrams = existing.quantityGrams + item.quantityGrams;
             return {
               publicCart: state.publicCart.map((c) =>
                 c.id === item.id
-                  ? { ...c, quantityGrams: item.quantityGrams, totalPrice: item.totalPrice }
+                  ? { ...c, quantityGrams: newGrams, totalPrice: c.pricePerGram * newGrams }
                   : c
               ),
             };
@@ -133,6 +140,17 @@ export const useAppStore = create<AppState>()(
       // AI Settings
       aiPromptTemplate: 'You are a poetic but grounded tea master. Write 2-3 sentences of historical or geographical lore about the tea named "{{productName}}" of type "{{type}}". Provide exactly 3-4 distinct sensory tasting notes. Also, provide the traditional Chinese name for this tea (if applicable) and its specific origin region (e.g., "Anxi, Fujian, China" or "Alishan, Taiwan"). Additionally, provide processing notes (e.g. "Heavy charcoal roast over pine wood."), a mood (e.g. "Grounding & Meditative"), an experience description (e.g. "A deeply centering tea..."), and a liquor color (e.g. "Deep Amber"). Do not be overly pretentious; focus on terroir, history, and clear flavors. Return the response in JSON format.',
       setAiPromptTemplate: (prompt) => set({ aiPromptTemplate: prompt }),
+
+      // Favorite Teas
+      favoriteTeas: [],
+      toggleFavoriteTea: (id) =>
+        set((state) => ({
+          favoriteTeas: state.favoriteTeas.includes(id)
+            ? state.favoriteTeas.filter((fid) => fid !== id)
+            : [...state.favoriteTeas, id],
+        })),
+      isFavoriteTea: (id) => false, // computed via selector below
+      clearFavoriteTeas: () => set({ favoriteTeas: [] }),
     }),
     {
       name: 'teajia-storage',
@@ -141,6 +159,7 @@ export const useAppStore = create<AppState>()(
         publicCart: state.publicCart,
         currency: state.currency,
         aiPromptTemplate: state.aiPromptTemplate,
+        favoriteTeas: state.favoriteTeas,
       }),
     }
   )

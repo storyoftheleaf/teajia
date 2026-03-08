@@ -31,8 +31,8 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
     setLoading(true);
     setError('');
 
-    // Dev bypass
-    if (mode === 'login' && password === '1234') {
+    // Dev bypass — only available in development builds
+    if (import.meta.env.DEV && mode === 'login' && password === 'dev') {
       setDevAdmin(true);
       setLoading(false);
       resetForm();
@@ -58,9 +58,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'} onKeyDown={(e) => { if (e.key === 'Escape') { resetForm(); onClose(); } }}>
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-2xl relative">
-        <button onClick={() => { resetForm(); onClose(); }} className="absolute top-4 right-4 text-tea-muted hover:text-tea-text transition-colors"><X size={20} /></button>
+        <button onClick={() => { resetForm(); onClose(); }} className="absolute top-4 right-4 text-tea-muted hover:text-tea-text transition-colors" aria-label="Close"><X size={20} /></button>
         <h3 className="text-2xl font-serif text-tea-text mb-2">
           {mode === 'login' ? 'Welcome Back' : 'Create Account'}
         </h3>
@@ -80,7 +80,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           </div>
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-muted mb-2">Password</label>
-             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
+             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-muted transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
           </div>
           {error && <div className="p-3 bg-tea-accent/10 border border-tea-accent/30 text-tea-accent text-sm rounded-lg">{error}</div>}
           <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-accent/10">
