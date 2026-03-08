@@ -83,6 +83,13 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     setSwipeOffset(0);
   };
 
+  const [isCardExpanded, setIsCardExpanded] = useState(false);
+
+  // Reset expand state when item changes
+  useEffect(() => {
+    setIsCardExpanded(false);
+  }, [item?.id]);
+
   const handleAddToCart = (addedItem: InventoryItem, qty: number, total: number) => {
     if (onAddToCart) onAddToCart(addedItem, qty, total);
   };
@@ -102,13 +109,22 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-[480px] md:max-w-[540px]"
-          style={{ height: "min(90vh, 780px)", minHeight: "480px" }}
+          className={`relative w-full transition-all duration-300 ease-out ${
+            isCardExpanded
+              ? 'max-w-[480px] md:max-w-[560px]'
+              : 'max-w-[480px] md:max-w-[560px]'
+          }`}
+          style={{
+            height: isCardExpanded ? "calc(100vh - 32px)" : "min(90vh, 780px)",
+            minHeight: "480px",
+            transition: "height 0.3s ease",
+          }}
         >
           <AlcoveCard
             item={item}
             onAddToCart={handleAddToCart}
             onClose={onClose}
+            onExpandChange={setIsCardExpanded}
           />
           {/* Close button */}
           <button

@@ -6,6 +6,7 @@ interface AlcoveCardProps {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onClose?: () => void;
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
@@ -28,7 +29,7 @@ function ShareIcon({ color }: { color: string }) {
   );
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, onExpandChange }) => {
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
@@ -148,8 +149,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       }} />
 
       {/* === PINNED TOP: Identity === */}
-      <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
-        {chineseCharacters && (
+      <div style={{
+        position: "relative", zIndex: 1, flexShrink: 0,
+        transition: "all 0.3s ease",
+      }}>
+        {!storyExpanded && chineseCharacters && (
           <div style={{
             position: "absolute", right: "20px", top: "24px",
             fontFamily: "'Ma Shan Zheng', cursive",
@@ -162,22 +166,50 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {chineseCharacters}
           </div>
         )}
-        <div style={{ padding: "24px 20px 8px", position: "relative" }}>
-          <h1 style={{
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-            margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
-          }}>
-            {productName}
-          </h1>
-          {givenName && (
-            <p style={{
-              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-              fontSize: "18px", fontStyle: "italic", fontWeight: 300,
-              color: alcoveColors.subtitle, margin: "0",
-            }}>
-              {givenName}
-            </p>
+        <div style={{
+          padding: storyExpanded ? "12px 20px 6px" : "24px 20px 8px",
+          position: "relative",
+          transition: "padding 0.3s ease",
+        }}>
+          {storyExpanded ? (
+            /* Compact title bar when expanded */
+            <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+              <h1 style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "20px", fontWeight: 300, color: alcoveColors.title,
+                margin: 0, lineHeight: 1.2, letterSpacing: "-0.01em",
+                transition: "font-size 0.3s ease",
+              }}>
+                {productName}
+              </h1>
+              <span style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "13px", fontWeight: 300, fontStyle: "italic",
+                color: alcoveColors.subtitle,
+              }}>
+                {[teaType, origin, vintage].filter(Boolean).join(' · ')}
+              </span>
+            </div>
+          ) : (
+            /* Full title when collapsed */
+            <>
+              <h1 style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
+                margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+              }}>
+                {productName}
+              </h1>
+              {givenName && (
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "18px", fontStyle: "italic", fontWeight: 300,
+                  color: alcoveColors.subtitle, margin: "0",
+                }}>
+                  {givenName}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -189,6 +221,37 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         overflowY: "auto",
         minHeight: 0,
       }}>
+
+        {/* Desktop hero image — prominent, above the inset panel */}
+        {photoUrl && (
+          <div
+            className="hidden md:block"
+            onClick={() => setImageExpanded(true)}
+            style={{
+              margin: "0 8px 4px",
+              borderRadius: "6px",
+              overflow: "hidden",
+              cursor: "pointer",
+              position: "relative",
+              maxHeight: "220px",
+            }}
+          >
+            <img
+              src={photoUrl}
+              alt={productName}
+              style={{
+                width: "100%", height: "100%",
+                objectFit: "cover", objectPosition: "center",
+                display: "block",
+              }}
+            />
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to top, rgba(28,27,25,0.4) 0%, transparent 40%)",
+              pointerEvents: "none",
+            }} />
+          </div>
+        )}
 
         {/* Inset content panel */}
         <div style={{
@@ -293,7 +356,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               {/* Expand/collapse toggle — only show when story overflows */}
               {(storyFadeBottom || storyExpanded) && (
                 <button
-                  onClick={() => setStoryExpanded(prev => !prev)}
+                  onClick={() => {
+                    const next = !storyExpanded;
+                    setStoryExpanded(next);
+                    onExpandChange?.(next);
+                  }}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
                     gap: "6px", width: "100%",
