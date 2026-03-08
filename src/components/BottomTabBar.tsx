@@ -6,6 +6,7 @@ import { NAV_ONBOARDING_MESSAGES } from '../constants';
 import { getNavIcon, getIconScale } from './navIconConfig';
 import { useTheme } from '../context/ThemeContext';
 import { useLongPress } from '../hooks/useLongPress';
+import { useAuth } from '../hooks/useAuth';
 
 
 
@@ -14,15 +15,18 @@ interface BottomTabBarProps {
   onNavigate: (section: Section) => void;
   cartItemCount?: number;
   hidden?: boolean;
+  onAccountClick?: () => void;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
   cartItemCount = 0,
-  hidden = false
+  hidden = false,
+  onAccountClick
 }) => {
   const { toggleTheme } = useTheme();
+  const auth = useAuth();
   const [themeFlash, setThemeFlash] = React.useState(false);
 
   const centerLongPress = useLongPress({
@@ -145,6 +149,27 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               {renderTabButton(section, index + leftSections.length + 1)}
             </div>
           ))}
+
+          {/* Account button — shows for authenticated users, with admin badge for admins */}
+          {auth.isAuthenticated && onAccountClick && (
+            <div className="flex items-center h-full" style={{ flex: '0 0 48px' }}>
+              <button
+                onClick={onAccountClick}
+                className="h-full flex flex-col items-center justify-center relative transition-all duration-300 group px-2 animate-[fadeIn_0.5s_ease-out]"
+                title="Account"
+              >
+                <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                  <Icons.User
+                    className="text-tea-ink/40 dark:text-tea-paper/60 w-5 h-5 group-hover:text-tea-ink/60 dark:group-hover:text-tea-paper/85 transition-all duration-300"
+                    strokeWidth={2}
+                  />
+                  {auth.isAdmin && (
+                    <div className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-tea-seal rounded-full border border-[#FFFDF5] dark:border-tea-ink" />
+                  )}
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
