@@ -62,7 +62,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-tea-text/10 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-gold/25 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
