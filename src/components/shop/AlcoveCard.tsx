@@ -6,7 +6,6 @@ interface AlcoveCardProps {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onClose?: () => void;
-  onExpandChange?: (expanded: boolean) => void;
 }
 
 function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
@@ -29,20 +28,18 @@ function ShareIcon({ color }: { color: string }) {
   );
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, onExpandChange }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [storyExpanded, setStoryExpanded] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
   const [storyFadeTop, setStoryFadeTop] = useState(false);
   const [storyFadeBottom, setStoryFadeBottom] = useState(false);
-  const [storyOverflows, setStoryOverflows] = useState(false);
 
   const presets = [25, 50, 100, 150, 300];
   const pricePerGram = parseFloat(item.price_per_gram || '0');
@@ -107,17 +104,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
       setStoryFadeTop(canScroll && !atTop);
       setStoryFadeBottom(canScroll && !atBottom);
-      if (!storyExpanded && canScroll) setStoryOverflows(true);
     };
-    // Check initial overflow
-    requestAnimationFrame(() => {
-      if (el.scrollHeight > el.clientHeight) setStoryOverflows(true);
-      else setStoryOverflows(false);
-    });
     checkStory();
     el.addEventListener("scroll", checkStory, { passive: true });
     return () => el.removeEventListener("scroll", checkStory);
-  }, [item, storyExpanded]);
+  }, [item]);
 
   const handleAdd = () => {
     setAdded(true);
@@ -130,8 +121,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   return (
     <div style={{
       width: "100%",
-      height: storyExpanded ? "auto" : "100%",
-      minHeight: storyExpanded ? "480px" : undefined,
+      height: "100%",
       maxHeight: "100%",
       background: alcoveColors.bg,
       position: "relative",
@@ -141,46 +131,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       flexDirection: "column",
     }}>
 
-      {/* Expand/collapse story button — top right, only when story overflows */}
-      {story && (storyOverflows || storyExpanded) && (
-        <button
-          onClick={() => {
-            const next = !storyExpanded;
-            setStoryExpanded(next);
-            onExpandChange?.(next);
-          }}
-          onMouseEnter={() => setHovered("expand")}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            position: "absolute", top: "8px", right: "36px", zIndex: 10,
-            display: "flex", alignItems: "center", gap: "5px",
-            padding: "4px 10px",
-            background: hovered === "expand" ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.3)",
-            border: "none", borderRadius: "12px",
-            cursor: "pointer",
-            transition: "all 0.2s ease",
-          }}
-        >
-          <span style={{
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "11px", fontWeight: 300, fontStyle: "italic",
-            color: "rgba(200,170,120,0.6)",
-            letterSpacing: "0.05em",
-          }}>
-            {storyExpanded ? 'less' : 'more'}
-          </span>
-          <svg
-            width="9" height="9" viewBox="0 0 24 24" fill="none"
-            stroke="rgba(200,170,120,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{
-              transition: "transform 0.3s ease",
-              transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
-            }}
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-      )}
+
 
       {/* Layer 1: Multi-stop radial warmth */}
       <div style={{
@@ -203,7 +154,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         position: "relative", zIndex: 1, flexShrink: 0,
         transition: "all 0.3s ease",
       }}>
-        {!storyExpanded && chineseCharacters && (
+        {chineseCharacters && (
           <div style={{
             position: "absolute", right: "20px", top: "24px",
             fontFamily: "'Ma Shan Zheng', cursive",
@@ -217,31 +168,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
         )}
         <div style={{
-          padding: storyExpanded ? "12px 20px 6px" : "24px 20px 8px",
+          padding: "24px 20px 8px",
           position: "relative",
-          transition: "padding 0.3s ease",
         }}>
-          {storyExpanded ? (
-            /* Compact title bar when expanded */
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-              <h1 style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "20px", fontWeight: 300, color: alcoveColors.title,
-                margin: 0, lineHeight: 1.2, letterSpacing: "-0.01em",
-                transition: "font-size 0.3s ease",
-              }}>
-                {productName}
-              </h1>
-              <span style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "13px", fontWeight: 300, fontStyle: "italic",
-                color: alcoveColors.subtitle,
-              }}>
-                {[teaType, origin, vintage].filter(Boolean).join(' · ')}
-              </span>
-            </div>
-          ) : (
-            /* Full title when collapsed */
             <>
               <h1 style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
@@ -260,7 +189,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </p>
               )}
             </>
-          )}
         </div>
       </div>
 
@@ -330,7 +258,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ref={storyScrollRef}
                 className="tea-card-scroll"
                 style={{
-                  maxHeight: storyExpanded ? "none" : "180px",
+                  maxHeight: "none",
                   overflowY: "auto",
                   padding: "12px 16px",
                   transition: "max-height 0.4s ease",

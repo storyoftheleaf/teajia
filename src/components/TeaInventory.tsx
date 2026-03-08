@@ -434,7 +434,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                     </div>
 
-                                    {/* Right: price + heart */}
+                                    {/* Right: price, heart, details button */}
                                     <div className="flex items-center gap-3 shrink-0">
                                         <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
                                             ${pricePerGram.toFixed(2)}/g
@@ -444,6 +444,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-seal' : 'text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-ink/50 dark:hover:text-tea-paper/50'}`}
                                         >
                                             <Icons.Heart filled={isFavorite} className="w-5 h-5" />
+                                        </button>
+                                        {/* Details button — opens AlcoveCard */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                            className="-my-1 p-2 text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-seal active:text-tea-seal transition-colors"
+                                            aria-label={`View details for ${item.name}`}
+                                        >
+                                            <Icons.ChevronRight className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
