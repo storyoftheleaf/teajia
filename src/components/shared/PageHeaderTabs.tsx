@@ -21,7 +21,7 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`w-full px-4 md:px-6 lg:px-10 border-y border-tea-border overflow-x-auto no-scrollbar ${className}`}>
+    <div className={`w-full px-4 md:px-6 lg:px-10 overflow-x-auto no-scrollbar ${className}`} style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06), inset 0 -1px 0 rgba(184,146,78,0.06)' }}>
       <div className="flex items-center gap-7 md:gap-10 min-w-max">
         {tabs.map((tab) => (
           <button

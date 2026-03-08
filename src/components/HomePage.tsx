@@ -333,7 +333,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               {isAdmin && productMap.has(curatedTea.id) && (() => {
                 const ap = productMap.get(curatedTea.id)!;
                 return (
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-tea-border">
+                  <div className="flex items-center gap-3 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
                     <button
                       onClick={() => updateProduct(curatedTea.id, { is_featured: !ap.isFeatured })}
                       className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-gold' : 'text-tea-text/30 hover:text-tea-text/60'}`}

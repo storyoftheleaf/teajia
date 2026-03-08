@@ -84,7 +84,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
   // View mode toggle
   const viewModeToggle = (
     <div className="flex items-center gap-4 md:gap-6">
-      <div className="flex items-center bg-tea-text/5 rounded-lg p-0.5 border border-tea-border">
+      <div className="flex items-center bg-tea-text/[0.06] rounded-lg p-0.5">
         <button
           onClick={() => setViewMode('GRID')}
           className={`p-1.5 rounded-lg transition-all ${viewMode === 'GRID' ? 'bg-tea-elevated text-tea-text shadow-sm' : 'text-tea-text/40 hover:text-tea-text'}`}
@@ -252,7 +252,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               const totalPrice = Math.round(unitPrice * currentQty);
 
                               return (
-                                  <div key={item.id} className={`relative border-b border-tea-border transition-colors duration-300 ${isExpanded ? 'bg-tea-text/5' : 'hover:bg-tea-elevated/50'}`}>
+                                  <div key={item.id} className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/5' : 'hover:bg-tea-elevated/50'}`} style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.06)' }}>
                                       <div className="flex items-center py-3 px-2 gap-4 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
                                           <CardThumbnail
                                               src={item.image}
@@ -297,13 +297,13 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                       </div>
                                       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                           <div className="pl-20 pr-2 pb-6 pt-2">
-                                              <p className="font-serif text-sm md:text-base text-tea-text/80 mb-6 leading-relaxed max-w-3xl italic border-l-2 border-tea-border pl-4">"{item.description}"</p>
-                                              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-tea-text/5 rounded-lg p-3 pr-4 border border-tea-border">
+                                              <p className="font-serif text-sm md:text-base text-tea-text/80 mb-6 leading-relaxed max-w-3xl italic pl-4" style={{ boxShadow: 'inset 2px 0 0 rgba(184,146,78,0.15)' }}>"{item.description}"</p>
+                                              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-tea-text/[0.04] rounded-lg p-3 pr-4" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(200,170,120,0.04)' }}>
                                                   <div className="flex items-center gap-4 px-2">
                                                       <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Quantity</span>
-                                                      <div className="flex items-center border border-tea-border rounded-[1px] bg-tea-text/10 dark:bg-black/20">
+                                                      <div className="flex items-center rounded-[1px] bg-black/25" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 rgba(200,170,120,0.04)' }}>
                                                           <button onClick={() => updateQuantity(item.id, Math.max(1, currentQty - 1))} disabled={currentQty <= 1} className="px-3 py-1 hover:bg-tea-text/10 transition-colors text-tea-text  disabled:opacity-30">-</button>
-                                                          <span className="px-3 py-1 font-mono text-sm border-l border-r border-tea-border min-w-[40px] text-center text-tea-text ">{currentQty}</span>
+                                                          <span className="px-3 py-1 font-mono text-sm min-w-[40px] text-center text-tea-text" style={{ boxShadow: 'inset 1px 0 0 rgba(184,146,78,0.08), inset -1px 0 0 rgba(184,146,78,0.08)' }}>{currentQty}</span>
                                                           <button onClick={() => updateQuantity(item.id, Math.min(maxStock, currentQty + 1))} disabled={currentQty >= maxStock} className="px-3 py-1 hover:bg-tea-text/10 transition-colors text-tea-text  disabled:opacity-30">+</button>
                                                       </div>
                                                       <span className="text-[10px] text-tea-text/40 font-mono">{maxStock} available</span>

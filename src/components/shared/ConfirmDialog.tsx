@@ -62,11 +62,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-tea-bg rounded-sm border border-tea-border w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
+        className="bg-tea-bg rounded-sm w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
+        style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(184,146,78,0.08) inset' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
+        <div className="flex items-center justify-between px-6 py-4" style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}>
           <h2 id="confirm-dialog-title" className="text-xl font-serif text-tea-text">{title}</h2>
           <button
             onClick={handleCancel}
@@ -80,7 +81,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         {/* Content */}
         <div className="px-6 py-4 space-y-4">
           {preview && (
-            <div className="bg-tea-text/5 rounded-sm p-4 border border-tea-border">
+            <div className="bg-tea-text/5 rounded-sm p-4" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(200,170,120,0.04)' }}>
               {preview}
             </div>
           )}
@@ -98,7 +99,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 value={typedText}
                 onChange={(e) => setTypedText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && isTypingValid && handleConfirm()}
-                className="w-full bg-white  border border-tea-border p-3 text-tea-text text-sm outline-none focus:border-tea-gold rounded-sm"
+                className="w-full bg-tea-surface p-3 text-tea-text text-sm outline-none focus:ring-1 focus:ring-tea-gold/20 rounded-sm"
+                style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(200,170,120,0.04)' }}
                 placeholder={typeToConfirm}
                 autoFocus
               />
@@ -107,7 +109,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-tea-border">
+        <div className="flex items-center justify-end gap-3 px-6 py-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
           <button
             onClick={handleCancel}
             className="px-4 py-2 text-tea-text/80 hover:text-tea-text text-sm uppercase tracking-wider font-medium transition-colors"

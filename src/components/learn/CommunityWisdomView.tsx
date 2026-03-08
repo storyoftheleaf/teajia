@@ -126,7 +126,7 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
+                  <div className="flex items-center gap-2 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
                     <div className="w-5 h-5 rounded-full bg-tea-gold/20 flex items-center justify-center">
                       <Icons.User className="w-3 h-3 text-tea-gold" />
                     </div>
