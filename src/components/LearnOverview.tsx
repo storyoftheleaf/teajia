@@ -75,10 +75,11 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
 
 /** Section label — tiny, uppercase, tracked */
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="mb-4">
-    <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-seal-dark dark:text-tea-seal/80">
+  <div className="mb-5">
+    <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-gold/80">
       {children}
     </span>
+    <div className="mt-2 h-px bg-gradient-to-r from-tea-gold/25 via-tea-gold/10 to-transparent" />
   </div>
 );
 
@@ -203,21 +204,21 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         {/* Explore — flows directly from the hero, no separator */}
         <div>
           {[
-            { id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" /> },
-            { id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" /> },
-            { id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" /> },
-            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" /> },
-            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" /> },
-            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & articles', icon: <Icons.Book className="w-5 h-5" /> },
-            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" /> },
-            { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" /> },
+            { id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" />, iconColor: 'text-tea-gold/50' },
+            { id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-amber-600/40' },
+            { id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
+            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-amber-500/35' },
+            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-amber-700/40' },
+            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & articles', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
+            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-amber-600/35' },
+            { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" />, iconColor: 'text-amber-500/40' },
           ].map(tile => (
             <button
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
               className={`w-full flex items-center gap-4 py-3.5 px-1 border-b border-tea-ink/[0.06] dark:border-white/[0.06] last:border-b-0 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
             >
-              <span className="text-tea-seal/40 group-hover:text-tea-seal/70 transition-colors flex-shrink-0">
+              <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}
               </span>
               <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
@@ -290,17 +291,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         >
           <CardContainer variant="dark">
             <div className="relative overflow-hidden">
-              {/* The character — massive, the visual anchor */}
-              {spotlightTerm.chineseCharacters && (
-                <div className="absolute top-0 -right-4 w-2/5 h-full flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
-                  <span className="text-[120px] md:text-[180px] lg:text-[220px] text-tea-gold/[0.03] font-serif leading-none">
-                    {spotlightTerm.chineseCharacters}
-                  </span>
-                </div>
-              )}
-
-              {/* Atmospheric gradient */}
-              <div className="absolute inset-0" style={{
+              {/* Atmospheric gradient — subtle warmth from bottom-left */}
+              <div className="absolute inset-0 pointer-events-none" style={{
                 backgroundImage: `radial-gradient(ellipse at 0% 100%, rgba(201,148,58,0.06) 0%, transparent 60%)`
               }} />
 
@@ -362,9 +354,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo('glossary')}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="flex items-baseline gap-3">
+              <div className="flex items-baseline gap-2">
                 {secondTerm.chineseCharacters && (
-                  <span className="text-2xl text-tea-seal/15 font-serif">{secondTerm.chineseCharacters}</span>
+                  <span className="text-sm text-tea-gold/30 font-serif">{secondTerm.chineseCharacters}</span>
                 )}
                 <div>
                   <span className="font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
@@ -393,8 +385,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel>Go Deeper</SectionLabel>
 
-        {/* Module index — each row is the experience */}
-        <div>
+        {/* Module cards */}
+        <div className="space-y-4">
           {LEARN_CURRICULUM.map((mod, i) => {
             const isNext = mod.id === (LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0]).id;
             const isDone = moduleCompletion[mod.id];
@@ -403,11 +395,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <button
                 key={mod.id}
                 onClick={() => onNavigateTo('course')}
-                className={`w-full text-left group border-b border-tea-ink/6 dark:border-white/6 last:border-0 ${CTA_FOCUS}`}
+                className={`w-full text-left group border-b border-tea-gold/[0.06] last:border-0 ${CTA_FOCUS}`}
               >
                 <div className="flex gap-4 py-5 md:py-6">
                   {/* Number */}
-                  <span className={`text-[11px] font-mono tabular-nums pt-0.5 flex-shrink-0 ${isDone ? 'text-tea-seal/50' : 'text-tea-ink/20 dark:text-tea-paper/20'}`}>
+                  <span className={`text-[11px] font-mono tabular-nums pt-0.5 flex-shrink-0 ${isDone ? 'text-tea-gold/50' : 'text-tea-text/20'}`}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
 
@@ -415,24 +407,24 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-3">
                       <h4 className={`font-serif text-base md:text-lg leading-snug transition-colors ${
-                        isNext ? 'text-tea-ink dark:text-tea-paper group-hover:text-tea-seal' :
-                        isDone ? 'text-tea-ink/30 dark:text-tea-paper/30' :
-                        'text-tea-ink/55 dark:text-tea-paper/55 group-hover:text-tea-seal/80'
+                        isNext ? 'text-tea-text group-hover:text-tea-gold' :
+                        isDone ? 'text-tea-text/30' :
+                        'text-tea-text/55 group-hover:text-tea-gold/80'
                       }`}>
                         {mod.title}
                       </h4>
                       <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
-                        isNext ? 'text-tea-seal/40 group-hover:text-tea-seal group-hover:translate-x-0.5' :
-                        'text-tea-ink/10 dark:text-tea-paper/10 group-hover:text-tea-seal/40'
+                        isNext ? 'text-tea-gold/40 group-hover:text-tea-gold group-hover:translate-x-0.5' :
+                        'text-tea-text/10 group-hover:text-tea-gold/40'
                       }`} />
                     </div>
                     <p className={`mt-1.5 text-[13px] leading-relaxed font-serif italic ${
-                      isDone ? 'text-tea-ink/20 dark:text-tea-paper/20' : 'text-tea-ink/35 dark:text-tea-paper/35'
+                      isDone ? 'text-tea-text/20' : 'text-tea-text/35'
                     }`}>
                       {mod.description}
                     </p>
                     {(isDone || completedLessons > 0) && (
-                      <div className="mt-2 text-[10px] font-sans text-tea-seal/50">
+                      <div className="mt-2 text-[10px] font-sans text-tea-gold/50">
                         {isDone ? 'complete' : `${completedLessons}/${mod.lessons.length}`}
                       </div>
                     )}
