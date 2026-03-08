@@ -25,7 +25,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const thumbSize = size === 'sm' ? 10 : 12;
-  const trackHeight = size === 'sm' ? 4 : 5;
+  const trackHeight = size === 'sm' ? 5 : 6;
 
   // Haptic feedback on step change
   useEffect(() => {
@@ -62,7 +62,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-tea-gold/25 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-gold/30 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
