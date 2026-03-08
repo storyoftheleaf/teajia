@@ -385,54 +385,36 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel>Go Deeper</SectionLabel>
 
-        {/* Module cards */}
-        <div className="space-y-4">
+        {/* Module list */}
+        <div>
           {LEARN_CURRICULUM.map((mod, i) => {
             const isNext = mod.id === (LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0]).id;
             const isDone = moduleCompletion[mod.id];
-            const completedLessons = mod.lessons.filter(l => watchedStories[l.id]).length;
             return (
               <button
                 key={mod.id}
                 onClick={() => onNavigateTo('course')}
                 className={`w-full text-left group border-b border-tea-gold/[0.06] last:border-0 ${CTA_FOCUS}`}
               >
-                <div className="flex gap-4 py-5 md:py-6">
-                  {/* Number */}
-                  <span className={`text-[11px] font-mono tabular-nums pt-0.5 flex-shrink-0 ${isDone ? 'text-tea-gold/50' : 'text-tea-text/20'}`}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-
-                    <div className="relative">
-                      <h4 className={`font-serif text-[clamp(24px,3.5vw,32px)] leading-[1.2] tracking-[0.01em] transition-colors mb-4 ${
-                        isNext ? 'text-tea-text group-hover:text-tea-gold' :
-                        isDone ? 'text-tea-text/30' :
-                        'text-tea-text/55 group-hover:text-tea-gold/80'
-                      }`}>
-                        {mod.title}
-                      </h4>
-
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] font-sans uppercase tracking-[0.2em] ${isDone ? 'text-tea-gold/50' : 'text-tea-text-dim'}`}>
-                          {isDone ? 'complete' : `${completedLessons > 0 ? `${completedLessons}/` : ''}${mod.lessons.length} lessons`}
-                        </span>
-                        <span className="text-tea-gold text-[13px] font-sans flex items-center gap-1 group-hover:gap-2 transition-all border-b border-tea-gold pb-0.5">
-                          {isNext ? 'Begin' : isDone ? 'Review' : 'Start'}
-                          <Icons.ChevronRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                    </div>
-                    <p className={`mt-1.5 text-[13px] leading-relaxed font-serif italic ${
-                      isDone ? 'text-tea-text/20' : 'text-tea-text/35'
+                <div className="py-5 md:py-6">
+                  <div className="flex items-baseline justify-between gap-4 mb-2">
+                    <h4 className={`font-serif text-[19px] leading-[1.2] tracking-[0.01em] transition-colors ${
+                      isNext ? 'text-tea-text group-hover:text-tea-gold' :
+                      isDone ? 'text-tea-text/30' :
+                      'text-tea-text/55 group-hover:text-tea-gold/80'
                     }`}>
-                      {mod.description}
-                    </p>
-                    {(isDone || completedLessons > 0) && (
-                      <div className="mt-2 text-[10px] font-sans text-tea-gold/50">
-                        {isDone ? 'complete' : `${completedLessons}/${mod.lessons.length}`}
-                      </div>
-                    )}
+                      {mod.title}
+                    </h4>
+                    <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
+                      isNext ? 'text-tea-gold/40 group-hover:text-tea-gold group-hover:translate-x-0.5' :
+                      'text-tea-text/10 group-hover:text-tea-gold/40'
+                    }`} />
                   </div>
+                  <p className={`font-serif font-light italic text-[15px] leading-[1.8] ${
+                    isDone ? 'text-tea-text-dim/50' : 'text-tea-text-dim'
+                  }`}>
+                    {mod.description}
+                  </p>
                 </div>
               </button>
             );
