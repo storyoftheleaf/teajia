@@ -101,46 +101,52 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-3">
           What's Involved
         </p>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-8">
-          {PILLARS.map((p, i) => (
-            <span key={p} className="text-sm text-tea-text/60">
-              {p}{i < PILLARS.length - 1 && <span className="text-tea-text/20 ml-3">&middot;</span>}
+        <div className="flex flex-wrap gap-2 mb-12">
+          {PILLARS.map((p) => (
+            <span key={p} className="text-xs text-tea-text/60 border border-tea-text/10 rounded-full px-3 py-1.5 tracking-wide">
+              {p}
             </span>
           ))}
         </div>
 
         {/* Process */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-4">
-          The Process
-        </p>
-        {/* Mobile (base) */}
-        <div className="md:hidden space-y-3 mb-8">
-          {PROCESS.map(({ step, title, desc }) => (
-            <div key={step} className="flex items-baseline gap-3">
-              <span className="text-tea-gold font-mono text-sm w-4 shrink-0">{step}</span>
-              <div>
-                <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
-                <span className="text-tea-text/30 mx-1.5">&mdash;</span>
-                <span className="text-[11px] text-tea-text/40">{desc}</span>
+        <div className="bg-tea-surface/80 rounded-sm border border-tea-text/[0.04] px-5 py-6 md:px-6 md:py-7 mb-12">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-5">
+            The Process
+          </p>
+          {/* Mobile (base) */}
+          <div className="md:hidden space-y-4">
+            {PROCESS.map(({ step, title, desc }) => (
+              <div key={step} className="flex items-start gap-4">
+                <span className="text-tea-gold/80 font-mono text-xs bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">{step}</span>
+                <div>
+                  <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
+                  <p className="text-[11px] text-tea-text/40 mt-0.5">{desc}</p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-        {/* Desktop */}
-        <div className="hidden md:flex gap-8 relative mb-8">
-          <div className="absolute top-4 left-0 right-0 h-[1px] bg-tea-text/5" />
-          {PROCESS.map(({ step, title, desc }) => (
-            <div key={step} className="flex-1 relative z-10">
-              <span className="text-tea-gold font-mono text-sm">{step}</span>
-              <h4 className="font-serif text-sm font-medium text-tea-text mt-1">{title}</h4>
-              <p className="text-[11px] text-tea-text/40 mt-0.5">{desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* Desktop */}
+          <div className="hidden md:grid md:grid-cols-5 gap-6">
+            {PROCESS.map(({ step, title, desc }) => (
+              <div key={step}>
+                <span className="text-tea-gold/80 font-mono text-xs bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center mb-2">{step}</span>
+                <h4 className="font-serif text-sm font-medium text-tea-text">{title}</h4>
+                <p className="text-[11px] text-tea-text/40 mt-1 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <p className="text-sm text-tea-text/50 mb-8">
-          Projects range from $5,000 to $100,000+. Every project is scoped through conversation.
-        </p>
+        {/* Pricing callout */}
+        <div className="border-l-2 border-tea-gold/30 pl-4 mb-10">
+          <p className="text-sm text-tea-text/50">
+            Projects range from $5,000 to $100,000+.
+          </p>
+          <p className="text-xs text-tea-text/30 mt-1">
+            Every project is scoped through conversation.
+          </p>
+        </div>
 
         <div className="flex flex-col gap-2">
           <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('Space design or tea integration')} />
@@ -190,31 +196,33 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           Tea experiences and practice support — in the Bali studio or wherever you are.
         </p>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-2">
-          Offerings
-        </p>
-        <div className="max-w-[640px]">
+        <div className="bg-tea-surface/80 rounded-sm border border-tea-text/[0.04] max-w-[640px] mb-12">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 px-5 pt-5 pb-2">
+            Offerings
+          </p>
           {OFFERINGS.map(({ name, price, desc }) => (
-            <div key={name} className="flex items-start justify-between py-5 border-b border-tea-border last:border-0">
+            <div key={name} className="flex items-start justify-between px-5 py-4 border-b border-tea-text/[0.04] last:border-0">
               <div>
                 <h4 className="font-serif text-base text-tea-text">{name}</h4>
-                <p className="text-sm text-tea-text/50 mt-1">{desc}</p>
+                <p className="text-xs text-tea-text/40 mt-1">{desc}</p>
               </div>
-              <span className="font-sans text-sm text-tea-gold whitespace-nowrap ml-4">{price}</span>
+              <span className="font-mono text-xs text-tea-gold/80 whitespace-nowrap ml-4 mt-1">{price}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mt-8 mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-3">
           What You Walk Away With
         </p>
-        <ul className="space-y-1.5 mb-8">
-          {WALKAWAY.map(item => (
-            <li key={item} className="text-sm text-tea-text/60 flex items-start gap-2">
-              <span className="text-tea-gold mt-0.5">&middot;</span> {item}
-            </li>
-          ))}
-        </ul>
+        <div className="border-l border-tea-gold/20 pl-4 mb-10">
+          <ul className="space-y-2">
+            {WALKAWAY.map(item => (
+              <li key={item} className="text-sm text-tea-text/60">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <PrimaryCTA label="Book a session" onClick={() => onOpenInquiry('A session or practice guidance')} />
       </section>
@@ -251,7 +259,10 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
           </p>
         </div>
 
-        <p className="text-sm text-tea-gold uppercase tracking-wider mb-8">Seasonal &middot; By invitation</p>
+        <div className="inline-flex items-center gap-2 border border-tea-gold/15 rounded-full px-4 py-2 mb-10">
+          <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/40" />
+          <span className="text-xs text-tea-gold/70 uppercase tracking-wider">Seasonal &middot; By invitation</span>
+        </div>
 
         <div className="flex flex-col gap-2">
           <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('A sourcing journey')} />
@@ -282,10 +293,12 @@ export const SourcingSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <ServiceHeading>Tea Sourcing</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-serif text-lg italic text-tea-text max-w-[640px] mb-4">
-          Quality tea for your space, your collection, or your community.
-        </p>
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-8">
+        <div className="border-l-2 border-tea-gold/20 pl-4 mb-6">
+          <p className="font-serif text-lg italic text-tea-text/80 max-w-[640px]">
+            Quality tea for your space, your collection, or your community.
+          </p>
+        </div>
+        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-10">
           Direct sourcing from Taiwan, China, and trusted origins. For individual collectors seeking access
           to exceptional teas. For retreat centers, hotels, and communities wanting quality tea as part of
           what they offer.
@@ -325,10 +338,12 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           I bring everything — tea, teaware, the setup, and the atmosphere — to your gathering.
           Retreats, dinners, brand activations, celebrations.
         </p>
-        <p className="text-sm text-tea-gold mb-1">From $500 for a half-day.</p>
-        <p className="text-sm text-tea-text/50 mb-8">
-          Full-day and multi-day experiences quoted based on scope.
-        </p>
+        <div className="border-l-2 border-tea-gold/30 pl-4 mb-10">
+          <p className="text-sm text-tea-gold/80">From $500 for a half-day.</p>
+          <p className="text-xs text-tea-text/40 mt-1">
+            Full-day and multi-day experiences quoted based on scope.
+          </p>
+        </div>
 
         <PrimaryCTA label="Inquire" onClick={() => onOpenInquiry('An event or group experience')} />
       </section>
