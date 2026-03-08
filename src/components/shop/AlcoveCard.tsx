@@ -222,37 +222,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         minHeight: 0,
       }}>
 
-        {/* Desktop hero image — prominent, above the inset panel */}
-        {photoUrl && (
-          <div
-            className="hidden md:block"
-            onClick={() => setImageExpanded(true)}
-            style={{
-              margin: "0 8px 4px",
-              borderRadius: "6px",
-              overflow: "hidden",
-              cursor: "pointer",
-              position: "relative",
-              maxHeight: "220px",
-            }}
-          >
-            <img
-              src={photoUrl}
-              alt={productName}
-              style={{
-                width: "100%", height: "100%",
-                objectFit: "cover", objectPosition: "center",
-                display: "block",
-              }}
-            />
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "linear-gradient(to top, rgba(28,27,25,0.4) 0%, transparent 40%)",
-              pointerEvents: "none",
-            }} />
-          </div>
-        )}
-
         {/* Inset content panel */}
         <div style={{
           position: "relative",
