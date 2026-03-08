@@ -438,19 +438,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         )}
 
         {/* Block 4: Commerce */}
-        <div style={{ padding: "6px 20px 16px", marginTop: "auto", flexShrink: 0 }}>
+        <div style={{ padding: "4px 20px 14px", marginTop: "auto", flexShrink: 0 }}>
 
-          {/* Price per gram + selected grams — compact row */}
+          {/* Price per gram + selected grams */}
           <div style={{
             display: "flex", alignItems: "baseline", justifyContent: "space-between",
-            padding: "6px 14px",
+            padding: "5px 14px",
             background: "rgba(200,170,120,0.03)",
             borderRadius: "3px 3px 0 0",
           }}>
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "14px", fontWeight: 300, color: alcoveColors.body,
+                fontSize: "13px", fontWeight: 300, color: alcoveColors.body,
                 lineHeight: 1,
               }}>
                 ${fmtNum(pricePerGram)}
@@ -464,7 +464,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "14px", fontWeight: 300, color: alcoveColors.body,
+                fontSize: "13px", fontWeight: 300, color: alcoveColors.body,
                 lineHeight: 1,
               }}>
                 {grams}
@@ -477,37 +477,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           </div>
 
-          {/* Slider with snap ticks */}
+          {/* Slider — clean, no ticks or labels */}
           <div style={{
-            padding: "6px 14px 8px",
+            padding: "4px 14px 6px",
             background: "rgba(200,170,120,0.03)",
             borderRadius: "0 0 3px 3px",
-            marginBottom: "8px",
-            position: "relative",
+            marginBottom: "6px",
           }}>
-            {/* Snap point tick marks */}
-            <div style={{ position: "relative", width: "100%", height: "6px", marginBottom: "2px" }}>
-              {snapPoints.map((sp) => {
-                const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
-                return (
-                  <div
-                    key={sp}
-                    style={{
-                      position: "absolute",
-                      left: `${pct}%`,
-                      top: "0",
-                      width: "1px", height: "6px",
-                      background: grams === sp
-                        ? "rgba(200,170,120,0.4)"
-                        : "rgba(200,170,120,0.12)",
-                      transition: "background 0.15s ease",
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <div style={{ position: "relative", width: "100%", height: "26px", display: "flex", alignItems: "center" }}>
-              {/* Native range input — invisible but interactive */}
+            <div style={{ position: "relative", width: "100%", height: "22px", display: "flex", alignItems: "center" }}>
               <input
                 type="range"
                 min={sliderMin}
@@ -529,58 +506,30 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
                 }}
               />
-              {/* Track background */}
               <div style={{
-                width: "100%", height: "6px",
+                width: "100%", height: "4px",
                 background: "rgba(200,170,120,0.1)",
-                borderRadius: "3px", overflow: "hidden",
+                borderRadius: "2px", overflow: "hidden",
                 position: "relative",
               }}>
-                {/* Fill */}
                 <div style={{
                   position: "absolute", height: "100%",
                   width: `${sliderPercentage}%`,
                   background: `linear-gradient(90deg, rgba(181,101,29,0.5), rgba(181,101,29,0.8))`,
-                  borderRadius: "3px",
+                  borderRadius: "2px",
                   transition: "width 0.075s ease",
                 }} />
               </div>
-              {/* Thumb */}
               <div style={{
                 position: "absolute",
-                left: `calc(${sliderPercentage}% - 7px)`,
-                width: "14px", height: "14px",
+                left: `calc(${sliderPercentage}% - 6px)`,
+                width: "12px", height: "12px",
                 borderRadius: "50%",
                 background: accent,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
                 pointerEvents: "none", zIndex: 10,
                 transition: "left 0.075s ease",
               }} />
-            </div>
-            {/* Snap point labels */}
-            <div style={{ position: "relative", width: "100%", height: "14px" }}>
-              {snapPoints.filter((_, i) => i % 2 === 0 || snapPoints.length <= 6).map((sp) => {
-                const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
-                return (
-                  <span
-                    key={sp}
-                    onClick={() => setGrams(sp)}
-                    style={{
-                      position: "absolute",
-                      left: `${pct}%`,
-                      transform: "translateX(-50%)",
-                      fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                      fontSize: "8px", fontWeight: grams === sp ? 500 : 300,
-                      color: grams === sp ? alcoveColors.body : alcoveColors.mutedDark,
-                      cursor: "pointer",
-                      transition: "color 0.15s ease",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {sp}
-                  </span>
-                );
-              })}
             </div>
           </div>
 
