@@ -205,10 +205,10 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     </div>
 
                     {/* Name & Location */}
-                    <h3 className="font-serif text-lg text-tea-bg text-center mb-1">
+                    <h3 className="font-serif text-lg text-white text-center mb-1">
                       {member.name}
                     </h3>
-                    <div className="flex items-center justify-center gap-1 text-xs text-tea-bg/60 mb-3">
+                    <div className="flex items-center justify-center gap-1 text-xs text-white/60 mb-3">
                       <Icons.Location className="w-3.5 h-3.5" />
                       {member.location}
                     </div>
@@ -226,12 +226,12 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
                     {/* Interests */}
                     <div className="flex-1 mb-4">
-                      <p className="text-[11px] uppercase tracking-widest text-tea-bg/50 mb-2">Interests</p>
+                      <p className="text-[11px] uppercase tracking-widest text-white/50 mb-2">Interests</p>
                       <div className="flex flex-wrap gap-2">
                         {member.interests.map((interest: string) => (
                           <span
                             key={interest}
-                            className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded text-tea-bg/70"
+                            className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded text-white/70"
                           >
                             {interest}
                           </span>

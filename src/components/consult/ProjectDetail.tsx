@@ -74,7 +74,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
           <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-bg">
             {project.name}
           </h1>
-          <p className="font-sans text-sm text-tea-bg/50">
+          <p className="font-sans text-sm text-white/50">
             {project.location}
           </p>
         </div>

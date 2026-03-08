@@ -44,8 +44,8 @@ const CollectionSection: React.FC<{
       <div className="relative z-10 px-6 md:px-10 py-16 md:py-24 max-w-4xl mx-auto">
         <div className="mb-12">
           <div className="w-12 h-[1px] bg-tea-gold mb-4" />
-          <h2 className="font-serif text-3xl md:text-4xl text-tea-bg mb-2">{title}</h2>
-          <p className="text-tea-bg/60 font-serif italic">{subtitle}</p>
+          <h2 className="font-serif text-3xl md:text-4xl text-white mb-2">{title}</h2>
+          <p className="text-white/60 font-serif italic">{subtitle}</p>
         </div>
 
         <div className="grid gap-10">
@@ -78,18 +78,18 @@ const CollectionCard: React.FC<{
         {/* Details */}
         <div className="flex-1 p-6 md:p-8 flex flex-col">
           <div className="flex items-start justify-between gap-3 mb-3">
-            <h3 className="font-serif text-2xl text-tea-bg">{item.name}</h3>
+            <h3 className="font-serif text-2xl text-white">{item.name}</h3>
             <ShippingBadge type={item.shippingType} />
           </div>
 
-          <p className="font-serif text-tea-bg/60 italic mb-4">{item.subtitle}</p>
+          <p className="font-serif text-white/60 italic mb-4">{item.subtitle}</p>
 
-          <p className="text-sm text-tea-bg/70 leading-relaxed mb-6 flex-1">
+          <p className="text-sm text-white/70 leading-relaxed mb-6 flex-1">
             {item.story}
           </p>
 
           {/* Meta details */}
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-tea-bg/40 uppercase tracking-wider mb-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-white/40 uppercase tracking-wider mb-6">
             {item.origin && <span>{item.origin}</span>}
             {item.year && <span>{item.year}</span>}
             {item.materials && <span>{item.materials}</span>}
@@ -135,13 +135,13 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
     COLLECTION_ITEMS.filter(i => i.category === cat);
 
   return (
-    <div className="w-full bg-tea-bg text-tea-bg min-h-screen animate-[fadeIn_0.5s_ease-out]">
+    <div className="w-full bg-tea-bg text-white min-h-screen animate-[fadeIn_0.5s_ease-out]">
       <PageHeader
         title="The Collection"
         onBack={onBack}
         backLabel="Shop"
         rightContent={
-          <span className="text-[10px] uppercase tracking-[0.2em] text-tea-bg/30">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-white/30">
             By inquiry only
           </span>
         }
@@ -149,7 +149,7 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
 
       {/* Hero description */}
       <div className="px-6 md:px-10 py-16 md:py-24 max-w-4xl mx-auto">
-        <p className="text-lg text-tea-bg/60 max-w-xl leading-relaxed">
+        <p className="text-lg text-white/60 max-w-xl leading-relaxed">
           Each piece carries a story, a provenance, and a purpose. Browse the gallery and reach out when something speaks to you.
         </p>
       </div>
@@ -168,8 +168,8 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
 
       {/* Cross-pollination CTA */}
       <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-white/10">
-        <h3 className="font-serif text-2xl md:text-3xl text-tea-bg mb-3">Begin Your Practice</h3>
-        <p className="text-tea-bg/60 mb-8 max-w-md">
+        <h3 className="font-serif text-2xl md:text-3xl text-white mb-3">Begin Your Practice</h3>
+        <p className="text-white/60 mb-8 max-w-md">
           Explore everyday teas, teaware, and ceremony essentials to support your daily ritual.
         </p>
         <button

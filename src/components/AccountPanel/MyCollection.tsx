@@ -98,12 +98,12 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         </div>
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-3 py-2 bg-tea-gold/10 border border-tea-gold/20 hover:bg-tea-gold/15 dark:hover:bg-tea-gold/30 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-tea-gold/10 border border-tea-gold/20 hover:bg-tea-gold/20 transition-colors"
         >
           {copied ? (
             <>
-              <Icons.Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-              <span className="text-[10px] uppercase tracking-widest text-green-600 dark:text-green-400 font-medium">Copied!</span>
+              <Icons.Check className="w-3.5 h-3.5 text-green-600" />
+              <span className="text-[10px] uppercase tracking-widest text-green-600 font-medium">Copied!</span>
             </>
           ) : (
             <>

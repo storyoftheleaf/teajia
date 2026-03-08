@@ -212,7 +212,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-[10px] uppercase tracking-widest text-tea-bg/60">Quantity</span>
+            <span className="text-[10px] uppercase tracking-widest text-white/60">Quantity</span>
             <div className="flex items-center border border-white/20 rounded-[1px] bg-black/20 ml-auto">
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
@@ -267,19 +267,19 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center justify-center gap-3 text-tea-bg/70 text-xs uppercase tracking-widest mb-4">
+              <div className="flex items-center justify-center gap-3 text-white/70 text-xs uppercase tracking-widest mb-4">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-bg/80 leading-relaxed mb-4">{item.description}</p>
+              <p className="font-serif italic text-sm text-white/80 leading-relaxed mb-4">{item.description}</p>
             )}
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-bg/70 hover:text-tea-bg transition-colors" onClick={onClose}>
+        <button className="absolute top-6 right-6 text-white/70 hover:text-tea-bg transition-colors" onClick={onClose}>
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>
@@ -315,14 +315,14 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center gap-3 text-tea-bg/70 text-xs uppercase tracking-widest mb-3">
+              <div className="flex items-center gap-3 text-white/70 text-xs uppercase tracking-widest mb-3">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-bg/80 leading-relaxed mb-3">{item.description}</p>
+              <p className="font-serif italic text-sm text-white/80 leading-relaxed mb-3">{item.description}</p>
             )}
             {purchaseControls}
           </div>

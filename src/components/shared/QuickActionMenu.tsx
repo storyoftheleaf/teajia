@@ -50,7 +50,7 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
             onClick={() => { onShare(); onClose(); }}
             className="flex items-center gap-3 w-full px-4 py-3 text-tea-bg text-sm hover:bg-white/10 transition-colors border-t border-white/5"
           >
-            <Icons.Share className="w-4 h-4 text-tea-bg/60" />
+            <Icons.Share className="w-4 h-4 text-white/60" />
             <span>Share</span>
           </button>
         )}

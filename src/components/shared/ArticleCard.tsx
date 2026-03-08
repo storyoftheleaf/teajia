@@ -76,7 +76,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               {/* No-image fallback */}
               <div className="absolute inset-0 bg-tea-text flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
-                  <Icons.BookOpen className="w-5 h-5 text-tea-bg/30" />
+                  <Icons.BookOpen className="w-5 h-5 text-white/30" />
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
@@ -89,7 +89,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               {title}
             </h3>
             {description && (
-              <p className="text-[11px] text-tea-bg/70 uppercase tracking-[0.15em] font-sans line-clamp-1">
+              <p className="text-[11px] text-white/70 uppercase tracking-[0.15em] font-sans line-clamp-1">
                 {description}
               </p>
             )}

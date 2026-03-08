@@ -592,11 +592,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </button>
                     <button
                       onClick={() => setPanelView('signup')}
-                      className="w-full py-3.5 bg-transparent text-tea-text  border border-tea-border  font-bold text-xs uppercase tracking-[0.2em] hover:bg-white/30 transition-colors flex justify-center items-center gap-2"
+                      className="w-full py-3.5 bg-transparent text-tea-text border border-tea-border font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-elevated/50 transition-colors flex justify-center items-center gap-2"
                     >
                       Create Account
                     </button>
-                    <p className="text-center text-[11px] text-tea-text/40 /30 pt-1">
+                    <p className="text-center text-[11px] text-tea-text-dim pt-1">
                       Sign in to track orders, save favorites, and more
                     </p>
                   </div>
@@ -640,19 +640,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 {/* Activity Stats — 3 columns now */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-white/30 border border-tea-border  p-4 flex flex-col items-center gap-2">
+                  <div className="bg-tea-surface border border-tea-border  p-4 flex flex-col items-center gap-2">
                     <Icons.Bag className="w-5 h-5 text-tea-text-dim" />
-                    <span className="font-mono text-2xl text-tea-text ">{cartCount}</span>
+                    <span className="font-sans text-2xl font-light text-tea-text">{cartCount}</span>
                     <span className="text-[10px] uppercase tracking-widest text-tea-text-dim">Cart</span>
                   </div>
-                  <div className="bg-white/30 border border-tea-border  p-4 flex flex-col items-center gap-2">
+                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2">
                     <Icons.Heart className="w-5 h-5 text-tea-text-dim" />
-                    <span className="font-mono text-2xl text-tea-text ">{favoriteTeas.length}</span>
+                    <span className="font-sans text-2xl font-light text-tea-text">{favoriteTeas.length}</span>
                     <span className="text-[10px] uppercase tracking-widest text-tea-text-dim">Favorites</span>
                   </div>
-                  <div className="bg-white/30 border border-tea-border  p-4 flex flex-col items-center gap-2">
+                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2">
                     <Icons.BookOpen className="w-5 h-5 text-tea-text-dim" />
-                    <span className="font-mono text-2xl text-tea-text ">{progressCount}</span>
+                    <span className="font-sans text-2xl font-light text-tea-text">{progressCount}</span>
                     <span className="text-[10px] uppercase tracking-widest text-tea-text-dim">Read</span>
                   </div>
                 </div>
@@ -662,7 +662,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <span className="text-[10px] uppercase tracking-widest text-tea-text-dim block mb-4">Your Tea Collection</span>
                   <button
                     onClick={() => setPanelView('collection')}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-white/30 border border-tea-border  hover:bg-white/50 transition-colors group"
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border  hover:bg-tea-elevated transition-colors group"
                   >
                     <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                     <div className="flex flex-col items-start flex-1">

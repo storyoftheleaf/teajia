@@ -31,7 +31,7 @@ export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSectio
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search the library..."
-          className="w-full pl-10 pr-10 py-2.5 bg-tea-text/5 rounded-lg text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-bg/30 outline-none focus:ring-2 focus:ring-tea-gold/30 transition-shadow"
+          className="w-full pl-10 pr-10 py-2.5 bg-tea-text/5 rounded-lg text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-white/30 outline-none focus:ring-2 focus:ring-tea-gold/30 transition-shadow"
         />
         {query && (
           <button

@@ -137,16 +137,16 @@ const ReadPage: React.FC<ReadPageProps> = ({
 
               {/* Content */}
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-left">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-tea-bg/50 font-sans mb-3">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-white/50 font-sans mb-3">
                   Featured
                 </p>
                 <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl text-tea-bg font-light leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500">
                   {featuredArticle.title}
                 </h2>
-                <p className="font-sans text-sm md:text-base text-tea-bg/70 max-w-lg leading-relaxed mb-4">
+                <p className="font-sans text-sm md:text-base text-white/70 max-w-lg leading-relaxed mb-4">
                   {featuredArticle.description}
                 </p>
-                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-tea-bg/60 font-sans group-hover:text-tea-gold transition-colors">
+                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-white/60 font-sans group-hover:text-tea-gold transition-colors">
                   Read
                   <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

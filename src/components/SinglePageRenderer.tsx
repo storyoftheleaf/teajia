@@ -340,7 +340,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     const theme = {
       bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
       text: isDarkText ? 'text-tea-text' : 'text-tea-bg',
-      subtext: isDarkText ? 'text-tea-text/60' : 'text-tea-bg/60',
+      subtext: isDarkText ? 'text-tea-text/60' : 'text-white/60',
       border: isDarkText ? 'border-tea-text/10' : 'border-white/10',
       softBg: isDarkText ? 'bg-tea-text/5' : 'bg-white/5',
       seal: 'text-tea-gold',
@@ -381,7 +381,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         </div>
                         <div className="relative z-20 pb-8">
                             <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-8xl font-serif tracking-tight leading-[0.9] mb-6 text-tea-bg" placeholder="Title" tag="h1" readOnly={readOnly} />
-                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-tea-bg/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-white/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -501,7 +501,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute bottom-0 left-0 w-full p-12 pt-32 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none">
-                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-tea-bg/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
+                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-white/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
                         </div>
                     </div>
                 );

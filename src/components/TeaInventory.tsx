@@ -286,18 +286,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                       <div className="mb-6">
                           <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Type</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-bg' : 'border-tea-border'}`}>All</button>
+                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-white' : 'border-tea-border'}`}>All</button>
                               {TEA_TYPES.map(t => (
-                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-bg' : 'border-tea-border'}`}>{t}</button>
+                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-white' : 'border-tea-border'}`}>{t}</button>
                               ))}
                           </div>
                       </div>
                       <div>
                           <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Feeling</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'border-tea-border'}`}>All</button>
+                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-white border-tea-gold' : 'border-tea-border'}`}>All</button>
                               {FEELINGS_LIST.map(f => (
-                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'border-tea-border'}`}>{f}</button>
+                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-white border-tea-gold' : 'border-tea-border'}`}>{f}</button>
                               ))}
                           </div>
                       </div>
@@ -400,7 +400,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {/* Categorization Separator - Left Aligned & Bigger */}
                     {activeType === 'All' && specialFilter === 'None' && (
                         <div className="flex items-center gap-4 py-4 mt-6 first:mt-2 opacity-70">
-                            <span className="text-sm uppercase tracking-[0.25em] text-tea-text dark:text-tea-beige-dark font-serif shrink-0 pl-1">{group.type}</span>
+                            <span className="text-sm uppercase tracking-[0.25em] text-tea-text font-serif shrink-0 pl-1">{group.type}</span>
                             <div className="h-[1px] bg-tea-text/10 flex-1"></div>
                         </div>
                     )}
@@ -436,7 +436,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {/* Title & Tags */}
                                             <div className="flex flex-col justify-center lg:min-w-[180px]">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text group-hover:text-tea-text/90 dark:group-hover:text-tea-bg/90'}`}>
+                                                    <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text group-hover:text-tea-text/90'}`}>
                                                         {item.name}
                                                     </h3>
                                                     {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
@@ -447,10 +447,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                      <span>{item.variant}</span>
                                                 </div>
                                             </div>
-                                            {/* Desktop inline description */}
-                                            <p className="hidden lg:block text-xs text-tea-text/50 line-clamp-1 flex-1 min-w-0">
-                                                {item.description}
-                                            </p>
+                                            {/* Desktop inline description — hidden when expanded */}
+                                            {!isExpanded && (
+                                              <p className="hidden lg:block text-xs text-tea-text/50 line-clamp-1 flex-1 min-w-0">
+                                                  {item.description}
+                                              </p>
+                                            )}
                                         </div>
 
                                         {/* Price & Controls */}

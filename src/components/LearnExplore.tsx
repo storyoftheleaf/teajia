@@ -88,7 +88,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
   // Tea Spaces state
   const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
 
-  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-tea-bg/50';
+  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-white/50';
 
   // Community Wisdom filtering
   const filteredWisdom = useMemo(() => {

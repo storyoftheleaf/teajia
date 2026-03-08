@@ -39,7 +39,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           <h2 className="font-serif text-2xl md:text-3xl text-tea-bg leading-tight mb-4">
             {title}
           </h2>
-          <p className="text-sm text-tea-bg/60 leading-relaxed mb-6 max-w-lg">
+          <p className="text-sm text-white/60 leading-relaxed mb-6 max-w-lg">
             {description}
           </p>
           <button
@@ -66,10 +66,10 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
             <React.Fragment key={item.label}>
               {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-tea-bg/40 font-sans">
+                <span className="text-[10px] uppercase tracking-wider text-white/40 font-sans">
                   {item.label}
                 </span>
-                <span className="text-xs text-tea-bg/60 font-sans">
+                <span className="text-xs text-white/60 font-sans">
                   {item.value}
                 </span>
               </div>

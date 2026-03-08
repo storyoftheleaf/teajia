@@ -54,7 +54,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
             required
-            className="flex-1 px-4 py-3 rounded-sm border border-tea-border bg-transparent text-tea-text placeholder:text-tea-text/40 dark:placeholder:text-tea-bg/40 font-sans text-base focus:outline-none focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/20 transition-colors"
+            className="flex-1 px-4 py-3 rounded-sm border border-tea-border bg-transparent text-tea-text placeholder:text-tea-text/40 dark:placeholder:text-white/40 font-sans text-base focus:outline-none focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/20 transition-colors"
           />
           <Button type="submit" variant="primary" size="md">
             Subscribe

@@ -62,7 +62,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
     const delPage = (i: number) => { if (pages.length > 1) onDeletePage(i); };
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-tea-surface text-tea-bg overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-tea-surface text-tea-text overflow-hidden">
             {/* Header */}
             <div className="h-16 border-b border-white/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
                 <button
@@ -213,7 +213,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                     <div className="bg-tea-bg rounded-sm border border-white/20 max-w-4xl w-full max-h-[90vh] flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-tea-bg border-b border-white/20 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
-                            <h2 className="text-lg sm:text-xl font-serif text-tea-bg">Choose Template</h2>
+                            <h2 className="text-lg sm:text-xl font-serif text-tea-text">Choose Template</h2>
                             <button
                                 onClick={() => { setShowTemplateModal(false); setTemplateSearch(''); }}
                                 className="text-white/70 hover:text-white transition-colors"
@@ -726,7 +726,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                 <div className="max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
                     <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
                         <div>
-                            <h2 className="text-2xl font-serif text-tea-bg mb-1">Journal Entries</h2>
+                            <h2 className="text-2xl font-serif text-tea-text mb-1">Journal Entries</h2>
                             <p className="text-white/80 text-xs uppercase tracking-wider">Managing {journalEntries.length} stories</p>
                         </div>
                         <div className="flex gap-2">
@@ -778,7 +778,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                 <div className="max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
                     <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
                         <div>
-                            <h2 className="text-2xl font-serif text-tea-bg mb-1">Media Vault</h2>
+                            <h2 className="text-2xl font-serif text-tea-text mb-1">Media Vault</h2>
                             <p className="text-white/80 text-xs uppercase tracking-wider">Reels, Films & Audio for future release</p>
                         </div>
                         <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-white text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
@@ -845,7 +845,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                 <div className="max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-white/10 pb-4 gap-4">
                         <div>
-                            <h2 className="text-2xl font-serif text-tea-bg mb-1">Ledger</h2>
+                            <h2 className="text-2xl font-serif text-tea-text mb-1">Ledger</h2>
                             <p className="text-white/80 text-xs uppercase tracking-wider">Global Inventory Management</p>
                         </div>
                         <div className="flex gap-2 flex-wrap">
@@ -936,7 +936,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
             {/* --- SETTINGS SECTION --- */}
             {section === 'SETTINGS' && (
                 <div className="max-w-3xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                    <h2 className="text-2xl font-serif text-tea-bg mb-8">Admin Settings</h2>
+                    <h2 className="text-2xl font-serif text-tea-text mb-8">Admin Settings</h2>
 
                     {/* Theme Section */}
                     <div className="bg-tea-bg border border-white/10 rounded-sm p-6 mb-8">
