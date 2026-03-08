@@ -360,90 +360,61 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel>Go Deeper</SectionLabel>
 
-        {/* Next module card — visual weight with restraint */}
-        {(() => {
-          const nextModule = LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0];
-          const nextIndex = LEARN_CURRICULUM.indexOf(nextModule);
-          const completedLessons = nextModule.lessons.filter(l => watchedStories[l.id]).length;
-          const hasStarted = completedLessons > 0;
-          const completedCount = LEARN_CURRICULUM.filter(m => moduleCompletion[m.id]).length;
-          return (
-            <button
-              onClick={() => onNavigateTo('course')}
-              className={`w-full text-left group ${CTA_FOCUS}`}
-            >
-              <CardContainer variant="dark">
-                <div className="relative overflow-hidden">
-                  {/* Large module number — visual anchor, not data */}
-                  <div className="absolute -top-4 -right-2 md:right-4 pointer-events-none select-none" aria-hidden="true">
-                    <span className="text-[140px] md:text-[180px] font-serif text-tea-seal/[0.04] leading-none">
-                      {String(nextIndex + 1).padStart(2, '0')}
-                    </span>
-                  </div>
-
-                  {/* Warm corner glow */}
-                  <div className="absolute inset-0 pointer-events-none" style={{
-                    backgroundImage: `radial-gradient(ellipse at 0% 100%, rgba(201,148,58,0.07) 0%, transparent 50%)`
-                  }} />
-
-                  <div className="relative p-7 md:p-10 flex flex-col justify-between min-h-[180px] md:min-h-[220px]">
-                    {/* Top: title + description */}
-                    <div>
-                      <h3 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight tracking-tight group-hover:text-tea-seal transition-colors max-w-[70%]">
-                        {nextModule.title}
-                      </h3>
-                      <p className="mt-3 text-sm text-tea-paper/40 leading-relaxed max-w-md font-serif italic">
-                        {nextModule.description}
-                      </p>
-                    </div>
-
-                    {/* Bottom: metadata + CTA on one line */}
-                    <div className="flex items-center justify-between gap-4 pt-4">
-                      <div className="flex items-center gap-2.5 text-[11px] font-sans text-tea-paper/30">
-                        <span>{nextModule.lessons.length} lessons</span>
-                        {hasStarted && (
-                          <>
-                            <span className="text-tea-paper/15">&middot;</span>
-                            <span className="text-tea-seal/60">{completedLessons}/{nextModule.lessons.length}</span>
-                          </>
-                        )}
-                      </div>
-                      <span className="text-tea-seal text-xs font-sans flex items-center gap-1 group-hover:gap-2 transition-all flex-shrink-0">
-                        {hasStarted ? 'Continue' : 'Begin'}
-                        <Icons.ChevronRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContainer>
-            </button>
-          );
-        })()}
-
-        {/* All modules list */}
-        <div className="mt-6 space-y-0">
+        {/* Module index — each row is the experience */}
+        <div>
           {LEARN_CURRICULUM.map((mod, i) => {
             const isNext = mod.id === (LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0]).id;
             const isDone = moduleCompletion[mod.id];
+            const completedLessons = mod.lessons.filter(l => watchedStories[l.id]).length;
             return (
               <button
                 key={mod.id}
                 onClick={() => onNavigateTo('course')}
-                className={`w-full flex items-baseline gap-3 py-3 text-left group border-b border-tea-ink/5 dark:border-white/5 last:border-0 ${CTA_FOCUS}`}
+                className={`w-full text-left group border-b border-tea-ink/6 dark:border-white/6 last:border-0 ${CTA_FOCUS}`}
               >
-                <span className={`text-[11px] font-mono tabular-nums w-5 flex-shrink-0 ${isDone ? 'text-tea-seal/50' : 'text-tea-ink/20 dark:text-tea-paper/20'}`}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <span className={`font-serif text-sm leading-snug flex-1 transition-colors ${
-                  isNext ? 'text-tea-ink dark:text-tea-paper group-hover:text-tea-seal' :
-                  isDone ? 'text-tea-ink/35 dark:text-tea-paper/35 line-through decoration-tea-seal/30' :
-                  'text-tea-ink/50 dark:text-tea-paper/50 group-hover:text-tea-seal/80'
-                }`}>
-                  {mod.title}
-                </span>
-                <span className="text-[10px] font-sans text-tea-ink/20 dark:text-tea-paper/20 flex-shrink-0">
-                  {mod.lessons.length} {mod.lessons.length === 1 ? 'lesson' : 'lessons'}
-                </span>
+                <div className="flex gap-4 py-5 md:py-6">
+                  {/* Number */}
+                  <span className={`text-[11px] font-mono tabular-nums pt-0.5 flex-shrink-0 ${isDone ? 'text-tea-seal/50' : 'text-tea-ink/20 dark:text-tea-paper/20'}`}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h4 className={`font-serif text-base md:text-lg leading-snug transition-colors ${
+                        isNext ? 'text-tea-ink dark:text-tea-paper group-hover:text-tea-seal' :
+                        isDone ? 'text-tea-ink/30 dark:text-tea-paper/30' :
+                        'text-tea-ink/55 dark:text-tea-paper/55 group-hover:text-tea-seal/80'
+                      }`}>
+                        {mod.title}
+                      </h4>
+                      <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
+                        isNext ? 'text-tea-seal/40 group-hover:text-tea-seal group-hover:translate-x-0.5' :
+                        'text-tea-ink/10 dark:text-tea-paper/10 group-hover:text-tea-seal/40'
+                      }`} />
+                    </div>
+                    <p className={`mt-1.5 text-[13px] leading-relaxed font-serif italic ${
+                      isDone ? 'text-tea-ink/20 dark:text-tea-paper/20' : 'text-tea-ink/35 dark:text-tea-paper/35'
+                    }`}>
+                      {mod.description}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-[10px] font-sans text-tea-ink/20 dark:text-tea-paper/20">
+                      <span>{mod.lessons.length} {mod.lessons.length === 1 ? 'lesson' : 'lessons'}</span>
+                      {isDone && (
+                        <>
+                          <span>&middot;</span>
+                          <span className="text-tea-seal/50">complete</span>
+                        </>
+                      )}
+                      {!isDone && completedLessons > 0 && (
+                        <>
+                          <span>&middot;</span>
+                          <span className="text-tea-seal/50">{completedLessons}/{mod.lessons.length}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </button>
             );
           })}
