@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 import { LibrarySubView } from '../types/library';
 import { Icons } from './Icons';
 import Footer from './Footer';
@@ -101,21 +102,19 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
   onAccountClick,
   cartItemCount = 0,
 }) => {
-  const [subView, setSubView] = useState<LibrarySubView>('overview');
+  const { currentView: subView, navigateTo: navTo, navigateBack } = useSubViewNavigation<LibrarySubView>('v', 'overview');
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchResults = useMemo(() => searchLibrary(searchQuery), [searchQuery]);
   const hasSearchResults = searchQuery.trim().length > 0;
 
   const goToOverview = () => {
-    setSubView('overview');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateBack();
   };
 
   const navigateTo = (view: LibrarySubView) => {
-    setSubView(view);
+    navTo(view);
     setSearchQuery('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
