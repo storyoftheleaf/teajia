@@ -7,6 +7,13 @@ import { useSectionReveal } from '../../hooks/useSectionReveal';
    Shared helpers — reused across all service sections
    ===================================================== */
 
+/** Alcove-style recessed panel — darkened overlay with warm rim-light shadows */
+const alcovePanelStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.25)',
+  boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
+  borderRadius: 6,
+};
+
 const ServiceHero = ({ ariaLabel, img }: { ariaLabel: string; img?: string }) => (
   <CardContainer variant="dark" className="w-full overflow-hidden mb-6 md:mb-8">
     {img ? (
@@ -103,14 +110,15 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         </p>
         <div className="flex flex-wrap gap-2 mb-12">
           {PILLARS.map((p) => (
-            <span key={p} className="text-xs text-tea-text/60 border border-tea-text/10 rounded-full px-3 py-1.5 tracking-wide">
+            <span key={p} className="text-xs text-tea-text/60 rounded-full px-3 py-1.5 tracking-wide"
+              style={{ border: '1px solid rgba(200,170,120,0.12)' }}>
               {p}
             </span>
           ))}
         </div>
 
         {/* Process */}
-        <div className="bg-tea-surface/80 rounded-sm border border-tea-text/[0.04] px-5 py-6 md:px-6 md:py-7 mb-12">
+        <div className="px-5 py-6 md:px-6 md:py-7 mb-12" style={alcovePanelStyle}>
           <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-5">
             The Process
           </p>
@@ -196,12 +204,13 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           Tea experiences and practice support — in the Bali studio or wherever you are.
         </p>
 
-        <div className="bg-tea-surface/80 rounded-sm border border-tea-text/[0.04] max-w-[640px] mb-12">
+        <div className="max-w-[640px] mb-12" style={alcovePanelStyle}>
           <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 px-5 pt-5 pb-2">
             Offerings
           </p>
           {OFFERINGS.map(({ name, price, desc }) => (
-            <div key={name} className="flex items-start justify-between px-5 py-4 border-b border-tea-text/[0.04] last:border-0">
+            <div key={name} className="flex items-start justify-between px-5 py-4 last:border-0"
+              style={{ borderBottom: '1px solid rgba(200,170,120,0.08)' }}>
               <div>
                 <h4 className="font-serif text-base text-tea-text">{name}</h4>
                 <p className="text-xs text-tea-text/40 mt-1">{desc}</p>
