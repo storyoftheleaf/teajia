@@ -178,14 +178,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         {/* Hero image — wide, cinematic */}
         <div className="relative overflow-hidden rounded-[1px] mb-6 md:mb-8">
-          <img
-            src={TEA_IMAGES.hero}
-            alt="Tea ceremony with gaiwan and morning light"
-            className="w-full object-cover"
-            style={{ aspectRatio: '2.35/1' }}
-            loading="eager"
-          />
-          {/* Quote overlaid at the bottom of the image */}
+          <InkWashPlaceholder label="tea ceremony" aspectRatio="2.35/1" mood="warm" />
+          {/* Quote overlaid at the bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-tea-ink/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
             <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] max-w-md">
@@ -495,14 +489,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               className={`text-left w-full group ${CTA_FOCUS}`}
             >
               <div className="relative overflow-hidden rounded-[1px] border border-transparent hover:border-tea-gold/15 transition-colors duration-300">
-                {/* Location photo */}
-                <img
-                  src={TEA_IMAGES.places[i % TEA_IMAGES.places.length]}
-                  alt={`${pin.name} — ${pin.location}`}
-                  className="w-full object-cover"
-                  style={{ aspectRatio: '4/3' }}
-                  loading="lazy"
-                />
+                {/* Location placeholder */}
+                <InkWashPlaceholder label={pin.name} aspectRatio="4/3" mood={i % 2 === 0 ? 'warm' : 'cool'} />
 
                 <div className="p-4 bg-tea-bg">
                   <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-2">
@@ -536,14 +524,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           className={`w-full text-left group ${CTA_FOCUS}`}
         >
           <div className="overflow-hidden rounded-[1px] border border-transparent">
-            {/* Atmospheric image */}
-            <img
-              src={TEA_IMAGES.teaSpace}
-              alt="Minimalist tea corner with morning light"
-              className="w-full object-cover"
-              style={{ aspectRatio: '21/9' }}
-              loading="lazy"
-            />
+            {/* Atmospheric placeholder */}
+            <InkWashPlaceholder label="tea space" aspectRatio="21/9" mood="warm" />
 
             {/* Content below image */}
             <div className="p-5 md:p-7 bg-tea-bg">
