@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlcoveCard } from './AlcoveCard';
-import { Icons } from '../Icons';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import type { InventoryItem } from '../../types';
 
@@ -93,29 +92,34 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
       className={`fixed inset-0 z-[100] transition-all duration-300 ${isVisible ? 'bg-black/90' : 'bg-black/0 pointer-events-none'}`}
       onClick={onClose}
     >
-      {/* Close button */}
-      <button
-        className="absolute top-4 right-4 z-[102] text-white/60 hover:text-white transition-colors p-2"
-        onClick={onClose}
-        aria-label="Close"
-      >
-        <Icons.Close className="w-6 h-6" />
-      </button>
-
-      {/* Card container */}
+      {/* Card container — clicks on padding/backdrop dismiss the modal */}
       <div
         className="flex items-center justify-center w-full h-full p-4 md:p-8"
-        onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{ transform: `translateX(${swipeOffset * 0.3}px)`, transition: touchStart ? 'none' : 'transform 0.2s ease' }}
       >
-        <AlcoveCard
-          item={item}
-          onAddToCart={handleAddToCart}
-          onClose={onClose}
-        />
+        {/* Stop propagation only on the card itself */}
+        <div onClick={(e) => e.stopPropagation()} className="relative">
+          <AlcoveCard
+            item={item}
+            onAddToCart={handleAddToCart}
+            onClose={onClose}
+          />
+          {/* Small close indicator on card corner */}
+          <button
+            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(200,170,120,0.6)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

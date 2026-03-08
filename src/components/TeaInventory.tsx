@@ -464,7 +464,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 </div>
 
                                 {/* --- Expanded Content --- */}
-                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                     <div className="pl-20 pr-2 pb-3 pt-0">
 
                                         <p className="font-serif text-sm text-tea-ink/80 dark:text-tea-paper/80 mb-3 leading-relaxed max-w-2xl">
@@ -493,15 +493,23 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 />
                                             </div>
 
-                                            {/* Button */}
-                                            <button
-                                                onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-2 shrink-0 shadow-lg"
-                                            >
-                                                <span>Add</span>
-                                                <span className="w-[1px] h-2.5 bg-white/30"></span>
-                                                <span className="font-mono">${totalPrice.toFixed(2)}</span>
-                                            </button>
+                                            {/* Add to cart + Details */}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                    className="text-tea-seal hover:text-tea-seal/80 text-[11px] uppercase tracking-widest font-medium py-2 px-3 rounded-[1px] transition-all border border-tea-seal/20 hover:border-tea-seal/40"
+                                                >
+                                                    Details
+                                                </button>
+                                                <button
+                                                    onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
+                                                    className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                >
+                                                    <span>Add</span>
+                                                    <span className="w-[1px] h-2.5 bg-white/30"></span>
+                                                    <span className="font-mono">${totalPrice.toFixed(2)}</span>
+                                                </button>
+                                            </div>
                                         </div>
 
                                     </div>
