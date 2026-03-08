@@ -425,31 +425,28 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
                                     />
 
-                                    {/* 2. Text Content — desktop shows description inline */}
+                                    {/* 2. Row content */}
                                     <div className="flex-1 min-w-0 flex items-center justify-between">
-                                        <div className="flex flex-col justify-center lg:flex-row lg:items-center lg:gap-6 lg:flex-1 min-w-0">
-                                            {/* Title & Tags */}
-                                            <div className="flex flex-col justify-center lg:min-w-[180px]">
-                                                <div className="flex items-center gap-2">
-                                                    <h3
-                                                        className={`font-serif text-lg leading-none transition-colors underline decoration-tea-ink/10 dark:decoration-tea-paper/10 underline-offset-2 ${isExpanded ? 'text-tea-seal decoration-tea-seal/20' : 'text-tea-ink dark:text-tea-paper active:text-tea-seal'}`}
-                                                        onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    >
-                                                        {item.name}
-                                                    </h3>
-                                                    {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-seal shrink-0 opacity-80" />}
-                                                </div>
-                                                <div className="text-[11px] uppercase tracking-wider text-tea-ink/60 dark:text-tea-paper/60 mt-1 truncate flex items-center gap-2">
-                                                     <span className={`font-mono ${isExpanded ? 'text-tea-seal' : ''}`}>{item.year}</span>
-                                                     <span className="opacity-50">•</span>
-                                                     <span>{item.variant}</span>
-                                                </div>
+                                        {/* Left: year & variant metadata */}
+                                        <div className="flex flex-col justify-center min-w-0">
+                                            <div className="text-[11px] uppercase tracking-wider text-tea-ink/60 dark:text-tea-paper/60 truncate flex items-center gap-2">
+                                                 <span className={`font-mono ${isExpanded ? 'text-tea-seal' : ''}`}>{item.year}</span>
+                                                 <span className="opacity-50">•</span>
+                                                 <span>{item.variant}</span>
                                             </div>
-                                            {/* Description shown only in expanded section */}
                                         </div>
 
-                                        {/* Price & Controls */}
+                                        {/* Right: title, price, controls */}
                                         <div className="flex items-center gap-4 shrink-0">
+                                            <div className="flex items-center gap-2">
+                                                <h3
+                                                    className={`font-serif text-lg leading-none transition-colors underline decoration-tea-ink/10 dark:decoration-tea-paper/10 underline-offset-2 ${isExpanded ? 'text-tea-seal decoration-tea-seal/20' : 'text-tea-ink dark:text-tea-paper active:text-tea-seal'}`}
+                                                    onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                >
+                                                    {item.name}
+                                                </h3>
+                                                {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-seal shrink-0 opacity-80" />}
+                                            </div>
                                             <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
                                                 ${pricePerGram.toFixed(2)}/g
                                             </span>
