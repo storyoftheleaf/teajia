@@ -487,7 +487,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         <p className="font-serif text-sm text-tea-text/80 mb-3 leading-relaxed max-w-2xl">
                                             {item.description}
                                         </p>
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/5 rounded-[1px] p-3 pr-4 border border-tea-text/5">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/[0.08] rounded-[1px] p-3 pr-4 border border-tea-text/[0.03]">
                                             <div className="flex-1 flex items-center gap-3 px-2">
                                                 <div className="flex flex-col min-w-[60px]">
                                                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Qty</span>

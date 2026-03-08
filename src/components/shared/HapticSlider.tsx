@@ -25,7 +25,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const thumbSize = size === 'sm' ? 10 : 12;
-  const trackHeight = size === 'sm' ? 2 : 2;
+  const trackHeight = size === 'sm' ? 4 : 5;
 
   // Haptic feedback on step change
   useEffect(() => {
