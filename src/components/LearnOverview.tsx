@@ -7,7 +7,6 @@ import { SwipeCarousel } from './shared/SwipeCarousel';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
 import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES } from '../data/glossary';
-import { COMMUNITY_WISDOM } from '../data/communityWisdom';
 import { CURATED_COLLECTIONS, DIFFICULTY_COLORS } from '../data/curatedCollections';
 import { TEA_SPACES, SPACE_TYPE_LABELS } from '../data/teaSpaces';
 import { teaMapPins } from '../data/teaMapPins';
@@ -23,13 +22,6 @@ const PIN_TYPE_LABELS: Record<string, string> = {
   space: 'Studio',
 };
 
-const WISDOM_BORDER_COLORS: Record<string, string> = {
-  reflection: 'border-l-blue-400/30',
-  tip: 'border-l-emerald-400/30',
-  ritual: 'border-l-purple-400/30',
-  photo: 'border-l-amber-400/30',
-};
-
 const PATH_ICON_MAP: Record<string, React.ReactNode> = {
   Leaf: <Icons.Leaf className="w-5 h-5" />,
   Teapot: <Icons.Coffee className="w-5 h-5" />,
@@ -38,53 +30,19 @@ const PATH_ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Textured image placeholders — each evokes a different mood
+// Curated Unsplash tea photography
 // ═══════════════════════════════════════════════════════════════
 
-/** Ink-wash style placeholder — organic, painterly */
-const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; className?: string; mood?: 'warm' | 'cool' | 'neutral' | 'dark' }> = ({
-  label,
-  aspectRatio = '4/3',
-  className = '',
-  mood = 'neutral',
-}) => {
-  const gradients: Record<string, string> = {
-    warm: `radial-gradient(ellipse at 20% 50%, rgba(201,148,58,0.12) 0%, transparent 60%),
-           radial-gradient(ellipse at 80% 30%, rgba(139,90,43,0.08) 0%, transparent 50%),
-           radial-gradient(ellipse at 50% 80%, rgba(201,148,58,0.06) 0%, transparent 40%),
-           linear-gradient(160deg, rgba(245,240,230,1) 0%, rgba(235,225,210,1) 100%)`,
-    cool: `radial-gradient(ellipse at 70% 20%, rgba(120,140,120,0.10) 0%, transparent 50%),
-           radial-gradient(ellipse at 30% 70%, rgba(100,120,100,0.08) 0%, transparent 50%),
-           linear-gradient(160deg, rgba(240,242,238,1) 0%, rgba(230,235,225,1) 100%)`,
-    neutral: `radial-gradient(ellipse at 40% 40%, rgba(201,148,58,0.08) 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 70%, rgba(180,160,140,0.06) 0%, transparent 50%),
-              linear-gradient(160deg, rgba(245,242,235,1) 0%, rgba(238,232,222,1) 100%)`,
-    dark: `radial-gradient(ellipse at 30% 30%, rgba(201,148,58,0.08) 0%, transparent 50%),
-           radial-gradient(ellipse at 70% 60%, rgba(201,148,58,0.05) 0%, transparent 40%),
-           linear-gradient(160deg, rgba(35,32,28,1) 0%, rgba(28,25,22,1) 100%)`,
-  };
-
-  return (
-    <div
-      className={`relative overflow-hidden rounded-[1px] ${className}`}
-      style={{ aspectRatio, backgroundImage: gradients[mood] }}
-    >
-      {/* Paper grain texture overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-      }} />
-      {/* Organic brush stroke element */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.04]" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M-20,150 Q100,80 200,140 T420,120" stroke={mood === 'dark' ? '#c9943a' : '#2d2a24'} strokeWidth="40" fill="none" strokeLinecap="round" opacity="0.5" />
-        <path d="M-20,200 Q150,160 250,190 T420,170" stroke={mood === 'dark' ? '#c9943a' : '#2d2a24'} strokeWidth="20" fill="none" strokeLinecap="round" opacity="0.3" />
-      </svg>
-      {label && (
-        <div className={`absolute bottom-0 left-0 right-0 p-3 ${mood === 'dark' ? 'text-tea-paper/20' : 'text-tea-ink/15'}`}>
-          <span className="text-[8px] font-mono tracking-[0.25em] uppercase">{label}</span>
-        </div>
-      )}
-    </div>
-  );
+const TEA_IMAGES = {
+  hero: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=1200&h=510&fit=crop',
+  places: [
+    'https://images.unsplash.com/photo-1563822249548-9a72b6353cd1?w=440&h=330&fit=crop', // Bali
+    'https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?w=440&h=330&fit=crop', // Taiwan tea
+    'https://images.unsplash.com/photo-1515696955266-4f67e13219e8?w=440&h=330&fit=crop', // Wuyi mountains
+    'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=440&h=330&fit=crop', // Japan ceramics
+    'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=440&h=330&fit=crop', // Yunnan tea field
+  ],
+  teaSpace: 'https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=1200&h=514&fit=crop',
 };
 
 /** Section label — tiny, uppercase, tracked, with optional line */
@@ -122,7 +80,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
   const discoveryReveal = useSectionReveal();
   const glossaryReveal = useSectionReveal();
   const coursesReveal = useSectionReveal();
-  const voicesReveal = useSectionReveal();
   const atlasReveal = useSectionReveal();
   const resourcesReveal = useSectionReveal();
   const spacesReveal = useSectionReveal();
@@ -151,7 +108,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     return termsWithChinese[dayOfYear % termsWithChinese.length] || GLOSSARY_TERMS[0];
   }, []);
 
-  // Pick a second term for the two-up glossary layout
   const secondTerm = useMemo(() => {
     const termsWithChinese = GLOSSARY_TERMS.filter(t => t.chineseCharacters && t.id !== spotlightTerm.id);
     return termsWithChinese[1] || GLOSSARY_TERMS[1];
@@ -161,7 +117,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     courses: LEARN_CURRICULUM.length,
     glossary: GLOSSARY_TERMS.length,
     journeys: CURATED_COLLECTIONS.length,
-    wisdom: COMMUNITY_WISDOM.length,
     spaces: TEA_SPACES.length,
     playlists: 6,
   }), []);
@@ -197,14 +152,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     return { courses, terms };
   }, [searchQuery]);
 
-  // Featured community voice — the longest, richest quote
-  const featuredVoice = useMemo(() => {
-    return [...COMMUNITY_WISDOM].sort((a, b) => b.body.length - a.body.length)[0];
-  }, []);
-  const supportingVoices = useMemo(() => {
-    return COMMUNITY_WISDOM.filter(w => w.id !== featuredVoice.id).slice(0, 4);
-  }, [featuredVoice]);
-
   const featuredSpace = TEA_SPACES[0];
 
   return (
@@ -212,46 +159,45 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 1 — HERO
-          Oversized typography, editorial quote, atmospheric image.
-          The first impression. Luxury breathes.
+          Simplified: subtitle instead of giant title, real photo, full quote.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={heroReveal.ref}
         className={`mb-16 md:mb-24 ${heroReveal.className}`}
         style={heroReveal.style}
       >
-        {/* Title — oversized, the anchor of the page */}
-        <h2 className="font-serif italic text-5xl md:text-7xl lg:text-8xl font-light text-tea-ink dark:text-tea-paper leading-[0.9] tracking-tight mb-8 md:mb-12">
-          The<br />Archive
-        </h2>
+        {/* Subtitle — editorial, not competing with page header */}
+        <p className="font-serif italic text-lg md:text-xl text-tea-ink/45 dark:text-tea-paper/45 mb-8 md:mb-10">
+          The Archive
+        </p>
 
         {/* Hero image — wide, cinematic */}
-        <InkWashPlaceholder
-          label="Gaiwan on stone, morning light through steam"
-          aspectRatio="2.35/1"
-          mood="warm"
-          className="mb-8 md:mb-12"
-        />
+        <div className="relative overflow-hidden rounded-[1px] mb-8 md:mb-12">
+          <img
+            src={TEA_IMAGES.hero}
+            alt="Tea ceremony with gaiwan and morning light"
+            className="w-full object-cover"
+            style={{ aspectRatio: '2.35/1' }}
+            loading="eager"
+          />
+        </div>
 
-        {/* Editorial voice — offset, breathing, hand-placed feel */}
+        {/* Editorial voice — full quote, no forced line breaks */}
         <div className="md:ml-[15%] max-w-md mb-8 md:mb-10">
           <p className="font-serif italic text-base md:text-lg text-tea-ink/55 dark:text-tea-paper/55 leading-relaxed">
-            "Everything I wish someone had given me when I started.
-            <br className="hidden md:block" />
-            Take what you need."
+            "Everything I wish someone had given me when I started. Take what you need."
           </p>
           <span className="block mt-3 text-[10px] font-sans uppercase tracking-[0.4em] text-tea-seal/60">
             Adrian
           </span>
         </div>
 
-        {/* Stat ribbon — wraps naturally on small screens */}
+        {/* Stat ribbon */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 md:gap-x-10 mb-10">
           {[
             { n: counts.glossary, label: 'Terms' },
             { n: counts.courses, label: 'Courses' },
             { n: counts.journeys, label: 'Journeys' },
-            { n: counts.wisdom, label: 'Voices' },
             { n: counts.playlists, label: 'Playlists' },
           ].map((stat, i) => (
             <div key={i} className="flex flex-col items-center">
@@ -261,7 +207,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ))}
         </div>
 
-        {/* Search — clean, minimal */}
+        {/* Search */}
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
@@ -312,9 +258,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 2 — DISCOVERY
-          Large, tactile category tiles. Not tiny icons in boxes.
-          Each tile has its own character.
+          SECTION 2 — EXPLORE
+          Vertical icon list — all destinations visible at once, no swiping.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={discoveryReveal.ref}
@@ -323,53 +268,41 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel withLine>Explore</SectionLabel>
 
-        <SwipeCarousel
-          itemWidth={140}
-          gap={12}
-          showArrows={false}
-          showDots={false}
-          peek={2}
-        >
+        <div className="border-t border-tea-ink/6 dark:border-white/6">
           {[
-            { id: 'course' as LearnView, label: 'Courses', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-6 h-6" />, mood: 'warm' as const },
-            { id: 'glossary' as LearnView, label: 'Glossary', sub: `${counts.glossary} terms`, icon: <Icons.Book className="w-6 h-6" />, mood: 'neutral' as const },
-            { id: 'journeys' as LearnView, label: 'Journeys', sub: `${counts.journeys} paths`, icon: <Icons.MapPin className="w-6 h-6" />, mood: 'cool' as const },
-            { id: 'wisdom' as LearnView, label: 'Voices', sub: `${counts.wisdom} stories`, icon: <Icons.Users className="w-6 h-6" />, mood: 'warm' as const },
-            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Listen', icon: <Icons.Music className="w-6 h-6" />, mood: 'cool' as const },
-            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch', icon: <Icons.Film className="w-6 h-6" />, mood: 'neutral' as const },
-            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & more', icon: <Icons.Book className="w-6 h-6" />, mood: 'warm' as const },
-            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Visual refs', icon: <Icons.Download className="w-6 h-6" />, mood: 'neutral' as const },
-            { id: 'spaces' as LearnView, label: 'Spaces', sub: `${counts.spaces} designs`, icon: <Icons.Home className="w-6 h-6" />, mood: 'cool' as const },
+            { id: 'course' as LearnView, label: 'Courses', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-5 h-5" /> },
+            { id: 'glossary' as LearnView, label: 'Glossary', sub: `${counts.glossary} terms`, icon: <Icons.Book className="w-5 h-5" /> },
+            { id: 'journeys' as LearnView, label: 'Journeys', sub: `${counts.journeys} paths`, icon: <Icons.MapPin className="w-5 h-5" /> },
+            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Listen', icon: <Icons.Music className="w-5 h-5" /> },
+            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch', icon: <Icons.Film className="w-5 h-5" /> },
+            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & more', icon: <Icons.Book className="w-5 h-5" /> },
+            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Visual refs', icon: <Icons.Download className="w-5 h-5" /> },
+            { id: 'spaces' as LearnView, label: 'Spaces', sub: `${counts.spaces} designs`, icon: <Icons.Home className="w-5 h-5" /> },
           ].map(tile => (
             <button
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
-              className={`text-left group w-full ${CTA_FOCUS}`}
+              className={`w-full flex items-center gap-4 py-3.5 px-1 border-b border-tea-ink/6 dark:border-white/6 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/20 transition-colors duration-300">
-                <InkWashPlaceholder aspectRatio="3/4" mood={tile.mood} />
-                {/* Gradient scrim for text legibility */}
-                <div className="absolute inset-0 bg-gradient-to-t from-tea-paper/90 via-tea-paper/30 to-transparent dark:from-tea-ink/90 dark:via-tea-ink/30" />
-                <div className="absolute inset-0 flex flex-col justify-end p-4">
-                  <span className="text-tea-seal/60 mb-1.5 group-hover:text-tea-seal transition-colors">{tile.icon}</span>
-                  <span className="font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors leading-tight">
-                    {tile.label}
-                  </span>
-                  <span className="text-[10px] font-sans text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">
-                    {tile.sub}
-                  </span>
-                </div>
-              </div>
+              <span className="text-tea-seal/40 group-hover:text-tea-seal/70 transition-colors flex-shrink-0">
+                {tile.icon}
+              </span>
+              <span className="flex-1 font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
+                {tile.label}
+              </span>
+              <span className="text-[11px] text-tea-ink/30 dark:text-tea-paper/30 font-sans">
+                {tile.sub}
+              </span>
+              <Icons.ChevronRight className="w-4 h-4 text-tea-ink/15 dark:text-tea-paper/15 flex-shrink-0" />
             </button>
           ))}
-        </SwipeCarousel>
+        </div>
       </section>
 
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 3 — GLOSSARY SPOTLIGHT
           The Chinese characters are the hero at massive scale.
-          This should feel like discovering a beautiful artifact.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={glossaryReveal.ref}
@@ -406,7 +339,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   </span>
                 </div>
 
-                {/* Term name — large, commanding */}
+                {/* Term name */}
                 <h3 className="font-serif text-3xl md:text-4xl lg:text-5xl text-tea-paper leading-[1.1] mb-2 tracking-tight">
                   {spotlightTerm.term}
                 </h3>
@@ -417,21 +350,19 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   </p>
                 )}
 
-                {/* Definition — generous measure, readable */}
+                {/* Definition */}
                 <p className="text-sm md:text-base text-tea-paper/55 leading-relaxed mb-8 max-w-lg">
                   {spotlightTerm.definition}
                 </p>
 
-                {/* Try This — warm callout */}
+                {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
                   <div className="border-l-2 border-tea-seal/25 pl-4 mb-8 max-w-md">
                     <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans block mb-1.5">
                       Try this
                     </span>
                     <p className="text-sm text-tea-paper/60 leading-relaxed font-serif italic">
-                      {spotlightTerm.deepDive.tryThis[0].description.length > 120
-                        ? spotlightTerm.deepDive.tryThis[0].description.slice(0, 120) + '...'
-                        : spotlightTerm.deepDive.tryThis[0].description}
+                      {spotlightTerm.deepDive.tryThis[0].description}
                     </p>
                   </div>
                 )}
@@ -451,7 +382,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </CardContainer>
         </button>
 
-        {/* Second term preview — asymmetric companion */}
+        {/* Second term preview */}
         {secondTerm && (
           <div className="mt-4 md:ml-[20%]">
             <button
@@ -478,9 +409,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 4 — CURRICULUM (unified)
-          Paths are entry points. Modules are the content. Journeys are practice.
-          One section replaces the old Learning Paths + Curriculum + Journeys.
+          SECTION 4 — CURRICULUM (unified with Practice)
+          Paths are entry points. Modules are the content.
+          Practice journeys are integrated at the end of the module list.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={coursesReveal.ref}
@@ -489,11 +420,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel withLine>Curriculum</SectionLabel>
 
-        {/* Path selector — 3 entry points as tabs */}
-        <div className="flex flex-wrap gap-2 mb-8">
+        {/* Path selector — horizontally scrollable on mobile, no wrapping */}
+        <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8 -mx-1 px-1">
           <button
             onClick={() => setActivePath(null)}
-            className={`px-3 py-1.5 rounded-sm text-xs font-sans transition-colors min-h-[36px] ${
+            className={`px-3 py-1.5 rounded-sm text-xs font-sans transition-colors min-h-[36px] flex-shrink-0 whitespace-nowrap ${
               activePath === null
                 ? 'bg-tea-ink dark:bg-white/10 text-tea-paper dark:text-tea-paper'
                 : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50 hover:text-tea-ink dark:hover:text-tea-paper'
@@ -508,7 +439,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <button
                 key={path.id}
                 onClick={() => setActivePath(activePath === path.id ? null : path.id)}
-                className={`px-3 py-1.5 rounded-sm text-xs font-sans flex items-center gap-1.5 transition-colors min-h-[36px] ${
+                className={`px-3 py-1.5 rounded-sm text-xs font-sans flex items-center gap-1.5 transition-colors min-h-[36px] flex-shrink-0 whitespace-nowrap ${
                   activePath === path.id
                     ? 'bg-tea-ink dark:bg-white/10 text-tea-paper dark:text-tea-paper'
                     : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50 hover:text-tea-ink dark:hover:text-tea-paper'
@@ -524,7 +455,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           })}
         </div>
 
-        {/* Active path description (when a path is selected) */}
+        {/* Active path description */}
         {activePathData && (
           <div className="mb-6 border-l-2 border-tea-seal/20 pl-4">
             <p className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed">
@@ -536,8 +467,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </div>
         )}
 
-        {/* Module list — filtered by path or showing all */}
-        <div className="space-y-0 mb-10">
+        {/* Module list */}
+        <div className="space-y-0 mb-6">
           {displayModules.map((mod, index) => {
             const isComplete = moduleCompletion[mod.id];
             const firstLesson = mod.lessons[0];
@@ -558,7 +489,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     {mod.title}
                   </span>
                   <span className="text-xs text-tea-ink/35 dark:text-tea-paper/35 font-sans mt-1.5 block leading-relaxed">
-                    {mod.description.slice(0, 80)}...
+                    {mod.description}
                   </span>
                   {firstLesson && (
                     <span className="text-[11px] italic text-tea-ink/25 dark:text-tea-paper/25 font-serif mt-2 block">
@@ -586,67 +517,43 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               </button>
             );
           })}
-        </div>
 
-        {/* Practice — Guided Journeys inline */}
-        <div className="mt-2">
-          <div className="flex items-center gap-4 mb-5">
-            <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-seal/60">
-              Practice
-            </span>
-            <div className="flex-1 h-[0.5px] bg-tea-ink/8 dark:bg-white/8" />
-          </div>
-
-          <p className="font-serif italic text-xs text-tea-ink/40 dark:text-tea-paper/40 mb-5">
-            Guided tasting experiences to apply what you&rsquo;ve learned
-          </p>
-
-          <div className="space-y-3">
-            {CURATED_COLLECTIONS.slice(0, 2).map(collection => (
-              <button
-                key={collection.id}
-                onClick={() => onNavigateTo('journeys')}
-                className={`w-full text-left group ${CTA_FOCUS}`}
-              >
-                <div className="rounded-[1px] bg-tea-ink dark:bg-white/[0.03] border border-white/[0.06] hover:border-tea-seal/15 transition-colors p-5 md:p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-sm font-sans ${DIFFICULTY_COLORS[collection.difficulty]}`}>
-                          {collection.difficulty}
-                        </span>
-                        <span className="font-mono text-[10px] text-tea-paper/25">
-                          {collection.estimatedDuration}
-                        </span>
-                      </div>
-                      <h4 className="font-serif text-base text-tea-paper leading-tight mb-1.5 group-hover:text-tea-seal transition-colors">
-                        {collection.title}
-                      </h4>
-                      <p className="text-xs text-tea-paper/35 leading-relaxed">
-                        {collection.description.slice(0, 80)}...
-                      </p>
-                    </div>
-                    <span className="text-tea-paper/20 flex-shrink-0 pt-1">
-                      <Icons.ChevronRight className="w-4 h-4" />
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {CURATED_COLLECTIONS.length > 2 && (
+          {/* Practice — Guided Journeys integrated as curriculum items */}
+          {CURATED_COLLECTIONS.map((collection) => (
             <button
+              key={collection.id}
               onClick={() => onNavigateTo('journeys')}
-              className={`mt-4 text-tea-seal text-xs font-sans flex items-center gap-1 hover:gap-2 transition-all ${CTA_FOCUS}`}
+              className={`w-full flex items-start gap-5 md:gap-8 py-6 md:py-7 group text-left border-b border-tea-ink/6 dark:border-white/6 hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
             >
-              See all {counts.journeys} journeys <Icons.ChevronRight className="w-3.5 h-3.5" />
+              <span className="flex-shrink-0 w-12 flex items-start justify-center">
+                <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-sm font-sans ${DIFFICULTY_COLORS[collection.difficulty]}`}>
+                  Practice
+                </span>
+              </span>
+
+              <div className="flex-1 pt-1">
+                <span className="font-serif text-base md:text-lg text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors block leading-snug tracking-tight">
+                  {collection.title}
+                </span>
+                <span className="text-xs text-tea-ink/35 dark:text-tea-paper/35 font-sans mt-1.5 block leading-relaxed">
+                  {collection.description}
+                </span>
+                <span className="text-[11px] italic text-tea-ink/25 dark:text-tea-paper/25 font-serif mt-2 block">
+                  {collection.estimatedDuration} &middot; {collection.difficulty}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 flex-shrink-0 pt-2">
+                <div className="w-7 h-7 rounded-full border border-tea-ink/8 dark:border-white/8 group-hover:border-tea-seal/20 flex items-center justify-center transition-colors">
+                  <Icons.Play className="w-2.5 h-2.5 text-tea-seal/40 ml-0.5" />
+                </div>
+              </div>
             </button>
-          )}
+          ))}
         </div>
 
         {/* Full curriculum CTA */}
-        <div className="mt-8 pt-6 border-t border-tea-ink/6 dark:border-white/6">
+        <div className="mt-4 pt-6 border-t border-tea-ink/6 dark:border-white/6">
           <button
             onClick={() => onNavigateTo('course')}
             className={`text-tea-seal text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
@@ -658,154 +565,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 6 — COMMUNITY VOICES
-          One hero quote, then supporting voices below.
-          This is editorial design, not a carousel of truncated snippets.
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section
-        ref={voicesReveal.ref}
-        className={`mb-20 md:mb-28 ${voicesReveal.className}`}
-        style={voicesReveal.style}
-      >
-        <SectionLabel withLine>Community Voices</SectionLabel>
-
-        {/* Hero quote — full width, breathing, editorial */}
-        <button
-          onClick={() => onNavigateTo('wisdom')}
-          className={`w-full text-left group mb-8 ${CTA_FOCUS}`}
-        >
-          <div className="md:flex gap-8 items-start">
-            {/* Portrait placeholder */}
-            <div className="hidden md:block w-32 lg:w-40 flex-shrink-0">
-              <InkWashPlaceholder
-                aspectRatio="3/4"
-                mood="warm"
-                label={featuredVoice.authorName.split(' ')[0].toLowerCase()}
-              />
-            </div>
-
-            <div className="flex-1">
-              {/* Large decorative quote mark */}
-              <span className="text-7xl md:text-8xl text-tea-seal/[0.08] font-serif leading-none select-none block -mb-8 md:-mb-10" aria-hidden="true">
-                &ldquo;
-              </span>
-
-              <p className="font-serif italic text-lg md:text-xl lg:text-2xl text-tea-ink/75 dark:text-tea-paper/75 leading-relaxed mb-5">
-                {featuredVoice.body.length > 200 ? featuredVoice.body.slice(0, 200) + '...' : featuredVoice.body}
-              </p>
-
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-sans tracking-wide text-tea-ink/50 dark:text-tea-paper/50">
-                  {featuredVoice.authorName}
-                </span>
-                {featuredVoice.teaReferenced && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-tea-seal/30" />
-                    <span className="font-mono text-[10px] text-tea-seal/50">
-                      {featuredVoice.teaReferenced}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </button>
-
-        {/* Supporting voices — horizontal scroll of compact cards */}
-        <SwipeCarousel
-          itemWidth={260}
-          gap={14}
-          showArrows={false}
-          showDots={false}
-          peek={3}
-        >
-          {supportingVoices.map(entry => (
-            <button
-              key={entry.id}
-              onClick={() => onNavigateTo('wisdom')}
-              className={`text-left w-full group ${CTA_FOCUS}`}
-            >
-              <div className={`border-l-2 ${WISDOM_BORDER_COLORS[entry.type] || 'border-l-tea-seal/20'} pl-4 py-1`}>
-                <p className="font-serif italic text-sm text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed mb-2">
-                  &ldquo;{entry.body.length > 90 ? entry.body.slice(0, 90) + '...' : entry.body}&rdquo;
-                </p>
-                <span className="text-[10px] font-sans text-tea-ink/35 dark:text-tea-paper/35 tracking-wide">
-                  {entry.authorName}
-                </span>
-              </div>
-            </button>
-          ))}
-        </SwipeCarousel>
-
-        <div className="mt-6 md:ml-[15%]">
-          <button
-            onClick={() => onNavigateTo('wisdom')}
-            className={`text-tea-seal text-xs font-sans flex items-center gap-1 hover:gap-2 transition-all ${CTA_FOCUS}`}
-          >
-            Read all {counts.wisdom} voices <Icons.ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </section>
-
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 7 — ATLAS & PLACES
-          Location cards that feel like postcards from origin.
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section
-        ref={atlasReveal.ref}
-        className={`mb-20 md:mb-28 ${atlasReveal.className}`}
-        style={atlasReveal.style}
-      >
-        <SectionLabel withLine>Places</SectionLabel>
-        <p className="font-serif italic text-sm text-tea-ink/40 dark:text-tea-paper/40 mb-8 max-w-md">
-          Tea locations, farms, and cultural landmarks across Asia
-        </p>
-
-        <SwipeCarousel
-          itemWidth={220}
-          gap={14}
-          showArrows={true}
-          peek={3}
-          arrowTheme="light"
-        >
-          {teaMapPins.map((pin, i) => {
-            const moods: Array<'warm' | 'cool' | 'neutral'> = ['warm', 'cool', 'neutral'];
-            return (
-              <button
-                key={pin.id}
-                onClick={() => onStoryClick(geographyLesson)}
-                className={`text-left w-full group ${CTA_FOCUS}`}
-              >
-                <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/15 transition-colors duration-300">
-                  {/* Location postcard image */}
-                  <InkWashPlaceholder
-                    aspectRatio="4/3"
-                    mood={moods[i % moods.length]}
-                    label={pin.location.toLowerCase()}
-                  />
-
-                  <div className="p-4 bg-tea-paper dark:bg-tea-ink">
-                    <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans mb-2">
-                      {PIN_TYPE_LABELS[pin.type] || pin.type}
-                    </span>
-                    <h4 className="font-serif text-sm text-tea-ink dark:text-tea-paper leading-tight mb-0.5 group-hover:text-tea-seal transition-colors">
-                      {pin.name}
-                    </h4>
-                    <p className="text-[11px] text-tea-ink/35 dark:text-tea-paper/35 font-sans">
-                      {pin.location}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </SwipeCarousel>
-      </section>
-
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 9 — RESOURCES
+          SECTION 5 — RESOURCES & TOOLS (moved up from original position)
           Refined grid. The cards are dark, the layout is tight.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
@@ -847,8 +607,63 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 10 — TEA SPACE TEASER
-          Warm, aspirational. The image is everything here.
+          SECTION 6 — ATLAS & PLACES
+          Location cards with real photography.
+          ═══════════════════════════════════════════════════════════════════ */}
+      <section
+        ref={atlasReveal.ref}
+        className={`mb-20 md:mb-28 ${atlasReveal.className}`}
+        style={atlasReveal.style}
+      >
+        <SectionLabel withLine>Places</SectionLabel>
+        <p className="font-serif italic text-sm text-tea-ink/40 dark:text-tea-paper/40 mb-8 max-w-md">
+          Tea locations, farms, and cultural landmarks across Asia
+        </p>
+
+        <SwipeCarousel
+          itemWidth={220}
+          gap={14}
+          showArrows={true}
+          peek={3}
+          arrowTheme="light"
+        >
+          {teaMapPins.map((pin, i) => (
+            <button
+              key={pin.id}
+              onClick={() => onStoryClick(geographyLesson)}
+              className={`text-left w-full group ${CTA_FOCUS}`}
+            >
+              <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/15 transition-colors duration-300">
+                {/* Location photo */}
+                <img
+                  src={TEA_IMAGES.places[i % TEA_IMAGES.places.length]}
+                  alt={`${pin.name} — ${pin.location}`}
+                  className="w-full object-cover"
+                  style={{ aspectRatio: '4/3' }}
+                  loading="lazy"
+                />
+
+                <div className="p-4 bg-tea-paper dark:bg-tea-ink">
+                  <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans mb-2">
+                    {PIN_TYPE_LABELS[pin.type] || pin.type}
+                  </span>
+                  <h4 className="font-serif text-sm text-tea-ink dark:text-tea-paper leading-tight mb-0.5 group-hover:text-tea-seal transition-colors">
+                    {pin.name}
+                  </h4>
+                  <p className="text-[11px] text-tea-ink/35 dark:text-tea-paper/35 font-sans">
+                    {pin.location}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </SwipeCarousel>
+      </section>
+
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          SECTION 7 — TEA SPACE TEASER
+          Warm, aspirational. Real photo.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={spacesReveal.ref}
@@ -861,13 +676,15 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         >
           <div className="overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8">
             {/* Atmospheric image */}
-            <InkWashPlaceholder
-              aspectRatio="21/9"
-              mood="warm"
-              label="Morning light on a minimalist tea corner"
+            <img
+              src={TEA_IMAGES.teaSpace}
+              alt="Minimalist tea corner with morning light"
+              className="w-full object-cover"
+              style={{ aspectRatio: '21/9' }}
+              loading="lazy"
             />
 
-            {/* Content below image — clean, no overlay legibility issues */}
+            {/* Content below image */}
             <div className="p-5 md:p-7 bg-tea-paper dark:bg-tea-ink">
               <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-seal/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
@@ -889,7 +706,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 11 — CLOSING
+          SECTION 8 — CLOSING
           A colophon. Adrian's signature. Generous final breath.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
