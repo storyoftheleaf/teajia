@@ -2,7 +2,7 @@ import React from 'react';
 import { Icons } from './Icons';
 import { LogoEmblem, LogoText } from './Logos';
 import { Section } from '../types';
-import { NAV_ONBOARDING_MESSAGES } from '../constants';
+
 import { getNavIcon, getIconScale } from './navIconConfig';
 import { useTheme } from '../context/ThemeContext';
 import { useLongPress } from '../hooks/useLongPress';
@@ -25,7 +25,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick
 }) => {
-  const { toggleTheme } = useTheme();
+  const { toggleTheme, theme } = useTheme();
+  const isDark = theme === 'dark';
   const auth = useAuth();
   const [themeFlash, setThemeFlash] = React.useState(false);
 
@@ -39,31 +40,17 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     onClick: () => onNavigate('HOME'),
   });
 
-  const [showOnboarding, setShowOnboarding] = React.useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !localStorage.getItem('teajia_nav_onboarded');
-  });
-  React.useEffect(() => {
-    if (showOnboarding) {
-      const timer = setTimeout(() => {
-        setShowOnboarding(false);
-        localStorage.setItem('teajia_nav_onboarded', 'true');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showOnboarding]);
-
   const leftSections = [
-    { id: 'MAGAZINE' as Section, label: 'Read', hint: NAV_ONBOARDING_MESSAGES.magazine },
-    { id: 'LEARN' as Section, label: 'Learn', hint: NAV_ONBOARDING_MESSAGES.learn },
+    { id: 'MAGAZINE' as Section, label: 'Read' },
+    { id: 'LEARN' as Section, label: 'Learn' },
   ];
 
   const rightSections = [
-    { id: 'OFFERINGS' as Section, label: 'Consult', hint: NAV_ONBOARDING_MESSAGES.offerings },
-    { id: 'SHOP' as Section, label: 'Shop', hint: NAV_ONBOARDING_MESSAGES.shop },
+    { id: 'OFFERINGS' as Section, label: 'Consult' },
+    { id: 'SHOP' as Section, label: 'Shop' },
   ];
 
-  const renderTabButton = (section: { id: Section; label: string; hint: string }, index: number) => {
+  const renderTabButton = (section: { id: Section; label: string }, index: number) => {
     const IconComponent = getNavIcon(section.id);
     const isActive = activeSection === section.id;
     const scale = getIconScale(section.id);
@@ -131,13 +118,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
                 <LogoEmblem
                   size={48}
-                  color={activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)'}
+                  color={isDark
+                    ? (activeSection === 'HOME' ? 'rgba(200,170,120,0.18)' : 'rgba(200,170,120,0.10)')
+                    : (activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)')
+                  }
                   className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
                 />
               </div>
               <LogoText
                 size="sm"
-                color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
+                color={isDark
+                  ? (activeSection === 'HOME' ? '#c0b49a' : '#8a7e6a')
+                  : (activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B')
+                }
                 className={`relative z-10 transition-all duration-300 scale-[1.08] ${themeFlash ? 'opacity-60' : ''}`}
               />
             </button>
@@ -172,28 +165,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           )}
         </div>
       </nav>
-
-    {/* Mobile Navigation Onboarding Tutorial */}
-    {showOnboarding && (
-      <div className="fixed bottom-24 left-0 right-0 z-50 flex items-center justify-center px-4 animate-[slideUp_0.3s_ease-out]">
-        <div className="bg-tea-ink text-tea-paper rounded-sm shadow-2xl p-4 max-w-xs animate-[pulse_2s_ease-in-out_infinite]">
-          <div className="flex items-start gap-3">
-            <Icons.Info className="w-5 h-5 text-tea-seal flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-serif mb-1">Navigate with ease</p>
-              <p className="text-xs text-tea-paper/70">Tap the logo in the center to go home, or explore Magazine, Learn, Offerings, and Shop</p>
-            </div>
-            <button
-              onClick={() => setShowOnboarding(false)}
-              className="text-tea-paper/50 hover:text-tea-paper p-1"
-              aria-label="Dismiss"
-            >
-              <Icons.Close className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
 
     </>
   );
