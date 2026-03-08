@@ -420,8 +420,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 key={item.id}
                                 className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : ''}`}
                             >
-                                {/* Row — tap to expand accordion */}
-                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 cursor-pointer select-none" onClick={() => toggleExpand(item.id)}>
+                                {/* Row */}
+                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 select-none">
 
                                     {/* Left: name + metadata */}
                                     <div className="flex-1 min-w-0">
@@ -431,14 +431,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             </h3>
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
-                                        <div className="text-[11px] uppercase tracking-wider text-tea-text/50 mt-1 truncate flex items-center gap-2">
-                                             <span className={`font-mono ${isExpanded ? 'text-tea-gold' : ''}`}>{item.year}</span>
-                                             <span className="opacity-40">•</span>
-                                             <span>{item.variant}</span>
+                                        <div className="text-[11px] uppercase tracking-wider mt-1 truncate flex items-center gap-2">
+                                             <span className={`font-mono ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
+                                             <span className="text-tea-text/30">•</span>
+                                             <span className="text-tea-text/40">{item.variant}</span>
                                         </div>
                                     </div>
 
-                                    {/* Right: price, heart, details button */}
+                                    {/* Right: price, info, heart, details button */}
                                     <div className="flex items-center gap-3 shrink-0">
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
@@ -464,6 +464,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 <Icons.Edit className="w-3.5 h-3.5" />
                                             </button>
                                         )}
+                                        {/* Info button — toggles accordion */}
+                                        <button
+                                            onClick={() => toggleExpand(item.id)}
+                                            className={`-my-1 p-2 transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text/25 hover:text-tea-text/50'}`}
+                                            aria-label={`More info about ${item.name}`}
+                                        >
+                                            <Icons.Info className="w-4.5 h-4.5" />
+                                        </button>
                                         <button
                                             onClick={(e) => toggleUserFavorite(e, item.id)}
                                             className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
