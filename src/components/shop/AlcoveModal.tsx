@@ -110,13 +110,13 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
           onClick={(e) => e.stopPropagation()}
           className={`relative w-full transition-all duration-300 ease-out ${
             isCardExpanded
-              ? 'max-w-[480px] md:max-w-[560px]'
+              ? 'max-w-[480px] md:max-w-[900px]'
               : 'max-w-[480px] md:max-w-[560px]'
           }`}
           style={{
             height: isCardExpanded ? "calc(100vh - 32px)" : "min(90vh, 780px)",
             minHeight: "480px",
-            transition: "height 0.3s ease",
+            transition: "all 0.3s ease",
           }}
         >
           <AlcoveCard
