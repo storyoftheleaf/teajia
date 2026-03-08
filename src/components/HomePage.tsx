@@ -244,7 +244,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           ============================================ */}
       <section
         ref={learnReveal.ref}
-        className={`${SECTION_GAP} bg-white/50 p-6 md:p-10 rounded-lg ${learnReveal.className}`}
+        className={`${SECTION_GAP} bg-tea-surface p-6 md:p-10 rounded-lg ${learnReveal.className}`}
         style={learnReveal.style}
       >
         <div className="flex items-baseline justify-between mb-4">

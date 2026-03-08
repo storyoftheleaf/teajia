@@ -35,7 +35,7 @@ export const TeaInspirationGallery: React.FC = () => {
             className={`px-4 md:px-6 py-2 md:py-3 rounded-sm transition-all duration-300 text-sm md:text-base font-medium uppercase tracking-wider ${
               activeSection === section.id
                 ? 'bg-tea-gold text-white shadow-lg'
-                : 'bg-white/50 text-tea-text border border-tea-border hover:bg-white/70'
+                : 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated'
             }`}
           >
             {section.label}
@@ -70,7 +70,7 @@ export const TeaInspirationGallery: React.FC = () => {
 
       {/* Submit Your Space CTA */}
       {sectionImages.length > 0 && (
-        <div className="mt-14 md:mt-20 flex flex-col items-center text-center bg-white/50 p-8 md:p-12 rounded-sm">
+        <div className="mt-14 md:mt-20 flex flex-col items-center text-center bg-tea-surface p-8 md:p-12 rounded-sm">
           <h3 className="font-serif text-2xl md:text-3xl text-tea-text mb-3">
             Have a Tea Space to Share?
           </h3>
