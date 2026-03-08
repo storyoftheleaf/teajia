@@ -63,7 +63,7 @@ export const CardImage: React.FC<CardImageProps> = ({
         </>
       ) : (
         <div className={`w-full h-full ${placeholderBg} flex items-center justify-center`}>
-          <span className="text-white/30 text-xs">No image</span>
+          <span className="text-tea-paper/30 text-xs">No image</span>
         </div>
       )}
     </div>

@@ -80,7 +80,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                 {/* Details */}
                 <div className="flex-1 p-5 md:p-8 flex flex-col">
                   {/* Type · Origin · Year */}
-                  <p className="font-serif text-xs italic text-white/40 mb-2">
+                  <p className="font-serif text-xs italic text-tea-paper/40 mb-2">
                     {item.type}
                     {item.origin && <><span className="mx-2 opacity-40">·</span>{item.origin}</>}
                     {item.year && <><span className="mx-2 opacity-40">·</span>{item.year}</>}
@@ -90,14 +90,14 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                     {item.name}
                   </h3>
                   {item.variant && item.variant !== item.name && (
-                    <p className="font-serif italic text-sm text-white/50 mb-3">
+                    <p className="font-serif italic text-sm text-tea-paper/50 mb-3">
                       {item.variant}
                     </p>
                   )}
 
                   {/* Lore / Description */}
                   {(item.lore || item.description) && (
-                    <p className="font-serif text-sm text-white/70 leading-relaxed mb-4 line-clamp-3">
+                    <p className="font-serif text-sm text-tea-paper/70 leading-relaxed mb-4 line-clamp-3">
                       {item.lore || item.description}
                     </p>
                   )}
@@ -111,7 +111,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                             className="w-[18px] h-[2px] rounded-[1px] shrink-0"
                             style={{ background: accent, opacity: 0.7 }}
                           />
-                          <span className="font-serif italic text-xs text-white/70">
+                          <span className="font-serif italic text-xs text-tea-paper/70">
                             {item.mood}
                           </span>
                         </div>

@@ -307,7 +307,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
            {/* Undo remove toast (#68) */}
            {removedItem && (
                <div className="relative z-20 mb-4 animate-[slideUp_0.3s_ease-out]">
-                   <div className="flex items-center justify-between bg-tea-bg text-white  px-4 py-3 rounded-sm">
+                   <div className="flex items-center justify-between bg-tea-bg text-tea-text  px-4 py-3 rounded-sm">
                        <span className="text-xs font-sans">{removedItem.item.name} removed</span>
                        <button
                            onClick={() => {
@@ -583,7 +583,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                     <button
                         onClick={handleNext}
                         disabled={cart.length === 0}
-                        className="w-full py-4 bg-tea-gold text-white uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full py-4 bg-tea-gold text-tea-paper uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         Request This Order
                     </button>

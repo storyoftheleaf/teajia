@@ -15,19 +15,19 @@ interface MediaViewerProps {
 // --- Shared Components ---
 
 const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () => void; isSaved?: boolean; onToggleSave?: () => void }> = ({ story, onBack, onShare, isSaved, onToggleSave }) => (
-  <aside className="w-24 xl:w-32 h-full bg-tea-moss text-white flex flex-col items-center py-10 relative shadow-[4px_0_15px_rgba(0,0,0,0.5)] z-30 shrink-0">
+  <aside className="w-24 xl:w-32 h-full bg-tea-moss text-tea-paper flex flex-col items-center py-10 relative shadow-[4px_0_15px_rgba(0,0,0,0.5)] z-30 shrink-0">
     {/* Back Button - Moved to Top */}
     <button 
       onClick={onBack}
       className="mb-8 p-3 rounded-full hover:bg-white/10 transition-colors group"
       title="Exit View"
     >
-      <Icons.Back className="w-6 h-6 text-white/70 group-hover:text-white" />
+      <Icons.Back className="w-6 h-6 text-tea-paper/70 group-hover:text-tea-paper" />
     </button>
 
     {/* Vertical Title */}
     <div className="flex-1 flex items-center justify-center min-h-0 overflow-hidden">
-      <h1 className="writing-vertical text-2xl xl:text-4xl font-serif tracking-[0.15em] uppercase text-white whitespace-nowrap leading-normal truncate-vertical py-4">
+      <h1 className="writing-vertical text-2xl xl:text-4xl font-serif tracking-[0.15em] uppercase text-tea-paper whitespace-nowrap leading-normal truncate-vertical py-4">
         {story.title}
       </h1>
     </div>
@@ -35,11 +35,11 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
     {/* Interaction Column - Bottom */}
     <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-white/10 w-12">
          {onToggleSave && (
-             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-white/40 hover:text-white'}`} title="Collect">
+             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-paper/40 hover:text-white'}`} title="Collect">
                <Icons.Leaf filled={isSaved} className="w-5 h-5" />
              </button>
          )}
-         <button onClick={onShare} className="p-2 rounded-full text-white/40 hover:text-white transition-colors" title="Share">
+         <button onClick={onShare} className="p-2 rounded-full text-tea-paper/40 hover:text-tea-paper transition-colors" title="Share">
            <Icons.Share className="w-5 h-5" />
          </button>
     </div>
@@ -48,11 +48,11 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
 
 const MobileHeader: React.FC<{ title: string; onBack: () => void; transparent?: boolean }> = ({ title, onBack, transparent }) => (
   <header className={`absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 transition-all duration-300 ${transparent ? 'bg-gradient-to-b from-black/80 to-transparent' : 'bg-tea-moss shadow-lg'}`}>
-    <button onClick={onBack} className="p-2 opacity-90 hover:opacity-100 text-white">
+    <button onClick={onBack} className="p-2 opacity-90 hover:opacity-100 text-tea-paper">
       <Icons.Back className="w-6 h-6" />
     </button>
     {!transparent && (
-       <h1 className="text-xs uppercase tracking-[0.2em] font-serif text-white opacity-90 truncate max-w-[200px]">
+       <h1 className="text-xs uppercase tracking-[0.2em] font-serif text-tea-paper opacity-90 truncate max-w-[200px]">
          {title}
        </h1>
     )}
@@ -115,7 +115,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                     onClick={() => setIsPlaying(true)}
                     className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group"
                 >
-                    <Icons.Play className="w-8 h-8 text-white ml-1 group-hover:text-white" />
+                    <Icons.Play className="w-8 h-8 text-tea-paper ml-1 group-hover:text-tea-paper" />
                 </button>
             </div>
         </>
@@ -136,7 +136,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <MobileHeader title={story.title} onBack={onBack} transparent />
         
         {/* Mobile Side Actions - Hide during play if it's immersive */}
-        <div className={`absolute right-4 bottom-32 flex flex-col space-y-6 items-center text-white/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
+        <div className={`absolute right-4 bottom-32 flex flex-col space-y-6 items-center text-tea-paper/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
             <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-gold' : ''}`}>
                <Icons.Leaf filled={isSaved} className="w-7 h-7" />
             </button>
@@ -147,7 +147,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
         {/* Bottom Info - Hide during play */}
         {!isPlaying && (
-            <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-white pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
+            <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-tea-paper pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
                 <span className="px-2 py-0.5 border border-white/30 text-[9px] uppercase tracking-widest rounded-full">
                     {story.type}
@@ -183,16 +183,16 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             </div>
 
             {/* Info Panel */}
-            <div className="max-w-sm text-white flex flex-col justify-center h-full">
+            <div className="max-w-sm text-tea-paper flex flex-col justify-center h-full">
                 <div className="w-8 h-[1px] bg-tea-gold mb-6"></div>
-                <div className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase text-white/70 mb-2">
+                <div className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase text-tea-paper/70 mb-2">
                     <span>{story.origin}</span>
                     <span>•</span>
                     <span>{story.durationOrTime}</span>
                 </div>
                 <h2 className="text-4xl font-serif mb-2 leading-tight">{story.title}</h2>
-                <p className="text-lg font-serif italic text-white/70 mb-8">{story.subtitle}</p>
-                <p className="text-base leading-relaxed text-white/90 font-light">{story.description}</p>
+                <p className="text-lg font-serif italic text-tea-paper/70 mb-8">{story.subtitle}</p>
+                <p className="text-base leading-relaxed text-tea-paper/90 font-light">{story.description}</p>
             </div>
         </div>
       </main>
@@ -249,7 +249,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                     onClick={() => setIsPlaying(true)}
                     className="w-24 h-24 border border-white/20 rounded-full flex items-center justify-center hover:bg-white/5 transition-all cursor-pointer group"
                 >
-                    <Icons.Play className="w-10 h-10 text-white ml-1 group-hover:scale-110 transition-transform" />
+                    <Icons.Play className="w-10 h-10 text-tea-paper ml-1 group-hover:scale-110 transition-transform" />
                 </button>
             </div>
         </>
@@ -267,7 +267,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
          </div>
 
          {/* Content */}
-         <div className="p-6 text-white flex-1">
+         <div className="p-6 text-tea-paper flex-1">
             <div className="flex justify-between items-start mb-2">
                 <span className="text-[10px] tracking-widest uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
                 <div className="flex gap-4">
@@ -299,17 +299,17 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
           </div>
 
           {/* Info Section */}
-          <div className="w-full max-w-4xl p-12 text-white">
+          <div className="w-full max-w-4xl p-12 text-tea-paper">
              <div className="flex justify-between items-start mb-8">
                 <div>
                    <h2 className="text-5xl font-serif mb-2">{story.title}</h2>
-                   <p className="text-xl font-serif italic text-white/60">{story.subtitle}</p>
+                   <p className="text-xl font-serif italic text-tea-paper/60">{story.subtitle}</p>
                 </div>
-                <div className="flex items-center space-x-6 text-white/70">
-                   <button onClick={onToggleSave} className={`hover:text-white transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
+                <div className="flex items-center space-x-6 text-tea-paper/70">
+                   <button onClick={onToggleSave} className={`hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                       <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                    </button>
-                   <button onClick={onShare} className="hover:text-white transition-colors">
+                   <button onClick={onShare} className="hover:text-tea-paper transition-colors">
                       <Icons.Share className="w-5 h-5" />
                    </button>
                 </div>
@@ -347,8 +347,8 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          <div className="bg-gradient-to-t from-tea-bg via-tea-bg to-transparent pt-12 px-8 pb-12 z-20">
              <div className="flex justify-between items-end mb-8">
                 <div className="flex-1 pr-4">
-                    <h2 className="text-3xl font-serif text-white mb-2 leading-tight">{story.title}</h2>
-                    <p className="text-base text-white/70 font-serif italic">{story.subtitle}</p>
+                    <h2 className="text-3xl font-serif text-tea-paper mb-2 leading-tight">{story.title}</h2>
+                    <p className="text-base text-tea-paper/70 font-serif italic">{story.subtitle}</p>
                 </div>
              </div>
              
@@ -358,26 +358,26 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-tea-bg rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
              </div>
-             <div className="flex justify-between text-[10px] text-white/50 mb-10 font-mono tracking-widest">
+             <div className="flex justify-between text-[10px] text-tea-paper/50 mb-10 font-mono tracking-widest">
                 <span>04:20</span>
                 <span>{story.durationOrTime}</span>
              </div>
 
              {/* Buttons */}
              <div className="flex items-center justify-between px-4">
-                <button onClick={onToggleSave} className={`text-white/40 hover:text-white transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
+                <button onClick={onToggleSave} className={`text-tea-paper/40 hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                      <Icons.Leaf filled={isSaved} className="w-6 h-6" />
                 </button>
 
                 <div className="flex items-center space-x-8">
-                   <Icons.Back className="w-8 h-8 text-white/50 rotate-180 hover:text-white transition-colors cursor-pointer" /> {/* Prev */}
+                   <Icons.Back className="w-8 h-8 text-tea-paper/50 rotate-180 hover:text-tea-paper transition-colors cursor-pointer" /> {/* Prev */}
                    <button className="w-20 h-20 bg-tea-bg rounded-full flex items-center justify-center text-tea-text shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 transition-transform hover:bg-white">
                       <Icons.Play className="w-8 h-8 fill-current ml-1" />
                    </button>
-                   <Icons.Next className="w-8 h-8 text-white/50 hover:text-white transition-colors cursor-pointer" />
+                   <Icons.Next className="w-8 h-8 text-tea-paper/50 hover:text-tea-paper transition-colors cursor-pointer" />
                 </div>
 
-                <button onClick={onShare} className="text-white/40 hover:text-white transition-colors">
+                <button onClick={onShare} className="text-tea-paper/40 hover:text-tea-paper transition-colors">
                      <Icons.Share className="w-6 h-6" />
                 </button>
              </div>
@@ -413,9 +413,9 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             {/* Controls & Info - Right Side */}
             <div className="flex flex-col flex-1 max-w-lg">
                <div className="flex flex-col mb-10">
-                    <span className="text-xs tracking-[0.3em] uppercase text-white/50 mb-4 border-l-2 border-tea-gold pl-3">Now Playing</span>
-                    <h2 className="text-5xl xl:text-6xl font-serif text-white mb-4 leading-[1.1] tracking-tight">{story.title}</h2>
-                    <p className="text-2xl font-serif italic text-white/60 font-light">{story.subtitle}</p>
+                    <span className="text-xs tracking-[0.3em] uppercase text-tea-paper/50 mb-4 border-l-2 border-tea-gold pl-3">Now Playing</span>
+                    <h2 className="text-5xl xl:text-6xl font-serif text-tea-paper mb-4 leading-[1.1] tracking-tight">{story.title}</h2>
+                    <p className="text-2xl font-serif italic text-tea-paper/60 font-light">{story.subtitle}</p>
                </div>
 
                {/* Visualizer - Make it subtler */}
@@ -435,7 +435,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
                {/* Progress Bar */}
                <div className="mb-4 group">
-                    <div className="flex justify-between text-[10px] text-white/40 mb-2 font-mono tracking-widest">
+                    <div className="flex justify-between text-[10px] text-tea-paper/40 mb-2 font-mono tracking-widest">
                         <span>00:00</span>
                         <span>{story.durationOrTime}</span>
                     </div>
@@ -451,18 +451,18 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                {/* Main Controls */}
                <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-8">
-                      <button className="text-white/50 hover:text-white transition-colors"><Icons.Back className="w-6 h-6 rotate-180" /></button>
+                      <button className="text-tea-paper/50 hover:text-tea-paper transition-colors"><Icons.Back className="w-6 h-6 rotate-180" /></button>
                       <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                          <Icons.Play className="w-6 h-6 text-tea-text ml-1 fill-current" />
                       </button>
-                      <button className="text-white/50 hover:text-white transition-colors"><Icons.Next className="w-6 h-6" /></button>
+                      <button className="text-tea-paper/50 hover:text-tea-paper transition-colors"><Icons.Next className="w-6 h-6" /></button>
                   </div>
 
                   <div className="flex items-center space-x-6 border-l border-white/10 pl-8">
-                      <button onClick={onToggleSave} className={`text-white/40 hover:text-white transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
+                      <button onClick={onToggleSave} className={`text-tea-paper/40 hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                           <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                       </button>
-                      <button onClick={onShare} className="text-white/40 hover:text-white transition-colors">
+                      <button onClick={onShare} className="text-tea-paper/40 hover:text-tea-paper transition-colors">
                           <Icons.Share className="w-5 h-5" />
                       </button>
                   </div>

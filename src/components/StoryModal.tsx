@@ -43,7 +43,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                 <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-50" alt="video thumb"/>
                 <div className="absolute inset-0 flex items-center justify-center">
                    <div className="w-16 h-16 border border-tea-paper/30 rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
-                     <Icons.Play className="w-8 h-8 text-white fill-tea-paper/20" />
+                     <Icons.Play className="w-8 h-8 text-tea-paper fill-tea-paper/20" />
                    </div>
                 </div>
                 {/* Custom Player Frame */}
@@ -60,11 +60,11 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                   ))}
                </div>
                <div className="flex items-center space-x-6">
-                 <Icons.Play className="w-10 h-10 text-white cursor-pointer hover:text-tea-green transition-colors" />
+                 <Icons.Play className="w-10 h-10 text-tea-paper cursor-pointer hover:text-tea-green transition-colors" />
                  <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden">
                    <div className="w-1/3 h-full bg-tea-bg"></div>
                  </div>
-                 <span className="text-xs text-white/60 font-mono">08:12 / {story.durationOrTime}</span>
+                 <span className="text-xs text-tea-paper/60 font-mono">08:12 / {story.durationOrTime}</span>
                </div>
                <img src={story.thumbnailUrl || 'https://picsum.photos/400/400'} className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay" alt="audio bg"/>
              </div>

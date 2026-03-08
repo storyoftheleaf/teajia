@@ -80,32 +80,32 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                    <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-6 text-center">
                        <div className="w-16 h-16 rounded-full border border-white/20 flex items-center justify-center mb-5 relative group-hover:scale-105 transition-transform duration-700">
                             <div className="absolute inset-0 rounded-full border border-white/10 scale-110"></div>
-                            <Icons.Audio className="w-5 h-5 text-white/60 group-hover:text-tea-gold transition-colors" />
+                            <Icons.Audio className="w-5 h-5 text-tea-paper/60 group-hover:text-tea-gold transition-colors" />
                        </div>
 
-                       <h3 className="font-serif text-xl md:text-2xl text-white mb-2 leading-tight group-hover:text-tea-gold transition-colors duration-500">
+                       <h3 className="font-serif text-xl md:text-2xl text-tea-paper mb-2 leading-tight group-hover:text-tea-gold transition-colors duration-500">
                            {story.title}
                        </h3>
-                       <p className="text-xs text-white/70 font-sans uppercase tracking-widest mb-4">
+                       <p className="text-xs text-tea-paper/70 font-sans uppercase tracking-widest mb-4">
                            {story.subtitle}
                        </p>
 
                        <div className="w-6 h-[1px] bg-white/10 mb-4"></div>
 
-                       <span className="text-xs font-mono text-white/60 tracking-wider">{story.durationOrTime}</span>
+                       <span className="text-xs font-mono text-tea-paper/60 tracking-wider">{story.durationOrTime}</span>
                    </div>
                 ) : (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
-                        <h3 className="font-serif text-xl md:text-2xl text-white leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
+                        <h3 className="font-serif text-xl md:text-2xl text-tea-paper leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
                            {story.title}
                         </h3>
                         <div className="flex flex-col gap-1.5 items-center">
-                             <p className="text-xs text-white/70 font-sans uppercase tracking-widest">
+                             <p className="text-xs text-tea-paper/70 font-sans uppercase tracking-widest">
                                 {story.subtitle}
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
                                 <div className="w-6 h-[0.5px] bg-white/20 mt-2 shrink-0"></div>
-                                <p className="text-sm text-white/80 font-serif italic leading-relaxed line-clamp-2 text-center max-w-[80%]">
+                                <p className="text-sm text-tea-paper/80 font-serif italic leading-relaxed line-clamp-2 text-center max-w-[80%]">
                                     {story.description}
                                 </p>
                                 <div className="w-6 h-[0.5px] bg-white/20 mt-2 shrink-0"></div>
@@ -147,7 +147,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                {/* Desktop hover excerpt overlay */}
                {story.description && (
                  <div className="hidden md:flex absolute bottom-0 left-0 right-0 z-20 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
-                   <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                   <p className="text-xs text-tea-paper/80 line-clamp-2 leading-relaxed">
                      {story.description}
                    </p>
                  </div>
@@ -155,7 +155,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {/* Category Badge */}
                {story.category && CATEGORY_BADGES[story.category] && (
-                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-white text-[10px] uppercase tracking-widest font-sans rounded-sm shadow-md`}>
+                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-tea-paper text-[10px] uppercase tracking-widest font-sans rounded-sm shadow-md`}>
                    {CATEGORY_BADGES[story.category].label}
                  </div>
                )}
@@ -163,11 +163,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                {isAudio && (
                  <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
                     <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl">
-                        <Icons.Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                        <Icons.Play className="w-4 h-4 text-tea-paper fill-tea-paper ml-0.5" />
                     </div>
 
                     <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black/90 to-transparent">
-                        <div className="flex justify-between items-end text-white">
+                        <div className="flex justify-between items-end text-tea-paper">
                            <div className="flex items-center gap-2">
                               <Icons.Audio className="w-3 h-3 opacity-90" />
                               <span className="text-xs uppercase tracking-widest opacity-90">Listen</span>
@@ -181,7 +181,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                {isVideo && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-10 h-10 rounded-full border-[0.5px] border-white/40 flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[1px] group-hover:bg-white/5 group-hover:scale-105 transition-all duration-700">
-                        <Icons.Play className="w-3 h-3 text-white/90 fill-white/80 ml-0.5 opacity-80 group-hover:opacity-100" />
+                        <Icons.Play className="w-3 h-3 text-tea-paper/90 fill-tea-paper/80 ml-0.5 opacity-80 group-hover:opacity-100" />
                     </div>
                 </div>
                )}
@@ -196,7 +196,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                         {story.title}
                     </h3>
                     <div className="flex items-center gap-2">
-                        <p className="text-[11px] text-white/70 uppercase tracking-[0.15em] font-sans truncate">
+                        <p className="text-[11px] text-tea-paper/70 uppercase tracking-[0.15em] font-sans truncate">
                             {story.subtitle}
                         </p>
                     </div>

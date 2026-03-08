@@ -291,10 +291,10 @@ const TileGrid: React.FC<TileGridProps> = ({ onTileClick }) => (
 
         {/* Content overlay */}
         <div className="absolute inset-0 flex flex-col justify-end p-3 md:p-4">
-          <span className="font-serif text-base md:text-lg text-white leading-tight">
+          <span className="font-serif text-base md:text-lg text-tea-paper leading-tight">
             {tile.label}
           </span>
-          <span className="text-[10px] md:text-[11px] uppercase tracking-wider text-white/60 mt-1">
+          <span className="text-[10px] md:text-[11px] uppercase tracking-wider text-tea-paper/60 mt-1">
             {tile.badge}
           </span>
         </div>

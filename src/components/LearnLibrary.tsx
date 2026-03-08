@@ -126,7 +126,7 @@ const SectionHeader: React.FC<{
 export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) => {
   const [glossaryExpanded, setGlossaryExpanded] = useState(false);
 
-  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-white/50';
+  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-tea-paper/50';
 
   // Resolve "Picked for You" items based on course progress
   const pickedForYou = useMemo(() => {

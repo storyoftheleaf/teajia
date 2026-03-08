@@ -30,7 +30,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
           placeholder={placeholder}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-6 pr-2 py-2 bg-transparent border-b border-tea-text/10 focus:border-tea-gold outline-none font-serif italic text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-white/30 transition-colors"
+          className="w-full pl-6 pr-2 py-2 bg-transparent border-b border-tea-text/10 focus:border-tea-gold outline-none font-serif italic text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-paper/30 transition-colors"
         />
       </div>
 

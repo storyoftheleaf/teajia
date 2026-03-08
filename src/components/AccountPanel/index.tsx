@@ -331,7 +331,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <button
                     type="submit"
                     disabled={formLoading}
-                    className="w-full py-3.5 bg-tea-gold text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+                    className="w-full py-3.5 bg-tea-gold text-tea-paper font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -422,7 +422,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <button
                     type="submit"
                     disabled={formLoading}
-                    className="w-full py-3.5 bg-tea-gold text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+                    className="w-full py-3.5 bg-tea-gold text-tea-paper font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -585,7 +585,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div className="space-y-3 animate-[fadeIn_0.3s_ease-out]">
                     <button
                       onClick={() => setPanelView('signin')}
-                      className="w-full py-3.5 bg-tea-gold text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors flex justify-center items-center gap-2"
+                      className="w-full py-3.5 bg-tea-gold text-tea-paper font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors flex justify-center items-center gap-2"
                     >
                       <Icons.LogIn className="w-4 h-4" />
                       Sign In
@@ -750,7 +750,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                             onClick={() => setCurrency(opt.code)}
                             className={`px-2.5 py-1.5 text-[11px] uppercase tracking-wider border transition-colors ${
                               currency === opt.code
-                                ? 'bg-tea-gold text-white border-tea-gold'
+                                ? 'bg-tea-gold text-tea-paper border-tea-gold'
                                 : 'border-tea-border  text-tea-text/60 /50 hover:border-tea-gold/30'
                             }`}
                           >

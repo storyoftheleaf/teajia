@@ -48,7 +48,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
             <svg
               width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              className="text-white opacity-0 group-hover/thumb:opacity-90 transition-opacity duration-200 drop-shadow-lg"
+              className="text-tea-paper opacity-0 group-hover/thumb:opacity-90 transition-opacity duration-200 drop-shadow-lg"
             >
               <polyline points="15 3 21 3 21 9" />
               <polyline points="9 21 3 21 3 15" />
@@ -59,7 +59,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
         </>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-tea-text">
-          <span className="text-white/20 text-[8px]">—</span>
+          <span className="text-tea-paper/20 text-[8px]">—</span>
         </div>
       )}
     </div>

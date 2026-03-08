@@ -75,18 +75,18 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
       onMouseDown={(e) => e.preventDefault()}
     >
         <div className="flex gap-1 border-r border-white/10 pr-2 mr-1">
-            <button onClick={() => onFormat('font', 'font-serif')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white" title="Serif"><span className="font-serif text-sm">S</span></button>
-            <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white" title="Sans"><span className="font-sans text-sm">S</span></button>
-            <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white" title="Mono"><span className="font-mono text-sm">M</span></button>
+            <button onClick={() => onFormat('font', 'font-serif')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Serif"><span className="font-serif text-sm">S</span></button>
+            <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Sans"><span className="font-sans text-sm">S</span></button>
+            <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Mono"><span className="font-mono text-sm">M</span></button>
         </div>
         <div className="flex gap-1 border-r border-white/10 pr-2 mr-1">
-            <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white font-bold text-sm">B</button>
-            <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white italic font-serif text-sm">I</button>
+            <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper font-bold text-sm">B</button>
+            <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper italic font-serif text-sm">I</button>
         </div>
         <div className="flex gap-1">
-             <button onClick={() => onFormat('size', 'text-2xl')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white text-xs">S</button>
-             <button onClick={() => onFormat('size', 'text-4xl')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white text-sm">M</button>
-             <button onClick={() => onFormat('size', 'text-6xl')} className="p-2 hover:bg-white/10 rounded-sm text-white/70 hover:text-white text-base">L</button>
+             <button onClick={() => onFormat('size', 'text-2xl')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-xs">S</button>
+             <button onClick={() => onFormat('size', 'text-4xl')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-sm">M</button>
+             <button onClick={() => onFormat('size', 'text-6xl')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-base">L</button>
         </div>
     </div>,
     document.body
@@ -195,7 +195,7 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
       {/* Edit overlay for editable mode */}
       {onImageUpdate && !readOnly && (
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30">
-          <Icons.Camera className="w-10 h-10 text-white" />
+          <Icons.Camera className="w-10 h-10 text-tea-paper" />
           <input
             type="file"
             ref={fileInputRef}
@@ -340,7 +340,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     const theme = {
       bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
       text: isDarkText ? 'text-tea-text' : 'text-tea-bg',
-      subtext: isDarkText ? 'text-tea-text/60' : 'text-white/60',
+      subtext: isDarkText ? 'text-tea-text/60' : 'text-tea-paper/60',
       border: isDarkText ? 'border-tea-text/10' : 'border-white/10',
       softBg: isDarkText ? 'bg-tea-text/5' : 'bg-white/5',
       seal: 'text-tea-gold',
@@ -364,7 +364,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     return (
       <div key={page.index} className="w-full h-full relative group/page overflow-hidden">
         <style>{ANIMATION_STYLES}</style>
-        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-[60] p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white border border-white/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
+        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-[60] p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-tea-paper border border-white/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
         <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.05] mix-blend-overlay"><div className="w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div></div>
 
         {(() => {
@@ -381,7 +381,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         </div>
                         <div className="relative z-20 pb-8">
                             <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-8xl font-serif tracking-tight leading-[0.9] mb-6 text-tea-bg" placeholder="Title" tag="h1" readOnly={readOnly} />
-                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-white/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-4xl italic font-serif text-tea-paper/80" placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -501,7 +501,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute bottom-0 left-0 w-full p-12 pt-32 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none">
-                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-white/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
+                            <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-2xl uppercase tracking-widest text-tea-paper/90" placeholder="Caption" tag="span" readOnly={readOnly} /></div>
                         </div>
                     </div>
                 );
@@ -512,7 +512,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                          <div className="absolute inset-0 bg-black/30 z-10"></div>
                          <div className="absolute inset-0 z-20 flex items-center justify-center p-12 text-center pointer-events-none">
                               <div className={`bg-black/40 backdrop-blur-md p-16 border border-white/20 ${readOnly ? '' : 'pointer-events-auto'}`}>
-                                  <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-7xl font-serif text-white tracking-wide leading-tight" placeholder="Title Overlay" tag="h2" readOnly={readOnly} />
+                                  <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-7xl font-serif text-tea-paper tracking-wide leading-tight" placeholder="Title Overlay" tag="h2" readOnly={readOnly} />
                               </div>
                          </div>
                     </div>

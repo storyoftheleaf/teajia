@@ -173,9 +173,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                      <div className="w-6 h-6 bg-tea-bg rounded-[1px] flex items-center justify-center">
                         <span className="text-tea-text font-serif font-bold text-xs mt-0.5">T</span>
                      </div>
-                     <span className="text-white text-xs tracking-[0.3em] font-serif">TEAJIA</span>
+                     <span className="text-tea-paper text-xs tracking-[0.3em] font-serif">TEAJIA</span>
                   </div>
-                  <p className="text-[10px] text-white/40 font-mono tracking-widest">JOURNAL OF TEA</p>
+                  <p className="text-[10px] text-tea-paper/40 font-mono tracking-widest">JOURNAL OF TEA</p>
               </div>
           </div>
       </div>
@@ -191,11 +191,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         {/* Header with Logo */}
         <div className="h-12 bg-tea-text border-b border-white/10 flex items-center px-4 justify-between">
           <LogoEmblem size={20} ariaLabel="Teajia" className="opacity-70 hover:opacity-90 transition-opacity" />
-          <span className="flex-1 text-center text-white/80 text-xs uppercase tracking-wider font-semibold">Share</span>
+          <span className="flex-1 text-center text-tea-paper/80 text-xs uppercase tracking-wider font-semibold">Share</span>
           {/* Close */}
           <button
             onClick={onClose}
-            className="p-1 text-white/50 hover:text-white transition-colors"
+            className="p-1 text-tea-paper/50 hover:text-tea-paper transition-colors"
           >
             <Icons.Close className="w-5 h-5" />
           </button>
@@ -248,7 +248,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
            {/* 1. Native Share / Mobile Priority */}
            <button 
              onClick={handleNativeShare}
-             className="w-full py-3.5 bg-tea-bg text-white flex items-center justify-center gap-3 hover:bg-tea-elevated transition-colors shadow-lg group"
+             className="w-full py-3.5 bg-tea-bg text-tea-paper flex items-center justify-center gap-3 hover:bg-tea-elevated transition-colors shadow-lg group"
            >
              <Icons.Share className="w-4 h-4 group-hover:scale-110 transition-transform" />
              <span className="text-xs uppercase tracking-widest">Share</span>

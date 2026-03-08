@@ -68,7 +68,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             className={`transition-all duration-300 flex-shrink-0 ${
               isActive
                 ? 'text-tea-gold w-5 h-5 scale-110 origin-center'
-                : 'text-tea-text-dim w-5 h-5 group-hover:text-tea-text-sec'
+                : 'text-tea-paper/60 w-5 h-5 group-hover:text-tea-paper/85'
             }`}
             strokeWidth={2}
             {...(isActive ? { fill: 'currentColor' } : {})}
@@ -79,7 +79,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
         {/* Label */}
         <span className={`text-[10px] font-sans uppercase tracking-widest font-medium mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
-          isActive ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text-sec'
+          isActive ? 'text-tea-gold' : 'text-tea-paper/60 group-hover:text-tea-paper/85'
         }`}>
           {section.label}
         </span>
@@ -146,7 +146,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               >
                 <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center">
                   <Icons.User
-                    className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text-sec transition-all duration-300"
+                    className="text-tea-paper/60 w-5 h-5 group-hover:text-tea-paper/85 transition-all duration-300"
                     strokeWidth={2}
                   />
                   {auth.isAdmin && (

@@ -262,7 +262,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                           <div className="flex-1 min-w-0 flex items-center justify-between">
                                               <div className="flex flex-col justify-center">
                                                   <div className="flex items-center gap-2">
-                                                      <h3 className={`font-serif text-lg md:text-xl leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text group-hover:text-tea-text/90 dark:group-hover:text-white/90'}`}>{item.name}</h3>
+                                                      <h3 className={`font-serif text-lg md:text-xl leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text group-hover:text-tea-text/90 dark:group-hover:text-tea-paper/90'}`}>{item.name}</h3>
                                                   </div>
                                                   <div className="text-[10px] md:text-[11px] uppercase tracking-wider text-tea-text/60 mt-1 truncate flex items-center gap-2">
                                                        <span className={`font-medium ${isExpanded ? 'text-tea-gold' : ''}`}>{item.variant}</span>

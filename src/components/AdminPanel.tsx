@@ -75,15 +75,15 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                 </button>
 
                 <div className="flex bg-tea-bg rounded-[1px] p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-white shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>
                         {isMedia ? 'Poster' : 'Canvas'}
                     </button>
-                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'META' ? 'bg-tea-gold text-white shadow-sm' : 'text-white/80 hover:text-white'}`}>Meta</button>
+                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>Meta</button>
                 </div>
 
                 <button 
                     onClick={() => onSave(currentStory, pages)} 
-                    className="flex items-center gap-2 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-white rounded-sm text-xs uppercase tracking-widest transition-colors shadow-lg"
+                    className="flex items-center gap-2 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-widest transition-colors shadow-lg"
                 >
                     <Icons.Check className="w-4 h-4" />
                     <span className="hidden md:inline">Save</span>
@@ -142,7 +142,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         {!isMedia && (
                             <button
                                 onClick={() => setShowTemplateModal(true)}
-                                className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-white rounded-sm text-xs uppercase tracking-widest font-medium transition-colors z-50 shadow-lg"
+                                className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-widest font-medium transition-colors z-50 shadow-lg"
                             >
                                 Choose Template
                             </button>
@@ -422,7 +422,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                     <p className="text-white/60 text-sm">No templates found matching "{templateSearch}"</p>
                                     <button
                                         onClick={() => setTemplateSearch('')}
-                                        className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest rounded-sm transition-colors"
+                                        className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-widest rounded-sm transition-colors"
                                     >
                                         Clear Search
                                     </button>
@@ -747,7 +747,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             >
                                 <Icons.Download className="w-4 h-4" />
                             </button>
-                            <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-white text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                            <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                                 <Icons.Plus className="w-4 h-4" /> New Article
                             </button>
                         </div>
@@ -781,7 +781,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <h2 className="text-2xl font-serif text-tea-text mb-1">Media Vault</h2>
                             <p className="text-white/80 text-xs uppercase tracking-wider">Reels, Films & Audio for future release</p>
                         </div>
-                        <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-white text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                        <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                             <Icons.Plus className="w-4 h-4" /> New Media
                         </button>
                     </div>
@@ -866,7 +866,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 onChange={handleImportInventory}
                                 className="hidden"
                             />
-                            <button onClick={handleInventoryCreate} className="px-4 py-1 bg-tea-gold text-white text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                            <button onClick={handleInventoryCreate} className="px-4 py-1 bg-tea-gold text-tea-paper text-xs uppercase tracking-widest hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                                 <Icons.Plus className="w-3 h-3" /> Add Item
                             </button>
                         </div>
@@ -956,7 +956,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 <h3 className="text-lg font-serif text-white mb-2">Shopping Cart</h3>
                                 <p className="text-white/80 text-sm">Manage your product selections and generate orders</p>
                             </div>
-                            <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2">
+                            <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-widest rounded-sm transition-colors flex items-center gap-2">
                                 <Icons.Bag className="w-4 h-4" />
                                 View Cart
                             </a>
