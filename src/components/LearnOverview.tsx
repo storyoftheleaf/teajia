@@ -360,9 +360,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel>Go Deeper</SectionLabel>
 
-        {/* Next module — minimal, premium */}
+        {/* Next module card — visual weight with restraint */}
         {(() => {
           const nextModule = LEARN_CURRICULUM.find(m => !moduleCompletion[m.id]) || LEARN_CURRICULUM[0];
+          const nextIndex = LEARN_CURRICULUM.indexOf(nextModule);
           const completedLessons = nextModule.lessons.filter(l => watchedStories[l.id]).length;
           const hasStarted = completedLessons > 0;
           const completedCount = LEARN_CURRICULUM.filter(m => moduleCompletion[m.id]).length;
@@ -371,32 +372,53 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onStoryClick(getModuleTarget(nextModule))}
               className={`w-full text-left group ${CTA_FOCUS}`}
             >
-              <div className="py-6 md:py-8 border-t border-b border-tea-ink/8 dark:border-white/8">
-                {/* Title row with arrow */}
-                <div className="flex items-baseline justify-between gap-4 mb-3">
-                  <h3 className="font-serif text-2xl md:text-3xl text-tea-ink dark:text-tea-paper leading-tight tracking-tight group-hover:text-tea-seal transition-colors">
-                    {nextModule.title}
-                  </h3>
-                  <Icons.ChevronRight className="w-5 h-5 text-tea-seal/40 group-hover:text-tea-seal group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
-                </div>
+              <CardContainer variant="dark">
+                <div className="relative overflow-hidden">
+                  {/* Large module number — visual anchor, not data */}
+                  <div className="absolute -top-4 -right-2 md:right-4 pointer-events-none select-none" aria-hidden="true">
+                    <span className="text-[140px] md:text-[180px] font-serif text-tea-seal/[0.04] leading-none">
+                      {String(nextIndex + 1).padStart(2, '0')}
+                    </span>
+                  </div>
 
-                {/* Single line of metadata */}
-                <div className="flex items-center gap-2 text-[11px] font-sans text-tea-ink/35 dark:text-tea-paper/35">
-                  <span>{nextModule.lessons.length} lessons</span>
-                  <span>&middot;</span>
-                  {hasStarted ? (
-                    <span className="text-tea-seal/70">{completedLessons}/{nextModule.lessons.length} complete</span>
-                  ) : (
-                    <span className="text-tea-seal/50">{hasStarted ? 'Continue' : 'Up next'}</span>
-                  )}
-                  {completedCount > 0 && (
-                    <>
-                      <span>&middot;</span>
-                      <span>{completedCount}/{counts.courses} modules done</span>
-                    </>
-                  )}
+                  {/* Warm corner glow */}
+                  <div className="absolute inset-0 pointer-events-none" style={{
+                    backgroundImage: `radial-gradient(ellipse at 0% 100%, rgba(201,148,58,0.07) 0%, transparent 50%)`
+                  }} />
+
+                  <div className="relative p-7 md:p-10 flex flex-col justify-between min-h-[180px] md:min-h-[220px]">
+                    {/* Top: title */}
+                    <div>
+                      <h3 className="font-serif text-2xl md:text-3xl text-tea-paper leading-tight tracking-tight group-hover:text-tea-seal transition-colors max-w-[70%]">
+                        {nextModule.title}
+                      </h3>
+                    </div>
+
+                    {/* Bottom: metadata + CTA on one line */}
+                    <div className="flex items-center justify-between gap-4 pt-4">
+                      <div className="flex items-center gap-2.5 text-[11px] font-sans text-tea-paper/30">
+                        <span>{nextModule.lessons.length} lessons</span>
+                        {hasStarted && (
+                          <>
+                            <span className="text-tea-paper/15">&middot;</span>
+                            <span className="text-tea-seal/60">{completedLessons}/{nextModule.lessons.length}</span>
+                          </>
+                        )}
+                        {completedCount > 0 && (
+                          <>
+                            <span className="text-tea-paper/15">&middot;</span>
+                            <span>{completedCount}/{counts.courses} modules</span>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-tea-seal text-xs font-sans flex items-center gap-1 group-hover:gap-2 transition-all flex-shrink-0">
+                        {hasStarted ? 'Continue' : 'Begin'}
+                        <Icons.ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </CardContainer>
             </button>
           );
         })()}
@@ -404,7 +426,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         {/* See all curriculum */}
         <button
           onClick={() => onNavigateTo('course')}
-          className={`mt-4 text-tea-seal/60 hover:text-tea-seal text-[11px] font-sans flex items-center gap-1 transition-colors ${CTA_FOCUS}`}
+          className={`mt-5 text-tea-seal/50 hover:text-tea-seal text-[11px] font-sans flex items-center gap-1 transition-colors ${CTA_FOCUS}`}
         >
           All {counts.courses} modules <Icons.ChevronRight className="w-3.5 h-3.5" />
         </button>
