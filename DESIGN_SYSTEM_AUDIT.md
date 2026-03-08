@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This audit identified **154 specific design system inconsistencies** across the Teajia unified application. The issues fall into 14 categories: triple-config drift, spacing, typography scale, font weight/line-height, color/opacity, border radius, shadows, transitions/animations, icon sizing, button styles, heading hierarchy, z-index chaos, missing token scales, and mixed units. Each finding includes the exact file, line number, and problematic value.
+This audit identified **169 specific design system inconsistencies** across the Teajia unified application. The issues fall into 17 categories: triple-config drift, spacing, typography scale, font weight/line-height, color/opacity, border radius, shadows, transitions/animations, icon sizing, button styles, heading hierarchy, z-index chaos, missing token scales, mixed units, hardcoded hex values, and layout/navigation. Each finding includes the exact file, line number, and problematic value.
 
 ### The Biggest Structural Problem
 
@@ -310,6 +310,49 @@ Colors used in components that exist in no config or token file.
 
 ---
 
+## 17. LAYOUT & NAVIGATION INCONSISTENCIES (15 findings)
+
+### 17.1 Sidebar Width / Content Margin Mismatch
+| # | File | Line | Issue |
+|---|------|------|-------|
+| 155 | `App.tsx` | 335 | Main content uses `lg:ml-20 xl:ml-56` — matches sidebar `w-20 xl:w-56`, but there's no `md:` state. At `md` breakpoint, content has no left margin but sidebar may be partially visible |
+| 156 | `components/LeftSidebar.tsx` | 44 | Sidebar `w-20 xl:w-56` jumps from 80px to 224px with no intermediate `lg:` width — jarring 144px jump |
+| 157 | `admin/components/Sidebar.tsx` | 120 | Admin sidebar hardcoded `w-64` (256px) — 32px wider than public sidebar's max (`xl:w-56` = 224px), no responsive scaling |
+
+### 17.2 Touch Target Violations
+| # | File | Line | Issue |
+|---|------|------|-------|
+| 158 | `components/shared/PageHeader.tsx` | 48-50 | Back button `min-h-[36px]` — 8px below the 44px WCAG touch target minimum |
+| 159 | `components/LeftSidebar.tsx` | 78,125 | Nav items `min-h-[56px]` but admin nav items `min-h-[48px]` — 8px difference for same-type elements |
+| 160 | `components/LeftSidebar.tsx` | 78,125 | No `min-width` set on icon-only nav buttons — could shrink below touch target |
+
+### 17.3 Backdrop/Glass Effect Mismatch
+| # | File | Line | Issue |
+|---|------|------|-------|
+| 161 | `components/shared/PageHeader.tsx` | 42 | Header: `backdrop-blur-xl backdrop-saturate-150` — saturate effect not used anywhere else |
+| 162 | `components/BottomTabBar.tsx` | 109 | Bottom nav: `backdrop-blur-xl` only (no saturate) — different glass effect than header |
+| 163 | `components/CartDrawer.tsx` | 247 | Cart backdrop: `backdrop-blur-sm` — weakest blur, visually inconsistent with header/nav `blur-xl` |
+
+### 17.4 Background Opacity Asymmetry
+| # | File | Line | Issue |
+|---|------|------|-------|
+| 164 | `components/shared/PageHeader.tsx` | 42 | Light: `bg-white/70`, Dark: `bg-[#1a1a1a]/80` — 10% opacity difference between modes |
+| 165 | `components/BottomTabBar.tsx` | 109 | Light: `bg-[#FFFDF5]/80` — hardcoded off-white hex not in tokens (not `tea-paper`), Dark: `bg-tea-ink/80` |
+
+### 17.5 Focus State Gaps
+| # | File | Line | Issue |
+|---|------|------|-------|
+| 166 | `components/shared/PageHeader.tsx` | 48-51 | Back button has **no** `focus-visible` styling at all — keyboard users get no visual feedback |
+| 167 | `components/shared/CategoryPills.tsx` | 27 | Uses `focus-visible:ring-2 ring-tea-seal/50` — different pattern from Button.tsx which uses `outline-2 + ring-4 ring-tea-seal/20` |
+
+### 17.6 Scrollbar Class Duplication
+| # | File | Line | Issue |
+|---|------|------|-------|
+| 168 | `components/LeftSidebar.tsx` vs `components/shared/CategoryPills.tsx` | Various | Two different classes for same effect: `no-scrollbar` (from index.html) vs `hide-scrollbar` (from card-utilities.css) — should use one |
+| 169 | `App.tsx` | 420 | Footer has `max-w-[1400px]` but main content at line 337 has **no** max-width constraint — on ultra-wide displays, content expands infinitely while footer is capped |
+
+---
+
 ## Priority Recommendations
 
 ### P0 — Architectural (fix first, everything else depends on this)
@@ -342,8 +385,17 @@ Colors used in components that exist in no config or token file.
 21. **Register all loaded fonts** — add Playfair Display, Fraunces, Bricolage Grotesque, JetBrains Mono, Ma Shan Zheng to fontFamily config
 22. **Add letterSpacing tokens** — define `tight`, `normal`, `wide`, `wider`, `widest` and convert the 6+ arbitrary values
 
+### P3.5 — Medium-High (accessibility & layout)
+23. **Fix touch target violations** — Back button at 36px is below WCAG 44px minimum. Nav items vary 48-56px for same element type.
+24. **Unify backdrop/glass effects** — Header uses `saturate-150` that nothing else does. CartDrawer uses `blur-sm` while header/nav use `blur-xl`. Pick one standard.
+25. **Add missing focus-visible styles** — PageHeader back button has zero keyboard focus styling. CategoryPills uses a different focus pattern than Button.tsx.
+26. **Fix sidebar width jump** — LeftSidebar jumps 144px (80px → 224px) between `lg` and `xl` with no intermediate step.
+27. **Add max-width to main content** — Footer has `max-w-[1400px]` but main content has none — they diverge on ultra-wide displays.
+28. **Consolidate scrollbar-hiding classes** — `no-scrollbar` and `hide-scrollbar` do the same thing. Pick one.
+29. **Fix background opacity asymmetry** — PageHeader light mode 70% vs dark mode 80%; BottomTabBar uses hardcoded `#FFFDF5` not in tokens.
+
 ### P4 — Low (refinement)
-23. **Rationalize `tea-ink-light` and `tea-ink-secondary`** — both are `#555555`, pick one name
-24. **Delete unused `typography` presets** or actually wire them into a utility — currently dead code in designTokens
-25. **Fix line-height inconsistency** — body `1.625`, p `1.7`, card title `1.25`, article `1.85` — map to the lineHeight tokens already defined
-26. **Convert inline `letter-spacing: 0.2px`** to `em` to match rest of system
+30. **Rationalize `tea-ink-light` and `tea-ink-secondary`** — both are `#555555`, pick one name
+31. **Delete unused `typography` presets** or actually wire them into a utility — currently dead code in designTokens
+32. **Fix line-height inconsistency** — body `1.625`, p `1.7`, card title `1.25`, article `1.85` — map to the lineHeight tokens already defined
+33. **Convert inline `letter-spacing: 0.2px`** to `em` to match rest of system
