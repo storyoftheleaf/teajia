@@ -418,12 +418,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                             >
                                 <div className="flex items-center py-3 lg:py-4 px-2 gap-4 lg:gap-6 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
 
-                                    {/* 1. Thumbnail — larger on desktop */}
-                                    <CardThumbnail
-                                        src={item.image}
-                                        alt={item.name}
+                                    {/* 1. Details button — opens AlcoveCard */}
+                                    <button
                                         onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                    />
+                                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full border border-tea-ink/10 dark:border-white/10 text-tea-ink/40 dark:text-tea-paper/40 hover:border-tea-seal/30 hover:text-tea-seal active:text-tea-seal active:border-tea-seal/40 transition-colors"
+                                        aria-label={`View details for ${item.name}`}
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                    </button>
 
                                     {/* 2. Row content */}
                                     <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -463,7 +467,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
                                 {/* --- Expanded Content --- */}
                                 <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="pl-20 pr-2 pb-3 pt-0">
+                                    <div className="pl-12 pr-2 pb-3 pt-0">
 
                                         <p className="font-serif text-sm text-tea-ink/80 dark:text-tea-paper/80 mb-3 leading-relaxed max-w-2xl">
                                             {item.description}
