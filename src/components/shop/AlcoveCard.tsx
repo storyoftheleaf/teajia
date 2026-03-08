@@ -36,7 +36,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [storyExpanded, setStoryExpanded] = useState(false);
-  const [imageExpanded, setImageExpanded] = useState(false);
 
   const sliderMin = 25;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -174,6 +173,101 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         overflow: "hidden",
       }}>
 
+        {/* Story expanded overlay — covers entire content area down to slider */}
+        {storyExpanded && story && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 20,
+            background: alcoveColors.bg,
+            display: "flex", flexDirection: "column",
+            animation: "panelReveal 0.3s ease-out",
+          }}>
+            {/* Noise texture */}
+            <div style={{
+              position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.06,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+              backgroundSize: "120px",
+            }} />
+            <div className="tea-card-scroll" style={{
+              flex: 1, overflowY: "auto",
+              padding: "20px 18px",
+              position: "relative",
+            }}>
+              <p style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "9px", fontWeight: 500,
+                letterSpacing: "0.12em", textTransform: "uppercase",
+                color: alcoveColors.subtitle, margin: "0 0 10px 0",
+                opacity: 0.6,
+              }}>
+                {productName}
+              </p>
+              {magazineUrl ? (
+                <a
+                  href={magazineUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onMouseEnter={() => setHovered("magazine")}
+                  onMouseLeave={() => setHovered(null)}
+                  style={{ textDecoration: "none" }}
+                >
+                  <p style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "17px", fontWeight: 300, lineHeight: 1.7,
+                    color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                    margin: 0, transition: "color 0.2s ease",
+                  }}>
+                    {story}
+                  </p>
+                </a>
+              ) : (
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "17px", fontWeight: 300, lineHeight: 1.7,
+                  color: alcoveColors.body, margin: 0,
+                }}>
+                  {story}
+                </p>
+              )}
+              {feelingDescription && (
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                  color: alcoveColors.subtitle, margin: "16px 0 0 0",
+                  lineHeight: 1.6,
+                }}>
+                  {feelingDescription}
+                </p>
+              )}
+            </div>
+            {/* Collapse button at bottom */}
+            <button
+              onClick={() => setStoryExpanded(false)}
+              onMouseEnter={() => setHovered("expand")}
+              onMouseLeave={() => setHovered(null)}
+              style={{
+                position: "absolute",
+                bottom: "8px", right: "10px", zIndex: 10,
+                width: "26px", height: "26px",
+                background: "rgba(184,146,78,0.08)",
+                border: `1px solid rgba(184,146,78,${hovered === "expand" ? 0.2 : 0.08})`,
+                borderRadius: "3px",
+                cursor: "pointer", padding: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                opacity: hovered === "expand" ? 1 : 0.65,
+                transition: "all 0.2s ease",
+              }}
+            >
+              <svg
+                width="11" height="11" viewBox="0 0 24 24" fill="none"
+                stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: "rotate(180deg)" }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Block 1: Identity — tighter top */}
         {chineseCharacters && (
           <div style={{
@@ -210,7 +304,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
               fontSize: "9px", fontWeight: 500,
               letterSpacing: "0.12em", textTransform: "uppercase",
-              color: accent, margin: "5px 0 0 0",
+              color: accent, margin: "1px 0 0 0",
               opacity: 0.85,
             }}>
               Recommended
@@ -260,69 +354,42 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story — always visible, expands in place */}
+          {/* Story peek — clamped, chevron opens full-page overlay */}
           {story && (
             <div style={{
               position: "relative",
               borderBottom: "1px solid rgba(200,170,120,0.08)",
-              flexShrink: storyExpanded ? 0 : undefined,
             }}>
-              <div
-                className="tea-card-scroll"
-                style={{
-                  maxHeight: storyExpanded ? "none" : "110px",
-                  overflowY: storyExpanded ? "auto" : "hidden",
-                  padding: "10px 14px",
-                  transition: "max-height 0.4s ease",
-                }}
-              >
-                {magazineUrl ? (
-                  <a
-                    href={magazineUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onMouseEnter={() => setHovered("magazine")}
-                    onMouseLeave={() => setHovered(null)}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <p style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "16px", fontWeight: 300, lineHeight: 1.6,
-                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                      margin: 0, transition: "color 0.2s ease",
-                    }}>
-                      {story}
-                    </p>
-                  </a>
-                ) : (
-                  <p style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "16px", fontWeight: 300, lineHeight: 1.6,
-                    color: alcoveColors.body, margin: 0,
-                  }}>
-                    {story}
-                  </p>
-                )}
+              <div style={{
+                maxHeight: "110px",
+                overflow: "hidden",
+                padding: "10px 14px",
+              }}>
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "16px", fontWeight: 300, lineHeight: 1.6,
+                  color: alcoveColors.body, margin: 0,
+                }}>
+                  {story}
+                </p>
               </div>
-              {/* Bottom fade when collapsed */}
-              {!storyExpanded && (
-                <div style={{
-                  position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
-                  background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                  pointerEvents: "none",
-                }} />
-              )}
-              {/* Expand/collapse chevron — absolute, no layout impact */}
+              {/* Bottom fade */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
+                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none",
+              }} />
+              {/* Expand chevron — opens full overlay */}
               <button
-                onClick={() => setStoryExpanded(prev => !prev)}
+                onClick={() => setStoryExpanded(true)}
                 onMouseEnter={() => setHovered("expand")}
                 onMouseLeave={() => setHovered(null)}
-                aria-label={storyExpanded ? "Show less" : "Read more"}
+                aria-label="Read more"
                 style={{
                   position: "absolute",
                   bottom: "4px", right: "6px", zIndex: 10,
                   width: "24px", height: "24px",
-                  background: storyExpanded ? "rgba(184,146,78,0.1)" : "rgba(0,0,0,0.4)",
+                  background: "rgba(0,0,0,0.4)",
                   border: `1px solid rgba(184,146,78,${hovered === "expand" ? 0.2 : 0.08})`,
                   borderRadius: "3px",
                   cursor: "pointer", padding: 0,
@@ -331,14 +398,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   transition: "all 0.2s ease",
                 }}
               >
-                <svg
-                  width="11" height="11" viewBox="0 0 24 24" fill="none"
-                  stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  style={{
-                    transition: "transform 0.3s ease",
-                    transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  }}
-                >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                  stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
@@ -353,44 +414,27 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             overflow: "hidden",
             flexShrink: 0,
           }}>
-            {/* Photo behind notes */}
+            {/* Photo behind notes — decorative only, no expand */}
             {photoUrl && (
               <div
-                onClick={() => setImageExpanded(true)}
                 style={{
                   position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
-                  overflow: "hidden", cursor: "pointer",
+                  overflow: "hidden", pointerEvents: "none",
                 }}
               >
                 <img
                   src={photoUrl}
-                  alt="Tea leaves"
+                  alt=""
                   style={{
                     width: "100%", height: "100%",
                     objectFit: "cover", objectPosition: "center right",
                     transform: "scale(1.05)",
-                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
                     WebkitMaskComposite: "destination-in",
-                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
                     maskComposite: "intersect",
                   }}
                 />
-                {/* Expand icon hint */}
-                <div style={{
-                  position: "absolute", bottom: "6px", right: "6px",
-                  width: "24px", height: "24px",
-                  background: "rgba(0,0,0,0.45)", borderRadius: "3px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: 0.6,
-                }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                    stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 3 21 3 21 9" />
-                    <polyline points="9 21 3 21 3 15" />
-                    <line x1="21" y1="3" x2="14" y2="10" />
-                    <line x1="3" y1="21" x2="10" y2="14" />
-                  </svg>
-                </div>
               </div>
             )}
 
@@ -645,43 +689,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         </div>
       </div>
 
-      {/* Fullscreen image overlay */}
-      {imageExpanded && photoUrl && (
-        <div
-          onClick={() => setImageExpanded(false)}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.92)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src={photoUrl}
-            alt={item.name}
-            style={{
-              maxWidth: "90vw", maxHeight: "90vh",
-              objectFit: "contain",
-              borderRadius: "4px",
-            }}
-          />
-          <button
-            style={{
-              position: "absolute", top: "16px", right: "16px",
-              width: "36px", height: "36px",
-              background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
   );
 };
