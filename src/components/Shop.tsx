@@ -94,7 +94,7 @@ export const Shop: React.FC<ShopProps> = ({
   );
 
   const renderSets = () => (
-    <div className="max-w-full mx-auto px-2 md:px-4 pt-4 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 opacity-40">
           <div className="w-16 h-16 border border-tea-ink/20 dark:border-tea-paper/20 rounded-full flex items-center justify-center mb-4">

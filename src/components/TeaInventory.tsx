@@ -8,6 +8,7 @@ import { CardGridItem } from './shared/CardGridItem';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { PageHeaderActions } from './shared/PageHeaderActions';
+import { ShopGridLayout } from './shared/ShopGridLayout';
 
 import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
@@ -253,7 +254,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         </PageHeader>
       ) : (
         /* Compact toolbar when embedded as a tab (hideHeader) */
-        <div className="flex items-center justify-between px-4 py-2 lg:hidden">
+        <div className="flex items-center justify-between px-3 md:px-4 lg:px-6 py-2 lg:hidden">
           <PageHeaderActions
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -301,7 +302,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Desktop: Sidebar + Content / Mobile: Full Width --- */}
-      <div className="max-w-full mx-auto px-2 md:px-4 pt-4 lg:flex lg:gap-8">
+      <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 lg:flex lg:gap-8">
          {/* Desktop persistent filter sidebar */}
          <div className="hidden lg:block w-56 shrink-0">
             <div className="sticky top-24 space-y-6">
@@ -334,7 +335,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* Main content area */}
          <div className="flex-1 min-w-0">
          {/* Results Count */}
-         <div className="flex items-center justify-between mb-4 px-2">
+         <div className="flex items-center justify-between mb-4 px-0">
             <p className="text-xs uppercase tracking-widest text-tea-ink/50 dark:text-tea-paper/50">
                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
                {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
@@ -363,7 +364,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {/* GRID VIEW - Optimized for tablets */}
          {viewMode === 'GRID' && filteredInventory.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 md:gap-x-5 lg:gap-x-6 gap-y-6 animate-[fadeIn_0.5s_ease-out]">
+            <ShopGridLayout className="xl:grid-cols-5">
                {filteredInventory.map(item => (
                   <CardGridItem
                      key={item.id}
@@ -382,7 +383,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                      }
                   />
                ))}
-            </div>
+            </ShopGridLayout>
          )}
 
          {/* LIST VIEW */}
@@ -472,7 +473,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </p>
 
                                         {/* Controls */}
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-2 pr-3 border border-tea-ink/5 dark:border-white/5">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-3 pr-4 border border-tea-ink/5 dark:border-white/5">
 
                                             {/* Slider */}
                                             <div className="flex-1 flex items-center gap-3 px-2">

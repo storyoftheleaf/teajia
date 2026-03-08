@@ -4,6 +4,7 @@ import { Icons } from './Icons';
 import { PopupModal } from './shared/PopupModal';
 import { CardGridItem } from './shared/CardGridItem';
 import { CardImage } from './shared/CardImage';
+import { CardThumbnail } from './shared/CardThumbnail';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { ShopGridLayout } from './shared/ShopGridLayout';
@@ -138,7 +139,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       )}
 
       {/* --- CONTENT --- */}
-      <div className="max-w-full mx-auto px-2 md:px-4 pt-4">
+      <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4">
 
           {activeFilter !== 'all' && viewMode === 'GRID' && (
               <div className="mb-8 animate-[fadeIn_0.3s_ease-out]">
@@ -249,12 +250,11 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               return (
                                   <div key={item.id} className={`relative border-b border-tea-ink/5 dark:border-white/5 transition-colors duration-300 ${isExpanded ? 'bg-tea-ink/5 dark:bg-white/5' : 'hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02]'}`}>
                                       <div className="flex items-center py-3 px-2 gap-4 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
-                                          <div
-                                              className="w-12 h-12 shrink-0 rounded-[1px] overflow-hidden relative group/img z-20 bg-tea-ink/10 dark:bg-tea-ink border border-tea-ink/10 dark:border-white/10"
+                                          <CardThumbnail
+                                              src={item.image}
+                                              alt={item.name}
                                               onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                          >
-                                              <img src={item.image} className="w-full h-full object-cover opacity-80 group-hover/img:opacity-100 transition-opacity cursor-zoom-in" alt={item.name} loading="lazy" />
-                                          </div>
+                                          />
                                           <div className="flex-1 min-w-0 flex items-center justify-between">
                                               <div className="flex flex-col justify-center">
                                                   <div className="flex items-center gap-2">
@@ -276,7 +276,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                           </div>
                                       </div>
                                       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                          <div className="pl-16 pr-2 pb-6 pt-2">
+                                          <div className="pl-20 pr-2 pb-6 pt-2">
                                               <p className="font-serif text-sm md:text-base text-tea-ink/80 dark:text-tea-paper/80 mb-6 leading-relaxed max-w-3xl italic border-l-2 border-tea-ink/10 dark:border-white/10 pl-4">"{item.description}"</p>
                                               <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-3 pr-4 border border-tea-ink/5 dark:border-white/5">
                                                   <div className="flex items-center gap-4 px-2">
