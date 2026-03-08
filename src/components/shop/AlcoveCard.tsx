@@ -44,8 +44,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
   const presets = [25, 50, 100, 150, 300];
+  const sliderMin = 5;
+  const sliderMax = 500;
+  const sliderStep = 5;
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const total = fmtNum(pricePerGram * grams);
+  const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
   const noteOpacities = [1, 0.82, 0.65, 0.5];
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
@@ -427,15 +431,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         {/* Block 4: Commerce */}
         <div style={{ padding: "6px 20px 16px", marginTop: "auto", flexShrink: 0 }}>
 
-          {/* Price Tag: price + gram selector */}
+          {/* Price per gram + current selection */}
           <div style={{
-            display: "flex", alignItems: "center",
-            padding: "10px 14px",
+            display: "flex", alignItems: "baseline", justifyContent: "space-between",
+            padding: "8px 14px 4px",
             background: "rgba(200,170,120,0.03)",
-            borderRadius: "3px",
-            marginBottom: "8px",
+            borderRadius: "3px 3px 0 0",
           }}>
-            <div style={{ display: "flex", alignItems: "baseline", flexShrink: 0, marginRight: "auto" }}>
+            <div style={{ display: "flex", alignItems: "baseline" }}>
               <span style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                 fontSize: "15px", fontWeight: 300, color: alcoveColors.body,
@@ -449,56 +452,126 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 marginLeft: "2px",
               }}>/g</span>
             </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+              <span style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "20px", fontWeight: 300, color: alcoveColors.title,
+                lineHeight: 1,
+              }}>
+                {grams}
+              </span>
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "11px", fontWeight: 300, color: alcoveColors.subtitle,
+              }}>g</span>
+            </div>
+          </div>
 
-            <div style={{ display: "flex", gap: "2px", flexWrap: "wrap" }}>
-              {presets.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setGrams(g)}
-                  onMouseEnter={() => setHovered(`preset-${g}`)}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{
-                    fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                    fontSize: "11px",
-                    fontWeight: grams === g ? 500 : 300,
-                    padding: "6px 8px",
-                    border: "none", borderRadius: "2px",
-                    cursor: "pointer", transition: "all 0.2s ease",
-                    background: grams === g
-                      ? "rgba(200,170,120,0.15)"
-                      : hovered === `preset-${g}`
-                        ? "rgba(200,170,120,0.08)"
-                        : "transparent",
-                    color: grams === g
-                      ? alcoveColors.body
-                      : hovered === `preset-${g}`
-                        ? alcoveColors.muted
-                        : alcoveColors.subtitle,
-                  }}
-                >
-                  {g}<span style={{ fontSize: "8px", opacity: 0.6 }}>g</span>
-                </button>
-              ))}
+          {/* Slider */}
+          <div style={{
+            padding: "8px 14px 6px",
+            background: "rgba(200,170,120,0.03)",
+            position: "relative",
+          }}>
+            <div style={{ position: "relative", width: "100%", height: "26px", display: "flex", alignItems: "center" }}>
+              {/* Native range input — invisible but interactive */}
+              <input
+                type="range"
+                min={sliderMin}
+                max={sliderMax}
+                step={sliderStep}
+                value={grams}
+                onChange={(e) => {
+                  const newVal = parseInt(e.target.value);
+                  setGrams(newVal);
+                  if (navigator.vibrate && newVal !== grams) navigator.vibrate(8);
+                }}
+                aria-label={`Select quantity: ${grams}g`}
+                style={{
+                  position: "absolute", width: "100%", height: "100%",
+                  opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
+                }}
+              />
+              {/* Track background */}
+              <div style={{
+                width: "100%", height: "6px",
+                background: "rgba(200,170,120,0.1)",
+                borderRadius: "3px", overflow: "hidden",
+                position: "relative",
+              }}>
+                {/* Fill */}
+                <div style={{
+                  position: "absolute", height: "100%",
+                  width: `${sliderPercentage}%`,
+                  background: `linear-gradient(90deg, rgba(181,101,29,0.5), rgba(181,101,29,0.8))`,
+                  borderRadius: "3px",
+                  transition: "width 0.075s ease",
+                }} />
+              </div>
+              {/* Thumb */}
+              <div style={{
+                position: "absolute",
+                left: `calc(${sliderPercentage}% - 7px)`,
+                width: "14px", height: "14px",
+                borderRadius: "50%",
+                background: accent,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+                pointerEvents: "none", zIndex: 10,
+                transition: "left 0.075s ease",
+              }} />
+            </div>
+            {/* Min / max labels */}
+            <div style={{
+              display: "flex", justifyContent: "space-between",
+              padding: "2px 2px 0",
+            }}>
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "9px", fontWeight: 300, color: alcoveColors.mutedDark,
+              }}>{sliderMin}g</span>
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "9px", fontWeight: 300, color: alcoveColors.mutedDark,
+              }}>{sliderMax}g</span>
+            </div>
+          </div>
+
+          {/* Quick presets */}
+          <div style={{
+            display: "flex", gap: "2px", flexWrap: "wrap",
+            padding: "4px 14px 10px",
+            background: "rgba(200,170,120,0.03)",
+            borderRadius: "0 0 3px 3px",
+            marginBottom: "8px",
+          }}>
+            {presets.map((g) => (
               <button
-                onMouseEnter={() => setHovered("preset-other")}
+                key={g}
+                onClick={() => setGrams(g)}
+                onMouseEnter={() => setHovered(`preset-${g}`)}
                 onMouseLeave={() => setHovered(null)}
                 style={{
                   fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "11px", fontWeight: 300,
-                  padding: "6px 8px",
+                  fontSize: "11px",
+                  fontWeight: grams === g ? 500 : 300,
+                  padding: "5px 8px",
                   border: "none", borderRadius: "2px",
                   cursor: "pointer", transition: "all 0.2s ease",
-                  background: hovered === "preset-other"
-                    ? "rgba(200,170,120,0.08)"
-                    : "transparent",
-                  color: hovered === "preset-other"
-                    ? alcoveColors.muted
-                    : alcoveColors.subtitle,
+                  background: grams === g
+                    ? "rgba(200,170,120,0.15)"
+                    : hovered === `preset-${g}`
+                      ? "rgba(200,170,120,0.08)"
+                      : "transparent",
+                  color: grams === g
+                    ? alcoveColors.body
+                    : hovered === `preset-${g}`
+                      ? alcoveColors.muted
+                      : alcoveColors.subtitle,
                 }}
               >
-                Other
+                {g}<span style={{ fontSize: "8px", opacity: 0.6 }}>g</span>
               </button>
-            </div>
+            ))}
           </div>
 
           {/* Action row: Save/Share + Cart */}
