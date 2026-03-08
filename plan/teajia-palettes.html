@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeajiA Brand System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Jost', sans-serif; font-weight: 300; -webkit-font-smoothing: antialiased; transition: background-color 0.6s ease, color 0.6s ease; min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const colors = {
+  dark: {
+    bg: '#18130e', surface: '#28211a', elevated: '#3a3126', text: '#ede4d4',
+    textSec: '#b5a892', textDim: '#80735f', accent: '#b8924e', accentLt: '#d4ac66',
+    border: 'rgba(181,168,146,0.14)', accentSubtle: 'rgba(184,146,78,0.1)',
+  },
+  light: {
+    bg: '#f4ece0', surface: '#e6dbcc', elevated: '#d5c8b4', text: '#18130e',
+    textSec: '#5e5342', textDim: '#9a8c78', accent: '#8e6d2e', accentLt: '#a88340',
+    border: 'rgba(24,19,14,0.1)', accentSubtle: 'rgba(142,109,46,0.07)',
+  },
+};
+
+const type = {
+  display: { family: "'Vollkorn', serif", weight: 400 },
+  subtitle: { family: "'Spectral', serif", weight: 300, style: 'italic' },
+  body: { family: "'Spectral', serif", weight: 400 },
+  bodyLight: { family: "'Spectral', serif", weight: 300 },
+  label: { family: "'Jost', sans-serif", weight: 400 },
+  mono: { family: "'Space Mono', monospace", weight: 400 },
+};
+
+function App() {
+  const [mode, setMode] = useState('dark');
+  const c = colors[mode];
+
+  useEffect(() => {
+    document.body.style.backgroundColor = c.bg;
+    document.body.style.color = c.text;
+  }, [c]);
+
+  const Section = ({ label, children, noPad }) => (
+    <div style={{ marginBottom: 56 }}>
+      <div style={{
+        fontFamily: type.label.family, fontWeight: type.label.weight,
+        fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase',
+        color: c.textDim, marginBottom: noPad ? 12 : 20, transition: 'color 0.5s ease',
+      }}>{label}</div>
+      {children}
+    </div>
+  );
+
+  const Tag = ({ children, active }) => (
+    <span style={{
+      display: 'inline-block', fontFamily: type.label.family, fontWeight: type.label.weight,
+      fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', padding: '5px 14px',
+      borderRadius: 100, border: `1px solid ${active ? c.accent + '50' : c.border}`,
+      color: active ? c.accent : c.textSec, marginRight: 8, marginBottom: 8,
+      transition: 'all 0.5s ease',
+    }}>{children}</span>
+  );
+
+  const Link = ({ children }) => (
+    <span style={{
+      fontFamily: type.label.family, fontWeight: type.label.weight,
+      fontSize: 13, letterSpacing: 0.3, color: c.accent,
+      borderBottom: `1px solid ${c.accent}`, paddingBottom: 2,
+      transition: 'all 0.5s ease', cursor: 'default',
+    }}>{children}</span>
+  );
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px 120px' }}>
+
+      {/* Header */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 100, padding: '14px 0',
+        backgroundColor: c.bg + 'ee', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+        transition: 'background-color 0.6s ease', marginBottom: 48,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: c.accent, transition: 'background-color 0.4s ease' }} />
+          <span style={{ fontFamily: type.label.family, fontWeight: type.label.weight, fontSize: 11, letterSpacing: 2.5, textTransform: 'uppercase', color: c.textDim }}>
+            TeajiA Brand System
+          </span>
+        </div>
+        <div style={{ display: 'flex', borderRadius: 100, overflow: 'hidden', border: `1px solid ${c.border}` }}>
+          {['dark', 'light'].map(m => (
+            <button key={m} onClick={() => setMode(m)} style={{
+              padding: '6px 18px', border: 'none', cursor: 'pointer', fontFamily: type.label.family,
+              fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', fontWeight: 400,
+              color: mode === m ? c.text : c.textDim, backgroundColor: mode === m ? c.surface : 'transparent',
+              transition: 'all 0.3s ease',
+            }}>{m}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Title */}
+      <div style={{ textAlign: 'center', marginBottom: 64 }}>
+        <div style={{ fontFamily: type.label.family, fontWeight: type.label.weight, fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: c.textDim, marginBottom: 16 }}>
+          Espresso + Gold &middot; Vollkorn &middot; Spectral &middot; Jost
+        </div>
+        <h1 style={{ fontFamily: type.display.family, fontWeight: type.display.weight, fontSize: 'clamp(36px, 6vw, 58px)', color: c.text, letterSpacing: '0.01em', lineHeight: 1.1, marginBottom: 10, transition: 'color 0.5s ease' }}>
+          A Living Space for Tea Culture
+        </h1>
+        <div style={{ fontFamily: type.subtitle.family, fontWeight: type.subtitle.weight, fontStyle: 'italic', fontSize: 'clamp(16px, 2.5vw, 20px)', color: c.accent, transition: 'color 0.5s ease' }}>
+          Stories, wisdom, and community
+        </div>
+      </div>
+
+      {/* Color Palette */}
+      <Section label="Palette">
+        <div style={{ display: 'flex', height: 72, borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+          {[c.bg, c.surface, c.elevated, c.textDim, c.textSec, c.accent, c.accentLt, c.text].map((color, i) => (
+            <div key={i} style={{ flex: 1, backgroundColor: color, transition: 'background-color 0.5s ease' }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Background', hex: c.bg },
+            { label: 'Surface', hex: c.surface },
+            { label: 'Elevated', hex: c.elevated },
+            { label: 'Text', hex: c.text },
+            { label: 'Text Secondary', hex: c.textSec },
+            { label: 'Text Dim', hex: c.textDim },
+            { label: 'Gold', hex: c.accent, round: true },
+            { label: 'Gold Light', hex: c.accentLt, round: true },
+          ].map(s => (
+            <div key={s.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: s.round ? '50%' : 10,
+                backgroundColor: s.hex, transition: 'background-color 0.5s ease',
+                border: s.hex === c.bg ? `1px solid ${c.border}` : 'none',
+              }} />
+              <span style={{ fontFamily: type.label.family, fontSize: 8, letterSpacing: 1, textTransform: 'uppercase', color: c.textDim }}>{s.label}</span>
+              <span style={{ fontFamily: type.mono.family, fontSize: 9, color: c.textSec }}>{s.hex}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Type Scale */}
+      <Section label="Type Scale">
+        <div style={{ padding: '32px 36px', borderRadius: 18, backgroundColor: c.surface, transition: 'background-color 0.5s ease' }}>
+          {[
+            { role: 'Display', family: type.display.family, weight: type.display.weight, size: 'clamp(32px, 4.8vw, 48px)', sample: 'The Wuyi Mountains', tracking: '0.01em', lh: 1.12 },
+            { role: 'Heading 2', family: type.display.family, weight: type.display.weight, size: 'clamp(24px, 3.5vw, 32px)', sample: 'Beginning Into Tea', tracking: '0.01em', lh: 1.2 },
+            { role: 'Subtitle', family: type.subtitle.family, weight: type.subtitle.weight, style: 'italic', size: '18px', sample: 'Where Da Hong Pao begins its journey', color: c.accent, lh: 1.4 },
+            { role: 'Body', family: type.body.family, weight: type.body.weight, size: '17px', sample: 'High above the Min River valley, ancient tea bushes cling to cliff faces shrouded in mist. The mineral-rich soil creates conditions found nowhere else on earth.', color: c.textSec, lh: 1.85 },
+            { role: 'Body Light', family: type.bodyLight.family, weight: type.bodyLight.weight, size: '15px', sample: 'A lighter weight for secondary passages, captions, and supporting text that needs to breathe.', color: c.textDim, lh: 1.8 },
+            { role: 'Label', family: type.label.family, weight: type.label.weight, size: '10px', sample: 'OOLONG  ·  FUJIAN  ·  ORIGINS  ·  BREWING', color: c.textDim, tracking: '2px', transform: 'uppercase', lh: 1.4 },
+            { role: 'Navigation', family: type.label.family, weight: type.label.weight, size: '11px', sample: 'READ    LEARN    SHOP    CONSULT', color: c.textSec, tracking: '1.5px', transform: 'uppercase', lh: 1.4 },
+          ].map((item, i) => (
+            <div key={i} style={{ marginBottom: i < 6 ? 28 : 0, paddingBottom: i < 6 ? 28 : 0, borderBottom: i < 6 ? `1px solid ${c.border}` : 'none' }}>
+              <div style={{ fontFamily: type.mono.family, fontSize: 9, color: c.textDim, letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
+                {item.role}
+              </div>
+              <div style={{
+                fontFamily: item.family, fontWeight: item.weight, fontStyle: item.style || 'normal',
+                fontSize: item.size, letterSpacing: item.tracking || 'normal',
+                textTransform: item.transform || 'none',
+                color: item.color || c.text, lineHeight: item.lh,
+                maxWidth: item.role === 'Body' || item.role === 'Body Light' ? 540 : 'none',
+                transition: 'color 0.5s ease',
+              }}>{item.sample}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Font Stack Reference */}
+      <Section label="Font Stack">
+        <div style={{ padding: '24px 28px', borderRadius: 16, border: `1px solid ${c.border}`, transition: 'border-color 0.5s ease' }}>
+          {[
+            { role: 'Display', font: 'Vollkorn', weight: '400', size: 'clamp(32-48px)', note: 'Article titles, page headings, hero text' },
+            { role: 'Heading 2', font: 'Vollkorn', weight: '400', size: 'clamp(24-32px)', note: 'Section headings, card titles' },
+            { role: 'Subtitle', font: 'Spectral', weight: '300 italic', size: '17-18px', note: 'Descriptive subtitles, poetic text, place names' },
+            { role: 'Body', font: 'Spectral', weight: '400', size: '17px / 1.85', note: 'Article text, long-form reading' },
+            { role: 'Body Light', font: 'Spectral', weight: '300', size: '15px / 1.8', note: 'Captions, secondary text, descriptions' },
+            { role: 'Labels', font: 'Jost', weight: '400 uppercase', size: '10px / 2px tracking', note: 'Tags, categories, metadata, eyebrows' },
+            { role: 'Navigation', font: 'Jost', weight: '400 uppercase', size: '11px / 1.5px tracking', note: 'Nav items, section headers' },
+            { role: 'Links / CTA', font: 'Jost', weight: '400', size: '13px', note: 'Interactive text, buttons, inline links' },
+            { role: 'Mono', font: 'Space Mono', weight: '400', size: '9px', note: 'Hex codes, specs, technical metadata (internal use)' },
+          ].map((item, i, arr) => (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '90px 1fr 1fr',
+              gap: 12, padding: '10px 0', alignItems: 'baseline',
+              borderBottom: i < arr.length - 1 ? `1px solid ${c.border}` : 'none',
+            }}>
+              <span style={{ fontFamily: type.mono.family, fontSize: 9, color: c.textDim, letterSpacing: 0.5, textTransform: 'uppercase' }}>{item.role}</span>
+              <div>
+                <span style={{ fontFamily: type.label.family, fontSize: 13, color: c.text }}>{item.font}</span>
+                <span style={{ fontFamily: type.mono.family, fontSize: 9, color: c.textDim, marginLeft: 8 }}>{item.weight} / {item.size}</span>
+              </div>
+              <span style={{ fontFamily: type.label.family, fontSize: 11, color: c.textDim, fontWeight: 300 }}>{item.note}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Magazine Article Preview */}
+      <Section label="Magazine article preview">
+        <div style={{ padding: '40px 36px', borderRadius: 18, backgroundColor: c.surface, transition: 'background-color 0.5s ease' }}>
+          <div style={{ marginBottom: 8 }}>
+            <Tag active>Oolong</Tag>
+            <Tag>Fujian</Tag>
+            <Tag>Origins</Tag>
+          </div>
+          <h1 style={{
+            fontFamily: type.display.family, fontWeight: type.display.weight,
+            fontSize: 'clamp(30px, 4.5vw, 44px)', color: c.text, letterSpacing: '0.01em',
+            lineHeight: 1.15, marginBottom: 8, transition: 'color 0.5s ease',
+          }}>The Wuyi Mountains</h1>
+          <div style={{
+            fontFamily: type.subtitle.family, fontWeight: type.subtitle.weight, fontStyle: 'italic',
+            fontSize: 17, color: c.accent, marginBottom: 24, transition: 'color 0.5s ease',
+          }}>Where Da Hong Pao begins its journey</div>
+          <p style={{
+            fontFamily: type.body.family, fontWeight: type.body.weight,
+            fontSize: 17, lineHeight: 1.85, color: c.textSec, maxWidth: 560,
+            marginBottom: 16, transition: 'color 0.5s ease',
+          }}>
+            High above the Min River valley, ancient tea bushes cling to cliff faces shrouded in mist. The mineral-rich soil and constant humidity create conditions found nowhere else on earth. Each harvest is small, each leaf carries the weight of centuries.
+          </p>
+          <p style={{
+            fontFamily: type.body.family, fontWeight: type.body.weight,
+            fontSize: 17, lineHeight: 1.85, color: c.textSec, maxWidth: 560,
+            marginBottom: 28, transition: 'color 0.5s ease',
+          }}>
+            To drink Da Hong Pao is to taste the mountain itself. The roasted character speaks of charcoal and patience. The mineral note underneath is the cliff face, the iron in the rock, the water that seeps through stone before reaching the roots.
+          </p>
+          <Link>Continue reading</Link>
+        </div>
+      </Section>
+
+      {/* UI Components */}
+      <Section label="Interface components">
+        <div style={{ padding: '32px 28px', borderRadius: 18, backgroundColor: mode === 'dark' ? c.bg : c.surface, border: `1px solid ${c.border}`, transition: 'all 0.5s ease' }}>
+
+          {/* Nav */}
+          <div style={{ display: 'flex', gap: 24, marginBottom: 28, paddingBottom: 12, borderBottom: `1px solid ${c.border}` }}>
+            {['Read', 'Learn', 'teajiA', 'Consult', 'Shop'].map((nav, i) => (
+              <span key={nav} style={{
+                fontFamily: i === 2 ? type.display.family : type.label.family,
+                fontWeight: i === 2 ? type.display.weight : type.label.weight,
+                fontSize: i === 2 ? 14 : 11,
+                letterSpacing: i === 2 ? '0.02em' : '1.5px',
+                textTransform: i === 2 ? 'none' : 'uppercase',
+                color: i === 0 ? c.accent : (i === 2 ? c.text : c.textDim),
+                paddingBottom: i === 0 ? 10 : 0, marginBottom: i === 0 ? -13 : 0,
+                borderBottom: i === 0 ? `1px solid ${c.accent}` : 'none',
+                transition: 'color 0.5s ease',
+              }}>{nav}</span>
+            ))}
+          </div>
+
+          {/* Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+            {[
+              { eyebrow: 'Featured', title: 'The Creation of TeajiA', sub: 'Why this space exists', meta: 'Philosophy', accent: true },
+              { eyebrow: 'New', title: 'Beginning Into Tea', sub: 'Your first steps on the path', meta: 'Brewing', accent: false },
+            ].map((card, i) => (
+              <div key={i} style={{ padding: 20, borderRadius: 14, backgroundColor: c.surface, transition: 'background-color 0.5s ease' }}>
+                <div style={{
+                  fontFamily: type.label.family, fontWeight: type.label.weight,
+                  fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase',
+                  color: card.accent ? c.accent : c.textDim, marginBottom: 8,
+                }}>{card.eyebrow}</div>
+                <div style={{
+                  fontFamily: type.display.family, fontWeight: type.display.weight,
+                  fontSize: 19, color: c.text, marginBottom: 4, lineHeight: 1.25,
+                }}>{card.title}</div>
+                <div style={{
+                  fontFamily: type.subtitle.family, fontWeight: type.subtitle.weight, fontStyle: 'italic',
+                  fontSize: 14, color: c.textDim, marginBottom: 10,
+                }}>{card.sub}</div>
+                <Tag>{card.meta}</Tag>
+                <div style={{ marginTop: 8 }}>
+                  <span style={{
+                    fontFamily: type.label.family, fontWeight: type.label.weight,
+                    fontSize: 11, color: c.accent, borderBottom: `1px solid ${c.accent}`, paddingBottom: 1,
+                  }}>Read</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Consult card */}
+          <div style={{ padding: 24, borderRadius: 14, backgroundColor: c.elevated, transition: 'background-color 0.5s ease', marginBottom: 28 }}>
+            <div style={{
+              fontFamily: type.label.family, fontWeight: type.label.weight,
+              fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
+              color: c.accent, marginBottom: 10,
+            }}>Consult</div>
+            <div style={{
+              fontFamily: type.display.family, fontWeight: type.display.weight,
+              fontSize: 'clamp(22px, 3vw, 28px)', color: c.text, marginBottom: 6, lineHeight: 1.2,
+            }}>Tea House Design & Curation</div>
+            <p style={{
+              fontFamily: type.bodyLight.family, fontWeight: type.bodyLight.weight,
+              fontSize: 15, lineHeight: 1.75, color: c.textSec, maxWidth: 480, marginBottom: 16,
+            }}>
+              From empty room to living tea space. Design, curation, training, and everything between.
+            </p>
+            <Link>Start a conversation</Link>
+          </div>
+
+          {/* Shop item */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {[
+              { name: 'Da Hong Pao', detail: 'Wuyi Mountains, 2019', price: 'IDR 480,000' },
+              { name: 'Aged Sheng Pu\'erh', detail: 'Yiwu, 2005', price: 'IDR 1,200,000' },
+            ].map((item, i) => (
+              <div key={i} style={{ padding: 20, borderRadius: 14, backgroundColor: c.surface, transition: 'background-color 0.5s ease' }}>
+                <div style={{ width: '100%', height: 100, borderRadius: 10, backgroundColor: c.elevated, marginBottom: 14, transition: 'background-color 0.5s ease' }} />
+                <div style={{ fontFamily: type.display.family, fontWeight: type.display.weight, fontSize: 17, color: c.text, marginBottom: 2 }}>{item.name}</div>
+                <div style={{ fontFamily: type.subtitle.family, fontWeight: type.subtitle.weight, fontStyle: 'italic', fontSize: 13, color: c.textDim, marginBottom: 8 }}>{item.detail}</div>
+                <div style={{ fontFamily: type.label.family, fontWeight: type.label.weight, fontSize: 13, color: c.accent, letterSpacing: 0.5 }}>{item.price}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* Email Capture */}
+      <Section label="Email capture">
+        <div style={{
+          padding: '40px 36px', borderRadius: 18, backgroundColor: c.accentSubtle,
+          border: `1px solid ${c.border}`, textAlign: 'center', transition: 'all 0.5s ease',
+        }}>
+          <div style={{
+            fontFamily: type.display.family, fontWeight: type.display.weight,
+            fontSize: 24, color: c.text, marginBottom: 8,
+          }}>Stay Connected</div>
+          <p style={{
+            fontFamily: type.bodyLight.family, fontWeight: type.bodyLight.weight,
+            fontSize: 15, color: c.textSec, marginBottom: 20, lineHeight: 1.7,
+          }}>New stories, courses, and releases from the tea world.</p>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', maxWidth: 400, margin: '0 auto' }}>
+            <div style={{
+              flex: 1, padding: '10px 16px', borderRadius: 10, backgroundColor: c.surface,
+              border: `1px solid ${c.border}`, fontFamily: type.label.family, fontSize: 13,
+              color: c.textDim, textAlign: 'left',
+            }}>your@email.com</div>
+            <div style={{
+              padding: '10px 20px', borderRadius: 10, backgroundColor: c.accent,
+              fontFamily: type.label.family, fontWeight: type.label.weight,
+              fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase',
+              color: '#18130e', cursor: 'default', display: 'flex', alignItems: 'center',
+            }}>Subscribe</div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Icon Guidance */}
+      <Section label="Icon guidance">
+        <div style={{ padding: '24px 28px', borderRadius: 16, border: `1px solid ${c.border}`, transition: 'all 0.5s ease' }}>
+          <p style={{ fontFamily: type.body.family, fontWeight: type.body.weight, fontSize: 15, lineHeight: 1.8, color: c.textSec }}>
+            Hairline to thin stroke weight (0.75-1px). Geometric and minimal. Avoid rounded, playful, or heavy icon styles. The icons should feel like they were drawn with a fine pen, matching the delicacy of Spectral at light weights. Phosphor Thin or custom SVG line icons are the best match. Icons should appear at 18-22px in navigation and 14-16px inline with text.
+          </p>
+        </div>
+      </Section>
+
+      {/* Summary */}
+      <div style={{
+        textAlign: 'center', maxWidth: 520, margin: '0 auto', paddingTop: 20,
+        borderTop: `1px solid ${c.border}`,
+      }}>
+        <div style={{ fontFamily: type.label.family, fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase', color: c.textDim, marginBottom: 12 }}>
+          TeajiA Brand System
+        </div>
+        <div style={{ fontFamily: type.display.family, fontWeight: type.display.weight, fontSize: 22, color: c.text, marginBottom: 6 }}>
+          Espresso + Gold &middot; The Whisper + Storyteller
+        </div>
+        <p style={{ fontFamily: type.bodyLight.family, fontWeight: type.bodyLight.weight, fontSize: 14, color: c.textDim, lineHeight: 1.7 }}>
+          Vollkorn for display. Spectral for reading. Jost for structure. Burnished gold on deep espresso. Toggle dark and light above to see both modes.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
