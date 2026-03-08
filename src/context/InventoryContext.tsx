@@ -3,6 +3,7 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { InventoryItem } from '../types';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { publicProductToInventoryItem } from '../lib/adapters';
+import { SAMPLE_PRODUCTS } from '../data/sampleProducts';
 
 interface InventoryContextType {
   inventory: InventoryItem[];
@@ -17,10 +18,14 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { data: products = [], isLoading } = usePublicProducts();
 
-  const inventory = useMemo(
-    () => products.map(publicProductToInventoryItem),
-    [products]
-  );
+  const inventory = useMemo(() => {
+    const apiItems = products.map(publicProductToInventoryItem);
+    // If the API returned no products, show sample items so the shop isn't empty
+    if (apiItems.length === 0 && !isLoading) {
+      return SAMPLE_PRODUCTS.map(publicProductToInventoryItem);
+    }
+    return apiItems;
+  }, [products, isLoading]);
 
   // CRUD operations are no-ops on the public side.
   // Inventory is managed through the admin interface via the Worker API.

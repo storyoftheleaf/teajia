@@ -34,8 +34,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [storyExpanded, setStoryExpanded] = useState(false);
+  const [imageExpanded, setImageExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const storyScrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
+  const [storyFadeTop, setStoryFadeTop] = useState(false);
+  const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
   const presets = [25, 50, 100, 150, 300];
   const pricePerGram = parseFloat(item.price_per_gram || '0');
@@ -89,6 +94,22 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       window.removeEventListener("resize", check);
     };
   }, []);
+
+  // Story scroll fade detection
+  useEffect(() => {
+    const el = storyScrollRef.current;
+    if (!el) return;
+    const checkStory = () => {
+      const canScroll = el.scrollHeight > el.clientHeight;
+      const atTop = el.scrollTop < 4;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
+      setStoryFadeTop(canScroll && !atTop);
+      setStoryFadeBottom(canScroll && !atBottom);
+    };
+    checkStory();
+    el.addEventListener("scroll", checkStory, { passive: true });
+    return () => el.removeEventListener("scroll", checkStory);
+  }, [item]);
 
   const handleAdd = () => {
     setAdded(true);
@@ -205,62 +226,99 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story */}
+          {/* Story — inline scrollable, expandable */}
           {story && (
-            magazineUrl ? (
-              <a
-                href={magazineUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onMouseEnter={() => setHovered("magazine")}
-                onMouseLeave={() => setHovered(null)}
+            <div style={{
+              position: "relative",
+              borderBottom: "1px solid rgba(200,170,120,0.08)",
+            }}>
+              {/* Top fade */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none", zIndex: 1, borderRadius: "6px 6px 0 0",
+                opacity: storyFadeTop ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+              <div
+                ref={storyScrollRef}
+                className="tea-card-scroll"
                 style={{
-                  display: "block", padding: "12px 16px 16px", position: "relative",
-                  borderBottom: "1px solid rgba(200,170,120,0.08)",
-                  textDecoration: "none", cursor: "pointer",
+                  maxHeight: storyExpanded ? "400px" : "130px",
+                  overflowY: "auto",
+                  padding: "12px 16px",
+                  transition: "max-height 0.4s ease",
                 }}
               >
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                  color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body, margin: 0,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  transition: "color 0.2s ease",
-                }}>
-                  {story}
-                </p>
-                <div style={{
-                  position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
-                  background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                  pointerEvents: "none",
-                  display: "flex", alignItems: "flex-end", justifyContent: "center",
-                  paddingBottom: "4px",
-                }}>
-                  <span style={{
-                    fontSize: "14px", letterSpacing: "0.3em",
-                    color: hovered === "magazine" ? alcoveColors.body : alcoveColors.mutedDark,
-                    transition: "color 0.2s ease",
-                  }}>···</span>
-                </div>
-              </a>
-            ) : (
-              <div style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid rgba(200,170,120,0.08)" }}>
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                  color: alcoveColors.body, margin: 0,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}>
-                  {story}
-                </p>
+                {magazineUrl ? (
+                  <a
+                    href={magazineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onMouseEnter={() => setHovered("magazine")}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <p style={{
+                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
+                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                      margin: 0, transition: "color 0.2s ease",
+                    }}>
+                      {story}
+                    </p>
+                  </a>
+                ) : (
+                  <p style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
+                    color: alcoveColors.body, margin: 0,
+                  }}>
+                    {story}
+                  </p>
+                )}
               </div>
-            )
+              {/* Bottom fade */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none", zIndex: 1,
+                opacity: storyFadeBottom ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+              {/* Expand/collapse toggle — only show when story overflows */}
+              {(storyFadeBottom || storyExpanded) && (
+                <button
+                  onClick={() => setStoryExpanded(prev => !prev)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    gap: "6px", width: "100%",
+                    padding: "4px 0",
+                    background: "none", border: "none", cursor: "pointer",
+                  }}
+                >
+                  <span style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "11px", fontWeight: 300, fontStyle: "italic",
+                    color: alcoveColors.mutedDark,
+                    letterSpacing: "0.05em",
+                    transition: "color 0.2s ease",
+                  }}>
+                    {storyExpanded ? 'less' : 'more'}
+                  </span>
+                  <svg
+                    width="10" height="10" viewBox="0 0 24 24" fill="none"
+                    stroke={alcoveColors.mutedDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{
+                      transition: "transform 0.3s ease",
+                      transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+              )}
+            </div>
           )}
 
           {/* Notes + photo */}
@@ -272,10 +330,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           }}>
             {/* Photo behind notes */}
             {photoUrl && (
-              <div style={{
-                position: "absolute", top: 0, right: 0, bottom: 0, width: "60%",
-                overflow: "hidden",
-              }}>
+              <div
+                onClick={() => setImageExpanded(true)}
+                style={{
+                  position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
+                  overflow: "hidden", cursor: "pointer",
+                }}
+              >
                 <img
                   src={photoUrl}
                   alt="Tea leaves"
@@ -283,12 +344,28 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     width: "100%", height: "100%",
                     objectFit: "cover", objectPosition: "center right",
                     transform: "scale(1.05)",
-                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.6) 70%, black 90%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
                     WebkitMaskComposite: "destination-in",
-                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.6) 70%, black 90%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
                     maskComposite: "intersect",
                   }}
                 />
+                {/* Expand icon hint */}
+                <div style={{
+                  position: "absolute", bottom: "8px", right: "8px",
+                  width: "28px", height: "28px",
+                  background: "rgba(0,0,0,0.45)", borderRadius: "4px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: 0.7, transition: "opacity 0.2s ease",
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                </div>
               </div>
             )}
 
@@ -518,6 +595,44 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         opacity: showFade ? 1 : 0,
         transition: "opacity 0.3s ease",
       }} />
+
+      {/* Fullscreen image overlay */}
+      {imageExpanded && photoUrl && (
+        <div
+          onClick={() => setImageExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={photoUrl}
+            alt={item.name}
+            style={{
+              maxWidth: "90vw", maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: "4px",
+            }}
+          />
+          <button
+            style={{
+              position: "absolute", top: "16px", right: "16px",
+              width: "36px", height: "36px",
+              background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
