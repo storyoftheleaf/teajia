@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { InventoryItem, CostCurrency, TEA_TYPES } from '../../types';
 import { convertToUSD, CURRENCY_SYMBOLS, loadExchangeRates } from '../../utils/currency';
 import { CURRENCY_BY_LOCATION, SUPPLIER_LOCATIONS } from './currencyHelpers';
+import { fmtPricePerGram } from '../../utils/formatNumber';
 
 export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: InventoryItem) => void; onCancel: () => void; }> = ({ item, onSave, onCancel }) => {
     const [currentItem, setCurrentItem] = useState(item);
@@ -225,7 +226,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Calculated Price</label>
                             <div className="bg-[#0a0a0a] border border-white/10 rounded-sm p-3 text-center">
                                 <div className="text-2xl font-semibold text-white">
-                                    ${(parseFloat(currentItem.category === 'tea' ? currentItem.price_per_gram || '0' : currentItem.price_50g || '0') || 0).toFixed(2)}<span className="text-sm text-white/80 ml-1">/g</span>
+                                    {fmtPricePerGram(parseFloat(currentItem.category === 'tea' ? currentItem.price_per_gram || '0' : currentItem.price_50g || '0') || 0)}
                                 </div>
                             </div>
                         </div>

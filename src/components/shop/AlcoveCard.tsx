@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
+import { fmtNum } from '../../utils/formatNumber';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -44,7 +45,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const presets = [25, 50, 100, 150, 300];
   const pricePerGram = parseFloat(item.price_per_gram || '0');
-  const total = (pricePerGram * grams).toFixed(2);
+  const total = fmtNum(pricePerGram * grams);
   const noteOpacities = [1, 0.82, 0.65, 0.5];
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
@@ -440,7 +441,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 fontSize: "15px", fontWeight: 300, color: alcoveColors.body,
                 lineHeight: 1,
               }}>
-                ${pricePerGram.toFixed(2)}
+                ${fmtNum(pricePerGram)}
               </span>
               <span style={{
                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",

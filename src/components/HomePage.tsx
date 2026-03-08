@@ -13,6 +13,7 @@ import { EmailCapture } from './EmailCapture';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { SECTION_GAP } from './shared/spacing';
+import { fmtPricePerGram } from '../utils/formatNumber';
 
 const TEA_INSIGHTS = [
   {
@@ -324,7 +325,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </p>
               {curatedTea.price_per_gram && (
                 <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50 font-sans">
-                  ${parseFloat(curatedTea.price_per_gram).toFixed(2)}/g
+                  {fmtPricePerGram(parseFloat(curatedTea.price_per_gram))}
                 </p>
               )}
 

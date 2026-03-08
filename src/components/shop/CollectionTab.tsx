@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AlcoveModal } from './AlcoveModal';
 import { Icons } from '../Icons';
 import type { InventoryItem } from '../../types';
+import { fmtPricePerGram } from '../../utils/formatNumber';
 
 interface CollectionTabProps {
   inventory: InventoryItem[];
@@ -138,8 +139,8 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
 
                   {/* Price */}
                   <div className="mt-auto">
-                    <span className="font-mono text-sm text-tea-seal">
-                      ${pricePerGram.toFixed(2)}/g
+                    <span className="num text-sm text-tea-seal">
+                      {fmtPricePerGram(pricePerGram)}
                     </span>
                   </div>
                 </div>

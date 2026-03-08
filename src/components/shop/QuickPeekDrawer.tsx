@@ -4,6 +4,7 @@ import { Button } from '../shared/Button';
 import { HapticSlider } from '../shared/HapticSlider';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import type { InventoryItem } from '../../types';
+import { fmtPrice } from '../../utils/formatNumber';
 
 interface QuickPeekDrawerProps {
   item: InventoryItem | null;
@@ -122,7 +123,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
               <span className="text-xs uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50">
                 Quantity
               </span>
-              <span className="font-mono text-sm text-tea-ink dark:text-tea-paper">
+              <span className="num text-sm text-tea-ink dark:text-tea-paper">
                 {quantity}{isTea ? 'g' : ' unit(s)'}
               </span>
             </div>
@@ -144,7 +145,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
                 >
                   −
                 </button>
-                <span className="font-mono text-lg w-8 text-center text-tea-ink dark:text-tea-paper">{quantity}</span>
+                <span className="num text-lg w-8 text-center text-tea-ink dark:text-tea-paper">{quantity}</span>
                 <button
                   onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
                   className="w-10 h-10 rounded-md border border-tea-ink/20 dark:border-white/20 flex items-center justify-center hover:bg-tea-ink/5 dark:hover:bg-white/5"
@@ -157,7 +158,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
 
           {/* Add to Cart */}
           <Button variant="primary" fullWidth onClick={handleAdd}>
-            Add ${total.toFixed(2)}
+            Add {fmtPrice(total)}
           </Button>
         </div>
       </div>

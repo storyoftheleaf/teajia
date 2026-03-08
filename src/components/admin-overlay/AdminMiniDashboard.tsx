@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminOverlay } from '../../hooks/useAdminOverlay';
 import { Icons } from '../Icons';
+import { fmtDollars } from '../../utils/formatNumber';
 
 export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { isAdmin, stats } = useAdminOverlay();
@@ -50,8 +51,8 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
           onClick={() => goTo('/admin/records')}
           className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
         >
-          <span className="font-mono text-xl text-tea-charcoal dark:text-white">
-            ${stats.revenueThisWeek.toFixed(0)}
+          <span className="num text-xl text-tea-charcoal dark:text-white">
+            {fmtDollars(stats.revenueThisWeek)}
           </span>
           <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-white/40">
             This Week

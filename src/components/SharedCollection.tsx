@@ -5,6 +5,7 @@ import { Icons, SealIcon } from './Icons';
 import { useInventory } from '../context/InventoryContext';
 import { AlcoveModal } from './shop/AlcoveModal';
 import type { InventoryItem } from '../types';
+import { fmtPricePerGram } from '../utils/formatNumber';
 
 export const SharedCollection: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -99,8 +100,8 @@ export const SharedCollection: React.FC = () => {
 
             {/* Price */}
             <div className="shrink-0 text-right">
-              <span className="font-mono text-sm text-tea-ink/70 dark:text-tea-paper/70">
-                ${parseFloat(item.price_per_gram || '0').toFixed(2)}/g
+              <span className="num text-sm text-tea-ink/70 dark:text-tea-paper/70">
+                {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
               </span>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { CardGridItem } from './shared/CardGridItem';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { PageHeaderActions } from './shared/PageHeaderActions';
+import { fmtPrice, fmtPricePerGram } from '../utils/formatNumber';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 
 import { HapticSlider } from './shared/HapticSlider';
@@ -380,7 +381,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         <span className="card-grid-badge">{item.type}</span>
                      }
                      priceDisplay={
-                        <span className="card-grid-price">${parseFloat(item.price_per_gram).toFixed(2)}/g</span>
+                        <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
                      }
                      descriptionComponent={
                         <p className="card-grid-description">{item.description}</p>
@@ -413,7 +414,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         const maxStock = parseInt(item.stock_g) || 100;
                         // Price formula: use price_per_gram directly (already in $/gram)
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
-                        const totalPrice = pricePerGram > 0 ? parseFloat((pricePerGram * currentQty).toFixed(2)) : 0;
+                        const totalPrice = pricePerGram > 0 ? Math.round(pricePerGram * currentQty * 100) / 100 : 0;
 
                         return (
                             <div
@@ -461,12 +462,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 return (
                                                     <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams}g in stock`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
-                                                        <span className="text-[10px] font-mono text-tea-ink/40 dark:text-tea-paper/40">{ap.stockGrams}g</span>
+                                                        <span className="text-[10px] num text-tea-ink/40 dark:text-tea-paper/40">{ap.stockGrams}g</span>
                                                     </span>
                                                 );
                                             })()}
-                                            <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
-                                                ${pricePerGram.toFixed(2)}/g
+                                            <span className={`num text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
+                                                {fmtPricePerGram(pricePerGram)}
                                             </span>
                                             {/* Admin: edit button */}
                                             {isAdmin && onAdminEdit && (
@@ -504,7 +505,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             <div className="flex-1 flex items-center gap-3 px-2">
                                                 <div className="flex flex-col min-w-[60px]">
                                                     <span className="text-[10px] uppercase tracking-widest text-tea-ink/50 dark:text-tea-paper/50">Qty</span>
-                                                    <span className="font-mono text-sm text-tea-ink dark:text-tea-paper">
+                                                    <span className="num text-sm text-tea-ink dark:text-tea-paper">
                                                         {currentQty}g <span className="opacity-30 mx-0.5">/</span> <span className="opacity-40">{maxStock}g</span>
                                                     </span>
                                                 </div>
@@ -533,7 +534,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 >
                                                     <span>Add</span>
                                                     <span className="w-[1px] h-2.5 bg-white/30"></span>
-                                                    <span className="font-mono">${totalPrice.toFixed(2)}</span>
+                                                    <span className="num">{fmtPrice(totalPrice)}</span>
                                                 </button>
                                             </div>
                                         </div>

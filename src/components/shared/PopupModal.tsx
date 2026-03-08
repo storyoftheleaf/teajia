@@ -3,6 +3,7 @@ import { Icons } from '../Icons';
 import { HapticSlider } from './HapticSlider';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { fmtPrice } from '../../utils/formatNumber';
 
 export interface PopupItem {
   id: string;
@@ -176,7 +177,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
 
   const getQuantityPrice = (item: PopupItem, quantity: number): number => {
     const pricePerUnit = parseFloat(item.price_per_gram || item.price_50g || '0') || 0;
-    return pricePerUnit > 0 ? parseFloat((pricePerUnit * quantity).toFixed(2)) : 0;
+    return pricePerUnit > 0 ? Math.round(pricePerUnit * quantity * 100) / 100 : 0;
   };
 
   const currentQuantity = selectedQuantities[item.id] || defaultQuantity;
@@ -189,7 +190,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           <div className="flex items-center gap-4 px-1 mb-4">
             <div className="flex flex-col min-w-[60px] text-left">
               <span className="text-[10px] uppercase tracking-widest text-tea-paper/60">Qty</span>
-              <span className="font-mono text-sm text-tea-paper">{currentQuantity}g</span>
+              <span className="num text-sm text-tea-paper">{currentQuantity}g</span>
             </div>
             <HapticSlider
               min={quantityStep}
@@ -205,7 +206,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
-            <span className="font-mono">${totalPrice.toFixed(2)}</span>
+            <span className="num">{fmtPrice(totalPrice)}</span>
           </button>
         </>
       ) : (
@@ -218,7 +219,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
                 disabled={currentQuantity <= 1}
                 className="px-3 py-2 hover:bg-white/10 transition-colors text-white disabled:opacity-30"
               >−</button>
-              <span className="px-4 py-2 font-mono text-sm border-l border-r border-white/10 min-w-[50px] text-center">{currentQuantity}</span>
+              <span className="px-4 py-2 num text-sm border-l border-r border-white/10 min-w-[50px] text-center">{currentQuantity}</span>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.min(maxQuantity, (prev[item.id] || defaultQuantity) + 1) }))}
                 disabled={currentQuantity >= maxQuantity}
@@ -232,7 +233,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
-            <span className="font-mono">${totalPrice.toFixed(2)}</span>
+            <span className="num">{fmtPrice(totalPrice)}</span>
           </button>
         </>
       )}

@@ -842,15 +842,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                <div className="space-y-3">
                     <div className="flex justify-between text-tea-muted text-xs">
                          <span>Source Cost/g</span>
-                         <span className="tabular-nums">{calc.costPerGramSource.toFixed(3)} {formData.costCurrency}</span>
+                         <span className="num">{calc.costPerGramSource.toFixed(3)} {formData.costCurrency}</span>
                     </div>
                     <div className="flex justify-between text-tea-muted text-xs">
                          <span>Exchange Rate</span>
-                         <span className="tabular-nums">{calc.rateUsed}</span>
+                         <span className="num">{calc.rateUsed}</span>
                     </div>
                     <div className="flex justify-between text-tea-text text-xs pt-2">
                          <span>True Cost (USD)</span>
-                         <span className="tabular-nums text-tea-accent font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
+                         <span className="num text-tea-accent font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
                     </div>
                </div>
 
@@ -858,7 +858,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                <div className="pt-5 border-t border-dashed border-tea-border">
                   <div className="flex justify-between items-center mb-2">
                      <label className="text-[10px] uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
-                     <span className="text-[9px] text-tea-muted/70">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
+                     <span className="text-[9px] text-tea-muted/70 num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-4 py-3">
                      <span className="text-lg text-tea-muted font-serif">$</span>
@@ -873,7 +873,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
                             }
                         }}
-                        className={`flex-1 bg-transparent text-xl font-mono outline-none text-right tabular-nums ${
+                        className={`flex-1 bg-transparent text-xl num outline-none text-right ${
                             formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD 
                             ? 'text-tea-accent font-bold' 
                             : 'text-tea-text'
