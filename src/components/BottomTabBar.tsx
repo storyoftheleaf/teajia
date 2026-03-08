@@ -25,7 +25,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick
 }) => {
-  const { toggleTheme } = useTheme();
+  const { toggleTheme, theme } = useTheme();
+  const isDark = theme === 'dark';
   const auth = useAuth();
   const [themeFlash, setThemeFlash] = React.useState(false);
 
@@ -117,7 +118,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
                 <LogoEmblem
                   size={48}
-                  color={activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)'}
+                  color={isDark
+                    ? (activeSection === 'HOME' ? 'rgba(200,170,120,0.18)' : 'rgba(200,170,120,0.10)')
+                    : (activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)')
+                  }
                   className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
                 />
               </div>

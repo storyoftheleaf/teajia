@@ -53,6 +53,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       >
         <LogoEmblem
           size={36}
+          color={theme === 'dark' ? '#c0b49a' : '#010101'}
           className={`transition-all duration-300 shrink-0 ${
             activeSection === 'HOME'
               ? 'scale-110 opacity-100'
