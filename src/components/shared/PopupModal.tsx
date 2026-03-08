@@ -184,7 +184,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const totalPrice = getQuantityPrice(item, currentQuantity);
 
   const purchaseControls = showQuantityControls && onAddToCart && (
-    <div className="bg-tea-gold/5 rounded-lg p-4 w-full backdrop-blur-sm border border-tea-gold/[0.06] mt-4">
+    <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'rgba(200,170,120,0.04)', boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.08), inset 0 -1px 0 rgba(200,170,120,0.04), 0 1px 4px rgba(0,0,0,0.2)' }}>
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
@@ -213,13 +213,13 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-paper/60">Quantity</span>
-            <div className="flex items-center border border-tea-gold/15 rounded-lg bg-black/20 ml-auto">
+            <div className="flex items-center rounded-lg bg-black/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
                 className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
               >−</button>
-              <span className="px-4 py-2 num text-sm border-l border-r border-tea-gold/10 min-w-[50px] text-center">{currentQuantity}</span>
+              <span className="px-4 py-2 num text-sm min-w-[50px] text-center" style={{ boxShadow: 'inset 1px 0 0 rgba(200,170,120,0.08), inset -1px 0 0 rgba(200,170,120,0.08)' }}>{currentQuantity}</span>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.min(maxQuantity, (prev[item.id] || defaultQuantity) + 1) }))}
                 disabled={currentQuantity >= maxQuantity}
