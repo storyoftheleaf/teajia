@@ -37,7 +37,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const storyScrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
+  const [storyFadeTop, setStoryFadeTop] = useState(false);
+  const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
   const presets = [25, 50, 100, 150, 300];
   const pricePerGram = parseFloat(item.price_per_gram || '0');
@@ -91,6 +94,22 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       window.removeEventListener("resize", check);
     };
   }, []);
+
+  // Story scroll fade detection
+  useEffect(() => {
+    const el = storyScrollRef.current;
+    if (!el) return;
+    const checkStory = () => {
+      const canScroll = el.scrollHeight > el.clientHeight;
+      const atTop = el.scrollTop < 4;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
+      setStoryFadeTop(canScroll && !atTop);
+      setStoryFadeBottom(canScroll && !atBottom);
+    };
+    checkStory();
+    el.addEventListener("scroll", checkStory, { passive: true });
+    return () => el.removeEventListener("scroll", checkStory);
+  }, [item]);
 
   const handleAdd = () => {
     setAdded(true);
@@ -207,82 +226,66 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story */}
+          {/* Story — inline scrollable area */}
           {story && (
-            magazineUrl ? (
-              <a
-                href={magazineUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onMouseEnter={() => setHovered("magazine")}
-                onMouseLeave={() => setHovered(null)}
+            <div style={{
+              position: "relative",
+              borderBottom: "1px solid rgba(200,170,120,0.08)",
+            }}>
+              {/* Top fade */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none", zIndex: 1, borderRadius: "6px 6px 0 0",
+                opacity: storyFadeTop ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+              <div
+                ref={storyScrollRef}
+                className="tea-card-scroll"
                 style={{
-                  display: "block", padding: "12px 16px 16px", position: "relative",
-                  borderBottom: "1px solid rgba(200,170,120,0.08)",
-                  textDecoration: "none", cursor: "pointer",
+                  maxHeight: "130px",
+                  overflowY: "auto",
+                  padding: "12px 16px",
                 }}
               >
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                  color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body, margin: 0,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  transition: "color 0.2s ease",
-                }}>
-                  {story}
-                </p>
-                <div style={{
-                  position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
-                  background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                  pointerEvents: "none",
-                  display: "flex", alignItems: "flex-end", justifyContent: "center",
-                  paddingBottom: "4px",
-                }}>
-                  <span style={{
-                    fontSize: "14px", letterSpacing: "0.3em",
-                    color: hovered === "magazine" ? alcoveColors.body : alcoveColors.mutedDark,
-                    transition: "color 0.2s ease",
-                  }}>···</span>
-                </div>
-              </a>
-            ) : (
-              <div
-                onClick={() => setStoryExpanded(prev => !prev)}
-                style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid rgba(200,170,120,0.08)", cursor: "pointer" }}
-              >
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                  color: alcoveColors.body, margin: 0,
-                  ...(!storyExpanded ? {
-                    display: "-webkit-box",
-                    WebkitLineClamp: 4,
-                    WebkitBoxOrient: "vertical" as const,
-                    overflow: "hidden",
-                  } : {}),
-                  transition: "color 0.2s ease",
-                }}>
-                  {story}
-                </p>
-                {!storyExpanded && (
-                  <div style={{
-                    position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
-                    background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                    pointerEvents: "none",
-                    display: "flex", alignItems: "flex-end", justifyContent: "center",
-                    paddingBottom: "4px",
+                {magazineUrl ? (
+                  <a
+                    href={magazineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onMouseEnter={() => setHovered("magazine")}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <p style={{
+                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
+                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                      margin: 0, transition: "color 0.2s ease",
+                    }}>
+                      {story}
+                    </p>
+                  </a>
+                ) : (
+                  <p style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
+                    color: alcoveColors.body, margin: 0,
                   }}>
-                    <span style={{
-                      fontSize: "14px", letterSpacing: "0.3em",
-                      color: alcoveColors.mutedDark,
-                    }}>···</span>
-                  </div>
+                    {story}
+                  </p>
                 )}
               </div>
-            )
+              {/* Bottom fade */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none", zIndex: 1,
+                opacity: storyFadeBottom ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+            </div>
           )}
 
           {/* Notes + photo */}
