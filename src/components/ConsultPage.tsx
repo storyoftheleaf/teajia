@@ -16,6 +16,7 @@ import {
   JourneysSection,
   SourcingSection,
   EventsSection,
+  PrimaryCTA,
 } from './consult/ServiceContent';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 
@@ -469,13 +470,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => {
         Every project begins with a conversation.
       </h3>
       <div className="w-12 h-[1px] bg-tea-seal mx-auto mt-4 mb-8" />
-      <button onClick={onOpenInquiry}
-        className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium
-                   py-3.5 px-8 rounded-[1px] transition-colors min-h-[44px] mx-auto inline-flex items-center gap-2
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2">
-        Start a Conversation
-        <Icons.ChevronRight className="w-3.5 h-3.5" />
-      </button>
+      <PrimaryCTA label="Start a Conversation" onClick={onOpenInquiry} />
     </section>
   );
 };

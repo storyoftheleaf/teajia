@@ -26,7 +26,7 @@ export const consultTestimonials: ConsultTestimonial[] = [
     quote: 'The sourcing journey changed how I understand tea. You can\'t get this from a book.',
     name: 'Collector',
     title: 'Taiwan Journey',
-    projectId: 'taiwan-journey',
+    projectId: 'journey-taiwan',
   },
   {
     id: 't4',

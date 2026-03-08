@@ -32,7 +32,7 @@ const ServiceDivider = () => (
 );
 
 /** Primary CTA — filled button with visual weight */
-const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
+export const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
     className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium
                py-3 px-6 rounded-[1px] transition-colors duration-300 min-h-[44px]
@@ -44,7 +44,7 @@ const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) 
 );
 
 /** Secondary CTA — outlined/ghost style, clearly subordinate */
-const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
+export const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
     className="border border-tea-ink/15 dark:border-white/15 hover:border-tea-seal/40 hover:text-tea-seal
                text-tea-ink/50 dark:text-tea-paper/50 text-xs uppercase tracking-widest
@@ -138,33 +138,33 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
             The Process
           </p>
           {/* Mobile */}
-          <div className="md:hidden space-y-3">
+          <ol className="md:hidden space-y-3 list-none p-0 m-0">
             {PROCESS.map(({ step, title, desc }) => (
-              <div key={step} className="flex items-start gap-3 bg-tea-paper dark:bg-white/[0.03]
+              <li key={step} className="flex items-start gap-3 bg-tea-paper dark:bg-white/[0.03]
                                           border border-tea-ink/[0.05] dark:border-white/[0.05]
                                           rounded-[1px] p-3">
-                <span className="text-tea-seal font-mono text-sm w-5 h-5 flex items-center justify-center
+                <span aria-hidden="true" className="text-tea-seal font-mono text-sm w-5 h-5 flex items-center justify-center
                                  bg-tea-seal/10 rounded-full shrink-0">{step}</span>
                 <div>
                   <span className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper">{title}</span>
                   <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">{desc}</p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
           {/* Desktop */}
-          <div className="hidden md:grid md:grid-cols-5 gap-3">
+          <ol className="hidden md:grid md:grid-cols-5 gap-3 list-none p-0 m-0">
             {PROCESS.map(({ step, title, desc }) => (
-              <div key={step} className="bg-tea-paper dark:bg-white/[0.03]
+              <li key={step} className="bg-tea-paper dark:bg-white/[0.03]
                                           border border-tea-ink/[0.05] dark:border-white/[0.05]
                                           rounded-[1px] p-3 text-center">
-                <span className="text-tea-seal font-mono text-sm w-6 h-6 flex items-center justify-center
+                <span aria-hidden="true" className="text-tea-seal font-mono text-sm w-6 h-6 flex items-center justify-center
                                  bg-tea-seal/10 rounded-full mx-auto mb-2">{step}</span>
                 <h4 className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper">{title}</h4>
                 <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">{desc}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </ContentPanel>
 
         {/* Pricing — accent callout with clear emphasis */}
