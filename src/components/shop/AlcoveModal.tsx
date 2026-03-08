@@ -26,6 +26,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isCardExpanded, setIsCardExpanded] = useState(false);
 
   useEffect(() => {
     if (item) {
@@ -44,6 +45,11 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [item, onClose]);
+
+  // Reset expand state when item changes
+  useEffect(() => {
+    setIsCardExpanded(false);
+  }, [item?.id]);
 
   if (!item) return null;
 
@@ -82,13 +88,6 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     setTouchStartTime(null);
     setSwipeOffset(0);
   };
-
-  const [isCardExpanded, setIsCardExpanded] = useState(false);
-
-  // Reset expand state when item changes
-  useEffect(() => {
-    setIsCardExpanded(false);
-  }, [item?.id]);
 
   const handleAddToCart = (addedItem: InventoryItem, qty: number, total: number) => {
     if (onAddToCart) onAddToCart(addedItem, qty, total);
