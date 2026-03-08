@@ -24,8 +24,8 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   const lastStepRef = useRef(value);
 
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
-  const thumbSize = size === 'sm' ? 14 : 18;
-  const trackHeight = size === 'sm' ? 6 : 8;
+  const thumbSize = size === 'sm' ? 10 : 12;
+  const trackHeight = size === 'sm' ? 2 : 2;
 
   // Haptic feedback on step change
   useEffect(() => {
@@ -62,7 +62,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-tea-gold/20 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-text/10 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
@@ -74,7 +74,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Thumb */}
         <div
-          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-110"
+          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-[1.3]"
           style={{
             left: `calc(${percentage}% - ${thumbSize / 2}px)`,
             width: thumbSize,
@@ -82,7 +82,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-gold rounded-full shadow-md transition-shadow group-active:shadow-lg"
+            className="w-full h-full bg-tea-gold rounded-full shadow-sm transition-shadow group-active:shadow-md"
           />
         </div>
       </div>
