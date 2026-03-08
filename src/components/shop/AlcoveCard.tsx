@@ -43,13 +43,22 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [storyFadeTop, setStoryFadeTop] = useState(false);
   const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
-  const presets = [25, 50, 100, 150, 300];
-  const sliderMin = 5;
-  const sliderMax = 500;
-  const sliderStep = 5;
+  const sliderMin = 25;
+  const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
+  const sliderStep = 1;
+  const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const total = fmtNum(pricePerGram * grams);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+
+  // Snap to nearest point when releasing slider
+  const snapToNearest = (val: number) => {
+    const snapThreshold = 8; // snap within 8g of a snap point
+    for (const sp of snapPoints) {
+      if (Math.abs(val - sp) <= snapThreshold) return sp;
+    }
+    return val;
+  };
   const noteOpacities = [1, 0.82, 0.65, 0.5];
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
@@ -431,48 +440,72 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         {/* Block 4: Commerce */}
         <div style={{ padding: "6px 20px 16px", marginTop: "auto", flexShrink: 0 }}>
 
-          {/* Price per gram + current selection */}
+          {/* Price per gram + selected grams — compact row */}
           <div style={{
             display: "flex", alignItems: "baseline", justifyContent: "space-between",
-            padding: "8px 14px 4px",
+            padding: "6px 14px",
             background: "rgba(200,170,120,0.03)",
             borderRadius: "3px 3px 0 0",
           }}>
             <div style={{ display: "flex", alignItems: "baseline" }}>
               <span style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "15px", fontWeight: 300, color: alcoveColors.body,
+                fontSize: "14px", fontWeight: 300, color: alcoveColors.body,
                 lineHeight: 1,
               }}>
                 ${fmtNum(pricePerGram)}
               </span>
               <span style={{
                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "11px", fontWeight: 300, color: alcoveColors.subtitle,
+                fontSize: "10px", fontWeight: 300, color: alcoveColors.subtitle,
                 marginLeft: "2px",
               }}>/g</span>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+            <div style={{ display: "flex", alignItems: "baseline" }}>
               <span style={{
                 fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "20px", fontWeight: 300, color: alcoveColors.title,
+                fontSize: "14px", fontWeight: 300, color: alcoveColors.body,
                 lineHeight: 1,
               }}>
                 {grams}
               </span>
               <span style={{
                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "11px", fontWeight: 300, color: alcoveColors.subtitle,
+                fontSize: "10px", fontWeight: 300, color: alcoveColors.subtitle,
+                marginLeft: "2px",
               }}>g</span>
             </div>
           </div>
 
-          {/* Slider */}
+          {/* Slider with snap ticks */}
           <div style={{
-            padding: "8px 14px 6px",
+            padding: "6px 14px 8px",
             background: "rgba(200,170,120,0.03)",
+            borderRadius: "0 0 3px 3px",
+            marginBottom: "8px",
             position: "relative",
           }}>
+            {/* Snap point tick marks */}
+            <div style={{ position: "relative", width: "100%", height: "6px", marginBottom: "2px" }}>
+              {snapPoints.map((sp) => {
+                const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+                return (
+                  <div
+                    key={sp}
+                    style={{
+                      position: "absolute",
+                      left: `${pct}%`,
+                      top: "0",
+                      width: "1px", height: "6px",
+                      background: grams === sp
+                        ? "rgba(200,170,120,0.4)"
+                        : "rgba(200,170,120,0.12)",
+                      transition: "background 0.15s ease",
+                    }}
+                  />
+                );
+              })}
+            </div>
             <div style={{ position: "relative", width: "100%", height: "26px", display: "flex", alignItems: "center" }}>
               {/* Native range input — invisible but interactive */}
               <input
@@ -483,9 +516,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 value={grams}
                 onChange={(e) => {
                   const newVal = parseInt(e.target.value);
-                  setGrams(newVal);
-                  if (navigator.vibrate && newVal !== grams) navigator.vibrate(8);
+                  if (newVal !== grams) {
+                    setGrams(newVal);
+                    if (navigator.vibrate) navigator.vibrate(8);
+                  }
                 }}
+                onMouseUp={() => setGrams(g => snapToNearest(g))}
+                onTouchEnd={() => setGrams(g => snapToNearest(g))}
                 aria-label={`Select quantity: ${grams}g`}
                 style={{
                   position: "absolute", width: "100%", height: "100%",
@@ -520,58 +557,31 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 transition: "left 0.075s ease",
               }} />
             </div>
-            {/* Min / max labels */}
-            <div style={{
-              display: "flex", justifyContent: "space-between",
-              padding: "2px 2px 0",
-            }}>
-              <span style={{
-                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "9px", fontWeight: 300, color: alcoveColors.mutedDark,
-              }}>{sliderMin}g</span>
-              <span style={{
-                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "9px", fontWeight: 300, color: alcoveColors.mutedDark,
-              }}>{sliderMax}g</span>
+            {/* Snap point labels */}
+            <div style={{ position: "relative", width: "100%", height: "14px" }}>
+              {snapPoints.filter((_, i) => i % 2 === 0 || snapPoints.length <= 6).map((sp) => {
+                const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+                return (
+                  <span
+                    key={sp}
+                    onClick={() => setGrams(sp)}
+                    style={{
+                      position: "absolute",
+                      left: `${pct}%`,
+                      transform: "translateX(-50%)",
+                      fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                      fontSize: "8px", fontWeight: grams === sp ? 500 : 300,
+                      color: grams === sp ? alcoveColors.body : alcoveColors.mutedDark,
+                      cursor: "pointer",
+                      transition: "color 0.15s ease",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {sp}
+                  </span>
+                );
+              })}
             </div>
-          </div>
-
-          {/* Quick presets */}
-          <div style={{
-            display: "flex", gap: "2px", flexWrap: "wrap",
-            padding: "4px 14px 10px",
-            background: "rgba(200,170,120,0.03)",
-            borderRadius: "0 0 3px 3px",
-            marginBottom: "8px",
-          }}>
-            {presets.map((g) => (
-              <button
-                key={g}
-                onClick={() => setGrams(g)}
-                onMouseEnter={() => setHovered(`preset-${g}`)}
-                onMouseLeave={() => setHovered(null)}
-                style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "11px",
-                  fontWeight: grams === g ? 500 : 300,
-                  padding: "5px 8px",
-                  border: "none", borderRadius: "2px",
-                  cursor: "pointer", transition: "all 0.2s ease",
-                  background: grams === g
-                    ? "rgba(200,170,120,0.15)"
-                    : hovered === `preset-${g}`
-                      ? "rgba(200,170,120,0.08)"
-                      : "transparent",
-                  color: grams === g
-                    ? alcoveColors.body
-                    : hovered === `preset-${g}`
-                      ? alcoveColors.muted
-                      : alcoveColors.subtitle,
-                }}
-              >
-                {g}<span style={{ fontSize: "8px", opacity: 0.6 }}>g</span>
-              </button>
-            ))}
           </div>
 
           {/* Action row: Save/Share + Cart */}
