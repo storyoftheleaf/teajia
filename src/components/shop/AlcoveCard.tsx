@@ -84,7 +84,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     body: 'var(--alcove-body, #c0b49a)',
     bodyHighlight: 'var(--alcove-body-highlight, #d0c4aa)',
     note: 'var(--alcove-note, #c4b89a)',
-    accent: 'var(--alcove-accent, #b5651d)',
+    accent: 'var(--alcove-accent, #b8924e)',
     muted: 'var(--alcove-muted, #9a9080)',
     mutedDark: 'var(--alcove-muted-dark, #6a6050)',
     success: 'var(--alcove-success, #7a9a72)',
@@ -260,194 +260,79 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story + notes area — fills remaining panel space */}
-          <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
-            {/* Collapsed view: notes + photo with story peek */}
+          {/* Story — always visible, expands in place */}
+          {story && (
             <div style={{
               position: "relative",
-              height: "100%",
-              display: "flex", flexDirection: "column",
+              borderBottom: "1px solid rgba(200,170,120,0.08)",
+              flexShrink: storyExpanded ? 0 : undefined,
             }}>
-              {/* Notes + photo section */}
-              <div style={{
-                padding: "12px 14px",
-                background: "rgba(181,101,29,0.03)",
-                position: "relative",
-                overflow: "hidden",
-                flexShrink: 0,
-              }}>
-                {/* Photo behind notes */}
-                {photoUrl && (
-                  <div
-                    onClick={() => setImageExpanded(true)}
-                    style={{
-                      position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
-                      overflow: "hidden", cursor: "pointer",
-                    }}
+              <div
+                className="tea-card-scroll"
+                style={{
+                  maxHeight: storyExpanded ? "none" : "110px",
+                  overflowY: storyExpanded ? "auto" : "hidden",
+                  padding: "10px 14px",
+                  transition: "max-height 0.4s ease",
+                }}
+              >
+                {magazineUrl ? (
+                  <a
+                    href={magazineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onMouseEnter={() => setHovered("magazine")}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ textDecoration: "none" }}
                   >
-                    <img
-                      src={photoUrl}
-                      alt="Tea leaves"
-                      style={{
-                        width: "100%", height: "100%",
-                        objectFit: "cover", objectPosition: "center right",
-                        transform: "scale(1.05)",
-                        WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                        WebkitMaskComposite: "destination-in",
-                        maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                        maskComposite: "intersect",
-                      }}
-                    />
-                    {/* Expand icon hint */}
-                    <div style={{
-                      position: "absolute", bottom: "6px", right: "6px",
-                      width: "24px", height: "24px",
-                      background: "rgba(0,0,0,0.45)", borderRadius: "3px",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      opacity: 0.6,
-                    }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="15 3 21 3 21 9" />
-                        <polyline points="9 21 3 21 3 15" />
-                        <line x1="21" y1="3" x2="14" y2="10" />
-                        <line x1="3" y1="21" x2="10" y2="14" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {feeling && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div style={{
-                          width: `${markerWidths[0]}px`, height: "2px", flexShrink: 0,
-                          background: accent, opacity: markerOpacities[0], borderRadius: "1px",
-                        }} />
-                        <span style={{
-                          fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                          fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                          color: alcoveColors.note, opacity: noteOpacities[0],
-                          textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
-                        }}>
-                          {feeling}
-                        </span>
-                      </div>
-                    )}
-                    {notes.map((note, i) => (
-                      <div key={note} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div style={{
-                          width: `${markerWidths[i] ?? 12}px`, height: "2px", flexShrink: 0,
-                          background: accent,
-                          opacity: markerOpacities[i] ?? 0.2,
-                          borderRadius: "1px",
-                        }} />
-                        <span style={{
-                          fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                          fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                          color: alcoveColors.note,
-                          opacity: noteOpacities[i] ?? 0.5,
-                          textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
-                        }}>
-                          {note}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Feeling description if present */}
-              {feelingDescription && !storyExpanded && (
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-                  color: alcoveColors.body, margin: 0,
-                  padding: "8px 14px",
-                  lineHeight: 1.5,
-                  flexShrink: 0,
-                }}>
-                  {feelingDescription}
-                </p>
-              )}
-            </div>
-
-            {/* Expanded story overlay — covers panel from top down to bottom */}
-            {storyExpanded && story && (
-              <div style={{
-                position: "absolute", inset: 0, zIndex: 5,
-                background: "rgba(20,19,17,0.97)",
-                display: "flex", flexDirection: "column",
-                animation: "panelReveal 0.3s ease-out",
-              }}>
-                <div className="tea-card-scroll" style={{
-                  flex: 1, overflowY: "auto",
-                  padding: "16px 16px",
-                }}>
-                  {magazineUrl ? (
-                    <a
-                      href={magazineUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onMouseEnter={() => setHovered("magazine")}
-                      onMouseLeave={() => setHovered(null)}
-                      style={{ textDecoration: "none" }}
-                    >
-                      <p style={{
-                        fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                        fontSize: "16px", fontWeight: 300, lineHeight: 1.65,
-                        color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                        margin: 0, transition: "color 0.2s ease",
-                      }}>
-                        {story}
-                      </p>
-                    </a>
-                  ) : (
                     <p style={{
                       fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "16px", fontWeight: 300, lineHeight: 1.65,
-                      color: alcoveColors.body, margin: 0,
+                      fontSize: "16px", fontWeight: 300, lineHeight: 1.6,
+                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                      margin: 0, transition: "color 0.2s ease",
                     }}>
                       {story}
                     </p>
-                  )}
-                  {feelingDescription && (
-                    <p style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-                      color: alcoveColors.subtitle, margin: "14px 0 0 0",
-                      lineHeight: 1.5,
-                    }}>
-                      {feelingDescription}
-                    </p>
-                  )}
-                </div>
+                  </a>
+                ) : (
+                  <p style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "16px", fontWeight: 300, lineHeight: 1.6,
+                    color: alcoveColors.body, margin: 0,
+                  }}>
+                    {story}
+                  </p>
+                )}
               </div>
-            )}
-
-            {/* Expand/collapse icon — absolutely positioned, no layout impact */}
-            {story && (
+              {/* Bottom fade when collapsed */}
+              {!storyExpanded && (
+                <div style={{
+                  position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
+                  background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                  pointerEvents: "none",
+                }} />
+              )}
+              {/* Expand/collapse chevron — absolute, no layout impact */}
               <button
                 onClick={() => setStoryExpanded(prev => !prev)}
                 onMouseEnter={() => setHovered("expand")}
                 onMouseLeave={() => setHovered(null)}
-                aria-label={storyExpanded ? "Show less" : "Show more"}
+                aria-label={storyExpanded ? "Show less" : "Read more"}
                 style={{
                   position: "absolute",
-                  bottom: "6px", right: "8px", zIndex: 10,
-                  width: "26px", height: "26px",
-                  background: storyExpanded ? "rgba(200,170,120,0.08)" : "rgba(0,0,0,0.35)",
-                  border: `1px solid rgba(200,170,120,${hovered === "expand" ? 0.2 : 0.08})`,
+                  bottom: "4px", right: "6px", zIndex: 10,
+                  width: "24px", height: "24px",
+                  background: storyExpanded ? "rgba(184,146,78,0.1)" : "rgba(0,0,0,0.4)",
+                  border: `1px solid rgba(184,146,78,${hovered === "expand" ? 0.2 : 0.08})`,
                   borderRadius: "3px",
                   cursor: "pointer", padding: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: hovered === "expand" ? 1 : 0.7,
+                  opacity: hovered === "expand" ? 1 : 0.65,
                   transition: "all 0.2s ease",
                 }}
               >
                 <svg
-                  width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  width="11" height="11" viewBox="0 0 24 24" fill="none"
                   stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   style={{
                     transition: "transform 0.3s ease",
@@ -457,8 +342,112 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
+            </div>
+          )}
+
+          {/* Notes + photo section — always visible */}
+          <div style={{
+            padding: "12px 14px",
+            background: "rgba(184,146,78,0.03)",
+            position: "relative",
+            overflow: "hidden",
+            flexShrink: 0,
+          }}>
+            {/* Photo behind notes */}
+            {photoUrl && (
+              <div
+                onClick={() => setImageExpanded(true)}
+                style={{
+                  position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
+                  overflow: "hidden", cursor: "pointer",
+                }}
+              >
+                <img
+                  src={photoUrl}
+                  alt="Tea leaves"
+                  style={{
+                    width: "100%", height: "100%",
+                    objectFit: "cover", objectPosition: "center right",
+                    transform: "scale(1.05)",
+                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    WebkitMaskComposite: "destination-in",
+                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    maskComposite: "intersect",
+                  }}
+                />
+                {/* Expand icon hint */}
+                <div style={{
+                  position: "absolute", bottom: "6px", right: "6px",
+                  width: "24px", height: "24px",
+                  background: "rgba(0,0,0,0.45)", borderRadius: "3px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: 0.6,
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                </div>
+              </div>
             )}
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {feeling && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: `${markerWidths[0]}px`, height: "2px", flexShrink: 0,
+                      background: accent, opacity: markerOpacities[0], borderRadius: "1px",
+                    }} />
+                    <span style={{
+                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                      color: alcoveColors.note, opacity: noteOpacities[0],
+                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
+                    }}>
+                      {feeling}
+                    </span>
+                  </div>
+                )}
+                {notes.map((note, i) => (
+                  <div key={note} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: `${markerWidths[i] ?? 12}px`, height: "2px", flexShrink: 0,
+                      background: accent,
+                      opacity: markerOpacities[i] ?? 0.2,
+                      borderRadius: "1px",
+                    }} />
+                    <span style={{
+                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                      color: alcoveColors.note,
+                      opacity: noteOpacities[i] ?? 0.5,
+                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
+                    }}>
+                      {note}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {/* Feeling description — always visible */}
+          {feelingDescription && (
+            <p style={{
+              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+              fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+              color: alcoveColors.body, margin: 0,
+              padding: "8px 14px",
+              lineHeight: 1.5,
+              flexShrink: 0,
+            }}>
+              {feelingDescription}
+            </p>
+          )}
         </div>
       </div>
 
@@ -533,7 +522,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               <div style={{
                 position: "absolute", height: "100%",
                 width: `${sliderPercentage}%`,
-                background: `linear-gradient(90deg, rgba(181,101,29,0.5), rgba(181,101,29,0.8))`,
+                background: `linear-gradient(90deg, rgba(184,146,78,0.45), rgba(184,146,78,0.75))`,
                 borderRadius: "2px",
                 transition: "width 0.075s ease",
               }} />
