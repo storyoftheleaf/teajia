@@ -420,96 +420,81 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 key={item.id}
                                 className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : ''}`}
                             >
-                                <div className="flex items-center py-2.5 lg:py-3 px-2 gap-3 lg:gap-5 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
+                                {/* Row — tap to expand accordion */}
+                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 cursor-pointer select-none" onClick={() => toggleExpand(item.id)}>
 
-                                    {/* Text Content */}
-                                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                                        <div className="flex flex-col justify-center lg:flex-row lg:items-center lg:gap-6 lg:flex-1 min-w-0">
-                                            {/* Title & Tags */}
-                                            <div className="flex flex-col justify-center lg:min-w-[180px]">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className={`font-serif text-[17px] leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80 group-hover:text-tea-text'}`}>
-                                                        {item.name}
-                                                    </h3>
-                                                    {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-60" />}
-                                                </div>
-                                                <div className="text-[11px] tracking-wider text-tea-text/20 mt-1 truncate flex items-center gap-2">
-                                                     <span className="font-mono">{item.year}</span>
-                                                     <span className="opacity-30">·</span>
-                                                     <span className="font-serif italic text-tea-text/15">{item.variant}</span>
-                                                </div>
-                                            </div>
-                                            {/* Desktop inline description — hidden when expanded */}
-                                            {!isExpanded && (
-                                              <p className="hidden lg:block text-xs text-tea-text/30 line-clamp-1 flex-1 min-w-0 font-serif italic">
-                                                  {item.description}
-                                              </p>
-                                            )}
+                                    {/* Left: name + metadata */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text'}`}>
+                                                {item.name}
+                                            </h3>
+                                            {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
+                                        <div className="text-[11px] uppercase tracking-wider mt-1 truncate flex items-center gap-2">
+                                             <span className={`font-mono ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
+                                             <span className="text-tea-text/30">•</span>
+                                             <span className="text-tea-text/40">{item.variant}</span>
+                                        </div>
+                                    </div>
 
-                                        {/* Price + View + Fav */}
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            {/* Admin: stock indicator */}
-                                            {isAdmin && adminProductMap?.has(item.id) && (() => {
-                                                const ap = adminProductMap.get(item.id)!;
-                                                const stockColor = ap.stockGrams < 50 ? 'bg-red-400' : ap.stockGrams < (ap.lowStockThreshold || 100) ? 'bg-amber-400' : 'bg-emerald-400';
-                                                return (
-                                                    <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams}g in stock`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
-                                                        <span className="text-[10px] num text-tea-text/40">{ap.stockGrams}g</span>
-                                                    </span>
-                                                );
-                                            })()}
-                                            <span className={`num text-[13px] tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/50'}`}>
-                                                {fmtPricePerGram(pricePerGram)}
-                                            </span>
-                                            {/* Admin: edit button */}
-                                            {isAdmin && onAdminEdit && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
-                                                    className="p-1 text-tea-text/20 hover:text-tea-gold transition-colors"
-                                                    title="Edit product"
-                                                >
-                                                    <Icons.Edit className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
+                                    {/* Right: price, heart, info (detail) */}
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        {/* Admin: stock indicator */}
+                                        {isAdmin && adminProductMap?.has(item.id) && (() => {
+                                            const ap = adminProductMap.get(item.id)!;
+                                            const stockColor = ap.stockGrams < 50 ? 'bg-red-400' : ap.stockGrams < (ap.lowStockThreshold || 100) ? 'bg-amber-400' : 'bg-emerald-400';
+                                            return (
+                                                <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams}g in stock`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
+                                                    <span className="text-[10px] num text-tea-text/40">{ap.stockGrams}g</span>
+                                                </span>
+                                            );
+                                        })()}
+                                        <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
+                                            {fmtPricePerGram(pricePerGram)}
+                                        </span>
+                                        {/* Admin: edit button */}
+                                        {isAdmin && onAdminEdit && (
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                className="text-tea-text/20 hover:text-tea-gold transition-colors p-1"
-                                                title="View details"
+                                                onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
+                                                className="p-1 text-tea-text/20 hover:text-tea-gold transition-colors"
+                                                title="Edit product"
                                             >
-                                                <Icons.Eye className="w-4 h-4" />
+                                                <Icons.Edit className="w-3.5 h-3.5" />
                                             </button>
-                                            <button
-                                                onClick={(e) => toggleUserFavorite(e, item.id)}
-                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/15 hover:text-tea-text/40'}`}
-                                            >
-                                                <Icons.Heart filled={isFavorite} className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
+                                        )}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleUserFavorite(e, item.id); }}
+                                            className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                        >
+                                            <Icons.Heart filled={isFavorite} className="w-5 h-5" />
+                                        </button>
+                                        {/* Info button — opens AlcoveCard detail view */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                            className={`-my-1 p-2 transition-colors text-tea-text/25 hover:text-tea-gold active:text-tea-gold`}
+                                            aria-label={`View details for ${item.name}`}
+                                        >
+                                            <Icons.Info className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* --- Expanded Content --- */}
+                                {/* Accordion — quick add */}
                                 <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="pl-2 pr-2 pb-4 pt-0">
-
-                                        <p className="font-serif text-sm text-tea-text/60 mb-4 leading-relaxed max-w-2xl">
+                                    <div className="pl-4 pr-2 pb-3 pt-0">
+                                        <p className="font-serif text-sm text-tea-text/80 mb-3 leading-relaxed max-w-2xl">
                                             {item.description}
                                         </p>
-
-                                        {/* Controls */}
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/[0.03] rounded-sm p-3 pr-4">
-
-                                            {/* Slider */}
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/[0.08] rounded-[1px] p-3 pr-4 border border-tea-text/[0.03]">
                                             <div className="flex-1 flex items-center gap-3 px-2">
-                                                <div className="flex flex-col min-w-[60px]">
+                                                <div className="flex flex-col" style={{ minWidth: 72 }}>
                                                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Qty</span>
-                                                    <span className="num text-sm text-tea-text">
+                                                    <span className="text-sm text-tea-text whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>
                                                         {currentQty}g <span className="opacity-30 mx-0.5">/</span> <span className="opacity-40">{maxStock}g</span>
                                                     </span>
                                                 </div>
-
                                                 <HapticSlider
                                                     min={25}
                                                     max={maxStock}
@@ -519,8 +504,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                     size="sm"
                                                 />
                                             </div>
-
-                                            {/* Add to cart + Details */}
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
@@ -538,7 +521,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 </button>
                                             </div>
                                         </div>
-
                                     </div>
                                 </div>
                             </div>

@@ -35,7 +35,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [storyExpanded, setStoryExpanded] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
@@ -96,7 +95,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     };
   }, []);
 
-  // Story scroll fade detection
+  // Story scroll fade detection + overflow check
   useEffect(() => {
     const el = storyScrollRef.current;
     if (!el) return;
@@ -122,13 +121,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   return (
     <div style={{
-      width: "100%", maxWidth: "480px",
-      minHeight: "580px", maxHeight: "720px",
+      width: "100%",
+      height: "100%",
+      maxHeight: "100%",
       background: alcoveColors.bg,
       position: "relative",
       overflow: "hidden",
       borderRadius: "3px",
+      display: "flex",
+      flexDirection: "column",
     }}>
+
+
 
       {/* Layer 1: Multi-stop radial warmth */}
       <div style={{
@@ -146,15 +150,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         backgroundSize: "120px",
       }} />
 
-      {/* Scrollable content wrapper */}
-      <div ref={scrollRef} className="tea-card-scroll" style={{
-        position: "relative", zIndex: 1,
-        minHeight: "580px", maxHeight: "720px",
-        overflowY: "auto",
-        display: "flex", flexDirection: "column",
+      {/* === PINNED TOP: Identity === */}
+      <div style={{
+        position: "relative", zIndex: 1, flexShrink: 0,
+        transition: "all 0.3s ease",
       }}>
-
-        {/* Block 1: Identity */}
         {chineseCharacters && (
           <div style={{
             position: "absolute", right: "20px", top: "24px",
@@ -168,24 +168,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {chineseCharacters}
           </div>
         )}
-        <div style={{ padding: "24px 20px 8px", position: "relative" }}>
-          <h1 style={{
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-            margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
-          }}>
-            {productName}
-          </h1>
-          {givenName && (
-            <p style={{
-              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-              fontSize: "18px", fontStyle: "italic", fontWeight: 300,
-              color: alcoveColors.subtitle, margin: "0",
-            }}>
-              {givenName}
-            </p>
-          )}
+        <div style={{
+          padding: "24px 20px 8px",
+          position: "relative",
+        }}>
+            <>
+              <h1 style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
+                margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+              }}>
+                {productName}
+              </h1>
+              {givenName && (
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "18px", fontStyle: "italic", fontWeight: 300,
+                  color: alcoveColors.subtitle, margin: "0",
+                }}>
+                  {givenName}
+                </p>
+              )}
+            </>
         </div>
+      </div>
+
+      {/* === SCROLLABLE MIDDLE === */}
+      <div ref={scrollRef} className="tea-card-scroll" style={{
+        position: "relative", zIndex: 1,
+        flex: 1,
+        overflowY: "auto",
+        minHeight: 0,
+      }}>
 
         {/* Inset content panel */}
         <div style={{
@@ -245,7 +259,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ref={storyScrollRef}
                 className="tea-card-scroll"
                 style={{
-                  maxHeight: storyExpanded ? "400px" : "130px",
+                  maxHeight: "none",
                   overflowY: "auto",
                   padding: "12px 16px",
                   transition: "max-height 0.4s ease",
@@ -287,38 +301,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 opacity: storyFadeBottom ? 1 : 0,
                 transition: "opacity 0.2s ease",
               }} />
-              {/* Expand/collapse toggle — only show when story overflows */}
-              {(storyFadeBottom || storyExpanded) && (
-                <button
-                  onClick={() => setStoryExpanded(prev => !prev)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    gap: "6px", width: "100%",
-                    padding: "4px 0",
-                    background: "none", border: "none", cursor: "pointer",
-                  }}
-                >
-                  <span style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "11px", fontWeight: 300, fontStyle: "italic",
-                    color: alcoveColors.mutedDark,
-                    letterSpacing: "0.05em",
-                    transition: "color 0.2s ease",
-                  }}>
-                    {storyExpanded ? 'less' : 'more'}
-                  </span>
-                  <svg
-                    width="10" height="10" viewBox="0 0 24 24" fill="none"
-                    stroke={alcoveColors.mutedDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    style={{
-                      transition: "transform 0.3s ease",
-                      transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-              )}
+              {/* Bottom fade spacer — story expand button moved to top-right of card */}
             </div>
           )}
 
@@ -423,9 +406,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {feelingDescription}
           </p>
         )}
+      </div>
 
-        {/* Block 4: Commerce */}
-        <div style={{ padding: "6px 20px 16px", marginTop: "auto", flexShrink: 0 }}>
+      {/* === PINNED BOTTOM: Commerce === */}
+      <div style={{
+        position: "relative", zIndex: 1, flexShrink: 0,
+        padding: "6px 20px 16px",
+        background: alcoveColors.bg,
+        borderTop: "1px solid rgba(200,170,120,0.06)",
+      }}>
 
           {/* Price Tag: price + gram selector */}
           <div style={{
@@ -586,9 +575,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Bottom fade indicator */}
+      {/* Scrollable middle fade indicator */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
         background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
