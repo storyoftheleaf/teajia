@@ -114,7 +114,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               : 'max-w-[480px] md:max-w-[560px]'
           }`}
           style={{
-            height: isCardExpanded ? "calc(100vh - 32px)" : "min(90vh, 780px)",
+            height: isCardExpanded ? "auto" : "min(90vh, 780px)",
+            maxHeight: isCardExpanded ? "calc(100vh - 64px)" : undefined,
             minHeight: "480px",
             transition: "all 0.3s ease",
           }}

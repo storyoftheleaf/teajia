@@ -42,6 +42,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [showFade, setShowFade] = useState(false);
   const [storyFadeTop, setStoryFadeTop] = useState(false);
   const [storyFadeBottom, setStoryFadeBottom] = useState(false);
+  const [storyOverflows, setStoryOverflows] = useState(false);
 
   const presets = [25, 50, 100, 150, 300];
   const pricePerGram = parseFloat(item.price_per_gram || '0');
@@ -96,7 +97,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     };
   }, []);
 
-  // Story scroll fade detection
+  // Story scroll fade detection + overflow check
   useEffect(() => {
     const el = storyScrollRef.current;
     if (!el) return;
@@ -106,11 +107,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
       setStoryFadeTop(canScroll && !atTop);
       setStoryFadeBottom(canScroll && !atBottom);
+      if (!storyExpanded && canScroll) setStoryOverflows(true);
     };
+    // Check initial overflow
+    requestAnimationFrame(() => {
+      if (el.scrollHeight > el.clientHeight) setStoryOverflows(true);
+      else setStoryOverflows(false);
+    });
     checkStory();
     el.addEventListener("scroll", checkStory, { passive: true });
     return () => el.removeEventListener("scroll", checkStory);
-  }, [item]);
+  }, [item, storyExpanded]);
 
   const handleAdd = () => {
     setAdded(true);
@@ -123,7 +130,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   return (
     <div style={{
       width: "100%",
-      height: "100%",
+      height: storyExpanded ? "auto" : "100%",
+      minHeight: storyExpanded ? "480px" : undefined,
+      maxHeight: "100%",
       background: alcoveColors.bg,
       position: "relative",
       overflow: "hidden",
@@ -131,6 +140,47 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       display: "flex",
       flexDirection: "column",
     }}>
+
+      {/* Expand/collapse story button — top right, only when story overflows */}
+      {story && (storyOverflows || storyExpanded) && (
+        <button
+          onClick={() => {
+            const next = !storyExpanded;
+            setStoryExpanded(next);
+            onExpandChange?.(next);
+          }}
+          onMouseEnter={() => setHovered("expand")}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            position: "absolute", top: "8px", right: "36px", zIndex: 10,
+            display: "flex", alignItems: "center", gap: "5px",
+            padding: "4px 10px",
+            background: hovered === "expand" ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.3)",
+            border: "none", borderRadius: "12px",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+          }}
+        >
+          <span style={{
+            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+            fontSize: "11px", fontWeight: 300, fontStyle: "italic",
+            color: "rgba(200,170,120,0.6)",
+            letterSpacing: "0.05em",
+          }}>
+            {storyExpanded ? 'less' : 'more'}
+          </span>
+          <svg
+            width="9" height="9" viewBox="0 0 24 24" fill="none"
+            stroke="rgba(200,170,120,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{
+              transition: "transform 0.3s ease",
+              transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
 
       {/* Layer 1: Multi-stop radial warmth */}
       <div style={{
@@ -322,42 +372,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 opacity: storyFadeBottom ? 1 : 0,
                 transition: "opacity 0.2s ease",
               }} />
-              {/* Expand/collapse toggle — only show when story overflows */}
-              {(storyFadeBottom || storyExpanded) && (
-                <button
-                  onClick={() => {
-                    const next = !storyExpanded;
-                    setStoryExpanded(next);
-                    onExpandChange?.(next);
-                  }}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    gap: "6px", width: "100%",
-                    padding: "4px 0",
-                    background: "none", border: "none", cursor: "pointer",
-                  }}
-                >
-                  <span style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "11px", fontWeight: 300, fontStyle: "italic",
-                    color: alcoveColors.mutedDark,
-                    letterSpacing: "0.05em",
-                    transition: "color 0.2s ease",
-                  }}>
-                    {storyExpanded ? 'less' : 'more'}
-                  </span>
-                  <svg
-                    width="10" height="10" viewBox="0 0 24 24" fill="none"
-                    stroke={alcoveColors.mutedDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    style={{
-                      transition: "transform 0.3s ease",
-                      transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-              )}
+              {/* Bottom fade spacer — story expand button moved to top-right of card */}
             </div>
           )}
 
