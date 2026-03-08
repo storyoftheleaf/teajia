@@ -418,7 +418,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         return (
                             <div
                                 key={item.id}
-                                className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : ''}`}
+                                className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-gold/[0.05]' : ''}`}
                             >
                                 <div className="flex items-center py-2.5 lg:py-3 px-2 gap-3 lg:gap-5 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
 
@@ -499,7 +499,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </p>
 
                                         {/* Controls */}
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/[0.03] rounded-sm p-3 pr-4">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-gold/[0.04] rounded-sm p-3 pr-4">
 
                                             {/* Slider */}
                                             <div className="flex-1 flex items-center gap-3 px-2">

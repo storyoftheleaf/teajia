@@ -28,8 +28,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Primary fonts: Vollkorn (display), Spectral (body), Jost (labels/UI), Space Mono (technical) -->
     <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@200;400;700&display=swap" rel="stylesheet">
-    <!-- Deferred: Alcove card fonts + Chinese calligraphy -->
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Bricolage+Grotesque:wght@200;300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- Fraunces for editorial card titles + Bricolage for UI + Chinese calligraphy -->
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Bricolage+Grotesque:wght@200;300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles/card-utilities.css">
     <style>
       /* Espresso + Gold — Dark mode (default) */
@@ -251,7 +251,7 @@
         height: 100%;
         pointer-events: none;
         z-index: 1;
-        opacity: 0.04;
+        opacity: 0.06;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
       }
 
@@ -305,11 +305,12 @@
 
       /* Pull Quote styling */
       .pull-quote {
-        border-left: 4px solid var(--tea-gold);
-        padding-left: 1.5rem;
+        border-left: 3px solid var(--tea-gold);
+        padding: 1.5rem 1.5rem 1.5rem 2rem;
         margin: 2rem 0;
         font-style: italic;
         color: var(--tea-text-sec);
+        background: linear-gradient(90deg, rgba(184, 146, 78, 0.04) 0%, transparent 80%);
       }
 
       /* Side Note styling */

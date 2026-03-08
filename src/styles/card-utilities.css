@@ -17,9 +17,14 @@
    ============================================ */
 
 .card-grid-item {
-  background-color: var(--tea-surface);
-  padding: 0.625rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 0%, rgba(184, 146, 78, 0.03) 0%, transparent 60%),
+    var(--tea-surface);
+  padding: 0.75rem;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(184, 146, 78, 0.05);
   border-radius: 1px;
   display: flex;
   flex-direction: column;
@@ -36,8 +41,11 @@
 }
 
 .card-grid-item:hover {
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(184, 146, 78, 0.08);
+  transform: translateY(-3px) scale(1.01);
 }
 
 .card-grid-item:focus-visible {
@@ -48,13 +56,13 @@
 
 @media (min-width: 768px) {
   .card-grid-item {
-    padding: 0.75rem;
+    padding: 0.875rem;
   }
 }
 
 @media (min-width: 1024px) {
   .card-grid-item {
-    padding: 0.875rem;
+    padding: 1rem;
   }
   .card-grid-title {
     font-size: 1.0625rem;
@@ -81,7 +89,7 @@
 
 .card-grid-item:hover .card-grid-image {
   opacity: 1;
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .card-grid-content {
@@ -93,10 +101,11 @@
 
 .card-grid-title {
   font-size: 1rem;
-  font-family: var(--font-serif);
+  font-family: 'Fraunces', 'Fraunces Fallback', 'Lora', var(--font-serif);
   color: var(--tea-text);
   line-height: 1.25;
-  font-weight: 500;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   transition: color 300ms ease-out;
 }
 

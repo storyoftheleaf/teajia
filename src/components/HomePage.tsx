@@ -227,10 +227,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       {pullQuote && (
         <section
           ref={quoteReveal.ref}
-          className={`${SECTION_GAP} border-l-2 border-tea-gold pl-6 md:pl-8 ${quoteReveal.className}`}
+          className={`${SECTION_GAP} border-l-2 border-tea-gold/60 pl-6 md:pl-8 py-6 md:py-8 bg-tea-gold/[0.03] ${quoteReveal.className}`}
           style={quoteReveal.style}
         >
-          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3">
+          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif" }}>
             &ldquo;{pullQuote.description}&rdquo;
           </p>
           <p className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans">
