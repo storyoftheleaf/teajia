@@ -120,3 +120,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     tags: ['puerh', 'intermediate', 'tasting-journey', 'aging'],
   },
 ];
+
+/** Product IDs currently on sale — curated by Adrian */
+export const SALE_ITEM_IDS = ['1', '5', '6', '12', '17', '9'];

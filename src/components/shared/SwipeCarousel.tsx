@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Icons } from '../Icons';
 
 interface SwipeCarouselProps {
@@ -11,20 +11,16 @@ interface SwipeCarouselProps {
   onActiveChange?: (index: number) => void;
   className?: string;
   arrowClassName?: string;
+  /** 'dark' arrows (default) for dark backgrounds, 'light' for light backgrounds */
+  arrowTheme?: 'dark' | 'light';
 }
 
 /**
- * SwipeCarousel - Hybrid scroll-snap + momentum swipe component
+ * SwipeCarousel - Native scroll-snap carousel
  *
- * Features:
- * - CSS scroll-snap for native, smooth scrolling (hardware-accelerated)
- * - JS touch handlers for velocity-based momentum
- * - Active item detection with visual feedback
- * - Keyboard and arrow button navigation
- * - Accessible fallback (works without JS)
- *
- * IMPORTANT: This component only applies transforms to the carousel container,
- * never to individual children. This preserves aspect ratios (critical for 3:4 article cards).
+ * Relies on CSS scroll-snap for smooth, hardware-accelerated scrolling.
+ * No per-item transforms — items stay at scale(1) always to avoid layout thrashing.
+ * Uses proximity snap to avoid fighting with momentum scrolling.
  */
 export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
   children,
@@ -35,148 +31,125 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
   peek = 5,
   onActiveChange,
   className = '',
-  arrowClassName = ''
+  arrowClassName = '',
+  arrowTheme = 'dark',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Touch handlers for momentum scrolling
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-    setTouchStartTime(Date.now());
-    setIsDragging(true);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart || !touchStartTime || !containerRef.current) {
-      setIsDragging(false);
-      setTouchStart(null);
-      setTouchStartTime(null);
-      return;
-    }
-
-    const touchEnd = e.changedTouches[0].clientX;
-    const distance = Math.abs(touchStart - touchEnd);
-    const duration = Date.now() - touchStartTime;
-    const velocity = distance / duration;
-
-    setIsDragging(false);
-    setTouchStart(null);
-    setTouchStartTime(null);
-
-    // High velocity swipe: momentum scroll to next/prev item
-    // Same threshold as PopupModal and Reader (0.3 px/ms)
-    if (velocity > 0.3) {
-      const direction = touchStart > touchEnd ? 1 : -1;
-      const targetIndex = Math.max(
-        0,
-        Math.min(children.length - 1, activeIndex + direction)
-      );
-      scrollToIndex(targetIndex);
-    }
-    // Low velocity: let native scroll-snap handle it
-  };
+  const scrollRafRef = useRef<number | null>(null);
 
   // Scroll to specific index
-  const scrollToIndex = (index: number) => {
+  const scrollToIndex = useCallback((index: number) => {
     if (!containerRef.current) return;
-
     const container = containerRef.current;
-    const firstChild = container.children[0] as HTMLElement;
-    if (!firstChild) return;
+    const child = container.children[0]?.children[index] as HTMLElement;
+    if (!child) return;
 
-    const itemWidth = firstChild.offsetWidth;
-    const scrollLeft = index * (itemWidth + gap);
+    // Use the child's actual offset for accuracy
+    const scrollLeft = child.offsetLeft - container.offsetWidth * (peek / 100);
+    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+  }, [peek]);
 
-    container.scrollTo({
-      left: scrollLeft,
-      behavior: 'smooth'
+  // Throttled scroll handler via rAF — no state updates during scroll momentum
+  const handleScroll = useCallback(() => {
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      if (!containerRef.current) return;
+
+      const container = containerRef.current;
+      const scrollLeft = container.scrollLeft;
+      const inner = container.children[0] as HTMLElement;
+      if (!inner || !inner.children.length) return;
+
+      // Find the child closest to the scroll position
+      let closest = 0;
+      let closestDist = Infinity;
+      const containerCenter = scrollLeft + container.offsetWidth / 2;
+      for (let i = 0; i < inner.children.length; i++) {
+        const child = inner.children[i] as HTMLElement;
+        const childCenter = child.offsetLeft + child.offsetWidth / 2;
+        const dist = Math.abs(containerCenter - childCenter);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = i;
+        }
+      }
+
+      if (closest !== activeIndex) {
+        setActiveIndex(closest);
+        onActiveChange?.(closest);
+      }
     });
-  };
+  }, [activeIndex, onActiveChange]);
 
-  // Detect active item on scroll
-  const handleScroll = () => {
-    if (!containerRef.current || isDragging) return;
+  // Cleanup rAF on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    };
+  }, []);
 
-    const container = containerRef.current;
-    const scrollLeft = container.scrollLeft;
-    const firstChild = container.children[0] as HTMLElement;
-    if (!firstChild) return;
-
-    const itemWidth = firstChild.offsetWidth;
-    const newIndex = Math.round(scrollLeft / (itemWidth + gap));
-
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < children.length) {
-      setActiveIndex(newIndex);
-      onActiveChange?.(newIndex);
-    }
-  };
-
-  // Arrow navigation
-  const goToPrev = () => {
+  const goToPrev = useCallback(() => {
     const newIndex = Math.max(0, activeIndex - 1);
     scrollToIndex(newIndex);
-  };
+  }, [activeIndex, scrollToIndex]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     const newIndex = Math.min(children.length - 1, activeIndex + 1);
     scrollToIndex(newIndex);
-  };
+  }, [activeIndex, children.length, scrollToIndex]);
 
-  // Keyboard support
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        goToPrev();
-      }
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        goToNext();
-      }
-    };
+  // Keyboard support — only when carousel is focused or hovered
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrev(); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); goToNext(); }
+  }, [goToPrev, goToNext]);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeIndex, children.length]);
+  // Arrow styling based on theme
+  const arrowBase = 'absolute top-1/2 -translate-y-1/2 z-10 hidden md:flex p-2 rounded-full transition-all disabled:opacity-0 disabled:pointer-events-none';
+  const arrowColors = arrowTheme === 'light'
+    ? 'bg-tea-ink/8 hover:bg-tea-ink/15 text-tea-ink/50 hover:text-tea-ink/80'
+    : 'bg-white/10 hover:bg-white/20 text-white/60 hover:text-white';
+
+  // Dot styling based on theme
+  const dotActive = arrowTheme === 'light' ? 'bg-tea-seal' : 'bg-white';
+  const dotInactive = arrowTheme === 'light' ? 'bg-tea-ink/15' : 'bg-white/30';
 
   return (
-    <div className={`relative ${className}`}>
-      {/* Arrow buttons (desktop only) */}
+    <div className={`relative ${className}`} onKeyDown={handleKeyDown} tabIndex={0} role="region" aria-label="Carousel">
+      {/* Arrow buttons */}
       {showArrows && (
         <>
           <button
             onClick={goToPrev}
             disabled={activeIndex === 0}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none ${arrowClassName}`}
-            aria-label="Previous item"
+            className={`${arrowBase} left-0 ${arrowColors} ${arrowClassName}`}
+            aria-label="Previous"
           >
-            <Icons.Back className="w-6 h-6" />
+            <Icons.Back className="w-5 h-5" />
           </button>
           <button
             onClick={goToNext}
             disabled={activeIndex === children.length - 1}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-all disabled:opacity-0 disabled:pointer-events-none ${arrowClassName}`}
-            aria-label="Next item"
+            className={`${arrowBase} right-0 ${arrowColors} ${arrowClassName}`}
+            aria-label="Next"
           >
-            <Icons.Next className="w-6 h-6" />
+            <Icons.Next className="w-5 h-5" />
           </button>
         </>
       )}
 
-      {/* Scroll container */}
+      {/* Scroll container — proximity snap avoids fighting with momentum */}
       <div
         ref={containerRef}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         onScroll={handleScroll}
-        className="overflow-x-scroll overflow-y-hidden snap-x snap-mandatory scroll-smooth hide-scrollbar pb-4"
+        className="overflow-x-auto overflow-y-hidden hide-scrollbar"
         style={{
+          scrollSnapType: 'x proximity',
+          WebkitOverflowScrolling: 'touch',
           scrollPaddingLeft: `${peek}%`,
-          scrollPaddingRight: `${peek}%`
+          scrollPaddingRight: `${peek}%`,
         }}
       >
         <div
@@ -186,13 +159,10 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
           {children.map((child, index) => (
             <div
               key={index}
-              className={`snap-center shrink-0 transition-all duration-200 ${
-                index === activeIndex
-                  ? 'scale-105'
-                  : 'scale-100'
-              }`}
+              className="shrink-0"
               style={{
-                width: itemWidth === 'auto' ? 'auto' : `${itemWidth}px`
+                width: itemWidth === 'auto' ? 'auto' : `${itemWidth}px`,
+                scrollSnapAlign: 'start',
               }}
             >
               {child}
@@ -201,17 +171,17 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
         </div>
       </div>
 
-      {/* Pagination dots (optional) */}
+      {/* Pagination dots */}
       {showDots && children.length > 1 && (
         <div className="flex justify-center gap-2 mt-4">
           {children.map((_, index) => (
             <button
               key={index}
               onClick={() => scrollToIndex(index)}
-              className={`h-2 rounded-full transition-all ${
+              className={`h-1.5 rounded-full transition-all duration-300 ${
                 index === activeIndex
-                  ? 'bg-white w-6'
-                  : 'bg-white/30 w-2'
+                  ? `${dotActive} w-5`
+                  : `${dotInactive} w-1.5`
               }`}
               aria-label={`Go to item ${index + 1}`}
             />

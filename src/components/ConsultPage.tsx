@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from './shared/PageHeader';
 import { CardContainer } from './shared/CardContainer';
 import { SwipeCarousel } from './shared/SwipeCarousel';
@@ -67,8 +68,10 @@ interface ConsultPageProps {
 }
 
 export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccountClick, cartItemCount = 0 }) => {
-  const [currentView, setCurrentView] = useState<ConsultView>('main');
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  // URL-synced sub-view navigation — browser back works properly
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentView = (searchParams.get('v') || 'main') as ConsultView;
+  const selectedProjectId = searchParams.get('pid') || null;
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryPreselect, setInquiryPreselect] = useState('');
 
@@ -93,10 +96,20 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   }, []);
 
   const navigateTo = useCallback((view: ConsultView, projectId?: string) => {
-    setCurrentView(view);
-    if (projectId) setSelectedProjectId(projectId);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (view === 'main') {
+        next.delete('v');
+        next.delete('pid');
+      } else {
+        next.set('v', view);
+        if (projectId) next.set('pid', projectId);
+        else next.delete('pid');
+      }
+      return next;
+    }, { replace: false });
     window.scrollTo(0, 0);
-  }, []);
+  }, [setSearchParams]);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const ref = sectionRefs[sectionId];
@@ -113,13 +126,13 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
     ? consultProjects.find(p => p.id === selectedProjectId)
     : null;
 
-  // Sub-views: Projects and ProjectDetail
+  // Sub-views: Projects and ProjectDetail — browser back works via URL params
   if (currentView === 'projects') {
     return (
       <div className="w-full animate-[fadeIn_0.6s_ease-out]">
         <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
         <div className="mt-8">
-          <Projects onBack={() => navigateTo('main')} onSelectProject={(id) => navigateTo('project-detail', id)} />
+          <Projects onBack={() => window.history.back()} onSelectProject={(id) => navigateTo('project-detail', id)} />
         </div>
         <InquiryForm isOpen={inquiryOpen} onClose={() => setInquiryOpen(false)} preselect={inquiryPreselect} />
       </div>
@@ -133,7 +146,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         <div className="mt-8">
           <ProjectDetail
             project={selectedProject}
-            onBack={() => navigateTo('projects')}
+            onBack={() => window.history.back()}
             onOpenInquiry={openInquiry}
             onNavigateProjects={() => navigateTo('projects')}
           />

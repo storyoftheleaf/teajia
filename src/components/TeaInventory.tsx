@@ -11,6 +11,7 @@ import { PageHeaderActions } from './shared/PageHeaderActions';
 
 import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
+import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 
 // Use shared type alias for backward compatibility in this component if needed, 
@@ -29,8 +30,7 @@ interface TeaInventoryProps {
 const TEA_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Black', 'Dark', 'Herbal'];
 const FEELINGS_LIST = ['Ancient', 'Balanced', 'Energetic', 'Grounding', 'Meditative', 'Romantic', 'Soft', 'Strong', 'Vibrant', 'Wild'];
 
-// Mock Curated Lists
-const SALE_ITEMS = ['1', '5', '6', '12', '17', '9'];
+// Sale items imported from data/curatedCollections
 
 export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false }) => {
   // Filter State
@@ -79,7 +79,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
       if (specialFilter === 'Curated') matchSpecial = !!item.isFeatured;
-      if (specialFilter === 'Sale') matchSpecial = SALE_ITEMS.includes(item.id);
+      if (specialFilter === 'Sale') matchSpecial = SALE_ITEM_IDS.includes(item.id);
       if (specialFilter === 'Liked') matchSpecial = userFavorites.has(item.id);
 
       return matchType && matchFeeling && matchSpecial;
@@ -394,7 +394,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {/* Categorization Separator - Left Aligned & Bigger */}
                     {activeType === 'All' && specialFilter === 'None' && (
                         <div className="flex items-center gap-4 py-4 mt-6 first:mt-2 opacity-70">
-                            <span className="text-sm uppercase tracking-[0.25em] text-tea-ink dark:text-tea-beige font-serif shrink-0 pl-1">{group.type}</span>
+                            <span className="text-sm uppercase tracking-[0.25em] text-tea-ink dark:text-tea-beige-dark font-serif shrink-0 pl-1">{group.type}</span>
                             <div className="h-[1px] bg-tea-ink/10 dark:bg-white/10 flex-1"></div>
                         </div>
                     )}

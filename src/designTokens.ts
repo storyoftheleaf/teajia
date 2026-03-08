@@ -69,13 +69,14 @@ export const DESIGN_TOKENS = {
 
     // Neutrals
     'tea-beige': '#D8D0C0',
+    'tea-beige-dark': '#8A8070',     // Dark mode accessible beige
     'tea-ink': '#2C2C2C',         // Primary dark text
     'tea-ink-light': '#555555',   // Secondary text
     'tea-ink-secondary': '#555555',      // Accessible secondary text (light mode)
     'tea-paper-secondary': '#B8B4AA',    // Accessible secondary text (dark mode)
 
     // Accents
-    'tea-seal': '#c9943a',        // Primary accent (warm gold)
+    'tea-seal': '#b8882d',        // Primary accent (warm gold, WCAG AA on tea-paper)
     'tea-seal-dark': '#a07830',   // Accessible gold for text on light backgrounds
     'tea-green': '#5A6E5A',       // Accent green
     'tea-moss': '#2A3430',        // Dark green/grey
