@@ -121,12 +121,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   return (
     <div style={{
-      width: "100%", maxWidth: "480px",
-      minHeight: "580px", maxHeight: "720px",
+      width: "100%",
+      height: "100%",
       background: alcoveColors.bg,
       position: "relative",
       overflow: "hidden",
       borderRadius: "3px",
+      display: "flex",
+      flexDirection: "column",
     }}>
 
       {/* Layer 1: Multi-stop radial warmth */}
@@ -145,15 +147,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         backgroundSize: "120px",
       }} />
 
-      {/* Scrollable content wrapper */}
-      <div ref={scrollRef} className="tea-card-scroll" style={{
-        position: "relative", zIndex: 1,
-        minHeight: "580px", maxHeight: "720px",
-        overflowY: "auto",
-        display: "flex", flexDirection: "column",
-      }}>
-
-        {/* Block 1: Identity */}
+      {/* === PINNED TOP: Identity === */}
+      <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
         {chineseCharacters && (
           <div style={{
             position: "absolute", right: "20px", top: "24px",
@@ -185,6 +180,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           )}
         </div>
+      </div>
+
+      {/* === SCROLLABLE MIDDLE === */}
+      <div ref={scrollRef} className="tea-card-scroll" style={{
+        position: "relative", zIndex: 1,
+        flex: 1,
+        overflowY: "auto",
+        minHeight: 0,
+      }}>
 
         {/* Inset content panel */}
         <div style={{
@@ -244,7 +248,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ref={storyScrollRef}
                 className="tea-card-scroll"
                 style={{
-                  maxHeight: storyExpanded ? "400px" : "130px",
+                  maxHeight: storyExpanded ? "none" : "180px",
                   overflowY: "auto",
                   padding: "12px 16px",
                   transition: "max-height 0.4s ease",
@@ -422,9 +426,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {feelingDescription}
           </p>
         )}
+      </div>
 
-        {/* Block 4: Commerce */}
-        <div style={{ padding: "6px 20px 16px", marginTop: "auto", flexShrink: 0 }}>
+      {/* === PINNED BOTTOM: Commerce === */}
+      <div style={{
+        position: "relative", zIndex: 1, flexShrink: 0,
+        padding: "6px 20px 16px",
+        background: alcoveColors.bg,
+        borderTop: "1px solid rgba(200,170,120,0.06)",
+      }}>
 
           {/* Price Tag: price + gram selector */}
           <div style={{
@@ -585,9 +595,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Bottom fade indicator */}
+      {/* Scrollable middle fade indicator */}
       <div style={{
         position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
         background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
