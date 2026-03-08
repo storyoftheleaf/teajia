@@ -471,6 +471,12 @@ The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. 
 
 ## 9. Implementation Phases
 
+### Phase 0: Cleanup — Remove Experimental Font Theme Infrastructure
+1. Delete `src/components/FontThemeTester.tsx`
+2. Remove `FONT_THEMES` and `FONT_SIZE_SCALES` exports from `designTokens.ts`
+3. Remove `FontThemeTester` comments from `index.html` CSS variable section
+4. The font stack is already locked in (`Lora`/`Inter`/`Menlo`) — no tester UI needed
+
 ### Phase 1: Token Foundation (Non-Breaking)
 1. Add new color tokens to Tailwind config in `index.html`
 2. Add corresponding CSS variables to `:root`
@@ -527,6 +533,11 @@ The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. 
 
 ## 10. Files to Touch
 
+### Cleanup (1 file deleted, 2 files edited)
+- `src/components/FontThemeTester.tsx` — **DELETE**
+- `src/designTokens.ts` — Remove `FONT_THEMES` and `FONT_SIZE_SCALES`
+- `index.html` — Remove FontThemeTester comments
+
 ### Core Config (3 files)
 - `index.html` — Tailwind config + CSS variables + inline styles
 - `src/designTokens.ts` — Token definitions
@@ -567,7 +578,7 @@ The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. 
 ### CSS (1 file)
 - `src/styles/card-utilities.css`
 
-**Total: ~25 files, ~60+ individual color replacements**
+**Total: ~25 files modified, 1 file deleted, ~60+ individual color replacements**
 
 ---
 
@@ -575,4 +586,6 @@ The admin gold accent `tea-accent: #b8882d` is already identical to `tea-seal`. 
 
 Teajia Palettes transforms the current design from "mostly consistent with scattered hardcoded values" to "a fully token-driven system where every color, font, and visual element traces back to a single source of truth." The palette itself doesn't change much — the existing aesthetic is strong. The work is primarily about **consolidation**: replacing ~60+ hardcoded hex values with named tokens, ensuring logos use `currentColor` or explicit tokens, and making the CSS files reference variables instead of raw values.
 
-The end result: change one value in the Tailwind config, and it propagates everywhere. That's what a palette system should be.
+As part of this consolidation, the experimental `FontThemeTester` component and its `FONT_THEMES`/`FONT_SIZE_SCALES` infrastructure are removed. The font stack is settled (Lora/Inter/Menlo) — no runtime switching UI is needed. All design decisions live in the token files, not in a component.
+
+The end result: change one value in the Tailwind config, and it propagates everywhere. No bloat, no tester UI, just clean tokens. That's what a palette system should be.
