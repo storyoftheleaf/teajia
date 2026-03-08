@@ -70,7 +70,7 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
 
   return createPortal(
     <div 
-      className="fixed z-[65] flex items-center bg-[#1a1a1a] border border-white/20 rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
+      className="fixed z-[65] flex items-center bg-tea-bg border border-white/20 rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
       style={{ top: safeTop, left: safeLeft }}
       onMouseDown={(e) => e.preventDefault()}
     >
@@ -334,11 +334,11 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
 };
 
 export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, storyTitle, storySubtitle, isEditable, readOnly = false, onPageUpdate, onStoryUpdate, recommendations, onNavigate }) => {
-    if (!page) return <div className="w-full h-full bg-[#F3F0E7]"></div>;
+    if (!page) return <div className="w-full h-full bg-tea-bg"></div>;
     const { variant, content = '', images = [], textColor = 'light' } = page;
     const isDarkText = textColor === 'dark'; 
     const theme = {
-      bg: isDarkText ? 'bg-[#F3F0E7]' : 'bg-[#1a1a1a]',
+      bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
       text: isDarkText ? 'text-tea-ink' : 'text-tea-paper',
       subtext: isDarkText ? 'text-tea-ink/60' : 'text-tea-paper/60',
       border: isDarkText ? 'border-tea-ink/10' : 'border-white/10',
@@ -387,14 +387,14 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 );
             case LayoutVariant.COVER_TYPOGRAPHIC:
                 return (
-                    <div className={`${paperBase} ${isDarkText ? 'bg-[#F3F0E7] text-tea-seal' : 'bg-tea-seal text-tea-paper'} ${STD_PAD} flex flex-col justify-center`}>
+                    <div className={`${paperBase} ${isDarkText ? 'bg-tea-bg text-tea-seal' : 'bg-tea-seal text-tea-paper'} ${STD_PAD} flex flex-col justify-center`}>
                         <div className="flex-1 flex items-center"><EditableText value={storyTitle || 'Title'} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-[120px] font-serif leading-[0.8] tracking-tighter uppercase opacity-90 break-words w-full" placeholder="TITLE" tag="h1" readOnly={readOnly} /></div>
                         <div className="border-t-4 border-current/20 pt-8"><EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className="text-5xl font-serif italic opacity-80" placeholder="Subtitle" tag="p" readOnly={readOnly} /></div>
                     </div>
                 );
             case LayoutVariant.COVER_MINIMAL:
                 return (
-                    <div className={`${paperBase} flex flex-col items-center justify-center ${STD_PAD} text-center border-[20px] ${isDarkText ? 'border-[#E6E2D6]' : 'border-[#121212]'}`}>
+                    <div className={`${paperBase} flex flex-col items-center justify-center ${STD_PAD} text-center border-[20px] ${isDarkText ? 'border-tea-border' : 'border-tea-border'}`}>
                         <div className={`w-[2px] h-32 ${theme.border} bg-current mb-12 opacity-20`}></div>
                         <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className="text-7xl font-serif mb-6 tracking-wide leading-tight" placeholder="Title" tag="h1" readOnly={readOnly} />
                         <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`text-2xl uppercase tracking-[0.3em] ${theme.subtext}`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
@@ -642,7 +642,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.MAP_CARTOGRAPHY:
                 return (
                     <div className={`${paperBase} flex flex-col`}>
-                         <div className="flex-1 relative bg-[#e8e4d9] text-tea-ink p-12 flex items-center justify-center overflow-hidden">
+                         <div className="flex-1 relative bg-tea-surface text-tea-ink p-12 flex items-center justify-center overflow-hidden">
                              <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]"></div>
                              <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
                                  <path d="M0,50 Q25,40 50,50 T100,50" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
@@ -670,7 +670,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.TEXT_INVERTED:
                 return (
-                    <div className={`w-full h-full ${!isDarkText ? 'bg-[#F3F0E7] text-black' : 'bg-black text-[#F3F0E7]'} ${STD_PAD} flex flex-col justify-center items-center text-center`}>
+                    <div className={`w-full h-full ${!isDarkText ? 'bg-tea-bg text-black' : 'bg-black text-tea-text'} ${STD_PAD} flex flex-col justify-center items-center text-center`}>
                          <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-4xl font-serif leading-relaxed" placeholder="Inverted text..." tag="p" readOnly={readOnly} />
                     </div>
                 );

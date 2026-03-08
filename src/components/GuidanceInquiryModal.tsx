@@ -81,7 +81,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
     >
       <div
         ref={focusTrapRef}
-        className="bg-[#F3F0E7] dark:bg-[#242424] max-w-md md:max-w-2xl w-full p-8 rounded-lg relative shadow-2xl animate-[scaleIn_0.3s_ease-out]"
+        className="bg-tea-bg dark:bg-tea-elevated max-w-md md:max-w-2xl w-full p-8 rounded-lg relative shadow-2xl animate-[scaleIn_0.3s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

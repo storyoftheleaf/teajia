@@ -228,7 +228,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       {/* Panel */}
       <div
         ref={focusTrapRef}
-        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-[#F3F0E7] dark:bg-[#1a1a1a] z-[100] shadow-2xl flex flex-col"
+        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg dark:bg-tea-bg z-[100] shadow-2xl flex flex-col"
         style={{
           transform: isVisible ? `translateX(${touchOffset}px)` : 'translateX(100%)',
           opacity: isDragging ? swipeOpacity : 1,
@@ -241,14 +241,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         {/* Header */}
         <div className="flex flex-col">
           {/* Mobile drag handle */}
-          <div className="md:hidden flex flex-col items-center py-3 gap-1 bg-[#E6E2D6] dark:bg-[#242424]">
+          <div className="md:hidden flex flex-col items-center py-3 gap-1 bg-tea-surface dark:bg-tea-surface">
             <div className={`h-1 rounded-full transition-all duration-150 ${
               isDragging ? 'bg-tea-seal w-16' : 'bg-tea-charcoal/20 dark:bg-white/20 w-12'
             }`} />
             <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/30 dark:text-white/20">Swipe to close</span>
           </div>
 
-          <div className="flex items-center justify-center p-6 border-b border-tea-charcoal/10 dark:border-white/10 bg-[#E6E2D6] dark:bg-[#242424] relative">
+          <div className="flex items-center justify-center p-6 border-b border-tea-charcoal/10 dark:border-white/10 bg-tea-surface dark:bg-tea-surface relative">
             <button
               onClick={() => {
                 if (panelView !== 'main') {
@@ -819,7 +819,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-tea-charcoal/10 dark:border-white/10 bg-[#E6E2D6] dark:bg-[#242424] flex flex-col items-center gap-2">
+        <div className="p-6 border-t border-tea-charcoal/10 dark:border-white/10 bg-tea-surface dark:bg-tea-surface flex flex-col items-center gap-2">
           <SealIcon className="w-6 h-6 text-tea-seal opacity-60" />
           <span className="text-[10px] uppercase tracking-[0.3em] text-tea-charcoal/40 dark:text-white/40">Teajia</span>
         </div>

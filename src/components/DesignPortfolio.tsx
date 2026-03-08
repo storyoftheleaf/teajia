@@ -123,7 +123,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
           onClick={closeModal}
         >
           <div
-            className="bg-[#F3F0E7] dark:bg-[#1a1a1a] max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-lg shadow-2xl animate-[scaleIn_0.3s_ease-out]"
+            className="bg-tea-bg dark:bg-tea-bg max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-lg shadow-2xl animate-[scaleIn_0.3s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}

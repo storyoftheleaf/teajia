@@ -90,7 +90,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           className="fixed inset-0 z-[9999] pointer-events-none transition-[clip-path] duration-500 ease-out"
           style={{
             clipPath: revealClip,
-            backgroundColor: theme === 'dark' ? '#0f0f0f' : '#F3F0E7',
+            backgroundColor: 'var(--tea-bg)',
           }}
         />
       )}

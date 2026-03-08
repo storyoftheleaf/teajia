@@ -312,7 +312,7 @@ const AppContent = () => {
   if (location.pathname.startsWith('/admin')) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#0c0c0c] text-neutral-400 font-sans text-sm">Loading admin...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-neutral-400 font-sans text-sm">Loading admin...</div>}>
           <Routes>
             <Route path="/admin/*" element={<AdminApp />} />
           </Routes>
@@ -326,7 +326,7 @@ const AppContent = () => {
 
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.15] dark:opacity-[0.12] z-0"></div>
-      <div className="fixed inset-0 bg-gradient-radial from-transparent via-white/0 dark:via-[#1a1a1a]/40 to-white/10 dark:to-[#121212]/90 pointer-events-none z-0"></div>
+      <div className="fixed inset-0 bg-gradient-radial from-transparent via-white/0 dark:via-tea-bg/40 to-white/10 dark:to-tea-surface/90 pointer-events-none z-0"></div>
 
       {/* Admin Toolbar — visible only for admin users */}
       {isAdmin && <AdminToolbar />}

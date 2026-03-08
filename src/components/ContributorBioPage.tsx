@@ -17,9 +17,9 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out] overflow-y-auto">
-      <div className="bg-[#FFFDF5] dark:bg-tea-ink rounded-[2px] max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8 animate-[slideUp_0.4s_ease-out]">
+      <div className="bg-tea-surface dark:bg-tea-surface rounded-[2px] max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8 animate-[slideUp_0.4s_ease-out]">
         {/* Header with Close Button */}
-        <div className="sticky top-0 bg-[#FFFDF5] dark:bg-tea-ink border-b border-tea-ink/10 dark:border-white/10 p-6 flex items-start justify-between">
+        <div className="sticky top-0 bg-tea-surface dark:bg-tea-surface border-b border-tea-ink/10 dark:border-white/10 p-6 flex items-start justify-between">
           <h2 className="text-2xl font-serif text-tea-paper pr-4">{contributor.name}</h2>
           <button
             onClick={onClose}

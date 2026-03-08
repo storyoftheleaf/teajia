@@ -67,8 +67,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           <IconComponent
             className={`transition-all duration-300 flex-shrink-0 ${
               isActive
-                ? 'text-tea-seal w-5 h-5 scale-110 origin-center'
-                : 'text-tea-ink/40 dark:text-tea-paper/60 w-5 h-5 group-hover:text-tea-ink/60 dark:group-hover:text-tea-paper/85'
+                ? 'text-tea-gold w-5 h-5 scale-110 origin-center'
+                : 'text-tea-text-dim w-5 h-5 group-hover:text-tea-text-sec'
             }`}
             strokeWidth={2}
             {...(isActive ? { fill: 'currentColor' } : {})}
@@ -79,7 +79,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
         {/* Label */}
         <span className={`text-[10px] font-sans uppercase tracking-widest font-medium mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
-          isActive ? 'text-tea-seal' : 'text-tea-ink/40 dark:text-tea-paper/60 group-hover:text-tea-ink/60 dark:group-hover:text-tea-paper/85'
+          isActive ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text-sec'
         }`}>
           {section.label}
         </span>
@@ -92,7 +92,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     <>
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-[#FFFDF5]/80 dark:bg-tea-ink/80 backdrop-blur-xl z-[65] animate-[slideUp_0.4s_ease-out] transition-all duration-200 pb-[env(safe-area-inset-bottom)] ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/80 dark:bg-tea-surface/80 backdrop-blur-xl z-[65] animate-[slideUp_0.4s_ease-out] transition-all duration-200 pb-[env(safe-area-inset-bottom)] ${
           hidden ? 'opacity-0 pointer-events-none' : 'h-[56px] opacity-100'
         }`}
         style={{ boxShadow: '0 -8px 24px rgba(0,0,0,0.04)' }}
@@ -123,7 +123,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               </div>
               <LogoText
                 size="sm"
-                color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
+                color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-dim)'}
                 className={`relative z-10 transition-all duration-300 scale-[1.08] ${themeFlash ? 'opacity-60' : ''}`}
               />
             </button>
@@ -146,11 +146,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               >
                 <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center">
                   <Icons.User
-                    className="text-tea-ink/40 dark:text-tea-paper/60 w-5 h-5 group-hover:text-tea-ink/60 dark:group-hover:text-tea-paper/85 transition-all duration-300"
+                    className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text-sec transition-all duration-300"
                     strokeWidth={2}
                   />
                   {auth.isAdmin && (
-                    <div className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-tea-seal rounded-full border border-[#FFFDF5] dark:border-tea-ink" />
+                    <div className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-tea-gold rounded-full border border-tea-surface dark:border-tea-surface" />
                   )}
                 </div>
               </button>

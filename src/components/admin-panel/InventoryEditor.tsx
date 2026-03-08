@@ -122,14 +122,14 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <div className="col-span-2">
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Name</label>
                                 <input
-                                    className="w-full bg-[#0a0a0a] border border-white/20 p-2.5 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9"
+                                    className="w-full bg-tea-bg border border-white/20 p-2.5 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9"
                                     value={currentItem.name}
                                     onChange={e => setCurrentItem({...currentItem, name: e.target.value})}
                                 />
                             </div>
                             <div>
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Type</label>
-                                <select className="w-full bg-[#0a0a0a] border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.type} onChange={e => setCurrentItem({...currentItem, type: e.target.value})}>
+                                <select className="w-full bg-tea-bg border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.type} onChange={e => setCurrentItem({...currentItem, type: e.target.value})}>
                                     <option value="">Select</option>
                                     {currentItem.category === 'tea' ? TEA_TYPES.map(t => <option key={t} value={t}>{t}</option>) : <option value={currentItem.type}>{currentItem.type}</option>}
                                 </select>
@@ -140,15 +140,15 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                         <div className="grid grid-cols-5 gap-3">
                             <div className="col-span-2">
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Variant</label>
-                                <input className="w-full bg-[#0a0a0a] border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.variant} onChange={e => setCurrentItem({...currentItem, variant: e.target.value})} />
+                                <input className="w-full bg-tea-bg border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.variant} onChange={e => setCurrentItem({...currentItem, variant: e.target.value})} />
                             </div>
                             <div className="col-span-2">
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Origin</label>
-                                <input className="w-full bg-[#0a0a0a] border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.origin} onChange={e => setCurrentItem({...currentItem, origin: e.target.value})} />
+                                <input className="w-full bg-tea-bg border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.origin} onChange={e => setCurrentItem({...currentItem, origin: e.target.value})} />
                             </div>
                             <div className="col-span-1">
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Year</label>
-                                <input className="w-full bg-[#0a0a0a] border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.year} onChange={e => setCurrentItem({...currentItem, year: e.target.value})} />
+                                <input className="w-full bg-tea-bg border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.year} onChange={e => setCurrentItem({...currentItem, year: e.target.value})} />
                             </div>
                         </div>
                     </div>
@@ -159,11 +159,11 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="col-span-2">
                                     <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Supplier</label>
-                                    <input className="w-full bg-[#0a0a0a] border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.supplier || ''} onChange={e => setCurrentItem({...currentItem, supplier: e.target.value})} />
+                                    <input className="w-full bg-tea-bg border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.supplier || ''} onChange={e => setCurrentItem({...currentItem, supplier: e.target.value})} />
                                 </div>
                                 <div className="col-span-1">
                                     <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Location</label>
-                                    <select className="w-full bg-[#0a0a0a] border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.supplier_location || ''} onChange={e => handleLocationChange(e.target.value)}>
+                                    <select className="w-full bg-tea-bg border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-9" value={currentItem.supplier_location || ''} onChange={e => handleLocationChange(e.target.value)}>
                                         <option value="">Select</option>
                                         {SUPPLIER_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                                     </select>
@@ -179,7 +179,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             {/* Stock field */}
                             <div>
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Stock</label>
-                                <div className="flex items-center gap-1 bg-[#0a0a0a] border border-white/20 rounded-sm h-9 px-2 min-w-0">
+                                <div className="flex items-center gap-1 bg-tea-bg border border-white/20 rounded-sm h-9 px-2 min-w-0">
                                     <input
                                         type="number"
                                         value={currentItem.stock_g}
@@ -193,7 +193,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             {/* Cost field with currency */}
                             <div>
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Cost</label>
-                                <div className="flex items-center gap-1 bg-[#0a0a0a] border border-white/20 rounded-sm h-9 px-2 min-w-0">
+                                <div className="flex items-center gap-1 bg-tea-bg border border-white/20 rounded-sm h-9 px-2 min-w-0">
                                     <input
                                         type="number"
                                         step="0.01"
@@ -208,7 +208,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             {/* Multiplier field */}
                             <div>
                                 <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Markup</label>
-                                <div className="flex items-center gap-1 bg-[#0a0a0a] border border-white/20 rounded-sm h-9 px-2 min-w-0">
+                                <div className="flex items-center gap-1 bg-tea-bg border border-white/20 rounded-sm h-9 px-2 min-w-0">
                                     <input
                                         type="number"
                                         step="0.1"
@@ -224,7 +224,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                         {/* Price Result - Full width below */}
                         <div className="mt-3">
                             <label className="text-xs uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Calculated Price</label>
-                            <div className="bg-[#0a0a0a] border border-white/10 rounded-sm p-3 text-center">
+                            <div className="bg-tea-bg border border-white/10 rounded-sm p-3 text-center">
                                 <div className="text-2xl font-semibold text-white">
                                     {fmtPricePerGram(parseFloat(currentItem.category === 'tea' ? currentItem.price_per_gram || '0' : currentItem.price_50g || '0') || 0)}
                                 </div>
@@ -241,7 +241,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
 
                         {/* Currency Override Dropdown */}
                         {showCurrencyOverride && (
-                            <div className="flex gap-2 bg-[#0a0a0a] border border-white/20 p-2.5 rounded-sm mt-2 animate-[fadeIn_0.2s_ease-out]">
+                            <div className="flex gap-2 bg-tea-bg border border-white/20 p-2.5 rounded-sm mt-2 animate-[fadeIn_0.2s_ease-out]">
                                 <label className="text-xs uppercase text-tea-seal font-semibold self-center whitespace-nowrap">Override:</label>
                                 <select className="flex-1 bg-black border border-white/20 p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm" onChange={e => handleManualCurrencyOverride(e.target.value as CostCurrency)}>
                                     <option value="">Select Currency</option>
@@ -256,11 +256,11 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                     <div className="bg-[#0f0f0f] rounded-md p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
                         <div>
                             <label className="text-sm uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Description</label>
-                            <textarea className="w-full bg-[#0a0a0a] border border-white/20 p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-20" value={currentItem.description} onChange={e => setCurrentItem({...currentItem, description: e.target.value})} />
+                            <textarea className="w-full bg-tea-bg border border-white/20 p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm h-20" value={currentItem.description} onChange={e => setCurrentItem({...currentItem, description: e.target.value})} />
                         </div>
                         <div>
                             <label className="text-sm uppercase text-tea-seal block mb-2 tracking-wider font-semibold">Image URL</label>
-                            <input className="w-full bg-[#0a0a0a] border border-white/20 p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm" value={currentItem.image} onChange={e => setCurrentItem({...currentItem, image: e.target.value})} />
+                            <input className="w-full bg-tea-bg border border-white/20 p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-seal focus:ring-1 focus:ring-tea-seal/50 rounded-sm" value={currentItem.image} onChange={e => setCurrentItem({...currentItem, image: e.target.value})} />
                         </div>
                     </div>
 

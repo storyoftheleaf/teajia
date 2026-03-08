@@ -14,7 +14,7 @@ interface ProductInquiryProps {
 
 type InquiryChannel = 'choose' | 'whatsapp' | 'email';
 
-const INPUT_CLASS = 'w-full bg-white dark:bg-[#0a0a0a] border border-tea-ink/20 dark:border-white/20 p-3 text-tea-ink dark:text-tea-paper text-sm outline-none focus:border-tea-seal rounded-sm';
+const INPUT_CLASS = 'w-full bg-white dark:bg-tea-bg border border-tea-ink/20 dark:border-white/20 p-3 text-tea-ink dark:text-tea-paper text-sm outline-none focus:border-tea-seal rounded-sm';
 
 function buildWhatsAppUrl(productName: string, phone: string): string {
   const message = `Hi, I'd like to inquire about: ${productName}\n\nPlease let me know about availability and details. Thank you!`;

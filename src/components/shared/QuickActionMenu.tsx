@@ -28,7 +28,7 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
       <div className="fixed inset-0 z-[200]" onClick={onClose} />
       {/* Menu */}
       <div
-        className="fixed z-[201] bg-tea-ink dark:bg-[#2a2a2a] shadow-2xl rounded-lg overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-white/10"
+        className="fixed z-[201] bg-tea-ink dark:bg-tea-elevated shadow-2xl rounded-lg overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-white/10"
         style={{
           left: adjustedX,
           top: adjustedY,

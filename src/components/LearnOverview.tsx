@@ -27,16 +27,50 @@ const PIN_TYPE_LABELS: Record<string, string> = {
 // Curated Unsplash tea photography
 // ═══════════════════════════════════════════════════════════════
 
-const TEA_IMAGES = {
-  hero: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=1200&h=510&fit=crop',
-  places: [
-    'https://images.unsplash.com/photo-1563822249548-9a72b6353cd1?w=440&h=330&fit=crop', // Bali
-    'https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?w=440&h=330&fit=crop', // Taiwan tea
-    'https://images.unsplash.com/photo-1515696955266-4f67e13219e8?w=440&h=330&fit=crop', // Wuyi mountains
-    'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=440&h=330&fit=crop', // Japan ceramics
-    'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=440&h=330&fit=crop', // Yunnan tea field
-  ],
-  teaSpace: 'https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=1200&h=514&fit=crop',
+/** Ink-wash style placeholder — organic, painterly */
+const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; className?: string; mood?: 'warm' | 'cool' | 'neutral' | 'dark' }> = ({
+  label,
+  aspectRatio = '4/3',
+  className = '',
+  mood = 'neutral',
+}) => {
+  const gradients: Record<string, string> = {
+    warm: `radial-gradient(ellipse at 20% 50%, rgba(201,148,58,0.12) 0%, transparent 60%),
+           radial-gradient(ellipse at 80% 30%, rgba(139,90,43,0.08) 0%, transparent 50%),
+           radial-gradient(ellipse at 50% 80%, rgba(201,148,58,0.06) 0%, transparent 40%),
+           linear-gradient(160deg, rgba(245,240,230,1) 0%, rgba(235,225,210,1) 100%)`,
+    cool: `radial-gradient(ellipse at 70% 20%, rgba(120,140,120,0.10) 0%, transparent 50%),
+           radial-gradient(ellipse at 30% 70%, rgba(100,120,100,0.08) 0%, transparent 50%),
+           linear-gradient(160deg, rgba(240,242,238,1) 0%, rgba(230,235,225,1) 100%)`,
+    neutral: `radial-gradient(ellipse at 40% 40%, rgba(201,148,58,0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 70%, rgba(180,160,140,0.06) 0%, transparent 50%),
+              linear-gradient(160deg, rgba(245,242,235,1) 0%, rgba(238,232,222,1) 100%)`,
+    dark: `radial-gradient(ellipse at 30% 30%, rgba(201,148,58,0.08) 0%, transparent 50%),
+           radial-gradient(ellipse at 70% 60%, rgba(201,148,58,0.05) 0%, transparent 40%),
+           linear-gradient(160deg, rgba(35,32,28,1) 0%, rgba(28,25,22,1) 100%)`,
+  };
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[1px] ${className}`}
+      style={{ aspectRatio, backgroundImage: gradients[mood] }}
+    >
+      {/* Paper grain texture overlay */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+      }} />
+      {/* Organic brush stroke element */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.04]" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M-20,150 Q100,80 200,140 T420,120" stroke={mood === 'dark' ? 'var(--tea-gold)' : 'var(--tea-text)'} strokeWidth="40" fill="none" strokeLinecap="round" opacity="0.5" />
+        <path d="M-20,200 Q150,160 250,190 T420,170" stroke={mood === 'dark' ? 'var(--tea-gold)' : 'var(--tea-text)'} strokeWidth="20" fill="none" strokeLinecap="round" opacity="0.3" />
+      </svg>
+      {label && (
+        <div className={`absolute bottom-0 left-0 right-0 p-3 ${mood === 'dark' ? 'text-tea-paper/20' : 'text-tea-ink/15'}`}>
+          <span className="text-[8px] font-mono tracking-[0.25em] uppercase">{label}</span>
+        </div>
+      )}
+    </div>
+  );
 };
 
 /** Section label — tiny, uppercase, tracked */

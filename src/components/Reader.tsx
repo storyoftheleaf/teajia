@@ -144,7 +144,7 @@ const ScaledPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))',
                     contain: 'layout style paint'
                 }}
-                className="shrink-0 bg-[#F3F0E7] dark:bg-[#2a2a2a]"
+                className="shrink-0 bg-tea-bg dark:bg-tea-elevated"
             >
                 {children}
             </div>
@@ -447,7 +447,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-end animate-[fadeIn_0.2s_ease-out]" 
         onClick={() => setShowNav(false)}
     >
-        <div className="w-full max-w-sm bg-[#F3F0E7] h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-ink/10 animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+        <div className="w-full max-w-sm bg-tea-bg h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-ink/10 animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-10 border-b border-tea-ink/10 pb-4">
                 <span className="text-tea-ink font-serif italic text-xl">Journal Index</span>
                 <button onClick={() => setShowNav(false)} className="p-2 hover:bg-tea-ink/5 rounded-full transition-colors">
@@ -478,7 +478,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
 
   // --- MAIN RENDER ---
   return (
-    <div className={`fixed inset-0 bg-[#1a1a1a] flex flex-col items-center justify-center overflow-hidden ${customZIndex || 'z-[60]'}`}>
+    <div className={`fixed inset-0 bg-tea-bg flex flex-col items-center justify-center overflow-hidden ${customZIndex || 'z-[60]'}`}>
         
         {/* Background Texture for Immersion */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50 pointer-events-none"></div>

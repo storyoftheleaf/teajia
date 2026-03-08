@@ -172,7 +172,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         className={`
           w-full md:max-w-[520px] md:rounded-2xl rounded-t-2xl
           max-h-[90vh] md:max-h-[85vh] overflow-y-auto
-          bg-[#F3F0E7] dark:bg-[#242424]
+          bg-tea-bg dark:bg-tea-elevated
           transition-all ${reducedMotion ? '' : 'duration-250 ease-out'}
           ${isVisible
             ? 'translate-y-0 md:translate-y-0 opacity-100 md:scale-100'
@@ -187,7 +187,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         </div>
 
         {/* Close button */}
-        <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-[#F3F0E7] dark:bg-[#242424]">
+        <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-tea-bg dark:bg-tea-elevated">
           <button
             onClick={handleClose}
             className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-ink/5 dark:hover:bg-white/10 transition-colors"

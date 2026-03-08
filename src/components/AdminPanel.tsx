@@ -62,9 +62,9 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
     const delPage = (i: number) => { if (pages.length > 1) onDeletePage(i); };
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-[#1a1a1a] text-tea-paper overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-tea-surface text-tea-paper overflow-hidden">
             {/* Header */}
-            <div className="h-16 border-b border-white/10 bg-[#0f0f0f] flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
+            <div className="h-16 border-b border-white/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
                 <button
                     onClick={onCancel}
                     className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group px-2 py-1 rounded-sm hover:bg-white/5"
@@ -74,7 +74,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                     <span className="text-xs uppercase tracking-widest font-bold md:hidden">Exit</span>
                 </button>
 
-                <div className="flex bg-[#0a0a0a] rounded-[1px] p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
+                <div className="flex bg-tea-bg rounded-[1px] p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
                     <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'CANVAS' ? 'bg-tea-seal text-white shadow-sm' : 'text-white/80 hover:text-white'}`}>
                         {isMedia ? 'Poster' : 'Canvas'}
                     </button>
@@ -93,10 +93,10 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Pages Sidebar - Only for Articles */}
                 {tab === 'CANVAS' && !isMedia && (
-                    <div className="hidden md:flex w-28 bg-[#0a0a0a] border-r border-white/10 flex-col overflow-y-auto no-scrollbar py-4 gap-4 items-center shrink-0 z-10">
+                    <div className="hidden md:flex w-28 bg-tea-bg border-r border-white/10 flex-col overflow-y-auto no-scrollbar py-4 gap-4 items-center shrink-0 z-10">
                         {pages.map((p, i) => (
                             <div key={p.id} onClick={() => setIdx(i)} className={`relative w-20 h-[26.6px] shrink-0 border transition-all cursor-pointer ${i === idx ? 'border-tea-seal shadow-[0_0_10px_rgba(140,63,63,0.3)]' : 'border-transparent hover:border-white/20'}`}>
-                                <div className="absolute inset-0 bg-[#F3F0E7] overflow-hidden pointer-events-none">
+                                <div className="absolute inset-0 bg-tea-bg overflow-hidden pointer-events-none">
                                     <div className="w-[800px] h-[1067px] origin-top-left scale-[0.1]"> 
                                         <SinglePageRenderer page={{...p, index: i+1}} readOnly={true} />
                                     </div>
@@ -111,8 +111,8 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
                 {/* Main Canvas Area */}
                 {tab === 'CANVAS' ? (
-                    <div className="flex-1 bg-[#141414] relative flex items-center justify-center overflow-hidden" ref={containerRef}>
-                        <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})` }} className="shadow-2xl ring-1 ring-white/10 relative group bg-[#F3F0E7] transition-all duration-300">
+                    <div className="flex-1 bg-tea-bg relative flex items-center justify-center overflow-hidden" ref={containerRef}>
+                        <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})` }} className="shadow-2xl ring-1 ring-white/10 relative group bg-tea-bg transition-all duration-300">
                              {/* Focus Ring Indication */}
                              <div className="absolute inset-0 pointer-events-none border-2 border-transparent group-hover:border-blue-500/20 transition-colors z-50"></div>
                              
@@ -155,15 +155,15 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         )}
                     </div>
                 ) : (
-                    <div className="flex-1 p-8 overflow-y-auto bg-[#0a0a0a]">
+                    <div className="flex-1 p-8 overflow-y-auto bg-tea-bg">
                         <div className="max-w-md mx-auto space-y-6">
-                            <div><label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Title</label><input className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal" value={currentStory.title} onChange={e => setCurrentStory({...currentStory, title: e.target.value})} /></div>
-                            <div><label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Subtitle</label><input className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal" value={currentStory.subtitle} onChange={e => setCurrentStory({...currentStory, subtitle: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Title</label><input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal" value={currentStory.title} onChange={e => setCurrentStory({...currentStory, title: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Subtitle</label><input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal" value={currentStory.subtitle} onChange={e => setCurrentStory({...currentStory, subtitle: e.target.value})} /></div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Status</label>
-                                    <select value={currentStory.status} onChange={e => setCurrentStory({...currentStory, status: e.target.value as StoryStatus})} className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal text-xs uppercase">
+                                    <select value={currentStory.status} onChange={e => setCurrentStory({...currentStory, status: e.target.value as StoryStatus})} className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal text-xs uppercase">
                                         <option value="draft">Draft</option>
                                         <option value="published">Published</option>
                                         <option value="vault">Vault (Media)</option>
@@ -171,7 +171,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 </div>
                                 <div>
                                     <label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Type</label>
-                                    <select value={currentStory.type} onChange={e => setCurrentStory({...currentStory, type: e.target.value as ContentType})} className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal text-xs uppercase">
+                                    <select value={currentStory.type} onChange={e => setCurrentStory({...currentStory, type: e.target.value as ContentType})} className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal text-xs uppercase">
                                         {Object.values(ContentType).map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
@@ -183,25 +183,25 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                      <h3 className="text-xs uppercase tracking-widest text-tea-seal mb-2">Media Configuration</h3>
                                      <div>
                                         <label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Duration</label>
-                                        <input className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
+                                        <input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
                                      </div>
                                      <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Platform</label>
-                                            <select value={currentStory.platform} onChange={e => setCurrentStory({...currentStory, platform: e.target.value as any})} className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal text-xs uppercase">
+                                            <select value={currentStory.platform} onChange={e => setCurrentStory({...currentStory, platform: e.target.value as any})} className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal text-xs uppercase">
                                                 <option value="YouTube">YouTube</option>
                                                 <option value="Instagram">Instagram</option>
                                             </select>
                                         </div>
                                         <div>
                                             <label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">External ID</label>
-                                            <input className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal" placeholder="Video ID" value={currentStory.externalId || ''} onChange={e => setCurrentStory({...currentStory, externalId: e.target.value})} />
+                                            <input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal" placeholder="Video ID" value={currentStory.externalId || ''} onChange={e => setCurrentStory({...currentStory, externalId: e.target.value})} />
                                         </div>
                                      </div>
                                 </div>
                             )}
 
-                            <div><label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Description</label><textarea className="w-full bg-[#0f0f0f] border border-white/20 p-2 text-white outline-none focus:border-tea-seal h-24" value={currentStory.description} onChange={e => setCurrentStory({...currentStory, description: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-seal block mb-1 tracking-wider">Description</label><textarea className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-seal h-24" value={currentStory.description} onChange={e => setCurrentStory({...currentStory, description: e.target.value})} /></div>
                         </div>
                     </div>
                 )}
@@ -210,9 +210,9 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
             {/* Template Selector Modal */}
             {showTemplateModal && (
                 <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-                    <div className="bg-[#0f0f0f] rounded-sm border border-white/20 max-w-4xl w-full max-h-[90vh] flex flex-col">
+                    <div className="bg-tea-bg rounded-sm border border-white/20 max-w-4xl w-full max-h-[90vh] flex flex-col">
                         {/* Modal Header */}
-                        <div className="bg-[#0a0a0a] border-b border-white/20 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
+                        <div className="bg-tea-bg border-b border-white/20 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
                             <h2 className="text-lg sm:text-xl font-serif text-tea-paper">Choose Template</h2>
                             <button
                                 onClick={() => { setShowTemplateModal(false); setTemplateSearch(''); }}
@@ -224,14 +224,14 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         </div>
 
                         {/* Search Bar */}
-                        <div className="bg-[#0a0a0a] border-b border-white/20 px-4 sm:px-6 py-3 shrink-0">
+                        <div className="bg-tea-bg border-b border-white/20 px-4 sm:px-6 py-3 shrink-0">
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={templateSearch}
                                     onChange={(e) => setTemplateSearch(e.target.value)}
                                     placeholder="Search templates..."
-                                    className="w-full bg-[#1a1a1a] border border-white/20 rounded-sm px-4 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:border-tea-seal transition-colors"
+                                    className="w-full bg-tea-surface border border-white/20 rounded-sm px-4 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:border-tea-seal transition-colors"
                                     autoFocus
                                 />
                                 {templateSearch && (
@@ -265,7 +265,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -292,7 +292,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -319,7 +319,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -346,7 +346,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -373,7 +373,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -400,7 +400,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-[#0a0a0a] hover:bg-[#1a1a1a] border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-seal rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-seal font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -681,11 +681,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
 
   return (
     <>
-    <div className="w-full h-full bg-[#1a1a1a] flex flex-col md:flex-row flex-1">
+    <div className="w-full h-full bg-tea-surface flex flex-col md:flex-row flex-1">
 
         {/* Sidebar */}
-        <div className="w-full md:w-64 bg-[#0f0f0f] border-r border-white/10 flex flex-col shrink-0 h-16 md:h-full z-10">
-             <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 gap-3 bg-[#0a0a0a]">
+        <div className="w-full md:w-64 bg-tea-bg border-r border-white/10 flex flex-col shrink-0 h-16 md:h-full z-10">
+             <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 gap-3 bg-tea-bg">
                  <div className="flex items-center gap-3">
                      <div className="w-8 h-8 bg-tea-seal rounded-[1px] flex items-center justify-center text-black font-serif font-bold">T</div>
                      <span className="text-xs uppercase tracking-widest text-white/70 hidden md:inline">Admin</span>
@@ -698,20 +698,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
 
              {/* Nav Links */}
              <div className="flex flex-row md:flex-col p-2 md:p-4 gap-1 overflow-x-auto no-scrollbar">
-                 <button onClick={() => setSection('JOURNAL')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'JOURNAL' ? 'bg-[#0a0a0a] text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('JOURNAL')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'JOURNAL' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
                      <Icons.Book className="w-4 h-4" />
                      <span className="whitespace-nowrap">Journal</span>
                  </button>
-                 <button onClick={() => setSection('MEDIA')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'MEDIA' ? 'bg-[#0a0a0a] text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('MEDIA')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'MEDIA' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
                      <Icons.Film className="w-4 h-4" />
                      <span className="whitespace-nowrap">Media Vault</span>
                  </button>
-                 <button onClick={() => setSection('INVENTORY')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'INVENTORY' ? 'bg-[#0a0a0a] text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('INVENTORY')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'INVENTORY' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
                      <Icons.Grid className="w-4 h-4" />
                      <span className="whitespace-nowrap">Inventory</span>
                  </button>
                  <div className="hidden md:block border-t border-white/10 my-2"></div>
-                 <button onClick={() => setSection('SETTINGS')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'SETTINGS' ? 'bg-[#0a0a0a] text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('SETTINGS')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'SETTINGS' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
                      <Icons.Settings className="w-4 h-4" />
                      <span className="whitespace-nowrap">Settings</span>
                  </button>
@@ -719,7 +719,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 bg-[#0a0a0a] overflow-y-auto p-4 md:p-8 relative">
+        <div className="flex-1 bg-tea-bg overflow-y-auto p-4 md:p-8 relative">
             
             {/* --- JOURNAL SECTION --- */}
             {section === 'JOURNAL' && (
@@ -755,7 +755,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                     
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {journalEntries.map(s => (
-                            <div key={s.id} onClick={() => handleEdit(s)} className="aspect-[3/4] bg-[#0f0f0f] relative group cursor-pointer border border-white/10 hover:border-tea-seal transition-all">
+                            <div key={s.id} onClick={() => handleEdit(s)} className="aspect-[3/4] bg-tea-bg relative group cursor-pointer border border-white/10 hover:border-tea-seal transition-all">
                                 {s.thumbnailUrl && <img src={s.thumbnailUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="" />}
                                 <div className="absolute top-2 left-2 flex gap-1">
                                     <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-[1px] ${s.status === 'published' ? 'text-tea-green' : 'text-white/80'}`}>
@@ -795,7 +795,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             if (s.type === ContentType.Audio) ar = 'aspect-square';
 
                             return (
-                                <div key={s.id} onClick={() => handleEdit(s)} className={`relative bg-[#0f0f0f] border border-white/10 hover:border-tea-seal transition-all cursor-pointer group ${ar} overflow-hidden`}>
+                                <div key={s.id} onClick={() => handleEdit(s)} className={`relative bg-tea-bg border border-white/10 hover:border-tea-seal transition-all cursor-pointer group ${ar} overflow-hidden`}>
                                     {s.thumbnailUrl && <img src={s.thumbnailUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500" alt="" />}
                                     
                                     {/* Icon Overlay */}
@@ -849,7 +849,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <p className="text-white/80 text-xs uppercase tracking-wider">Global Inventory Management</p>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                            <div className="flex bg-[#0f0f0f] p-1 rounded-sm border border-white/10">
+                            <div className="flex bg-tea-bg p-1 rounded-sm border border-white/10">
                                 <button onClick={() => setInventoryTab('TEA')} className={`px-4 py-1 text-xs uppercase tracking-widest transition-colors ${inventoryTab === 'TEA' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Tea</button>
                                 <button onClick={() => setInventoryTab('WARE')} className={`px-4 py-1 text-xs uppercase tracking-widest transition-colors ${inventoryTab === 'WARE' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Ware</button>
                             </div>
@@ -872,7 +872,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                         </div>
                     </div>
 
-                    <div className="bg-[#0f0f0f] border border-white/10 overflow-hidden rounded-sm">
+                    <div className="bg-tea-bg border border-white/10 overflow-hidden rounded-sm">
                         <table className="w-full text-left text-sm text-white/80">
                             <thead className="bg-white/5 text-xs uppercase tracking-widest text-white/80">
                                 <tr>
@@ -939,7 +939,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                     <h2 className="text-2xl font-serif text-tea-paper mb-8">Admin Settings</h2>
 
                     {/* Theme Section */}
-                    <div className="bg-[#0f0f0f] border border-white/10 rounded-sm p-6 mb-8">
+                    <div className="bg-tea-bg border border-white/10 rounded-sm p-6 mb-8">
                         <div className="flex items-start justify-between">
                             <div>
                                 <h3 className="text-lg font-serif text-white mb-2">Theme</h3>
@@ -950,7 +950,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                     </div>
 
                     {/* Shopping Cart Section */}
-                    <div className="bg-[#0f0f0f] border border-white/10 rounded-sm p-6">
+                    <div className="bg-tea-bg border border-white/10 rounded-sm p-6">
                         <div className="flex items-start justify-between">
                             <div>
                                 <h3 className="text-lg font-serif text-white mb-2">Shopping Cart</h3>

@@ -68,7 +68,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className={`
-          fixed z-[61] bg-tea-paper dark:bg-[#1a1a1a] shadow-2xl overflow-y-auto
+          fixed z-[61] bg-tea-paper dark:bg-tea-bg shadow-2xl overflow-y-auto
           transition-transform duration-300 ease-out
           bottom-0 left-0 right-0 max-h-[70vh] rounded-t-xl
           lg:bottom-0 lg:right-0 lg:left-auto lg:top-0 lg:w-[400px] lg:max-h-none lg:h-full lg:rounded-none
@@ -84,7 +84,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         </div>
 
         {/* Header */}
-        <div className="sticky top-0 bg-tea-paper dark:bg-[#1a1a1a] border-b border-tea-ink/10 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-tea-paper dark:bg-tea-bg border-b border-tea-ink/10 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <h3 className="font-serif text-lg text-tea-ink dark:text-tea-paper truncate pr-4">
             {item.name}
           </h3>

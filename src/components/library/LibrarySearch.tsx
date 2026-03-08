@@ -45,7 +45,7 @@ export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSectio
 
       {/* Results dropdown */}
       {query.trim() && (
-        <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-paper dark:bg-[#242424] rounded-lg shadow-lg border border-tea-ink/10 dark:border-white/10 max-h-72 overflow-y-auto">
+        <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-paper dark:bg-tea-elevated rounded-lg shadow-lg border border-tea-ink/10 dark:border-white/10 max-h-72 overflow-y-auto">
           {results.length === 0 ? (
             <p className="px-4 py-3 text-xs text-tea-ink/40 dark:text-tea-paper/40">
               No results found

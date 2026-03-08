@@ -202,7 +202,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         </div>
 
         {/* Visual Card Preview - Enhanced with more prominent preview */}
-        <div id="share-card-preview" className="relative p-6 pb-8 bg-gradient-to-b from-[#EAE7DD] to-[#E6E2D6] border-b border-tea-ink/10 flex flex-col items-center text-center">
+        <div id="share-card-preview" className="relative p-6 pb-8 bg-gradient-to-b from-tea-bg to-tea-surface border-b border-tea-ink/10 flex flex-col items-center text-center">
            <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/shattered-island.png')] mix-blend-multiply pointer-events-none"></div>
 
            {/* Featured Article Preview */}

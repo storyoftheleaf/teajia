@@ -164,7 +164,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   const notes = (product.showWisdom && product.tastingNotes) ? product.tastingNotes : [];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0e0d0c]/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
       
       {/* Global Font Injection for the Modal */}
       <style>{`
@@ -196,7 +196,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onPrev && (
         <button 
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="hidden md:flex absolute left-4 md:left-12 z-[70] p-3 text-[#8a7e6a] hover:text-[#c0b49a] bg-[#1c1b19]/50 hover:bg-[#1c1b19] rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+          className="hidden md:flex absolute left-4 md:left-12 z-[70] p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
         >
           <ChevronLeft size={32} />
         </button>
@@ -207,7 +207,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         style={{
             width: "100%", maxWidth: "480px",
             minHeight: "580px", maxHeight: "720px",
-            background: "#1c1b19",
+            background: "var(--tea-surface)",
             position: "relative",
             overflow: "hidden",
             borderRadius: "3px",
@@ -222,7 +222,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             {isAdmin && onEdit && (
                 <button 
                     onClick={() => { onClose(); onEdit(product); }} 
-                    className="p-2 text-[#8a7e6a] hover:text-[#c0b49a] bg-[#1c1b19]/50 hover:bg-[#1c1b19] rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+                    className="p-2 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
                     title="Edit Product"
                 >
                     <Pencil size={16} />
@@ -230,7 +230,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             )}
             <button 
                 onClick={onClose} 
-                className="p-2 text-[#8a7e6a] hover:text-[#c0b49a] bg-[#1c1b19]/50 hover:bg-[#1c1b19] rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+                className="p-2 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
             >
                 <X size={20} />
             </button>
@@ -283,7 +283,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 <p style={{
                     fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                     fontSize: "18px", fontStyle: "italic", fontWeight: 300,
-                    color: "#8a7e6a", margin: "0",
+                    color: "var(--tea-text-dim)", margin: "0",
                 }}>
                     {product.givenName}
                 </p>
@@ -321,7 +321,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                     <p style={{
                         fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                         fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-                        color: "#8a7e6a", margin: 0, textAlign: "center",
+                        color: "var(--tea-text-dim)", margin: 0, textAlign: "center",
                     }}>
                         {product.type}
                         <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>
@@ -336,7 +336,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                     <p style={{
                         fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                         fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                        color: "#c0b49a", margin: 0,
+                        color: "var(--tea-text-sec)", margin: 0,
                     }}>
                         {story}
                     </p>
@@ -405,7 +405,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                     <span style={{
                                         fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                                         fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                                        color: "#c4b89a", opacity: noteOpacities[0],
+                                        color: "var(--tea-text-sec)", opacity: noteOpacities[0],
                                         textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                                     }}>
                                         {product.mood}
@@ -423,7 +423,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                     <span style={{
                                         fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                                         fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                                        color: "#c4b89a",
+                                        color: "var(--tea-text-sec)",
                                         opacity: noteOpacities[i] ?? 0.5,
                                         textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                                     }}>
@@ -440,7 +440,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 <p style={{
                     fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                     fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                    color: "#c0b49a", margin: 0,
+                    color: "var(--tea-text-sec)", margin: 0,
                     padding: "10px 20px",
                     lineHeight: 1.6,
                 }}>
@@ -461,14 +461,14 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                     <div style={{ display: "flex", alignItems: "baseline", flexShrink: 0, marginRight: "auto" }}>
                         <span style={{
                             fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                            fontSize: "15px", fontWeight: 300, color: "#c0b49a",
+                            fontSize: "15px", fontWeight: 300, color: "var(--tea-text-sec)",
                             lineHeight: 1,
                         }}>
                             {formatCurrency(product.pricePerGramUSD, currency, rates)}
                         </span>
                         <span style={{
                             fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                            fontSize: "11px", fontWeight: 300, color: "#8a7e6a",
+                            fontSize: "11px", fontWeight: 300, color: "var(--tea-text-dim)",
                             marginLeft: "2px",
                         }}>/g</span>
                     </div>
@@ -493,10 +493,10 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                             ? "rgba(200,170,120,0.08)"
                                             : "transparent",
                                     color: grams === g
-                                        ? "#c0b49a"
+                                        ? "var(--tea-text-sec)"
                                         : hovered === `preset-${g}`
-                                            ? "#9a9080"
-                                            : "#8a7e6a",
+                                            ? "var(--tea-text-dim)"
+                                            : "var(--tea-text-dim)",
                                 }}
                             >
                                 {g}<span style={{ fontSize: "8px", opacity: 0.6 }}>g</span>
@@ -527,12 +527,12 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                 opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
                             }}
                         >
-                            <BookmarkIcon filled={favorited} color={accent} strokeColor="#9a9080" />
+                            <BookmarkIcon filled={favorited} color={accent} strokeColor="var(--tea-text-dim)" />
                             <span style={{
                                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
                                 fontSize: "11px", fontWeight: 400,
                                 letterSpacing: "0.08em", textTransform: "uppercase",
-                                color: favorited ? accent : "#8a7e6a",
+                                color: favorited ? accent : "var(--tea-text-dim)",
                             }}>Save</span>
                         </button>
                         <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.15)" }} />
@@ -547,12 +547,12 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                 opacity: hovered === "share" ? 0.9 : 0.7,
                             }}
                         >
-                            <ShareIcon color="#9a9080" />
+                            <ShareIcon color="var(--tea-text-dim)" />
                             <span style={{
                                 fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
                                 fontSize: "11px", fontWeight: 400,
                                 letterSpacing: "0.08em", textTransform: "uppercase",
-                                color: "#8a7e6a",
+                                color: "var(--tea-text-dim)",
                             }}>Share</span>
                         </button>
                     </div>
@@ -566,7 +566,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                             fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
                             fontSize: "12px", fontWeight: 400,
                             letterSpacing: "0.06em", textTransform: "uppercase",
-                            color: added ? "#1c1b19" : (hovered === "cart" ? "#c4b89a" : "#9a9080"),
+                            color: added ? "#1c1b19" : (hovered === "cart" ? "var(--tea-text-sec)" : "var(--tea-text-dim)"),
                             background: added
                                 ? "#7a9a72"
                                 : hovered === "cart"
@@ -595,7 +595,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         {/* Bottom fade indicator */}
         <div style={{
             position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
-            background: "linear-gradient(to top, #1c1b19, transparent)",
+            background: "linear-gradient(to top, var(--tea-surface), transparent)",
             pointerEvents: "none", zIndex: 2,
             opacity: showFade ? 1 : 0,
             transition: "opacity 0.3s ease",
@@ -605,7 +605,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onNext && (
         <button 
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="hidden md:flex absolute right-4 md:right-12 z-[70] p-3 text-[#8a7e6a] hover:text-[#c0b49a] bg-[#1c1b19]/50 hover:bg-[#1c1b19] rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+          className="hidden md:flex absolute right-4 md:right-12 z-[70] p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
         >
           <ChevronRight size={32} />
         </button>

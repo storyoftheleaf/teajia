@@ -277,8 +277,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {isFilterOpen && (
           <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
-              <div className="relative w-full md:max-w-xl bg-[#F3F0E7] rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
-                  <div className="px-6 py-3 border-b border-tea-charcoal/5 flex justify-between items-center bg-[#E6E2D6]">
+              <div className="relative w-full md:max-w-xl bg-tea-bg rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
+                  <div className="px-6 py-3 border-b border-tea-charcoal/5 flex justify-between items-center bg-tea-surface">
                       <span className="text-xs uppercase tracking-[0.2em] text-tea-charcoal font-semibold">Refine Collection</span>
                       <button onClick={() => setIsFilterOpen(false)}><Icons.Close className="w-4 h-4 text-tea-charcoal/60" /></button>
                   </div>

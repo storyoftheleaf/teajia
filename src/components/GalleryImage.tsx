@@ -62,7 +62,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Image */}
-        <div className="relative w-full overflow-hidden bg-[#1a1a1a]">
+        <div className="relative w-full overflow-hidden bg-tea-bg">
           <img
             src={image.imageUrl}
             alt={image.category}

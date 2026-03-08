@@ -252,7 +252,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
       {/* Drawer Panel */}
       <div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full md:w-[450px] bg-[#F3F0E7] dark:bg-[#1a1a1a] z-[100] shadow-2xl flex flex-col ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full md:w-[450px] bg-tea-bg dark:bg-tea-bg z-[100] shadow-2xl flex flex-col ${isOpen ? '' : 'translate-x-full'}`}
         style={{
           transform: isOpen ? `translateX(${touchOffset}px)` : 'translateX(100%)',
           opacity: isDragging ? swipeOpacity : 1,
@@ -266,7 +266,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         {/* Header */}
         <div className="flex flex-col">
             {/* Mobile drag handle — swipe-to-dismiss is gated here (#21) */}
-            <div data-drag-handle className="md:hidden flex justify-center py-3 bg-[#E6E2D6] dark:bg-[#242424] cursor-grab active:cursor-grabbing touch-pan-x">
+            <div data-drag-handle className="md:hidden flex justify-center py-3 bg-tea-surface dark:bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
                 <div className={`h-1 rounded-full transition-all duration-150 ${
                   isDragging
                     ? 'bg-tea-seal w-16'
@@ -274,7 +274,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                 }`}></div>
             </div>
 
-            <div className="flex items-center justify-between p-6 border-b border-tea-charcoal/10 dark:border-white/10 bg-[#E6E2D6] dark:bg-[#242424]">
+            <div className="flex items-center justify-between p-6 border-b border-tea-charcoal/10 dark:border-white/10 bg-tea-surface dark:bg-tea-surface">
                 {/* Left: Back (checkout step) or empty spacer */}
                 {step !== 'CART' ? (
                     <button onClick={handleBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Back to cart">
@@ -505,7 +505,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    {/* Message Preview */}
                    <div>
                        <label className="block text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 mb-2">Order Inquiry Preview</label>
-                       <div className="bg-[#FFFDF5] dark:bg-[#2a2a2a] border border-tea-charcoal/10 dark:border-white/10 p-4 font-mono text-xs leading-relaxed text-tea-charcoal/80 dark:text-white/80 shadow-inner overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
+                       <div className="bg-tea-elevated dark:bg-tea-elevated border border-tea-charcoal/10 dark:border-white/10 p-4 font-mono text-xs leading-relaxed text-tea-charcoal/80 dark:text-white/80 shadow-inner overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
                            {orderMessage}
                        </div>
                    </div>
@@ -573,7 +573,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-tea-charcoal/10 dark:border-white/10 bg-[#E6E2D6] dark:bg-[#242424] relative z-20">
+        <div className="p-6 border-t border-tea-charcoal/10 dark:border-white/10 bg-tea-surface dark:bg-tea-surface relative z-20">
             {step === 'CART' && (
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center font-serif text-xl text-tea-charcoal dark:text-white">
