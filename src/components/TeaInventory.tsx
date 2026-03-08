@@ -524,16 +524,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-gold hover:text-tea-gold/80 text-[11px] uppercase tracking-[0.15em] font-medium py-2 px-3 rounded-lg transition-all border border-tea-gold/20 hover:border-tea-gold/40"
+                                                    className="text-tea-text/60 hover:text-tea-gold text-[11px] uppercase tracking-[0.15em] py-2 px-3 rounded-sm transition-all"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                    className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-[11px] uppercase tracking-[0.15em] font-medium py-2.5 px-5 rounded-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                                                 >
                                                     <span>Add</span>
-                                                    <span className="w-[1px] h-2.5 bg-white/30"></span>
+                                                    <span className="w-px h-3 bg-tea-bg/20"></span>
                                                     <span className="num">{fmtPrice(totalPrice)}</span>
                                                 </button>
                                             </div>

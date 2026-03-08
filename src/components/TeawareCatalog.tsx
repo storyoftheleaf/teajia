@@ -311,7 +311,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                                   <div className="flex-1"></div>
                                                   <button onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)} className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-3 px-8 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg min-w-[200px]">
                                                       <span>Add to Cart</span>
-                                                      <span className="w-[1px] h-3 bg-white/30"></span>
+                                                      <span className="w-[1px] h-3 bg-tea-gold/20"></span>
                                                       <span className="font-mono text-sm">${totalPrice.toLocaleString()}</span>
                                                   </button>
                                               </div>

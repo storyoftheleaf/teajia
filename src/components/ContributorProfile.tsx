@@ -28,7 +28,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
       ></div>
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg bg-tea-bg shadow-2xl border border-white/10 overflow-hidden flex flex-col items-center text-center p-8 md:p-12 animate-[slideUp_0.4s_ease-out]">
+      <div className="relative w-full max-w-lg bg-tea-bg shadow-2xl border border-tea-gold/10 overflow-hidden flex flex-col items-center text-center p-8 md:p-12 animate-[slideUp_0.4s_ease-out]">
         {/* Texture Overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/shattered-island.png')] mix-blend-multiply"></div>
 
@@ -40,7 +40,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
         </button>
 
         {/* Avatar */}
-        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white/50 shadow-inner mb-6 relative z-10">
+        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-tea-gold/25 shadow-inner mb-6 relative z-10">
           {person.avatarUrl ? (
              <img src={person.avatarUrl} alt={person.name} className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
           ) : (

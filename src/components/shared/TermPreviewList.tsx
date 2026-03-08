@@ -23,7 +23,7 @@ export const TermPreviewList: React.FC<TermPreviewListProps> = ({
 }) => {
   return (
     <div className={className}>
-      <div className="divide-y divide-tea-border">
+      <div className="divide-y divide-tea-gold/[0.06]">
         {terms.map((term) => (
           <div key={term.id} className="py-4 md:py-5">
             <div className="flex items-center justify-between gap-3 mb-1.5">

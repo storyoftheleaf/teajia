@@ -64,7 +64,7 @@ const CollectionCard: React.FC<{
   onInquire: (item: CollectionItem) => void;
 }> = ({ item, onInquire }) => {
   return (
-    <div className="bg-tea-bg/80 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden hover:border-white/20 transition-colors duration-300">
+    <div className="bg-tea-bg/80 backdrop-blur-md border border-tea-gold/10 rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300">
       <div className="flex flex-col md:flex-row">
         {/* Image */}
         <div className="w-full md:w-2/5 aspect-[3/4] md:aspect-auto overflow-hidden">
@@ -167,7 +167,7 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
       ))}
 
       {/* Cross-pollination CTA */}
-      <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-white/10">
+      <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-tea-gold/10">
         <h3 className="font-serif text-2xl md:text-3xl text-tea-paper mb-3">Begin Your Practice</h3>
         <p className="text-tea-paper/60 mb-8 max-w-md">
           Explore everyday teas, teaware, and ceremony essentials to support your daily ritual.

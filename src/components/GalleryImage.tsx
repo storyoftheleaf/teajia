@@ -57,7 +57,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
   return (
     <>
       <div
-        className="relative group overflow-hidden rounded-sm cursor-pointer bg-white/10"
+        className="relative group overflow-hidden rounded-sm cursor-pointer bg-tea-gold/10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -73,7 +73,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
           />
 
           {!imageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+            <div className="absolute inset-0 flex items-center justify-center bg-tea-gold/5">
               <div className="w-6 h-6 border-2 border-tea-paper/20 border-t-tea-seal rounded-full animate-spin"></div>
             </div>
           )}

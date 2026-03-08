@@ -53,7 +53,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
         {/* Decorative area — visible on all screens */}
         {decorativeElement && (
-          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5 border-t md:border-t-0 md:border-l border-white/5">
+          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5 border-t md:border-t-0 md:border-l border-tea-gold/[0.06]">
             {decorativeElement}
           </div>
         )}
@@ -61,7 +61,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
       {/* Metadata bar */}
       {metadata && metadata.length > 0 && (
-        <div className="border-t border-white/8 px-6 md:px-8 py-3 flex items-center gap-6">
+        <div className="border-t border-tea-gold/[0.06] px-6 md:px-8 py-3 flex items-center gap-6">
           {metadata.map((item, i) => (
             <React.Fragment key={item.label}>
               {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}

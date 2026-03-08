@@ -141,7 +141,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
       <div className="flex items-center justify-between px-6 md:px-8 py-5 md:py-6 bg-gradient-to-b from-black/50 to-transparent">
         <button
           onClick={onExit}
-          className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-sm font-medium flex items-center gap-2 transition-colors"
+          className="px-4 py-2 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/15 backdrop-blur-sm text-white text-sm font-medium flex items-center gap-2 transition-colors"
         >
           <Icons.Grid className="w-4 h-4" />
           <span className="hidden sm:inline">Grid View</span>
@@ -158,7 +158,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
         <button
           onClick={() => navigate(-1)}
           disabled={currentIndex === 0}
-          className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-0 disabled:pointer-events-none transition-all z-10"
+          className="absolute left-4 p-3 rounded-full bg-tea-gold/10 hover:bg-tea-gold/15 text-white disabled:opacity-0 disabled:pointer-events-none transition-all z-10"
           aria-label="Previous image"
         >
           <Icons.ChevronLeft className="w-6 h-6" />
@@ -186,7 +186,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
         <button
           onClick={() => navigate(1)}
           disabled={currentIndex === images.length - 1}
-          className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-0 disabled:pointer-events-none transition-all z-10"
+          className="absolute right-4 p-3 rounded-full bg-tea-gold/10 hover:bg-tea-gold/15 text-white disabled:opacity-0 disabled:pointer-events-none transition-all z-10"
           aria-label="Next image"
         >
           <Icons.ChevronRight className="w-6 h-6" />

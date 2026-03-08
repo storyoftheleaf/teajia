@@ -78,8 +78,8 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                 {isAudio ? (
                    <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-6 text-center">
-                       <div className="w-16 h-16 rounded-full border border-white/20 flex items-center justify-center mb-5 relative group-hover:scale-105 transition-transform duration-700">
-                            <div className="absolute inset-0 rounded-full border border-white/10 scale-110"></div>
+                       <div className="w-16 h-16 rounded-full border border-tea-gold/15 flex items-center justify-center mb-5 relative group-hover:scale-105 transition-transform duration-700">
+                            <div className="absolute inset-0 rounded-full border border-tea-gold/8 scale-110"></div>
                             <Icons.Audio className="w-5 h-5 text-tea-paper/60 group-hover:text-tea-gold transition-colors" />
                        </div>
 
@@ -90,7 +90,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                            {story.subtitle}
                        </p>
 
-                       <div className="w-6 h-[1px] bg-white/10 mb-4"></div>
+                       <div className="w-6 h-[1px] bg-tea-gold/10 mb-4"></div>
 
                        <span className="text-[9px] font-mono text-tea-text-dim">{story.durationOrTime}</span>
                    </div>
@@ -104,11 +104,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                                 {story.subtitle}
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
-                                <div className="w-6 h-[0.5px] bg-white/20 mt-2 shrink-0"></div>
+                                <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
                                 <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]">
                                     {story.description}
                                 </p>
-                                <div className="w-6 h-[0.5px] bg-white/20 mt-2 shrink-0"></div>
+                                <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
                              </div>
                         </div>
                     </div>
@@ -162,7 +162,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {isAudio && (
                  <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl">
+                    <div className="w-12 h-12 rounded-full bg-tea-gold/10 backdrop-blur-md border border-tea-gold/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl">
                         <Icons.Play className="w-4 h-4 text-tea-paper fill-tea-paper ml-0.5" />
                     </div>
 
@@ -180,7 +180,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {isVideo && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-10 h-10 rounded-full border-[0.5px] border-white/40 flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[1px] group-hover:bg-white/5 group-hover:scale-105 transition-all duration-700">
+                    <div className="w-10 h-10 rounded-full border-[0.5px] border-tea-gold/20 flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[1px] group-hover:bg-tea-gold/5 group-hover:scale-105 transition-all duration-700">
                         <Icons.Play className="w-3 h-3 text-tea-paper/90 fill-tea-paper/80 ml-0.5 opacity-80 group-hover:opacity-100" />
                     </div>
                 </div>

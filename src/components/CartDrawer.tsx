@@ -274,7 +274,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                 }`}></div>
             </div>
 
-            <div className="flex items-center justify-between p-6 border-b border-tea-border  bg-tea-surface ">
+            <div className="flex items-center justify-between p-6 border-b border-tea-gold/[0.08]  bg-tea-surface ">
                 {/* Left: Back (checkout step) or empty spacer */}
                 {step !== 'CART' ? (
                     <button onClick={handleBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Back to cart">
@@ -334,7 +334,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        </div>
                    ) : (
                        cart.map(item => (
-                           <div key={item.id} className="flex gap-4 border-b border-tea-border  pb-4">
+                           <div key={item.id} className="flex gap-4 border-b border-tea-gold/[0.08]  pb-4">
                                <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-[1px] shrink-0">
                                    {item.image ? (
                                        <img src={item.image} className="w-full h-full object-cover sepia-[0.3]" alt={item.name} loading="eager" />
@@ -361,11 +361,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    <p className="text-[10px] uppercase tracking-wider text-tea-text-dim mb-3">{item.variant}</p>
 
                                    {/* Quantity stepper with +/− buttons (#23/#63) */}
-                                   <div className="flex items-center justify-between gap-3 bg-white/30 px-2 py-1.5 rounded-lg">
+                                   <div className="flex items-center justify-between gap-3 bg-tea-gold/20 px-2 py-1.5 rounded-lg">
                                        <div className="flex items-center gap-2">
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - (item.category === 'tea' ? 10 : 1)))}
-                                               className="w-7 h-7 flex items-center justify-center rounded-sm bg-white/40 hover:bg-white/70 transition-colors text-tea-text  font-medium text-base leading-none"
+                                               className="w-7 h-7 flex items-center justify-center rounded-sm bg-tea-gold/25 hover:bg-tea-gold/40 transition-colors text-tea-text  font-medium text-base leading-none"
                                                aria-label="Decrease quantity"
                                            >−</button>
                                            <div className="flex items-center gap-1">
@@ -384,13 +384,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                                      const val = parseInt(e.target.value);
                                                      if (isNaN(val) || val < 1) onUpdateQuantity(item.id, 1);
                                                    }}
-                                                   className="w-12 bg-transparent num text-xs text-tea-text border-b border-tea-border focus:outline-none focus:border-tea-gold text-center"
+                                                   className="w-12 bg-transparent num text-xs text-tea-text border-b border-tea-gold/[0.08] focus:outline-none focus:border-tea-gold text-center"
                                                />
                                                {item.category === 'tea' && <span className="num text-xs text-tea-text-dim">g</span>}
                                            </div>
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + (item.category === 'tea' ? 10 : 1)))}
-                                               className="w-7 h-7 flex items-center justify-center rounded-sm bg-white/40 hover:bg-white/70 transition-colors text-tea-text  font-medium text-base leading-none"
+                                               className="w-7 h-7 flex items-center justify-center rounded-sm bg-tea-gold/25 hover:bg-tea-gold/40 transition-colors text-tea-text  font-medium text-base leading-none"
                                                aria-label="Increase quantity"
                                            >+</button>
                                        </div>
@@ -413,7 +413,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    </p>
 
                    {/* Required Fields Form */}
-                   <div className="space-y-4 p-4 bg-white/30 rounded-lg border border-tea-border ">
+                   <div className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-gold/[0.08] ">
                        <div>
                            <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Name *</label>
                            <div className="relative">
@@ -424,10 +424,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('name')}
                                    aria-describedby={touched.name && errors.name ? 'name-error' : undefined}
                                    aria-invalid={touched.name && !!errors.name}
-                                   className={`w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
+                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
                                        touched.name && errors.name
                                            ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-border  focus:border-tea-gold'
+                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
                                    }`}
                                    placeholder="Your full name"
                                />
@@ -451,10 +451,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('contact')}
                                    aria-describedby={touched.contact && errors.contact ? 'contact-error' : undefined}
                                    aria-invalid={touched.contact && !!errors.contact}
-                                   className={`w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
+                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
                                        touched.contact && errors.contact
                                            ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-border  focus:border-tea-gold'
+                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
                                    }`}
                                    placeholder="your@email.com"
                                />
@@ -476,10 +476,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('location')}
                                    aria-describedby={touched.location && errors.location ? 'location-error' : undefined}
                                    aria-invalid={touched.location && !!errors.location}
-                                   className={`w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
+                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
                                        touched.location && errors.location
                                            ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-border  focus:border-tea-gold'
+                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
                                    }`}
                                    placeholder="City, Country"
                                />
@@ -496,7 +496,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            <textarea
                                value={details.notes}
                                onChange={(e) => setDetails({...details, notes: e.target.value})}
-                               className="w-full bg-tea-surface border-b border-tea-border border-tea-border  p-2 focus:outline-none focus:border-tea-gold  font-serif text-base h-20 resize-none placeholder:text-tea-text/20"
+                               className="w-full bg-tea-surface border-b border-tea-gold/[0.08] border-tea-gold/[0.08]  p-2 focus:outline-none focus:border-tea-gold  font-serif text-base h-20 resize-none placeholder:text-tea-text/20"
                                placeholder="Any special requests..."
                            />
                        </div>
@@ -505,7 +505,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    {/* Message Preview */}
                    <div>
                        <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2">Order Inquiry Preview</label>
-                       <div className="bg-tea-elevated border border-tea-border  p-4 font-mono text-xs leading-relaxed text-tea-text/80 /80 shadow-inner overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
+                       <div className="bg-tea-elevated border border-tea-gold/[0.08]  p-4 font-mono text-xs leading-relaxed text-tea-text/80 /80 shadow-inner overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
                            {orderMessage}
                        </div>
                    </div>
@@ -542,8 +542,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                            disabled={!details.name || !details.contact || !details.location}
                            className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                                preferredChannel === 'email'
-                                   ? 'border-tea-border  bg-tea-bg/10 text-tea-text  shadow-md'
-                                   : 'border-tea-border  hover:bg-tea-bg/5 text-tea-text '
+                                   ? 'border-tea-gold/[0.08]  bg-tea-bg/10 text-tea-text  shadow-md'
+                                   : 'border-tea-gold/[0.08]  hover:bg-tea-bg/5 text-tea-text '
                            }`}
                        >
                            <span className="text-[10px] uppercase tracking-[0.15em]">Send via Email</span>
@@ -552,7 +552,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        <button
                            onClick={handleCopy}
                            disabled={!details.name || !details.contact || !details.location}
-                           className="flex items-center justify-center gap-2 py-3 border border-tea-border  hover:bg-tea-bg/5 text-tea-text  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                           className="flex items-center justify-center gap-2 py-3 border border-tea-gold/[0.08]  hover:bg-tea-bg/5 text-tea-text  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                        >
                            <span className="text-[10px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
                        </button>
@@ -573,7 +573,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-tea-border  bg-tea-surface  relative z-20">
+        <div className="p-6 border-t border-tea-gold/[0.08]  bg-tea-surface  relative z-20">
             {step === 'CART' && (
                 <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center font-serif text-xl text-tea-text ">

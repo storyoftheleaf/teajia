@@ -34,7 +34,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
               <div className="p-6 flex flex-col gap-4 h-full">
                 {/* Avatar */}
                 {contributor.avatarUrl && (
-                  <div className="w-full aspect-square rounded-[1px] overflow-hidden bg-white/5">
+                  <div className="w-full aspect-square rounded-[1px] overflow-hidden bg-tea-gold/5">
                     <img
                       src={contributor.avatarUrl}
                       alt={contributor.name}
@@ -57,7 +57,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
                 </p>
 
                 {/* CTA */}
-                <div className="flex items-center gap-2 text-tea-gold text-sm font-medium pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2 text-tea-gold text-sm font-medium pt-2 border-t border-tea-gold/10">
                   <span>View Profile</span>
                   <span>→</span>
                 </div>

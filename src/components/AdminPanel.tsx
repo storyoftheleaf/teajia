@@ -64,21 +64,21 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
     return (
         <div className="fixed inset-0 z-[100] flex flex-col bg-tea-surface text-tea-text overflow-hidden">
             {/* Header */}
-            <div className="h-16 border-b border-white/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
+            <div className="h-16 border-b border-tea-gold/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
                 <button
                     onClick={onCancel}
-                    className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group px-2 py-1 rounded-sm hover:bg-white/5"
+                    className="flex items-center gap-2 text-tea-text hover:text-white transition-colors group px-2 py-1 rounded-sm hover:bg-tea-gold/5"
                 >
                     <Icons.Back className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                     <span className="text-xs uppercase tracking-[0.15em] font-bold hidden md:inline">Exit Studio</span>
                     <span className="text-xs uppercase tracking-[0.15em] font-bold md:hidden">Exit</span>
                 </button>
 
-                <div className="flex bg-tea-bg rounded-lg p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                <div className="flex bg-tea-bg rounded-lg p-0.5 border border-tea-gold/15 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
+                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-tea-text hover:text-white'}`}>
                         {isMedia ? 'Poster' : 'Canvas'}
                     </button>
-                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>Meta</button>
+                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-tea-text hover:text-white'}`}>Meta</button>
                 </div>
 
                 <button 
@@ -93,9 +93,9 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Pages Sidebar - Only for Articles */}
                 {tab === 'CANVAS' && !isMedia && (
-                    <div className="hidden md:flex w-28 bg-tea-bg border-r border-white/10 flex-col overflow-y-auto no-scrollbar py-4 gap-4 items-center shrink-0 z-10">
+                    <div className="hidden md:flex w-28 bg-tea-bg border-r border-tea-gold/10 flex-col overflow-y-auto no-scrollbar py-4 gap-4 items-center shrink-0 z-10">
                         {pages.map((p, i) => (
-                            <div key={p.id} onClick={() => setIdx(i)} className={`relative w-20 h-[26.6px] shrink-0 border transition-all cursor-pointer ${i === idx ? 'border-tea-gold shadow-[0_0_10px_rgba(140,63,63,0.3)]' : 'border-transparent hover:border-white/20'}`}>
+                            <div key={p.id} onClick={() => setIdx(i)} className={`relative w-20 h-[26.6px] shrink-0 border transition-all cursor-pointer ${i === idx ? 'border-tea-gold shadow-[0_0_10px_rgba(140,63,63,0.3)]' : 'border-transparent hover:border-tea-gold/15'}`}>
                                 <div className="absolute inset-0 bg-tea-bg overflow-hidden pointer-events-none">
                                     <div className="w-[800px] h-[1067px] origin-top-left scale-[0.1]"> 
                                         <SinglePageRenderer page={{...p, index: i+1}} readOnly={true} />
@@ -105,7 +105,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 <button onClick={(e) => { e.stopPropagation(); delPage(i); }} className="absolute -top-1 -right-1 w-4 h-4 bg-red-900 text-white rounded-full flex items-center justify-center opacity-0 hover:opacity-100 z-10" aria-label={`Delete page ${i + 1}`}><Icons.Close className="w-3 h-3" /></button>
                             </div>
                         ))}
-                        <button onClick={addPage} className="w-20 h-10 border border-dashed border-white/10 flex items-center justify-center text-white/20 hover:text-white hover:border-white/40"><Icons.Plus className="w-4 h-4" /></button>
+                        <button onClick={addPage} className="w-20 h-10 border border-dashed border-tea-gold/10 flex items-center justify-center text-tea-text-dim hover:text-white hover:border-tea-gold/20"><Icons.Plus className="w-4 h-4" /></button>
                     </div>
                 )}
 
@@ -129,11 +129,11 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
                         {/* Mobile Page Controls (since sidebar is hidden) */}
                          {!isMedia && (
-                            <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#202020] px-4 py-2 rounded-full border border-white/10 z-40 shadow-xl">
-                                <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0} className="text-white/80 disabled:opacity-30"><Icons.Back className="w-4 h-4" /></button>
-                                <span className="text-xs text-white/80 font-mono">{idx + 1} / {pages.length}</span>
-                                <button onClick={() => setIdx(Math.min(pages.length - 1, idx + 1))} disabled={idx === pages.length - 1} className="text-white/80 disabled:opacity-30"><Icons.Next className="w-4 h-4" /></button>
-                                <div className="w-[1px] h-3 bg-white/20 mx-1"></div>
+                            <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#202020] px-4 py-2 rounded-full border border-tea-gold/10 z-40 shadow-xl">
+                                <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0} className="text-tea-text disabled:opacity-30"><Icons.Back className="w-4 h-4" /></button>
+                                <span className="text-xs text-tea-text font-mono">{idx + 1} / {pages.length}</span>
+                                <button onClick={() => setIdx(Math.min(pages.length - 1, idx + 1))} disabled={idx === pages.length - 1} className="text-tea-text disabled:opacity-30"><Icons.Next className="w-4 h-4" /></button>
+                                <div className="w-[1px] h-3 bg-tea-gold/15 mx-1"></div>
                                 <button onClick={addPage} className="text-tea-gold"><Icons.Plus className="w-4 h-4" /></button>
                             </div>
                         )}
@@ -149,7 +149,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         )}
                         {/* Hint for Media */}
                         {isMedia && (
-                            <div className="absolute bottom-8 text-white/40 text-sm font-serif italic">
+                            <div className="absolute bottom-8 text-tea-text-dim text-sm font-serif italic">
                                 Edit poster image for {currentStory.type}
                             </div>
                         )}
@@ -157,13 +157,13 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                 ) : (
                     <div className="flex-1 p-8 overflow-y-auto bg-tea-bg">
                         <div className="max-w-md mx-auto space-y-6">
-                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Title</label><input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold" value={currentStory.title} onChange={e => setCurrentStory({...currentStory, title: e.target.value})} /></div>
-                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Subtitle</label><input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold" value={currentStory.subtitle} onChange={e => setCurrentStory({...currentStory, subtitle: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Title</label><input className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold" value={currentStory.title} onChange={e => setCurrentStory({...currentStory, title: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Subtitle</label><input className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold" value={currentStory.subtitle} onChange={e => setCurrentStory({...currentStory, subtitle: e.target.value})} /></div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Status</label>
-                                    <select value={currentStory.status} onChange={e => setCurrentStory({...currentStory, status: e.target.value as StoryStatus})} className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
+                                    <select value={currentStory.status} onChange={e => setCurrentStory({...currentStory, status: e.target.value as StoryStatus})} className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
                                         <option value="draft">Draft</option>
                                         <option value="published">Published</option>
                                         <option value="vault">Vault (Media)</option>
@@ -171,7 +171,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 </div>
                                 <div>
                                     <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Type</label>
-                                    <select value={currentStory.type} onChange={e => setCurrentStory({...currentStory, type: e.target.value as ContentType})} className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
+                                    <select value={currentStory.type} onChange={e => setCurrentStory({...currentStory, type: e.target.value as ContentType})} className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
                                         {Object.values(ContentType).map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
@@ -183,25 +183,25 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                      <h3 className="text-xs uppercase tracking-[0.15em] text-tea-gold mb-2">Media Configuration</h3>
                                      <div>
                                         <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Duration</label>
-                                        <input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
+                                        <input className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
                                      </div>
                                      <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Platform</label>
-                                            <select value={currentStory.platform} onChange={e => setCurrentStory({...currentStory, platform: e.target.value as any})} className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
+                                            <select value={currentStory.platform} onChange={e => setCurrentStory({...currentStory, platform: e.target.value as any})} className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
                                                 <option value="YouTube">YouTube</option>
                                                 <option value="Instagram">Instagram</option>
                                             </select>
                                         </div>
                                         <div>
                                             <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">External ID</label>
-                                            <input className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold" placeholder="Video ID" value={currentStory.externalId || ''} onChange={e => setCurrentStory({...currentStory, externalId: e.target.value})} />
+                                            <input className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold" placeholder="Video ID" value={currentStory.externalId || ''} onChange={e => setCurrentStory({...currentStory, externalId: e.target.value})} />
                                         </div>
                                      </div>
                                 </div>
                             )}
 
-                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Description</label><textarea className="w-full bg-tea-bg border border-white/20 p-2 text-white outline-none focus:border-tea-gold h-24" value={currentStory.description} onChange={e => setCurrentStory({...currentStory, description: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Description</label><textarea className="w-full bg-tea-bg border border-tea-gold/15 p-2 text-white outline-none focus:border-tea-gold h-24" value={currentStory.description} onChange={e => setCurrentStory({...currentStory, description: e.target.value})} /></div>
                         </div>
                     </div>
                 )}
@@ -210,13 +210,13 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
             {/* Template Selector Modal */}
             {showTemplateModal && (
                 <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-                    <div className="bg-tea-bg rounded-sm border border-white/20 max-w-4xl w-full max-h-[90vh] flex flex-col">
+                    <div className="bg-tea-bg rounded-sm border border-tea-gold/15 max-w-4xl w-full max-h-[90vh] flex flex-col">
                         {/* Modal Header */}
-                        <div className="bg-tea-bg border-b border-white/20 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
+                        <div className="bg-tea-bg border-b border-tea-gold/15 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
                             <h2 className="text-lg sm:text-xl font-serif text-tea-text">Choose Template</h2>
                             <button
                                 onClick={() => { setShowTemplateModal(false); setTemplateSearch(''); }}
-                                className="text-white/70 hover:text-white transition-colors"
+                                className="text-tea-text hover:text-white transition-colors"
                                 aria-label="Close template modal"
                             >
                                 <Icons.Close className="w-5 h-5" />
@@ -224,20 +224,20 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         </div>
 
                         {/* Search Bar */}
-                        <div className="bg-tea-bg border-b border-white/20 px-4 sm:px-6 py-3 shrink-0">
+                        <div className="bg-tea-bg border-b border-tea-gold/15 px-4 sm:px-6 py-3 shrink-0">
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={templateSearch}
                                     onChange={(e) => setTemplateSearch(e.target.value)}
                                     placeholder="Search templates..."
-                                    className="w-full bg-tea-surface border border-white/20 rounded-sm px-4 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:border-tea-gold transition-colors"
+                                    className="w-full bg-tea-surface border border-tea-gold/15 rounded-sm px-4 py-2 text-sm text-white placeholder:text-tea-text-dim outline-none focus:border-tea-gold transition-colors"
                                     autoFocus
                                 />
                                 {templateSearch && (
                                     <button
                                         onClick={() => setTemplateSearch('')}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text"
                                         aria-label="Clear search"
                                     >
                                         <Icons.Close className="w-4 h-4" />
@@ -265,7 +265,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-gold font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-tea-gold/15 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-tea-text hover:text-tea-gold font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -292,7 +292,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-gold font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-tea-gold/15 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-tea-text hover:text-tea-gold font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -319,7 +319,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-gold font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-tea-gold/15 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-tea-text hover:text-tea-gold font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -346,7 +346,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-gold font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-tea-gold/15 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-tea-text hover:text-tea-gold font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -373,7 +373,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-gold font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-tea-gold/15 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-tea-text hover:text-tea-gold font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -400,7 +400,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                                 setShowTemplateModal(false);
                                                 setTemplateSearch('');
                                             }}
-                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-white/20 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-white/80 hover:text-tea-gold font-mono leading-tight"
+                                            className="p-3 bg-tea-bg hover:bg-tea-surface border border-tea-gold/15 hover:border-tea-gold rounded-sm transition-all text-[10px] sm:text-xs uppercase text-center text-tea-text hover:text-tea-gold font-mono leading-tight"
                                         >
                                             {v.replace(/_/g, ' ')}
                                         </button>
@@ -419,7 +419,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                              !([LayoutVariant.INTERVIEW_STANDARD, LayoutVariant.STAT_BIG_NUMBER, LayoutVariant.DATA_BAR_CHART, LayoutVariant.LIST_CHECKLIST, LayoutVariant.RECIPE_CARD].some(v => v.toLowerCase().includes(templateSearch.toLowerCase()))) &&
                              !([LayoutVariant.TASTING_NOTES_GRID, LayoutVariant.MAP_CARTOGRAPHY, LayoutVariant.NOTE_PAPER, LayoutVariant.BOTANICAL_SKETCH].some(v => v.toLowerCase().includes(templateSearch.toLowerCase()))) && (
                                 <div className="text-center py-12">
-                                    <p className="text-white/60 text-sm">No templates found matching "{templateSearch}"</p>
+                                    <p className="text-tea-text-sec text-sm">No templates found matching "{templateSearch}"</p>
                                     <button
                                         onClick={() => setTemplateSearch('')}
                                         className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.15em] rounded-sm transition-colors"
@@ -684,34 +684,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
     <div className="w-full h-full bg-tea-surface flex flex-col md:flex-row flex-1">
 
         {/* Sidebar */}
-        <div className="w-full md:w-64 bg-tea-bg border-r border-white/10 flex flex-col shrink-0 h-16 md:h-full z-10">
-             <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 gap-3 bg-tea-bg">
+        <div className="w-full md:w-64 bg-tea-bg border-r border-tea-gold/10 flex flex-col shrink-0 h-16 md:h-full z-10">
+             <div className="h-16 flex items-center justify-between px-6 border-b border-tea-gold/10 gap-3 bg-tea-bg">
                  <div className="flex items-center gap-3">
                      <div className="w-8 h-8 bg-tea-gold rounded-lg flex items-center justify-center text-black font-serif font-bold">T</div>
-                     <span className="text-xs uppercase tracking-[0.15em] text-white/70 hidden md:inline">Admin</span>
+                     <span className="text-xs uppercase tracking-[0.15em] text-tea-text hidden md:inline">Admin</span>
                  </div>
                  <div className="flex items-center gap-2 md:hidden">
-                     <button onClick={onClose} className="px-2 py-1 text-white/80 hover:text-white text-xs uppercase transition-colors" title="Exit">Exit</button>
+                     <button onClick={onClose} className="px-2 py-1 text-tea-text hover:text-white text-xs uppercase transition-colors" title="Exit">Exit</button>
                      <button onClick={() => setAuth(false)} className="px-2 py-1 text-red-900/70 hover:text-red-500 text-xs uppercase transition-colors" title="Logout">Logout</button>
                  </div>
              </div>
 
              {/* Nav Links */}
              <div className="flex flex-row md:flex-col p-2 md:p-4 gap-1 overflow-x-auto no-scrollbar">
-                 <button onClick={() => setSection('JOURNAL')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'JOURNAL' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('JOURNAL')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'JOURNAL' ? 'bg-tea-bg text-white' : 'text-tea-text hover:text-white'}`}>
                      <Icons.Book className="w-4 h-4" />
                      <span className="whitespace-nowrap">Journal</span>
                  </button>
-                 <button onClick={() => setSection('MEDIA')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'MEDIA' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('MEDIA')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'MEDIA' ? 'bg-tea-bg text-white' : 'text-tea-text hover:text-white'}`}>
                      <Icons.Film className="w-4 h-4" />
                      <span className="whitespace-nowrap">Media Vault</span>
                  </button>
-                 <button onClick={() => setSection('INVENTORY')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'INVENTORY' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
+                 <button onClick={() => setSection('INVENTORY')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'INVENTORY' ? 'bg-tea-bg text-white' : 'text-tea-text hover:text-white'}`}>
                      <Icons.Grid className="w-4 h-4" />
                      <span className="whitespace-nowrap">Inventory</span>
                  </button>
-                 <div className="hidden md:block border-t border-white/10 my-2"></div>
-                 <button onClick={() => setSection('SETTINGS')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'SETTINGS' ? 'bg-tea-bg text-white' : 'text-white/80 hover:text-white'}`}>
+                 <div className="hidden md:block border-t border-tea-gold/10 my-2"></div>
+                 <button onClick={() => setSection('SETTINGS')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'SETTINGS' ? 'bg-tea-bg text-white' : 'text-tea-text hover:text-white'}`}>
                      <Icons.Settings className="w-4 h-4" />
                      <span className="whitespace-nowrap">Settings</span>
                  </button>
@@ -724,16 +724,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
             {/* --- JOURNAL SECTION --- */}
             {section === 'JOURNAL' && (
                 <div className="max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                    <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+                    <div className="flex justify-between items-center mb-8 border-b border-tea-gold/10 pb-4">
                         <div>
                             <h2 className="text-2xl font-serif text-tea-text mb-1">Journal Entries</h2>
-                            <p className="text-white/80 text-xs uppercase tracking-wider">Managing {journalEntries.length} stories</p>
+                            <p className="text-tea-text text-xs uppercase tracking-wider">Managing {journalEntries.length} stories</p>
                         </div>
                         <div className="flex gap-2">
                             <input type="file" accept="application/json" onChange={handleImportStories} className="hidden" id="story-import-input" />
                             <button
                                 onClick={() => document.getElementById('story-import-input')?.click()}
-                                className="px-3 py-2 bg-white/10 text-white/80 text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-2"
+                                className="px-3 py-2 bg-tea-gold/10 text-tea-text text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/15 rounded-sm flex items-center gap-2"
                                 title="Import stories from JSON"
                                 aria-label="Import stories"
                             >
@@ -741,7 +741,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             </button>
                             <button
                                 onClick={handleExportStories}
-                                className="px-3 py-2 bg-white/10 text-white/80 text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-2"
+                                className="px-3 py-2 bg-tea-gold/10 text-tea-text text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/15 rounded-sm flex items-center gap-2"
                                 title="Export all stories to JSON"
                                 aria-label="Export stories"
                             >
@@ -755,16 +755,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                     
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {journalEntries.map(s => (
-                            <div key={s.id} onClick={() => handleEdit(s)} className="aspect-[3/4] bg-tea-bg relative group cursor-pointer border border-white/10 hover:border-tea-gold transition-all">
+                            <div key={s.id} onClick={() => handleEdit(s)} className="aspect-[3/4] bg-tea-bg relative group cursor-pointer border border-tea-gold/10 hover:border-tea-gold transition-all">
                                 {s.thumbnailUrl && <img src={s.thumbnailUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="" />}
                                 <div className="absolute top-2 left-2 flex gap-1">
-                                    <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg ${s.status === 'published' ? 'text-tea-green' : 'text-white/80'}`}>
+                                    <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg ${s.status === 'published' ? 'text-tea-green' : 'text-tea-text'}`}>
                                         {s.status}
                                     </span>
                                 </div>
                                 <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black/90 to-transparent">
                                     <h3 className="text-white font-serif text-lg leading-tight line-clamp-2 mb-1">{s.title}</h3>
-                                    <span className="text-[10px] uppercase text-white/70">{s.subtitle}</span>
+                                    <span className="text-[10px] uppercase text-tea-text">{s.subtitle}</span>
                                 </div>
                                 <button onClick={(e) => handleDelete(e, s.id)} className="absolute top-2 right-2 p-1.5 bg-red-900/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-3 h-3" /></button>
                             </div>
@@ -776,10 +776,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
             {/* --- MEDIA VAULT SECTION --- */}
             {section === 'MEDIA' && (
                 <div className="max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                    <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+                    <div className="flex justify-between items-center mb-8 border-b border-tea-gold/10 pb-4">
                         <div>
                             <h2 className="text-2xl font-serif text-tea-text mb-1">Media Vault</h2>
-                            <p className="text-white/80 text-xs uppercase tracking-wider">Reels, Films & Audio for future release</p>
+                            <p className="text-tea-text text-xs uppercase tracking-wider">Reels, Films & Audio for future release</p>
                         </div>
                         <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                             <Icons.Plus className="w-4 h-4" /> New Media
@@ -795,19 +795,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             if (s.type === ContentType.Audio) ar = 'aspect-square';
 
                             return (
-                                <div key={s.id} onClick={() => handleEdit(s)} className={`relative bg-tea-bg border border-white/10 hover:border-tea-gold transition-all cursor-pointer group ${ar} overflow-hidden`}>
+                                <div key={s.id} onClick={() => handleEdit(s)} className={`relative bg-tea-bg border border-tea-gold/10 hover:border-tea-gold transition-all cursor-pointer group ${ar} overflow-hidden`}>
                                     {s.thumbnailUrl && <img src={s.thumbnailUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500" alt="" />}
                                     
                                     {/* Icon Overlay */}
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
-                                        <div className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/10">
+                                        <div className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-tea-gold/10">
                                             {s.type === ContentType.Audio ? <Icons.Audio className="w-4 h-4 text-white" /> : <Icons.Play className="w-4 h-4 text-white" />}
                                         </div>
                                     </div>
 
                                     {/* Status Badge */}
                                     <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
-                                        <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg text-white/70 border border-white/10`}>
+                                        <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg text-tea-text border border-tea-gold/10`}>
                                             {s.type}
                                         </span>
                                         {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-[0.15em] bg-black/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
@@ -816,7 +816,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     {/* Bottom Meta */}
                                     <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent">
                                         <h3 className="text-white font-serif text-lg leading-tight truncate mb-0.5">{s.title}</h3>
-                                        <div className="flex items-center gap-2 text-[10px] uppercase text-white/70 tracking-wider">
+                                        <div className="flex items-center gap-2 text-[10px] uppercase text-tea-text tracking-wider">
                                             <span>{s.durationOrTime}</span>
                                             {s.platform && (
                                                 <>
@@ -843,20 +843,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
             {/* --- INVENTORY SECTION (Editable) --- */}
             {section === 'INVENTORY' && (
                 <div className="max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
-                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-white/10 pb-4 gap-4">
+                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-tea-gold/10 pb-4 gap-4">
                         <div>
                             <h2 className="text-2xl font-serif text-tea-text mb-1">Ledger</h2>
-                            <p className="text-white/80 text-xs uppercase tracking-wider">Global Inventory Management</p>
+                            <p className="text-tea-text text-xs uppercase tracking-wider">Global Inventory Management</p>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                            <div className="flex bg-tea-bg p-1 rounded-sm border border-white/10">
-                                <button onClick={() => setInventoryTab('TEA')} className={`px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors ${inventoryTab === 'TEA' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Tea</button>
-                                <button onClick={() => setInventoryTab('WARE')} className={`px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors ${inventoryTab === 'WARE' ? 'bg-white/10 text-white' : 'text-white/80'}`}>Ware</button>
+                            <div className="flex bg-tea-bg p-1 rounded-sm border border-tea-gold/10">
+                                <button onClick={() => setInventoryTab('TEA')} className={`px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors ${inventoryTab === 'TEA' ? 'bg-tea-gold/10 text-white' : 'text-tea-text'}`}>Tea</button>
+                                <button onClick={() => setInventoryTab('WARE')} className={`px-4 py-1 text-xs uppercase tracking-[0.15em] transition-colors ${inventoryTab === 'WARE' ? 'bg-tea-gold/10 text-white' : 'text-tea-text'}`}>Ware</button>
                             </div>
-                            <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 bg-white/10 text-white text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-1 border border-white/20" title="Import">
+                            <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 bg-tea-gold/10 text-white text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/15 rounded-sm flex items-center gap-1 border border-tea-gold/15" title="Import">
                                 <Icons.Download className="w-3 h-3" />
                             </button>
-                            <button onClick={handleExportInventory} className="px-2 py-1 bg-white/10 text-white text-xs uppercase tracking-[0.15em] hover:bg-white/20 rounded-sm flex items-center gap-1 border border-white/20" title="Export">
+                            <button onClick={handleExportInventory} className="px-2 py-1 bg-tea-gold/10 text-white text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/15 rounded-sm flex items-center gap-1 border border-tea-gold/15" title="Export">
                                 <Icons.ArrowUp className="w-3 h-3" />
                             </button>
                             <input
@@ -872,9 +872,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                         </div>
                     </div>
 
-                    <div className="bg-tea-bg border border-white/10 overflow-hidden rounded-sm">
-                        <table className="w-full text-left text-sm text-white/80">
-                            <thead className="bg-white/5 text-xs uppercase tracking-[0.15em] text-white/80">
+                    <div className="bg-tea-bg border border-tea-gold/10 overflow-hidden rounded-sm">
+                        <table className="w-full text-left text-sm text-tea-text">
+                            <thead className="bg-tea-gold/5 text-xs uppercase tracking-[0.15em] text-tea-text">
                                 <tr>
                                     <th className="p-4 font-normal w-12">Img</th>
                                     <th className="p-4 font-normal">Name</th>
@@ -888,24 +888,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 {(inventoryTab === 'TEA' ? teaItems : wareItems).map((item) => {
                                     const isHidden = hiddenItems.has(item.id);
                                     return (
-                                    <tr key={item.id} onClick={() => !isHidden && handleInventoryEdit(item)} className={`border-b border-white/10 transition-colors group ${isHidden ? 'opacity-40' : 'hover:bg-white/5 cursor-pointer'}`}>
+                                    <tr key={item.id} onClick={() => !isHidden && handleInventoryEdit(item)} className={`border-b border-tea-gold/10 transition-colors group ${isHidden ? 'opacity-40' : 'hover:bg-tea-gold/5 cursor-pointer'}`}>
                                         <td className="p-2">
-                                            <div className="w-8 h-8 bg-black border border-white/20 overflow-hidden">
+                                            <div className="w-8 h-8 bg-black border border-tea-gold/15 overflow-hidden">
                                                 {item.image && <img src={item.image} className="w-full h-full object-cover" />}
                                             </div>
                                         </td>
                                         <td className="p-4 font-serif text-white">
                                             {item.name}
-                                            <span className="text-white/80 ml-2 text-xs font-sans uppercase tracking-wider block md:inline">{item.variant}</span>
+                                            <span className="text-tea-text ml-2 text-xs font-sans uppercase tracking-wider block md:inline">{item.variant}</span>
                                         </td>
-                                        <td className="p-4 text-xs text-white/70 hidden md:table-cell">{item.origin}</td>
-                                        <td className="p-4 text-right font-mono text-xs text-white/80">{item.stock_g}g</td>
+                                        <td className="p-4 text-xs text-tea-text hidden md:table-cell">{item.origin}</td>
+                                        <td className="p-4 text-right font-mono text-xs text-tea-text">{item.stock_g}g</td>
                                         <td className="p-4 text-right font-mono text-xs text-tea-gold">${item.category === 'tea' ? item.price_per_gram : item.price_50g}</td>
                                         <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex justify-end gap-2">
                                                 <button
                                                     onClick={(e) => handleToggleVisibility(e, item.id)}
-                                                    className={`p-2 transition-colors ${isHidden ? 'text-white/80 hover:text-white' : 'text-white hover:text-white'}`}
+                                                    className={`p-2 transition-colors ${isHidden ? 'text-tea-text hover:text-white' : 'text-white hover:text-white'}`}
                                                     title={isHidden ? 'Show item (currently hidden)' : 'Hide item (currently visible)'}
                                                     aria-label={isHidden ? 'Show item' : 'Hide item'}
                                                 >
@@ -913,7 +913,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleInventoryDelete(e, item.id)}
-                                                    className="p-2 hover:text-red-500 text-white/80 transition-colors"
+                                                    className="p-2 hover:text-red-500 text-tea-text transition-colors"
                                                     title="Delete item"
                                                     aria-label={`Delete ${item.name}`}
                                                 >
@@ -925,7 +925,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     );
                                 })}
                                 {(inventoryTab === 'TEA' ? teaItems : wareItems).length === 0 && (
-                                    <tr><td colSpan={6} className="p-8 text-center text-white/40 italic">No items found.</td></tr>
+                                    <tr><td colSpan={6} className="p-8 text-center text-tea-text-dim italic">No items found.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -939,22 +939,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                     <h2 className="text-2xl font-serif text-tea-text mb-8">Admin Settings</h2>
 
                     {/* Theme Section */}
-                    <div className="bg-tea-bg border border-white/10 rounded-sm p-6 mb-8">
+                    <div className="bg-tea-bg border border-tea-gold/10 rounded-sm p-6 mb-8">
                         <div className="flex items-start justify-between">
                             <div>
                                 <h3 className="text-lg font-serif text-white mb-2">Theme</h3>
-                                <p className="text-white/80 text-sm">Control the appearance of the entire application</p>
+                                <p className="text-tea-text text-sm">Control the appearance of the entire application</p>
                             </div>
                             <ThemeSettings />
                         </div>
                     </div>
 
                     {/* Shopping Cart Section */}
-                    <div className="bg-tea-bg border border-white/10 rounded-sm p-6">
+                    <div className="bg-tea-bg border border-tea-gold/10 rounded-sm p-6">
                         <div className="flex items-start justify-between">
                             <div>
                                 <h3 className="text-lg font-serif text-white mb-2">Shopping Cart</h3>
-                                <p className="text-white/80 text-sm">Manage your product selections and generate orders</p>
+                                <p className="text-tea-text text-sm">Manage your product selections and generate orders</p>
                             </div>
                             <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.15em] rounded-sm transition-colors flex items-center gap-2">
                                 <Icons.Bag className="w-4 h-4" />
@@ -1001,7 +1001,7 @@ const ThemeSettings = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-sm text-white text-xs uppercase tracking-[0.15em] flex items-center gap-2 transition-colors"
+      className="px-6 py-2 bg-tea-gold/10 hover:bg-tea-gold/15 border border-tea-gold/15 rounded-sm text-white text-xs uppercase tracking-[0.15em] flex items-center gap-2 transition-colors"
     >
       {theme === 'dark' ? (
         <>

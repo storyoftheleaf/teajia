@@ -42,7 +42,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
         <h2 className="font-serif text-lg font-medium text-tea-text mb-4">
           Brewing Guides
         </h2>
-        <div className="flex flex-col divide-y divide-tea-border">
+        <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
           {guides.map(item => (
             <button
               key={item.id}

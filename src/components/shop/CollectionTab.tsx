@@ -65,7 +65,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
             <div
               key={item.id}
               onClick={() => setViewItem(item)}
-              className="group cursor-pointer bg-tea-bg/80/90 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden hover:border-white/20 transition-colors duration-300"
+              className="group cursor-pointer bg-tea-bg/80/90 backdrop-blur-md border border-tea-gold/10 rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
             >
               <div className="flex flex-col md:flex-row">
                 {/* Image */}

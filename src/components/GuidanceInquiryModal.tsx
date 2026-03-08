@@ -250,7 +250,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 bg-white border border-tea-border rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300"
+                    className="w-full px-4 py-2 bg-tea-surface border border-tea-gold/10 rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300"
                     placeholder="Your name"
                   />
                 </div>
@@ -266,7 +266,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 bg-white border border-tea-border rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300"
+                    className="w-full px-4 py-2 bg-tea-surface border border-tea-gold/10 rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300"
                     placeholder="your@email.com"
                   />
                 </div>
@@ -283,7 +283,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 bg-white border border-tea-border rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300"
+                  className="w-full px-4 py-2 bg-tea-surface border border-tea-gold/10 rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300"
                   placeholder="Your phone number"
                 />
               </div>
@@ -298,7 +298,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                   name="vision"
                   value={formData.vision}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 bg-white border border-tea-border rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300 resize-none h-24"
+                  className="w-full px-4 py-2 bg-tea-surface border border-tea-gold/10 rounded-sm text-tea-text placeholder-tea-text-dim placeholder-tea-text-dim focus:outline-none focus:border-tea-gold transition-colors duration-300 resize-none h-24"
                   placeholder={
                     formData.serviceType === 'design'
                       ? "Describe the tea space you're imagining..."
@@ -317,7 +317,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-white rounded-full animate-spin"></div>
                     Sending...
                   </>
                 ) : (

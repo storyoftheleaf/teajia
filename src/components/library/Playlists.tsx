@@ -30,7 +30,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
         Music for tea moments
       </p>
 
-      <div className="flex flex-col divide-y divide-tea-border">
+      <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
         {PLAYLISTS.map(item => (
           <a
             key={item.id}

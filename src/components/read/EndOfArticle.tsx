@@ -25,7 +25,7 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
     <div className="w-full max-w-lg mx-auto px-6 py-12 space-y-10">
       {/* Divider */}
       <div className="flex justify-center">
-        <div className="w-12 h-px bg-tea-text/20/20" />
+        <div className="w-12 h-px bg-tea-gold/15/20" />
       </div>
 
       {/* Guest / Author Bio */}

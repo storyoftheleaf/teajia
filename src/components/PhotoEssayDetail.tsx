@@ -93,7 +93,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
             onClick={() => onPersonClick(story.author!)}
             className="mb-12 w-full max-w-sm group"
           >
-            <div className="bg-white rounded-lg p-6 hover:shadow-md dark:hover:shadow-lg transition-all duration-300 border border-tea-border">
+            <div className="bg-tea-surface rounded-sm p-6 hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-tea-text/10 flex-shrink-0">
                   {story.author.avatarUrl ? (

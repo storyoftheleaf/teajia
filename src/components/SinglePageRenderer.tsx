@@ -70,23 +70,23 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
 
   return createPortal(
     <div 
-      className="fixed z-[65] flex items-center bg-tea-bg border border-white/20 rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
+      className="fixed z-[65] flex items-center bg-tea-bg border border-tea-gold/15 rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
       style={{ top: safeTop, left: safeLeft }}
       onMouseDown={(e) => e.preventDefault()}
     >
-        <div className="flex gap-1 border-r border-white/10 pr-2 mr-1">
-            <button onClick={() => onFormat('font', 'font-serif')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Serif"><span className="font-serif text-sm">S</span></button>
-            <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Sans"><span className="font-sans text-sm">S</span></button>
-            <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Mono"><span className="font-mono text-sm">M</span></button>
+        <div className="flex gap-1 border-r border-tea-gold/10 pr-2 mr-1">
+            <button onClick={() => onFormat('font', 'font-serif')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Serif"><span className="font-serif text-sm">S</span></button>
+            <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Sans"><span className="font-sans text-sm">S</span></button>
+            <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper" title="Mono"><span className="font-mono text-sm">M</span></button>
         </div>
-        <div className="flex gap-1 border-r border-white/10 pr-2 mr-1">
-            <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper font-bold text-sm">B</button>
-            <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper italic font-serif text-sm">I</button>
+        <div className="flex gap-1 border-r border-tea-gold/10 pr-2 mr-1">
+            <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper font-bold text-sm">B</button>
+            <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper italic font-serif text-sm">I</button>
         </div>
         <div className="flex gap-1">
-             <button onClick={() => onFormat('size', 'text-2xl')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-xs">S</button>
-             <button onClick={() => onFormat('size', 'text-4xl')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-sm">M</button>
-             <button onClick={() => onFormat('size', 'text-6xl')} className="p-2 hover:bg-white/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-base">L</button>
+             <button onClick={() => onFormat('size', 'text-2xl')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-xs">S</button>
+             <button onClick={() => onFormat('size', 'text-4xl')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-sm">M</button>
+             <button onClick={() => onFormat('size', 'text-6xl')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-paper/70 hover:text-tea-paper text-base">L</button>
         </div>
     </div>,
     document.body
@@ -341,8 +341,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
       bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
       text: isDarkText ? 'text-tea-text' : 'text-tea-paper',
       subtext: isDarkText ? 'text-tea-text/60' : 'text-tea-paper/60',
-      border: isDarkText ? 'border-tea-text/10' : 'border-white/10',
-      softBg: isDarkText ? 'bg-tea-text/5' : 'bg-white/5',
+      border: isDarkText ? 'border-tea-text/10' : 'border-tea-gold/10',
+      softBg: isDarkText ? 'bg-tea-text/5' : 'bg-tea-gold/5',
       seal: 'text-tea-gold',
     };
     const updateContent = (newContent: string) => { if (onPageUpdate && !readOnly) onPageUpdate({ content: newContent }); };
@@ -364,7 +364,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     return (
       <div key={page.index} className="w-full h-full relative group/page overflow-hidden">
         <style>{ANIMATION_STYLES}</style>
-        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-[60] p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-tea-paper border border-white/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
+        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-[60] p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-tea-paper border border-tea-gold/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
         <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.05] mix-blend-overlay"><div className="w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div></div>
 
         {(() => {
@@ -375,7 +375,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} flex flex-col justify-between ${STD_PAD}`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className={`absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none`}></div>
-                        <div className="relative z-20 border-t border-white/30 pt-6 flex justify-between items-center mt-auto mb-8">
+                        <div className="relative z-20 border-t border-tea-gold/20 pt-6 flex justify-between items-center mt-auto mb-8">
                             <div className="w-12 h-12 bg-tea-bg text-black flex items-center justify-center font-bold text-xl">T</div>
                             <span className="text-2xl uppercase tracking-[0.3em] text-tea-paper opacity-80">Journal</span>
                         </div>
@@ -511,7 +511,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                          <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                          <div className="absolute inset-0 bg-black/30 z-10"></div>
                          <div className="absolute inset-0 z-20 flex items-center justify-center p-12 text-center pointer-events-none">
-                              <div className={`bg-black/40 backdrop-blur-md p-16 border border-white/20 ${readOnly ? '' : 'pointer-events-auto'}`}>
+                              <div className={`bg-black/40 backdrop-blur-md p-16 border border-tea-gold/15 ${readOnly ? '' : 'pointer-events-auto'}`}>
                                   <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-7xl font-serif text-tea-paper tracking-wide leading-tight" placeholder="Title Overlay" tag="h2" readOnly={readOnly} />
                               </div>
                          </div>
@@ -528,14 +528,14 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} flex flex-col`}>
                          <div className={`h-1/2 w-full relative overflow-hidden`}><SafeImage index={0} className="w-full h-full" /></div>
-                         <div className={`h-1/2 w-full ${STD_PAD} flex flex-col justify-center bg-white/5`}>
+                         <div className={`h-1/2 w-full ${STD_PAD} flex flex-col justify-center bg-tea-gold/5`}>
                               <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-3xl leading-loose text-justify opacity-90" placeholder="Text below image..." tag="p" readOnly={readOnly} />
                          </div>
                     </div>
                 );
             case LayoutVariant.IMG_GRID_MONDRIAN:
                 return (
-                    <div className={`${paperBase} grid grid-cols-2 grid-rows-2 h-full gap-2 bg-white/10`}>
+                    <div className={`${paperBase} grid grid-cols-2 grid-rows-2 h-full gap-2 bg-tea-gold/10`}>
                         <div className="row-span-2 relative bg-black"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="relative bg-black"><SafeImage index={1} className="w-full h-full" /></div>
                         <div className={`relative ${theme.bg} flex items-center justify-center p-8 text-center`}>
@@ -574,7 +574,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                          <div className="flex flex-col gap-8 w-[70%] mb-12 shrink-0">
                              {[0, 1, 2].map(i => (
                                  <div key={i} className="aspect-[3/2] bg-black p-4 shadow-lg shrink-0">
-                                     <div className="w-full h-full relative overflow-hidden bg-white/10">
+                                     <div className="w-full h-full relative overflow-hidden bg-tea-gold/10">
                                          <SafeImage index={i} className="w-full h-full object-cover" />
                                      </div>
                                  </div>

@@ -65,7 +65,7 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
         <path d="M-20,200 Q150,160 250,190 T420,170" stroke={mood === 'dark' ? 'var(--tea-gold)' : 'var(--tea-text)'} strokeWidth="20" fill="none" strokeLinecap="round" opacity="0.3" />
       </svg>
       {label && (
-        <div className={`absolute bottom-0 left-0 right-0 p-3 ${mood === 'dark' ? 'text-tea-paper/20' : 'text-tea-ink/15'}`}>
+        <div className={`absolute bottom-0 left-0 right-0 p-3 ${mood === 'dark' ? 'text-tea-text/20' : 'text-tea-text/15'}`}>
           <span className="text-[8px] font-mono tracking-[0.25em] uppercase">{label}</span>
         </div>
       )}
@@ -264,7 +264,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   >
                     <span className="font-serif">{term.term}</span>
                     {term.chineseCharacters && <span className="text-tea-gold/30 ml-2">{term.chineseCharacters}</span>}
-                    <span className="text-tea-ink/30 dark:text-tea-paper/30 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
+                    <span className="text-tea-text/30 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
                   </button>
                 ))}
               </div>
@@ -272,7 +272,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </div>
         )}
         {searchResults === 'empty' && (
-          <p className="mt-4 text-sm text-tea-ink/35 dark:text-tea-paper/35 font-serif italic">
+          <p className="mt-4 text-sm text-tea-text/35 font-serif italic">
             Nothing found for &ldquo;{searchQuery}&rdquo;
           </p>
         )}
@@ -367,7 +367,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
                     {secondTerm.term}
                   </span>
-                  <span className="text-xs text-tea-ink/30 dark:text-tea-paper/30 ml-2">
+                  <span className="text-xs text-tea-text/30 ml-2">
                     {secondTerm.definition.slice(0, 50)}...
                   </span>
                 </div>
@@ -504,14 +504,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   loading="lazy"
                 />
 
-                <div className="p-4 bg-tea-paper dark:bg-tea-ink">
+                <div className="p-4 bg-tea-bg">
                   <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-2">
                     {PIN_TYPE_LABELS[pin.type] || pin.type}
                   </span>
                   <h4 className="font-serif text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors">
                     {pin.name}
                   </h4>
-                  <p className="text-[11px] text-tea-ink/35 dark:text-tea-paper/35 font-sans">
+                  <p className="text-[11px] text-tea-text/35 font-sans">
                     {pin.location}
                   </p>
                 </div>
@@ -546,14 +546,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             />
 
             {/* Content below image */}
-            <div className="p-5 md:p-7 bg-tea-paper dark:bg-tea-ink">
+            <div className="p-5 md:p-7 bg-tea-bg">
               <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
               <h4 className="font-serif text-lg md:text-xl text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight">
                 {featuredSpace.title}
               </h4>
-              <p className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed mb-4 max-w-md">
+              <p className="font-serif italic text-sm text-tea-text/50 leading-relaxed mb-4 max-w-md">
                 {featuredSpace.description}
               </p>
               <span className="text-tea-gold text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">

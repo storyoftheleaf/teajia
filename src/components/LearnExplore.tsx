@@ -88,7 +88,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
   // Tea Spaces state
   const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
 
-  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-tea-paper/50';
+  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-tea-gold/10 text-tea-paper/50';
 
   // Community Wisdom filtering
   const filteredWisdom = useMemo(() => {
@@ -267,7 +267,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         ))}
                       </div>
                       {collection.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-border">
+                        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-gold/[0.08]">
                           {collection.tags.map(tag => (
                             <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                               {tag}
@@ -363,7 +363,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-gold/[0.08]">
                         <div className="w-5 h-5 rounded-full bg-tea-gold/20 flex items-center justify-center">
                           <Icons.User className="w-3 h-3 text-tea-gold" />
                         </div>
@@ -424,7 +424,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
         <div className="animate-[fadeIn_0.3s_ease-out]">
           <SubPageHeader title="Brewing Guides" subtitle="Quick reference PDFs and charts" />
 
-          <div className="flex flex-col divide-y divide-tea-border">
+          <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
             {GUIDES.map(item => (
               <button
                 key={item.id}

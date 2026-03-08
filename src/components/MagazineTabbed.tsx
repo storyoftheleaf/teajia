@@ -201,7 +201,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
     return (
       <div className="flex flex-col items-center justify-center py-32 px-4">
-        <div className="w-20 h-20 bg-white/5 border border-tea-text/10  rounded-full flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-tea-gold/5 border border-tea-text/10  rounded-full flex items-center justify-center mb-6">
           {content.icon}
         </div>
         <p className="font-serif text-xl text-tea-text mb-2">

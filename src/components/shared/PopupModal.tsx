@@ -184,7 +184,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const totalPrice = getQuantityPrice(item, currentQuantity);
 
   const purchaseControls = showQuantityControls && onAddToCart && (
-    <div className="bg-white/5 rounded-lg p-4 w-full backdrop-blur-sm border border-white/5 mt-4">
+    <div className="bg-tea-gold/5 rounded-lg p-4 w-full backdrop-blur-sm border border-tea-gold/[0.06] mt-4">
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
@@ -213,17 +213,17 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-paper/60">Quantity</span>
-            <div className="flex items-center border border-white/20 rounded-lg bg-black/20 ml-auto">
+            <div className="flex items-center border border-tea-gold/15 rounded-lg bg-black/20 ml-auto">
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
-                className="px-3 py-2 hover:bg-white/10 transition-colors text-tea-paper disabled:opacity-30"
+                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
               >−</button>
-              <span className="px-4 py-2 num text-sm border-l border-r border-white/10 min-w-[50px] text-center">{currentQuantity}</span>
+              <span className="px-4 py-2 num text-sm border-l border-r border-tea-gold/10 min-w-[50px] text-center">{currentQuantity}</span>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.min(maxQuantity, (prev[item.id] || defaultQuantity) + 1) }))}
                 disabled={currentQuantity >= maxQuantity}
-                className="px-3 py-2 hover:bg-white/10 transition-colors text-tea-paper disabled:opacity-30"
+                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
               >+</button>
             </div>
           </div>
@@ -304,7 +304,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <div className="bg-[#1a1a1a] rounded-t-2xl relative -mt-4 pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
-            <div className="w-10 h-1 bg-white/20 rounded-full" />
+            <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />
           </div>
 
           <div className="px-6 pb-6">

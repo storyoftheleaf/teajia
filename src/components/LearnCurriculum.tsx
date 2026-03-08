@@ -69,7 +69,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
       case 'Beginner': return 'bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm';
       case 'Intermediate': return 'bg-blue-500/20 text-blue-200 border border-blue-400/40 shadow-sm';
       case 'Advanced': return 'bg-tea-gold/20 text-tea-gold border border-tea-gold/40 shadow-sm';
-      default: return 'bg-white/10 text-tea-paper/50';
+      default: return 'bg-tea-gold/10 text-tea-paper/50';
     }
   };
 
@@ -206,7 +206,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                         onClick={() => toggleModule(module.id)}
                      >
                         {/* Progress Bar (Top) */}
-                        <div className="absolute top-0 left-0 w-full h-1 bg-white/5">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-tea-gold/5">
                             <div
                               className="h-full bg-tea-gold transition-all duration-1000 ease-out"
                               style={{ width: `${progress}%` }}
@@ -260,10 +260,10 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                         onClick={() => onStoryClick(lesson)}
                                      >
                                          {/* Status Node */}
-                                         <div className={`w-3 h-3 rounded-full border z-10 shrink-0 transition-all duration-300 ${isWatched ? 'bg-tea-gold border-tea-gold' : 'border-tea-text/40  bg-white group-hover/lesson:border-tea-border dark:group-hover/lesson:border-tea-paper'}`}></div>
+                                         <div className={`w-3 h-3 rounded-full border z-10 shrink-0 transition-all duration-300 ${isWatched ? 'bg-tea-gold border-tea-gold' : 'border-tea-text/40  bg-white group-hover/lesson:border-tea-gold/[0.08] dark:group-hover/lesson:border-tea-paper'}`}></div>
 
                                          {/* Lesson Card */}
-                                         <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-border rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
+                                         <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-gold/[0.08] rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
                                              <div className="flex items-center gap-4">
                                                  {/* Type Icon Box */}
                                                  <div className="w-11 h-11 bg-tea-text/10 rounded-lg flex items-center justify-center text-tea-text/70 shrink-0">

@@ -26,8 +26,8 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
   const steps = Math.floor((max - min) / step) + 1;
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
-  const thumbSize = size === 'sm' ? 10 : 14;
-  const trackHeight = size === 'sm' ? 2 : 3;
+  const thumbSize = size === 'sm' ? 14 : 18;
+  const trackHeight = size === 'sm' ? 6 : 8;
 
   // Haptic feedback on step change
   useEffect(() => {
@@ -74,7 +74,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-tea-gold/10 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-gold/20 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
@@ -84,31 +84,9 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           />
         </div>
 
-        {/* Tick marks */}
-        <div className="absolute w-full pointer-events-none" style={{ top: '50%' }}>
-          {ticks.map((tickValue) => {
-            const tickPercent = ((tickValue - min) / (max - min)) * 100;
-            const isActive = tickValue <= value;
-            return (
-              <div
-                key={tickValue}
-                className={`absolute transition-all duration-100 rounded-full ${
-                  isActive ? 'bg-tea-gold/60' : 'bg-tea-gold/15'
-                }`}
-                style={{
-                  left: `${tickPercent}%`,
-                  width: 2,
-                  height: isActive ? 6 : 4,
-                  transform: 'translate(-50%, -50%)',
-                }}
-              />
-            );
-          })}
-        </div>
-
         {/* Thumb */}
         <div
-          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-[1.4]"
+          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-110"
           style={{
             left: `calc(${percentage}% - ${thumbSize / 2}px)`,
             width: thumbSize,
@@ -116,12 +94,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-gold rounded-full shadow-lg ring-2 ring-tea-gold/30 transition-shadow group-active:shadow-xl group-active:ring-tea-gold/50"
-          />
-          {/* Pulse animation on step */}
-          <div
-            key={value}
-            className="absolute inset-0 rounded-full bg-tea-bg/30 animate-[scaleIn_0.15s_ease-out]"
+            className="w-full h-full bg-tea-gold rounded-full shadow-md transition-shadow group-active:shadow-lg"
           />
         </div>
       </div>

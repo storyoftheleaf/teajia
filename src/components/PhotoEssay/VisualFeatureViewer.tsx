@@ -194,7 +194,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
           <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
             <button
               onClick={onBack}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-tea-text/5 active:bg-tea-text/10 dark:active:bg-white/10 active:scale-95 transition-all"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-tea-text/5 active:bg-tea-text/10 dark:active:bg-tea-gold/10 active:scale-95 transition-all"
               aria-label="Close"
             >
               <Icons.ChevronLeft className="w-5 h-5 text-tea-text" />
@@ -204,7 +204,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
               {onToggleSave && (
                 <button
                   onClick={onToggleSave}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full active:bg-tea-text/10 dark:active:bg-white/10 active:scale-95 transition-all"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full active:bg-tea-text/10 dark:active:bg-tea-gold/10 active:scale-95 transition-all"
                   aria-label={isSaved ? 'Remove save' : 'Save'}
                 >
                   <Icons.Heart
@@ -218,7 +218,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
               )}
               <button
                 onClick={handleShareFeature}
-                className="flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-full bg-tea-text/5 active:bg-tea-text/10 dark:active:bg-white/10 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-full bg-tea-text/5 active:bg-tea-text/10 dark:active:bg-tea-gold/10 active:scale-95 transition-all"
                 aria-label="Share"
               >
                 <Icons.Share className="w-4 h-4 text-tea-text" />
@@ -420,7 +420,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                           href={(story as any).photographerLinks.instagram}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-text/5 rounded-full text-sm text-tea-gold active:bg-tea-text/10 dark:active:bg-white/10 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-text/5 rounded-full text-sm text-tea-gold active:bg-tea-text/10 dark:active:bg-tea-gold/10 transition-colors"
                         >
                           <Icons.Instagram className="w-4 h-4" />
                           <span>Instagram</span>
@@ -431,7 +431,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                           href={(story as any).photographerLinks.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-text/5 rounded-full text-sm text-tea-gold active:bg-tea-text/10 dark:active:bg-white/10 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-tea-text/5 rounded-full text-sm text-tea-gold active:bg-tea-text/10 dark:active:bg-tea-gold/10 transition-colors"
                         >
                           <Icons.ExternalLink className="w-4 h-4" />
                           <span>Website</span>
@@ -478,7 +478,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 e.stopPropagation();
                 closeImageOverlay();
               }}
-              className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm text-white/80 active:bg-white/20 active:text-white transition-all"
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-white/80 active:bg-tea-gold/15 active:text-white transition-all"
               aria-label="Close"
             >
               <Icons.Close className="w-5 h-5" />
@@ -492,7 +492,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 e.stopPropagation();
                 goToPrevImage();
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm text-white/80 active:bg-white/20 active:text-white transition-all"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-white/80 active:bg-tea-gold/15 active:text-white transition-all"
               aria-label="Previous image"
             >
               <Icons.ChevronLeft className="w-6 h-6" />
@@ -504,7 +504,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 e.stopPropagation();
                 goToNextImage();
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm text-white/80 active:bg-white/20 active:text-white transition-all"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-white/80 active:bg-tea-gold/15 active:text-white transition-all"
               aria-label="Next image"
             >
               <Icons.ChevronRight className="w-6 h-6" />
@@ -536,7 +536,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     idx === selectedImageIndex
                       ? 'bg-white scale-125'
-                      : 'bg-white/40 hover:bg-white/60'
+                      : 'bg-tea-gold/25 hover:bg-white/60'
                   }`}
                   aria-label={`Go to image ${idx + 1}`}
                 />
@@ -559,7 +559,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   story.gallery![selectedImageIndex!].caption
                 );
               }}
-              className="mx-auto flex items-center gap-2 px-6 py-3 min-h-[48px] bg-white/10 backdrop-blur-md text-white text-sm rounded-full active:bg-white/20 active:scale-95 transition-all"
+              className="mx-auto flex items-center gap-2 px-6 py-3 min-h-[48px] bg-tea-gold/10 backdrop-blur-md text-white text-sm rounded-full active:bg-tea-gold/15 active:scale-95 transition-all"
             >
               <Icons.Share className="w-4 h-4" />
               Share Image

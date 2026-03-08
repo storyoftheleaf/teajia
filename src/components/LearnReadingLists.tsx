@@ -48,7 +48,7 @@ export const LearnReadingLists: React.FC = () => {
             {activeList.subtitle}
           </p>
 
-          <div className="flex flex-col divide-y divide-tea-border">
+          <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
             {activeList.items.map(item => (
               <div
                 key={item.id}

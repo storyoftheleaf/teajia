@@ -231,7 +231,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                         {member.interests.map((interest: string) => (
                           <span
                             key={interest}
-                            className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded text-tea-paper/70"
+                            className="text-xs px-2 py-1 bg-tea-gold/5 border border-tea-gold/10 rounded text-tea-paper/70"
                           >
                             {interest}
                           </span>

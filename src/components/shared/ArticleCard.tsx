@@ -75,7 +75,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             <>
               {/* No-image fallback */}
               <div className="absolute inset-0 bg-tea-elevated flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full border border-tea-gold/10 flex items-center justify-center">
                   <Icons.BookOpen className="w-5 h-5 text-tea-paper/30" />
                 </div>
               </div>

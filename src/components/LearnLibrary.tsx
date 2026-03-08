@@ -126,7 +126,7 @@ const SectionHeader: React.FC<{
 export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) => {
   const [glossaryExpanded, setGlossaryExpanded] = useState(false);
 
-  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-tea-paper/50';
+  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-tea-gold/10 text-tea-paper/50';
 
   // Resolve "Picked for You" items based on course progress
   const pickedForYou = useMemo(() => {
@@ -200,7 +200,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
           title="Brewing Guides"
           subtitle="Quick reference PDFs and charts"
         />
-        <div className="flex flex-col divide-y divide-tea-border">
+        <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
           {GUIDES.map(item => (
             <button
               key={item.id}

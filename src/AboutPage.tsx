@@ -30,7 +30,7 @@ export default function AboutPage() {
       </div>
 
       {/* The approach */}
-      <div className="mb-16 md:mb-20 bg-white/50 dark:bg-white/5 p-8 md:p-12 rounded-lg">
+      <div className="mb-16 md:mb-20 bg-white/50 dark:bg-tea-gold/5 p-8 md:p-12 rounded-lg">
         <h2 className="font-serif text-2xl md:text-3xl text-tea-ink dark:text-tea-paper mb-4">
           The Approach
         </h2>
@@ -44,7 +44,7 @@ export default function AboutPage() {
       </div>
 
       {/* Studio link */}
-      <div className="mb-16 md:mb-20 border-t border-tea-ink/10 dark:border-white/10 pt-8">
+      <div className="mb-16 md:mb-20 border-t border-tea-ink/10 dark:border-tea-gold/10 pt-8">
         <p className="text-tea-ink/80 dark:text-tea-paper/80 leading-relaxed mb-4">
           TeajiA shares roots with a visual art practice — laser-cut work, oracle cards, and objects that come from the same quiet attention as the tea itself.
         </p>
