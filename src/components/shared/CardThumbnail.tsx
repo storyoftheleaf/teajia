@@ -24,12 +24,12 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
 
   return (
     <div
-      className={`${THUMBNAIL_SIZE_CLASS} relative shrink-0 rounded-[2px] overflow-hidden bg-tea-ink dark:bg-tea-ink border border-white/10 cursor-pointer group/thumb transition-all ${className}`}
+      className={`${THUMBNAIL_SIZE_CLASS} relative shrink-0 rounded-[1px] overflow-hidden bg-tea-elevated border border-tea-border cursor-pointer group/thumb transition-all ${className}`}
       onClick={onClick}
     >
       {src && !hasError ? (
         <>
-          {isLoading && <div className="absolute inset-0 bg-tea-ink/90 dark:bg-tea-ink animate-pulse" />}
+          {isLoading && <div className="absolute inset-0 bg-tea-elevated/90 animate-pulse" />}
           <img
             src={src}
             alt={alt}
@@ -48,7 +48,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
             <svg
               width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              className="text-white opacity-0 group-hover/thumb:opacity-90 transition-opacity duration-200 drop-shadow-lg"
+              className="text-tea-paper opacity-0 group-hover/thumb:opacity-90 transition-opacity duration-200 drop-shadow-lg"
             >
               <polyline points="15 3 21 3 21 9" />
               <polyline points="9 21 3 21 3 15" />
@@ -58,7 +58,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
           </div>
         </>
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-tea-ink dark:bg-tea-ink">
+        <div className="w-full h-full flex items-center justify-center bg-tea-elevated">
           <span className="text-tea-paper/20 text-[8px]">—</span>
         </div>
       )}

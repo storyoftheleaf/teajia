@@ -18,14 +18,14 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   value,
   onChange,
   unit = 'g',
-  accentColor = 'bg-tea-seal',
+  accentColor = 'bg-tea-gold',
   size = 'md',
 }) => {
   const lastStepRef = useRef(value);
 
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
-  const thumbSize = size === 'sm' ? 10 : 12;
-  const trackHeight = size === 'sm' ? 2 : 2;
+  const thumbSize = size === 'sm' ? 14 : 18;
+  const trackHeight = size === 'sm' ? 6 : 8;
 
   // Haptic feedback on step change
   useEffect(() => {
@@ -62,7 +62,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-tea-ink/10 dark:bg-white/10 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-gold/20 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
@@ -74,7 +74,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Thumb */}
         <div
-          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-[1.3]"
+          className="absolute z-10 pointer-events-none transition-transform duration-75 group-active:scale-110"
           style={{
             left: `calc(${percentage}% - ${thumbSize / 2}px)`,
             width: thumbSize,
@@ -82,15 +82,15 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-seal rounded-full shadow-sm transition-shadow group-active:shadow-md"
+            className="w-full h-full bg-tea-gold rounded-full shadow-md transition-shadow group-active:shadow-lg"
           />
         </div>
       </div>
 
       {/* Min and max labels */}
       <div className="flex justify-between px-0.5">
-        <span className="text-[9px] font-mono text-tea-ink/30 dark:text-white/30">{min}{unit}</span>
-        <span className="text-[9px] font-mono text-tea-ink/30 dark:text-white/30">{max}{unit}</span>
+        <span className="text-[9px] font-mono text-tea-text/30">{min}{unit}</span>
+        <span className="text-[9px] font-mono text-tea-text/30">{max}{unit}</span>
       </div>
     </div>
   );

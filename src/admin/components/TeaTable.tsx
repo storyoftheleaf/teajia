@@ -285,12 +285,12 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                         {product.originRegion}
                                     </td>
 
-                                    <td className="py-3 px-4 text-xs font-mono text-tea-muted/70 tabular-nums align-middle truncate">
+                                    <td className="py-3 px-4 text-xs num text-tea-muted/70 align-middle truncate">
                                         {product.year || '-'}
                                     </td>
 
                                     {isAdmin && (
-                                        <td className="py-3 px-4 text-right font-mono text-xs tabular-nums align-middle truncate">
+                                        <td className="py-3 px-4 text-right num text-xs align-middle truncate">
                                             <span className={isLowStock ? 'text-tea-accent font-medium' : 'text-tea-muted'}>
                                                 {product.stockGrams}g
                                             </span>
@@ -298,7 +298,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     )}
 
                                     <td className="py-3 px-4 text-right align-middle truncate">
-                                        <span className="font-mono text-tea-text text-sm tabular-nums">
+                                        <span className="num text-tea-text text-sm">
                                             {formatCurrency(product.pricePerGramUSD, currency, rates)}
                                         </span>
                                     </td>

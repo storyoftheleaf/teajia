@@ -17,7 +17,7 @@ import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-ink/5 dark:hover:bg-white/5 px-2 -ml-2';
+const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 interface LearnHubProps {
   onStoryClick: (story: Story) => void;
@@ -69,8 +69,8 @@ export const LearnHub: React.FC<LearnHubProps> = ({
         return (
           <div className="w-full pb-32">
             <button onClick={navigateBack} className={BACK_BTN}>
-              <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-ink/70 dark:text-tea-paper/70" />
-              <span className="font-serif text-sm text-tea-ink/70 dark:text-tea-paper/70">Learn</span>
+              <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text/70" />
+              <span className="font-serif text-sm text-tea-text/70">Learn</span>
             </button>
             <LearnCurriculum onStoryClick={onStoryClick} watchedStories={watchedStories} />
           </div>

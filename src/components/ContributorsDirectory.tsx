@@ -15,10 +15,10 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
     <div className="w-full pb-16 animate-[fadeIn_0.5s_ease-out]">
       <div className="max-w-6xl mx-auto px-2 md:px-0">
         <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-serif text-tea-paper mb-3">
+          <h1 className="text-4xl md:text-5xl font-serif text-tea-text mb-3">
             People of Teajia
           </h1>
-          <p className="text-lg text-tea-ink/60 dark:text-tea-paper/60">
+          <p className="text-lg text-tea-text/60">
             Meet the contributors, collaborators, and voices that shape our editorial and offerings.
           </p>
         </div>
@@ -34,7 +34,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
               <div className="p-6 flex flex-col gap-4 h-full">
                 {/* Avatar */}
                 {contributor.avatarUrl && (
-                  <div className="w-full aspect-square rounded-[2px] overflow-hidden bg-white/5">
+                  <div className="w-full aspect-square rounded-[1px] overflow-hidden bg-tea-gold/5">
                     <img
                       src={contributor.avatarUrl}
                       alt={contributor.name}
@@ -45,19 +45,19 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
 
                 {/* Name & Role */}
                 <div>
-                  <h2 className="text-xl font-serif text-tea-paper mb-1">
+                  <h2 className="text-xl font-serif text-tea-text mb-1">
                     {contributor.name}
                   </h2>
-                  <p className="text-sm text-tea-seal font-medium">{contributor.role}</p>
+                  <p className="text-sm text-tea-gold font-medium">{contributor.role}</p>
                 </div>
 
                 {/* Bio */}
-                <p className="text-sm text-tea-paper/70 flex-1 line-clamp-3">
+                <p className="text-sm text-white/70 flex-1 line-clamp-3">
                   {contributor.bio}
                 </p>
 
                 {/* CTA */}
-                <div className="flex items-center gap-2 text-tea-seal text-sm font-medium pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2 text-tea-gold text-sm font-medium pt-2 border-t border-tea-gold/10">
                   <span>View Profile</span>
                   <span>→</span>
                 </div>

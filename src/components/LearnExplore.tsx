@@ -61,13 +61,13 @@ const WISDOM_TYPE_COLORS: Record<string, string> = {
 
 // Grid tile definitions
 const GRID_TILES: { id: ExploreView; title: string; subtitle: string; icon: React.ReactNode; accentBg: string; accentText: string }[] = [
-  { id: 'journeys', title: 'Tea Journeys', subtitle: `${CURATED_COLLECTIONS.length} guided paths`, icon: <Icons.Leaf className="w-8 h-8" />, accentBg: 'bg-tea-seal/10 dark:bg-tea-seal/20', accentText: 'text-tea-seal' },
+  { id: 'journeys', title: 'Tea Journeys', subtitle: `${CURATED_COLLECTIONS.length} guided paths`, icon: <Icons.Leaf className="w-8 h-8" />, accentBg: 'bg-tea-gold/10', accentText: 'text-tea-gold' },
   { id: 'wisdom', title: 'Community Wisdom', subtitle: `${COMMUNITY_WISDOM.length} reflections`, icon: <Icons.Users className="w-8 h-8" />, accentBg: 'bg-blue-500/10 dark:bg-blue-500/20', accentText: 'text-blue-500 dark:text-blue-400' },
   { id: 'glossary', title: 'Tea Glossary', subtitle: '58 essential terms', icon: <Icons.Book className="w-8 h-8" />, accentBg: 'bg-teal-500/10 dark:bg-teal-500/20', accentText: 'text-teal-500 dark:text-teal-400' },
   { id: 'media', title: 'Media & Playlists', subtitle: '5 curated lists', icon: <Icons.Music className="w-8 h-8" />, accentBg: 'bg-purple-500/10 dark:bg-purple-500/20', accentText: 'text-purple-500 dark:text-purple-400' },
-  { id: 'guides', title: 'Brewing Guides', subtitle: `${GUIDES.length} references`, icon: <Icons.Download className="w-8 h-8" />, accentBg: 'bg-tea-green/10 dark:bg-tea-green/20', accentText: 'text-tea-green' },
+  { id: 'guides', title: 'Brewing Guides', subtitle: `${GUIDES.length} references`, icon: <Icons.Download className="w-8 h-8" />, accentBg: 'bg-tea-green/10', accentText: 'text-tea-green' },
   { id: 'reference', title: 'Reference Tools', subtitle: `${REFERENCE.length} templates`, icon: <Icons.Grid className="w-8 h-8" />, accentBg: 'bg-orange-500/10 dark:bg-orange-500/20', accentText: 'text-orange-500 dark:text-orange-400' },
-  { id: 'spaces', title: 'Tea Spaces', subtitle: `${TEA_SPACES.length} inspirations`, icon: <Icons.Palette className="w-8 h-8" />, accentBg: 'bg-tea-seal/10 dark:bg-tea-seal/20', accentText: 'text-tea-seal' },
+  { id: 'spaces', title: 'Tea Spaces', subtitle: `${TEA_SPACES.length} inspirations`, icon: <Icons.Palette className="w-8 h-8" />, accentBg: 'bg-tea-gold/10', accentText: 'text-tea-gold' },
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
   // Tea Spaces state
   const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
 
-  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-white/10 text-tea-paper/50';
+  const getTypeColor = (type: string) => TYPE_COLORS[type] || 'bg-tea-gold/10 text-tea-paper/50';
 
   // Community Wisdom filtering
   const filteredWisdom = useMemo(() => {
@@ -138,19 +138,19 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
       <div className="mb-4 -mx-2 md:mx-0">
         <button
           onClick={backToGrid}
-          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-ink/[0.03] dark:bg-white/[0.03] hover:bg-tea-ink/[0.06] dark:hover:bg-white/[0.06] transition-colors active:bg-tea-ink/[0.08] dark:active:bg-white/[0.08]"
+          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors active:bg-tea-text/[0.08]"
         >
-          <div className="w-8 h-8 rounded-full bg-tea-seal/10 dark:bg-tea-seal/20 flex items-center justify-center shrink-0">
-            <Icons.Back className="w-4 h-4 text-tea-seal" />
+          <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0">
+            <Icons.Back className="w-4 h-4 text-tea-gold" />
           </div>
-          <span className="text-sm font-medium text-tea-seal">Explore</span>
-          <span className="text-tea-ink/20 dark:text-tea-paper/20">/</span>
-          <span className="text-sm text-tea-ink/50 dark:text-tea-paper/50 truncate">{title}</span>
+          <span className="text-sm font-medium text-tea-gold">Explore</span>
+          <span className="text-tea-text/20">/</span>
+          <span className="text-sm text-tea-text/50 truncate">{title}</span>
         </button>
       </div>
       <div className="mb-6">
-        <h2 className="font-serif text-xl text-tea-ink dark:text-tea-paper mb-1">{title}</h2>
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 font-serif italic">{subtitle}</p>
+        <h2 className="font-serif text-xl text-tea-text mb-1">{title}</h2>
+        <p className="text-sm text-tea-text/50 font-serif italic">{subtitle}</p>
       </div>
     </>
   );
@@ -175,10 +175,10 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                     <span className={tile.accentText}>{tile.icon}</span>
                   </div>
                   <div>
-                    <h3 className="font-serif text-base text-tea-ink dark:text-tea-paper mb-0.5">
+                    <h3 className="font-serif text-base text-tea-text mb-0.5">
                       {tile.title}
                     </h3>
-                    <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50">
+                    <p className="text-xs text-tea-text/50">
                       {tile.subtitle}
                     </p>
                   </div>
@@ -213,11 +213,11 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                       </div>
                       <div className="flex-1 pt-1">
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-serif text-xl text-tea-ink dark:text-tea-paper leading-tight">
+                          <h3 className="font-serif text-xl text-tea-text leading-tight">
                             {collection.title}
                           </h3>
                           <div
-                            className="text-tea-ink/30 dark:text-tea-paper/30 transition-transform duration-500 shrink-0 ml-2"
+                            className="text-tea-text/30 transition-transform duration-500 shrink-0 ml-2"
                             style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                           >
                             <Icons.ChevronDown className="w-5 h-5" />
@@ -227,14 +227,14 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                           <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
                             {collection.difficulty}
                           </span>
-                          <span className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40">
+                          <span className="text-[11px] text-tea-text/40">
                             {collection.estimatedDuration}
                           </span>
-                          <span className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40">
+                          <span className="text-[11px] text-tea-text/40">
                             {collection.guideSteps.length} steps
                           </span>
                         </div>
-                        <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed">
+                        <p className="text-xs text-tea-text/50 leading-relaxed">
                           {collection.subtitle}
                         </p>
                       </div>
@@ -243,23 +243,23 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
 
                   <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[2000px] opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'}`}>
                     <div className="pl-6 md:pl-20 pr-2 md:pr-4">
-                      <p className="font-serif italic text-sm text-tea-ink/60 dark:text-tea-paper/70 leading-relaxed mb-5 max-w-lg">
+                      <p className="font-serif italic text-sm text-tea-text/60 /70 leading-relaxed mb-5 max-w-lg">
                         {collection.description}
                       </p>
                       <div className="space-y-0">
                         {collection.guideSteps.map((step, stepIndex) => (
                           <div key={step.order} className="relative pl-8 pb-5 last:pb-0">
                             {stepIndex < collection.guideSteps.length - 1 && (
-                              <div className="absolute left-[11px] top-6 bottom-0 w-px bg-tea-seal/20" />
+                              <div className="absolute left-[11px] top-6 bottom-0 w-px bg-tea-gold/20" />
                             )}
-                            <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-tea-seal/10 dark:bg-tea-seal/20 flex items-center justify-center">
-                              <span className="text-[10px] font-medium text-tea-seal">{step.order}</span>
+                            <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-tea-gold/10 flex items-center justify-center">
+                              <span className="text-[10px] font-medium text-tea-gold">{step.order}</span>
                             </div>
                             <div>
-                              <h4 className="font-serif text-base text-tea-ink dark:text-tea-paper mb-1">
+                              <h4 className="font-serif text-base text-tea-text mb-1">
                                 {step.teaName}
                               </h4>
-                              <p className="text-sm text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed">
+                              <p className="text-sm text-tea-text/60 leading-relaxed">
                                 {step.instruction}
                               </p>
                             </div>
@@ -267,9 +267,9 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         ))}
                       </div>
                       {collection.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-ink/5 dark:border-white/5">
+                        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-gold/[0.08]">
                           {collection.tags.map(tag => (
-                            <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50">
+                            <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                               {tag}
                             </span>
                           ))}
@@ -299,8 +299,8 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 onClick={() => { setWisdomFilter(filter); setShowAllWisdom(false); }}
                 className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
                   wisdomFilter === filter
-                    ? 'bg-tea-seal text-white'
-                    : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/60 dark:text-tea-paper/60 hover:bg-tea-ink/10 dark:hover:bg-white/10'
+                    ? 'bg-tea-gold text-white'
+                    : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
                 }`}
               >
                 {filter === 'all' ? 'All' : WISDOM_TYPE_LABELS[filter]}
@@ -326,48 +326,48 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                             {WISDOM_TYPE_LABELS[entry.type]}
                           </span>
                           {entry.teaReferenced && (
-                            <span className="text-[10px] text-tea-ink/40 dark:text-tea-paper/40 italic">
+                            <span className="text-[10px] text-tea-text/40 italic">
                               {entry.teaReferenced}
                             </span>
                           )}
                         </div>
                         <div
-                          className="text-tea-ink/30 dark:text-tea-paper/30 transition-transform duration-300 shrink-0"
+                          className="text-tea-text/30 transition-transform duration-300 shrink-0"
                           style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                         >
                           <Icons.ChevronDown className="w-4 h-4" />
                         </div>
                       </div>
-                      <h4 className={`font-serif text-lg text-tea-ink dark:text-tea-paper mb-2 leading-snug ${entry.type === 'reflection' ? 'italic' : ''}`}>
+                      <h4 className={`font-serif text-lg text-tea-text mb-2 leading-snug ${entry.type === 'reflection' ? 'italic' : ''}`}>
                         {entry.title}
                       </h4>
-                      <p className={`text-sm text-tea-ink/70 dark:text-tea-paper/70 leading-relaxed whitespace-pre-line transition-all duration-300 ${isExpanded ? '' : 'line-clamp-3'}`}>
+                      <p className={`text-sm text-tea-text/70 leading-relaxed whitespace-pre-line transition-all duration-300 ${isExpanded ? '' : 'line-clamp-3'}`}>
                         {entry.body}
                       </p>
                       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
                         {entry.teaReferenced && (
-                          <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-tea-seal/5 dark:bg-tea-seal/10 mb-3">
-                            <Icons.Leaf className="w-3.5 h-3.5 text-tea-seal" />
-                            <span className="text-xs text-tea-ink/70 dark:text-tea-paper/70">
-                              Tea: <span className="font-medium text-tea-ink dark:text-tea-paper">{entry.teaReferenced}</span>
+                          <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-tea-gold/5 mb-3">
+                            <Icons.Leaf className="w-3.5 h-3.5 text-tea-gold" />
+                            <span className="text-xs text-tea-text/70">
+                              Tea: <span className="font-medium text-tea-text">{entry.teaReferenced}</span>
                             </span>
                           </div>
                         )}
                         {entry.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {entry.tags.map(tag => (
-                              <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50">
+                              <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                                 {tag}
                               </span>
                             ))}
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-ink/5 dark:border-white/5">
-                        <div className="w-5 h-5 rounded-full bg-tea-seal/20 flex items-center justify-center">
-                          <Icons.User className="w-3 h-3 text-tea-seal" />
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-gold/[0.08]">
+                        <div className="w-5 h-5 rounded-full bg-tea-gold/20 flex items-center justify-center">
+                          <Icons.User className="w-3 h-3 text-tea-gold" />
                         </div>
-                        <span className="text-[11px] text-tea-ink/50 dark:text-tea-paper/50">
+                        <span className="text-[11px] text-tea-text/50">
                           {entry.authorName}
                         </span>
                       </div>
@@ -381,7 +381,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           {!showAllWisdom && hiddenWisdomCount > 0 && (
             <button
               onClick={() => setShowAllWisdom(true)}
-              className="w-full mt-4 py-3 text-center text-sm text-tea-seal hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+              className="w-full mt-4 py-3 text-center text-sm text-tea-gold hover:text-tea-text transition-colors"
             >
               Show {hiddenWisdomCount} more
             </button>
@@ -389,7 +389,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           {showAllWisdom && filteredWisdom.length > 3 && (
             <button
               onClick={() => setShowAllWisdom(false)}
-              className="w-full mt-4 py-3 text-center text-sm text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper transition-colors"
+              className="w-full mt-4 py-3 text-center text-sm text-tea-text/40 hover:text-tea-text transition-colors"
             >
               Show less
             </button>
@@ -424,18 +424,18 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
         <div className="animate-[fadeIn_0.3s_ease-out]">
           <SubPageHeader title="Brewing Guides" subtitle="Quick reference PDFs and charts" />
 
-          <div className="flex flex-col divide-y divide-tea-ink/5 dark:divide-white/5">
+          <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
             {GUIDES.map(item => (
               <button
                 key={item.id}
-                className="flex items-center gap-4 py-3.5 px-1 group cursor-pointer hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors text-left"
+                className="flex items-center gap-4 py-3.5 px-1 group cursor-pointer hover:bg-tea-elevated/50 transition-colors text-left"
               >
-                <div className="w-8 h-8 rounded-sm bg-tea-green/10 dark:bg-tea-green/20 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-sm bg-tea-green/10 flex items-center justify-center shrink-0">
                   <Icons.Download className="w-4 h-4 text-tea-green" />
                 </div>
-                <span className="font-serif text-sm text-tea-ink dark:text-tea-paper flex-1">{item.title}</span>
+                <span className="font-serif text-sm text-tea-text flex-1">{item.title}</span>
                 <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
-                <Icons.Next className="w-4 h-4 text-tea-ink/30 dark:text-tea-paper/30 group-hover:text-tea-seal transition-colors shrink-0" />
+                <Icons.Next className="w-4 h-4 text-tea-text/30 group-hover:text-tea-gold transition-colors shrink-0" />
               </button>
             ))}
           </div>
@@ -459,8 +459,8 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         {REFERENCE_ICONS[item.id] || <Icons.Grid className="w-6 h-6" />}
                       </span>
                     </div>
-                    <h4 className="font-serif text-sm text-tea-ink dark:text-tea-paper mb-1">{item.title}</h4>
-                    <p className="text-[11px] text-tea-ink/50 dark:text-tea-paper/50 line-clamp-2">{item.description}</p>
+                    <h4 className="font-serif text-sm text-tea-text mb-1">{item.title}</h4>
+                    <p className="text-[11px] text-tea-text/50 line-clamp-2">{item.description}</p>
                   </div>
                 </CardContainer>
               </div>
@@ -486,20 +486,20 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   <CardContainer variant="dark" className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-seal/10 dark:bg-tea-seal/20 text-tea-seal border border-tea-seal/20">
+                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-gold/20">
                           {SPACE_TYPE_LABELS[space.spaceType]}
                         </span>
                         <div
-                          className="text-tea-ink/30 dark:text-tea-paper/30 transition-transform duration-300"
+                          className="text-tea-text/30 transition-transform duration-300"
                           style={{ transform: expandedSpace === space.id ? 'rotate(180deg)' : 'rotate(0deg)' }}
                         >
                           <Icons.ChevronDown className="w-3.5 h-3.5" />
                         </div>
                       </div>
-                      <h4 className="font-serif text-sm text-tea-ink dark:text-tea-paper mb-1 leading-snug">
+                      <h4 className="font-serif text-sm text-tea-text mb-1 leading-snug">
                         {space.title}
                       </h4>
-                      <p className="text-[11px] text-tea-ink/50 dark:text-tea-paper/50 line-clamp-2">
+                      <p className="text-[11px] text-tea-text/50 line-clamp-2">
                         {space.description}
                       </p>
                     </div>
@@ -508,16 +508,16 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
 
                 <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expandedSpace === space.id ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`}>
                   <div className="px-3 pb-2">
-                    <p className="text-xs text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed mb-3">
+                    <p className="text-xs text-tea-text/60 leading-relaxed mb-3">
                       {space.description}
                     </p>
                     <div className="space-y-2">
                       {space.tips.map((tip, i) => (
                         <div key={i} className="flex items-start gap-2">
-                          <div className="w-4 h-4 rounded-full bg-tea-seal/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <Icons.Check className="w-2.5 h-2.5 text-tea-seal" />
+                          <div className="w-4 h-4 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <Icons.Check className="w-2.5 h-2.5 text-tea-gold" />
                           </div>
-                          <p className="text-xs text-tea-ink/60 dark:text-tea-paper/60 leading-relaxed">
+                          <p className="text-xs text-tea-text/60 leading-relaxed">
                             {tip}
                           </p>
                         </div>
@@ -532,20 +532,20 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           {onNavigateToConsult && (
             <button
               onClick={onNavigateToConsult}
-              className="flex items-center justify-between w-full py-3 px-4 rounded-lg bg-tea-seal/5 dark:bg-tea-seal/10 hover:bg-tea-seal/10 dark:hover:bg-tea-seal/15 transition-colors group"
+              className="flex items-center justify-between w-full py-3 px-4 rounded-lg bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <Icons.Sparkles className="w-4 h-4 text-tea-seal" />
+                <Icons.Sparkles className="w-4 h-4 text-tea-gold" />
                 <div className="text-left">
-                  <span className="text-sm font-medium text-tea-ink dark:text-tea-paper">
+                  <span className="text-sm font-medium text-tea-text">
                     Want a Custom Tea Space?
                   </span>
-                  <p className="text-[11px] text-tea-ink/50 dark:text-tea-paper/50">
+                  <p className="text-[11px] text-tea-text/50">
                     Explore our design consultation services
                   </p>
                 </div>
               </div>
-              <Icons.Next className="w-4 h-4 text-tea-seal group-hover:translate-x-0.5 transition-transform" />
+              <Icons.Next className="w-4 h-4 text-tea-gold group-hover:translate-x-0.5 transition-transform" />
             </button>
           )}
         </div>

@@ -25,7 +25,7 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
     <div className="w-full max-w-lg mx-auto px-6 py-12 space-y-10">
       {/* Divider */}
       <div className="flex justify-center">
-        <div className="w-12 h-px bg-tea-ink/20 dark:bg-tea-paper/20" />
+        <div className="w-12 h-px bg-tea-gold/15/20" />
       </div>
 
       {/* Guest / Author Bio */}
@@ -39,14 +39,14 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
             />
           )}
           <div>
-            <p className="font-serif text-lg text-tea-ink dark:text-tea-paper">
+            <p className="font-serif text-lg text-tea-text">
               {guest.name}
             </p>
-            <p className="text-xs text-tea-ink/50 dark:text-tea-paper/50 uppercase tracking-widest font-sans mt-1">
+            <p className="text-xs text-tea-text/50 uppercase tracking-[0.15em] font-sans mt-1">
               {guest.role}
             </p>
           </div>
-          <p className="text-sm text-tea-ink/70 dark:text-tea-paper/70 font-sans leading-relaxed max-w-sm">
+          <p className="text-sm text-tea-text/70 font-sans leading-relaxed max-w-sm">
             {guest.bio}
           </p>
         </div>
@@ -56,9 +56,9 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
       {relatedArticles.length > 0 && (
         <div className="space-y-4">
           <div className="flex justify-center">
-            <div className="w-8 h-px bg-tea-ink/10 dark:bg-tea-paper/10" />
+            <div className="w-8 h-px bg-tea-text/10/10" />
           </div>
-          <p className="text-xs uppercase tracking-[0.2em] font-sans text-tea-ink/40 dark:text-tea-paper/40 text-center">
+          <p className="text-xs uppercase tracking-[0.2em] font-sans text-tea-text/40 text-center">
             Continue Reading
           </p>
           <div className="space-y-2">
@@ -66,10 +66,10 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
               <button
                 key={link.id}
                 onClick={() => onNavigateToArticle(link.id)}
-                className="w-full text-left group flex items-center gap-3 py-2 px-3 hover:bg-tea-ink/5 dark:hover:bg-tea-paper/5 transition-colors"
+                className="w-full text-left group flex items-center gap-3 py-2 px-3 hover:bg-tea-text/5 dark:hover:bg-tea-bg/5 transition-colors"
               >
-                <span className="text-tea-seal text-sm font-sans">&rarr;</span>
-                <span className="font-serif text-sm text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors">
+                <span className="text-tea-gold text-sm font-sans">&rarr;</span>
+                <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
                   {link.title}
                 </span>
               </button>
@@ -82,9 +82,9 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
       {cta && (
         <div className="text-center pt-4">
           <div className="flex justify-center mb-4">
-            <div className="w-8 h-px bg-tea-ink/10 dark:bg-tea-paper/10" />
+            <div className="w-8 h-px bg-tea-text/10/10" />
           </div>
-          <p className="text-xs font-sans text-tea-ink/50 dark:text-tea-paper/50 italic">
+          <p className="text-xs font-sans text-tea-text/50 italic">
             {cta.text}
           </p>
         </div>

@@ -82,10 +82,10 @@ export const TeaInspireGallery: React.FC = () => {
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       {/* Header */}
       <div className="mb-8 md:mb-10">
-        <h2 className="font-serif text-3xl md:text-4xl text-tea-ink dark:text-tea-paper mb-3">
+        <h2 className="font-serif text-3xl md:text-4xl text-tea-text mb-3">
           Tea Moments
         </h2>
-        <p className="text-tea-ink/70 dark:text-tea-paper/70 text-base md:text-lg leading-relaxed max-w-2xl">
+        <p className="text-tea-text/70 text-base md:text-lg leading-relaxed max-w-2xl">
           Beautiful tea moments from around the world. Discover setups, rituals, and daily practices that inspire mindful tea drinking.
         </p>
       </div>
@@ -99,8 +99,8 @@ export const TeaInspireGallery: React.FC = () => {
               onClick={() => setActiveFilter(filter.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300
                 ${activeFilter === filter.id
-                  ? 'bg-tea-seal text-white'
-                  : 'bg-tea-ink/5 dark:bg-white/10 text-tea-ink/70 dark:text-tea-paper/70 hover:bg-tea-ink/10 dark:hover:bg-white/20'
+                  ? 'bg-tea-gold text-white'
+                  : 'bg-tea-text/5 text-tea-text/70 hover:bg-tea-text/10'
                 }`}
             >
               {filter.label}
@@ -113,12 +113,12 @@ export const TeaInspireGallery: React.FC = () => {
       {featuredMoment && activeFilter === 'all' && (
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
-            <Icons.Star className="w-4 h-4 text-tea-seal" />
-            <span className="text-xs uppercase tracking-widest text-tea-seal font-medium">Moment of the Week</span>
+            <Icons.Star className="w-4 h-4 text-tea-gold" />
+            <span className="text-xs uppercase tracking-[0.15em] text-tea-gold font-medium">Moment of the Week</span>
           </div>
           <button
             onClick={() => handleImageClick(featuredMoment)}
-            className="group relative w-full aspect-[21/9] md:aspect-[3/1] rounded-xl overflow-hidden bg-tea-ink/5 dark:bg-white/5 cursor-pointer"
+            className="group relative w-full aspect-[21/9] md:aspect-[3/1] rounded-[1px] overflow-hidden bg-tea-text/5 cursor-pointer"
           >
             <img
               src={featuredMoment.imageUrl}
@@ -131,11 +131,11 @@ export const TeaInspireGallery: React.FC = () => {
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
               <div className="flex items-center gap-3 mb-3">
                 {featuredMoment.designedByTeajia && (
-                  <span className="px-2 py-1 bg-tea-seal text-white text-[10px] uppercase tracking-widest rounded">
+                  <span className="px-2 py-1 bg-tea-gold text-white text-[10px] uppercase tracking-[0.15em] rounded">
                     Designed by Teajia
                   </span>
                 )}
-                <span className="px-2 py-1 bg-white/20 text-white text-[10px] uppercase tracking-widest rounded backdrop-blur-sm">
+                <span className="px-2 py-1 bg-tea-gold/15 text-white text-[10px] uppercase tracking-[0.15em] rounded backdrop-blur-sm">
                   {CATEGORY_CONFIG[featuredMoment.category].label}
                 </span>
               </div>
@@ -162,7 +162,7 @@ export const TeaInspireGallery: React.FC = () => {
               <button
                 key={image.id}
                 onClick={() => handleImageClick(image)}
-                className="group relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-tea-ink/5 dark:bg-white/5 hover:shadow-xl transition-all duration-300 cursor-pointer text-left"
+                className="group relative w-full aspect-[4/3] rounded-[1px] overflow-hidden bg-tea-text/5 hover:shadow-xl transition-all duration-300 cursor-pointer text-left"
               >
                 {/* Image */}
                 <img
@@ -176,12 +176,12 @@ export const TeaInspireGallery: React.FC = () => {
 
                 {/* Category Badge */}
                 <div className="absolute top-3 left-3 flex gap-2">
-                  <span className="px-2 py-1 bg-white/20 text-white text-[10px] uppercase tracking-widest rounded backdrop-blur-sm flex items-center gap-1.5">
+                  <span className="px-2 py-1 bg-tea-gold/15 text-white text-[10px] uppercase tracking-[0.15em] rounded backdrop-blur-sm flex items-center gap-1.5">
                     {CATEGORY_CONFIG[image.category].icon}
                     {CATEGORY_CONFIG[image.category].label}
                   </span>
                   {image.designedByTeajia && (
-                    <span className="px-2 py-1 bg-tea-seal text-white text-[10px] uppercase tracking-widest rounded">
+                    <span className="px-2 py-1 bg-tea-gold text-white text-[10px] uppercase tracking-[0.15em] rounded">
                       Teajia Design
                     </span>
                   )}
@@ -199,7 +199,7 @@ export const TeaInspireGallery: React.FC = () => {
                       onClick={(e) => handleMemberClick(e, image.communityMemberId)}
                       className="flex items-center gap-2 group/member hover:gap-3 transition-all"
                     >
-                      <div className="w-6 h-6 rounded-full overflow-hidden bg-white/20 ring-1 ring-white/30 flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full overflow-hidden bg-tea-gold/15 ring-1 ring-white/30 flex-shrink-0">
                         <img
                           src={member.photo}
                           alt={member.name}
@@ -215,8 +215,8 @@ export const TeaInspireGallery: React.FC = () => {
           })
         ) : (
           <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <Icons.Image className="w-12 h-12 text-tea-ink/20 dark:text-tea-paper/20 mb-4" />
-            <p className="text-tea-ink/50 dark:text-tea-paper/50 text-sm">
+            <Icons.Image className="w-12 h-12 text-tea-text/20 mb-4" />
+            <p className="text-tea-text/50 text-sm">
               No moments found in this category.
             </p>
           </div>
@@ -225,14 +225,14 @@ export const TeaInspireGallery: React.FC = () => {
 
       {/* Community CTA */}
       {TEA_INSPIRE_IMAGES.length > 0 && (
-        <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-tea-ink/10 dark:border-white/10 text-center">
-          <h3 className="font-serif text-3xl md:text-4xl text-tea-ink dark:text-tea-paper mb-4">
+        <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-tea-border text-center">
+          <h3 className="font-serif text-3xl md:text-4xl text-tea-text mb-4">
             Share Your Tea Moment
           </h3>
-          <p className="text-tea-ink/70 dark:text-tea-paper/70 mb-8 max-w-xl mx-auto text-base md:text-lg leading-relaxed">
+          <p className="text-tea-text/70 mb-8 max-w-xl mx-auto text-base md:text-lg leading-relaxed">
             We celebrate the beautiful, everyday moments of tea practice. Share your space, your setup, your ritual with our community.
           </p>
-          <button className="px-8 py-3 border-2 border-tea-seal text-tea-seal hover:bg-tea-seal hover:text-white rounded-lg font-medium transition-all duration-300 text-sm uppercase tracking-wider">
+          <button className="px-8 py-3 border-2 border-tea-gold text-tea-gold hover:bg-tea-gold hover:text-white rounded-lg font-medium transition-all duration-300 text-sm uppercase tracking-wider">
             Submit Your Photo
           </button>
         </div>
@@ -256,14 +256,14 @@ export const TeaInspireGallery: React.FC = () => {
               {/* Navigation Arrows */}
               <button
                 onClick={() => navigateImage('prev')}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors"
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-tea-gold/10 hover:bg-tea-gold/15 backdrop-blur-sm flex items-center justify-center transition-colors"
                 aria-label="Previous image"
               >
                 <Icons.ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </button>
               <button
                 onClick={() => navigateImage('next')}
-                className="absolute right-4 md:right-auto md:left-auto top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors md:hidden"
+                className="absolute right-4 md:right-auto md:left-auto top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-tea-gold/10 hover:bg-tea-gold/15 backdrop-blur-sm flex items-center justify-center transition-colors md:hidden"
                 aria-label="Next image"
               >
                 <Icons.ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
@@ -271,11 +271,11 @@ export const TeaInspireGallery: React.FC = () => {
             </div>
 
             {/* Details Panel */}
-            <div className="w-full md:w-96 bg-tea-ink/50 backdrop-blur-md p-6 md:p-8 overflow-y-auto md:h-full">
+            <div className="w-full md:w-96 bg-tea-elevated/50 backdrop-blur-md p-6 md:p-8 overflow-y-auto md:h-full">
               {/* Close Button */}
               <button
                 onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors"
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-tea-gold/10 hover:bg-tea-gold/15 backdrop-blur-sm flex items-center justify-center transition-colors"
                 aria-label="Close"
               >
                 <Icons.Close className="w-5 h-5 text-white" />
@@ -283,17 +283,17 @@ export const TeaInspireGallery: React.FC = () => {
 
               {/* Category & Badges */}
               <div className="flex flex-wrap gap-2 mb-6">
-                <span className="px-3 py-1.5 bg-white/10 text-white text-xs uppercase tracking-widest rounded-full flex items-center gap-2">
+                <span className="px-3 py-1.5 bg-tea-gold/10 text-white text-xs uppercase tracking-[0.15em] rounded-full flex items-center gap-2">
                   {CATEGORY_CONFIG[selectedImage.category].icon}
                   {CATEGORY_CONFIG[selectedImage.category].label}
                 </span>
                 {selectedImage.season && (
-                  <span className="px-3 py-1.5 bg-white/10 text-white/80 text-xs uppercase tracking-widest rounded-full">
+                  <span className="px-3 py-1.5 bg-tea-gold/10 text-white/80 text-xs uppercase tracking-[0.15em] rounded-full">
                     {selectedImage.season}
                   </span>
                 )}
                 {selectedImage.designedByTeajia && (
-                  <span className="px-3 py-1.5 bg-tea-seal text-white text-xs uppercase tracking-widest rounded-full">
+                  <span className="px-3 py-1.5 bg-tea-gold text-white text-xs uppercase tracking-[0.15em] rounded-full">
                     Designed by Teajia
                   </span>
                 )}
@@ -315,12 +315,12 @@ export const TeaInspireGallery: React.FC = () => {
               {/* Contributor */}
               {memberMap.get(selectedImage.communityMemberId) && (
                 <div className="mb-8">
-                  <h4 className="text-white/50 text-xs uppercase tracking-widest mb-3">Shared by</h4>
+                  <h4 className="text-white/50 text-xs uppercase tracking-[0.15em] mb-3">Shared by</h4>
                   <button
                     onClick={(e) => handleMemberClick(e, selectedImage.communityMemberId)}
                     className="flex items-center gap-3 group"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 ring-1 ring-white/30">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-tea-gold/15 ring-1 ring-white/30">
                       <img
                         src={memberMap.get(selectedImage.communityMemberId)?.photo}
                         alt={memberMap.get(selectedImage.communityMemberId)?.name}
@@ -328,7 +328,7 @@ export const TeaInspireGallery: React.FC = () => {
                       />
                     </div>
                     <div className="text-left">
-                      <p className="text-white font-medium group-hover:text-tea-seal transition-colors">
+                      <p className="text-white font-medium group-hover:text-tea-gold transition-colors">
                         {memberMap.get(selectedImage.communityMemberId)?.name}
                       </p>
                       <p className="text-white/50 text-sm">View Profile</p>
@@ -340,11 +340,11 @@ export const TeaInspireGallery: React.FC = () => {
               {/* What's in this setup? */}
               {(selectedImage.teaFeatured || selectedImage.teawareIdentified?.length) && (
                 <div className="mb-8">
-                  <h4 className="text-white/50 text-xs uppercase tracking-widest mb-3">What's in this moment?</h4>
+                  <h4 className="text-white/50 text-xs uppercase tracking-[0.15em] mb-3">What's in this moment?</h4>
                   <div className="space-y-2">
                     {selectedImage.teaFeatured && (
                       <div className="flex items-center gap-2 text-white/80">
-                        <Icons.Leaf className="w-4 h-4 text-tea-seal" />
+                        <Icons.Leaf className="w-4 h-4 text-tea-gold" />
                         <span>{selectedImage.teaFeatured}</span>
                       </div>
                     )}
@@ -361,10 +361,10 @@ export const TeaInspireGallery: React.FC = () => {
               {/* Insights */}
               {selectedImage.insights && selectedImage.insights.length > 0 && (
                 <div className="mb-8">
-                  <h4 className="text-white/50 text-xs uppercase tracking-widest mb-3">Insights</h4>
+                  <h4 className="text-white/50 text-xs uppercase tracking-[0.15em] mb-3">Insights</h4>
                   <div className="space-y-4">
                     {selectedImage.insights.map((insight, i) => (
-                      <div key={i} className="border-l-2 border-tea-seal/50 pl-4">
+                      <div key={i} className="border-l-2 border-tea-gold/50 pl-4">
                         <p className="text-white font-medium text-sm mb-1">{insight.title}</p>
                         <p className="text-white/60 text-sm leading-relaxed">{insight.explanation}</p>
                       </div>
@@ -377,7 +377,7 @@ export const TeaInspireGallery: React.FC = () => {
               {selectedImage.tags && selectedImage.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {selectedImage.tags.map((tag, i) => (
-                    <span key={i} className="px-2 py-1 bg-white/5 text-white/50 text-xs rounded">
+                    <span key={i} className="px-2 py-1 bg-tea-gold/5 text-white/50 text-xs rounded">
                       #{tag}
                     </span>
                   ))}
@@ -385,7 +385,7 @@ export const TeaInspireGallery: React.FC = () => {
               )}
 
               {/* Navigation for Desktop */}
-              <div className="hidden md:flex justify-between mt-8 pt-6 border-t border-white/10">
+              <div className="hidden md:flex justify-between mt-8 pt-6 border-t border-tea-gold/10">
                 <button
                   onClick={() => navigateImage('prev')}
                   className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"

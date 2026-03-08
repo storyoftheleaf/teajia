@@ -4,10 +4,10 @@ import { Icons } from '../Icons';
 type ServiceAvailability = 'by-inquiry' | 'bali-studio' | 'remote' | 'seasonal' | 'now-booking';
 
 const BADGE_CONFIG: Record<ServiceAvailability, { icon: React.FC<{ className?: string }>; label: string; className: string }> = {
-  'by-inquiry': { icon: Icons.Seal, label: 'By Inquiry', className: 'text-tea-seal' },
+  'by-inquiry': { icon: Icons.Seal, label: 'By Inquiry', className: 'text-tea-gold' },
   'bali-studio': { icon: Icons.MapPin, label: 'Bali Studio', className: 'text-tea-green' },
   'remote': { icon: Icons.ExternalLink, label: 'Remote Available', className: 'text-tea-green' },
-  'seasonal': { icon: Icons.Leaf, label: 'Seasonal', className: 'text-tea-ink/50 dark:text-tea-paper/50' },
+  'seasonal': { icon: Icons.Leaf, label: 'Seasonal', className: 'text-tea-text/50' },
   'now-booking': { icon: Icons.Check, label: 'Now Booking', className: 'text-tea-green' },
 };
 

@@ -13,6 +13,7 @@ const config: Config = {
       fontFamily: {
         serif: DESIGN_TOKENS.fontFamily.serif as string[],
         sans: DESIGN_TOKENS.fontFamily.sans as string[],
+        mono: DESIGN_TOKENS.fontFamily.mono as string[],
       },
       fontSize: DESIGN_TOKENS.fontSize as Record<string, string>,
       fontWeight: DESIGN_TOKENS.fontWeight as Record<string, number>,

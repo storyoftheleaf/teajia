@@ -30,13 +30,13 @@ interface GalleryImageProps {
 }
 
 const INSIGHT_COLORS: Record<Insight['type'], string> = {
-  design: 'bg-tea-seal',
-  curation: 'bg-tea-seal',
-  layout: 'bg-tea-seal',
-  material: 'bg-tea-seal',
-  philosophy: 'bg-tea-seal',
-  story: 'bg-tea-seal',
-  work: 'bg-tea-seal',
+  design: 'bg-tea-gold',
+  curation: 'bg-tea-gold',
+  layout: 'bg-tea-gold',
+  material: 'bg-tea-gold',
+  philosophy: 'bg-tea-gold',
+  story: 'bg-tea-gold',
+  work: 'bg-tea-gold',
 };
 
 const INSIGHT_ICONS: Record<Insight['type'], React.ReactNode> = {
@@ -57,12 +57,12 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
   return (
     <>
       <div
-        className="relative group overflow-hidden rounded-sm cursor-pointer bg-white/10 dark:bg-white/5"
+        className="relative group overflow-hidden rounded-sm cursor-pointer bg-tea-gold/10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Image */}
-        <div className="relative w-full overflow-hidden bg-[#1a1a1a]">
+        <div className="relative w-full overflow-hidden bg-tea-bg">
           <img
             src={image.imageUrl}
             alt={image.category}
@@ -73,7 +73,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
           />
 
           {!imageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+            <div className="absolute inset-0 flex items-center justify-center bg-tea-gold/5">
               <div className="w-6 h-6 border-2 border-tea-paper/20 border-t-tea-seal rounded-full animate-spin"></div>
             </div>
           )}
@@ -94,7 +94,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
                   onClick={() => setSelectedInsight(insight)}
                   className={`px-2 py-1 rounded-full ${
                     INSIGHT_COLORS[insight.type]
-                  } text-white text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:shadow-lg transition-all duration-300 hover:scale-105`}
+                  } text-tea-paper text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:shadow-lg transition-all duration-300 hover:scale-105`}
                 >
                   {INSIGHT_ICONS[insight.type]}
                   {insight.type}
@@ -108,7 +108,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
                 href={image.attribution.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:text-tea-seal transition-colors duration-300 p-1"
+                className="text-tea-paper hover:text-tea-gold transition-colors duration-300 p-1"
                 title={`Visit ${image.attribution.name}`}
               >
                 <Icons.ExternalLink className="w-4 h-4" />
@@ -119,10 +119,10 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
         {/* Attribution */}
         {image.attribution && isHovered && (
-          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-white text-xs">
+          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-tea-paper text-xs">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-tea-paper/80 uppercase tracking-widest text-[10px] mb-1">
+                <p className="text-tea-paper/80 uppercase tracking-[0.15em] text-[10px] mb-1">
                   {image.attribution.label}
                 </p>
                 <p className="font-serif text-sm">{image.attribution.name}</p>

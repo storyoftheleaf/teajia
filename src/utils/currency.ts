@@ -78,7 +78,7 @@ export function convertFromUSD(
  */
 export function formatPrice(amount: number, currency: CostCurrency = 'USD'): string {
   const symbol = CURRENCY_SYMBOLS[currency];
-  const formatted = amount.toFixed(2);
+  const formatted = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${symbol}${formatted}`;
 }
 

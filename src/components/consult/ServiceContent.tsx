@@ -10,32 +10,32 @@ import { useSectionReveal } from '../../hooks/useSectionReveal';
 const ServiceHero = ({ ariaLabel, img }: { ariaLabel: string; img?: string }) => (
   <CardContainer variant="dark" className="w-full overflow-hidden mb-6 md:mb-8">
     {img ? (
-      <img src={img} alt={ariaLabel} className="w-full object-cover bg-tea-ink/90" style={{ height: 'clamp(180px, 30vh, 340px)' }} loading="lazy" />
+      <img src={img} alt={ariaLabel} className="w-full object-cover bg-tea-elevated/90" style={{ height: 'clamp(180px, 30vh, 340px)' }} loading="lazy" />
     ) : (
-      <div className="w-full bg-tea-ink/90" style={{ height: 'clamp(180px, 30vh, 340px)' }} role="img" aria-label={ariaLabel} />
+      <div className="w-full bg-tea-elevated/90" style={{ height: 'clamp(180px, 30vh, 340px)' }} role="img" aria-label={ariaLabel} />
     )}
   </CardContainer>
 );
 
 const ServiceLabel = ({ children }: { children: string }) => (
-  <p className="text-xs uppercase tracking-[0.2em] text-tea-seal font-sans mb-2">{children}</p>
+  <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-2">{children}</p>
 );
 
 const ServiceHeading = ({ children }: { children: string }) => (
-  <h3 className="font-serif text-2xl md:text-3xl font-normal text-tea-ink dark:text-tea-paper mb-0">
+  <h3 className="font-serif text-2xl md:text-3xl font-normal text-tea-text mb-0">
     {children}
   </h3>
 );
 
 const ServiceDivider = () => (
-  <div className="w-12 h-[1px] bg-tea-seal mt-3 mb-6" />
+  <div className="w-12 h-[1px] bg-tea-gold mt-3 mb-6" />
 );
 
 const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-seal hover:text-tea-seal/80 text-xs uppercase tracking-widest font-medium
+    className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
                flex items-center gap-1 transition-colors duration-300 min-h-[44px]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
     <Icons.ChevronRight className="w-3.5 h-3.5" />
   </button>
@@ -43,9 +43,9 @@ const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) 
 
 const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-seal text-xs uppercase tracking-widest
+    className="text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-[0.15em]
                font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
     <Icons.ChevronRight className="w-3.5 h-3.5" />
   </button>
@@ -91,54 +91,54 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <ServiceHeading>Tea House Design & Curation</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-10">
+        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-10">
           Complete tea space creation — from concept through opening. Design, curation, tea selection,
           training, and operations. For hotels, resorts, retreat centers, private residences, and new
           tea house owners.
         </p>
 
         {/* Pillars */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-3">
           What's Involved
         </p>
         <div className="flex flex-wrap gap-x-3 gap-y-1 mb-8">
           {PILLARS.map((p, i) => (
-            <span key={p} className="text-sm text-tea-ink/60 dark:text-tea-paper/60">
-              {p}{i < PILLARS.length - 1 && <span className="text-tea-ink/20 dark:text-tea-paper/20 ml-3">&middot;</span>}
+            <span key={p} className="text-sm text-tea-text/60">
+              {p}{i < PILLARS.length - 1 && <span className="text-tea-text/20 ml-3">&middot;</span>}
             </span>
           ))}
         </div>
 
         {/* Process */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-4">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-4">
           The Process
         </p>
         {/* Mobile (base) */}
         <div className="md:hidden space-y-3 mb-8">
           {PROCESS.map(({ step, title, desc }) => (
             <div key={step} className="flex items-baseline gap-3">
-              <span className="text-tea-seal font-mono text-sm w-4 shrink-0">{step}</span>
+              <span className="text-tea-gold font-mono text-sm w-4 shrink-0">{step}</span>
               <div>
-                <span className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper">{title}</span>
-                <span className="text-tea-ink/30 dark:text-tea-paper/30 mx-1.5">&mdash;</span>
-                <span className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40">{desc}</span>
+                <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
+                <span className="text-tea-text/30 mx-1.5">&mdash;</span>
+                <span className="text-[11px] text-tea-text/40">{desc}</span>
               </div>
             </div>
           ))}
         </div>
         {/* Desktop */}
         <div className="hidden md:flex gap-8 relative mb-8">
-          <div className="absolute top-4 left-0 right-0 h-[1px] bg-tea-ink/5 dark:bg-white/5" />
+          <div className="absolute top-4 left-0 right-0 h-[1px] bg-tea-text/5" />
           {PROCESS.map(({ step, title, desc }) => (
             <div key={step} className="flex-1 relative z-10">
-              <span className="text-tea-seal font-mono text-sm">{step}</span>
-              <h4 className="font-serif text-sm font-medium text-tea-ink dark:text-tea-paper mt-1">{title}</h4>
-              <p className="text-[11px] text-tea-ink/40 dark:text-tea-paper/40 mt-0.5">{desc}</p>
+              <span className="text-tea-gold font-mono text-sm">{step}</span>
+              <h4 className="font-serif text-sm font-medium text-tea-text mt-1">{title}</h4>
+              <p className="text-[11px] text-tea-text/40 mt-0.5">{desc}</p>
             </div>
           ))}
         </div>
 
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-8">
+        <p className="text-sm text-tea-text/50 mb-8">
           Projects range from $5,000 to $100,000+. Every project is scoped through conversation.
         </p>
 
@@ -180,38 +180,38 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
+      }} className={`pt-12 md:pt-16 border-t border-tea-border ${reveal.className}`} style={reveal.style}>
         <ServiceHero ariaLabel="Ceremonial tea space with floor seating" img="https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=1200&q=80&auto=format" />
         <ServiceLabel>Sessions</ServiceLabel>
         <ServiceHeading>Sessions & Guidance</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-10">
+        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-10">
           Tea experiences and practice support — in the Bali studio or wherever you are.
         </p>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mb-2">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-2">
           Offerings
         </p>
         <div className="max-w-[640px]">
           {OFFERINGS.map(({ name, price, desc }) => (
-            <div key={name} className="flex items-start justify-between py-5 border-b border-tea-ink/5 dark:border-white/5 last:border-0">
+            <div key={name} className="flex items-start justify-between py-5 border-b border-tea-border last:border-0">
               <div>
-                <h4 className="font-serif text-base text-tea-ink dark:text-tea-paper">{name}</h4>
-                <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mt-1">{desc}</p>
+                <h4 className="font-serif text-base text-tea-text">{name}</h4>
+                <p className="text-sm text-tea-text/50 mt-1">{desc}</p>
               </div>
-              <span className="font-sans text-sm text-tea-seal whitespace-nowrap ml-4">{price}</span>
+              <span className="font-sans text-sm text-tea-gold whitespace-nowrap ml-4">{price}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-ink/40 dark:text-tea-paper/40 mt-8 mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mt-8 mb-3">
           What You Walk Away With
         </p>
         <ul className="space-y-1.5 mb-8">
           {WALKAWAY.map(item => (
-            <li key={item} className="text-sm text-tea-ink/60 dark:text-tea-paper/60 flex items-start gap-2">
-              <span className="text-tea-seal mt-0.5">&middot;</span> {item}
+            <li key={item} className="text-sm text-tea-text/60 flex items-start gap-2">
+              <span className="text-tea-gold mt-0.5">&middot;</span> {item}
             </li>
           ))}
         </ul>
@@ -235,23 +235,23 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
         (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
+      }} className={`pt-12 md:pt-16 border-t border-tea-border ${reveal.className}`} style={reveal.style}>
         <ServiceHero ariaLabel="Mountain tea terraces at sunrise" img="https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&q=80&auto=format" />
         <ServiceLabel>Travel</ServiceLabel>
         <ServiceHeading>Sourcing Journeys</ServiceHeading>
         <ServiceDivider />
 
         <div className="max-w-[640px] space-y-4 mb-8">
-          <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70">
+          <p className="font-sans text-sm leading-relaxed text-tea-text/70">
             Travel to tea origins with a guide who knows the way. Taiwan, China, and beyond.
           </p>
-          <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70">
+          <p className="font-sans text-sm leading-relaxed text-tea-text/70">
             For two decades, I've built relationships with farmers, masters, and artisans across Asia.
             These aren't tours — each journey is shaped around what calls to you.
           </p>
         </div>
 
-        <p className="text-sm text-tea-seal uppercase tracking-wider mb-8">Seasonal &middot; By invitation</p>
+        <p className="text-sm text-tea-gold uppercase tracking-wider mb-8">Seasonal &middot; By invitation</p>
 
         <div className="flex flex-col gap-2">
           <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('A sourcing journey')} />
@@ -277,15 +277,15 @@ export const SourcingSection = forwardRef<HTMLElement, ServiceSectionProps>(
         (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
+      }} className={`pt-12 md:pt-16 border-t border-tea-border ${reveal.className}`} style={reveal.style}>
         <ServiceLabel>Supply</ServiceLabel>
         <ServiceHeading>Tea Sourcing</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-serif text-lg italic text-tea-ink dark:text-tea-paper max-w-[640px] mb-4">
+        <p className="font-serif text-lg italic text-tea-text max-w-[640px] mb-4">
           Quality tea for your space, your collection, or your community.
         </p>
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-8">
+        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-8">
           Direct sourcing from Taiwan, China, and trusted origins. For individual collectors seeking access
           to exceptional teas. For retreat centers, hotels, and communities wanting quality tea as part of
           what they offer.
@@ -315,18 +315,18 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
+      }} className={`pt-12 md:pt-16 border-t border-tea-border ${reveal.className}`} style={reveal.style}>
         <ServiceHero ariaLabel="Group tea ceremony with candles and charcoal" img="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80&auto=format" />
         <ServiceLabel>Events</ServiceLabel>
         <ServiceHeading>Tea Experiences for Gatherings</ServiceHeading>
         <ServiceDivider />
 
-        <p className="font-sans text-sm leading-relaxed text-tea-ink/70 dark:text-tea-paper/70 max-w-[640px] mb-6">
+        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-6">
           I bring everything — tea, teaware, the setup, and the atmosphere — to your gathering.
           Retreats, dinners, brand activations, celebrations.
         </p>
-        <p className="text-sm text-tea-seal mb-1">From $500 for a half-day.</p>
-        <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-8">
+        <p className="text-sm text-tea-gold mb-1">From $500 for a half-day.</p>
+        <p className="text-sm text-tea-text/50 mb-8">
           Full-day and multi-day experiences quoted based on scope.
         </p>
 

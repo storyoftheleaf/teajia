@@ -36,7 +36,7 @@ export const ReadableCard: React.FC<ReadableCardProps> = ({
           </div>
         ) : (
           <div
-            className="w-2.5 h-2.5 rounded-full bg-tea-seal shadow-sm"
+            className="w-2.5 h-2.5 rounded-full bg-tea-gold shadow-sm"
             title="Unread"
           />
         )}

@@ -33,7 +33,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
     >
       <CardContainer className="p-2 md:p-3">
         {/* Image Container */}
-        <div className="relative w-full overflow-hidden aspect-square bg-tea-ink/90 dark:bg-tea-ink mb-3">
+        <div className="relative w-full overflow-hidden aspect-square bg-tea-elevated/90 mb-3">
           {imageComponent}
           {/* Mobile: persistent view hint */}
           <div className="lg:hidden absolute bottom-2 right-2 px-2.5 py-1 bg-black/40 rounded-sm">
@@ -43,7 +43,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           </div>
           {/* Desktop: hover quick view overlay */}
           <div className="hidden lg:flex absolute inset-0 items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-300">
-            <span className="text-xs uppercase tracking-widest text-white font-medium px-4 py-2 bg-tea-seal/90 rounded-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
+            <span className="text-xs uppercase tracking-[0.15em] text-white font-medium px-4 py-2 bg-tea-gold/90 rounded-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
               Quick View
             </span>
           </div>

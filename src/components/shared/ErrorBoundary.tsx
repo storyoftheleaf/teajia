@@ -37,18 +37,18 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex items-center justify-center min-h-screen bg-tea-paper dark:bg-[#1a1a1a] p-6">
-          <div className="max-w-md w-full bg-white dark:bg-[#242424] border border-tea-ink/20 dark:border-white/10 rounded-sm p-6 text-center">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+        <div className="flex items-center justify-center min-h-screen bg-tea-bg p-6">
+          <div className="max-w-md w-full bg-white border border-tea-border rounded-sm p-6 text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full mx-auto mb-4 flex items-center justify-center">
               <span className="text-2xl">⚠️</span>
             </div>
-            <h2 className="text-xl font-serif text-tea-ink dark:text-tea-paper mb-2">Something went wrong</h2>
-            <p className="text-tea-ink/70 dark:text-tea-paper/70 text-sm mb-4">
+            <h2 className="text-xl font-serif text-tea-text mb-2">Something went wrong</h2>
+            <p className="text-tea-text/70 text-sm mb-4">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
             <button
               onClick={this.handleReset}
-              className="px-4 py-2 bg-tea-seal hover:bg-tea-seal/90 text-white text-sm uppercase tracking-widest rounded-sm transition-colors"
+              className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-white text-sm uppercase tracking-[0.15em] rounded-sm transition-colors"
             >
               Try Again
             </button>

@@ -19,7 +19,7 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
     {/* Back Button - Moved to Top */}
     <button 
       onClick={onBack}
-      className="mb-8 p-3 rounded-full hover:bg-white/10 transition-colors group"
+      className="mb-8 p-3 rounded-full hover:bg-tea-gold/10 transition-colors group"
       title="Exit View"
     >
       <Icons.Back className="w-6 h-6 text-tea-paper/70 group-hover:text-tea-paper" />
@@ -33,9 +33,9 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
     </div>
     
     {/* Interaction Column - Bottom */}
-    <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-white/10 w-12">
+    <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-tea-gold/10 w-12">
          {onToggleSave && (
-             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-seal' : 'text-tea-paper/40 hover:text-tea-paper'}`} title="Collect">
+             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-paper/40 hover:text-white'}`} title="Collect">
                <Icons.Leaf filled={isSaved} className="w-5 h-5" />
              </button>
          )}
@@ -113,9 +113,9 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             <div className="absolute inset-0 flex items-center justify-center">
                 <button 
                     onClick={() => setIsPlaying(true)}
-                    className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group"
+                    className="w-20 h-20 bg-tea-gold/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group"
                 >
-                    <Icons.Play className="w-8 h-8 text-tea-paper ml-1 group-hover:text-white" />
+                    <Icons.Play className="w-8 h-8 text-tea-paper ml-1 group-hover:text-tea-paper" />
                 </button>
             </div>
         </>
@@ -136,8 +136,8 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <MobileHeader title={story.title} onBack={onBack} transparent />
         
         {/* Mobile Side Actions - Hide during play if it's immersive */}
-        <div className={`absolute right-4 bottom-32 flex flex-col space-y-6 items-center text-white/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
-            <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-seal' : ''}`}>
+        <div className={`absolute right-4 bottom-32 flex flex-col space-y-6 items-center text-tea-paper/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
+            <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-gold' : ''}`}>
                <Icons.Leaf filled={isSaved} className="w-7 h-7" />
             </button>
             <button onClick={onShare} className="flex flex-col items-center space-y-1">
@@ -149,7 +149,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         {!isPlaying && (
             <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-tea-paper pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
-                <span className="px-2 py-0.5 border border-white/30 text-[9px] uppercase tracking-widest rounded-full">
+                <span className="px-2 py-0.5 border border-tea-gold/20 text-[9px] uppercase tracking-[0.15em] rounded-full">
                     {story.type}
                 </span>
             </div>
@@ -171,20 +171,20 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <div className="flex flex-row h-full max-h-[80vh] w-full max-w-5xl items-center justify-center gap-12">
             
             {/* Player Frame */}
-            <div className="h-full aspect-[9/16] bg-black relative rounded-sm shadow-2xl overflow-hidden border border-white/5 shrink-0 group">
+            <div className="h-full aspect-[9/16] bg-black relative rounded-sm shadow-2xl overflow-hidden border border-tea-gold/[0.06] shrink-0 group">
                {renderPlayer()}
                
                {/* Progress Bar Placeholder (Only in thumb mode) */}
                {!isPlaying && (
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20">
-                    <div className="w-1/3 h-full bg-tea-seal"></div>
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-tea-gold/15">
+                    <div className="w-1/3 h-full bg-tea-gold"></div>
                 </div>
                )}
             </div>
 
             {/* Info Panel */}
             <div className="max-w-sm text-tea-paper flex flex-col justify-center h-full">
-                <div className="w-8 h-[1px] bg-tea-seal mb-6"></div>
+                <div className="w-8 h-[1px] bg-tea-gold mb-6"></div>
                 <div className="flex items-center gap-3 text-xs tracking-[0.2em] uppercase text-tea-paper/70 mb-2">
                     <span>{story.origin}</span>
                     <span>•</span>
@@ -247,9 +247,9 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             <div className="absolute inset-0 flex items-center justify-center">
                 <button 
                     onClick={() => setIsPlaying(true)}
-                    className="w-24 h-24 border border-white/20 rounded-full flex items-center justify-center hover:bg-white/5 transition-all cursor-pointer group"
+                    className="w-24 h-24 border border-tea-gold/15 rounded-full flex items-center justify-center hover:bg-tea-gold/5 transition-all cursor-pointer group"
                 >
-                    <Icons.Play className="w-10 h-10 text-white ml-1 group-hover:scale-110 transition-transform" />
+                    <Icons.Play className="w-10 h-10 text-tea-paper ml-1 group-hover:scale-110 transition-transform" />
                 </button>
             </div>
         </>
@@ -258,7 +258,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-tea-charcoal z-[60] flex flex-col overflow-y-auto">
+      <div className="fixed inset-0 bg-tea-bg z-[60] flex flex-col overflow-y-auto">
          <MobileHeader title={story.title} onBack={onBack} />
          
          {/* Player */}
@@ -269,9 +269,9 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
          {/* Content */}
          <div className="p-6 text-tea-paper flex-1">
             <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] tracking-widest uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
+                <span className="text-[10px] tracking-[0.15em] uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
                 <div className="flex gap-4">
-                    <button onClick={onToggleSave} className={isSaved ? 'text-tea-seal' : ''}>
+                    <button onClick={onToggleSave} className={isSaved ? 'text-tea-gold' : ''}>
                        <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                     </button>
                     <button onClick={onShare}>
@@ -281,7 +281,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             </div>
             <h2 className="text-2xl font-serif mb-1">{story.title}</h2>
             <p className="text-sm font-serif italic opacity-70 mb-6">{story.subtitle}</p>
-            <div className="w-full h-[1px] bg-white/10 mb-6"></div>
+            <div className="w-full h-[1px] bg-tea-gold/10 mb-6"></div>
             <p className="leading-relaxed opacity-90 font-serif">{story.description}</p>
          </div>
       </div>
@@ -306,7 +306,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                    <p className="text-xl font-serif italic text-tea-paper/60">{story.subtitle}</p>
                 </div>
                 <div className="flex items-center space-x-6 text-tea-paper/70">
-                   <button onClick={onToggleSave} className={`hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-seal' : ''}`}>
+                   <button onClick={onToggleSave} className={`hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                       <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                    </button>
                    <button onClick={onShare} className="hover:text-tea-paper transition-colors">
@@ -328,7 +328,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-tea-charcoal z-[60] flex flex-col">
+      <div className="fixed inset-0 bg-tea-bg z-[60] flex flex-col">
          <MobileHeader title="Now Playing" onBack={onBack} transparent />
          
          {/* Main Art Area */}
@@ -338,13 +338,13 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             </div>
             
             {/* Vinyl / Cover Art */}
-            <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-sm overflow-hidden border border-white/10 mt-[-10vh]">
+            <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-sm overflow-hidden border border-tea-gold/10 mt-[-10vh]">
                <img src={story.thumbnailUrl} className="w-full h-full object-cover" alt="cover" />
             </div>
          </div>
 
          {/* Controls */}
-         <div className="bg-gradient-to-t from-tea-charcoal via-tea-charcoal to-transparent pt-12 px-8 pb-12 z-20">
+         <div className="bg-gradient-to-t from-tea-bg via-tea-bg to-transparent pt-12 px-8 pb-12 z-20">
              <div className="flex justify-between items-end mb-8">
                 <div className="flex-1 pr-4">
                     <h2 className="text-3xl font-serif text-tea-paper mb-2 leading-tight">{story.title}</h2>
@@ -353,25 +353,25 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
              </div>
              
              {/* Progress */}
-             <div className="w-full h-[2px] bg-white/10 rounded-full mb-2 relative group cursor-pointer">
-                <div className="absolute top-1/2 -translate-y-1/2 left-0 w-1/3 h-[2px] bg-tea-paper group-hover:h-[4px] transition-all">
-                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-tea-paper rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+             <div className="w-full h-[2px] bg-tea-gold/10 rounded-full mb-2 relative group cursor-pointer">
+                <div className="absolute top-1/2 -translate-y-1/2 left-0 w-1/3 h-[2px] bg-tea-bg group-hover:h-[4px] transition-all">
+                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-tea-bg rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
              </div>
-             <div className="flex justify-between text-[10px] text-tea-paper/50 mb-10 font-mono tracking-widest">
+             <div className="flex justify-between text-[10px] text-tea-paper/50 mb-10 font-mono tracking-[0.15em]">
                 <span>04:20</span>
                 <span>{story.durationOrTime}</span>
              </div>
 
              {/* Buttons */}
              <div className="flex items-center justify-between px-4">
-                <button onClick={onToggleSave} className={`text-tea-paper/40 hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-seal' : ''}`}>
+                <button onClick={onToggleSave} className={`text-tea-paper/40 hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                      <Icons.Leaf filled={isSaved} className="w-6 h-6" />
                 </button>
 
                 <div className="flex items-center space-x-8">
                    <Icons.Back className="w-8 h-8 text-tea-paper/50 rotate-180 hover:text-tea-paper transition-colors cursor-pointer" /> {/* Prev */}
-                   <button className="w-20 h-20 bg-tea-paper rounded-full flex items-center justify-center text-tea-charcoal shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 transition-transform hover:bg-white">
+                   <button className="w-20 h-20 bg-tea-bg rounded-full flex items-center justify-center text-tea-text shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 transition-transform hover:bg-white">
                       <Icons.Play className="w-8 h-8 fill-current ml-1" />
                    </button>
                    <Icons.Next className="w-8 h-8 text-tea-paper/50 hover:text-tea-paper transition-colors cursor-pointer" />
@@ -395,7 +395,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          
          {/* Background Ambience */}
          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-tea-seal rounded-full blur-[150px] opacity-20 animate-pulse duration-[10s]"></div>
+            <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-tea-gold rounded-full blur-[150px] opacity-20 animate-pulse duration-[10s]"></div>
             <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-tea-green rounded-full blur-[120px] opacity-20 animate-pulse duration-[8s]"></div>
          </div>
 
@@ -403,17 +403,17 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             
             {/* Art - Left Side */}
             <div className="w-[400px] h-[400px] shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-sm relative group perspective-1000">
-               <div className="absolute inset-0 bg-tea-beige/5 transform translate-x-4 translate-y-4 rounded-sm border border-white/5 -z-10"></div>
-               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-white/10" alt="album art" />
+               <div className="absolute inset-0 bg-tea-beige/5 transform translate-x-4 translate-y-4 rounded-sm border border-tea-gold/[0.06] -z-10"></div>
+               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-gold/10" alt="album art" />
                
                {/* Vinyl shine effect overlay */}
-               <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
+               <div className="absolute inset-0 bg-gradient-to-tr from-tea-gold/5 to-transparent pointer-events-none"></div>
             </div>
 
             {/* Controls & Info - Right Side */}
             <div className="flex flex-col flex-1 max-w-lg">
                <div className="flex flex-col mb-10">
-                    <span className="text-xs tracking-[0.3em] uppercase text-tea-paper/50 mb-4 border-l-2 border-tea-seal pl-3">Now Playing</span>
+                    <span className="text-xs tracking-[0.3em] uppercase text-tea-paper/50 mb-4 border-l-2 border-tea-gold pl-3">Now Playing</span>
                     <h2 className="text-5xl xl:text-6xl font-serif text-tea-paper mb-4 leading-[1.1] tracking-tight">{story.title}</h2>
                     <p className="text-2xl font-serif italic text-tea-paper/60 font-light">{story.subtitle}</p>
                </div>
@@ -423,7 +423,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                   {bars.map((_, i) => (
                      <div 
                        key={i} 
-                       className="flex-1 bg-tea-paper rounded-t-[1px]" 
+                       className="flex-1 bg-tea-bg rounded-t-[1px]" 
                        style={{
                          height: `${10 + Math.random() * 90}%`, 
                          opacity: Math.random() * 0.5 + 0.5,
@@ -435,15 +435,15 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
                {/* Progress Bar */}
                <div className="mb-4 group">
-                    <div className="flex justify-between text-[10px] text-tea-paper/40 mb-2 font-mono tracking-widest">
+                    <div className="flex justify-between text-[10px] text-tea-paper/40 mb-2 font-mono tracking-[0.15em]">
                         <span>00:00</span>
                         <span>{story.durationOrTime}</span>
                     </div>
-                    <div className="w-full h-[2px] bg-white/10 relative cursor-pointer">
-                        <div className="absolute top-0 left-0 w-0 h-full bg-tea-paper group-hover:bg-tea-seal transition-colors"></div>
+                    <div className="w-full h-[2px] bg-tea-gold/10 relative cursor-pointer">
+                        <div className="absolute top-0 left-0 w-0 h-full bg-tea-bg group-hover:bg-tea-gold transition-colors"></div>
                         {/* Fake progress for visuals */}
-                         <div className="absolute top-0 left-0 w-[30%] h-full bg-tea-paper">
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-tea-paper rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
+                         <div className="absolute top-0 left-0 w-[30%] h-full bg-tea-bg">
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-tea-bg rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
                          </div>
                     </div>
                </div>
@@ -452,14 +452,14 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-8">
                       <button className="text-tea-paper/50 hover:text-tea-paper transition-colors"><Icons.Back className="w-6 h-6 rotate-180" /></button>
-                      <button className="w-16 h-16 bg-tea-paper rounded-full flex items-center justify-center hover:scale-105 hover:bg-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                         <Icons.Play className="w-6 h-6 text-tea-charcoal ml-1 fill-current" />
+                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                         <Icons.Play className="w-6 h-6 text-tea-text ml-1 fill-current" />
                       </button>
                       <button className="text-tea-paper/50 hover:text-tea-paper transition-colors"><Icons.Next className="w-6 h-6" /></button>
                   </div>
 
-                  <div className="flex items-center space-x-6 border-l border-white/10 pl-8">
-                      <button onClick={onToggleSave} className={`text-tea-paper/40 hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-seal' : ''}`}>
+                  <div className="flex items-center space-x-6 border-l border-tea-gold/10 pl-8">
+                      <button onClick={onToggleSave} className={`text-tea-paper/40 hover:text-tea-paper transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                           <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                       </button>
                       <button onClick={onShare} className="text-tea-paper/40 hover:text-tea-paper transition-colors">

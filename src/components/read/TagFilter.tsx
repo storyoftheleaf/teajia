@@ -21,11 +21,11 @@ export const TagFilter: React.FC<TagFilterProps> = ({
       {/* Filter Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-widest font-sans border transition-colors duration-300 ${
+        className={`flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-[0.15em] font-sans border transition-colors duration-300 ${
           hasSelection
-            ? 'border-tea-seal text-tea-seal dark:border-tea-seal dark:text-tea-seal'
-            : 'border-tea-ink/20 text-tea-ink/60 dark:border-tea-paper/20 dark:text-tea-paper/60'
-        } hover:border-tea-seal hover:text-tea-seal dark:hover:border-tea-seal dark:hover:text-tea-seal`}
+            ? 'border-tea-gold text-tea-gold dark:border-tea-gold'
+            : 'border-tea-text/20 text-tea-text/60  /60'
+        } hover:border-tea-gold hover:text-tea-gold dark:hover:border-tea-gold dark:hover:text-tea-gold`}
       >
         <svg
           className="w-3.5 h-3.5"
@@ -42,7 +42,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
         </svg>
         Filter
         {hasSelection && (
-          <span className="bg-tea-seal text-tea-paper text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+          <span className="bg-tea-gold text-tea-paper text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
             {selectedTags.length}
           </span>
         )}
@@ -58,16 +58,16 @@ export const TagFilter: React.FC<TagFilterProps> = ({
           />
 
           {/* Panel */}
-          <div className="absolute top-full right-0 mt-2 z-50 w-80 max-h-[70vh] overflow-y-auto bg-tea-paper dark:bg-tea-ink border border-tea-ink/10 dark:border-tea-paper/10 shadow-lg animate-[fadeIn_0.15s_ease-out]">
+          <div className="absolute top-full right-0 mt-2 z-50 w-80 max-h-[70vh] overflow-y-auto bg-tea-surface border border-tea-text/10  shadow-lg animate-[fadeIn_0.15s_ease-out]">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-tea-ink/10 dark:border-tea-paper/10">
-              <span className="text-xs uppercase tracking-widest font-sans text-tea-ink/60 dark:text-tea-paper/60">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-tea-text/10 ">
+              <span className="text-xs uppercase tracking-[0.15em] font-sans text-tea-text/60">
                 Filter by Tag
               </span>
               {hasSelection && (
                 <button
                   onClick={onClear}
-                  className="text-[10px] uppercase tracking-wider font-sans text-tea-seal hover:text-tea-seal/80 transition-colors"
+                  className="text-[10px] uppercase tracking-wider font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
                 >
                   Clear all
                 </button>
@@ -79,7 +79,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
               {(Object.entries(TAG_SECTIONS) as [TagSection, typeof TAG_SECTIONS[TagSection]][]).map(
                 ([sectionKey, section]) => (
                   <div key={sectionKey}>
-                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-sans text-tea-ink/40 dark:text-tea-paper/40 mb-2">
+                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-sans text-tea-text/40 mb-2">
                       {section.label}
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
@@ -91,8 +91,8 @@ export const TagFilter: React.FC<TagFilterProps> = ({
                             onClick={() => onTagToggle(tag)}
                             className={`px-2.5 py-1 text-[11px] font-sans transition-all duration-150 ${
                               isSelected
-                                ? 'bg-tea-seal text-tea-paper'
-                                : 'bg-tea-ink/5 dark:bg-tea-paper/5 text-tea-ink/70 dark:text-tea-paper/70 hover:bg-tea-ink/10 dark:hover:bg-tea-paper/10'
+                                ? 'bg-tea-gold text-tea-paper'
+                                : 'bg-tea-text/5/5 text-tea-text/70 hover:bg-tea-text/10 dark:hover:bg-tea-bg/10'
                             }`}
                           >
                             {tag}
@@ -106,10 +106,10 @@ export const TagFilter: React.FC<TagFilterProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-3 border-t border-tea-ink/10 dark:border-tea-paper/10">
+            <div className="px-4 py-3 border-t border-tea-text/10 ">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full py-2 text-xs uppercase tracking-widest font-sans text-tea-ink dark:text-tea-paper hover:text-tea-seal dark:hover:text-tea-seal transition-colors"
+                className="w-full py-2 text-xs uppercase tracking-[0.15em] font-sans text-tea-text hover:text-tea-gold dark:hover:text-tea-gold transition-colors"
               >
                 Done
               </button>

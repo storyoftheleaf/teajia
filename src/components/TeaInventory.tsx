@@ -3,19 +3,21 @@ import React, { useState, useMemo } from 'react';
 import { Icons } from './Icons';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { CardImage } from './shared/CardImage';
-import { CardThumbnail } from './shared/CardThumbnail';
+// CardThumbnail removed — list items use text-only layout
 import { CardGridItem } from './shared/CardGridItem';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { PageHeaderActions } from './shared/PageHeaderActions';
+import { fmtPrice, fmtPricePerGram } from '../utils/formatNumber';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 
 import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
+import type { Product } from '../admin/types';
 
-// Use shared type alias for backward compatibility in this component if needed, 
+// Use shared type alias for backward compatibility in this component if needed,
 // or directly use InventoryItem
 export type TeaItem = InventoryItem;
 
@@ -26,6 +28,9 @@ interface TeaInventoryProps {
   onAccountClick?: () => void;
   cartItemCount?: number;
   hideHeader?: boolean;
+  isAdmin?: boolean;
+  adminProductMap?: Map<string, Product>;
+  onAdminEdit?: (itemId: string) => void;
 }
 
 const TEA_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Black', 'Dark', 'Herbal'];
@@ -33,7 +38,7 @@ const FEELINGS_LIST = ['Ancient', 'Balanced', 'Energetic', 'Grounding', 'Meditat
 
 // Sale items imported from data/curatedCollections
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false }) => {
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
@@ -272,27 +277,27 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {isFilterOpen && (
           <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
-              <div className="relative w-full md:max-w-xl bg-[#F3F0E7] rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
-                  <div className="px-6 py-3 border-b border-tea-charcoal/5 flex justify-between items-center bg-[#E6E2D6]">
-                      <span className="text-xs uppercase tracking-[0.2em] text-tea-charcoal font-semibold">Refine Collection</span>
-                      <button onClick={() => setIsFilterOpen(false)}><Icons.Close className="w-4 h-4 text-tea-charcoal/60" /></button>
+              <div className="relative w-full md:max-w-xl bg-tea-bg rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
+                  <div className="px-6 py-3 border-b border-tea-gold/[0.08] flex justify-between items-center bg-tea-surface">
+                      <span className="text-xs uppercase tracking-[0.2em] text-tea-text font-semibold">Refine Collection</span>
+                      <button onClick={() => setIsFilterOpen(false)}><Icons.Close className="w-4 h-4 text-tea-text/60" /></button>
                   </div>
-                  <div className="p-6 overflow-y-auto text-tea-charcoal flex-1">
+                  <div className="p-6 overflow-y-auto text-tea-text flex-1">
                       <div className="mb-6">
-                          <h3 className="font-serif italic text-sm text-tea-charcoal/50 mb-2">Type</h3>
+                          <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Type</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-charcoal text-tea-paper' : 'border-tea-charcoal/20'}`}>All</button>
+                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-paper' : 'border-tea-gold/[0.08]'}`}>All</button>
                               {TEA_TYPES.map(t => (
-                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-charcoal text-tea-paper' : 'border-tea-charcoal/20'}`}>{t}</button>
+                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-paper' : 'border-tea-gold/[0.08]'}`}>{t}</button>
                               ))}
                           </div>
                       </div>
                       <div>
-                          <h3 className="font-serif italic text-sm text-tea-charcoal/50 mb-2">Feeling</h3>
+                          <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Feeling</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-seal text-tea-paper border-tea-seal' : 'border-tea-charcoal/20'}`}>All</button>
+                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-paper border-tea-gold' : 'border-tea-gold/[0.08]'}`}>All</button>
                               {FEELINGS_LIST.map(f => (
-                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-seal text-tea-paper border-tea-seal' : 'border-tea-charcoal/20'}`}>{f}</button>
+                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-paper border-tea-gold' : 'border-tea-gold/[0.08]'}`}>{f}</button>
                               ))}
                           </div>
                       </div>
@@ -307,25 +312,25 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          <div className="hidden lg:block w-56 shrink-0">
             <div className="sticky top-24 space-y-6">
                <div>
-                  <h3 className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-3">Type</h3>
+                  <h3 className="font-serif italic text-sm text-tea-text/50 mb-3">Type</h3>
                   <div className="flex flex-col gap-1.5">
-                     <button onClick={() => setActiveType('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeType === 'All' ? 'bg-tea-ink dark:bg-tea-paper text-tea-paper dark:text-tea-ink font-medium' : 'text-tea-ink/60 dark:text-tea-paper/60 hover:text-tea-ink dark:hover:text-tea-paper hover:bg-tea-ink/5 dark:hover:bg-white/5'}`}>All Types</button>
+                     <button onClick={() => setActiveType('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeType === 'All' ? 'bg-tea-elevated text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All Types</button>
                      {TEA_TYPES.map(t => (
-                        <button key={t} onClick={() => setActiveType(t)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeType === t ? 'bg-tea-ink dark:bg-tea-paper text-tea-paper dark:text-tea-ink font-medium' : 'text-tea-ink/60 dark:text-tea-paper/60 hover:text-tea-ink dark:hover:text-tea-paper hover:bg-tea-ink/5 dark:hover:bg-white/5'}`}>{t}</button>
+                        <button key={t} onClick={() => setActiveType(t)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeType === t ? 'bg-tea-elevated text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>{t}</button>
                      ))}
                   </div>
                </div>
-               <div className="border-t border-tea-ink/10 dark:border-white/10 pt-6">
-                  <h3 className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-3">Feeling</h3>
+               <div className="border-t border-tea-gold/[0.08] pt-6">
+                  <h3 className="font-serif italic text-sm text-tea-text/50 mb-3">Feeling</h3>
                   <div className="flex flex-col gap-1.5">
-                     <button onClick={() => setActiveFeeling('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === 'All' ? 'bg-tea-seal text-white font-medium' : 'text-tea-ink/60 dark:text-tea-paper/60 hover:text-tea-ink dark:hover:text-tea-paper hover:bg-tea-ink/5 dark:hover:bg-white/5'}`}>All</button>
+                     <button onClick={() => setActiveFeeling('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-paper font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All</button>
                      {FEELINGS_LIST.map(f => (
-                        <button key={f} onClick={() => setActiveFeeling(f)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === f ? 'bg-tea-seal text-white font-medium' : 'text-tea-ink/60 dark:text-tea-paper/60 hover:text-tea-ink dark:hover:text-tea-paper hover:bg-tea-ink/5 dark:hover:bg-white/5'}`}>{f}</button>
+                        <button key={f} onClick={() => setActiveFeeling(f)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === f ? 'bg-tea-gold text-tea-paper font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>{f}</button>
                      ))}
                   </div>
                </div>
                {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
-                  <button onClick={clearFilters} className="text-xs text-tea-seal hover:text-tea-seal/80 transition-colors underline uppercase tracking-wider">
+                  <button onClick={clearFilters} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors underline uppercase tracking-wider">
                      Clear All Filters
                   </button>
                )}
@@ -336,12 +341,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          <div className="flex-1 min-w-0">
          {/* Results Count */}
          <div className="flex items-center justify-between mb-4 px-0">
-            <p className="text-xs uppercase tracking-widest text-tea-ink/50 dark:text-tea-paper/50">
+            <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50">
                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
                {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
                   <button
                      onClick={clearFilters}
-                     className="ml-3 text-tea-seal hover:text-tea-seal/80 transition-colors underline lg:hidden"
+                     className="ml-3 text-tea-gold hover:text-tea-gold/80 transition-colors underline lg:hidden"
                   >
                      Clear filters
                   </button>
@@ -351,11 +356,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {filteredInventory.length === 0 ? (
             <div className="text-center py-32">
-               <Icons.Leaf className="w-12 h-12 mx-auto mb-4 text-tea-ink/20 dark:text-tea-paper/20" />
-               <p className="font-serif italic text-tea-ink/60 dark:text-tea-paper/60 mb-2">No teas match your filters</p>
+               <Icons.Leaf className="w-12 h-12 mx-auto mb-4 text-tea-text/20" />
+               <p className="font-serif italic text-tea-text/60 mb-2">No teas match your filters</p>
                <button
                   onClick={clearFilters}
-                  className="text-sm text-tea-seal hover:text-tea-seal/80 transition-colors underline"
+                  className="text-sm text-tea-gold hover:text-tea-gold/80 transition-colors underline"
                >
                   Clear all filters
                </button>
@@ -376,7 +381,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         <span className="card-grid-badge">{item.type}</span>
                      }
                      priceDisplay={
-                        <span className="card-grid-price">${parseFloat(item.price_per_gram).toFixed(2)}/g</span>
+                        <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
                      }
                      descriptionComponent={
                         <p className="card-grid-description">{item.description}</p>
@@ -392,11 +397,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                {groupedInventory.map((group) => (
                 <React.Fragment key={group.type}>
                     
-                    {/* Categorization Separator - Left Aligned & Bigger */}
+                    {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
-                        <div className="flex items-center gap-4 py-4 mt-6 first:mt-2 opacity-70">
-                            <span className="text-sm uppercase tracking-[0.25em] text-tea-ink dark:text-tea-beige-dark font-serif shrink-0 pl-1">{group.type}</span>
-                            <div className="h-[1px] bg-tea-ink/10 dark:bg-white/10 flex-1"></div>
+                        <div className="pt-10 pb-2 first:pt-4 pl-2">
+                            <span className="font-serif italic text-[15px] text-tea-text/30">{group.type}</span>
                         </div>
                     )}
 
@@ -409,64 +413,99 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         const maxStock = parseInt(item.stock_g) || 100;
                         // Price formula: use price_per_gram directly (already in $/gram)
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
-                        const totalPrice = pricePerGram > 0 ? parseFloat((pricePerGram * currentQty).toFixed(2)) : 0;
+                        const totalPrice = pricePerGram > 0 ? Math.round(pricePerGram * currentQty * 100) / 100 : 0;
 
                         return (
                             <div
                                 key={item.id}
-                                className={`relative border-b border-tea-ink/5 dark:border-white/5 transition-colors duration-300 ${isExpanded ? 'bg-tea-ink/5 dark:bg-white/5' : 'hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02]'}`}
+                                className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-text/[0.03]' : ''}`}
                             >
-                                {/* Row — tap to expand accordion */}
-                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 cursor-pointer select-none" onClick={() => toggleExpand(item.id)}>
+                                <div className="flex items-center py-2.5 lg:py-3 px-2 gap-3 lg:gap-5 cursor-pointer select-none group" onClick={() => toggleExpand(item.id)}>
 
-                                    {/* Left: name + metadata */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-seal' : 'text-tea-ink dark:text-tea-paper'}`}>
-                                                {item.name}
-                                            </h3>
-                                            {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-seal shrink-0 opacity-80" />}
+                                    {/* Text Content */}
+                                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                                        <div className="flex flex-col justify-center lg:flex-row lg:items-center lg:gap-6 lg:flex-1 min-w-0">
+                                            {/* Title & Tags */}
+                                            <div className="flex flex-col justify-center lg:min-w-[180px]">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className={`font-serif text-[17px] leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80 group-hover:text-tea-text'}`}>
+                                                        {item.name}
+                                                    </h3>
+                                                    {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-60" />}
+                                                </div>
+                                                <div className="text-[11px] tracking-wider text-tea-text/20 mt-1 truncate flex items-center gap-2">
+                                                     <span className="font-mono">{item.year}</span>
+                                                     <span className="opacity-30">·</span>
+                                                     <span className="font-serif italic text-tea-text/15">{item.variant}</span>
+                                                </div>
+                                            </div>
+                                            {/* Desktop inline description — hidden when expanded */}
+                                            {!isExpanded && (
+                                              <p className="hidden lg:block text-xs text-tea-text/30 line-clamp-1 flex-1 min-w-0 font-serif italic">
+                                                  {item.description}
+                                              </p>
+                                            )}
                                         </div>
-                                        <div className="text-[11px] uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50 mt-1 truncate flex items-center gap-2">
-                                             <span className={`font-mono ${isExpanded ? 'text-tea-seal' : ''}`}>{item.year}</span>
-                                             <span className="opacity-40">•</span>
-                                             <span>{item.variant}</span>
-                                        </div>
-                                    </div>
 
-                                    {/* Right: price, heart, details button */}
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
-                                            ${pricePerGram.toFixed(2)}/g
-                                        </span>
-                                        <button
-                                            onClick={(e) => toggleUserFavorite(e, item.id)}
-                                            className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-seal' : 'text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-ink/50 dark:hover:text-tea-paper/50'}`}
-                                        >
-                                            <Icons.Heart filled={isFavorite} className="w-5 h-5" />
-                                        </button>
-                                        {/* Details button — opens AlcoveCard */}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                            className="-my-1 p-2 text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-seal active:text-tea-seal transition-colors"
-                                            aria-label={`View details for ${item.name}`}
-                                        >
-                                            <Icons.ChevronRight className="w-5 h-5" />
-                                        </button>
+                                        {/* Price + View + Fav */}
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            {/* Admin: stock indicator */}
+                                            {isAdmin && adminProductMap?.has(item.id) && (() => {
+                                                const ap = adminProductMap.get(item.id)!;
+                                                const stockColor = ap.stockGrams < 50 ? 'bg-red-400' : ap.stockGrams < (ap.lowStockThreshold || 100) ? 'bg-amber-400' : 'bg-emerald-400';
+                                                return (
+                                                    <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams}g in stock`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
+                                                        <span className="text-[10px] num text-tea-text/40">{ap.stockGrams}g</span>
+                                                    </span>
+                                                );
+                                            })()}
+                                            <span className={`num text-[13px] tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/50'}`}>
+                                                {fmtPricePerGram(pricePerGram)}
+                                            </span>
+                                            {/* Admin: edit button */}
+                                            {isAdmin && onAdminEdit && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
+                                                    className="p-1 text-tea-text/20 hover:text-tea-gold transition-colors"
+                                                    title="Edit product"
+                                                >
+                                                    <Icons.Edit className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                className="text-tea-text/20 hover:text-tea-gold transition-colors p-1"
+                                                title="View details"
+                                            >
+                                                <Icons.Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => toggleUserFavorite(e, item.id)}
+                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/15 hover:text-tea-text/40'}`}
+                                            >
+                                                <Icons.Heart filled={isFavorite} className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Accordion — quick add */}
                                 <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="pl-4 pr-2 pb-3 pt-0">
-                                        <p className="font-serif text-sm text-tea-ink/80 dark:text-tea-paper/80 mb-3 leading-relaxed max-w-2xl">
+                                    <div className="pl-2 pr-2 pb-4 pt-0">
+
+                                        <p className="font-serif text-sm text-tea-text/60 mb-4 leading-relaxed max-w-2xl">
                                             {item.description}
                                         </p>
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-3 pr-4 border border-tea-ink/5 dark:border-white/5">
+
+                                        {/* Controls */}
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/[0.03] rounded-sm p-3 pr-4">
+
+                                            {/* Slider */}
                                             <div className="flex-1 flex items-center gap-3 px-2">
                                                 <div className="flex flex-col min-w-[60px]">
-                                                    <span className="text-[10px] uppercase tracking-widest text-tea-ink/50 dark:text-tea-paper/50">Qty</span>
-                                                    <span className="font-mono text-sm text-tea-ink dark:text-tea-paper">
+                                                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Qty</span>
+                                                    <span className="num text-sm text-tea-text">
                                                         {currentQty}g <span className="opacity-30 mx-0.5">/</span> <span className="opacity-40">{maxStock}g</span>
                                                     </span>
                                                 </div>
@@ -482,17 +521,17 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-seal hover:text-tea-seal/80 text-[11px] uppercase tracking-widest font-medium py-2 px-3 rounded-[1px] transition-all border border-tea-seal/20 hover:border-tea-seal/40"
+                                                    className="text-tea-text/60 hover:text-tea-gold text-[11px] uppercase tracking-[0.15em] py-2 px-3 rounded-sm transition-all"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                    className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-[11px] uppercase tracking-[0.15em] font-medium py-2.5 px-5 rounded-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                                                 >
                                                     <span>Add</span>
-                                                    <span className="w-[1px] h-2.5 bg-white/30"></span>
-                                                    <span className="font-mono">${totalPrice.toFixed(2)}</span>
+                                                    <span className="w-px h-3 bg-tea-bg/20"></span>
+                                                    <span className="num">{fmtPrice(totalPrice)}</span>
                                                 </button>
                                             </div>
                                         </div>

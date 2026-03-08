@@ -300,11 +300,11 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({
                                         type="number" 
                                         value={item.quantity} 
                                         onChange={(e) => updateQuantity(idx, Number(e.target.value))} 
-                                        className="w-8 bg-transparent text-center text-xs outline-none font-mono text-tea-text" 
+                                        className="w-8 bg-transparent text-center text-xs outline-none num text-tea-text" 
                                      />
                                      <span className="text-[9px] text-tea-muted border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">{item.product.type === 'Teaware' ? 'u' : 'g'}</span>
                                  </div>
-                                 <span className="font-mono text-xs text-tea-text">
+                                 <span className="num text-xs text-tea-text">
                                      {formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}
                                  </span>
                              </div>
@@ -340,7 +340,7 @@ export const InvoiceBuilder: React.FC<InvoiceBuilderProps> = ({
                            min={0}
                            value={shippingCostUSD}
                            onChange={(e) => setShippingCostUSD(Math.max(0, Number(e.target.value) || 0))}
-                           className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none font-mono"
+                           className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none num"
                        />
                    </div>
                 </div>

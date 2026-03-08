@@ -26,30 +26,48 @@
     <!-- Fonts: Load critical fonts first, defer others -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@200;400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Bricolage+Grotesque:wght@200;300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- Primary fonts: Vollkorn (display), Spectral (body), Jost (labels/UI), Space Mono (technical) -->
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@200;400;700&display=swap" rel="stylesheet">
+    <!-- Deferred: Alcove card fonts + Chinese calligraphy -->
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Bricolage+Grotesque:wght@200;300;400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="/styles/card-utilities.css">
     <style>
+      /* Espresso + Gold — Dark mode (default) */
       :root {
-        /* Brand Colors */
-        --color-tea-seal: #b8882d;
-        --color-tea-seal-dark: #a07830;
+        --tea-bg: #18130e;
+        --tea-surface: #28211a;
+        --tea-elevated: #3a3126;
+        --tea-text: #ede4d4;
+        --tea-text-sec: #b5a892;
+        --tea-text-dim: #80735f;
+        --tea-gold: #b8924e;
+        --tea-gold-lt: #d4ac66;
+        --tea-border: rgba(184,146,78,0.08);
+        --tea-accent-sub: rgba(184,146,78,0.1);
 
-        /* Font Families - Customizable by FontThemeTester */
+        /* Font Families */
         --font-serif: 'Lora', 'Noto Serif SC', serif;
+        --font-body: 'Lora', 'Noto Serif SC', serif;
         --font-sans: 'Inter', sans-serif;
         --font-mono: 'Menlo', 'Courier New', monospace;
 
-        /* Font Sizes - Customizable by FontThemeTester */
-        --font-size-xs: 0.75rem;
-        --font-size-sm: 0.875rem;
-        --font-size-base: 1rem;
-        --font-size-lg: 1.125rem;
-        --font-size-xl: 1.25rem;
-        --font-size-2xl: 1.5rem;
-        --font-size-3xl: 1.875rem;
-        --font-size-4xl: 2.25rem;
-        --font-size-5xl: 3rem;
+        /* Legacy aliases (for CSS that still uses old names) */
+        --color-tea-seal: var(--tea-gold);
+        --color-tea-seal-dark: var(--tea-gold);
+      }
+
+      /* Light mode */
+      :root.light, .light {
+        --tea-bg: #f4ece0;
+        --tea-surface: #e6dbcc;
+        --tea-elevated: #d5c8b4;
+        --tea-text: #18130e;
+        --tea-text-sec: #5e5342;
+        --tea-text-dim: #9a8c78;
+        --tea-gold: #8e6d2e;
+        --tea-gold-lt: #a88340;
+        --tea-border: rgba(142,109,46,0.1);
+        --tea-accent-sub: rgba(142,109,46,0.07);
       }
     </style>
     <script>
@@ -58,30 +76,38 @@
         theme: {
           extend: {
             colors: {
-              'tea-charcoal': '#1a1a1a',
-              'tea-paper': '#F3F0E7',
-              'tea-paper-dark': '#E6E2D6',
-              'tea-beige': '#D8D0C0',
-              'tea-beige-dark': '#8A8070',
-              'tea-ink': '#2C2C2C',
-              'tea-ink-light': '#555555',
-              'tea-ink-secondary': '#555555',
-              'tea-paper-secondary': '#B8B4AA',
-              'tea-seal': '#b8882d',
-              'tea-seal-dark': '#a07830',
+              // CSS variable-driven tokens (switch with dark/light mode)
+              'tea-bg': 'var(--tea-bg)',
+              'tea-surface': 'var(--tea-surface)',
+              'tea-elevated': 'var(--tea-elevated)',
+              'tea-text': 'var(--tea-text)',
+              'tea-text-sec': 'var(--tea-text-sec)',
+              'tea-text-dim': 'var(--tea-text-dim)',
+              'tea-gold': 'var(--tea-gold)',
+              'tea-gold-lt': 'var(--tea-gold-lt)',
+              'tea-border': 'var(--tea-border)',
+              'tea-accent-sub': 'var(--tea-accent-sub)',
+              // Legacy aliases (kept during migration, will be removed)
+              'tea-charcoal': 'var(--tea-bg)',
+              'tea-paper': '#ede4d4',
+              'tea-paper-dark': 'var(--tea-surface)',
+              'tea-beige': 'var(--tea-elevated)',
+              'tea-ink': 'var(--tea-text)',
+              'tea-ink-light': 'var(--tea-text-sec)',
+              'tea-ink-secondary': 'var(--tea-text-sec)',
+              'tea-paper-secondary': 'var(--tea-text-dim)',
+              'tea-seal': 'var(--tea-gold)',
+              'tea-seal-dark': 'var(--tea-gold)',
+              'tea-accent': 'var(--tea-gold)',
+              'tea-muted': 'var(--tea-text-dim)',
+              'tea-beige-dark': 'var(--tea-text-dim)',
               'tea-green': '#5A6E5A',
               'tea-moss': '#2A3430',
               'tea-shadow': 'rgba(0,0,0,0.15)',
-              // Admin (dark theme) tokens
-              'tea-bg': '#0c0c0c',
-              'tea-surface': '#121212',
-              'tea-border': '#262626',
-              'tea-text': '#e5e5e5',
-              'tea-muted': '#737373',
-              'tea-accent': '#b8882d',
             },
             fontFamily: {
               serif: ['Lora', 'Noto Serif SC', 'serif'],
+              body: ['Lora', 'Noto Serif SC', 'serif'],
               sans: ['Inter', 'sans-serif'],
               mono: ['Menlo', 'Courier New', 'monospace'],
             },
@@ -203,10 +229,13 @@
         scrollbar-width: none;
       }
 
-      /* Base Typography for Better Readability */
+      /* Base Typography — Jost for UI, Spectral for reading */
       body {
-        line-height: 1.625;
+        font-family: var(--font-sans);
+        font-weight: 300;
+        line-height: 1.5;
         letter-spacing: 0.01em;
+        transition: background-color 0.6s ease, color 0.6s ease;
       }
 
       p {
@@ -221,8 +250,8 @@
         width: 100%;
         height: 100%;
         pointer-events: none;
-        z-index: 50;
-        opacity: 0.06;
+        z-index: 1;
+        opacity: 0.04;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
       }
 
@@ -256,7 +285,7 @@
         left: 0;
         width: 3rem;
         height: 2px;
-        background-color: var(--color-tea-seal);
+        background-color: var(--tea-gold);
         transition: width 0.3s ease-out;
       }
 
@@ -271,30 +300,26 @@
         float: left;
         margin-right: 0.1em;
         line-height: 1;
-        color: var(--color-tea-seal);
+        color: var(--tea-gold);
       }
 
       /* Pull Quote styling */
       .pull-quote {
-        border-left: 4px solid var(--color-tea-seal);
+        border-left: 4px solid var(--tea-gold);
         padding-left: 1.5rem;
         margin: 2rem 0;
         font-style: italic;
-        color: #555555;
+        color: var(--tea-text-sec);
       }
 
       /* Side Note styling */
       .side-note {
-        background-color: rgba(244, 240, 230, 0.5);
-        border-left: 2px solid var(--color-tea-seal);
+        background-color: var(--tea-accent-sub);
+        border-left: 2px solid var(--tea-gold);
         padding: 1rem;
         margin: 1.5rem 0;
         font-size: 0.9rem;
-        color: #555555;
-      }
-
-      .dark .side-note {
-        background-color: rgba(60, 60, 60, 0.5);
+        color: var(--tea-text-sec);
       }
 
       /* Article body enhanced */
@@ -309,12 +334,8 @@
 
       .article-section-break {
         height: 1px;
-        background-color: rgba(44, 44, 44, 0.3);
+        background-color: var(--tea-border);
         margin: 3rem 0;
-      }
-
-      .dark .article-section-break {
-        background-color: rgba(255, 255, 255, 0.1);
       }
 
       /* Print styles */
@@ -339,14 +360,14 @@
 
       /* Focus visible styles for keyboard navigation */
       :focus-visible {
-        outline: 2px solid var(--color-tea-seal);
+        outline: 2px solid var(--tea-gold);
         outline-offset: 2px;
       }
     </style>
 </head>
-  <body class="bg-tea-charcoal text-tea-paper font-serif" style="scrollbar-gutter: stable;">
+  <body class="bg-tea-bg text-tea-text font-sans" style="scrollbar-gutter: stable; -webkit-font-smoothing: antialiased;">
     <!-- Skip to main content link for keyboard/screen reader users -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:bg-tea-seal focus:text-white focus:px-4 focus:py-2 focus:rounded-sm focus:text-sm focus:font-sans focus:tracking-wide focus:shadow-lg">Skip to content</a>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:bg-tea-gold focus:text-white focus:px-4 focus:py-2 focus:rounded-sm focus:text-sm focus:font-sans focus:tracking-wide focus:shadow-lg">Skip to content</a>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
