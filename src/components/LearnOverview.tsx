@@ -73,13 +73,18 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
   );
 };
 
-/** Section label — tiny, uppercase, tracked */
-const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="mb-5">
-    <span className="text-[9px] font-sans uppercase tracking-[0.2em] text-tea-text-dim">
+/** Section label — serif, editorial, warm gold accent */
+const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
+  <div className="mb-8 md:mb-10">
+    <h3 className="font-serif text-[clamp(22px,3vw,28px)] text-tea-text tracking-[0.01em] leading-[1.2]">
       {children}
-    </span>
-    <div className="mt-2 h-px bg-gradient-to-r from-tea-gold/25 via-tea-gold/10 to-transparent" />
+    </h3>
+    {subtitle && (
+      <p className="mt-2 font-serif font-light italic text-[15px] text-tea-text-dim leading-[1.6]">
+        {subtitle}
+      </p>
+    )}
+    <div className="mt-4 w-12 h-px bg-tea-gold/30" />
   </div>
 );
 
@@ -233,7 +238,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         {/* Search results */}
         {searchResults && searchResults !== 'empty' && (
-          <div className="mt-4 bg-tea-surface border border-tea-border rounded-[1px] p-5 space-y-4">
+          <div className="mt-4 bg-tea-surface border border-transparent rounded-[1px] p-5 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
                 <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans block mb-2">Courses</span>
@@ -283,7 +288,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${glossaryReveal.className}`}
         style={glossaryReveal.style}
       >
-        <SectionLabel>Term of the Day</SectionLabel>
+        <SectionLabel subtitle="A new word, each morning">Term of the Day</SectionLabel>
 
         <button
           onClick={() => onNavigateTo('glossary')}
@@ -383,7 +388,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${coursesReveal.className}`}
         style={coursesReveal.style}
       >
-        <SectionLabel>Go Deeper</SectionLabel>
+        <SectionLabel subtitle="Courses on leaf, water, and practice">Go Deeper</SectionLabel>
 
         {/* Module list */}
         <div>
@@ -432,7 +437,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${resourcesReveal.className}`}
         style={resourcesReveal.style}
       >
-        <SectionLabel>Resources & Tools</SectionLabel>
+        <SectionLabel subtitle="References, music, and visual guides">Resources & Tools</SectionLabel>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {[
@@ -448,7 +453,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-surface rounded-[1px] border border-tea-border p-5 md:p-6 hover:border-tea-gold/20 transition-colors duration-300">
+              <div className="h-full bg-tea-surface rounded-[1px] border border-transparent p-5 md:p-6 hover:border-tea-gold/20 transition-colors duration-300">
                 <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
@@ -474,10 +479,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${atlasReveal.className}`}
         style={atlasReveal.style}
       >
-        <SectionLabel>Places</SectionLabel>
-        <p className="font-serif italic text-sm text-tea-ink/40 dark:text-tea-paper/40 mb-8 max-w-md">
-          Tea locations, farms, and cultural landmarks across Asia
-        </p>
+        <SectionLabel subtitle="Tea locations, farms, and cultural landmarks across Asia">Places</SectionLabel>
 
         <SwipeCarousel
           itemWidth={220}
@@ -492,7 +494,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onStoryClick(geographyLesson)}
               className={`text-left w-full group ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-[1px] border border-tea-border hover:border-tea-gold/15 transition-colors duration-300">
+              <div className="relative overflow-hidden rounded-[1px] border border-transparent hover:border-tea-gold/15 transition-colors duration-300">
                 {/* Location photo */}
                 <img
                   src={TEA_IMAGES.places[i % TEA_IMAGES.places.length]}
@@ -533,7 +535,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           onClick={() => onNavigateTo('spaces')}
           className={`w-full text-left group ${CTA_FOCUS}`}
         >
-          <div className="overflow-hidden rounded-[1px] border border-tea-border">
+          <div className="overflow-hidden rounded-[1px] border border-transparent">
             {/* Atmospheric image */}
             <img
               src={TEA_IMAGES.teaSpace}
@@ -570,32 +572,33 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={closingReveal.ref}
-        className={`mb-16 ${closingReveal.className}`}
+        className={`${closingReveal.className}`}
         style={closingReveal.style}
       >
-        <div className="pt-12 md:pt-16">
-          <div className="max-w-md md:ml-[10%]">
-            <p className="font-serif italic text-base md:text-lg text-tea-ink/35 dark:text-tea-paper/35 leading-relaxed mb-6">
-              This archive grows with every session, every conversation, every cup.
-              If you have a term, a ritual, or a place that should be here&nbsp;&mdash;
-            </p>
-            {onNavigateToConsult ? (
-              <button
-                onClick={onNavigateToConsult}
-                className={`text-tea-gold text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
-              >
-                Let&rsquo;s talk <Icons.ChevronRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <span className="text-tea-gold/50 text-sm font-sans">reach out</span>
-            )}
+        {/* Thin gold rule to close the content */}
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-tea-gold/20 to-transparent mb-10" />
 
-            <div className="mt-10 flex items-center gap-3">
-              <div className="w-8 h-[0.5px] bg-tea-gold/20" />
-              <span className="text-[9px] font-sans uppercase tracking-[0.2em] text-tea-text/20">
-                Teajia
-              </span>
-            </div>
+        <div className="text-center max-w-sm mx-auto pb-10">
+          <p className="font-serif text-[17px] text-tea-text/40 leading-[1.85] mb-5">
+            This archive grows with every session, every conversation, every cup.
+          </p>
+          {onNavigateToConsult ? (
+            <button
+              onClick={onNavigateToConsult}
+              className={`inline-flex items-center gap-1.5 text-tea-gold text-[13px] font-sans tracking-[0.08em] hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+            >
+              Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <span className="text-tea-gold/50 text-[13px] font-sans">reach out</span>
+          )}
+
+          <div className="mt-8 flex items-center justify-center gap-2.5">
+            <div className="w-6 h-px bg-tea-gold/15" />
+            <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/15">
+              Teajia
+            </span>
+            <div className="w-6 h-px bg-tea-gold/15" />
           </div>
         </div>
       </section>

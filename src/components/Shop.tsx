@@ -82,7 +82,7 @@ export const Shop: React.FC<ShopProps> = ({
       className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
       onClick={() => handleAddStarterSet(set)}
     >
-      <div className="p-2 md:p-3 bg-tea-surface border border-tea-border rounded-[1px]">
+      <div className="p-2 md:p-3 bg-tea-surface rounded-[1px]">
         <CardImage src={set.image} alt={set.name} aspect="square" />
         <div className="px-1 mt-3">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">

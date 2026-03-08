@@ -74,7 +74,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
 
         {/* Track background */}
         <div
-          className="w-full bg-tea-text/15 relative rounded-full overflow-hidden"
+          className="w-full bg-tea-gold/10 relative rounded-full overflow-hidden"
           style={{ height: trackHeight }}
         >
           {/* Fill */}
@@ -93,7 +93,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
               <div
                 key={tickValue}
                 className={`absolute transition-all duration-100 rounded-full ${
-                  isActive ? 'bg-tea-text/50' : 'bg-tea-text/15'
+                  isActive ? 'bg-tea-gold/60' : 'bg-tea-gold/15'
                 }`}
                 style={{
                   left: `${tickPercent}%`,
@@ -116,7 +116,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           }}
         >
           <div
-            className="w-full h-full bg-tea-bg rounded-full shadow-lg ring-2 ring-tea-text/20 transition-shadow group-active:shadow-xl group-active:ring-tea-gold/40"
+            className="w-full h-full bg-tea-gold rounded-full shadow-lg ring-2 ring-tea-gold/30 transition-shadow group-active:shadow-xl group-active:ring-tea-gold/50"
           />
           {/* Pulse animation on step */}
           <div
