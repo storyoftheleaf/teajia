@@ -6,30 +6,27 @@ import { NAV_ONBOARDING_MESSAGES } from '../constants';
 import { getNavIcon, getIconScale } from './navIconConfig';
 import { useTheme } from '../context/ThemeContext';
 import { useLongPress } from '../hooks/useLongPress';
+import { useAuth } from '../hooks/useAuth';
 
 
-// ─── CHANGE THIS NUMBER TO PREVIEW DIFFERENT CENTER LOGO VARIANTS ───
-// 2 = Wordmark Only (just the "teajia" script text, no emblem)
-// 3 = Breathing Room (wider center column, emblem + wordmark + dividers)
-// 4 = Subtle Seal (emblem watermark behind wordmark, layered colors)
-// 6 = Side-by-Side Compact (emblem + wordmark horizontal, like a stamp)
-// 8 = Dot Accent (minimal dot + serif "Teajia" label)
-const CENTER_VARIANT = 4 as 2 | 3 | 4 | 6 | 8;
 
 interface BottomTabBarProps {
   activeSection: Section;
   onNavigate: (section: Section) => void;
   cartItemCount?: number;
   hidden?: boolean;
+  onAccountClick?: () => void;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
   cartItemCount = 0,
-  hidden = false
+  hidden = false,
+  onAccountClick
 }) => {
   const { toggleTheme } = useTheme();
+  const auth = useAuth();
   const [themeFlash, setThemeFlash] = React.useState(false);
 
   const centerLongPress = useLongPress({
@@ -117,149 +114,62 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         <div className="flex items-center w-full px-0 h-full">
           {/* Left sections */}
           {leftSections.map((section, index) => (
-            <div key={section.id} className={`flex items-center h-full ${CENTER_VARIANT === 3 ? 'flex-[0.85]' : CENTER_VARIANT === 6 ? 'flex-[0.9]' : 'flex-1'}`}>
+            <div key={section.id} className="flex items-center h-full flex-1">
               {renderTabButton(section, index)}
             </div>
           ))}
 
-          {/* ─── Variant 3: left divider ─── */}
-          {CENTER_VARIANT === 3 && (
-            <div className="w-px h-8 bg-tea-ink/5 dark:bg-white/5 self-center flex-shrink-0" />
-          )}
-
-          {/* Center - HOME Logo */}
-          <div className={`flex items-center h-full ${
-            CENTER_VARIANT === 3 ? 'flex-[1.6]' :
-            CENTER_VARIANT === 6 ? 'flex-[1.3]' :
-            'flex-1'
-          }`}>
-
-            {/* ─── Variant 2: Wordmark Only ─── */}
-            {CENTER_VARIANT === 2 && (
-              <button
-                onClick={() => onNavigate('HOME')}
-                className="flex-1 h-full flex items-center justify-center transition-all duration-300 animate-[fadeIn_0.5s_ease-out]"
-                style={{ animationDelay: `${leftSections.length * 50}ms` }}
-                title="Home"
-                aria-label="Return to home"
-              >
-                <LogoText
-                  size="sm"
-                  color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
-                  className="transition-all duration-300 scale-110"
-                />
-              </button>
-            )}
-
-            {/* ─── Variant 4: Subtle Seal ─── */}
-            {CENTER_VARIANT === 4 && (
-              <button
-                {...centerLongPress}
-                className={`flex-1 h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] ${themeFlash ? 'scale-95' : ''}`}
-                style={{ animationDelay: `${leftSections.length * 50}ms` }}
-                title="Home · Long press for theme"
-                aria-label="Return to home, long press to toggle theme"
-              >
-                {/* Emblem watermark behind — large, ghosted, shifted down */}
-                <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
-                  <LogoEmblem
-                    size={48}
-                    color={activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)'}
-                    className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
-                  />
-                </div>
-                {/* Wordmark in front — clear and legible */}
-                <LogoText
-                  size="sm"
-                  color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
-                  className={`relative z-10 transition-all duration-300 scale-[1.08] ${themeFlash ? 'opacity-60' : ''}`}
-                />
-              </button>
-            )}
-
-            {/* ─── Variant 3: Breathing Room ─── */}
-            {CENTER_VARIANT === 3 && (
-              <button
-                onClick={() => onNavigate('HOME')}
-                className="flex-1 h-full flex flex-col items-center justify-center transition-all duration-300 animate-[fadeIn_0.5s_ease-out]"
-                style={{ animationDelay: `${leftSections.length * 50}ms` }}
-                title="Home"
-                aria-label="Return to home"
-              >
+          {/* Center - HOME Logo (Subtle Seal) */}
+          <div className="flex items-center h-full flex-1">
+            <button
+              {...centerLongPress}
+              className={`flex-1 h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] ${themeFlash ? 'scale-95' : ''}`}
+              style={{ animationDelay: `${leftSections.length * 50}ms` }}
+              title="Home · Long press for theme"
+              aria-label="Return to home, long press to toggle theme"
+            >
+              <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
                 <LogoEmblem
-                  size={36}
-                  color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
-                  className="flex-shrink-0 transition-all duration-300"
+                  size={48}
+                  color={activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)'}
+                  className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
                 />
-                <div className="mt-2 flex items-center justify-center h-5">
-                  <LogoText
-                    size="sm"
-                    color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
-                    className="transition-all duration-300"
-                  />
-                </div>
-              </button>
-            )}
-
-            {/* ─── Variant 6: Side-by-Side Compact ─── */}
-            {CENTER_VARIANT === 6 && (
-              <button
-                onClick={() => onNavigate('HOME')}
-                className="flex-1 h-full flex flex-row items-center justify-center gap-1.5 transition-all duration-300 animate-[fadeIn_0.5s_ease-out]"
-                style={{ animationDelay: `${leftSections.length * 50}ms` }}
-                title="Home"
-                aria-label="Return to home"
-              >
-                <LogoEmblem
-                  size={20}
-                  color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
-                  className="flex-shrink-0 transition-all duration-300"
-                />
-                <LogoText
-                  size="sm"
-                  color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
-                  className="transition-all duration-300 scale-75 origin-left"
-                />
-              </button>
-            )}
-
-            {/* ─── Variant 8: Dot Accent ─── */}
-            {CENTER_VARIANT === 8 && (
-              <button
-                onClick={() => onNavigate('HOME')}
-                className="flex-1 h-full flex flex-col items-center justify-center transition-all duration-300 group animate-[fadeIn_0.5s_ease-out]"
-                style={{ animationDelay: `${leftSections.length * 50}ms` }}
-                title="Home"
-                aria-label="Return to home"
-              >
-                <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                  activeSection === 'HOME'
-                    ? 'bg-tea-seal scale-125'
-                    : 'bg-tea-ink/30 dark:bg-tea-paper/40 group-hover:bg-tea-ink/50 dark:group-hover:bg-tea-paper/60'
-                }`} />
-                <span className={`text-xs font-serif mt-1.5 transition-all duration-300 ${
-                  activeSection === 'HOME'
-                    ? 'text-tea-seal'
-                    : 'text-tea-ink/40 dark:text-tea-paper/60 group-hover:text-tea-ink/60 dark:group-hover:text-tea-paper/85'
-                }`}>
-                  Teajia
-                </span>
-              </button>
-            )}
-
+              </div>
+              <LogoText
+                size="sm"
+                color={activeSection === 'HOME' ? '#7A2E2E' : '#8B7D6B'}
+                className={`relative z-10 transition-all duration-300 scale-[1.08] ${themeFlash ? 'opacity-60' : ''}`}
+              />
+            </button>
           </div>
-
-          {/* ─── Variant 3: right divider ─── */}
-          {CENTER_VARIANT === 3 && (
-            <div className="w-px h-8 bg-tea-ink/5 dark:bg-white/5 self-center flex-shrink-0" />
-          )}
 
           {/* Right sections */}
           {rightSections.map((section, index) => (
-            <div key={section.id} className={`flex items-center h-full ${CENTER_VARIANT === 3 ? 'flex-[0.85]' : CENTER_VARIANT === 6 ? 'flex-[0.9]' : 'flex-1'}`}>
+            <div key={section.id} className="flex items-center h-full flex-1">
               {renderTabButton(section, index + leftSections.length + 1)}
             </div>
           ))}
+
+          {/* Account button — shows for authenticated users, with admin badge for admins */}
+          {auth.isAuthenticated && onAccountClick && (
+            <div className="flex items-center h-full" style={{ flex: '0 0 48px' }}>
+              <button
+                onClick={onAccountClick}
+                className="h-full flex flex-col items-center justify-center relative transition-all duration-300 group px-2 animate-[fadeIn_0.5s_ease-out]"
+                title="Account"
+              >
+                <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                  <Icons.User
+                    className="text-tea-ink/40 dark:text-tea-paper/60 w-5 h-5 group-hover:text-tea-ink/60 dark:group-hover:text-tea-paper/85 transition-all duration-300"
+                    strokeWidth={2}
+                  />
+                  {auth.isAdmin && (
+                    <div className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-tea-seal rounded-full border border-[#FFFDF5] dark:border-tea-ink" />
+                  )}
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 

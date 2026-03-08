@@ -3,17 +3,19 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspens
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
 const AdminApp = lazy(() => import('./admin/AdminApp'));
+const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
+const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
+const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
+const Shop = lazy(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
+
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import { useAppStore } from './lib/store';
 import { pathToSection, sectionToPath } from './lib/routes';
-import { MediaViewer } from './components/MediaViewer';
-import { Reader } from './components/Reader';
-import { VisualFeatureViewer } from './components/PhotoEssay/VisualFeatureViewer';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
-import { Shop } from './components/Shop';
 import { CartDrawer } from './components/CartDrawer';
 import { LearnHub } from './components/LearnHub';
 import { HomePage } from './components/HomePage';
@@ -124,9 +126,17 @@ const AppContent = () => {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [sharingStory, setSharingStory] = useState<Story | null>(null);
 
-  // User State
-  const [savedStoryIds, setSavedStoryIds] = useState<Record<string, boolean>>({});
-  const [watchedStoryIds, setWatchedStoryIds] = useState<Record<string, boolean>>({});
+  // User State — persisted to localStorage (#77, #78)
+  const [savedStoryIds, setSavedStoryIds] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('teajia_saved_stories') || '{}'); } catch { return {}; }
+  });
+  const [watchedStoryIds, setWatchedStoryIds] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('teajia_watched_stories') || '{}'); } catch { return {}; }
+  });
+
+  // Persist saved/watched stories to localStorage
+  useEffect(() => { localStorage.setItem('teajia_saved_stories', JSON.stringify(savedStoryIds)); }, [savedStoryIds]);
+  useEffect(() => { localStorage.setItem('teajia_watched_stories', JSON.stringify(watchedStoryIds)); }, [watchedStoryIds]);
 
   // Cart state managed by Zustand store (publicCart)
 
@@ -309,7 +319,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F0E7] dark:bg-[#0f0f0f] text-tea-ink dark:text-tea-paper relative selection:bg-tea-seal selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-tea-paper dark:bg-tea-bg text-tea-ink dark:text-tea-paper relative selection:bg-tea-seal selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
 
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.15] dark:opacity-[0.12] z-0"></div>
@@ -373,25 +383,20 @@ const AppContent = () => {
                 <Route path="/consult" element={
                   <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
                 } />
+                <Route path="/collection" element={
+                  <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <SharedCollection />
+                  </Suspense>
+                } />
                 <Route path="/about" element={<AboutPage />} />
-                {/* Catch-all: redirect to home */}
+                {/* 404 Page */}
                 <Route path="*" element={
-                  <HomePage
-                    onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
-                      setActiveSection(section);
-                      if (magazineTab) {
-                        setMagazineDefaultTab(magazineTab);
-                      }
-                    }}
-                    savedStoryIds={savedStoryIds}
-                    watchedStoryIds={watchedStoryIds}
-                    onCardClick={handleCardClick}
-                    onToggleSave={toggleSave}
-                    onShare={handleShare}
-                    onCartClick={handleOpenCart}
-                    onAccountClick={handleOpenAccount}
-                    cartItemCount={cart.length}
-                  />
+                  <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
+                    <h1 className="text-6xl font-serif text-tea-seal mb-4">404</h1>
+                    <p className="text-xl font-serif text-tea-ink dark:text-tea-paper mb-2">Page not found</p>
+                    <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
+                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-seal text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-seal/90 transition-colors">Return Home</button>
+                  </div>
                 } />
               </Routes>
             )
@@ -465,9 +470,9 @@ const AppContent = () => {
 
       {/* --- CONTACT MODAL --- */}
       {showContact && (
-        <div className="fixed inset-0 z-[210] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" onClick={() => setShowContact(false)}>
-            <div className="bg-[#F3F0E7] max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-ink/40 hover:text-tea-seal transition-colors duration-300"><Icons.Close className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-[210] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
+            <div className="bg-tea-paper dark:bg-tea-surface max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-ink/40 hover:text-tea-seal transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
                 <h2 className="text-2xl font-serif text-tea-ink mb-8 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '150ms' }}>Contact Us</h2>
 
                 <div className="space-y-6 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '200ms' }}>
@@ -502,13 +507,13 @@ const AppContent = () => {
       {/* Preload indicator */}
       <PreloadIndicator />
 
-      <div className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-paper text-tea-ink px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-[250] flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+      <div role="status" aria-live="polite" className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-paper text-tea-ink px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-[250] flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-seal" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} />
+      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} onAccountClick={handleOpenAccount} />
 
       </div>
     </div>
@@ -517,14 +522,16 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <StoryProvider>
-        <InventoryProvider>
-          <ImagePreloaderProvider>
-            <AppContent />
-          </ImagePreloaderProvider>
-        </InventoryProvider>
-      </StoryProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <StoryProvider>
+          <InventoryProvider>
+            <ImagePreloaderProvider>
+              <AppContent />
+            </ImagePreloaderProvider>
+          </InventoryProvider>
+        </StoryProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

@@ -11,6 +11,7 @@ import { PageHeaderActions } from './shared/PageHeaderActions';
 
 import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
+import { useAppStore } from '../lib/store';
 
 // Use shared type alias for backward compatibility in this component if needed, 
 // or directly use InventoryItem
@@ -39,8 +40,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
-  // User Interaction State
-  const [userFavorites, setUserFavorites] = useState<Set<string>>(new Set());
+  // User Interaction State — persisted via Zustand store
+  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
 
   // Expanded Card State (Accordion)
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -120,12 +122,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   const toggleUserFavorite = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      setUserFavorites(prev => {
-          const next = new Set(prev);
-          if (next.has(id)) next.delete(id);
-          else next.add(id);
-          return next;
-      });
+      toggleFavoriteTea(id);
   };
 
   const clearFilters = () => {

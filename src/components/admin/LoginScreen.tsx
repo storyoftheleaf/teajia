@@ -10,8 +10,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
   const [pwd, setPwd] = useState('');
 
   const checkLogin = () => {
-    // TODO: Implement actual password validation
-    // For now, just proceed to admin panel
     onLogin();
   };
 

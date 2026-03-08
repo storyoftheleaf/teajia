@@ -3,7 +3,7 @@ import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 import { useScrollLock } from '../../hooks/useScrollLock';
 
-const PLACEHOLDER_PHONE = '6281234567890';
+const DEFAULT_PHONE = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
 interface ProductInquiryProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ function buildWhatsAppUrl(productName: string, phone: string): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
-export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone = PLACEHOLDER_PHONE }) => {
+export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone = DEFAULT_PHONE }) => {
   useScrollLock(isOpen);
 
   const [channel, setChannel] = useState<InquiryChannel>('choose');

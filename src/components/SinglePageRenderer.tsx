@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { LayoutVariant, Story } from '../types';
 import { Icons } from './Icons';
 import { SkeletonLoader } from './shared/SkeletonLoader';
+import { sanitizeHTML } from '../utils/sanitize';
 
 export interface PageData {
   variant: LayoutVariant;
@@ -126,11 +127,11 @@ const EditableText = ({ value, onChange, className = "", placeholder = "Type her
 
   const Tag = tag;
   const shouldSync = readOnly || !isFocused;
-  const htmlProp = shouldSync ? { __html: value || placeholder } : undefined;
+  const htmlProp = shouldSync ? { __html: sanitizeHTML(value || placeholder) } : undefined;
 
   if (readOnly || !onChange) {
       if (!value && readOnly && !placeholder) return null;
-      return <Tag className={`${sharedClasses} ${className} ${animClass}`} style={style} dangerouslySetInnerHTML={{ __html: value || placeholder }} />;
+      return <Tag className={`${sharedClasses} ${className} ${animClass}`} style={style} dangerouslySetInnerHTML={{ __html: sanitizeHTML(value || placeholder) }} />;
   }
 
   return (
