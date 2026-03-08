@@ -369,7 +369,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           const completedCount = LEARN_CURRICULUM.filter(m => moduleCompletion[m.id]).length;
           return (
             <button
-              onClick={() => onStoryClick(getModuleTarget(nextModule))}
+              onClick={() => onNavigateTo('course')}
               className={`w-full text-left group ${CTA_FOCUS}`}
             >
               <CardContainer variant="dark">
