@@ -6,7 +6,7 @@ import { useScrollLock } from '../hooks/useScrollLock';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // CONFIG
-const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
+const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -421,6 +421,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    value={details.name}
                                    onChange={(e) => handleFieldChange('name', e.target.value)}
                                    onBlur={() => handleFieldBlur('name')}
+                                   aria-describedby={touched.name && errors.name ? 'name-error' : undefined}
+                                   aria-invalid={touched.name && !!errors.name}
                                    className={`w-full bg-white/50 dark:bg-white/5 border-b p-2 focus:outline-none dark:text-white font-serif text-lg placeholder:text-tea-charcoal/20 dark:placeholder:text-white/20 transition-colors ${
                                        touched.name && errors.name
                                            ? 'border-red-500 focus:border-red-500'
@@ -433,7 +435,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                )}
                            </div>
                            {touched.name && errors.name && (
-                               <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                               <p id="name-error" role="alert" className="text-red-500 text-xs mt-1">{errors.name}</p>
                            )}
                        </div>
                        <div>
@@ -446,6 +448,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    value={details.contact}
                                    onChange={(e) => handleFieldChange('contact', e.target.value)}
                                    onBlur={() => handleFieldBlur('contact')}
+                                   aria-describedby={touched.contact && errors.contact ? 'contact-error' : undefined}
+                                   aria-invalid={touched.contact && !!errors.contact}
                                    className={`w-full bg-white/50 dark:bg-white/5 border-b p-2 focus:outline-none dark:text-white font-serif text-lg placeholder:text-tea-charcoal/20 dark:placeholder:text-white/20 transition-colors ${
                                        touched.contact && errors.contact
                                            ? 'border-red-500 focus:border-red-500'
@@ -458,7 +462,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                )}
                            </div>
                            {touched.contact && errors.contact && (
-                               <p className="text-red-500 text-xs mt-1">{errors.contact}</p>
+                               <p id="contact-error" role="alert" className="text-red-500 text-xs mt-1">{errors.contact}</p>
                            )}
                        </div>
                        <div>
@@ -469,6 +473,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    value={details.location}
                                    onChange={(e) => handleFieldChange('location', e.target.value)}
                                    onBlur={() => handleFieldBlur('location')}
+                                   aria-describedby={touched.location && errors.location ? 'location-error' : undefined}
+                                   aria-invalid={touched.location && !!errors.location}
                                    className={`w-full bg-white/50 dark:bg-white/5 border-b p-2 focus:outline-none dark:text-white font-serif text-lg placeholder:text-tea-charcoal/20 dark:placeholder:text-white/20 transition-colors ${
                                        touched.location && errors.location
                                            ? 'border-red-500 focus:border-red-500'
@@ -481,7 +487,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                )}
                            </div>
                            {touched.location && errors.location && (
-                               <p className="text-red-500 text-xs mt-1">{errors.location}</p>
+                               <p id="location-error" role="alert" className="text-red-500 text-xs mt-1">{errors.location}</p>
                            )}
                        </div>
                        <div>
