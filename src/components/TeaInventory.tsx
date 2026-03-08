@@ -414,29 +414,29 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         return (
                             <div
                                 key={item.id}
-                                className="relative border-b border-tea-ink/5 dark:border-white/5 hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02] transition-colors duration-300 cursor-pointer select-none active:bg-tea-ink/5 dark:active:bg-white/5"
-                                onClick={() => setViewItem(item)}
+                                className={`relative border-b border-tea-ink/5 dark:border-white/5 transition-colors duration-300 ${isExpanded ? 'bg-tea-ink/5 dark:bg-white/5' : 'hover:bg-tea-ink/[0.02] dark:hover:bg-white/[0.02]'}`}
                             >
-                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3">
+                                {/* Row — tap to expand accordion */}
+                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 cursor-pointer select-none" onClick={() => toggleExpand(item.id)}>
 
                                     {/* Left: name + metadata */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-serif text-lg leading-none text-tea-ink dark:text-tea-paper">
+                                            <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-seal' : 'text-tea-ink dark:text-tea-paper'}`}>
                                                 {item.name}
                                             </h3>
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-seal shrink-0 opacity-80" />}
                                         </div>
                                         <div className="text-[11px] uppercase tracking-wider text-tea-ink/50 dark:text-tea-paper/50 mt-1 truncate flex items-center gap-2">
-                                             <span className="font-mono">{item.year}</span>
+                                             <span className={`font-mono ${isExpanded ? 'text-tea-seal' : ''}`}>{item.year}</span>
                                              <span className="opacity-40">•</span>
                                              <span>{item.variant}</span>
                                         </div>
                                     </div>
 
-                                    {/* Right: price, heart, details arrow */}
+                                    {/* Right: price, heart, details button, expand chevron */}
                                     <div className="flex items-center gap-3 shrink-0">
-                                        <span className="font-mono text-sm tracking-wide text-tea-ink/80 dark:text-tea-paper/80">
+                                        <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-seal' : 'text-tea-ink/80 dark:text-tea-paper/80'}`}>
                                             ${pricePerGram.toFixed(2)}/g
                                         </span>
                                         <button
@@ -445,7 +445,57 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         >
                                             <Icons.Heart filled={isFavorite} className="w-3.5 h-3.5" />
                                         </button>
-                                        <Icons.ChevronRight className="w-4 h-4 text-tea-ink/25 dark:text-tea-paper/25" />
+                                        {/* Details button — opens AlcoveCard */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                            className="p-1 text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-seal active:text-tea-seal transition-colors"
+                                            aria-label={`View details for ${item.name}`}
+                                        >
+                                            <Icons.ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Accordion — quick add */}
+                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    <div className="pl-4 pr-2 pb-3 pt-0">
+                                        <p className="font-serif text-sm text-tea-ink/80 dark:text-tea-paper/80 mb-3 leading-relaxed max-w-2xl">
+                                            {item.description}
+                                        </p>
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-3 pr-4 border border-tea-ink/5 dark:border-white/5">
+                                            <div className="flex-1 flex items-center gap-3 px-2">
+                                                <div className="flex flex-col min-w-[60px]">
+                                                    <span className="text-[10px] uppercase tracking-widest text-tea-ink/50 dark:text-tea-paper/50">Qty</span>
+                                                    <span className="font-mono text-sm text-tea-ink dark:text-tea-paper">
+                                                        {currentQty}g <span className="opacity-30 mx-0.5">/</span> <span className="opacity-40">{maxStock}g</span>
+                                                    </span>
+                                                </div>
+                                                <HapticSlider
+                                                    min={25}
+                                                    max={maxStock}
+                                                    step={25}
+                                                    value={currentQty}
+                                                    onChange={(val) => updateQuantity(item.id, val)}
+                                                    size="sm"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                    className="text-tea-seal hover:text-tea-seal/80 text-[11px] uppercase tracking-widest font-medium py-2 px-3 rounded-[1px] transition-all border border-tea-seal/20 hover:border-tea-seal/40"
+                                                >
+                                                    Details
+                                                </button>
+                                                <button
+                                                    onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
+                                                    className="bg-tea-seal hover:bg-tea-seal/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                >
+                                                    <span>Add</span>
+                                                    <span className="w-[1px] h-2.5 bg-white/30"></span>
+                                                    <span className="font-mono">${totalPrice.toFixed(2)}</span>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

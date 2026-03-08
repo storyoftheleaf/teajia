@@ -31,17 +31,6 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       {/* View Mode Toggle */}
       <div className="flex items-center bg-tea-ink/5 dark:bg-white/5 rounded-[1px] p-0.5 border border-tea-ink/10 dark:border-white/10">
         <button
-          onClick={() => onViewModeChange('GRID')}
-          className={`p-1.5 rounded-[1px] transition-all ${
-            viewMode === 'GRID'
-              ? 'bg-tea-ink text-white dark:bg-tea-paper dark:text-tea-charcoal shadow-sm'
-              : 'text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper'
-          }`}
-          title="Grid View"
-        >
-          <Icons.Grid className="w-3.5 h-3.5" />
-        </button>
-        <button
           onClick={() => onViewModeChange('LIST')}
           className={`p-1.5 rounded-[1px] transition-all ${
             viewMode === 'LIST'
@@ -51,6 +40,17 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
           title="List View"
         >
           <Icons.List className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => onViewModeChange('GRID')}
+          className={`p-1.5 rounded-[1px] transition-all ${
+            viewMode === 'GRID'
+              ? 'bg-tea-ink text-white dark:bg-tea-paper dark:text-tea-charcoal shadow-sm'
+              : 'text-tea-ink/40 dark:text-tea-paper/40 hover:text-tea-ink dark:hover:text-tea-paper'
+          }`}
+          title="Grid View"
+        >
+          <Icons.Grid className="w-3.5 h-3.5" />
         </button>
       </div>
 
