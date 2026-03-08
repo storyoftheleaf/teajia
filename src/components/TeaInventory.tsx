@@ -431,7 +431,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {/* Title & Tags */}
                                             <div className="flex flex-col justify-center lg:min-w-[180px]">
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-seal' : 'text-tea-ink dark:text-tea-paper group-hover:text-tea-ink/90 dark:group-hover:text-tea-paper/90'}`}>
+                                                    <h3
+                                                        className={`font-serif text-lg leading-none transition-colors underline decoration-tea-ink/10 dark:decoration-tea-paper/10 underline-offset-2 ${isExpanded ? 'text-tea-seal decoration-tea-seal/20' : 'text-tea-ink dark:text-tea-paper active:text-tea-seal'}`}
+                                                        onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
+                                                    >
                                                         {item.name}
                                                     </h3>
                                                     {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-seal shrink-0 opacity-80" />}
