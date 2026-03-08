@@ -24,7 +24,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
 
   return (
     <div
-      className={`${THUMBNAIL_SIZE_CLASS} relative shrink-0 rounded-[2px] overflow-hidden bg-tea-elevated border border-tea-border cursor-pointer group/thumb transition-all ${className}`}
+      className={`${THUMBNAIL_SIZE_CLASS} relative shrink-0 rounded-xl overflow-hidden bg-tea-elevated border border-tea-border cursor-pointer group/thumb transition-all ${className}`}
       onClick={onClick}
     >
       {src && !hasError ? (

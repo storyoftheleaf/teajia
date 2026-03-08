@@ -105,7 +105,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
             setSearchQuery(e.target.value);
             setActiveLetter(null);
           }}
-          className="w-full pl-11 pr-4 py-3 bg-tea-elevated border border-tea-border rounded-[2px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:border-tea-gold/30 transition-colors"
+          className="w-full pl-11 pr-4 py-3 bg-tea-surface border border-tea-border rounded-[10px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:border-tea-gold/30 transition-colors"
         />
         {searchQuery && (
           <button
@@ -127,10 +127,10 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                 setActiveCategory(cat.id);
                 setActiveLetter(null);
               }}
-              className={`px-3.5 py-1.5 rounded-[2px] text-[11px] uppercase tracking-[0.12em] font-sans whitespace-nowrap transition-all duration-300
+              className={`px-3.5 py-1.5 rounded-full text-[10px] uppercase tracking-[0.15em] font-sans whitespace-nowrap transition-all duration-300
                 ${activeCategory === cat.id
-                  ? 'bg-tea-gold/15 text-tea-gold border border-tea-gold/30'
-                  : 'text-tea-text-sec border border-transparent hover:text-tea-text hover:border-tea-border'
+                  ? 'text-tea-gold border border-tea-gold/30'
+                  : 'text-tea-text-sec border border-tea-border hover:text-tea-text'
                 }`}
             >
               {cat.label}
@@ -145,7 +145,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
           <div className="flex gap-0.5 pb-1">
             <button
               onClick={() => setActiveLetter(null)}
-              className={`w-8 h-8 flex items-center justify-center rounded-[2px] text-xs font-sans transition-all
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-sans transition-all
                 ${!activeLetter
                   ? 'bg-tea-gold/15 text-tea-gold'
                   : 'text-tea-text-dim hover:text-tea-text-sec'
@@ -157,7 +157,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
               <button
                 key={letter}
                 onClick={() => setActiveLetter(activeLetter === letter ? null : letter)}
-                className={`w-8 h-8 flex items-center justify-center rounded-[2px] text-xs font-mono transition-all
+                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-mono transition-all
                   ${activeLetter === letter
                     ? 'bg-tea-gold/15 text-tea-gold'
                     : 'text-tea-text-dim hover:text-tea-text-sec'
@@ -189,10 +189,10 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                   <button
                     key={term.id}
                     onClick={() => handleTermClick(term.id)}
-                    className={`text-left rounded-[2px] border-l-2 transition-all duration-300
+                    className={`text-left rounded-xl border transition-all duration-300
                       ${expandedTermId === term.id
-                        ? 'bg-tea-elevated border-l-tea-gold'
-                        : 'bg-tea-elevated/50 border-l-tea-border hover:bg-tea-elevated hover:border-l-tea-gold/40'
+                        ? 'bg-tea-surface border-tea-gold/25'
+                        : 'bg-tea-surface border-tea-border hover:border-tea-gold/15'
                       }`}
                   >
                     <div className="p-4">
@@ -283,7 +283,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                                       setActiveCategory('all');
                                       setActiveLetter(null);
                                     }}
-                                    className="px-2 py-1 text-tea-gold/80 text-[11px] font-sans border border-tea-gold/15 rounded-[2px] cursor-pointer hover:border-tea-gold/30 hover:bg-tea-gold/5 transition-colors"
+                                    className="px-2 py-1 text-tea-gold/80 text-[11px] font-sans border border-tea-gold/15 rounded-lg cursor-pointer hover:border-tea-gold/30 hover:bg-tea-gold/5 transition-colors"
                                   >
                                     {related.term}
                                     {related.chineseCharacters && (
@@ -335,7 +335,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         <div className="mt-10 text-center">
           <button
             onClick={onExpandClick}
-            className="inline-flex items-center gap-2 px-5 py-2.5 border border-tea-border text-tea-text-sec rounded-[2px] hover:border-tea-gold/30 hover:text-tea-gold transition-colors text-xs uppercase tracking-[0.12em] font-sans"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border border-tea-border text-tea-text-sec rounded-lg hover:border-tea-gold/30 hover:text-tea-gold transition-colors text-xs uppercase tracking-[0.12em] font-sans"
           >
             View Full Glossary
             <Icons.ChevronRight className="w-3.5 h-3.5" />

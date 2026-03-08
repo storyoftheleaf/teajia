@@ -17,13 +17,13 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out] overflow-y-auto">
-      <div className="bg-tea-surface  rounded-[2px] max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8 animate-[slideUp_0.4s_ease-out]">
+      <div className="bg-tea-surface  rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8 animate-[slideUp_0.4s_ease-out]">
         {/* Header with Close Button */}
         <div className="sticky top-0 bg-tea-surface  border-b border-tea-border p-6 flex items-start justify-between">
           <h2 className="text-2xl font-serif text-tea-text pr-4">{contributor.name}</h2>
           <button
             onClick={onClose}
-            className="flex-shrink-0 p-2 hover:bg-tea-text/10 rounded-[1px] transition-colors"
+            className="flex-shrink-0 p-2 hover:bg-tea-text/10 rounded-lg transition-colors"
             aria-label="Close profile"
           >
             <Icons.Close className="w-5 h-5 text-tea-text/60" />
@@ -34,7 +34,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
           {/* Avatar & Role */}
           <div className="flex gap-8 md:flex-row flex-col">
             {contributor.avatarUrl && (
-              <div className="w-48 h-48 md:w-40 md:h-40 rounded-[2px] overflow-hidden bg-white/5 flex-shrink-0">
+              <div className="w-48 h-48 md:w-40 md:h-40 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
                 <img
                   src={contributor.avatarUrl}
                   alt={contributor.name}
@@ -52,7 +52,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
               {/* This can be extended with social links from the PEOPLE_DIRECTORY data */}
               <div className="flex items-center gap-4">
                 <span className="text-sm text-tea-text/60">Share</span>
-                <button className="p-2 hover:bg-tea-text/10 rounded-[1px] transition-colors" title="Share on X">
+                <button className="p-2 hover:bg-tea-text/10 rounded-lg transition-colors" title="Share on X">
                   <Icons.Share2 className="w-4 h-4 text-tea-text/60" />
                 </button>
               </div>
@@ -70,7 +70,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                 {authoredArticles.map((article: any) => (
                   <div
                     key={article.id}
-                    className="p-4 border border-tea-border rounded-[1px] hover:bg-white/50 cursor-pointer transition-colors"
+                    className="p-4 border border-tea-border rounded-xl hover:bg-white/50 cursor-pointer transition-colors"
                   >
                     <h4 className="font-serif text-tea-text mb-1">{article.title}</h4>
                     <p className="text-xs text-tea-text/60">
@@ -93,7 +93,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                 {offerings.map((offering: any) => (
                   <div
                     key={offering.id}
-                    className="p-4 border border-tea-gold/20 bg-tea-gold/10 rounded-[1px] hover:bg-tea-gold/20 cursor-pointer transition-colors"
+                    className="p-4 border border-tea-gold/20 bg-tea-gold/10 rounded-lg hover:bg-tea-gold/20 cursor-pointer transition-colors"
                   >
                     <h4 className="font-serif text-tea-text mb-1">{offering.title}</h4>
                     <p className="text-sm text-white/70 mb-2">{offering.description}</p>

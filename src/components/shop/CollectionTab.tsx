@@ -108,7 +108,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                       {item.mood && (
                         <div className="flex items-center gap-2.5">
                           <div
-                            className="w-[18px] h-[2px] rounded-[1px] shrink-0"
+                            className="w-[18px] h-[2px] rounded-lg shrink-0"
                             style={{ background: accent, opacity: 0.7 }}
                           />
                           <span className="font-serif italic text-xs text-tea-paper/70">
@@ -119,7 +119,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                       {notes.slice(0, 3).map((note, i) => (
                         <div key={note} className="flex items-center gap-2.5">
                           <div
-                            className="h-[2px] rounded-[1px] shrink-0"
+                            className="h-[2px] rounded-lg shrink-0"
                             style={{
                               width: `${16 - i * 2}px`,
                               background: accent,

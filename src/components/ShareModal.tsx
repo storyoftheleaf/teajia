@@ -170,7 +170,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               {/* Footer Brand */}
               <div className="absolute bottom-12 left-0 w-full text-center z-10">
                   <div className="flex items-center justify-center gap-2 mb-2 opacity-80">
-                     <div className="w-6 h-6 bg-tea-bg rounded-[1px] flex items-center justify-center">
+                     <div className="w-6 h-6 bg-tea-bg rounded-lg flex items-center justify-center">
                         <span className="text-tea-text font-serif font-bold text-xs mt-0.5">T</span>
                      </div>
                      <span className="text-tea-paper text-xs tracking-[0.3em] font-serif">TEAJIA</span>

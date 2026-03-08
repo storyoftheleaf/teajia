@@ -82,7 +82,7 @@ export const Shop: React.FC<ShopProps> = ({
       className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
       onClick={() => handleAddStarterSet(set)}
     >
-      <div className="p-2 md:p-3 bg-tea-elevated border border-tea-border rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+      <div className="p-2 md:p-3 bg-tea-surface border border-tea-border rounded-[14px]">
         <CardImage src={set.image} alt={set.name} aspect="square" />
         <div className="px-1 mt-3">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
@@ -97,7 +97,7 @@ export const Shop: React.FC<ShopProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
               disabled={isAddingToCart[set.id]}
-              className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
+              className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
             >
               <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
               <span className="w-[1px] h-3 bg-white/30" />

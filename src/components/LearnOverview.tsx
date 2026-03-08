@@ -172,7 +172,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         style={heroReveal.style}
       >
         {/* Hero image — wide, cinematic */}
-        <div className="relative overflow-hidden rounded-[1px] mb-6 md:mb-8">
+        <div className="relative overflow-hidden rounded-xl mb-6 md:mb-8">
           <img
             src={TEA_IMAGES.hero}
             alt="Tea ceremony with gaiwan and morning light"
@@ -233,7 +233,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         {/* Search results */}
         {searchResults && searchResults !== 'empty' && (
-          <div className="mt-4 bg-tea-paper dark:bg-tea-ink border border-tea-ink/10 dark:border-white/10 rounded-[1px] p-5 space-y-4">
+          <div className="mt-4 bg-tea-surface border border-tea-border rounded-xl p-5 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
                 <span className="text-[10px] uppercase tracking-[0.3em] text-tea-seal font-sans block mb-2">Courses</span>
@@ -462,8 +462,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-ink dark:bg-white/[0.03] rounded-[1px] border border-white/[0.06] p-5 md:p-6 hover:border-tea-seal/20 transition-colors duration-300">
-                <span className="text-tea-seal/30 mb-4 block group-hover:text-tea-seal/50 transition-colors">
+              <div className="h-full bg-tea-surface rounded-[14px] border border-tea-border p-5 md:p-6 hover:border-tea-gold/20 transition-colors duration-300">
+                <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
                 <h4 className="font-serif text-sm text-tea-paper leading-snug mb-1 group-hover:text-tea-seal transition-colors">
@@ -506,7 +506,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onStoryClick(geographyLesson)}
               className={`text-left w-full group ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/15 transition-colors duration-300">
+              <div className="relative overflow-hidden rounded-xl border border-tea-border hover:border-tea-gold/15 transition-colors duration-300">
                 {/* Location photo */}
                 <img
                   src={TEA_IMAGES.places[i % TEA_IMAGES.places.length]}
@@ -547,7 +547,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           onClick={() => onNavigateTo('spaces')}
           className={`w-full text-left group ${CTA_FOCUS}`}
         >
-          <div className="overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8">
+          <div className="overflow-hidden rounded-xl border border-tea-border">
             {/* Atmospheric image */}
             <img
               src={TEA_IMAGES.teaSpace}

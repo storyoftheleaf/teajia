@@ -74,7 +74,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                     <span className="text-xs uppercase tracking-widest font-bold md:hidden">Exit</span>
                 </button>
 
-                <div className="flex bg-tea-bg rounded-[1px] p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
+                <div className="flex bg-tea-bg rounded-lg p-0.5 border border-white/20 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
                     <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-widest transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-white/80 hover:text-white'}`}>
                         {isMedia ? 'Poster' : 'Canvas'}
                     </button>
@@ -687,7 +687,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
         <div className="w-full md:w-64 bg-tea-bg border-r border-white/10 flex flex-col shrink-0 h-16 md:h-full z-10">
              <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 gap-3 bg-tea-bg">
                  <div className="flex items-center gap-3">
-                     <div className="w-8 h-8 bg-tea-gold rounded-[1px] flex items-center justify-center text-black font-serif font-bold">T</div>
+                     <div className="w-8 h-8 bg-tea-gold rounded-lg flex items-center justify-center text-black font-serif font-bold">T</div>
                      <span className="text-xs uppercase tracking-widest text-white/70 hidden md:inline">Admin</span>
                  </div>
                  <div className="flex items-center gap-2 md:hidden">
@@ -758,7 +758,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <div key={s.id} onClick={() => handleEdit(s)} className="aspect-[3/4] bg-tea-bg relative group cursor-pointer border border-white/10 hover:border-tea-gold transition-all">
                                 {s.thumbnailUrl && <img src={s.thumbnailUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="" />}
                                 <div className="absolute top-2 left-2 flex gap-1">
-                                    <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-[1px] ${s.status === 'published' ? 'text-tea-green' : 'text-white/80'}`}>
+                                    <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg ${s.status === 'published' ? 'text-tea-green' : 'text-white/80'}`}>
                                         {s.status}
                                     </span>
                                 </div>
@@ -766,7 +766,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     <h3 className="text-white font-serif text-lg leading-tight line-clamp-2 mb-1">{s.title}</h3>
                                     <span className="text-[10px] uppercase text-white/70">{s.subtitle}</span>
                                 </div>
-                                <button onClick={(e) => handleDelete(e, s.id)} className="absolute top-2 right-2 p-1.5 bg-red-900/80 text-white rounded-[1px] opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-3 h-3" /></button>
+                                <button onClick={(e) => handleDelete(e, s.id)} className="absolute top-2 right-2 p-1.5 bg-red-900/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-3 h-3" /></button>
                             </div>
                         ))}
                     </div>
@@ -807,10 +807,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
 
                                     {/* Status Badge */}
                                     <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
-                                        <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-[1px] text-white/70 border border-white/10`}>
+                                        <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg text-white/70 border border-white/10`}>
                                             {s.type}
                                         </span>
-                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-widest bg-black/60 px-1.5 py-0.5 rounded-[1px] border border-tea-gold/20">Vault</span>}
+                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-widest bg-black/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
                                     </div>
 
                                     {/* Bottom Meta */}
@@ -826,7 +826,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                             )}
                                         </div>
                                     </div>
-                                     <button onClick={(e) => handleDelete(e, s.id)} className="absolute top-2 right-2 p-1.5 bg-red-900/80 text-white rounded-[1px] opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-3 h-3" /></button>
+                                     <button onClick={(e) => handleDelete(e, s.id)} className="absolute top-2 right-2 p-1.5 bg-red-900/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash className="w-3 h-3" /></button>
                                 </div>
                             );
                         })}

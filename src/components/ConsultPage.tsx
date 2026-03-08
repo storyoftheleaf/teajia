@@ -268,7 +268,7 @@ const TileGrid: React.FC<TileGridProps> = ({ onTileClick }) => (
         onClick={() => onTileClick(tile.id)}
         className={`
           ${tile.flagship ? 'col-span-2 md:col-span-2 md:row-span-2' : ''}
-          group relative overflow-hidden rounded-[2px]
+          group relative overflow-hidden rounded-lg
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2
           transition-transform duration-300 md:hover:scale-[1.02]
         `}
@@ -317,7 +317,7 @@ const AdrianSection: React.FC = () => {
           src="https://images.unsplash.com/photo-1545239351-ef35f43d514b?w=600&q=80&auto=format"
           alt="Adrian Rasmussen"
           className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-text/[0.06] 
-                     rounded-[2px] shrink-0"
+                     rounded-lg shrink-0"
           loading="lazy"
         />
 
@@ -471,7 +471,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => {
       <div className="w-12 h-[1px] bg-tea-gold mx-auto mt-4 mb-8" />
       <button onClick={onOpenInquiry}
         className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium
-                   py-3.5 px-8 rounded-[1px] transition-colors min-h-[44px] mx-auto inline-flex items-center gap-2
+                   py-3.5 px-8 rounded-lg transition-colors min-h-[44px] mx-auto inline-flex items-center gap-2
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2">
         Start a Conversation
         <Icons.ChevronRight className="w-3.5 h-3.5" />

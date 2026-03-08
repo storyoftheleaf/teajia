@@ -16,11 +16,11 @@ const CardContainerComponent: React.FC<CardContainerProps> = ({
   className = '',
   variant = 'dark'
 }) => {
-  const baseStyles = 'rounded-[1px] overflow-hidden transition-all duration-300';
+  const baseStyles = 'rounded-[14px] overflow-hidden transition-all duration-300';
 
   const variantStyles = variant === 'dark'
-    ? 'bg-tea-elevated border border-tea-border shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)]'
-    : 'bg-tea-surface border border-tea-border shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.12)]';
+    ? 'bg-tea-surface border border-tea-border'
+    : 'bg-tea-surface border border-tea-border';
 
   return (
     <div className={`${baseStyles} ${variantStyles} ${className}`}>

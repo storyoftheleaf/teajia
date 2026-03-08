@@ -24,7 +24,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
       </button>
 
       <div className="w-full max-w-xs text-center">
-        <div className="w-12 h-12 bg-tea-gold rounded-[1px] mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">
+        <div className="w-12 h-12 bg-tea-gold rounded-lg mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">
           T
         </div>
         <h2 className="text-white font-serif text-xl mb-6">Editor Access</h2>

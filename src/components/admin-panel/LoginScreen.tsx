@@ -20,7 +20,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
         <div className="w-full h-full bg-tea-bg flex items-center justify-center p-6 md:pb-6">
             <button onClick={onClose} className="absolute top-6 left-6 text-white/80 hover:text-white" aria-label="Close login screen"><Icons.Close className="w-6 h-6" /></button>
             <div className="w-full max-w-xs text-center">
-                <div className="w-12 h-12 bg-tea-gold rounded-[1px] mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">T</div>
+                <div className="w-12 h-12 bg-tea-gold rounded-lg mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">T</div>
                 <h2 className="text-white font-serif text-xl mb-6">Editor Access</h2>
                 
                 {!createdKey ? (

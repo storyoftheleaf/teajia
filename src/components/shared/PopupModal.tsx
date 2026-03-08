@@ -184,7 +184,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const totalPrice = getQuantityPrice(item, currentQuantity);
 
   const purchaseControls = showQuantityControls && onAddToCart && (
-    <div className="bg-white/5 rounded-[1px] p-4 w-full backdrop-blur-sm border border-white/5 mt-4">
+    <div className="bg-white/5 rounded-lg p-4 w-full backdrop-blur-sm border border-white/5 mt-4">
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
@@ -202,7 +202,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -213,7 +213,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <span className="text-[10px] uppercase tracking-widest text-tea-paper/60">Quantity</span>
-            <div className="flex items-center border border-white/20 rounded-[1px] bg-black/20 ml-auto">
+            <div className="flex items-center border border-white/20 rounded-lg bg-black/20 ml-auto">
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
@@ -229,7 +229,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>

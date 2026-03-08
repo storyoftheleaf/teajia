@@ -501,7 +501,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </p>
 
                                         {/* Controls */}
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/5 rounded-[1px] p-3 pr-4 border border-tea-border">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-text/5 rounded-lg p-3 pr-4 border border-tea-border">
 
                                             {/* Slider */}
                                             <div className="flex-1 flex items-center gap-3 px-2">
@@ -526,13 +526,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-gold hover:text-tea-gold/80 text-[11px] uppercase tracking-widest font-medium py-2 px-3 rounded-[1px] transition-all border border-tea-gold/20 hover:border-tea-gold/40"
+                                                    className="text-tea-gold hover:text-tea-gold/80 text-[11px] uppercase tracking-widest font-medium py-2 px-3 rounded-lg transition-all border border-tea-gold/20 hover:border-tea-gold/40"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                                                    className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
                                                 >
                                                     <span>Add</span>
                                                     <span className="w-[1px] h-2.5 bg-white/30"></span>

@@ -335,7 +335,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    ) : (
                        cart.map(item => (
                            <div key={item.id} className="flex gap-4 border-b border-tea-border  pb-4">
-                               <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-[1px] shrink-0">
+                               <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-xl shrink-0">
                                    {item.image ? (
                                        <img src={item.image} className="w-full h-full object-cover sepia-[0.3]" alt={item.name} loading="eager" />
                                    ) : (
@@ -361,7 +361,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    <p className="text-[10px] uppercase tracking-wider text-tea-text-dim mb-3">{item.variant}</p>
 
                                    {/* Quantity stepper with +/− buttons (#23/#63) */}
-                                   <div className="flex items-center justify-between gap-3 bg-white/30 px-2 py-1.5 rounded-[1px]">
+                                   <div className="flex items-center justify-between gap-3 bg-white/30 px-2 py-1.5 rounded-lg">
                                        <div className="flex items-center gap-2">
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - (item.category === 'tea' ? 10 : 1)))}
@@ -512,7 +512,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
 
                    {/* Option 4: Success Message Animation */}
                    {successMessage.show && (
-                       <div className="animate-[fadeIn_0.3s_ease-out] bg-tea-green/10 border border-tea-green/30 text-tea-green px-4 py-3 rounded-[1px] flex items-center gap-2">
+                       <div className="animate-[fadeIn_0.3s_ease-out] bg-tea-green/10 border border-tea-green/30 text-tea-green px-4 py-3 rounded-lg flex items-center gap-2">
                            <Icons.Check className="w-4 h-4" />
                            <span className="text-xs uppercase tracking-widest font-medium">
                                {successMessage.type === 'whatsapp' && 'Opening WhatsApp...'}

@@ -84,17 +84,17 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
   // View mode toggle
   const viewModeToggle = (
     <div className="flex items-center gap-4 md:gap-6">
-      <div className="flex items-center bg-tea-text/5 rounded-[1px] p-0.5 border border-tea-border">
+      <div className="flex items-center bg-tea-text/5 rounded-lg p-0.5 border border-tea-border">
         <button
           onClick={() => setViewMode('GRID')}
-          className={`p-1.5 rounded-[1px] transition-all ${viewMode === 'GRID' ? 'bg-tea-elevated text-tea-text shadow-sm' : 'text-tea-text/40 hover:text-tea-text'}`}
+          className={`p-1.5 rounded-lg transition-all ${viewMode === 'GRID' ? 'bg-tea-elevated text-tea-text shadow-sm' : 'text-tea-text/40 hover:text-tea-text'}`}
           title="Grid View"
         >
           <Icons.Grid className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setViewMode('LIST')}
-          className={`p-1.5 rounded-[1px] transition-all ${viewMode === 'LIST' ? 'bg-tea-elevated text-tea-text shadow-sm' : 'text-tea-text/40 hover:text-tea-text'}`}
+          className={`p-1.5 rounded-lg transition-all ${viewMode === 'LIST' ? 'bg-tea-elevated text-tea-text shadow-sm' : 'text-tea-text/40 hover:text-tea-text'}`}
           title="Ledger View"
         >
           <Icons.List className="w-3.5 h-3.5" />
@@ -298,10 +298,10 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                           <div className="pl-20 pr-2 pb-6 pt-2">
                                               <p className="font-serif text-sm md:text-base text-tea-text/80 mb-6 leading-relaxed max-w-3xl italic border-l-2 border-tea-border pl-4">"{item.description}"</p>
-                                              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-tea-text/5 rounded-[1px] p-3 pr-4 border border-tea-border">
+                                              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-tea-text/5 rounded-lg p-3 pr-4 border border-tea-border">
                                                   <div className="flex items-center gap-4 px-2">
                                                       <span className="text-[10px] uppercase tracking-widest text-tea-text/50">Quantity</span>
-                                                      <div className="flex items-center border border-tea-border rounded-[1px] bg-tea-text/10 dark:bg-black/20">
+                                                      <div className="flex items-center border border-tea-border rounded-xl bg-tea-text/10 dark:bg-black/20">
                                                           <button onClick={() => updateQuantity(item.id, Math.max(1, currentQty - 1))} disabled={currentQty <= 1} className="px-3 py-1 hover:bg-tea-text/10 transition-colors text-tea-text  disabled:opacity-30">-</button>
                                                           <span className="px-3 py-1 font-mono text-sm border-l border-r border-tea-border min-w-[40px] text-center text-tea-text ">{currentQty}</span>
                                                           <button onClick={() => updateQuantity(item.id, Math.min(maxStock, currentQty + 1))} disabled={currentQty >= maxStock} className="px-3 py-1 hover:bg-tea-text/10 transition-colors text-tea-text  disabled:opacity-30">+</button>
@@ -309,7 +309,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                                       <span className="text-[10px] text-tea-text/40 font-mono">{maxStock} available</span>
                                                   </div>
                                                   <div className="flex-1"></div>
-                                                  <button onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)} className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-3 px-8 rounded-[1px] transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg min-w-[200px]">
+                                                  <button onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)} className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-widest font-medium py-3 px-8 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 shadow-lg min-w-[200px]">
                                                       <span>Add to Cart</span>
                                                       <span className="w-[1px] h-3 bg-white/30"></span>
                                                       <span className="font-mono text-sm">${totalPrice.toLocaleString()}</span>
