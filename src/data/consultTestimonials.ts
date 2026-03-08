@@ -19,14 +19,14 @@ export const consultTestimonials: ConsultTestimonial[] = [
     quote: 'He doesn\'t just design a room — he creates a feeling. Every detail has intention behind it.',
     name: 'Private Client',
     title: 'Tea Room, Singapore',
-    projectId: 'private-tea-room',
+    projectId: 'private-residence',
   },
   {
     id: 't3',
     quote: 'The sourcing journey changed how I understand tea. You can\'t get this from a book.',
     name: 'Collector',
     title: 'Taiwan Journey',
-    projectId: 'taiwan-journey',
+    projectId: 'journey-taiwan',
   },
   {
     id: 't4',

@@ -113,16 +113,43 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const entry = { ...formData, timestamp: new Date().toISOString() };
-    console.log('[InquiryForm] Submission:', entry);
+  const [submitting, setSubmitting] = useState(false);
+
+  const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }) => {
     try {
       const existing = JSON.parse(localStorage.getItem('teajia_inquiries') || '[]');
       localStorage.setItem('teajia_inquiries', JSON.stringify([...existing, entry]));
     } catch (err) {
-      console.error('[InquiryForm] Failed to save:', err);
+      console.error('[InquiryForm] Failed to save locally:', err);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+
+    const entry = { ...formData, timestamp: new Date().toISOString() };
+
+    // Try API first, fall back to localStorage
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (apiUrl) {
+      try {
+        const res = await fetch(`${apiUrl}/api/inquiries`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry),
+        });
+        if (!res.ok) throw new Error(`API responded ${res.status}`);
+      } catch (err) {
+        console.warn('[InquiryForm] API submission failed, saving locally:', err);
+        saveToLocalStorage(entry);
+      }
+    } else {
+      saveToLocalStorage(entry);
+    }
+
+    setSubmitting(false);
     setSubmitted(true);
     setTimeout(handleClose, 1500);
   };
@@ -273,7 +300,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
               />
 
               <div className="mt-8">
-                <Button type="submit" variant="primary" fullWidth>
+                <Button type="submit" variant="primary" fullWidth loading={submitting} disabled={submitting}>
                   Send
                 </Button>
               </div>
