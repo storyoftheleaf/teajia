@@ -4,6 +4,7 @@ interface CardContainerProps {
   children: React.ReactNode;
   className?: string;
   variant?: 'light' | 'dark';
+  style?: React.CSSProperties;
 }
 
 /**
@@ -14,7 +15,8 @@ interface CardContainerProps {
 const CardContainerComponent: React.FC<CardContainerProps> = ({
   children,
   className = '',
-  variant = 'dark'
+  variant = 'dark',
+  style,
 }) => {
   const baseStyles = 'rounded-[1px] overflow-hidden transition-all duration-300';
 
@@ -23,7 +25,7 @@ const CardContainerComponent: React.FC<CardContainerProps> = ({
     : 'bg-tea-surface';
 
   return (
-    <div className={`${baseStyles} ${variantStyles} ${className}`}>
+    <div className={`${baseStyles} ${variantStyles} ${className}`} style={style}>
       {children}
     </div>
   );

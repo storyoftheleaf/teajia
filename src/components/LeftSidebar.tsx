@@ -41,7 +41,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-20 xl:w-56 bg-tea-surface  text-tea-text border-r border-tea-border h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40">
+    <aside className="hidden lg:flex flex-col w-20 xl:w-56 text-tea-text border-r border-tea-border h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40" style={{ background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)', boxShadow: 'inset -1px 0 0 rgba(200,170,120,0.06)' }}>
       {/* Logo/Brand - Home Button */}
       <button
         onClick={() => onNavigate('HOME')}
@@ -58,7 +58,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               : 'opacity-80 group-hover:opacity-100 group-hover:scale-105'
           }`}
         />
-        <span className="hidden xl:block font-serif text-lg text-tea-text tracking-wide">Teajia</span>
+        <span className="hidden xl:block text-lg text-tea-text tracking-wide" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 300 }}>Teajia</span>
         {activeSection === 'HOME' && (
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full animate-[slideIn_0.3s_ease-out]"></div>
         )}

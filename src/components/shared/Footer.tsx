@@ -16,7 +16,8 @@ interface FooterProps {
 
 export default function Footer({ onNavigate }: FooterProps) {
   return (
-    <footer className="border-t border-tea-border pt-12 pb-16 md:pt-16 md:pb-20 lg:pb-20 mt-20">
+    <footer className="pt-12 pb-16 md:pt-16 md:pb-20 lg:pb-20 mt-20 relative">
+      <div className="divider-warm absolute top-0 left-0 right-0" />
       {/* Navigation links */}
       <nav className="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-8">
         {NAV_LINKS.map((link) => (

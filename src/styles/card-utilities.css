@@ -162,6 +162,52 @@
 }
 
 /* ============================================
+   Alcove-Inspired Inset Panel
+   Warm recessed surface with edge lighting and grain.
+   Use on sections that need atmospheric depth.
+   ============================================ */
+
+.inset-panel {
+  background:
+    radial-gradient(ellipse 80% 40% at 70% 0%, rgba(200, 170, 120, 0.04), transparent),
+    rgba(0, 0, 0, 0.15);
+  box-shadow:
+    inset 0 1px 0 rgba(200, 170, 120, 0.06),
+    inset 0 -1px 0 rgba(200, 170, 120, 0.03),
+    0 -1px 0 rgba(200, 170, 120, 0.05);
+  border-radius: 6px;
+  position: relative;
+}
+
+.inset-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 120px;
+}
+
+/* Light mode: softer inset */
+.light .inset-panel {
+  background:
+    radial-gradient(ellipse 80% 40% at 70% 0%, rgba(142, 109, 46, 0.03), transparent),
+    rgba(0, 0, 0, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(142, 109, 46, 0.08),
+    inset 0 -1px 0 rgba(142, 109, 46, 0.04),
+    0 -1px 0 rgba(142, 109, 46, 0.06);
+}
+
+/* Warm section divider — replaces flat border-t with a gradient fade */
+.divider-warm {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.2) 20%, rgba(184, 146, 78, 0.3) 50%, rgba(184, 146, 78, 0.2) 80%, transparent);
+}
+
+/* ============================================
    Light Mode Support
    ============================================ */
 
