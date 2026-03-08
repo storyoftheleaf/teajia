@@ -7,10 +7,13 @@ import { useSectionReveal } from '../../hooks/useSectionReveal';
    Shared helpers — reused across all service sections
    ===================================================== */
 
-const ServiceHero = ({ ariaLabel }: { ariaLabel: string }) => (
+const ServiceHero = ({ ariaLabel, img }: { ariaLabel: string; img?: string }) => (
   <CardContainer variant="dark" className="w-full overflow-hidden mb-6 md:mb-8">
-    <div className="w-full bg-tea-ink/90" style={{ height: 'clamp(180px, 30vh, 340px)' }}
-         role="img" aria-label={ariaLabel} />
+    {img ? (
+      <img src={img} alt={ariaLabel} className="w-full object-cover bg-tea-ink/90" style={{ height: 'clamp(180px, 30vh, 340px)' }} loading="lazy" />
+    ) : (
+      <div className="w-full bg-tea-ink/90" style={{ height: 'clamp(180px, 30vh, 340px)' }} role="img" aria-label={ariaLabel} />
+    )}
   </CardContainer>
 );
 
@@ -83,7 +86,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
       }} className={`pt-12 md:pt-16 ${reveal.className}`} style={reveal.style}>
-        <ServiceHero ariaLabel="A completed tea space with natural materials" />
+        <ServiceHero ariaLabel="A completed tea space with natural materials" img="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80&auto=format" />
         <ServiceLabel>Space Design</ServiceLabel>
         <ServiceHeading>Tea House Design & Curation</ServiceHeading>
         <ServiceDivider />
@@ -178,7 +181,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
       }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
-        <ServiceHero ariaLabel="Ceremonial tea space with floor seating" />
+        <ServiceHero ariaLabel="Ceremonial tea space with floor seating" img="https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=1200&q=80&auto=format" />
         <ServiceLabel>Sessions</ServiceLabel>
         <ServiceHeading>Sessions & Guidance</ServiceHeading>
         <ServiceDivider />
@@ -233,7 +236,7 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
       }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
-        <ServiceHero ariaLabel="Mountain tea terraces at sunrise" />
+        <ServiceHero ariaLabel="Mountain tea terraces at sunrise" img="https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&q=80&auto=format" />
         <ServiceLabel>Travel</ServiceLabel>
         <ServiceHeading>Sourcing Journeys</ServiceHeading>
         <ServiceDivider />
@@ -313,7 +316,7 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         if (typeof ref === 'function') ref(el);
         else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
       }} className={`pt-12 md:pt-16 border-t border-tea-ink/5 dark:border-white/5 ${reveal.className}`} style={reveal.style}>
-        <ServiceHero ariaLabel="Group tea ceremony with candles and charcoal" />
+        <ServiceHero ariaLabel="Group tea ceremony with candles and charcoal" img="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80&auto=format" />
         <ServiceLabel>Events</ServiceLabel>
         <ServiceHeading>Tea Experiences for Gatherings</ServiceHeading>
         <ServiceDivider />

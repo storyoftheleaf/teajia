@@ -30,30 +30,35 @@ const TILE_DATA = [
     badge: 'By Inquiry',
     ariaLabel: 'Tea house and space design services',
     flagship: true,
+    img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80&auto=format',
   },
   {
     id: 'sessions',
     label: 'Sessions',
     badge: 'From $50',
     ariaLabel: 'Tea sessions and guided practice',
+    img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&auto=format',
   },
   {
     id: 'journeys',
     label: 'Journeys',
     badge: 'Seasonal',
     ariaLabel: 'Sourcing journeys to tea origins',
+    img: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&q=80&auto=format',
   },
   {
     id: 'sourcing',
     label: 'Sourcing',
     badge: 'By Inquiry',
     ariaLabel: 'Tea sourcing for businesses and collectors',
+    img: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=600&q=80&auto=format',
   },
   {
     id: 'events',
     label: 'Events',
     badge: 'From $500',
     ariaLabel: 'Tea experiences for gatherings and events',
+    img: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80&auto=format',
   },
 ] as const;
 
@@ -251,14 +256,16 @@ const TileGrid: React.FC<TileGridProps> = ({ onTileClick }) => (
           transition-transform duration-300 md:hover:scale-[1.02]
         `}
       >
-        {/* Image placeholder with aspect ratio */}
-        <div
+        {/* Image with aspect ratio */}
+        <img
+          src={tile.img}
+          alt=""
+          aria-hidden="true"
           className={`
-            w-full bg-tea-ink/[0.06] dark:bg-white/[0.06]
+            w-full object-cover bg-tea-ink/[0.06] dark:bg-white/[0.06]
             ${tile.flagship ? 'aspect-[2/1] md:aspect-[4/3]' : 'aspect-[3/2]'}
           `}
-          role="img"
-          aria-hidden="true"
+          loading="lazy"
         />
 
         {/* Gradient overlay for text legibility */}
@@ -289,10 +296,13 @@ const AdrianSection: React.FC = () => {
     <section ref={reveal.ref} className={`mt-12 md:mt-16 ${reveal.className}`} style={reveal.style}>
       <div className="flex flex-col md:flex-row gap-6 md:gap-10">
         {/* Photo — full-width on mobile, constrained on desktop */}
-        <div className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] bg-tea-ink/[0.06] dark:bg-white/[0.06]
-                        rounded-[2px] flex items-center justify-center shrink-0">
-          <span className="text-xs text-tea-ink/20 dark:text-tea-paper/20 uppercase tracking-widest">Photo</span>
-        </div>
+        <img
+          src="https://images.unsplash.com/photo-1545239351-ef35f43d514b?w=600&q=80&auto=format"
+          alt="Adrian Rasmussen"
+          className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-ink/[0.06] dark:bg-white/[0.06]
+                     rounded-[2px] shrink-0"
+          loading="lazy"
+        />
 
         {/* Text */}
         <div className="flex flex-col justify-center">
@@ -373,10 +383,22 @@ interface ProjectCardProps {
   onClick: () => void;
 }
 
+const PROJECT_PLACEHOLDER_IMGS: Record<string, string> = {
+  'intaaya-resort': 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&q=80&auto=format',
+  'private-residence': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80&auto=format',
+  'studio-space-1': 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80&auto=format',
+};
+
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => (
   <button onClick={onClick} className="text-left group w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 rounded-sm">
     <CardContainer variant="dark" className="overflow-hidden mb-3 md:group-hover:-translate-y-1 transition-all duration-300">
-      <div className="w-full bg-tea-ink/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
+      <img
+        src={PROJECT_PLACEHOLDER_IMGS[project.id] || 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80&auto=format'}
+        alt={`${project.name} project`}
+        className="w-full object-cover bg-tea-ink/90"
+        style={{ aspectRatio: '16/10' }}
+        loading="lazy"
+      />
     </CardContainer>
     <h4 className="font-serif text-base font-medium text-tea-ink dark:text-tea-paper">{project.name}</h4>
     <p className="text-xs uppercase tracking-wider text-tea-ink/40 dark:text-tea-paper/40">{project.location}</p>
