@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Story } from '../types';
 import { Icons } from './Icons';
 import { LearnCurriculum } from './LearnCurriculum';
@@ -13,6 +13,7 @@ import { ReadingList } from './library/ReadingList';
 import { JourneysView } from './learn/JourneysView';
 import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
+import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
@@ -35,38 +36,32 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   cartItemCount = 0,
   onNavigateToConsult,
 }) => {
-  const [currentView, setCurrentView] = useState<LearnView>('overview');
+  // URL-synced sub-view navigation — browser back works properly
+  const { currentView, navigateTo, navigateBack, isSubView } = useSubViewNavigation<LearnView>('v', 'overview');
+
+  // Transition animation state (visual only, doesn't affect navigation)
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevView = useRef<LearnView>(currentView);
 
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const navigateTo = useCallback((view: LearnView) => {
-    if (reducedMotion) {
-      setCurrentView(view);
-      window.scrollTo(0, 0);
-      return;
+  // Fade transition when view changes
+  useEffect(() => {
+    if (prevView.current !== currentView) {
+      if (!reducedMotion) {
+        setIsTransitioning(true);
+        const timer = setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50); // Brief flash then fade in
+        return () => clearTimeout(timer);
+      }
+      prevView.current = currentView;
     }
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentView(view);
-      window.scrollTo(0, 0);
-      requestAnimationFrame(() => setIsTransitioning(false));
-    }, 150);
-  }, [reducedMotion]);
-
-  const navigateBack = useCallback(() => {
-    navigateTo('overview');
-  }, [navigateTo]);
+  }, [currentView, reducedMotion]);
 
   const handleNavigate = useCallback((section: LearnView | LibrarySubView) => {
-    if (section === 'overview') {
-      navigateTo('overview');
-    } else {
-      navigateTo(section as LearnView);
-    }
+    navigateTo(section as LearnView);
   }, [navigateTo]);
-
-  const isSubView = currentView !== 'overview';
 
   const renderSubView = () => {
     switch (currentView) {

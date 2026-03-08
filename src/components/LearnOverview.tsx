@@ -116,13 +116,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [activePath, setActivePath] = useState<string | null>(null);
+
   const heroReveal = useSectionReveal();
   const discoveryReveal = useSectionReveal();
   const glossaryReveal = useSectionReveal();
-  const pathsReveal = useSectionReveal();
   const coursesReveal = useSectionReveal();
   const voicesReveal = useSectionReveal();
-  const journeysReveal = useSectionReveal();
   const atlasReveal = useSectionReveal();
   const resourcesReveal = useSectionReveal();
   const spacesReveal = useSectionReveal();
@@ -171,6 +171,18 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
     const completed = pathModules.filter(m => m.lessons.every(l => watchedStories[l.id])).length;
     return pathModules.length > 0 ? completed / pathModules.length : 0;
   }, [watchedStories]);
+
+  // Path-filtered modules for unified curriculum section
+  const activePathData = useMemo(() => {
+    return activePath ? LEARN_PATHS.find(p => p.id === activePath) || null : null;
+  }, [activePath]);
+
+  const displayModules = useMemo(() => {
+    if (!activePathData) return LEARN_CURRICULUM;
+    return activePathData.modules
+      .map(id => LEARN_CURRICULUM.find(m => m.id === id))
+      .filter(Boolean) as typeof LEARN_CURRICULUM;
+  }, [activePathData]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
@@ -466,103 +478,67 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 4 — LEARNING PATHS
-          Generous cards with atmospheric image placeholders.
-          Each path feels like a distinct world to enter.
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section
-        ref={pathsReveal.ref}
-        className={`mb-20 md:mb-28 ${pathsReveal.className}`}
-        style={pathsReveal.style}
-      >
-        <SectionLabel withLine>Learning Paths</SectionLabel>
-
-        <SwipeCarousel
-          itemWidth={300}
-          gap={20}
-          showArrows={true}
-          showDots={true}
-          peek={3}
-          arrowTheme="light"
-        >
-          {LEARN_PATHS.map((path, i) => {
-            const progress = getPathProgress(path);
-            const pathIcon = PATH_ICON_MAP[path.icon] || <Icons.BookOpen className="w-5 h-5" />;
-            const moods: Array<'warm' | 'cool' | 'neutral'> = ['warm', 'cool', 'neutral'];
-            return (
-              <button
-                key={path.id}
-                onClick={() => onNavigateTo('course')}
-                className={`text-left w-full group ${CTA_FOCUS}`}
-              >
-                <div className="relative overflow-hidden rounded-[1px] border border-tea-ink/8 dark:border-white/8 hover:border-tea-seal/20 transition-colors duration-300">
-                  {/* Atmospheric top image */}
-                  <InkWashPlaceholder
-                    aspectRatio="16/10"
-                    mood={moods[i % moods.length]}
-                    label={path.title.toLowerCase()}
-                  />
-
-                  <div className="p-5 bg-tea-paper dark:bg-tea-ink">
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <span className="text-tea-seal/50">{pathIcon}</span>
-                      <h4 className="font-serif text-lg text-tea-ink dark:text-tea-paper group-hover:text-tea-seal transition-colors leading-tight tracking-tight">
-                        {path.title}
-                      </h4>
-                    </div>
-
-                    <p className="font-serif italic text-xs text-tea-ink/45 dark:text-tea-paper/45 mb-4 leading-relaxed">
-                      {path.description}
-                    </p>
-
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-mono text-[10px] text-tea-ink/35 dark:text-tea-paper/35">
-                        {path.modules.length} modules
-                      </span>
-                      {progress > 0 && (
-                        <span className="font-mono text-[10px] text-tea-seal/70">
-                          {Math.round(progress * 100)}%
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Progress — thin, elegant */}
-                    <div className="h-[2px] bg-tea-ink/5 dark:bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-tea-seal/70 rounded-full transition-all duration-700 ease-out"
-                        style={{ width: `${Math.max(progress * 100, 0)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </SwipeCarousel>
-      </section>
-
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 5 — CURRICULUM
-          Clean numbered index. The numbers are the design element.
+          SECTION 4 — CURRICULUM (unified)
+          Paths are entry points. Modules are the content. Journeys are practice.
+          One section replaces the old Learning Paths + Curriculum + Journeys.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={coursesReveal.ref}
         className={`mb-20 md:mb-28 ${coursesReveal.className}`}
         style={coursesReveal.style}
       >
-        <div className="flex items-baseline justify-between mb-6">
-          <SectionLabel>Curriculum</SectionLabel>
+        <SectionLabel withLine>Curriculum</SectionLabel>
+
+        {/* Path selector — 3 entry points as tabs */}
+        <div className="flex flex-wrap gap-2 mb-8">
           <button
-            onClick={() => onNavigateTo('course')}
-            className={`text-tea-seal hover:text-tea-seal/70 text-xs font-sans flex items-center gap-1 transition-colors ${CTA_FOCUS}`}
+            onClick={() => setActivePath(null)}
+            className={`px-3 py-1.5 rounded-sm text-xs font-sans transition-colors min-h-[36px] ${
+              activePath === null
+                ? 'bg-tea-ink dark:bg-white/10 text-tea-paper dark:text-tea-paper'
+                : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50 hover:text-tea-ink dark:hover:text-tea-paper'
+            } ${CTA_FOCUS}`}
           >
-            All courses <Icons.ChevronRight className="w-3.5 h-3.5" />
+            All Modules
           </button>
+          {LEARN_PATHS.map(path => {
+            const pathIcon = PATH_ICON_MAP[path.icon] || <Icons.BookOpen className="w-3.5 h-3.5" />;
+            const progress = getPathProgress(path);
+            return (
+              <button
+                key={path.id}
+                onClick={() => setActivePath(activePath === path.id ? null : path.id)}
+                className={`px-3 py-1.5 rounded-sm text-xs font-sans flex items-center gap-1.5 transition-colors min-h-[36px] ${
+                  activePath === path.id
+                    ? 'bg-tea-ink dark:bg-white/10 text-tea-paper dark:text-tea-paper'
+                    : 'bg-tea-ink/5 dark:bg-white/5 text-tea-ink/50 dark:text-tea-paper/50 hover:text-tea-ink dark:hover:text-tea-paper'
+                } ${CTA_FOCUS}`}
+              >
+                <span className="text-tea-seal/60">{pathIcon}</span>
+                {path.title}
+                {progress > 0 && (
+                  <span className="text-tea-seal/60 text-[10px] ml-0.5">{Math.round(progress * 100)}%</span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="space-y-0">
-          {LEARN_CURRICULUM.map((mod, index) => {
+        {/* Active path description (when a path is selected) */}
+        {activePathData && (
+          <div className="mb-6 border-l-2 border-tea-seal/20 pl-4">
+            <p className="font-serif italic text-sm text-tea-ink/50 dark:text-tea-paper/50 leading-relaxed">
+              {activePathData.description}
+            </p>
+            <span className="text-[10px] font-mono text-tea-ink/30 dark:text-tea-paper/30 mt-1 block">
+              {activePathData.modules.length} modules in this path
+            </span>
+          </div>
+        )}
+
+        {/* Module list — filtered by path or showing all */}
+        <div className="space-y-0 mb-10">
+          {displayModules.map((mod, index) => {
             const isComplete = moduleCompletion[mod.id];
             const firstLesson = mod.lessons[0];
             return (
@@ -571,7 +547,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 onClick={() => onStoryClick(getModuleTarget(mod))}
                 className={`w-full flex items-start gap-5 md:gap-8 py-6 md:py-7 group text-left border-b border-tea-ink/6 dark:border-white/6 first:border-t hover:bg-tea-ink/[0.015] dark:hover:bg-white/[0.015] transition-colors px-1 ${CTA_FOCUS}`}
               >
-                {/* Large number — the design element */}
                 <span className={`font-serif text-3xl md:text-4xl tabular-nums leading-none flex-shrink-0 w-12 transition-colors ${
                   isComplete ? 'text-tea-seal/40' : 'text-tea-ink/10 dark:text-tea-paper/10 group-hover:text-tea-seal/30'
                 }`}>
@@ -611,6 +586,73 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               </button>
             );
           })}
+        </div>
+
+        {/* Practice — Guided Journeys inline */}
+        <div className="mt-2">
+          <div className="flex items-center gap-4 mb-5">
+            <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-seal/60">
+              Practice
+            </span>
+            <div className="flex-1 h-[0.5px] bg-tea-ink/8 dark:bg-white/8" />
+          </div>
+
+          <p className="font-serif italic text-xs text-tea-ink/40 dark:text-tea-paper/40 mb-5">
+            Guided tasting experiences to apply what you&rsquo;ve learned
+          </p>
+
+          <div className="space-y-3">
+            {CURATED_COLLECTIONS.slice(0, 2).map(collection => (
+              <button
+                key={collection.id}
+                onClick={() => onNavigateTo('journeys')}
+                className={`w-full text-left group ${CTA_FOCUS}`}
+              >
+                <div className="rounded-[1px] bg-tea-ink dark:bg-white/[0.03] border border-white/[0.06] hover:border-tea-seal/15 transition-colors p-5 md:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-sm font-sans ${DIFFICULTY_COLORS[collection.difficulty]}`}>
+                          {collection.difficulty}
+                        </span>
+                        <span className="font-mono text-[10px] text-tea-paper/25">
+                          {collection.estimatedDuration}
+                        </span>
+                      </div>
+                      <h4 className="font-serif text-base text-tea-paper leading-tight mb-1.5 group-hover:text-tea-seal transition-colors">
+                        {collection.title}
+                      </h4>
+                      <p className="text-xs text-tea-paper/35 leading-relaxed">
+                        {collection.description.slice(0, 80)}...
+                      </p>
+                    </div>
+                    <span className="text-tea-paper/20 flex-shrink-0 pt-1">
+                      <Icons.ChevronRight className="w-4 h-4" />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {CURATED_COLLECTIONS.length > 2 && (
+            <button
+              onClick={() => onNavigateTo('journeys')}
+              className={`mt-4 text-tea-seal text-xs font-sans flex items-center gap-1 hover:gap-2 transition-all ${CTA_FOCUS}`}
+            >
+              See all {counts.journeys} journeys <Icons.ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Full curriculum CTA */}
+        <div className="mt-8 pt-6 border-t border-tea-ink/6 dark:border-white/6">
+          <button
+            onClick={() => onNavigateTo('course')}
+            className={`text-tea-seal text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+          >
+            View full curriculum <Icons.ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </section>
 
@@ -707,86 +749,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 7 — GUIDED JOURNEYS
-          Full-bleed dark section. Each journey is an invitation.
-          ═══════════════════════════════════════════════════════════════════ */}
-      <section
-        ref={journeysReveal.ref}
-        className={`mb-20 md:mb-28 rounded-[1px] bg-tea-ink dark:bg-black/30 py-10 md:py-14 px-5 md:px-8 ${journeysReveal.className}`}
-        style={journeysReveal.style}
-      >
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <span className="text-[10px] font-sans uppercase tracking-[0.35em] text-tea-seal/60">
-              Guided Journeys
-            </span>
-            <div className="flex-1 h-[0.5px] bg-white/8" />
-          </div>
-          <p className="font-serif italic text-sm text-tea-paper/35 mb-10">
-            Step-by-step tasting experiences, designed to be brewed
-          </p>
-
-          <div className="space-y-5">
-            {CURATED_COLLECTIONS.map((collection, index) => (
-              <button
-                key={collection.id}
-                onClick={() => onNavigateTo('journeys')}
-                className={`w-full text-left group ${CTA_FOCUS}`}
-              >
-                <div className="relative overflow-hidden rounded-[1px] border border-white/[0.06] hover:border-tea-seal/15 transition-all duration-300">
-                  <div className="flex flex-col md:flex-row">
-                    {/* Journey image — hidden on mobile for cleaner layout, shown on md+ */}
-                    <div className="hidden md:block md:w-1/3 lg:w-2/5 flex-shrink-0 overflow-hidden">
-                      <InkWashPlaceholder
-                        aspectRatio="16/10"
-                        mood="dark"
-                        label={`${collection.guideSteps[0]?.teaName?.toLowerCase()}`}
-                      />
-                    </div>
-
-                    <div className="flex-1 p-6 md:p-8 relative">
-                      {/* Journey number — watermark */}
-                      <span className="absolute top-4 right-6 text-6xl md:text-7xl text-white/[0.03] font-serif leading-none select-none pointer-events-none" aria-hidden="true">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className={`text-[10px] px-2.5 py-1 rounded-sm font-sans ${DIFFICULTY_COLORS[collection.difficulty]}`}>
-                          {collection.difficulty}
-                        </span>
-                        <span className="font-mono text-[11px] text-tea-paper/30">
-                          {collection.estimatedDuration}
-                        </span>
-                      </div>
-
-                      <h4 className="font-serif text-xl md:text-2xl text-tea-paper leading-tight mb-3 group-hover:text-tea-seal transition-colors tracking-tight">
-                        {collection.title}
-                      </h4>
-
-                      <p className="text-sm text-tea-paper/40 leading-relaxed mb-5 max-w-md">
-                        {collection.description.slice(0, 100)}...
-                      </p>
-
-                      <div className="flex items-center gap-4">
-                        <span className="text-[11px] text-tea-paper/50 font-serif italic">
-                          Start with: {collection.guideSteps[0]?.teaName}
-                        </span>
-                        <span className="w-1 h-1 rounded-full bg-tea-paper/15" />
-                        <span className="text-[10px] text-tea-paper/25 font-mono">
-                          {collection.guideSteps.length} steps
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          SECTION 8 — ATLAS & PLACES
+          SECTION 7 — ATLAS & PLACES
           Location cards that feel like postcards from origin.
           ═══════════════════════════════════════════════════════════════════ */}
       <section
