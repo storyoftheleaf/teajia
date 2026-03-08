@@ -441,17 +441,17 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </span>
                                         <button
                                             onClick={(e) => toggleUserFavorite(e, item.id)}
-                                            className={`p-1 transition-colors ${isFavorite ? 'text-tea-seal' : 'text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-ink/50 dark:hover:text-tea-paper/50'}`}
+                                            className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-seal' : 'text-tea-ink/20 dark:text-tea-paper/20 hover:text-tea-ink/50 dark:hover:text-tea-paper/50'}`}
                                         >
-                                            <Icons.Heart filled={isFavorite} className="w-3.5 h-3.5" />
+                                            <Icons.Heart filled={isFavorite} className="w-5 h-5" />
                                         </button>
                                         {/* Details button — opens AlcoveCard */}
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                            className="p-1 text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-seal active:text-tea-seal transition-colors"
+                                            className="-my-1 p-2 text-tea-ink/30 dark:text-tea-paper/30 hover:text-tea-seal active:text-tea-seal transition-colors"
                                             aria-label={`View details for ${item.name}`}
                                         >
-                                            <Icons.ChevronRight className="w-4 h-4" />
+                                            <Icons.ChevronRight className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </div>
