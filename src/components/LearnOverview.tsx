@@ -169,7 +169,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         {/* Explore — flows directly from the hero, no separator */}
         <div>
           {[
-            { id: 'course' as LearnView, label: 'Courses', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-5 h-5" /> },
+            { id: 'course' as LearnView, label: 'Go Deeper', sub: `${counts.courses} modules`, icon: <Icons.BookOpen className="w-5 h-5" /> },
             { id: 'glossary' as LearnView, label: 'Glossary', sub: `${counts.glossary} terms`, icon: <Icons.Book className="w-5 h-5" /> },
             { id: 'journeys' as LearnView, label: 'Journeys', sub: `${counts.journeys} paths`, icon: <Icons.MapPin className="w-5 h-5" /> },
             { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Listen', icon: <Icons.Music className="w-5 h-5" /> },
@@ -358,7 +358,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`mb-20 md:mb-28 ${coursesReveal.className}`}
         style={coursesReveal.style}
       >
-        <SectionLabel>Curriculum</SectionLabel>
+        <SectionLabel>Go Deeper</SectionLabel>
 
         {/* Summary line */}
         <p className="text-sm text-tea-ink/50 dark:text-tea-paper/50 font-sans mb-8">
@@ -451,7 +451,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             onClick={() => onNavigateTo('course')}
             className={`text-tea-seal text-sm font-sans flex items-center gap-1.5 hover:gap-2.5 transition-all ${CTA_FOCUS}`}
           >
-            Enter the curriculum <Icons.ChevronRight className="w-4 h-4" />
+            Go deeper <Icons.ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </section>

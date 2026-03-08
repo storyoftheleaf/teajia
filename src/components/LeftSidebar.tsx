@@ -35,7 +35,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   const sections = [
     { id: 'MAGAZINE' as Section, label: 'Read' },
-    { id: 'LEARN' as Section, label: 'Go Deeper' },
+    { id: 'LEARN' as Section, label: 'Learn' },
     { id: 'OFFERINGS' as Section, label: 'Consult' },
     { id: 'SHOP' as Section, label: 'Shop' },
   ];
