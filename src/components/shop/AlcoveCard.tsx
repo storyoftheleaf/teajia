@@ -37,11 +37,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [hovered, setHovered] = useState<string | null>(null);
   const [storyExpanded, setStoryExpanded] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const storyScrollRef = useRef<HTMLDivElement>(null);
-  const [showFade, setShowFade] = useState(false);
-  const [storyFadeTop, setStoryFadeTop] = useState(false);
-  const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
   const sliderMin = 25;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -51,18 +46,37 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const total = fmtNum(pricePerGram * grams);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
-  // Snap to nearest point when releasing slider
+  // Snap to nearest point
   const snapToNearest = (val: number) => {
-    const snapThreshold = 8; // snap within 8g of a snap point
+    const snapThreshold = 8;
     for (const sp of snapPoints) {
       if (Math.abs(val - sp) <= snapThreshold) return sp;
     }
     return val;
   };
+
+  // Snap during drag when very close to a snap point
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = parseInt(e.target.value);
+    const magnetThreshold = 4; // tighter threshold during drag
+    for (const sp of snapPoints) {
+      if (Math.abs(raw - sp) <= magnetThreshold) {
+        if (sp !== grams) {
+          setGrams(sp);
+          if (navigator.vibrate) navigator.vibrate(8);
+        }
+        return;
+      }
+    }
+    if (raw !== grams) {
+      setGrams(raw);
+    }
+  };
+
   const noteOpacities = [1, 0.82, 0.65, 0.5];
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
-  // Themeable color tokens — override via CSS custom properties on a parent element
+
   const alcoveColors = {
     bg: 'var(--alcove-bg, #1c1b19)',
     title: 'var(--alcove-title, #ede6d8)',
@@ -90,40 +104,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const feelingDescription = item.experience || '';
   const photoUrl = item.image;
   const magazineUrl = item.magazineUrl;
-
-  // Scroll overflow detection
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const check = () => {
-      const canScroll = el.scrollHeight > el.clientHeight;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
-      setShowFade(canScroll && !atBottom);
-    };
-    check();
-    el.addEventListener("scroll", check, { passive: true });
-    window.addEventListener("resize", check);
-    return () => {
-      el.removeEventListener("scroll", check);
-      window.removeEventListener("resize", check);
-    };
-  }, []);
-
-  // Story scroll fade detection
-  useEffect(() => {
-    const el = storyScrollRef.current;
-    if (!el) return;
-    const checkStory = () => {
-      const canScroll = el.scrollHeight > el.clientHeight;
-      const atTop = el.scrollTop < 4;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
-      setStoryFadeTop(canScroll && !atTop);
-      setStoryFadeBottom(canScroll && !atBottom);
-    };
-    checkStory();
-    el.addEventListener("scroll", checkStory, { passive: true });
-    return () => el.removeEventListener("scroll", checkStory);
-  }, [item]);
+  const isRecommended = item.isFeatured;
 
   const handleAdd = () => {
     setAdded(true);
@@ -141,6 +122,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       position: "relative",
       overflow: "hidden",
       borderRadius: "3px",
+      display: "flex", flexDirection: "column",
     }}>
 
       {/* Layer 1: Multi-stop radial warmth */}
@@ -159,18 +141,43 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         backgroundSize: "120px",
       }} />
 
-      {/* Scrollable content wrapper */}
-      <div ref={scrollRef} className="tea-card-scroll" style={{
+      {/* Close button — top right, thin and subtle */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          onMouseEnter={() => setHovered("close")}
+          onMouseLeave={() => setHovered(null)}
+          aria-label="Close"
+          style={{
+            position: "absolute", top: "12px", right: "12px", zIndex: 30,
+            width: "24px", height: "24px",
+            background: "none", border: "none",
+            cursor: "pointer", padding: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            opacity: hovered === "close" ? 0.8 : 0.35,
+            transition: "opacity 0.2s ease",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={alcoveColors.subtitle} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
+
+      {/* Main content area — fills available space above commerce */}
+      <div style={{
         position: "relative", zIndex: 1,
-        minHeight: "580px", maxHeight: "720px",
-        overflowY: "auto",
+        flex: 1, minHeight: 0,
         display: "flex", flexDirection: "column",
+        overflow: "hidden",
       }}>
 
-        {/* Block 1: Identity */}
+        {/* Block 1: Identity — tighter top */}
         {chineseCharacters && (
           <div style={{
-            position: "absolute", right: "20px", top: "24px",
+            position: "absolute", right: "14px", top: "14px",
             fontFamily: "'Ma Shan Zheng', cursive",
             fontSize: "64px", fontWeight: 400, lineHeight: 1,
             color: "rgba(200,170,120,0.05)",
@@ -181,11 +188,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {chineseCharacters}
           </div>
         )}
-        <div style={{ padding: "24px 20px 8px", position: "relative" }}>
+        <div style={{ padding: "16px 16px 4px", position: "relative", flexShrink: 0 }}>
           <h1 style={{
             fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
             fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-            margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+            margin: "0", lineHeight: 1.0, letterSpacing: "-0.01em",
           }}>
             {productName}
           </h1>
@@ -193,21 +200,34 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             <p style={{
               fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
               fontSize: "18px", fontStyle: "italic", fontWeight: 300,
-              color: alcoveColors.subtitle, margin: "0",
+              color: alcoveColors.subtitle, margin: "4px 0 0 0",
             }}>
               {givenName}
             </p>
           )}
+          {isRecommended && (
+            <p style={{
+              fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+              fontSize: "9px", fontWeight: 500,
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              color: accent, margin: "5px 0 0 0",
+              opacity: 0.85,
+            }}>
+              Recommended
+            </p>
+          )}
         </div>
 
-        {/* Inset content panel */}
+        {/* Inset content panel — edge-to-edge for more room */}
         <div style={{
           position: "relative",
-          margin: "8px 8px 10px",
+          margin: "6px 4px 0",
           borderRadius: "6px",
           background: "rgba(0,0,0,0.25)",
           boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)",
           overflow: "hidden",
+          flex: 1, minHeight: 0,
+          display: "flex", flexDirection: "column",
           animation: "panelReveal 0.5s ease-out",
         }}>
           {/* Fine noise texture overlay */}
@@ -225,9 +245,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
           {/* Tea details */}
           <div style={{
-            padding: "10px 16px",
+            padding: "8px 14px",
             borderBottom: "1px solid rgba(200,170,120,0.08)",
-            position: "relative",
+            position: "relative", flexShrink: 0,
           }}>
             <p style={{
               fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
@@ -240,415 +260,401 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story — inline scrollable, expandable */}
-          {story && (
+          {/* Story + notes area — fills remaining panel space */}
+          <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
+            {/* Collapsed view: notes + photo with story peek */}
             <div style={{
               position: "relative",
-              borderBottom: "1px solid rgba(200,170,120,0.08)",
+              height: "100%",
+              display: "flex", flexDirection: "column",
             }}>
-              {/* Top fade */}
+              {/* Notes + photo section */}
               <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, height: "20px",
-                background: "linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)",
-                pointerEvents: "none", zIndex: 1, borderRadius: "6px 6px 0 0",
-                opacity: storyFadeTop ? 1 : 0,
-                transition: "opacity 0.2s ease",
-              }} />
-              <div
-                ref={storyScrollRef}
-                className="tea-card-scroll"
-                style={{
-                  maxHeight: storyExpanded ? "400px" : "130px",
-                  overflowY: "auto",
-                  padding: "12px 16px",
-                  transition: "max-height 0.4s ease",
-                }}
-              >
-                {magazineUrl ? (
-                  <a
-                    href={magazineUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onMouseEnter={() => setHovered("magazine")}
-                    onMouseLeave={() => setHovered(null)}
-                    style={{ textDecoration: "none" }}
+                padding: "12px 14px",
+                background: "rgba(181,101,29,0.03)",
+                position: "relative",
+                overflow: "hidden",
+                flexShrink: 0,
+              }}>
+                {/* Photo behind notes */}
+                {photoUrl && (
+                  <div
+                    onClick={() => setImageExpanded(true)}
+                    style={{
+                      position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
+                      overflow: "hidden", cursor: "pointer",
+                    }}
                   >
+                    <img
+                      src={photoUrl}
+                      alt="Tea leaves"
+                      style={{
+                        width: "100%", height: "100%",
+                        objectFit: "cover", objectPosition: "center right",
+                        transform: "scale(1.05)",
+                        WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                        WebkitMaskComposite: "destination-in",
+                        maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                        maskComposite: "intersect",
+                      }}
+                    />
+                    {/* Expand icon hint */}
+                    <div style={{
+                      position: "absolute", bottom: "6px", right: "6px",
+                      width: "24px", height: "24px",
+                      background: "rgba(0,0,0,0.45)", borderRadius: "3px",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      opacity: 0.6,
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 3 21 3 21 9" />
+                        <polyline points="9 21 3 21 3 15" />
+                        <line x1="21" y1="3" x2="14" y2="10" />
+                        <line x1="3" y1="21" x2="10" y2="14" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {feeling && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{
+                          width: `${markerWidths[0]}px`, height: "2px", flexShrink: 0,
+                          background: accent, opacity: markerOpacities[0], borderRadius: "1px",
+                        }} />
+                        <span style={{
+                          fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                          fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                          color: alcoveColors.note, opacity: noteOpacities[0],
+                          textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
+                        }}>
+                          {feeling}
+                        </span>
+                      </div>
+                    )}
+                    {notes.map((note, i) => (
+                      <div key={note} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{
+                          width: `${markerWidths[i] ?? 12}px`, height: "2px", flexShrink: 0,
+                          background: accent,
+                          opacity: markerOpacities[i] ?? 0.2,
+                          borderRadius: "1px",
+                        }} />
+                        <span style={{
+                          fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                          fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                          color: alcoveColors.note,
+                          opacity: noteOpacities[i] ?? 0.5,
+                          textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
+                        }}>
+                          {note}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Feeling description if present */}
+              {feelingDescription && !storyExpanded && (
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+                  color: alcoveColors.body, margin: 0,
+                  padding: "8px 14px",
+                  lineHeight: 1.5,
+                  flexShrink: 0,
+                }}>
+                  {feelingDescription}
+                </p>
+              )}
+            </div>
+
+            {/* Expanded story overlay — covers panel from top down to bottom */}
+            {storyExpanded && story && (
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 5,
+                background: "rgba(20,19,17,0.97)",
+                display: "flex", flexDirection: "column",
+                animation: "panelReveal 0.3s ease-out",
+              }}>
+                <div className="tea-card-scroll" style={{
+                  flex: 1, overflowY: "auto",
+                  padding: "16px 16px",
+                }}>
+                  {magazineUrl ? (
+                    <a
+                      href={magazineUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onMouseEnter={() => setHovered("magazine")}
+                      onMouseLeave={() => setHovered(null)}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <p style={{
+                        fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                        fontSize: "16px", fontWeight: 300, lineHeight: 1.65,
+                        color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                        margin: 0, transition: "color 0.2s ease",
+                      }}>
+                        {story}
+                      </p>
+                    </a>
+                  ) : (
                     <p style={{
                       fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                      margin: 0, transition: "color 0.2s ease",
+                      fontSize: "16px", fontWeight: 300, lineHeight: 1.65,
+                      color: alcoveColors.body, margin: 0,
                     }}>
                       {story}
                     </p>
-                  </a>
-                ) : (
-                  <p style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                    color: alcoveColors.body, margin: 0,
-                  }}>
-                    {story}
-                  </p>
-                )}
-              </div>
-              {/* Bottom fade */}
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
-                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                pointerEvents: "none", zIndex: 1,
-                opacity: storyFadeBottom ? 1 : 0,
-                transition: "opacity 0.2s ease",
-              }} />
-              {/* Expand/collapse toggle — only show when story overflows */}
-              {(storyFadeBottom || storyExpanded) && (
-                <button
-                  onClick={() => setStoryExpanded(prev => !prev)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    gap: "6px", width: "100%",
-                    padding: "4px 0",
-                    background: "none", border: "none", cursor: "pointer",
-                  }}
-                >
-                  <span style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "11px", fontWeight: 300, fontStyle: "italic",
-                    color: alcoveColors.mutedDark,
-                    letterSpacing: "0.05em",
-                    transition: "color 0.2s ease",
-                  }}>
-                    {storyExpanded ? 'less' : 'more'}
-                  </span>
-                  <svg
-                    width="10" height="10" viewBox="0 0 24 24" fill="none"
-                    stroke={alcoveColors.mutedDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    style={{
-                      transition: "transform 0.3s ease",
-                      transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                  >
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Notes + photo */}
-          <div style={{
-            padding: "14px 16px",
-            background: "rgba(181,101,29,0.03)",
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            {/* Photo behind notes */}
-            {photoUrl && (
-              <div
-                onClick={() => setImageExpanded(true)}
-                style={{
-                  position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
-                  overflow: "hidden", cursor: "pointer",
-                }}
-              >
-                <img
-                  src={photoUrl}
-                  alt="Tea leaves"
-                  style={{
-                    width: "100%", height: "100%",
-                    objectFit: "cover", objectPosition: "center right",
-                    transform: "scale(1.05)",
-                    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                    WebkitMaskComposite: "destination-in",
-                    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                    maskComposite: "intersect",
-                  }}
-                />
-                {/* Expand icon hint */}
-                <div style={{
-                  position: "absolute", bottom: "8px", right: "8px",
-                  width: "28px", height: "28px",
-                  background: "rgba(0,0,0,0.45)", borderRadius: "4px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: 0.7, transition: "opacity 0.2s ease",
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="rgba(200,170,120,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 3 21 3 21 9" />
-                    <polyline points="9 21 3 21 3 15" />
-                    <line x1="21" y1="3" x2="14" y2="10" />
-                    <line x1="3" y1="21" x2="10" y2="14" />
-                  </svg>
+                  )}
+                  {feelingDescription && (
+                    <p style={{
+                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+                      color: alcoveColors.subtitle, margin: "14px 0 0 0",
+                      lineHeight: 1.5,
+                    }}>
+                      {feelingDescription}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                {feeling && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{
-                      width: `${markerWidths[0]}px`, height: "2px", flexShrink: 0,
-                      background: accent, opacity: markerOpacities[0], borderRadius: "1px",
-                    }} />
-                    <span style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                      color: alcoveColors.note, opacity: noteOpacities[0],
-                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
-                    }}>
-                      {feeling}
-                    </span>
-                  </div>
-                )}
-                {notes.map((note, i) => (
-                  <div key={note} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{
-                      width: `${markerWidths[i] ?? 12}px`, height: "2px", flexShrink: 0,
-                      background: accent,
-                      opacity: markerOpacities[i] ?? 0.2,
-                      borderRadius: "1px",
-                    }} />
-                    <span style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                      color: alcoveColors.note,
-                      opacity: noteOpacities[i] ?? 0.5,
-                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
-                    }}>
-                      {note}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {feelingDescription && (
-          <p style={{
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-            color: alcoveColors.body, margin: 0,
-            padding: "10px 20px",
-            lineHeight: 1.6,
-          }}>
-            {feelingDescription}
-          </p>
-        )}
-
-        {/* Block 4: Commerce */}
-        <div style={{ padding: "2px 20px 12px", marginTop: "auto", flexShrink: 0 }}>
-
-          {/* Price + slider + grams — single compact block */}
-          <div style={{
-            padding: "4px 12px",
-            background: "rgba(200,170,120,0.03)",
-            borderRadius: "3px",
-            marginBottom: "5px",
-          }}>
-            {/* Price / grams labels */}
-            <div style={{
-              display: "flex", alignItems: "baseline", justifyContent: "space-between",
-              marginBottom: "2px",
-            }}>
-              <div style={{ display: "flex", alignItems: "baseline" }}>
-                <span style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
-                  lineHeight: 1,
-                }}>
-                  ${fmtNum(pricePerGram)}
-                </span>
-                <span style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
-                  marginLeft: "1px",
-                }}>/g</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline" }}>
-                <span style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
-                  lineHeight: 1,
-                }}>
-                  {grams}
-                </span>
-                <span style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
-                  marginLeft: "1px",
-                }}>g</span>
-              </div>
-            </div>
-            {/* Slider with tick marks */}
-            <div style={{ position: "relative", width: "100%", height: "18px", display: "flex", alignItems: "center" }}>
-              <input
-                type="range"
-                min={sliderMin}
-                max={sliderMax}
-                step={sliderStep}
-                value={grams}
-                onChange={(e) => {
-                  const newVal = parseInt(e.target.value);
-                  if (newVal !== grams) {
-                    setGrams(newVal);
-                    if (navigator.vibrate) navigator.vibrate(8);
-                  }
-                }}
-                onMouseUp={() => setGrams(g => snapToNearest(g))}
-                onTouchEnd={() => setGrams(g => snapToNearest(g))}
-                aria-label={`Select quantity: ${grams}g`}
-                style={{
-                  position: "absolute", width: "100%", height: "100%",
-                  opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
-                }}
-              />
-              {/* Track with snap tick marks */}
-              <div style={{
-                width: "100%", height: "4px",
-                background: "rgba(200,170,120,0.1)",
-                borderRadius: "2px",
-                position: "relative",
-              }}>
-                {/* Fill */}
-                <div style={{
-                  position: "absolute", height: "100%",
-                  width: `${sliderPercentage}%`,
-                  background: `linear-gradient(90deg, rgba(181,101,29,0.5), rgba(181,101,29,0.8))`,
-                  borderRadius: "2px",
-                  transition: "width 0.075s ease",
-                }} />
-                {/* Tick marks at snap points */}
-                {snapPoints.map((sp) => {
-                  const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
-                  return (
-                    <div
-                      key={sp}
-                      style={{
-                        position: "absolute",
-                        left: `${pct}%`,
-                        top: "-3px",
-                        width: "1px", height: "10px",
-                        background: grams === sp
-                          ? "rgba(200,170,120,0.35)"
-                          : "rgba(200,170,120,0.12)",
-                        transition: "background 0.15s ease",
-                        pointerEvents: "none",
-                      }}
-                    />
-                  );
-                })}
-              </div>
-              {/* Thumb */}
-              <div style={{
-                position: "absolute",
-                left: `calc(${sliderPercentage}% - 6px)`,
-                width: "12px", height: "12px",
-                borderRadius: "50%",
-                background: accent,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
-                pointerEvents: "none", zIndex: 10,
-                transition: "left 0.075s ease",
-              }} />
-            </div>
-          </div>
-
-          {/* Action row: Save/Share + Cart */}
-          <div style={{ display: "flex", gap: "5px" }}>
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "12px",
-              height: "38px", boxSizing: "border-box",
-              border: "1px solid rgba(200,170,120,0.2)",
-              borderRadius: "3px",
-              flexShrink: 0,
-              padding: "0 12px",
-            }}>
+            {/* Expand/collapse icon — absolutely positioned, no layout impact */}
+            {story && (
               <button
-                onClick={() => toggleFavoriteTea(item.id)}
-                onMouseEnter={() => setHovered("fav")}
+                onClick={() => setStoryExpanded(prev => !prev)}
+                onMouseEnter={() => setHovered("expand")}
                 onMouseLeave={() => setHovered(null)}
-                aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+                aria-label={storyExpanded ? "Show less" : "Show more"}
                 style={{
-                  background: "none", border: "none", padding: "0",
-                  cursor: "pointer", transition: "all 0.2s ease",
-                  display: "inline-flex", alignItems: "center", gap: "5px",
-                  opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
+                  position: "absolute",
+                  bottom: "6px", right: "8px", zIndex: 10,
+                  width: "26px", height: "26px",
+                  background: storyExpanded ? "rgba(200,170,120,0.08)" : "rgba(0,0,0,0.35)",
+                  border: `1px solid rgba(200,170,120,${hovered === "expand" ? 0.2 : 0.08})`,
+                  borderRadius: "3px",
+                  cursor: "pointer", padding: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: hovered === "expand" ? 1 : 0.7,
+                  transition: "all 0.2s ease",
                 }}
               >
-                <BookmarkIcon filled={favorited} color={accent} strokeColor={alcoveColors.muted} />
-                <span style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "11px", fontWeight: 400,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: favorited ? accent : alcoveColors.subtitle,
-                }}>Save</span>
+                <svg
+                  width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke={alcoveColors.subtitle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  style={{
+                    transition: "transform 0.3s ease",
+                    transform: storyExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
-              <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.15)" }} />
-              <button
-                onMouseEnter={() => setHovered("share")}
-                onMouseLeave={() => setHovered(null)}
-                aria-label="Share"
-                style={{
-                  background: "none", border: "none", padding: "0",
-                  cursor: "pointer", transition: "all 0.2s ease",
-                  display: "inline-flex", alignItems: "center", gap: "5px",
-                  opacity: hovered === "share" ? 0.9 : 0.7,
-                }}
-              >
-                <ShareIcon color={alcoveColors.muted} />
-                <span style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "11px", fontWeight: 400,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: alcoveColors.subtitle,
-                }}>Share</span>
-              </button>
-            </div>
-
-            <button
-              onClick={handleAdd}
-              onMouseEnter={() => setHovered("cart")}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                flex: 1, height: "38px", boxSizing: "border-box",
-                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "11px", fontWeight: 400,
-                letterSpacing: "0.06em", textTransform: "uppercase",
-                color: added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
-                background: added
-                  ? alcoveColors.success
-                  : hovered === "cart"
-                    ? "rgba(200,170,120,0.06)"
-                    : "transparent",
-                border: added
-                  ? `1px solid ${alcoveColors.success}`
-                  : `1px solid rgba(200,170,120,${hovered === "cart" ? 0.3 : 0.2})`,
-                borderRadius: "3px", cursor: "pointer",
-                transition: "all 0.25s ease",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-              }}
-            >
-              <span>{added ? "Added" : "Add"}</span>
-              <span style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "12px",
-              }}>
-                ${total}
-              </span>
-            </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Bottom fade indicator */}
+      {/* Block 4: Commerce — docked at bottom, separate from card */}
       <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
-        background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
-        pointerEvents: "none", zIndex: 2,
-        opacity: showFade ? 1 : 0,
-        transition: "opacity 0.3s ease",
-      }} />
+        padding: "4px 16px 10px",
+        flexShrink: 0, position: "relative", zIndex: 1,
+      }}>
+        {/* Price + slider */}
+        <div style={{
+          padding: "3px 10px",
+          background: "rgba(200,170,120,0.03)",
+          borderRadius: "3px",
+          marginBottom: "4px",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "baseline", justifyContent: "space-between",
+            marginBottom: "1px",
+          }}>
+            <div style={{ display: "flex", alignItems: "baseline" }}>
+              <span style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
+                lineHeight: 1,
+              }}>
+                ${fmtNum(pricePerGram)}
+              </span>
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
+                marginLeft: "1px",
+              }}>/g</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline" }}>
+              <span style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
+                lineHeight: 1,
+              }}>
+                {grams}
+              </span>
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
+                marginLeft: "1px",
+              }}>g</span>
+            </div>
+          </div>
+          {/* Slider with tick marks */}
+          <div style={{ position: "relative", width: "100%", height: "16px", display: "flex", alignItems: "center" }}>
+            <input
+              type="range"
+              min={sliderMin}
+              max={sliderMax}
+              step={sliderStep}
+              value={grams}
+              onChange={handleSliderChange}
+              onMouseUp={() => setGrams(g => snapToNearest(g))}
+              onTouchEnd={() => setGrams(g => snapToNearest(g))}
+              aria-label={`Select quantity: ${grams}g`}
+              style={{
+                position: "absolute", width: "100%", height: "100%",
+                opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
+              }}
+            />
+            <div style={{
+              width: "100%", height: "3px",
+              background: "rgba(200,170,120,0.1)",
+              borderRadius: "2px",
+              position: "relative",
+            }}>
+              <div style={{
+                position: "absolute", height: "100%",
+                width: `${sliderPercentage}%`,
+                background: `linear-gradient(90deg, rgba(181,101,29,0.5), rgba(181,101,29,0.8))`,
+                borderRadius: "2px",
+                transition: "width 0.075s ease",
+              }} />
+              {snapPoints.map((sp) => {
+                const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+                return (
+                  <div
+                    key={sp}
+                    style={{
+                      position: "absolute",
+                      left: `${pct}%`,
+                      top: "-3px",
+                      width: "1px", height: "9px",
+                      background: grams === sp
+                        ? "rgba(200,170,120,0.4)"
+                        : "rgba(200,170,120,0.12)",
+                      transition: "background 0.15s ease",
+                      pointerEvents: "none",
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <div style={{
+              position: "absolute",
+              left: `calc(${sliderPercentage}% - 6px)`,
+              width: "12px", height: "12px",
+              borderRadius: "50%",
+              background: accent,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+              pointerEvents: "none", zIndex: 10,
+              transition: "left 0.075s ease",
+            }} />
+          </div>
+        </div>
+
+        {/* Action row */}
+        <div style={{ display: "flex", gap: "4px" }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+            height: "36px", boxSizing: "border-box",
+            border: "1px solid rgba(200,170,120,0.18)",
+            borderRadius: "3px",
+            flexShrink: 0,
+            padding: "0 10px",
+          }}>
+            <button
+              onClick={() => toggleFavoriteTea(item.id)}
+              onMouseEnter={() => setHovered("fav")}
+              onMouseLeave={() => setHovered(null)}
+              aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+              style={{
+                background: "none", border: "none", padding: "0",
+                cursor: "pointer", transition: "all 0.2s ease",
+                display: "inline-flex", alignItems: "center", gap: "4px",
+                opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
+              }}
+            >
+              <BookmarkIcon filled={favorited} color={accent} strokeColor={alcoveColors.muted} />
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "10px", fontWeight: 400,
+                letterSpacing: "0.08em", textTransform: "uppercase",
+                color: favorited ? accent : alcoveColors.subtitle,
+              }}>Save</span>
+            </button>
+            <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.12)" }} />
+            <button
+              onMouseEnter={() => setHovered("share")}
+              onMouseLeave={() => setHovered(null)}
+              aria-label="Share"
+              style={{
+                background: "none", border: "none", padding: "0",
+                cursor: "pointer", transition: "all 0.2s ease",
+                display: "inline-flex", alignItems: "center", gap: "4px",
+                opacity: hovered === "share" ? 0.9 : 0.7,
+              }}
+            >
+              <ShareIcon color={alcoveColors.muted} />
+              <span style={{
+                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                fontSize: "10px", fontWeight: 400,
+                letterSpacing: "0.08em", textTransform: "uppercase",
+                color: alcoveColors.subtitle,
+              }}>Share</span>
+            </button>
+          </div>
+
+          <button
+            onClick={handleAdd}
+            onMouseEnter={() => setHovered("cart")}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              flex: 1, height: "36px", boxSizing: "border-box",
+              fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+              fontSize: "11px", fontWeight: 400,
+              letterSpacing: "0.06em", textTransform: "uppercase",
+              color: added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
+              background: added
+                ? alcoveColors.success
+                : hovered === "cart"
+                  ? "rgba(200,170,120,0.06)"
+                  : "transparent",
+              border: added
+                ? `1px solid ${alcoveColors.success}`
+                : `1px solid rgba(200,170,120,${hovered === "cart" ? 0.3 : 0.18})`,
+              borderRadius: "3px", cursor: "pointer",
+              transition: "all 0.25s ease",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            }}
+          >
+            <span>{added ? "Added" : "Add"}</span>
+            <span style={{
+              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+              fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
+            }}>
+              ${total}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* Fullscreen image overlay */}
       {imageExpanded && photoUrl && (
