@@ -1,5 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Story } from '../types';
 import { Icons } from './Icons';
 import { LearnCurriculum } from './LearnCurriculum';
@@ -14,10 +13,9 @@ import { ReadingList } from './library/ReadingList';
 import { JourneysView } from './learn/JourneysView';
 import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
+import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
-
-const VALID_VIEWS = new Set<string>(['course', 'glossary', 'playlists', 'videos', 'visual-guides', 'reading', 'journeys', 'wisdom', 'spaces']);
 
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-ink/5 dark:hover:bg-white/5 px-2 -ml-2';
 
@@ -38,39 +36,32 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   cartItemCount = 0,
   onNavigateToConsult,
 }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  // URL-synced sub-view navigation — browser back works properly
+  const { currentView, navigateTo, navigateBack, isSubView } = useSubViewNavigation<LearnView>('v', 'overview');
+
+  // Transition animation state (visual only, doesn't affect navigation)
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevView = useRef<LearnView>(currentView);
+
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const currentView: LearnView = useMemo(() => {
-    const viewParam = searchParams.get('view');
-    if (viewParam && VALID_VIEWS.has(viewParam)) {
-      return viewParam as LearnView;
+  // Fade transition when view changes
+  useEffect(() => {
+    if (prevView.current !== currentView) {
+      if (!reducedMotion) {
+        setIsTransitioning(true);
+        const timer = setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50); // Brief flash then fade in
+        return () => clearTimeout(timer);
+      }
+      prevView.current = currentView;
     }
-    return 'overview';
-  }, [searchParams]);
-
-  const navigateTo = useCallback((view: LearnView) => {
-    if (view === 'overview') {
-      setSearchParams({}, { replace: false });
-    } else {
-      setSearchParams({ view }, { replace: false });
-    }
-    window.scrollTo(0, 0);
-  }, [setSearchParams]);
-
-  const navigateBack = useCallback(() => {
-    navigateTo('overview');
-  }, [navigateTo]);
+  }, [currentView, reducedMotion]);
 
   const handleNavigate = useCallback((section: LearnView | LibrarySubView) => {
-    if (section === 'overview') {
-      navigateTo('overview');
-    } else {
-      navigateTo(section as LearnView);
-    }
+    navigateTo(section as LearnView);
   }, [navigateTo]);
-
-  const isSubView = currentView !== 'overview';
 
   const renderSubView = () => {
     switch (currentView) {
@@ -112,7 +103,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
       )}
 
       <div
-        className={`${isSubView ? 'mt-8' : 'mt-0'} max-w-[1400px] mx-auto`}
+        className={`${isSubView ? 'mt-8' : 'mt-0'} max-w-[1400px] mx-auto transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
       >
         {isSubView ? (
           renderSubView()
