@@ -46,11 +46,6 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [item, onClose]);
 
-  // Reset expand state when item changes
-  useEffect(() => {
-    setIsCardExpanded(false);
-  }, [item?.id]);
-
   if (!item) return null;
 
   const handleTouchStart = (e: React.TouchEvent) => {
