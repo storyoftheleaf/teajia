@@ -23,6 +23,9 @@ interface StagingRow {
   canReorder: boolean;
   description: string;
   lore: string;
+  tastingNotes: string;
+  processingNotes: string;
+  terroir: string;
   mood: string;
   experience: string;
   material: string;
@@ -200,6 +203,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             canReorder: isYes(getRestockable()),
             description: (getSafeValue(row, ['Description', 'Desc']) || '').trim(),
             lore: (getSafeValue(row, ['Lore', 'Story', 'History']) || '').trim(),
+            tastingNotes: (getSafeValue(row, ['Tasting Notes', 'TastingNotes', 'Tasting', 'Flavors', 'Flavor Notes']) || '').trim(),
+            processingNotes: (getSafeValue(row, ['Processing Notes', 'ProcessingNotes', 'Processing', 'Production Notes']) || '').trim(),
+            terroir: (getSafeValue(row, ['Terroir', 'Terrain', 'Environment', 'Growing Conditions']) || '').trim(),
             mood: (getSafeValue(row, ['Mood', 'Feeling']) || '').trim(),
             experience: (getSafeValue(row, ['Experience', 'Feeling Description']) || '').trim(),
             material: (getMaterial() || '').trim(),
@@ -314,6 +320,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           is_personal: !!r.isPersonal,
           can_reorder: !!r.canReorder,
           lore: r.lore || null,
+          tasting_notes: r.tastingNotes ? r.tastingNotes.split(',').map((s: string) => s.trim()).filter(Boolean) : null,
+          processing_notes: r.processingNotes || null,
+          terroir: r.terroir || null,
           mood: r.mood || null,
           experience: r.experience || null,
           material: r.material || null,
