@@ -21,18 +21,22 @@ const alcoveInsetStyle: React.CSSProperties = {
 
 /** Printable card wrapper — the unified expandable container */
 const cardFrameStyle: React.CSSProperties = {
-  border: '1px solid rgba(200,170,120,0.10)',
+  border: '1px solid var(--tea-border)',
   borderRadius: 8,
-  background: 'rgba(0,0,0,0.03)',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(200,170,120,0.04)',
+  background: 'var(--tea-surface)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(200,170,120,0.06)',
 };
 
 const ServiceLabel = ({ children }: { children: string }) => (
-  <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-1.5">{children}</p>
+  <p className="text-[11px] uppercase tracking-[0.2em] text-tea-gold mb-1.5"
+     style={{ fontFamily: "'Bricolage Grotesque', 'Inter', sans-serif", fontWeight: 400 }}>
+    {children}
+  </p>
 );
 
 const ServiceHeading = ({ children }: { children: string }) => (
-  <h3 className="font-serif text-xl md:text-2xl font-normal text-tea-text mb-0 leading-snug">
+  <h3 className="text-xl md:text-2xl font-light text-tea-text mb-0 leading-snug"
+      style={{ fontFamily: "'Fraunces', 'Lora', serif" }}>
     {children}
   </h3>
 );
@@ -49,7 +53,7 @@ const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) 
 
 const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-[0.15em]
+    className="text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-[0.15em]
                font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
@@ -105,15 +109,16 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
                 <ServiceHeading>{heading}</ServiceHeading>
               </div>
               {badge && (
-                <span className="shrink-0 text-[10px] uppercase tracking-wider text-tea-gold/60 font-mono
-                                 border border-tea-gold/12 rounded-full px-3 py-1 mt-1 whitespace-nowrap">
+                <span className="shrink-0 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap mt-1
+                                 border border-tea-gold/20 rounded-full px-3 py-1"
+                      style={{ fontFamily: "'Bricolage Grotesque', 'Inter', sans-serif", fontWeight: 400 }}>
                   {badge}
                 </span>
               )}
             </div>
 
-            {/* Summary */}
-            <p className="font-sans text-sm leading-relaxed text-tea-text/60 mt-3 max-w-[640px]">
+            {/* Summary — italic serif like Alcove description */}
+            <p className="font-serif text-sm leading-relaxed text-tea-text-sec italic mt-3 max-w-[640px]">
               {summary}
             </p>
 
@@ -138,8 +143,8 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
             >
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-[1px] bg-tea-gold/12 group-hover:bg-tea-gold/20 transition-colors" />
-                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text/35
-                                 group-hover:text-tea-gold/70 transition-colors select-none whitespace-nowrap">
+                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-dim
+                                 group-hover:text-tea-gold transition-colors select-none whitespace-nowrap">
                   {expanded ? 'Less' : 'Details'}
                   {expanded
                     ? <Icons.ChevronUp className="w-3 h-3 transition-transform" />
@@ -162,7 +167,7 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
 
             {/* Footer CTAs */}
             {footer && (
-              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(200,170,120,0.08)' }}>
+              <div className="mt-3 pt-3 border-t border-tea-border">
                 {footer}
               </div>
             )}
@@ -230,13 +235,13 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         }
       >
         {/* Pillars */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-3">
           What's Involved
         </p>
         <div className="flex flex-wrap gap-2 mb-8">
           {PILLARS.map((p) => (
-            <span key={p} className="text-xs text-tea-text/60 rounded-full px-3 py-1.5 tracking-wide"
-              style={{ border: '1px solid rgba(200,170,120,0.12)' }}>
+            <span key={p} className="text-xs text-tea-text-sec rounded-full px-3 py-1.5 tracking-wide
+                                    border border-tea-border bg-tea-accent-sub/50">
               {p}
             </span>
           ))}
@@ -244,17 +249,17 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
         {/* Process */}
         <div className="px-5 py-6 md:px-6 md:py-7 mb-8" style={alcovePanelStyle}>
-          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-5">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-5">
             The Process
           </p>
           {/* Mobile */}
           <div className="md:hidden space-y-4">
             {PROCESS.map(({ step, title, desc }) => (
               <div key={step} className="flex items-start gap-4">
-                <span className="text-tea-gold/80 font-mono text-xs bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">{step}</span>
+                <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">{step}</span>
                 <div>
                   <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
-                  <p className="text-[11px] text-tea-text/40 mt-0.5">{desc}</p>
+                  <p className="text-[11px] text-tea-text-dim mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -263,9 +268,9 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
           <div className="hidden md:grid md:grid-cols-5 gap-6">
             {PROCESS.map(({ step, title, desc }) => (
               <div key={step}>
-                <span className="text-tea-gold/80 font-mono text-xs bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center mb-2">{step}</span>
+                <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center mb-2">{step}</span>
                 <h4 className="font-serif text-sm font-medium text-tea-text">{title}</h4>
-                <p className="text-[11px] text-tea-text/40 mt-1 leading-relaxed">{desc}</p>
+                <p className="text-[11px] text-tea-text-dim mt-1 leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -273,7 +278,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
         {/* Pricing callout */}
         <div className="border-l-2 border-tea-gold/30 pl-4">
-          <p className="text-sm text-tea-text/50">
+          <p className="text-sm text-tea-text-sec">
             Projects range from $5,000 to $100,000+.
           </p>
           <p className="text-xs text-tea-text/30 mt-1">
@@ -330,28 +335,28 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         }
       >
         <div className="max-w-[640px] mb-8" style={alcovePanelStyle}>
-          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 px-5 pt-5 pb-2">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim px-5 pt-5 pb-2">
             Offerings
           </p>
           {OFFERINGS.map(({ name, price, desc }) => (
             <div key={name} className="flex items-start justify-between px-5 py-4 last:border-0"
-              style={{ borderBottom: '1px solid rgba(200,170,120,0.08)' }}>
+              style={{ borderBottom: '1px solid var(--tea-border)' }}>
               <div>
                 <h4 className="font-serif text-base text-tea-text">{name}</h4>
-                <p className="text-xs text-tea-text/40 mt-1">{desc}</p>
+                <p className="text-xs text-tea-text-dim mt-1">{desc}</p>
               </div>
-              <span className="font-mono text-xs text-tea-gold/80 whitespace-nowrap ml-4 mt-1">{price}</span>
+              <span className="font-mono text-xs text-tea-gold num whitespace-nowrap ml-4 mt-1">{price}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text/40 mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-3">
           What You Walk Away With
         </p>
         <div className="border-l border-tea-gold/20 pl-4">
           <ul className="space-y-2">
             {WALKAWAY.map(item => (
-              <li key={item} className="text-sm text-tea-text/60">
+              <li key={item} className="text-sm text-tea-text-sec">
                 {item}
               </li>
             ))}
@@ -397,7 +402,7 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
           </div>
         }
       >
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-6">
+        <p className="font-sans text-sm leading-relaxed text-tea-text-sec max-w-[640px] mb-6">
           For two decades, I've built relationships with farmers, masters, and artisans across Asia.
           These aren't tours — each journey is shaped around what calls to you.
         </p>
@@ -445,7 +450,7 @@ export const SourcingSection = forwardRef<HTMLElement, ServiceSectionProps>(
           </div>
         }
       >
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px]">
+        <p className="font-sans text-sm leading-relaxed text-tea-text-sec max-w-[640px]">
           Direct sourcing from Taiwan, China, and trusted origins. For individual collectors seeking access
           to exceptional teas. For retreat centers, hotels, and communities wanting quality tea as part of
           what they offer.
@@ -485,13 +490,13 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           <PrimaryCTA label="Inquire" onClick={() => onOpenInquiry('An event or group experience')} />
         }
       >
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70 max-w-[640px] mb-6">
+        <p className="font-sans text-sm leading-relaxed text-tea-text-sec max-w-[640px] mb-6">
           Retreats, dinners, brand activations, celebrations. Fully curated from start to finish.
         </p>
 
         <div className="border-l-2 border-tea-gold/30 pl-4">
           <p className="text-sm text-tea-gold/80">From $500 for a half-day.</p>
-          <p className="text-xs text-tea-text/40 mt-1">
+          <p className="text-xs text-tea-text-dim mt-1">
             Full-day and multi-day experiences quoted based on scope.
           </p>
         </div>
