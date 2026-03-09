@@ -35,6 +35,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [imageExpanded, setImageExpanded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const storyScrollRef = useRef<HTMLDivElement>(null);
+  const [showFade, setShowFade] = useState(false);
+  const [storyFadeTop, setStoryFadeTop] = useState(false);
+  const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
   const sliderMin = 25;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -101,7 +107,41 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const feeling = item.mood || '';
   const feelingDescription = item.experience || '';
   const photoUrl = item.image;
-  const isRecommended = item.isFeatured;
+  const magazineUrl = item.magazineUrl;
+
+  // Scroll overflow detection
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => {
+      const canScroll = el.scrollHeight > el.clientHeight;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+      setShowFade(canScroll && !atBottom);
+    };
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      el.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+
+  // Story scroll fade detection + overflow check
+  useEffect(() => {
+    const el = storyScrollRef.current;
+    if (!el) return;
+    const checkStory = () => {
+      const canScroll = el.scrollHeight > el.clientHeight;
+      const atTop = el.scrollTop < 4;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
+      setStoryFadeTop(canScroll && !atTop);
+      setStoryFadeBottom(canScroll && !atBottom);
+    };
+    checkStory();
+    el.addEventListener("scroll", checkStory, { passive: true });
+    return () => el.removeEventListener("scroll", checkStory);
+  }, [item]);
 
   const handleAdd = () => {
     setAdded(true);
@@ -113,14 +153,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   return (
     <div style={{
-      width: "100%", maxWidth: "480px",
-      minHeight: "580px", maxHeight: "720px",
+      width: "100%",
+      height: "100%",
+      maxHeight: "100%",
       background: alcoveColors.bg,
       position: "relative",
       overflow: "hidden",
       borderRadius: "3px",
-      display: "flex", flexDirection: "column",
+      display: "flex",
+      flexDirection: "column",
     }}>
+
+
 
       {/* Layer 1: Multi-stop radial warmth */}
       <div style={{
@@ -138,37 +182,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         backgroundSize: "120px",
       }} />
 
-      {/* Close button — top right, minimal glyph */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          onMouseEnter={() => setHovered("close")}
-          onMouseLeave={() => setHovered(null)}
-          aria-label="Close"
-          style={{
-            position: "absolute", top: "10px", right: "14px", zIndex: 30,
-            background: "none", border: "none",
-            cursor: "pointer", padding: 0,
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "20px", fontWeight: 200, lineHeight: 1,
-            color: alcoveColors.subtitle,
-            opacity: hovered === "close" ? 0.7 : 0.3,
-            transition: "opacity 0.2s ease",
-          }}
-        >
-          &#xd7;
-        </button>
-      )}
-
-      {/* Main content area — fills available space above commerce */}
+      {/* === PINNED TOP: Identity === */}
       <div style={{
-        position: "relative", zIndex: 1,
-        flex: 1, minHeight: 0,
-        display: "flex", flexDirection: "column",
-        overflow: "hidden",
+        position: "relative", zIndex: 1, flexShrink: 0,
+        transition: "all 0.3s ease",
       }}>
-
-        {/* Block 1: Identity — tighter top */}
         {chineseCharacters && (
           <div style={{
             position: "absolute", right: "14px", top: "14px",
@@ -182,35 +200,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {chineseCharacters}
           </div>
         )}
-        <div style={{ padding: "16px 16px 4px", position: "relative", flexShrink: 0 }}>
-          <h1 style={{
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-            margin: "0", lineHeight: 1.0, letterSpacing: "-0.01em",
-          }}>
-            {productName}
-          </h1>
-          {givenName && (
-            <p style={{
-              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-              fontSize: "18px", fontStyle: "italic", fontWeight: 300,
-              color: alcoveColors.subtitle, margin: "4px 0 0 0",
-            }}>
-              {givenName}
-            </p>
-          )}
-          {isRecommended && (
-            <p style={{
-              fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-              fontSize: "9px", fontWeight: 500,
-              letterSpacing: "0.12em", textTransform: "uppercase",
-              color: accent, margin: "1px 0 0 0",
-              opacity: 0.85,
-            }}>
-              Recommended
-            </p>
-          )}
+        <div style={{
+          padding: "24px 20px 8px",
+          position: "relative",
+        }}>
+            <>
+              <h1 style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
+                margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+              }}>
+                {productName}
+              </h1>
+              {givenName && (
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "18px", fontStyle: "italic", fontWeight: 300,
+                  color: alcoveColors.subtitle, margin: "0",
+                }}>
+                  {givenName}
+                </p>
+              )}
+            </>
         </div>
+      </div>
+
+      {/* === SCROLLABLE MIDDLE === */}
+      <div ref={scrollRef} className="tea-card-scroll" style={{
+        position: "relative", zIndex: 1,
+        flex: 1,
+        overflowY: "auto",
+        minHeight: 0,
+      }}>
 
         {/* Inset content panel — edge-to-edge for more room */}
         <div style={{
@@ -256,17 +277,67 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
           {/* Personal connection — variable height, no clamp */}
           {feelingDescription && (
-            <p style={{
-              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-              fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-              color: alcoveColors.body, margin: 0,
-              padding: "8px 14px",
-              lineHeight: 1.5,
+            <div style={{
+              position: "relative",
               flexShrink: 0,
               borderBottom: "1px solid rgba(200,170,120,0.08)",
             }}>
-              {feelingDescription}
-            </p>
+              {/* Top fade */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none", zIndex: 1, borderRadius: "6px 6px 0 0",
+                opacity: storyFadeTop ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+              <div
+                ref={storyScrollRef}
+                className="tea-card-scroll"
+                style={{
+                  maxHeight: "none",
+                  overflowY: "auto",
+                  padding: "12px 16px",
+                  transition: "max-height 0.4s ease",
+                }}
+              >
+                {magazineUrl ? (
+                  <a
+                    href={magazineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onMouseEnter={() => setHovered("magazine")}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <p style={{
+                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
+                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                      margin: 0, transition: "color 0.2s ease",
+                    }}>
+                      {story}
+                    </p>
+                  </a>
+                ) : (
+                  <p style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
+                    color: alcoveColors.body, margin: 0,
+                  }}>
+                    {story}
+                  </p>
+                )}
+              </div>
+              {/* Bottom fade */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none", zIndex: 1,
+                opacity: storyFadeBottom ? 1 : 0,
+                transition: "opacity 0.2s ease",
+              }} />
+              {/* Bottom fade spacer — story expand button moved to top-right of card */}
+            </div>
           )}
 
           {/* Notes + photo section — compact, max height for ~5 notes */}
@@ -373,20 +444,29 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           )}
         </div>
+
+        {feelingDescription && (
+          <p style={{
+            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+            fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+            color: alcoveColors.body, margin: 0,
+            padding: "10px 20px",
+            lineHeight: 1.6,
+          }}>
+            {feelingDescription}
+          </p>
+        )}
       </div>
 
-      {/* Block 4: Commerce — docked at bottom, separate from card */}
+      {/* === PINNED BOTTOM: Commerce === */}
       <div style={{
-        padding: "4px 16px 10px",
-        flexShrink: 0, position: "relative", zIndex: 1,
+        position: "relative", zIndex: 1, flexShrink: 0,
+        padding: "6px 20px 16px",
+        background: alcoveColors.bg,
+        borderTop: "1px solid rgba(200,170,120,0.06)",
       }}>
-        {/* Price + slider */}
-        <div style={{
-          padding: "3px 10px",
-          background: "rgba(200,170,120,0.03)",
-          borderRadius: "3px",
-          marginBottom: "4px",
-        }}>
+
+          {/* Price Tag: price + gram selector */}
           <div style={{
             display: "flex", alignItems: "baseline", justifyContent: "space-between",
             marginBottom: "1px",
@@ -567,8 +647,53 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </span>
           </button>
         </div>
-      </div>
 
+      {/* Scrollable middle fade indicator */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
+        background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
+        pointerEvents: "none", zIndex: 2,
+        opacity: showFade ? 1 : 0,
+        transition: "opacity 0.3s ease",
+      }} />
+
+      {/* Fullscreen image overlay */}
+      {imageExpanded && photoUrl && (
+        <div
+          onClick={() => setImageExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <img
+            src={photoUrl}
+            alt={item.name}
+            style={{
+              maxWidth: "90vw", maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: "4px",
+            }}
+          />
+          <button
+            style={{
+              position: "absolute", top: "16px", right: "16px",
+              width: "36px", height: "36px",
+              background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
