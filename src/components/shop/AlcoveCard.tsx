@@ -215,51 +215,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         minHeight: 0,
       }}>
 
-        {/* Hero image — leads the content */}
-        <div style={{
-          position: "relative",
-          margin: "4px 4px 0",
-          borderRadius: "6px 6px 0 0",
-          overflow: "hidden",
-          flexShrink: 0,
-        }}>
-          {photoUrl ? (
-            <div
-              onClick={() => setImageExpanded(true)}
-              style={{ cursor: "pointer", position: "relative" }}
-            >
-              <img
-                src={photoUrl}
-                alt={productName}
-                style={{
-                  width: "100%",
-                  aspectRatio: "4 / 3",
-                  objectFit: "cover",
-                  display: "block",
-                }}
-              />
-              {/* Bottom fade into panel */}
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0, height: "40%",
-                background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)",
-                pointerEvents: "none",
-              }} />
-            </div>
-          ) : (
-            <div style={{ aspectRatio: "4 / 3", background: "rgba(0,0,0,0.2)" }}>
-              <TeaPlaceholder type={teaType} style={{ width: "100%", height: "100%" }} />
-            </div>
-          )}
-        </div>
-
         {/* Inset content panel */}
         <div style={{
           position: "relative",
-          margin: "0 4px 0",
-          borderRadius: "0 0 6px 6px",
+          margin: "6px 4px 0",
+          borderRadius: "6px",
           background: "rgba(0,0,0,0.25)",
           boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)",
           overflow: "hidden",
+          flex: 1, minHeight: 0,
           display: "flex", flexDirection: "column",
           animation: "panelReveal 0.5s ease-out",
         }}>
@@ -269,10 +233,16 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
             backgroundSize: "120px",
           }} />
+          {/* Ambient top-glow */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, height: "60%",
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)",
+          }} />
 
           {/* Tea type · origin · year */}
           <div style={{
-            padding: "10px 14px",
+            padding: "8px 14px",
             borderBottom: "1px solid rgba(200,170,120,0.08)",
             position: "relative", flexShrink: 0,
           }}>
@@ -287,15 +257,51 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Tasting notes */}
-          {(feeling || notes.length > 0) && (
-            <div style={{
-              padding: "10px 14px",
-              background: "rgba(184,146,78,0.03)",
-              position: "relative",
-              flexShrink: 0,
-              borderBottom: "1px solid rgba(200,170,120,0.08)",
-            }}>
+          {/* Notes + photo section — notes overlaid on photo */}
+          <div style={{
+            padding: "10px 14px",
+            background: "rgba(184,146,78,0.03)",
+            position: "relative",
+            overflow: "hidden",
+            flexShrink: 0,
+            maxHeight: "140px",
+            borderBottom: "1px solid rgba(200,170,120,0.08)",
+          }}>
+            {/* Photo or placeholder behind notes */}
+            <div
+              style={{
+                position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
+                overflow: "hidden", pointerEvents: "none",
+              }}
+            >
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt=""
+                  style={{
+                    width: "100%", height: "100%",
+                    objectFit: "cover", objectPosition: "center right",
+                    transform: "scale(1.05)",
+                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    WebkitMaskComposite: "destination-in",
+                    maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                    maskComposite: "intersect",
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: "100%", height: "100%",
+                  WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                  WebkitMaskComposite: "destination-in",
+                  maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                  maskComposite: "intersect",
+                }}>
+                  <TeaPlaceholder type={teaType} style={{ width: "100%", height: "100%" }} />
+                </div>
+              )}
+            </div>
+
+            <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {feeling && (
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -307,6 +313,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note, opacity: noteOpacities[0],
+                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
                       {feeling}
                     </span>
@@ -325,6 +332,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note,
                       opacity: noteOpacities[i] ?? 0.5,
+                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
                       {note}
                     </span>
@@ -332,7 +340,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ))}
               </div>
             </div>
-          )}
+          </div>
 
           {/* Story / Lore — single instance */}
           {story && (
