@@ -198,6 +198,15 @@
       .tea-card-scroll::-webkit-scrollbar { width: 3px; }
       .tea-card-scroll::-webkit-scrollbar-track { background: transparent; }
       .tea-card-scroll::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
+
+      /* Admin form overrides — kill native browser chrome */
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
+      select option { background: var(--tea-surface); color: var(--tea-text); }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      input[type="number"] { -moz-appearance: textfield; }
       @keyframes panelReveal {
         from { opacity: 0; transform: translateY(4px); }
         to { opacity: 1; transform: translateY(0); }

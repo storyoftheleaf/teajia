@@ -402,6 +402,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   // Reusable input styles for the "Ledger" look
   const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-muted/30";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-[10px] uppercase tracking-wider text-tea-muted/70 mb-1 flex items-center gap-1 font-bold";
   const wisdomInputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans";
 
@@ -463,20 +464,20 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <label className={labelStyle}><Layers size={9} /> Type *</label>
                   <select
                     name="type" value={formData.type} onChange={handleChange}
-                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans"
+                    className={selectStyle}
                   >
-                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface">{t}</option>)}
+                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
                   </select>
                </div>
                <div>
                   <label className={labelStyle}>Form</label>
                   <select
                     name="form" value={formData.form} onChange={handleChange}
-                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans"
+                    className={selectStyle}
                   >
-                    <option value="" className="bg-tea-surface">— unset —</option>
+                    <option value="" className="bg-tea-surface text-tea-text">— unset —</option>
                     {['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
-                      <option key={f} value={f} className="bg-tea-surface">{f}</option>
+                      <option key={f} value={f} className="bg-tea-surface text-tea-text">{f}</option>
                     ))}
                   </select>
                </div>
@@ -488,15 +489,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <label className={labelStyle}>Status</label>
                   <select
                     name="status" value={formData.status} onChange={handleChange}
-                    className={`w-full border-b px-0 py-1.5 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
+                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
                         formData.status === 'Draft' ? 'text-tea-muted/80 border-tea-muted/30' :
                         formData.status === 'Sold Out' ? 'text-tea-muted/80 border-tea-muted/30' :
                         'text-tea-accent border-tea-accent/50'
                     }`}
                   >
-                    <option value="Active" className="bg-tea-surface">Active</option>
-                    <option value="Draft" className="bg-tea-surface">Draft</option>
-                    <option value="Sold Out" className="bg-tea-surface">Sold Out</option>
+                    <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
+                    <option value="Draft" className="bg-tea-surface text-tea-text">Draft</option>
+                    <option value="Sold Out" className="bg-tea-surface text-tea-text">Sold Out</option>
                   </select>
                </div>
             </div>
@@ -589,14 +590,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-muted transition-colors">
                             <select
                                 name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                className="bg-transparent text-[10px] text-tea-accent font-bold outline-none cursor-pointer uppercase"
+                                className="bg-transparent appearance-none rounded-none text-[10px] text-tea-accent font-bold outline-none cursor-pointer uppercase"
                             >
-                                <option value="USD" className="bg-tea-surface">USD</option>
-                                <option value="NT" className="bg-tea-surface">NT</option>
-                                <option value="Yuan" className="bg-tea-surface">CNY</option>
-                                <option value="IDR" className="bg-tea-surface">IDR</option>
-                                <option value="JPY" className="bg-tea-surface">JPY</option>
-                                <option value="MYR" className="bg-tea-surface">MYR</option>
+                                <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
+                                <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
+                                <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
+                                <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
+                                <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                                <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
                             </select>
                             <input
                                 name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
@@ -670,7 +671,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         />
                     </div>
                     <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
-                        <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="accent-[#b8924e]" />
+                        <div className="relative">
+                            <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
+                            <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-accent border-tea-accent' : 'border-tea-border group-hover:border-tea-muted'}`}>
+                                {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </div>
+                        </div>
                         <span className="text-[10px] text-tea-muted group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
                     </label>
                </div>
