@@ -6,6 +6,7 @@ import fs from 'fs';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', 'VITE_');
   return {
+    base: './',
     server: {
       port: 3000,
       host: 'localhost',
