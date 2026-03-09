@@ -41,7 +41,27 @@ CREATE TABLE IF NOT EXISTS products (
     capacity_ml INTEGER,     -- Teaware: vessel capacity in ml
     teaware_category TEXT,   -- Teaware: "pot" | "cup" | "tray" | "storage" | "accessory" | "decorative"
     quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
+    vendor_id TEXT,                -- FK to customers table (vendor contact)
     created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 1b. Customers Table
+CREATE TABLE IF NOT EXISTS customers (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    name TEXT NOT NULL,
+    company TEXT,
+    email TEXT,
+    phone TEXT,
+    whatsapp TEXT,
+    address TEXT,
+    city TEXT,
+    country TEXT,
+    preferred_currency TEXT DEFAULT 'USD',
+    tags TEXT DEFAULT '[]',        -- JSON array e.g. ["wholesale","vendor","vip"]
+    notes TEXT,
+    source TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
 -- 2. Exchange Rates Table
@@ -67,6 +87,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     invoice_number TEXT NOT NULL,
     customer_name TEXT,
     customer_whatsapp TEXT,
+    customer_id TEXT,              -- FK to customers table
     display_currency TEXT,
     shipping_cost_usd REAL DEFAULT 0,
     status TEXT DEFAULT 'Draft',

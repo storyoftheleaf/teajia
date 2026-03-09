@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf } from 'lucide-react';
-import { useCustomers } from '../hooks/useAdminData';
+import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
 import { Customer, CustomerTag } from '../types';
@@ -185,19 +185,36 @@ const CustomerModal = ({
 
 // ── Customer Detail Panel ──
 const CustomerDetail = ({
-  customer, onClose, onEdit, onDelete,
+  customer, onClose, onEdit, onDelete, allProducts,
 }: {
   customer: Customer;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  allProducts?: any[];
 }) => {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [teas, setTeas] = useState<any[]>([]);
+  const [suppliedProducts, setSuppliedProducts] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingTeas, setLoadingTeas] = useState(true);
+  const [loadingSupplied, setLoadingSupplied] = useState(true);
   const [showOrders, setShowOrders] = useState(true);
   const [showTeas, setShowTeas] = useState(true);
+  const [showSupplied, setShowSupplied] = useState(true);
+  const [showLinkDropdown, setShowLinkDropdown] = useState(false);
+  const [linkSearch, setLinkSearch] = useState('');
+
+  const isVendor = customer.tags.includes('vendor');
+
+  const refreshSupplied = () => {
+    setLoadingSupplied(true);
+    api.customers.getSuppliedProducts(customer.id)
+      .then(setSuppliedProducts)
+      .catch(() => setSuppliedProducts([]))
+      .finally(() => setLoadingSupplied(false));
+  };
 
   React.useEffect(() => {
     setLoadingOrders(true);
@@ -210,6 +227,8 @@ const CustomerDetail = ({
       .then(setTeas)
       .catch(() => setTeas([]))
       .finally(() => setLoadingTeas(false));
+    if (isVendor) refreshSupplied();
+    else setLoadingSupplied(false);
   }, [customer.id]);
 
   const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) => {
@@ -275,6 +294,121 @@ const CustomerDetail = ({
               <div className="text-[10px] text-tea-muted uppercase tracking-wider mt-1">Last Order</div>
             </div>
           </div>
+
+          {/* Teas Supplied (for vendor contacts) */}
+          {isVendor && (
+            <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <button
+                onClick={() => setShowSupplied(!showSupplied)}
+                className="w-full flex justify-between items-center"
+              >
+                <h4 className="text-xs uppercase tracking-[0.2em] text-tea-muted flex items-center gap-2">
+                  <Leaf size={12} /> Teas Supplied
+                  {!loadingSupplied && <span className="text-tea-accent">({suppliedProducts.length})</span>}
+                </h4>
+                {showSupplied ? <ChevronUp size={14} className="text-tea-muted" /> : <ChevronDown size={14} className="text-tea-muted" />}
+              </button>
+
+              {showSupplied && (
+                <div className="mt-4">
+                  {loadingSupplied ? (
+                    <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-muted" size={16} /></div>
+                  ) : (
+                    <>
+                      {suppliedProducts.length > 0 && (
+                        <div className="space-y-2 mb-4">
+                          {suppliedProducts.map((p: any) => (
+                            <div key={p.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
+                              {p.image_url ? (
+                                <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
+                                  <Leaf size={14} className="text-tea-muted" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-tea-text font-medium truncate">
+                                  {p.given_name || p.product_name}
+                                </div>
+                                <div className="text-xs text-tea-muted flex items-center gap-2">
+                                  <span className="uppercase">{p.type}</span>
+                                  {p.origin_region && <span>· {p.origin_region}</span>}
+                                  {p.stock_grams != null && <span>· {p.stock_grams}g in stock</span>}
+                                </div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  await api.customers.unlinkProduct(customer.id, p.id);
+                                  refreshSupplied();
+                                  showToast('Product unlinked', 'info');
+                                }}
+                                className="text-tea-muted hover:text-red-400 transition-colors p-1"
+                                title="Unlink from this vendor"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Link a product */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowLinkDropdown(!showLinkDropdown)}
+                          className="flex items-center gap-2 text-xs text-tea-muted hover:text-tea-accent transition-colors"
+                        >
+                          <Plus size={12} /> Link a tea to this vendor
+                        </button>
+
+                        {showLinkDropdown && allProducts && (
+                          <div className="absolute left-0 top-full mt-2 w-full bg-tea-bg border border-tea-border rounded-xl shadow-2xl z-20 max-h-60 overflow-y-auto">
+                            <div className="sticky top-0 bg-tea-bg p-2 border-b border-tea-border">
+                              <input
+                                type="text"
+                                placeholder="Search teas..."
+                                value={linkSearch}
+                                onChange={e => setLinkSearch(e.target.value)}
+                                className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none"
+                                autoFocus
+                              />
+                            </div>
+                            {allProducts
+                              .filter(p => {
+                                const q = linkSearch.toLowerCase();
+                                const alreadyLinked = suppliedProducts.some((sp: any) => sp.id === p.id);
+                                if (alreadyLinked) return false;
+                                if (!q) return true;
+                                return (p.givenName || '').toLowerCase().includes(q)
+                                  || (p.productName || '').toLowerCase().includes(q)
+                                  || (p.type || '').toLowerCase().includes(q);
+                              })
+                              .slice(0, 20)
+                              .map(p => (
+                                <button
+                                  key={p.id}
+                                  onClick={async () => {
+                                    await api.customers.linkProduct(customer.id, p.id);
+                                    refreshSupplied();
+                                    setShowLinkDropdown(false);
+                                    setLinkSearch('');
+                                    showToast(`Linked "${p.givenName || p.productName}"`, 'success');
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-tea-surface transition-colors flex items-center gap-2"
+                                >
+                                  <span className="text-tea-text">{p.givenName || p.productName}</span>
+                                  <span className="text-[10px] text-tea-muted uppercase">{p.type}</span>
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Contact Info */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-4">
@@ -399,6 +533,7 @@ const CustomerDetail = ({
 export const CustomersView = () => {
   const { showToast } = useToast();
   const { data: customers = [], isLoading, refetch } = useCustomers();
+  const { data: allProducts = [] } = useProducts();
 
   const [search, setSearch] = useState('');
   const [filterTag, setFilterTag] = useState<CustomerTag | ''>('');
@@ -592,6 +727,7 @@ export const CustomersView = () => {
           onClose={() => setViewingCustomer(null)}
           onEdit={() => openEdit(viewingCustomer)}
           onDelete={() => handleDelete(viewingCustomer)}
+          allProducts={allProducts}
         />
       )}
     </div>

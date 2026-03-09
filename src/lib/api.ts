@@ -245,6 +245,27 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getSuppliedProducts: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/products`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    linkProduct: async (vendorId: string, productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${vendorId}/products`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ product_id: productId }),
+      });
+      return handleResponse(res);
+    },
+    unlinkProduct: async (vendorId: string, productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${vendorId}/products/${productId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
   },
 
   rpc: {

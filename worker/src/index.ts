@@ -621,6 +621,45 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
+const handleGetVendorProducts: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const result = await env.DB.prepare(`
+    SELECT id, product_name, given_name, chinese_name, type, image_url,
+      origin_country, origin_region, stock_grams, status, cost_amount, cost_currency
+    FROM products
+    WHERE vendor_id = ?
+    ORDER BY product_name ASC
+  `).bind(params.id).all();
+
+  return json(result.results);
+};
+
+const handleLinkVendorProduct: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  const productId = body.product_id;
+  if (!productId) return json({ error: 'product_id required' }, 400);
+
+  await env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ?')
+    .bind(params.id, productId).run();
+
+  return json({ success: true });
+};
+
+const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  await env.DB.prepare('UPDATE products SET vendor_id = NULL WHERE id = ?')
+    .bind(params.productId).run();
+
+  return json({ success: true });
+};
+
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -678,6 +717,9 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],
   ['GET', '/api/customers/:id/orders', handleGetCustomerOrders],
   ['GET', '/api/customers/:id/teas', handleGetCustomerTeas],
+  ['GET', '/api/customers/:id/products', handleGetVendorProducts],
+  ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
+  ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],
 
   // RPC
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
