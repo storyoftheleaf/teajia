@@ -44,7 +44,8 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           </p>
           <button
             onClick={onCtaClick}
-            className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm border-b border-tea-gold pb-0.5"
+            className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm pb-0.5"
+            style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.3)' }}
           >
             {ctaLabel}
             <Icons.ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -53,7 +54,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
         {/* Decorative area — visible on all screens */}
         {decorativeElement && (
-          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5 border-t md:border-t-0 md:border-l border-tea-gold/[0.06]">
+          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06), inset 1px 0 0 rgba(184,146,78,0.06)' }}>
             {decorativeElement}
           </div>
         )}
@@ -61,7 +62,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
       {/* Metadata bar */}
       {metadata && metadata.length > 0 && (
-        <div className="border-t border-tea-gold/[0.06] px-6 md:px-8 py-3 flex items-center gap-6">
+        <div className="px-6 md:px-8 py-3 flex items-center gap-6" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
           {metadata.map((item, i) => (
             <React.Fragment key={item.label}>
               {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}

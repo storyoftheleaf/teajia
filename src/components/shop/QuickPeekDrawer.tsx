@@ -84,7 +84,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         </div>
 
         {/* Header */}
-        <div className="sticky top-0 bg-tea-bg border-b border-tea-border px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-tea-bg px-6 py-4 flex items-center justify-between z-10" style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}>
           <h3 className="font-serif text-lg text-tea-text truncate pr-4">
             {item.name}
           </h3>
@@ -141,14 +141,14 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-10 h-10 rounded-md border border-tea-border flex items-center justify-center hover:bg-tea-text/5"
+                  className="w-10 h-10 rounded-md bg-tea-text/[0.05] flex items-center justify-center hover:bg-tea-text/[0.10] transition-colors"
                 >
                   −
                 </button>
                 <span className="num text-lg w-8 text-center text-tea-text">{quantity}</span>
                 <button
                   onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
-                  className="w-10 h-10 rounded-md border border-tea-border flex items-center justify-center hover:bg-tea-text/5"
+                  className="w-10 h-10 rounded-md bg-tea-text/[0.05] flex items-center justify-center hover:bg-tea-text/[0.10] transition-colors"
                 >
                   +
                 </button>

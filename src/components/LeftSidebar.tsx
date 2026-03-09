@@ -41,14 +41,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-20 xl:w-56 bg-tea-surface  text-tea-text border-r border-tea-border h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40">
+    <aside className="hidden lg:flex flex-col w-20 xl:w-56 text-tea-text h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40" style={{ background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)', boxShadow: 'inset -1px 0 0 rgba(200,170,120,0.06), 1px 0 8px rgba(0,0,0,0.15)' }}>
       {/* Logo/Brand - Home Button */}
       <button
         onClick={() => onNavigate('HOME')}
-        className={`h-20 flex items-center justify-center xl:justify-start xl:px-6 xl:gap-3 border-b border-tea-border animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group relative ${
+        className={`h-20 flex items-center justify-center xl:justify-start xl:px-6 xl:gap-3 animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group relative ${
           activeSection === 'HOME' ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
         }`}
         title="Home"
+        style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}
       >
         <LogoEmblem
           size={36}
@@ -59,7 +60,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               : 'opacity-80 group-hover:opacity-100 group-hover:scale-105'
           }`}
         />
-        <span className="hidden xl:block font-serif text-lg text-tea-text tracking-wide">Teajia</span>
+        <span className="hidden xl:block text-lg text-tea-text tracking-wide" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 300 }}>Teajia</span>
         {activeSection === 'HOME' && (
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full animate-[slideIn_0.3s_ease-out]"></div>
         )}
@@ -112,7 +113,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
       {/* Admin Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
-        <nav className="flex flex-col items-center xl:items-stretch px-0 xl:px-3 pt-2 pb-4 border-t border-tea-border">
+        <nav className="flex flex-col items-center xl:items-stretch px-0 xl:px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
           <span className="hidden xl:block text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>
           {[
             { path: '/admin/inventory', label: 'Inventory', Icon: Icons.Settings },
@@ -148,7 +149,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       </div>
 
       {/* Utility Area - Cart & Account at Bottom */}
-      <div className="border-t border-tea-border relative py-4 xl:px-3">
+      <div className="relative py-4 xl:px-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
         {/* Decorative seal accent on the border */}
         <div className="hidden xl:block absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
         <button

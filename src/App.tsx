@@ -325,7 +325,7 @@ const AppContent = () => {
     <div className="min-h-screen bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
 
       <div className="texture-overlay"></div>
-      <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.12] z-0"></div>
+      <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.20] z-0"></div>
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
 
       {/* Admin Toolbar — visible only for admin users */}

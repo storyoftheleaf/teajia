@@ -198,7 +198,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <button
               onClick={() => onNavigateToSection('MAGAZINE')}
-              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
+              className="text-tea-gold-dark hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
             >
               All
               <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -227,10 +227,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       {pullQuote && (
         <section
           ref={quoteReveal.ref}
-          className={`${SECTION_GAP} border-l-2 border-tea-gold pl-6 md:pl-8 ${quoteReveal.className}`}
+          className={`${SECTION_GAP} border-l-2 border-tea-gold/60 pl-6 md:pl-8 py-6 md:py-8 bg-tea-gold/[0.03] ${quoteReveal.className}`}
           style={quoteReveal.style}
         >
-          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3">
+          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif" }}>
             &ldquo;{pullQuote.description}&rdquo;
           </p>
           <p className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans">
@@ -244,7 +244,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           ============================================ */}
       <section
         ref={learnReveal.ref}
-        className={`${SECTION_GAP} bg-tea-surface p-6 md:p-10 rounded-lg ${learnReveal.className}`}
+        className={`${SECTION_GAP} inset-panel p-6 md:p-10 ${learnReveal.className}`}
         style={learnReveal.style}
       >
         <div className="flex items-baseline justify-between mb-4">
@@ -258,7 +258,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
           <button
             onClick={() => onNavigateToSection('LEARN')}
-            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
+            className="text-tea-gold-dark hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
           >
             All courses
             <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -292,26 +292,26 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <button
               onClick={() => onNavigateToSection('SHOP')}
-              className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
+              className="text-tea-gold-dark hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300"
             >
               Shop
               <Icons.ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="flex gap-5 md:gap-8 items-start relative">
-            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden">
+          <div className="flex gap-5 md:gap-8 items-start relative inset-panel p-4 md:p-6">
+            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(200,170,120,0.06)' }}>
               <div className="aspect-square overflow-hidden">
                 <img
                   src={curatedTea.image}
                   alt={curatedTea.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                   loading="lazy"
                 />
               </div>
             </CardContainer>
             <div className="flex-1 min-w-0 pt-1">
-              <h3 className="font-serif text-xl md:text-2xl text-tea-text mb-1">
+              <h3 className="text-xl md:text-2xl text-tea-text mb-1" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 400 }}>
                 {curatedTea.name}
               </h3>
               <p className="text-xs text-tea-text/40 uppercase tracking-wider mb-3">
@@ -333,7 +333,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               {isAdmin && productMap.has(curatedTea.id) && (() => {
                 const ap = productMap.get(curatedTea.id)!;
                 return (
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-tea-border">
+                  <div className="flex items-center gap-3 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
                     <button
                       onClick={() => updateProduct(curatedTea.id, { is_featured: !ap.isFeatured })}
                       className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-gold' : 'text-tea-text/30 hover:text-tea-text/60'}`}
@@ -366,26 +366,28 @@ export const HomePage: React.FC<HomePageProps> = ({
           ============================================ */}
       <section
         ref={consultReveal.ref}
-        className={`${SECTION_GAP} border-t border-b border-tea-border py-6 md:py-10 ${consultReveal.className}`}
+        className={`${SECTION_GAP} py-6 md:py-10 ${consultReveal.className}`}
         style={consultReveal.style}
       >
+        <div className="divider-warm mb-6 md:mb-10" />
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-2">
               Design &amp; Curation
             </p>
-            <p className="font-serif text-lg md:text-xl text-tea-text">
+            <p className="text-lg md:text-xl text-tea-text" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 300 }}>
               We design tea spaces — from a quiet corner to a full room
             </p>
           </div>
           <button
             onClick={() => onNavigateToSection('OFFERINGS')}
-            className="text-tea-gold-dark hover:opacity-80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
+            className="text-tea-gold-dark hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
           >
             Learn more
             <Icons.ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
+        <div className="divider-warm mt-6 md:mt-10" />
       </section>
 
       {/* ============================================

@@ -22,7 +22,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2.5 bg-tea-surface border border-tea-border rounded-[1px] text-sm text-tea-text placeholder:text-tea-text-dim font-sans focus:outline-none focus:border-tea-gold/30 transition-colors"
+        className="w-full pl-10 pr-4 py-2.5 bg-tea-surface rounded-[1px] text-sm text-tea-text placeholder:text-tea-text-dim font-sans focus:outline-none focus:ring-1 focus:ring-tea-gold/20 transition-colors"
+        style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(200,170,120,0.04)' }}
       />
       {value && (
         <button
