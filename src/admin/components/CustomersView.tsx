@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
@@ -531,11 +532,12 @@ const CustomerDetail = ({
 
 // ── Main CustomersView ──
 export const CustomersView = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { data: customers = [], isLoading, refetch } = useCustomers();
   const { data: allProducts = [] } = useProducts();
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterTag, setFilterTag] = useState<CustomerTag | ''>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);

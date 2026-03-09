@@ -295,6 +295,13 @@ export const api = {
       });
       return handleResponse(res);
     },
+    backfillCustomerLinks: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/backfill-customer-links`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
   },
 
   activityLogs: {

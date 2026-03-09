@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Loader2, Search, XCircle, Trash2, Eye, X, CheckSquare, PackageCheck } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, CheckSquare, PackageCheck, Users } from 'lucide-react';
 import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 
 export const OrdersView = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
   const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
@@ -122,7 +124,16 @@ export const OrdersView = () => {
                      <tr key={order.id} className="hover:bg-tea-bg/50 group transition-colors">
                        <td className="p-4 text-tea-muted">{new Date(order.created_at).toLocaleDateString()}</td>
                        <td className="p-4 num text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</td>
-                       <td className="p-4 text-tea-text">{order.customer_name}</td>
+                       <td className="p-4">
+                         <button
+                           onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(order.customer_name || '')}`)}
+                           className="text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust"
+                           title="View customer profile"
+                         >
+                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-muted" />
+                           {order.customer_name}
+                         </button>
+                       </td>
                        <td className="p-4 text-right text-tea-text num">
                            {order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}
                        </td>
@@ -206,7 +217,12 @@ export const OrdersView = () => {
                 <div className="space-y-4 mb-8">
                     <div className="flex justify-between border-b border-tea-border pb-3">
                         <span className="text-tea-muted">Customer</span>
-                        <span className="text-tea-text font-medium">{viewingInvoice.customer_name}</span>
+                        <button
+                          onClick={() => { setViewingInvoice(null); navigate(`/admin/customers?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
+                          className="text-tea-text font-medium hover:text-tea-accent transition-colors"
+                        >
+                          {viewingInvoice.customer_name}
+                        </button>
                     </div>
                     <div className="flex justify-between border-b border-tea-border pb-3">
                         <span className="text-tea-muted">Date</span>

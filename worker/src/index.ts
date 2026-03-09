@@ -660,6 +660,43 @@ const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Backfill: match existing invoices to customers ──
+const handleBackfillCustomerLinks: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Find invoices with no customer_id and try to match by name
+  const unlinked = await env.DB.prepare(
+    `SELECT id, customer_name, customer_whatsapp FROM invoices WHERE customer_id IS NULL AND customer_name IS NOT NULL`
+  ).all();
+
+  const customers = await env.DB.prepare('SELECT id, name, whatsapp FROM customers').all();
+
+  let linked = 0;
+  for (const inv of unlinked.results) {
+    const name = (inv.customer_name as string || '').toLowerCase().trim();
+    if (!name) continue;
+
+    // Try exact name match first, then WhatsApp match
+    let match = customers.results.find(
+      (c: any) => (c.name as string).toLowerCase().trim() === name
+    );
+    if (!match && inv.customer_whatsapp) {
+      match = customers.results.find(
+        (c: any) => c.whatsapp && c.whatsapp === inv.customer_whatsapp
+      );
+    }
+
+    if (match) {
+      await env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
+        .bind(match.id, inv.id).run();
+      linked++;
+    }
+  }
+
+  return json({ linked, total_unlinked: unlinked.results.length });
+};
+
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -725,6 +762,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
+  ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
 
   // Activity Logs
   ['GET', '/api/activity-logs', handleGetActivityLogs],
