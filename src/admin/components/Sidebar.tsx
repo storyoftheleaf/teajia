@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users } from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -107,6 +107,7 @@ export const Sidebar = ({
   const adminItems: NavItem[] = [
     { id: 'inventory', path: '/admin/inventory', label: 'Master Inventory', icon: <Settings size={16} /> },
     { id: 'personal', path: '/admin/personal', label: 'Collection', icon: <UserCheck size={16} /> }, 
+    { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users size={16} /> },
     { id: 'orders', path: '/admin/orders', label: 'Orders', icon: <History size={16} /> },
     { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen size={16} /> },
     { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings size={16} /> },

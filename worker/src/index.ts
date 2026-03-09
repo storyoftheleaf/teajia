@@ -386,12 +386,13 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, display_currency, shipping_cost_usd, status, inventory_deducted) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     body.invoice.invoice_number,
     body.invoice.customer_name,
     body.invoice.customer_whatsapp || null,
+    body.invoice.customer_id || null,
     body.invoice.display_currency,
     body.invoice.shipping_cost_usd || 0,
     body.invoice.status || 'Pending',
@@ -492,6 +493,110 @@ const handleTruncateAll: Handler = async (request, env) => {
   return json({ success: true });
 };
 
+// ── Customers ──
+const handleGetCustomers: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Join with invoices to get order stats
+  const result = await env.DB.prepare(`
+    SELECT c.*,
+      COUNT(i.id) as order_count,
+      COALESCE(SUM(
+        (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
+      ), 0) as total_spent_usd,
+      MAX(i.created_at) as last_order_date
+    FROM customers c
+    LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
+    GROUP BY c.id
+    ORDER BY c.created_at DESC
+  `).all();
+
+  return json(result.results);
+};
+
+const handleGetCustomer: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const customer = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(params.id).first();
+  if (!customer) return json({ error: 'Customer not found' }, 404);
+
+  // Get their orders
+  const orders = await env.DB.prepare(
+    'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
+  ).bind(params.id).all();
+
+  return json({ ...customer, orders: orders.results });
+};
+
+const handleCreateCustomer: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  const id = crypto.randomUUID();
+
+  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+
+  await env.DB.prepare(
+    `INSERT INTO customers (id, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    body.name,
+    body.company || null,
+    body.email || null,
+    body.phone || null,
+    body.whatsapp || null,
+    body.address || null,
+    body.city || null,
+    body.country || null,
+    body.preferred_currency || 'USD',
+    body.tags || '[]',
+    body.notes || null,
+    body.source || null
+  ).run();
+
+  return json({ id }, 201);
+};
+
+const handleUpdateCustomer: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+
+  const cols = Object.keys(body);
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(`UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+
+  return json({ success: true });
+};
+
+const handleDeleteCustomer: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Unlink invoices (set customer_id to null) rather than cascade delete
+  await env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id).run();
+  return json({ success: true });
+};
+
+const handleGetCustomerOrders: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const orders = await env.DB.prepare(
+    'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
+  ).bind(params.id).all();
+
+  return json(orders.results);
+};
+
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -540,6 +645,14 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
   ['PUT', '/api/invoices/:id', handleUpdateInvoice],
   ['DELETE', '/api/invoices/:id', handleDeleteInvoice],
+
+  // Customers
+  ['GET', '/api/customers', handleGetCustomers],
+  ['GET', '/api/customers/:id', handleGetCustomer],
+  ['POST', '/api/customers', handleCreateCustomer],
+  ['PUT', '/api/customers/:id', handleUpdateCustomer],
+  ['DELETE', '/api/customers/:id', handleDeleteCustomer],
+  ['GET', '/api/customers/:id/orders', handleGetCustomerOrders],
 
   // RPC
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
