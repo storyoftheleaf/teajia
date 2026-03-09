@@ -12,7 +12,6 @@ import { fmtPrice, fmtPricePerGram } from '../utils/formatNumber';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 
 import { HapticSlider } from './shared/HapticSlider';
-import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
@@ -534,75 +533,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
                                         }} />
 
-                                        {/* Notes + image section */}
-                                        <div className="relative overflow-hidden" style={{
-                                            padding: '10px 14px',
-                                            background: 'rgba(184,146,78,0.03)',
-                                            borderBottom: '1px solid rgba(200,170,120,0.08)',
-                                            maxHeight: '140px',
-                                        }}>
-                                            {/* Tea image/placeholder on right with fade mask */}
-                                            <div className="absolute top-0 right-0 bottom-0 pointer-events-none" style={{ width: '60%' }}>
-                                                {item.image ? (
-                                                    <img src={item.image} alt="" className="w-full h-full object-cover" style={{
-                                                        transform: 'scale(1.05)',
-                                                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
-                                                        WebkitMaskComposite: 'destination-in',
-                                                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
-                                                        maskComposite: 'intersect',
-                                                    }} />
-                                                ) : (
-                                                    <div className="w-full h-full" style={{
-                                                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
-                                                        WebkitMaskComposite: 'destination-in',
-                                                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
-                                                        maskComposite: 'intersect',
-                                                    }}>
-                                                        <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Structured notes with declining opacity */}
-                                            <div className="relative z-[1] flex flex-col gap-1.5">
-                                                {item.mood && (
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="shrink-0 rounded-sm" style={{ width: 18, height: 2, background: 'var(--tea-gold)', opacity: 0.7 }} />
-                                                        <span className="font-display text-[15px] font-light italic text-tea-text-sec" style={{
-                                                            textShadow: '0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)',
-                                                        }}>{item.mood}</span>
-                                                    </div>
-                                                )}
-                                                {(item.tags || []).slice(0, 3).map((tag, i) => {
-                                                    const opacities = [0.82, 0.65, 0.5];
-                                                    const markerOpacities = [0.5, 0.35, 0.2];
-                                                    const markerWidths = [16, 14, 12];
-                                                    return (
-                                                        <div key={tag} className="flex items-center gap-2.5">
-                                                            <div className="shrink-0 rounded-sm" style={{ width: markerWidths[i], height: 2, background: 'var(--tea-gold)', opacity: markerOpacities[i] }} />
-                                                            <span className="font-display text-[14px] font-light italic text-tea-text-sec" style={{
-                                                                opacity: opacities[i],
-                                                                textShadow: '0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)',
-                                                            }}>{tag}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {!item.mood && (!item.tags || item.tags.length === 0) && (
-                                                    <p className="font-body text-sm text-tea-text-sec leading-relaxed max-w-[60%]" style={{
-                                                        textShadow: '0 1px 8px rgba(28,27,25,0.9)',
-                                                    }}>{item.description}</p>
-                                                )}
-                                            </div>
+                                        {/* Description */}
+                                        <div className="relative px-3.5 pt-3 pb-2">
+                                            <p className="font-body text-sm text-tea-text-sec/80 leading-relaxed max-w-2xl">
+                                                {item.description}
+                                            </p>
                                         </div>
-
-                                        {/* Story/description text */}
-                                        {(item.mood || (item.tags && item.tags.length > 0)) && item.description && (
-                                            <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(200,170,120,0.08)' }}>
-                                                <p className="font-body text-sm text-tea-text-sec/80 leading-relaxed max-w-2xl">
-                                                    {item.description}
-                                                </p>
-                                            </div>
-                                        )}
 
                                         {/* Commerce zone */}
                                         <div className="relative px-3 py-2.5" style={{ borderTop: '1px solid rgba(200,170,120,0.06)' }}>
