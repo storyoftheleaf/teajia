@@ -561,7 +561,7 @@ export const ICON_SIZES = {
  *   </div>
  */
 
-export const SURFACE_TREATMENTS = {
+export const SURFACE_TREATMENT_PRESETS = {
   /** Primary warm surface — radial warmth + grain */
   warm: {
     warmthGradient: `
@@ -719,7 +719,7 @@ export const DESIGN_TOKENS = {
   gradients:       GRADIENTS,
   textures:        TEXTURES,
   shadows:         SHADOWS,
-  surfaceTreatments: SURFACE_TREATMENTS,
+  surfaceTreatments: SURFACE_TREATMENT_PRESETS,
   spacing:         SPACING,
   borderRadius:    BORDER_RADIUS,
   timing:          TIMING,
