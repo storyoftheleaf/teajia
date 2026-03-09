@@ -14,6 +14,14 @@ const queryClient = new QueryClient({
   },
 });
 
+// Reload once when a lazy chunk fails to fetch (e.g. after a new deployment)
+window.addEventListener('vite:preloadError', () => {
+  if (!sessionStorage.getItem('chunkReloaded')) {
+    sessionStorage.setItem('chunkReloaded', '1');
+    window.location.reload();
+  }
+});
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
