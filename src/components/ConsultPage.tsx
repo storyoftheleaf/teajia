@@ -269,20 +269,20 @@ const ServiceDirectory: React.FC<ServiceDirectoryProps> = ({ onItemClick }) => (
         <button
           key={item.id}
           onClick={() => onItemClick(item.id)}
-          className="w-full text-left group rounded-lg bg-tea-ink dark:bg-tea-ink
-                     border border-white/[0.08] hover:border-white/[0.15]
+          className="w-full text-left group rounded-lg bg-tea-surface
+                     border border-tea-border hover:border-tea-gold/20
                      px-5 py-4 flex items-start gap-4
                      transition-all duration-300
-                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2"
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2"
         >
-          <span className="mt-0.5 text-tea-seal shrink-0">
+          <span className="mt-0.5 text-tea-gold shrink-0">
             <Icon className="w-5 h-5" />
           </span>
           <div className="min-w-0">
-            <span className="font-serif text-base text-tea-paper font-medium leading-tight block">
+            <span className="font-serif text-base text-tea-text font-medium leading-tight block">
               {item.label}
             </span>
-            <span className="text-sm text-tea-paper/40 leading-relaxed mt-0.5 block">
+            <span className="text-sm text-tea-text-sec leading-relaxed mt-0.5 block">
               {item.desc}
             </span>
           </div>

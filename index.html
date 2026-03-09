@@ -85,20 +85,25 @@
               'tea-gold-lt': 'var(--tea-gold-lt)',
               'tea-border': 'var(--tea-border)',
               'tea-accent-sub': 'var(--tea-accent-sub)',
-              // Legacy aliases (kept during migration, will be removed)
-              'tea-charcoal': 'var(--tea-bg)',
-              'tea-paper': '#ede4d4',
-              'tea-paper-dark': 'var(--tea-surface)',
-              'tea-beige': 'var(--tea-elevated)',
-              'tea-ink': 'var(--tea-text)',
-              'tea-ink-light': 'var(--tea-text-sec)',
-              'tea-ink-secondary': 'var(--tea-text-sec)',
-              'tea-paper-secondary': 'var(--tea-text-dim)',
-              'tea-seal': 'var(--tea-gold)',
-              'tea-seal-dark': 'var(--tea-gold)',
-              'tea-accent': 'var(--tea-gold)',
-              'tea-muted': 'var(--tea-text-dim)',
-              'tea-beige-dark': 'var(--tea-text-dim)',
+              // ⚠️  DEPRECATED LEGACY ALIASES — DO NOT USE IN NEW CODE
+              // See COLOR_RULES.md for correct tokens. These names LIE about their behavior:
+              //   tea-ink ≠ always dark — it maps to var(--tea-text) which is CREAM in dark mode
+              //   tea-paper = hardcoded #ede4d4 — does NOT adapt to theme
+              //   tea-charcoal = var(--tea-bg) — is PARCHMENT in light mode
+              // Use semantic tokens instead: tea-text, tea-surface, tea-bg, tea-gold, tea-border
+              'tea-charcoal': 'var(--tea-bg)',       // ❌ Use tea-bg
+              'tea-paper': '#ede4d4',                // ❌ Use tea-text (for contrast) or tea-bg
+              'tea-paper-dark': 'var(--tea-surface)', // ❌ Use tea-surface
+              'tea-beige': 'var(--tea-elevated)',     // ❌ Use tea-elevated
+              'tea-ink': 'var(--tea-text)',           // ❌ Use tea-text
+              'tea-ink-light': 'var(--tea-text-sec)', // ❌ Use tea-text-sec
+              'tea-ink-secondary': 'var(--tea-text-sec)', // ❌ Use tea-text-sec
+              'tea-paper-secondary': 'var(--tea-text-dim)', // ❌ Use tea-text-dim
+              'tea-seal': 'var(--tea-gold)',          // ❌ Use tea-gold
+              'tea-seal-dark': 'var(--tea-gold)',     // ❌ Use tea-gold
+              'tea-accent': 'var(--tea-gold)',        // ❌ Use tea-gold
+              'tea-muted': 'var(--tea-text-dim)',     // ❌ Use tea-text-dim
+              'tea-beige-dark': 'var(--tea-text-dim)', // ❌ Use tea-text-dim
               'tea-green': '#5A6E5A',
               'tea-moss': '#2A3430',
               'tea-shadow': 'rgba(0,0,0,0.15)',

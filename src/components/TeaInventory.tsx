@@ -514,10 +514,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 {/* Accordion — Alcove-styled quick add */}
                                 <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                     {/* Inset panel with Alcove surface treatment */}
-                                    <div className="mx-2 mb-3 rounded-md overflow-hidden relative"
+                                    <div className="mx-2 mb-3 rounded-md overflow-hidden relative bg-tea-surface border border-tea-border"
                                         style={{
-                                            background: 'rgba(0,0,0,0.25)',
-                                            boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
+                                            boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)',
                                             animation: isExpanded ? 'panelReveal 0.5s ease-out' : undefined,
                                         }}
                                     >
@@ -530,7 +529,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         {/* Ambient top-glow */}
                                         <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
                                             height: '60%',
-                                            background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
+                                            background: 'radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)',
                                         }} />
 
                                         {/* Description */}
@@ -541,7 +540,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
 
                                         {/* Commerce zone */}
-                                        <div className="relative px-3 py-2.5" style={{ borderTop: '1px solid rgba(200,170,120,0.06)' }}>
+                                        <div className="relative px-3 py-2.5 border-t border-tea-border">
                                             {/* Price + quantity row */}
                                             <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 2 }}>
                                                 <span className="font-mono num text-xs text-tea-text/70">
@@ -571,19 +570,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="flex-1 font-sans text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-                                                    style={{
-                                                        background: 'rgba(184,146,78,0.10)',
-                                                        border: '1px solid rgba(200,170,120,0.20)',
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = 'rgba(184,146,78,0.18)';
-                                                        e.currentTarget.style.borderColor = 'rgba(200,170,120,0.35)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = 'rgba(184,146,78,0.10)';
-                                                        e.currentTarget.style.borderColor = 'rgba(200,170,120,0.20)';
-                                                    }}
+                                                    className="flex-1 font-sans text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] bg-tea-accent-sub border border-tea-gold/20 hover:bg-tea-gold/15 hover:border-tea-gold/30"
                                                 >
                                                     <span>Add</span>
                                                     <span className="font-mono num text-[11px] opacity-70">{fmtPrice(totalPrice)}</span>

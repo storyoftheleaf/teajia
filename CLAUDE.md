@@ -1,5 +1,16 @@
 # CLAUDE.md — Teajia Unified Project
 
+## MANDATORY: Color & Styling Rules
+
+**Before writing ANY component styling, read `COLOR_RULES.md`.** It defines:
+- The 10 safe semantic tokens (tea-text, tea-surface, tea-bg, tea-gold, tea-border, etc.)
+- Legacy aliases that MUST NOT be used (tea-ink, tea-paper, tea-seal, tea-charcoal — they lie about their behavior)
+- The ban on hardcoded `rgba()` in inline styles (they don't adapt to theme)
+- The ban on `border-white` and `border-black` (use `border-tea-border`)
+- Required card/panel, text contrast, and hover state patterns
+
+**Quick rule:** If your color class doesn't start with `tea-text`, `tea-surface`, `tea-bg`, `tea-elevated`, `tea-gold`, `tea-gold-lt`, `tea-border`, `tea-accent-sub`, `tea-text-sec`, or `tea-text-dim` — you're probably using the wrong token.
+
 ## Project Overview
 
 This is the unified Teajia application combining two previously separate repos:
