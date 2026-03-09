@@ -2,30 +2,21 @@ import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'rea
 import { Icons } from '../Icons';
 import { CardContainer } from '../shared/CardContainer';
 import { useSectionReveal } from '../../hooks/useSectionReveal';
+import { SURFACE_TREATMENTS } from '../../designTokens';
 
 /* =====================================================
    Shared helpers — reused across all service sections
+   Styles sourced from SURFACE_TREATMENTS (designTokens.ts §12)
    ===================================================== */
 
-/** Alcove-style recessed panel — darkened overlay with warm rim-light shadows */
-const alcovePanelStyle: React.CSSProperties = {
-  background: 'rgba(0,0,0,0.25)',
-  boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
-  borderRadius: 6,
-};
+/** Recessed panel — from SURFACE_TREATMENTS.recessedPanel */
+const alcovePanelStyle = SURFACE_TREATMENTS.recessedPanel;
 
-/** Alcove-style inset for the hero image — recessed with warm rim-light */
-const alcoveInsetStyle: React.CSSProperties = {
-  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(200,170,120,0.06)',
-};
+/** Image inset — from SURFACE_TREATMENTS.imageInset */
+const alcoveInsetStyle = SURFACE_TREATMENTS.imageInset;
 
-/** Printable card wrapper — the unified expandable container */
-const cardFrameStyle: React.CSSProperties = {
-  border: '1px solid var(--tea-border)',
-  borderRadius: 8,
-  background: 'var(--tea-surface)',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(200,170,120,0.06)',
-};
+/** Card frame — from SURFACE_TREATMENTS.cardFrame */
+const cardFrameStyle = SURFACE_TREATMENTS.cardFrame;
 
 const ServiceLabel = ({ children }: { children: string }) => (
   <p className="text-[11px] uppercase tracking-[0.2em] text-tea-gold mb-1.5"
@@ -99,9 +90,13 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
 
     return (
       <section ref={ref} className={`pt-8 md:pt-10 ${revealClassName}`} style={revealStyle}>
-        <div style={cardFrameStyle} className="overflow-hidden">
+        <div style={cardFrameStyle} className="overflow-hidden relative">
+          {/* Alcove texture layers — radial warmth + grain */}
+          <div style={SURFACE_TREATMENTS.radialWarmth} />
+          <div style={SURFACE_TREATMENTS.grainTexture.card} />
+
           {/* Card body — the "printable" area with padding around everything */}
-          <div className="px-5 py-5 md:px-7 md:py-6">
+          <div className="relative z-[1] px-5 py-5 md:px-7 md:py-6">
             {/* Header row: label + heading + badge */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -248,12 +243,14 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         </div>
 
         {/* Process */}
-        <div className="px-5 py-6 md:px-6 md:py-7 mb-8" style={alcovePanelStyle}>
-          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-5">
+        <div className="relative px-5 py-6 md:px-6 md:py-7 mb-8 overflow-hidden" style={alcovePanelStyle}>
+          <div style={SURFACE_TREATMENTS.grainTexture.panel} />
+          <div style={SURFACE_TREATMENTS.ambientGlow} />
+          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-5">
             The Process
           </p>
           {/* Mobile */}
-          <div className="md:hidden space-y-4">
+          <div className="relative md:hidden space-y-4">
             {PROCESS.map(({ step, title, desc }) => (
               <div key={step} className="flex items-start gap-4">
                 <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">{step}</span>
@@ -265,7 +262,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
             ))}
           </div>
           {/* Desktop */}
-          <div className="hidden md:grid md:grid-cols-5 gap-6">
+          <div className="relative hidden md:grid md:grid-cols-5 gap-6">
             {PROCESS.map(({ step, title, desc }) => (
               <div key={step}>
                 <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center mb-2">{step}</span>
@@ -334,12 +331,14 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           <PrimaryCTA label="Book a session" onClick={() => onOpenInquiry('A session or practice guidance')} />
         }
       >
-        <div className="max-w-[640px] mb-8" style={alcovePanelStyle}>
-          <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim px-5 pt-5 pb-2">
+        <div className="relative max-w-[640px] mb-8 overflow-hidden" style={alcovePanelStyle}>
+          <div style={SURFACE_TREATMENTS.grainTexture.panel} />
+          <div style={SURFACE_TREATMENTS.ambientGlow} />
+          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-dim px-5 pt-5 pb-2">
             Offerings
           </p>
           {OFFERINGS.map(({ name, price, desc }) => (
-            <div key={name} className="flex items-start justify-between px-5 py-4 last:border-0"
+            <div key={name} className="relative flex items-start justify-between px-5 py-4 last:border-0"
               style={{ borderBottom: '1px solid var(--tea-border)' }}>
               <div>
                 <h4 className="font-serif text-base text-tea-text">{name}</h4>
