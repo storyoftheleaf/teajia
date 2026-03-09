@@ -91,18 +91,17 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
     return (
       <section ref={ref} className={`pt-8 md:pt-10 ${revealClassName}`} style={revealStyle}>
         <div style={cardFrameStyle} className="overflow-hidden">
-          {/* Card hero image — compact aspect in collapsed, taller in expanded */}
+          {/* Card hero image — fixed height, never changes */}
           {img && (
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden" style={{ height: 120 }}>
               <img
                 src={img}
                 alt={imgAlt}
-                className="w-full object-cover bg-tea-elevated/90 transition-all duration-500"
-                style={{ height: expanded ? 'clamp(180px, 28vh, 320px)' : 'clamp(120px, 18vh, 200px)' }}
+                className="w-full h-full object-cover bg-tea-elevated/90"
                 loading="lazy"
               />
               {/* Subtle gradient overlay at bottom for text separation */}
-              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
             </div>
           )}
 
@@ -150,13 +149,23 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
               </div>
             </button>
 
-            {/* Expandable content — animated height */}
+            {/* Expandable content — animated height, scrollable if tall */}
             <div
               className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ maxHeight: expanded ? contentHeight : 0, opacity: expanded ? 1 : 0 }}
+              style={{ maxHeight: expanded ? Math.min(contentHeight, 420) : 0, opacity: expanded ? 1 : 0 }}
             >
-              <div ref={contentRef} className="pt-5 pb-1">
-                {children}
+              <div className="relative" style={{ maxHeight: 420 }}>
+                <div
+                  ref={contentRef}
+                  className="pt-5 pb-1 overflow-y-auto"
+                  style={{ maxHeight: 420 }}
+                >
+                  {children}
+                </div>
+                {/* Bottom fade when content is scrollable */}
+                {contentHeight > 420 && (
+                  <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[rgba(0,0,0,0.06)] to-transparent pointer-events-none" />
+                )}
               </div>
             </div>
 
