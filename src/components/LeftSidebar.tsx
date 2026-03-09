@@ -20,6 +20,7 @@ interface LeftSidebarProps {
   onAccountClick?: () => void;
   onCartClick?: () => void;
   cartItemCount?: number;
+  topOffset?: boolean;
 }
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -27,7 +28,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onNavigate,
   onAccountClick,
   onCartClick,
-  cartItemCount = 0
+  cartItemCount = 0,
+  topOffset = false
 }) => {
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
@@ -41,7 +43,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-20 xl:w-56 text-tea-text h-screen fixed top-0 left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40" style={{ background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)', boxShadow: 'inset -1px 0 0 rgba(200,170,120,0.06), 1px 0 8px rgba(0,0,0,0.15)' }}>
+    <aside className={`hidden lg:flex flex-col w-20 xl:w-56 text-tea-text fixed left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40 ${topOffset ? 'top-9 h-[calc(100vh-2.25rem)]' : 'top-0 h-screen'}`} style={{ background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)', boxShadow: 'inset -1px 0 0 rgba(200,170,120,0.06), 1px 0 8px rgba(0,0,0,0.15)' }}>
       {/* Logo/Brand - Home Button */}
       <button
         onClick={() => onNavigate('HOME')}
