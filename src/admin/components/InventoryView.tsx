@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, MapPin, SlidersHorizontal
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, MapPin
 } from 'lucide-react';
 import Papa from 'papaparse';
 import Fuse from 'fuse.js';
@@ -183,32 +183,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     });
   }, [filterType, localProducts]);
 
-  // --- COLUMN VISIBILITY ---
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    type: true,
-    year: true,
-    origin: true,
-    stock: true,
-    cost: true,
-    retail: true,
-  });
-  const [showColumnMenu, setShowColumnMenu] = useState(false);
-
-  const toggleColumn = (col: string) => {
-    setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }));
-  };
-
-  const columnDefs = [
-    { key: 'type', label: 'Type' },
-    { key: 'year', label: 'Year' },
-    { key: 'origin', label: 'Origin' },
-    { key: 'stock', label: 'Stock' },
-    { key: 'cost', label: 'Cost' },
-    { key: 'retail', label: 'Retail' },
-  ];
-
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
-  const ROW_HEIGHT = 44;
+  const ROW_HEIGHT = 36; 
   const BUFFER_ROWS = 5;
 
   useEffect(() => {
@@ -493,17 +469,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // --- COMPONENTS ---
-  const SortHeader = ({ colKey, label, align = 'left', className = '' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center', className?: string }) => (
-      <th
-        className={`px-3 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-muted text-${align} ${className}`}
+  // Replaced div SortHeader with th
+  const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
+      <th 
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-muted text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
-        <div className={`flex items-center gap-1 whitespace-nowrap ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
            {label}
            <div className="flex-shrink-0 relative z-0 flex items-center">
             {sortConfig.key === colKey ? (
-                sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-0.5 text-tea-muted" /> : <ArrowDown size={10} className="ml-0.5 text-tea-muted" />
-            ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-muted/50 ml-0.5 transition-opacity" />}
+                sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-muted" /> : <ArrowDown size={10} className="ml-1 text-tea-muted" />
+            ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-muted/50 ml-1 transition-opacity" />}
            </div>
         </div>
       </th>
@@ -539,27 +516,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       
       {/* --- HEADER CONTROLS --- */}
       <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/30' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-4 flex items-center gap-3">
+        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
-                <Settings size={14} className={isEditMode ? "text-tea-muted" : "text-tea-accent"} />
-                <h2 className="text-xs font-serif text-tea-text uppercase tracking-[0.15em]">
+                <Settings size={16} className={isEditMode ? "text-tea-muted" : "text-tea-accent"} />
+                <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
                     {isEditMode ? 'Editing' : 'Inventory'}
                 </h2>
-                <span className="text-tea-muted text-[11px] tracking-wide">
-                    {isEditMode ? '— click cells to edit' : `— ${processedProducts.length}`}
+                <span className="text-tea-muted text-xs tracking-wide">
+                    {isEditMode ? '— click cells to edit' : `— ${processedProducts.length} items`}
                 </span>
             </div>
 
-            <div className="flex items-center gap-3 ml-auto">
+            <div className="flex items-center gap-4 ml-auto">
                 {/* Search */}
-                <div className="relative w-44">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-tea-muted" size={13} />
-                    <input
-                        type="text"
-                        placeholder="Search..."
+                <div className="relative w-48">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-muted" size={14} />
+                    <input 
+                        type="text" 
+                        placeholder="Search master list..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent border-b border-tea-border rounded-none pl-7 pr-2 py-1.5 text-xs text-tea-text outline-none focus:border-tea-muted font-serif placeholder-tea-muted/50 transition-colors"
+                        className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-muted font-serif placeholder-tea-muted/50 transition-colors"
                     />
                 </div>
 
@@ -585,41 +562,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <Plus size={14} /> New
                     </button>
 
-                    {/* Column Visibility Toggle */}
-                    <div className="relative hidden md:block">
-                        <button
-                            onClick={() => setShowColumnMenu(!showColumnMenu)}
-                            className="p-1.5 text-tea-muted hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
-                            title="Toggle columns"
-                        >
-                            <SlidersHorizontal size={14} />
-                        </button>
-                        {showColumnMenu && (
-                            <>
-                            <div className="fixed inset-0 z-40" onClick={() => setShowColumnMenu(false)}></div>
-                            <div className="absolute right-0 top-full mt-2 w-36 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
-                                {columnDefs.map(col => (
-                                    <button
-                                        key={col.key}
-                                        onClick={() => toggleColumn(col.key)}
-                                        className="px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors w-full"
-                                    >
-                                        <div className={`w-3 h-3 rounded-sm border transition-colors flex items-center justify-center ${visibleColumns[col.key] ? 'bg-tea-accent border-tea-accent' : 'border-tea-border'}`}>
-                                            {visibleColumns[col.key] && <Check size={8} className="text-tea-bg" />}
-                                        </div>
-                                        <span className={visibleColumns[col.key] ? 'text-tea-text' : 'text-tea-muted'}>{col.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            </>
-                        )}
-                    </div>
-
-                    <button
+                    <button 
                         onClick={() => setShowOptions(!showOptions)}
                         className="p-1.5 text-tea-muted hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
                     >
-                        <MoreHorizontal size={14} />
+                        <MoreHorizontal size={16} />
                     </button>
 
                     {/* Options Dropdown */}
@@ -690,7 +637,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- SCROLL CONTAINER --- */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-2"
+        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
         onScroll={(e) => filterType !== 'Pending' && setScrollTop(e.currentTarget.scrollTop)}
       >
 
@@ -992,56 +939,67 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className={`w-full border-x border-tea-border bg-tea-surface min-h-full ${filterType === 'Pending' ? 'hidden' : 'hidden md:block'}`}>
-            <table className="w-full border-collapse">
-                {/* Sticky Header */}
+        <div className={`w-full max-w-7xl mx-auto border-x border-tea-border bg-tea-surface min-h-full ${filterType === 'Pending' ? 'hidden' : 'hidden md:block'}`}>
+            <table className="w-full table-fixed border-collapse">
+                <colgroup>
+                    <col className="w-[30%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[7%]" />
+                </colgroup>
+                
+                {/* Sticky Header inside scroll container */}
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
-                        <SortHeader colKey="productName" label="Product" className="sticky left-0 z-10 bg-tea-bg min-w-[200px]" />
-                        {visibleColumns.type && <SortHeader colKey="type" label="Type" className="w-[80px]" />}
-                        {visibleColumns.year && <SortHeader colKey="year" label="Year" className="w-[56px]" />}
-                        {visibleColumns.origin && <SortHeader colKey="originRegion" label="Origin" className="w-[120px]" />}
-                        {visibleColumns.stock && <SortHeader colKey="stockGrams" label="Stock" align="right" className="w-[70px]" />}
-                        {visibleColumns.cost && <SortHeader colKey="costAmount" label="Cost" align="right" className="w-[70px]" />}
-                        {visibleColumns.retail && <SortHeader colKey="pricePerGramUSD" label="Retail" align="right" className="w-[70px]" />}
-                        <th className="px-2 py-2 border-b border-tea-border w-[110px] min-w-[110px]"></th>
+                        <SortHeader colKey="productName" label="Product" />
+                        <SortHeader colKey="type" label="Type" />
+                        <SortHeader colKey="year" label="Year" />
+                        <SortHeader colKey="originRegion" label="Origin" />
+                        <SortHeader colKey="stockGrams" label="Stock" align="right" />
+                        <SortHeader colKey="costAmount" label="Cost" align="right" />
+                        <SortHeader colKey="pricePerGramUSD" label="Retail" align="right" />
+                        <th className="px-4 py-2 border-b border-tea-border"></th>
                     </tr>
                 </thead>
 
                 <tbody>
                     {/* Top Spacer */}
                     {paddingTop > 0 && <tr style={{ height: paddingTop }}><td colSpan={8}></td></tr>}
-
+                    
                     {visibleProducts.map(product => {
                         const dotColor = getThemeColor(product.type);
                         const isLow = product.stockGrams <= product.lowStockThreshold;
 
                         return (
-                            <tr
+                            <tr 
                                 key={product.id}
                                 className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'}`}
                                 style={{ height: ROW_HEIGHT }}
                                 onClick={() => !isEditMode && setEditingProduct(product)}
                             >
-                                {/* Product Name — sticky */}
-                                <td className="px-3 align-middle sticky left-0 z-[5] bg-tea-surface group-hover:bg-tea-bg/50 transition-colors">
+                                {/* Product Name */}
+                                <td className="px-4 align-middle overflow-hidden">
                                     <div className="flex flex-col justify-center h-full">
                                         {isEditMode ? (
-                                            <GhostInput
-                                                value={product.productName}
+                                            <GhostInput 
+                                                value={product.productName} 
                                                 onSave={(val) => handleProductUpdate(product.id, 'productName', val)}
-                                                className="font-serif text-sm text-tea-text tracking-wide"
+                                                className="font-serif text-sm text-tea-text tracking-wide truncate"
                                             />
                                         ) : (
                                             <>
-                                                <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors flex items-center gap-1.5">
-                                                    <span className="truncate">{product.productName}</span>
-                                                    {product.lore && (
-                                                        <span className="flex-shrink-0" title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
+                                                <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
+                                                    {product.productName}
+                                                    {!isEditMode && product.lore && (
+                                                        <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
                                                             {product.isCustomWisdom ? (
-                                                                <Pencil size={9} className="text-tea-accent" />
+                                                                <Pencil size={10} className="text-tea-accent" />
                                                             ) : (
-                                                                <Sparkles size={9} className="text-tea-muted" />
+                                                                <Sparkles size={10} className="text-tea-muted" />
                                                             )}
                                                         </span>
                                                     )}
@@ -1061,129 +1019,117 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 </td>
 
                                 {/* Type */}
-                                {visibleColumns.type && (
-                                    <td className="px-3 align-middle">
-                                        <span className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-tea-muted whitespace-nowrap">
-                                            <span className="flex-shrink-0" style={{ color: dotColor, fontSize: '10px' }}>●</span> {product.type}
-                                        </span>
-                                    </td>
-                                )}
+                                <td className="px-4 align-middle overflow-hidden">
+                                    <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-muted truncate">
+                                        <span style={{ color: dotColor, fontSize: '10px' }}>●</span> {product.type}
+                                    </span>
+                                </td>
 
                                 {/* Year */}
-                                {visibleColumns.year && (
-                                    <td className="px-3 align-middle">
-                                        {isEditMode ? (
-                                            <GhostInput
-                                                value={product.year || ''}
-                                                onSave={(val) => handleProductUpdate(product.id, 'year', val)}
-                                                type="number"
-                                                placeholder="YYYY"
-                                                className="font-sans text-xs text-tea-muted tabular-nums"
-                                            />
-                                        ) : <span className="text-xs text-tea-muted font-sans tabular-nums">{product.year || '-'}</span>}
-                                    </td>
-                                )}
+                                <td className="px-4 align-middle overflow-hidden">
+                                    {isEditMode ? (
+                                        <GhostInput 
+                                            value={product.year || ''} 
+                                            onSave={(val) => handleProductUpdate(product.id, 'year', val)}
+                                            type="number"
+                                            placeholder="YYYY"
+                                            className="font-sans text-xs text-tea-muted tabular-nums"
+                                        />
+                                    ) : <span className="text-xs text-tea-muted font-sans tabular-nums">{product.year || '-'}</span>}
+                                </td>
 
                                 {/* Origin */}
-                                {visibleColumns.origin && (
-                                    <td className="px-3 align-middle max-w-[140px]">
-                                        {isEditMode ? (
-                                            <GhostInput
-                                                value={product.originRegion}
-                                                onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)}
-                                                className="font-sans text-xs text-tea-muted"
-                                            />
-                                        ) : <span className="text-xs text-tea-muted font-sans truncate block">{product.originRegion}</span>}
-                                    </td>
-                                )}
-
+                                <td className="px-4 align-middle overflow-hidden">
+                                    {isEditMode ? (
+                                        <GhostInput 
+                                            value={product.originRegion} 
+                                            onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)}
+                                            className="font-sans text-xs text-tea-muted truncate"
+                                        />
+                                    ) : <span className="text-xs text-tea-muted font-sans truncate block">{product.originRegion}</span>}
+                                </td>
+                                
                                 {/* Stock */}
-                                {visibleColumns.stock && (
-                                    <td className="px-3 align-middle text-right">
-                                        {isEditMode ? (
-                                            <div className="flex items-center justify-end gap-1">
-                                                <GhostInput
-                                                    value={product.stockGrams}
-                                                    onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)}
-                                                    type="number"
-                                                    align="right"
-                                                    className="num text-xs"
-                                                />
-                                                <button
-                                                    title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"}
-                                                    onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }}
-                                                    className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-muted' : 'text-tea-border hover:text-amber-400'}`}
-                                                >⚠</button>
-                                            </div>
-                                        ) : (
-                                            <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
-                                                {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">⚠</span>}
-                                                {product.stockGrams}g
-                                            </span>
-                                        )}
-                                    </td>
-                                )}
+                                <td className="px-4 align-middle overflow-hidden text-right">
+                                    {isEditMode ? (
+                                        <div className="flex items-center justify-end gap-1">
+                                            <GhostInput
+                                                value={product.stockGrams}
+                                                onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)}
+                                                type="number"
+                                                align="right"
+                                                className="num text-xs"
+                                            />
+                                            <button
+                                                title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"}
+                                                onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }}
+                                                className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-muted' : 'text-tea-border hover:text-amber-400'}`}
+                                            >⚠</button>
+                                        </div>
+                                    ) : (
+                                        <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
+                                            {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">⚠</span>}
+                                            {product.stockGrams}g
+                                        </span>
+                                    )}
+                                </td>
 
                                 {/* Cost */}
-                                {visibleColumns.cost && (
-                                    <td className="px-3 align-middle text-right">
-                                        {isEditMode ? (
-                                            <GhostInput
-                                                value={product.costAmount}
-                                                onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)}
-                                                type="number"
-                                                align="right"
-                                                className="num text-xs"
-                                            />
-                                        ) : <span className="num text-xs text-tea-muted">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
-                                    </td>
-                                )}
+                                <td className="px-4 align-middle overflow-hidden text-right">
+                                    {isEditMode ? (
+                                        <GhostInput 
+                                            value={product.costAmount} 
+                                            onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)}
+                                            type="number"
+                                            align="right"
+                                            className="num text-xs"
+                                        />
+                                    ) : <span className="num text-xs text-tea-muted">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
+                                </td>
 
                                 {/* Retail */}
-                                {visibleColumns.retail && (
-                                    <td className="px-3 align-middle text-right">
-                                        {isEditMode ? (
-                                            <GhostInput
-                                                value={product.pricePerGramUSD?.toFixed(2)}
-                                                onSave={(val) => handleProductUpdate(product.id, 'pricePerGramUSD', val)}
-                                                type="number"
-                                                align="right"
-                                                className="num text-xs"
-                                            />
-                                        ) : <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? fmtNum(product.pricePerGramUSD) : '-'}</span>}
-                                    </td>
-                                )}
+                                <td className="px-4 align-middle overflow-hidden text-right">
+                                    {isEditMode ? (
+                                        <GhostInput 
+                                            value={product.pricePerGramUSD?.toFixed(2)} 
+                                            onSave={(val) => handleProductUpdate(product.id, 'pricePerGramUSD', val)}
+                                            type="number"
+                                            align="right"
+                                            className="num text-xs"
+                                        />
+                                    ) : <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? fmtNum(product.pricePerGramUSD) : '-'}</span>}
+                                </td>
 
-                                {/* Actions — fixed width, always visible */}
-                                <td className="px-2 align-middle text-right w-[110px] min-w-[110px]">
-                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                {/* Actions */}
+                                <td className="px-4 align-middle text-right">
+                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                         {!isEditMode && (
                                             <>
                                                 {(!product.showWisdom && product.lore) && (
-                                                    <button
-                                                        onClick={() => handleProductUpdate(product.id, 'showWisdom', true)}
-                                                        className="text-tea-accent hover:text-tea-accent/80 p-0.5 transition-colors"
+                                                    <button 
+                                                        onClick={() => handleProductUpdate(product.id, 'showWisdom', true)} 
+                                                        className="text-tea-accent hover:text-tea-accent/80 p-1 transition-colors"
                                                         title="Approve AI Wisdom"
                                                     >
-                                                        <Check size={13}/>
+                                                        <Check size={14}/>
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                                    className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-muted hover:text-tea-text'} p-0.5 transition-colors`}
+                                                <button 
+                                                    onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} 
+                                                    className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-muted hover:text-tea-text'} p-1 transition-colors`}
                                                     title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}
                                                 >
-                                                    <Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} />
+                                                    <Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                                                    className={`${product.isPublic ? 'text-tea-muted hover:text-tea-text' : 'text-tea-muted/50 hover:text-tea-muted'} p-0.5 transition-colors`}
+                                                <button 
+                                                    onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} 
+                                                    className={`${product.isPublic ? 'text-tea-muted hover:text-tea-text' : 'text-tea-muted/50 hover:text-tea-muted'} p-1 transition-colors`}
                                                     title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}
                                                 >
-                                                    {product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}
+                                                    {product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}
                                                 </button>
-                                                <button onClick={() => setQrProduct(product)} className="text-tea-muted hover:text-tea-text p-0.5 transition-colors"><QrCode size={13}/></button>
-                                                <button onClick={() => setEditingProduct(product)} className="text-tea-muted hover:text-tea-text p-0.5 transition-colors"><Pencil size={13}/></button>
+                                                <button onClick={() => setQrProduct(product)} className="text-tea-muted hover:text-tea-text p-1 transition-colors"><QrCode size={14}/></button>
+                                                <button onClick={() => setEditingProduct(product)} className="text-tea-muted hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
                                             </>
                                         )}
                                     </div>
