@@ -562,16 +562,28 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 size="sm"
                                             />
                                             {/* Action row */}
-                                            <div className="flex items-center gap-1 mt-1.5">
+                                            <div className="flex items-center gap-2.5 mt-1.5">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="font-sans text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.12em] py-2 px-3 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30"
+                                                    className="font-sans text-tea-text-dim hover:text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-3 transition-colors duration-200"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="flex-1 font-sans text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.08em] py-2 px-4 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30 hover:bg-tea-gold/[0.06] flex items-center justify-center gap-2 active:scale-[0.98]"
+                                                    className="flex-1 font-sans text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+                                                    style={{
+                                                        background: 'rgba(184,146,78,0.10)',
+                                                        border: '1px solid rgba(200,170,120,0.20)',
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(184,146,78,0.18)';
+                                                        e.currentTarget.style.borderColor = 'rgba(200,170,120,0.35)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(184,146,78,0.10)';
+                                                        e.currentTarget.style.borderColor = 'rgba(200,170,120,0.20)';
+                                                    }}
                                                 >
                                                     <span>Add</span>
                                                     <span className="font-mono num text-[11px] opacity-70">{fmtPrice(totalPrice)}</span>
