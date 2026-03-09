@@ -14,6 +14,7 @@ export const useProducts = () => {
       return (data || []).map((p: any) => ({
         id: p.id,
         type: p.type,
+        form: p.form || undefined,
         givenName: p.given_name || '',
         chineseName: p.chinese_name || '',
         productName: p.product_name,
@@ -42,9 +43,10 @@ export const useProducts = () => {
         isCustomWisdom: !!p.is_custom_wisdom,
         showWisdom: p.show_wisdom == null ? true : !!p.show_wisdom,
         processingNotes: p.processing_notes || '',
+        terroir: p.terroir || '',
         mood: p.mood || '',
         experience: p.experience || '',
-        liquorColor: p.liquor_color || ''
+        recheckStock: !!p.recheck_stock,
       })) as Product[];
     }
   });

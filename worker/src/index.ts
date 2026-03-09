@@ -259,7 +259,7 @@ const PUBLIC_FIELDS = [
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
   'image_url', 'status', 'is_personal', 'can_reorder', 'is_featured',
-  'lore', 'show_wisdom', 'processing_notes', 'mood', 'experience', 'liquor_color',
+  'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
 ] as const;
 
 const handleGetPublicProducts: Handler = async (_request, env) => {

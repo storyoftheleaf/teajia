@@ -25,6 +25,10 @@ interface StagingRow {
   lore: string;
   mood: string;
   experience: string;
+  material: string;
+  capacityMl: string;
+  teawareCategory: string;
+  quantityUnits: string;
   isValid: boolean;
   errors: string[];
 }
@@ -166,6 +170,12 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           const getPersonal = () => getSafeValue(row, ['Personal Collection', 'Personal', 'Is Personal']);
           const getRestockable = () => getSafeValue(row, ['Restockable', 'Restock', 'Can Reorder']);
 
+          // Teaware-specific fields
+          const getMaterial = () => getSafeValue(row, ['Material', 'Clay', 'Body']);
+          const getCapacityMl = () => getSafeValue(row, ['Capacity', 'Capacity ML', 'Volume', 'Capacity (ml)']);
+          const getTeawareCategory = () => getSafeValue(row, ['Teaware Category', 'Teaware Type', 'Category']);
+          const getQuantityUnits = () => getSafeValue(row, ['Units', 'Quantity Units', 'Pieces', 'Count']);
+
           // FIX: Strictly return boolean, handle empty strings as false
           const isYes = (val: string) => {
              if (!val) return false;
@@ -192,6 +202,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             lore: (getSafeValue(row, ['Lore', 'Story', 'History']) || '').trim(),
             mood: (getSafeValue(row, ['Mood', 'Feeling']) || '').trim(),
             experience: (getSafeValue(row, ['Experience', 'Feeling Description']) || '').trim(),
+            material: (getMaterial() || '').trim(),
+            capacityMl: (getCapacityMl() || '').trim(),
+            teawareCategory: (getTeawareCategory() || '').trim(),
+            quantityUnits: (getQuantityUnits() || '').trim(),
             status: 'Active',
             isValid: true,
             errors: []
@@ -279,6 +293,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             else if (['USD', '$'].includes(c)) curr = 'USD';
             else if (['IDR', 'RP'].includes(c)) curr = 'IDR';
             else if (['JPY', 'YEN'].includes(c)) curr = 'JPY';
+            else if (['HKD', 'HK'].includes(c)) curr = 'HKD';
         }
 
         return {
@@ -300,7 +315,11 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           can_reorder: !!r.canReorder,
           lore: r.lore || null,
           mood: r.mood || null,
-          experience: r.experience || null
+          experience: r.experience || null,
+          material: r.material || null,
+          capacity_ml: parseNum(r.capacityMl) || null,
+          teaware_category: r.teawareCategory || null,
+          quantity_units: parseNum(r.quantityUnits) || null,
         };
     });
 

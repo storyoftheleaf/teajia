@@ -30,7 +30,6 @@ export const SAMPLE_PRODUCTS: PublicProduct[] = [
     showWisdom: true,
     mood: 'Contemplative',
     experience: 'Time slows down. The first sip lands heavy and sweet, then opens into something vast and quiet — camphor rising through honey, stone underneath everything. By the fourth steep you stop thinking about the tea and start thinking about the mountain it came from.',
-    liquorColor: 'Pale gold with green tint',
   },
   {
     id: 'sample-oolong-duck-shit',
@@ -57,7 +56,6 @@ export const SAMPLE_PRODUCTS: PublicProduct[] = [
     showWisdom: true,
     mood: 'Uplifting',
     experience: 'Bright and almost electric — the fragrance hits before the flavor does, filling the room with gardenia and something like warm pastry. Each cup feels lighter than the last. The kind of tea that makes an ordinary afternoon feel like a small event.',
-    liquorColor: 'Bright amber-orange',
   },
   {
     id: 'sample-white-moonlight',
@@ -84,6 +82,5 @@ export const SAMPLE_PRODUCTS: PublicProduct[] = [
     showWisdom: true,
     mood: 'Serene',
     experience: 'Soft and unhurried — it settles over you more than it strikes. There is sweetness without weight, a floral quality that drifts rather than announces itself. It feels like the end of a long day when everything finally goes quiet.',
-    liquorColor: 'Pale straw-yellow',
   },
 ];

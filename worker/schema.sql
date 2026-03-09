@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     type TEXT NOT NULL,
+    form TEXT,
     given_name TEXT,
     chinese_name TEXT,
     product_name TEXT NOT NULL,
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS products (
     shipping_rate_per_kg REAL DEFAULT 0,
     quantity_purchased INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,
+    recheck_stock INTEGER DEFAULT 0,
     markup_multiplier REAL DEFAULT 2.5,
     fixed_retail_price_usd REAL,
     is_personal INTEGER DEFAULT 0,
@@ -32,9 +34,13 @@ CREATE TABLE IF NOT EXISTS products (
     is_custom_wisdom INTEGER DEFAULT 0,
     show_wisdom INTEGER DEFAULT 1,
     processing_notes TEXT,
+    terroir TEXT,
     mood TEXT,
     experience TEXT,
-    liquor_color TEXT,
+    material TEXT,           -- Teaware: e.g. "Yixing clay", "porcelain", "silver"
+    capacity_ml INTEGER,     -- Teaware: vessel capacity in ml
+    teaware_category TEXT,   -- Teaware: "pot" | "cup" | "tray" | "storage" | "accessory" | "decorative"
+    quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -52,7 +58,8 @@ INSERT OR IGNORE INTO exchange_rates (currency, rate_to_usd) VALUES
 ('Yuan', 7.2),
 ('IDR', 16210),
 ('JPY', 150.0),
-('MYR', 4.7);
+('MYR', 4.7),
+('HKD', 7.8);
 
 -- 3. Invoices Table
 CREATE TABLE IF NOT EXISTS invoices (

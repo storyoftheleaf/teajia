@@ -30,9 +30,9 @@ export const usePublicProducts = () => {
         lore: p.lore || '',
         showWisdom: p.show_wisdom == null ? true : !!p.show_wisdom,
         processingNotes: p.processing_notes || '',
+        terroir: p.terroir || '',
         mood: p.mood || '',
         experience: p.experience || '',
-        liquorColor: p.liquor_color || '',
       }));
     },
     staleTime: 1000 * 60 * 5,

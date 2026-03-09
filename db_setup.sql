@@ -5,6 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS products (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     type TEXT NOT NULL,
+    form TEXT,
     given_name TEXT,
     chinese_name TEXT, 
     product_name TEXT NOT NULL,
@@ -34,9 +35,10 @@ CREATE TABLE IF NOT EXISTS products (
     is_custom_wisdom BOOLEAN DEFAULT FALSE,
     show_wisdom BOOLEAN DEFAULT TRUE,
     processing_notes TEXT,
+    terroir TEXT,
     mood TEXT,
     experience TEXT,
-    liquor_color TEXT,
+    recheck_stock BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -71,7 +73,8 @@ INSERT INTO exchange_rates (currency, rate_to_usd) VALUES
 ('Yuan', 7.2),
 ('IDR', 16210),
 ('JPY', 150.0),
-('MYR', 4.7)
+('MYR', 4.7),
+('HKD', 7.8)
 ON CONFLICT (currency) DO NOTHING;
 
 -- 4. Create Invoices Table
@@ -226,8 +229,26 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'experience') THEN
         ALTER TABLE products ADD COLUMN experience TEXT;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'liquor_color') THEN
-        ALTER TABLE products ADD COLUMN liquor_color TEXT;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'terroir') THEN
+        ALTER TABLE products ADD COLUMN terroir TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'recheck_stock') THEN
+        ALTER TABLE products ADD COLUMN recheck_stock BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'form') THEN
+        ALTER TABLE products ADD COLUMN form TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'material') THEN
+        ALTER TABLE products ADD COLUMN material TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'capacity_ml') THEN
+        ALTER TABLE products ADD COLUMN capacity_ml INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'teaware_category') THEN
+        ALTER TABLE products ADD COLUMN teaware_category TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'quantity_units') THEN
+        ALTER TABLE products ADD COLUMN quantity_units INTEGER;
     END IF;
 
     -- ENABLE RLS

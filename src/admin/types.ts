@@ -1,10 +1,13 @@
 export type ProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Matcha' | 'Flower' | 'Teaware' | 'Misc' | 'MISSING_TYPE';
 
-export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'UNK';
+export type TeaForm = 'Loose Leaf' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball' | 'Powder' | 'Bag' | 'Other';
+
+export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'UNK';
 
 export interface Product {
   id: string;
   type: ProductType;
+  form?: TeaForm; // Physical form: Loose Leaf, Cake, Tuo, Brick, etc.
   givenName: string;
   chineseName?: string;
   productName: string; // The botanical/cultivar name
@@ -16,6 +19,7 @@ export interface Product {
   costAmount: number; // Raw total batch cost
   stockGrams: number;
   lowStockThreshold: number;
+  recheckStock?: boolean; // Flag to revisit stock count when unknown
   description: string;
   tastingNotes: string[];
   imageUrl: string;
@@ -33,9 +37,14 @@ export interface Product {
   isCustomWisdom?: boolean; // True if manually edited
   showWisdom?: boolean; // Toggle to display on public card
   processingNotes?: string; // e.g. "Heavy charcoal roast over pine wood."
+  terroir?: string; // e.g. "High-altitude granite soils above 1200m, with dramatic day-night temperature swings."
   mood?: string; // e.g. "Grounding & Meditative"
   experience?: string; // e.g. "A deeply centering tea..."
-  liquorColor?: string; // e.g. "Deep Amber"
+  // Teaware-specific fields (null/undefined for tea)
+  material?: string; // e.g. "Yixing clay", "porcelain", "silver"
+  capacityMl?: number; // Vessel capacity in ml
+  teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
+  quantityUnits?: number; // Unit count (used instead of stockGrams for teaware)
 }
 
 export interface InvoiceItem {

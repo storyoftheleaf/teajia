@@ -251,9 +251,13 @@ export interface PublicProduct {
   lore?: string;
   showWisdom?: boolean;
   processingNotes?: string;
+  terroir?: string;
   mood?: string;
   experience?: string;
-  liquorColor?: string;
+  material?: string;
+  capacityMl?: number;
+  teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
+  quantityUnits?: number;
 }
 
 export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;

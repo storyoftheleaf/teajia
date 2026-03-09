@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-  Loader2, FileSpreadsheet, Plus, Search, QrCode, Download, 
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles
+import {
+  Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw
 } from 'lucide-react';
 import Papa from 'papaparse';
 import Fuse from 'fuse.js';
@@ -129,7 +129,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
     // 2. Filter
     if (filterType === 'Alerts') {
-      result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0);
+      result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
     } else if (filterType === 'Pending') {
       result = result.filter(p => p.lore && !p.showWisdom);
     } else if (filterType !== 'All') {
@@ -154,6 +154,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
   }, [localProducts, searchQuery, filterType, sortConfig, fuse]);
+
+  const pendingCount = useMemo(() => localProducts.filter(p => p.lore && !p.showWisdom).length, [localProducts]);
+
+  // Initialize review drafts when switching to Pending filter or when pending products change
+  useEffect(() => {
+    if (filterType !== 'Pending') return;
+    const pending = localProducts.filter(p => p.lore && !p.showWisdom);
+    setReviewDrafts(prev => {
+      const next = { ...prev };
+      pending.forEach(p => {
+        if (!next[p.id]) {
+          next[p.id] = {
+            lore: p.lore || '',
+            terroir: p.terroir || '',
+            processingNotes: p.processingNotes || '',
+            mood: p.mood || '',
+            experience: p.experience || '',
+            tastingNotes: p.tastingNotes || [],
+            chineseName: p.chineseName || '',
+            originRegion: p.originRegion || '',
+          };
+        }
+      });
+      return next;
+    });
+  }, [filterType, localProducts]);
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
   const ROW_HEIGHT = 36; 
@@ -210,6 +236,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'isFeatured') dbPayload = { is_featured: value };
     else if (field === 'isPublic') dbPayload = { is_public: value };
     else if (field === 'showWisdom') dbPayload = { show_wisdom: value };
+    else if (field === 'recheckStock') dbPayload = { recheck_stock: value ? 1 : 0 };
     else return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
@@ -241,6 +268,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState<{ current: number; total: number; currentName: string } | null>(null);
+
+  // REVIEW FEED STATE
+  const [reviewDrafts, setReviewDrafts] = useState<Record<string, any>>({});
+  const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const handleBulkEnrich = async () => {
     const teasToEnrich = localProducts.filter(p => !p.lore && p.type !== 'Teaware' && p.type !== 'Misc');
@@ -255,6 +288,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
 
     setIsEnriching(true);
+    setEnrichProgress({ current: 0, total: teasToEnrich.length, currentName: '' });
     let successCount = 0;
     let failCount = 0;
 
@@ -263,7 +297,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     try {
         const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
-        for (const tea of teasToEnrich) {
+        for (let i = 0; i < teasToEnrich.length; i++) {
+            const tea = teasToEnrich[i];
+            setEnrichProgress({ current: i + 1, total: teasToEnrich.length, currentName: tea.productName });
             try {
                 const prompt = aiPromptTemplate
                     .replace('{{productName}}', tea.productName)
@@ -282,9 +318,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 chineseName: { type: Type.STRING },
                                 originRegion: { type: Type.STRING },
                                 processingNotes: { type: Type.STRING },
+                                terroir: { type: Type.STRING },
                                 mood: { type: Type.STRING },
                                 experience: { type: Type.STRING },
-                                liquorColor: { type: Type.STRING }
                             },
                             required: ["lore", "tastingNotes"]
                         }
@@ -301,9 +337,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         chinese_name: tea.chineseName || data.chineseName || '',
                         origin_region: tea.originRegion || data.originRegion || '',
                         processing_notes: data.processingNotes || '',
+                        terroir: data.terroir || '',
                         mood: data.mood || '',
                         experience: data.experience || '',
-                        liquor_color: data.liquorColor || '',
                         is_custom_wisdom: false,
                         show_wisdom: false // Set to false so user has to approve it
                     };
@@ -324,6 +360,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         showToast("Error initializing AI.", "error");
     } finally {
         setIsEnriching(false);
+        setEnrichProgress(null);
         onRefresh();
         showToast(`Enrichment complete. ${successCount} succeeded, ${failCount} failed.`, successCount > 0 ? 'success' : 'error');
     }
@@ -343,6 +380,144 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         showToast("Wipe failed. Permissions error.", 'error');
     } finally {
         setIsResetting(false);
+    }
+  };
+
+  // --- REVIEW FEED HANDLERS ---
+
+  const handleApproveOne = async (product: Product) => {
+    setApprovingIds(prev => new Set([...prev, product.id]));
+    const draft = reviewDrafts[product.id] || {};
+    const wasEdited = (
+      (draft.lore || '') !== (product.lore || '') ||
+      (draft.terroir || '') !== (product.terroir || '') ||
+      (draft.processingNotes || '') !== (product.processingNotes || '') ||
+      (draft.mood || '') !== (product.mood || '') ||
+      (draft.experience || '') !== (product.experience || '')
+    );
+    try {
+      await api.products.update(product.id, {
+        lore: draft.lore || product.lore,
+        terroir: draft.terroir || '',
+        processing_notes: draft.processingNotes || '',
+        mood: draft.mood || '',
+        experience: draft.experience || '',
+        tasting_notes: Array.isArray(draft.tastingNotes) ? draft.tastingNotes : product.tastingNotes,
+        show_wisdom: true,
+        is_custom_wisdom: wasEdited,
+      });
+      setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, showWisdom: true, isCustomWisdom: wasEdited } : p));
+      setReviewDrafts(prev => { const n = { ...prev }; delete n[product.id]; return n; });
+    } catch (err: any) {
+      showToast(`Approve failed: ${err.message}`, 'error');
+    } finally {
+      setApprovingIds(prev => { const n = new Set(prev); n.delete(product.id); return n; });
+    }
+  };
+
+  const handleApproveAll = async () => {
+    const pending = processedProducts;
+    try {
+      await Promise.all(pending.map(p => {
+        const draft = reviewDrafts[p.id] || {};
+        const wasEdited = (
+          (draft.lore || '') !== (p.lore || '') ||
+          (draft.terroir || '') !== (p.terroir || '') ||
+          (draft.processingNotes || '') !== (p.processingNotes || '') ||
+          (draft.mood || '') !== (p.mood || '') ||
+          (draft.experience || '') !== (p.experience || '')
+        );
+        return api.products.update(p.id, {
+          lore: draft.lore || p.lore,
+          terroir: draft.terroir || '',
+          processing_notes: draft.processingNotes || '',
+          mood: draft.mood || '',
+          experience: draft.experience || '',
+          tasting_notes: Array.isArray(draft.tastingNotes) ? draft.tastingNotes : p.tastingNotes,
+          show_wisdom: true,
+          is_custom_wisdom: wasEdited,
+        });
+      }));
+      showToast(`${pending.length} teas approved`, 'success');
+      onRefresh();
+    } catch (err: any) {
+      showToast(`Approve all failed: ${err.message}`, 'error');
+      onRefresh();
+    }
+  };
+
+  const handleDiscardOne = async (productId: string) => {
+    try {
+      await api.products.update(productId, { lore: '', show_wisdom: false });
+      setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, lore: '', showWisdom: false } : p));
+      setReviewDrafts(prev => { const n = { ...prev }; delete n[productId]; return n; });
+    } catch (err: any) {
+      showToast(`Discard failed: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDiscardAll = async () => {
+    const pending = processedProducts;
+    try {
+      await Promise.all(pending.map(p => api.products.update(p.id, { lore: '', show_wisdom: false })));
+      showToast(`${pending.length} teas discarded`, 'info');
+      onRefresh();
+    } catch (err: any) {
+      showToast(`Discard all failed: ${err.message}`, 'error');
+      onRefresh();
+    }
+  };
+
+  const handleRegenerateOne = async (product: Product) => {
+    setRegeneratingId(product.id);
+    try {
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+      const prompt = aiPromptTemplate
+        .replace('{{productName}}', product.productName)
+        .replace('{{type}}', product.type);
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              lore: { type: Type.STRING },
+              tastingNotes: { type: Type.ARRAY, items: { type: Type.STRING } },
+              chineseName: { type: Type.STRING },
+              originRegion: { type: Type.STRING },
+              processingNotes: { type: Type.STRING },
+              terroir: { type: Type.STRING },
+              mood: { type: Type.STRING },
+              experience: { type: Type.STRING },
+            },
+            required: ["lore", "tastingNotes"]
+          }
+        }
+      });
+      const jsonStr = response.text?.trim();
+      if (jsonStr) {
+        const data = JSON.parse(jsonStr);
+        setReviewDrafts(prev => ({
+          ...prev,
+          [product.id]: {
+            lore: data.lore || '',
+            terroir: data.terroir || '',
+            processingNotes: data.processingNotes || '',
+            mood: data.mood || '',
+            experience: data.experience || '',
+            tastingNotes: data.tastingNotes || [],
+            chineseName: data.chineseName || product.chineseName || '',
+            originRegion: data.originRegion || product.originRegion || '',
+          }
+        }));
+        showToast("Regenerated — review the new content", 'success');
+      }
+    } catch (err: any) {
+      showToast(`Regeneration failed: ${err.message}`, 'error');
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -437,11 +612,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             >
                                 <AlertTriangle size={14} /> Low Stock Alerts
                             </button>
-                            <button 
+                            <button
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
                                 className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-muted'}`}
                             >
-                                <Sparkles size={14} /> Pending AI Approval
+                                <Sparkles size={14} />
+                                Pending AI Approval
+                                {pendingCount > 0 && (
+                                    <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+                                )}
                             </button>
                             <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-muted hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <FileSpreadsheet size={14} /> Import CSV
@@ -469,15 +648,175 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       </div>
 
+      {/* ENRICHMENT PROGRESS BANNER */}
+      {enrichProgress && (
+        <div className="px-6 py-2 bg-tea-surface/80 border-b border-tea-border flex items-center gap-4">
+          <Loader2 size={13} className="animate-spin text-tea-accent flex-shrink-0" />
+          <div className="flex-1">
+            <div className="text-[10px] text-tea-muted uppercase tracking-[0.2em] mb-1.5">
+              Generating &lsquo;{enrichProgress.currentName}&rsquo; — {enrichProgress.current} of {enrichProgress.total}
+            </div>
+            <div className="h-0.5 bg-tea-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-tea-accent transition-all duration-500"
+                style={{ width: `${(enrichProgress.current / enrichProgress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- SCROLL CONTAINER --- */}
-      <div 
+      <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        onScroll={(e) => filterType !== 'Pending' && setScrollTop(e.currentTarget.scrollTop)}
       >
-        
+
+        {/* REVIEW FEED (Pending AI Approval mode) */}
+        {filterType === 'Pending' && (
+          <div className="max-w-3xl mx-auto py-6 px-4 space-y-4">
+            {/* Feed header */}
+            <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur py-3 flex items-center justify-between border-b border-tea-border pb-4">
+              <span className="text-tea-muted text-[10px] uppercase tracking-[0.2em]">
+                {processedProducts.length} pending review
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleApproveAll}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-accent text-tea-bg text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors"
+                >
+                  <Check size={11} /> Approve All
+                </button>
+                <button
+                  onClick={handleDiscardAll}
+                  className="text-[10px] text-tea-muted/60 hover:text-tea-accent uppercase tracking-[0.2em] transition-colors px-2 py-1.5"
+                >
+                  Discard All
+                </button>
+              </div>
+            </div>
+
+            {/* Review cards */}
+            {processedProducts.map(product => {
+              const draft = reviewDrafts[product.id] || {};
+              const isApproving = approvingIds.has(product.id);
+              const isRegenerating = regeneratingId === product.id;
+              const loreExtras = [draft.terroir, draft.processingNotes].filter(Boolean).join(' ');
+              const storyPreview = (draft.lore || '') + (loreExtras ? ' ' + loreExtras : '');
+              const fieldClass = "w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-accent transition-colors py-1";
+
+              return (
+                <div key={product.id} className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+                  {/* Identity */}
+                  <div className="px-5 py-3 bg-tea-bg/50 border-b border-tea-border flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-serif text-tea-text text-sm truncate">{product.productName}</span>
+                      {product.chineseName && <span className="text-tea-muted text-xs font-serif flex-shrink-0">{product.chineseName}</span>}
+                    </div>
+                    <span className="text-[10px] text-tea-muted uppercase tracking-[0.2em] flex-shrink-0">
+                      {product.type}{product.originRegion ? ` · ${product.originRegion}` : ''}{product.year ? ` · ${product.year}` : ''}
+                    </span>
+                  </div>
+
+                  <div className="p-5 space-y-4">
+                    {/* Story preview */}
+                    {storyPreview && (
+                      <div className="bg-tea-bg/60 border border-tea-border/50 rounded-lg p-4">
+                        <div className="text-[10px] text-tea-muted/60 uppercase tracking-[0.2em] mb-2">Story Preview</div>
+                        <p className="text-tea-text/70 text-xs font-serif italic leading-relaxed">{storyPreview}</p>
+                      </div>
+                    )}
+
+                    {/* Lore */}
+                    <div>
+                      <label className="text-[10px] text-tea-muted uppercase tracking-[0.2em] block mb-1">Lore</label>
+                      <textarea
+                        value={draft.lore || ''}
+                        onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], lore: e.target.value } }))}
+                        rows={3}
+                        className="w-full bg-transparent border-b border-tea-border text-sm text-tea-text font-serif outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
+                      />
+                    </div>
+
+                    {/* Grid fields */}
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <div>
+                        <label className="text-[10px] text-tea-muted uppercase tracking-[0.2em] block mb-1">Terroir</label>
+                        <input value={draft.terroir || ''} onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], terroir: e.target.value } }))} className={fieldClass} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-tea-muted uppercase tracking-[0.2em] block mb-1">Processing</label>
+                        <input value={draft.processingNotes || ''} onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], processingNotes: e.target.value } }))} className={fieldClass} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-tea-muted uppercase tracking-[0.2em] block mb-1">Mood</label>
+                        <input value={draft.mood || ''} onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], mood: e.target.value } }))} className={fieldClass} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-tea-muted uppercase tracking-[0.2em] block mb-1">Tasting Notes</label>
+                        <input
+                          value={Array.isArray(draft.tastingNotes) ? draft.tastingNotes.join(', ') : (draft.tastingNotes || '')}
+                          onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], tastingNotes: e.target.value.split(',').map((n: string) => n.trim()).filter(Boolean) } }))}
+                          className={fieldClass}
+                          placeholder="Honey, Camphor, Wet Stone"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Experience */}
+                    <div>
+                      <label className="text-[10px] text-tea-muted uppercase tracking-[0.2em] block mb-1">Experience</label>
+                      <textarea
+                        value={draft.experience || ''}
+                        onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], experience: e.target.value } }))}
+                        rows={2}
+                        className="w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="px-5 py-3 border-t border-tea-border flex justify-between items-center bg-tea-bg/30">
+                    <button
+                      onClick={() => handleRegenerateOne(product)}
+                      disabled={!!regeneratingId}
+                      className="flex items-center gap-1.5 text-[10px] text-tea-muted hover:text-tea-text uppercase tracking-[0.2em] transition-colors disabled:opacity-40"
+                    >
+                      {isRegenerating ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                      Regenerate
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleDiscardOne(product.id)}
+                        className="text-[10px] text-tea-muted/50 hover:text-tea-accent uppercase tracking-[0.2em] transition-colors"
+                      >
+                        Discard
+                      </button>
+                      <button
+                        onClick={() => handleApproveOne(product)}
+                        disabled={isApproving}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-tea-accent/10 border border-tea-accent/30 text-tea-accent text-[10px] uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/20 transition-colors disabled:opacity-40"
+                      >
+                        {isApproving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {processedProducts.length === 0 && (
+              <div className="text-center py-16 text-tea-muted font-serif italic">
+                All caught up — no pending wisdom to review.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MOBILE CARDS */}
-        <div className="md:hidden p-4 space-y-4 pb-24">
+        <div className={`md:hidden p-4 space-y-4 pb-24 ${filterType === 'Pending' ? 'hidden' : ''}`}>
             {processedProducts.map(product => {
                 const dotColor = getThemeColor(product.type);
                 return (
@@ -544,7 +883,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="hidden md:block w-full max-w-7xl mx-auto border-x border-tea-border bg-tea-surface min-h-full">
+        <div className={`w-full max-w-7xl mx-auto border-x border-tea-border bg-tea-surface min-h-full ${filterType === 'Pending' ? 'hidden' : 'hidden md:block'}`}>
             <table className="w-full table-fixed border-collapse">
                 <colgroup>
                     <col className="w-[30%]" />
@@ -610,7 +949,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                                     )}
                                                 </span>
                                                 {product.givenName && (
-                                                    <span className="text-[10px] text-tea-muted font-sans mt-0.5 truncate block">{product.givenName}</span>
+                                                    <span className="text-[10px] text-tea-muted font-sans mt-0.5 truncate block">
+                                                        {product.givenName}
+                                                        {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
+                                                    </span>
+                                                )}
+                                                {!product.givenName && product.form && (
+                                                    <span className="text-[10px] text-tea-muted/50 font-sans mt-0.5 truncate block">{product.form}</span>
                                                 )}
                                             </>
                                         )}
@@ -651,15 +996,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 {/* Stock */}
                                 <td className="px-4 align-middle overflow-hidden text-right">
                                     {isEditMode ? (
-                                        <GhostInput 
-                                            value={product.stockGrams} 
-                                            onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)}
-                                            type="number"
-                                            align="right"
-                                            className="num text-xs"
-                                        />
+                                        <div className="flex items-center justify-end gap-1">
+                                            <GhostInput
+                                                value={product.stockGrams}
+                                                onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)}
+                                                type="number"
+                                                align="right"
+                                                className="num text-xs"
+                                            />
+                                            <button
+                                                title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"}
+                                                onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }}
+                                                className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-muted' : 'text-tea-border hover:text-amber-400'}`}
+                                            >⚠</button>
+                                        </div>
                                     ) : (
-                                        <span className={`num text-xs ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
+                                        <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
+                                            {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">⚠</span>}
                                             {product.stockGrams}g
                                         </span>
                                     )}

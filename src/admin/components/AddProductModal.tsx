@@ -49,6 +49,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   const [formData, setFormData] = useState({
     type: 'Dark',
+    form: '',
     givenName: '',
     chineseName: '',
     productName: '',
@@ -69,14 +70,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     canReorder: false,
     isPublic: true,
     isFeatured: false,
+    recheckStock: false,
     lore: '',
     tastingNotes: '', // We'll store as comma separated string in form
     isCustomWisdom: false,
     showWisdom: true,
     processingNotes: '',
+    terroir: '',
     mood: '',
     experience: '',
-    liquorColor: ''
   });
 
   const isEditMode = !!initialData;
@@ -94,6 +96,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
       setFormData({
         type: initialData.type,
+        form: initialData.form || '',
         givenName: initialData.givenName,
         chineseName: initialData.chineseName || '',
         productName: initialData.productName,
@@ -114,18 +117,20 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         canReorder: initialData.canReorder || false,
         isPublic: initialData.isPublic === undefined ? true : initialData.isPublic,
         isFeatured: initialData.isFeatured || false,
+        recheckStock: initialData.recheckStock || false,
         lore: initialData.lore || '',
         tastingNotes: initialData.tastingNotes ? initialData.tastingNotes.join(', ') : '',
         isCustomWisdom: initialData.isCustomWisdom || false,
         showWisdom: initialData.showWisdom === undefined ? true : initialData.showWisdom,
         processingNotes: initialData.processingNotes || '',
+        terroir: initialData.terroir || '',
         mood: initialData.mood || '',
         experience: initialData.experience || '',
-        liquorColor: initialData.liquorColor || ''
       });
     } else if (isOpen && !initialData) {
       setFormData({
         type: 'Dark',
+        form: '',
         givenName: '',
         chineseName: '',
         productName: '',
@@ -146,14 +151,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         canReorder: false,
         isPublic: true,
         isFeatured: false,
+        recheckStock: false,
         lore: '',
         tastingNotes: '',
         isCustomWisdom: false,
         showWisdom: true,
         processingNotes: '',
+        terroir: '',
         mood: '',
         experience: '',
-        liquorColor: ''
       });
     }
   }, [isOpen, initialData, rates]);
@@ -197,9 +203,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 isCustomWisdom: !!match.is_custom_wisdom,
                 showWisdom: !!match.show_wisdom,
                 processingNotes: match.processing_notes || prev.processingNotes,
+                terroir: match.terroir || prev.terroir,
                 mood: match.mood || prev.mood,
                 experience: match.experience || prev.experience,
-                liquorColor: match.liquor_color || prev.liquorColor
             }));
         }
     } catch (err) {
@@ -254,6 +260,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             type: Type.STRING,
                             description: "Processing notes, e.g., 'Heavy charcoal roast over pine wood.'"
                         },
+                        terroir: {
+                            type: Type.STRING,
+                            description: "1-2 sentences describing the growing environment: soil type, altitude, climate, and geography."
+                        },
                         mood: {
                             type: Type.STRING,
                             description: "A short mood or feeling, e.g., 'Grounding & Meditative'"
@@ -262,10 +272,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             type: Type.STRING,
                             description: "1-2 sentences describing the experience or feeling of drinking the tea."
                         },
-                        liquorColor: {
-                            type: Type.STRING,
-                            description: "The color of the brewed tea liquor, e.g., 'Deep Amber'"
-                        }
                     },
                     required: ["lore", "tastingNotes"]
                 }
@@ -282,9 +288,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 chineseName: prev.chineseName || data.chineseName || '',
                 originRegion: prev.originRegion || data.originRegion || '',
                 processingNotes: prev.processingNotes || data.processingNotes || '',
+                terroir: prev.terroir || data.terroir || '',
                 mood: prev.mood || data.mood || '',
                 experience: prev.experience || data.experience || '',
-                liquorColor: prev.liquorColor || data.liquorColor || '',
                 isCustomWisdom: false, // It's AI generated now
                 showWisdom: true
             }));
@@ -341,6 +347,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
         const payload = {
             type: formData.type,
+            form: formData.form || null,
             given_name: formData.givenName,
             chinese_name: formData.chineseName,
             product_name: formData.productName,
@@ -366,9 +373,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             is_custom_wisdom: formData.isCustomWisdom,
             show_wisdom: formData.showWisdom,
             processing_notes: formData.processingNotes,
+            terroir: formData.terroir,
             mood: formData.mood,
             experience: formData.experience,
-            liquor_color: formData.liquorColor
+            recheck_stock: formData.recheckStock ? 1 : 0,
         };
 
         if (isEditMode && initialData) {
@@ -442,12 +450,28 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                </div>
                <div className="group">
                   <label className={labelStyle}>
+                      Form
+                  </label>
+                  <select
+                    name="form"
+                    value={formData.form}
+                    onChange={handleChange}
+                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-2 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans"
+                  >
+                    <option value="" className="bg-tea-surface">— unset —</option>
+                    {['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
+                      <option key={f} value={f} className="bg-tea-surface">{f}</option>
+                    ))}
+                  </select>
+               </div>
+               <div className="group">
+                  <label className={labelStyle}>
                        Year
                   </label>
-                  <input 
-                    name="year" 
+                  <input
+                    name="year"
                     type="number"
-                    value={formData.year} 
+                    value={formData.year}
                     onChange={handleChange}
                     className={inputStyle.replace('text-lg', 'text-base')}
                     placeholder="YYYY"
@@ -711,22 +735,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 placeholder="Grounding & Meditative"
                             />
                         </div>
-                        <div className="group">
-                            <label className={labelStyle}>
-                                Liquor Color
-                            </label>
-                            <input 
-                                name="liquorColor"
-                                type="text"
-                                value={formData.liquorColor}
-                                onChange={(e) => {
-                                    handleChange(e);
-                                    setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                                }}
-                                className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans"
-                                placeholder="Deep Amber"
-                            />
-                        </div>
                     </div>
 
                     <div className="group">
@@ -748,9 +756,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
                     <div className="group">
                         <label className={labelStyle}>
+                            Terroir
+                        </label>
+                        <input
+                            name="terroir"
+                            type="text"
+                            value={formData.terroir}
+                            onChange={(e) => {
+                                handleChange(e);
+                                setFormData(prev => ({ ...prev, isCustomWisdom: true }));
+                            }}
+                            className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans"
+                            placeholder="High-altitude granite soils above 1200m, with dramatic day-night temperature swings."
+                        />
+                    </div>
+                    <div className="group">
+                        <label className={labelStyle}>
                             Processing / Craft Notes
                         </label>
-                        <input 
+                        <input
                             name="processingNotes"
                             type="text"
                             value={formData.processingNotes}
@@ -886,12 +910,22 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                <div className="pt-3">
                     <div className="flex justify-between items-center">
                         <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Current Stock</label>
-                        <input 
+                        <input
                             name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" 
+                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums"
                             placeholder="0"
                         />
                     </div>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer group">
+                        <input
+                            type="checkbox"
+                            name="recheckStock"
+                            checked={formData.recheckStock}
+                            onChange={handleChange}
+                            className="accent-amber-400"
+                        />
+                        <span className="text-[10px] text-tea-muted group-hover:text-amber-400 transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                    </label>
                </div>
             </div>
             

@@ -136,7 +136,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   const noteOpacities = [1, 0.82, 0.65, 0.5];
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
-  const accent = product.liquorColor ? getTypeColor(product.type) : "#b5651d"; // Fallback to type color if no hex
+  const accent = getTypeColor(product.type);
 
   const handleAddToCart = () => {
     addToCart(product, grams);
