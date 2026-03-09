@@ -40,29 +40,33 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
 
-  const sliderMin = 25;
+  const sliderMin = 5;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
-  const sliderStep = 1;
+  const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const total = fmtNum(pricePerGram * grams);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
-  // Snap to nearest point
+  // Snap to nearest marked point on release
   const snapToNearest = (val: number) => {
-    const snapThreshold = 8;
+    const snapThreshold = 10;
     for (const sp of snapPoints) {
       if (Math.abs(val - sp) <= snapThreshold) return sp;
     }
     return val;
   };
 
-  // Snap during drag when very close to a snap point
+  // Move in 5g increments, with magnetic snap near marked points
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = parseInt(e.target.value);
-    const magnetThreshold = 4; // tighter threshold during drag
+    // Round to nearest 5
+    const rounded = Math.round(raw / 5) * 5;
+    const clamped = Math.max(sliderMin, Math.min(sliderMax, rounded));
+    // Magnetic snap to marked points during drag
+    const magnetThreshold = 6;
     for (const sp of snapPoints) {
-      if (Math.abs(raw - sp) <= magnetThreshold) {
+      if (Math.abs(clamped - sp) <= magnetThreshold) {
         if (sp !== grams) {
           setGrams(sp);
           if (navigator.vibrate) navigator.vibrate(8);
@@ -70,8 +74,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         return;
       }
     }
-    if (raw !== grams) {
-      setGrams(raw);
+    if (clamped !== grams) {
+      setGrams(clamped);
     }
   };
 

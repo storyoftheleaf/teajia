@@ -396,9 +396,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                               <div className="flex items-center gap-2">
                                  <span className="num text-[11px] text-tea-text/50 shrink-0 min-w-[32px]">{gridQty}g</span>
                                  <HapticSlider
-                                    min={25}
+                                    min={5}
                                     max={gridMax}
-                                    step={25}
+                                    step={5}
                                     value={gridQty}
                                     onChange={(val) => updateQuantity(item.id, val)}
                                     size="sm"
@@ -525,9 +525,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                     </span>
                                                 </div>
                                                 <HapticSlider
-                                                    min={25}
+                                                    min={5}
                                                     max={maxStock}
-                                                    step={25}
+                                                    step={5}
                                                     value={currentQty}
                                                     onChange={(val) => updateQuantity(item.id, val)}
                                                     size="sm"
