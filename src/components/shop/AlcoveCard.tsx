@@ -398,11 +398,16 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           )}
 
-          {/* Commerce — price, slider, actions */}
-          <div style={{
-            padding: "10px 14px 14px",
-            borderTop: "1px solid rgba(200,170,120,0.08)",
-          }}>
+        </div>
+      </div>
+
+      {/* === PINNED BOTTOM: Commerce — price, slider, actions === */}
+      <div style={{
+        position: "relative", zIndex: 3, flexShrink: 0,
+        padding: "10px 14px 14px",
+        borderTop: "1px solid rgba(200,170,120,0.08)",
+        background: alcoveColors.bg,
+      }}>
             {/* Price Tag: price + gram selector */}
             <div style={{
               display: "flex", alignItems: "baseline", justifyContent: "space-between",
@@ -583,18 +588,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </span>
               </button>
             </div>
-          </div>
-        </div>
       </div>
 
-      {/* Scrollable middle fade indicator */}
+      {/* Fade indicator at bottom of scrollable area, above pinned commerce */}
       <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
-        background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
+        position: "relative", flexShrink: 0, height: 0,
         pointerEvents: "none", zIndex: 2,
-        opacity: showFade ? 1 : 0,
-        transition: "opacity 0.3s ease",
-      }} />
+      }}>
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
+          background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
+          opacity: showFade ? 1 : 0,
+          transition: "opacity 0.3s ease",
+        }} />
+      </div>
 
       {/* Fullscreen image overlay */}
       {imageExpanded && (
