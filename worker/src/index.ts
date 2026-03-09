@@ -2,6 +2,7 @@ interface Env {
   DB: D1Database;
   ADMIN_PASSWORD_HASH: string;
   JWT_SECRET: string;
+  ANTHROPIC_API_KEY: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -697,6 +698,63 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
   return json({ linked, total_unlinked: unlinked.results.length });
 };
 
+// ── AI Wisdom Generation ──
+const handleGenerateWisdom: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  if (!env.ANTHROPIC_API_KEY) {
+    return json({ error: 'ANTHROPIC_API_KEY not configured' }, 503);
+  }
+
+  const { prompt } = await request.json() as { prompt: string };
+  if (!prompt) return json({ error: 'prompt required' }, 400);
+
+  const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+      tools: [{
+        name: 'generate_tea_wisdom',
+        description: 'Output structured wisdom fields for a tea product.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            lore: { type: 'string', description: '2-3 sentences of historical or geographical lore about the tea.' },
+            tastingNotes: { type: 'array', items: { type: 'string' }, description: '3-4 distinct sensory tasting notes.' },
+            chineseName: { type: 'string', description: 'Traditional Chinese name of the tea, if known.' },
+            originRegion: { type: 'string', description: 'Specific origin region, e.g., "Nantou, Taiwan".' },
+            processingNotes: { type: 'string', description: 'Processing notes, e.g., "Heavy charcoal roast over pine wood."' },
+            terroir: { type: 'string', description: '1-2 sentences describing the growing environment: soil type, altitude, climate, geography.' },
+            mood: { type: 'string', description: 'A short mood or feeling, e.g., "Grounding & Meditative".' },
+            experience: { type: 'string', description: '1-2 sentences describing the feeling of drinking this tea.' },
+          },
+          required: ['lore', 'tastingNotes'],
+          additionalProperties: false,
+        },
+      }],
+      tool_choice: { type: 'tool', name: 'generate_tea_wisdom' },
+    }),
+  });
+
+  if (!claudeRes.ok) {
+    return json({ error: `Claude API error: ${claudeRes.status}` }, 502);
+  }
+
+  const claudeData = await claudeRes.json() as any;
+  const toolUse = claudeData.content?.find((b: any) => b.type === 'tool_use');
+  if (!toolUse) return json({ error: 'No structured output from Claude' }, 500);
+
+  return json(toolUse.input);
+};
+
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -769,6 +827,9 @@ const routes: [string, string, Handler][] = [
 
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],
+
+  // AI
+  ['POST', '/api/generate-wisdom', handleGenerateWisdom],
 ];
 
 export default {

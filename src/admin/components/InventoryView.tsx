@@ -11,7 +11,6 @@ import { QrCodeModal } from './QrCodeModal';
 import { AddProductModal } from './AddProductModal';
 import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
-import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from '../store';
 import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
@@ -298,8 +297,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     try {
-        const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-
         for (let i = 0; i < teasToEnrich.length; i++) {
             const tea = teasToEnrich[i];
             setEnrichProgress({ current: i + 1, total: teasToEnrich.length, currentName: tea.productName });
@@ -308,51 +305,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     .replace('{{productName}}', tea.productName)
                     .replace('{{type}}', tea.type);
 
-                const response = await ai.models.generateContent({
-                    model: "gemini-2.5-flash-preview-04-17",
-                    contents: prompt,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                lore: { type: Type.STRING },
-                                tastingNotes: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                chineseName: { type: Type.STRING },
-                                originRegion: { type: Type.STRING },
-                                processingNotes: { type: Type.STRING },
-                                terroir: { type: Type.STRING },
-                                mood: { type: Type.STRING },
-                                experience: { type: Type.STRING },
-                            },
-                            required: ["lore", "tastingNotes"]
-                        }
-                    }
+                const data = await api.generateWisdom(prompt);
+
+                await api.products.update(tea.id, {
+                    lore: data.lore,
+                    tasting_notes: data.tastingNotes,
+                    chinese_name: tea.chineseName || data.chineseName || '',
+                    origin_region: tea.originRegion || data.originRegion || '',
+                    processing_notes: data.processingNotes || '',
+                    terroir: data.terroir || '',
+                    mood: data.mood || '',
+                    experience: data.experience || '',
+                    is_custom_wisdom: false,
+                    show_wisdom: false,
                 });
 
-                const jsonStr = response.text?.trim();
-                if (jsonStr) {
-                    const data = JSON.parse(jsonStr);
-                    
-                    const dbPayload = {
-                        lore: data.lore,
-                        tasting_notes: data.tastingNotes,
-                        chinese_name: tea.chineseName || data.chineseName || '',
-                        origin_region: tea.originRegion || data.originRegion || '',
-                        processing_notes: data.processingNotes || '',
-                        terroir: data.terroir || '',
-                        mood: data.mood || '',
-                        experience: data.experience || '',
-                        is_custom_wisdom: false,
-                        show_wisdom: false // Set to false so user has to approve it
-                    };
-
-                    await api.products.update(tea.id, dbPayload);
-                    
-                    successCount++;
-                }
-                // Add a small delay to avoid hitting rate limits, even on paid tiers
-                await delay(2000);
+                successCount++;
+                await delay(500);
             } catch (err) {
                 console.error(`Failed to enrich ${tea.productName}:`, err);
                 failCount++;
@@ -360,7 +329,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         }
     } catch (error: any) {
         console.error("Bulk enrich error:", error);
-        showToast("Error initializing AI.", "error");
+        showToast("Bulk enrichment failed.", "error");
     } finally {
         setIsEnriching(false);
         setEnrichProgress(null);
@@ -474,49 +443,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const handleRegenerateOne = async (product: Product) => {
     setRegeneratingId(product.id);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const prompt = aiPromptTemplate
         .replace('{{productName}}', product.productName)
         .replace('{{type}}', product.type);
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-04-17",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              lore: { type: Type.STRING },
-              tastingNotes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              chineseName: { type: Type.STRING },
-              originRegion: { type: Type.STRING },
-              processingNotes: { type: Type.STRING },
-              terroir: { type: Type.STRING },
-              mood: { type: Type.STRING },
-              experience: { type: Type.STRING },
-            },
-            required: ["lore", "tastingNotes"]
-          }
+      const data = await api.generateWisdom(prompt);
+      setReviewDrafts(prev => ({
+        ...prev,
+        [product.id]: {
+          lore: data.lore || '',
+          terroir: data.terroir || '',
+          processingNotes: data.processingNotes || '',
+          mood: data.mood || '',
+          experience: data.experience || '',
+          tastingNotes: data.tastingNotes || [],
+          chineseName: data.chineseName || product.chineseName || '',
+          originRegion: data.originRegion || product.originRegion || '',
         }
-      });
-      const jsonStr = response.text?.trim();
-      if (jsonStr) {
-        const data = JSON.parse(jsonStr);
-        setReviewDrafts(prev => ({
-          ...prev,
-          [product.id]: {
-            lore: data.lore || '',
-            terroir: data.terroir || '',
-            processingNotes: data.processingNotes || '',
-            mood: data.mood || '',
-            experience: data.experience || '',
-            tastingNotes: data.tastingNotes || [],
-            chineseName: data.chineseName || product.chineseName || '',
-            originRegion: data.originRegion || product.originRegion || '',
-          }
-        }));
-        showToast("Regenerated — review the new content", 'success');
-      }
+      }));
+      showToast("Regenerated — review the new content", 'success');
     } catch (err: any) {
       showToast(`Regeneration failed: ${err.message}`, 'error');
     } finally {

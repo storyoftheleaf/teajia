@@ -313,6 +313,15 @@ export const api = {
     },
   },
 
+  generateWisdom: async (prompt: string) => {
+    const res = await fetchWithTimeout(`${API_URL}/api/generate-wisdom`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ prompt }),
+    });
+    return handleResponse(res);
+  },
+
   uploadImage: async (filename: string, filetype: string) => {
     const res = await fetchWithTimeout(`${API_URL}/api/upload-image`, {
       method: 'POST',

@@ -4,7 +4,6 @@ import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
-import { GoogleGenAI, Type } from "@google/genai";
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
 
@@ -227,78 +226,24 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
     setGeneratingWisdom(true);
     try {
-        const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-        
         const prompt = aiPromptTemplate
             .replace('{{productName}}', formData.productName)
             .replace('{{type}}', formData.type);
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-04-17",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        lore: {
-                            type: Type.STRING,
-                            description: "2-3 sentences of historical or geographical lore about the tea."
-                        },
-                        tastingNotes: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.STRING
-                            },
-                            description: "3-4 distinct sensory tasting notes."
-                        },
-                        chineseName: {
-                            type: Type.STRING,
-                            description: "Traditional Chinese name of the tea, if known."
-                        },
-                        originRegion: {
-                            type: Type.STRING,
-                            description: "Specific origin region, e.g., 'Nantou, Taiwan'."
-                        },
-                        processingNotes: {
-                            type: Type.STRING,
-                            description: "Processing notes, e.g., 'Heavy charcoal roast over pine wood.'"
-                        },
-                        terroir: {
-                            type: Type.STRING,
-                            description: "1-2 sentences describing the growing environment: soil type, altitude, climate, and geography."
-                        },
-                        mood: {
-                            type: Type.STRING,
-                            description: "A short mood or feeling, e.g., 'Grounding & Meditative'"
-                        },
-                        experience: {
-                            type: Type.STRING,
-                            description: "1-2 sentences describing the experience or feeling of drinking the tea."
-                        },
-                    },
-                    required: ["lore", "tastingNotes"]
-                }
-            }
-        });
-
-        const jsonStr = response.text?.trim();
-        if (jsonStr) {
-            const data = JSON.parse(jsonStr);
-            setFormData(prev => ({
-                ...prev,
-                lore: data.lore || prev.lore,
-                tastingNotes: data.tastingNotes ? data.tastingNotes.join(', ') : prev.tastingNotes,
-                chineseName: prev.chineseName || data.chineseName || '',
-                originRegion: prev.originRegion || data.originRegion || '',
-                processingNotes: prev.processingNotes || data.processingNotes || '',
-                terroir: prev.terroir || data.terroir || '',
-                mood: prev.mood || data.mood || '',
-                experience: prev.experience || data.experience || '',
-                isCustomWisdom: false, // It's AI generated now
-                showWisdom: true
-            }));
-        }
+        const data = await api.generateWisdom(prompt);
+        setFormData(prev => ({
+            ...prev,
+            lore: data.lore || prev.lore,
+            tastingNotes: data.tastingNotes ? data.tastingNotes.join(', ') : prev.tastingNotes,
+            chineseName: prev.chineseName || data.chineseName || '',
+            originRegion: prev.originRegion || data.originRegion || '',
+            processingNotes: prev.processingNotes || data.processingNotes || '',
+            terroir: prev.terroir || data.terroir || '',
+            mood: prev.mood || data.mood || '',
+            experience: prev.experience || data.experience || '',
+            isCustomWisdom: false,
+            showWisdom: true,
+        }));
     } catch (error: any) {
         console.error("Failed to generate wisdom:", error);
         showToast("Failed to generate wisdom. Please try again.", 'error');
