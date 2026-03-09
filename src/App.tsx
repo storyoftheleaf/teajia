@@ -2,11 +2,26 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
-const AdminApp = lazy(() => import('./admin/AdminApp'));
+// Reload once on stale chunk hash (happens after a new deployment)
+function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
+  factory: () => Promise<T>
+): React.LazyExoticComponent<T['default']> {
+  return lazy(() =>
+    factory().catch(() => {
+      if (!sessionStorage.getItem('chunkReloaded')) {
+        sessionStorage.setItem('chunkReloaded', '1');
+        window.location.reload();
+      }
+      return new Promise<T>(() => {}); // suspend forever while reloading
+    })
+  );
+}
+
+const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
-const Shop = lazy(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 
 import { STORIES, LEARN_STORIES } from './constants';

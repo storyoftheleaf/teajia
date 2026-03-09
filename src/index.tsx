@@ -14,12 +14,17 @@ const queryClient = new QueryClient({
   },
 });
 
-// Reload once when a lazy chunk fails to fetch (e.g. after a new deployment)
+// Reload once when a preloaded chunk fails (e.g. after a new deployment)
+// The `chunkReloaded` flag is cleared after app loads successfully so future deploys can retry.
 window.addEventListener('vite:preloadError', () => {
   if (!sessionStorage.getItem('chunkReloaded')) {
     sessionStorage.setItem('chunkReloaded', '1');
     window.location.reload();
   }
+});
+// Clear the flag once the app has loaded cleanly
+window.addEventListener('load', () => {
+  sessionStorage.removeItem('chunkReloaded');
 });
 
 const rootElement = document.getElementById('root');
