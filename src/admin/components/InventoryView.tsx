@@ -372,21 +372,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
       
       {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-30 border-b border-tea-border py-4 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/30' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-6 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-4">
-            <div>
-                <h2 className="text-2xl font-serif text-tea-text flex items-center gap-3">
-                    <Settings size={20} className={isEditMode ? "text-tea-muted" : "text-tea-accent"} /> 
-                    {isEditMode ? 'Quick Edit Mode' : 'Master Inventory'}
+      <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/30' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+                <Settings size={16} className={isEditMode ? "text-tea-muted" : "text-tea-accent"} />
+                <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                    {isEditMode ? 'Editing' : 'Inventory'}
                 </h2>
-                <p className="text-tea-muted text-xs uppercase tracking-[0.2em] mt-1">
-                    {isEditMode ? 'Click cells to edit • Enter to save' : `Database Access • ${processedProducts.length} Records`}
-                </p>
+                <span className="text-tea-muted text-xs tracking-wide">
+                    {isEditMode ? '— click cells to edit' : `— ${processedProducts.length} items`}
+                </span>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 ml-auto">
                 {/* Search */}
-                <div className="relative w-full md:w-64">
+                <div className="relative w-48">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-muted" size={14} />
                     <input 
                         type="text" 
