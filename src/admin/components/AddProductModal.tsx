@@ -353,36 +353,40 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const wisdomInputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans";
 
   return (
-    <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
-        onClick={onClose}
-    >
+    <>
+      {/* Backdrop */}
       <div
-        className="bg-tea-surface border border-tea-border w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl rounded-2xl overflow-hidden relative"
+        className={`fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+
+      {/* Slide-out Panel */}
+      <div
+        className={`fixed inset-y-0 right-0 z-[100] w-full max-w-2xl bg-tea-surface border-l border-tea-border shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'}`}
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* Header */}
         <div className="px-5 py-3 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-tea-surface border border-tea-border rounded-full">
-              <Edit className="text-tea-accent" size={16} />
+            <div className="p-1.5 bg-tea-surface border border-tea-border rounded-full">
+              <Edit className="text-tea-accent" size={14} />
             </div>
             <div>
-              <h2 className="text-lg font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
+              <h2 className="text-base font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
               <p className="text-[9px] text-tea-muted font-mono uppercase tracking-[0.2em]">Database Access</p>
             </div>
           </div>
           <button onClick={onClose} className="text-tea-muted hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Content */}
-        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
+        {/* Content — single column scroll */}
+        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar">
 
-          {/* --- LEFT COLUMN: IDENTITY & DETAILS (7/12) --- */}
-          <div className="lg:col-span-7 p-4 lg:p-5 space-y-4 border-b lg:border-b-0 lg:border-r border-tea-border">
+          {/* --- IDENTITY & DETAILS --- */}
+          <div className="p-4 space-y-4 border-b border-tea-border">
 
             {/* TOGGLE CHIPS */}
             <div className="flex flex-wrap gap-1.5">
@@ -518,8 +522,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: RECEIPT + WISDOM (5/12) --- */}
-          <div className="lg:col-span-5 p-4 lg:p-5 space-y-4">
+          {/* --- COST & WISDOM --- */}
+          <div className="p-4 space-y-4">
 
             {/* COST CALCULATION */}
             <div className="flex items-center gap-2 mb-1">
@@ -750,20 +754,20 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
         {/* STICKY FOOTER */}
         <div className="px-5 py-3 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 text-xs font-medium text-tea-muted hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
+            <button type="button" onClick={onClose} className="px-5 py-2 text-xs font-medium text-tea-muted hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
                 Cancel
             </button>
             <button
                 type="submit"
                 form="add-product-form"
                 disabled={loading || !formData.productName || uploading}
-                className="px-8 py-2.5 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-accent/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-accent/10"
+                className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-accent/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-accent/10"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                 <span>Save Item</span>
             </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
