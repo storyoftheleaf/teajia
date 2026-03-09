@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Icons, SealIcon } from '../Icons';
+import { LogoEmblem } from '../Logos/LogoEmblem';
 import { useTheme } from '../../context/ThemeContext';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -241,14 +242,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         {/* Header */}
         <div className="flex flex-col">
           {/* Mobile drag handle */}
-          <div className="md:hidden flex flex-col items-center py-3 gap-1 bg-tea-surface ">
+          <div className="md:hidden flex flex-col items-center py-3 gap-1 bg-[rgba(0,0,0,0.15)]">
             <div className={`h-1 rounded-full transition-all duration-150 ${
-              isDragging ? 'bg-tea-gold w-16' : 'bg-tea-bg/20 w-12'
+              isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-dim/20 w-12'
             }`} />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/30 /20">Swipe to close</span>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim/40">Swipe to close</span>
           </div>
 
-          <div className="flex items-center justify-center p-6 border-b border-tea-border  bg-tea-surface  relative">
+          <div className="flex items-center justify-center p-6 border-b border-[rgba(184,146,78,0.08)] bg-[rgba(0,0,0,0.15)] relative">
             <button
               onClick={() => {
                 if (panelView !== 'main') {
@@ -272,8 +273,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 relative">
-          {/* Paper texture overlay */}
-          <div className="absolute inset-0 opacity-[0.1] bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] mix-blend-multiply pointer-events-none" />
+          {/* Grain texture overlay — design bible SVG noise */}
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
 
           <div className="space-y-8 relative z-10">
 
@@ -295,7 +296,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-tea-surface border border-tea-border  p-3.5 text-tea-text  outline-none focus:border-tea-gold transition-colors placeholder-tea-border placeholder-tea-text-dim font-sans text-sm"
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                       placeholder="you@example.com"
                       required
                       autoFocus
@@ -308,7 +310,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-tea-surface border border-tea-border  p-3.5 pr-12 text-tea-text  outline-none focus:border-tea-gold transition-colors font-sans text-sm"
+                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors font-sans text-sm"
+                        style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                         required
                       />
                       <button
@@ -373,7 +376,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-tea-surface border border-tea-border  p-3.5 text-tea-text  outline-none focus:border-tea-gold transition-colors placeholder-tea-border placeholder-tea-text-dim font-sans text-sm"
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                       placeholder="Your name"
                       required
                       autoFocus
@@ -385,7 +389,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-tea-surface border border-tea-border  p-3.5 text-tea-text  outline-none focus:border-tea-gold transition-colors placeholder-tea-border placeholder-tea-text-dim font-sans text-sm"
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                       placeholder="you@example.com"
                       required
                     />
@@ -397,7 +402,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-tea-surface border border-tea-border  p-3.5 pr-12 text-tea-text  outline-none focus:border-tea-gold transition-colors placeholder-tea-border placeholder-tea-text-dim font-sans text-sm"
+                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                        style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                         placeholder="Min 6 characters"
                         required
                       />
@@ -473,7 +479,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </p>
                   </div>
                 ) : (
-                  <div className="border border-tea-border  overflow-hidden">
+                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
                     {savedStoryEntries.map((storyId, i) => (
                       <button
                         key={storyId}
@@ -481,8 +487,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           onNavigateToStory?.(storyId);
                           onClose();
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-elevated/30 transition-colors group text-left ${
-                          i < savedStoryEntries.length - 1 ? 'border-b border-tea-border ' : ''
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[rgba(0,0,0,0.15)] transition-colors group text-left ${
+                          i < savedStoryEntries.length - 1 ? 'border-b border-[rgba(184,146,78,0.06)]' : ''
                         }`}
                       >
                         <Icons.Leaf filled className="w-4 h-4 text-tea-gold shrink-0" />
@@ -519,7 +525,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </p>
                   </div>
                 ) : (
-                  <div className="border border-tea-border  overflow-hidden">
+                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
                     {readingHistory.map((entry, i) => (
                       <button
                         key={entry.storyId}
@@ -527,8 +533,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           onNavigateToStory?.(entry.storyId);
                           onClose();
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-elevated/30 transition-colors group text-left ${
-                          i < readingHistory.length - 1 ? 'border-b border-tea-border ' : ''
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[rgba(0,0,0,0.15)] transition-colors group text-left ${
+                          i < readingHistory.length - 1 ? 'border-b border-[rgba(184,146,78,0.06)]' : ''
                         }`}
                       >
                         <Icons.BookOpen className="w-4 h-4 text-tea-text-dim shrink-0" />
@@ -536,7 +542,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           <span className="font-serif text-sm text-tea-text  group-hover:text-tea-gold transition-colors truncate block">
                             Story #{entry.storyId}
                           </span>
-                          <span className="text-[10px] text-tea-text/40 /30">
+                          <span className="text-[10px] text-tea-text-dim">
                             Page {entry.page + 1}
                           </span>
                         </div>
@@ -640,17 +646,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 {/* Activity Stats — 3 columns now */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-tea-surface border border-tea-border  p-4 flex flex-col items-center gap-2">
+                  <div className="bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-4 flex flex-col items-center gap-2 rounded-md" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}>
                     <Icons.Bag className="w-5 h-5 text-tea-text-dim" />
                     <span className="font-sans text-2xl font-light text-tea-text">{cartCount}</span>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Cart</span>
                   </div>
-                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2">
+                  <div className="bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-4 flex flex-col items-center gap-2 rounded-md" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}>
                     <Icons.Heart className="w-5 h-5 text-tea-text-dim" />
                     <span className="font-sans text-2xl font-light text-tea-text">{favoriteTeas.length}</span>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Favorites</span>
                   </div>
-                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2">
+                  <div className="bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-4 flex flex-col items-center gap-2 rounded-md" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}>
                     <Icons.BookOpen className="w-5 h-5 text-tea-text-dim" />
                     <span className="font-sans text-2xl font-light text-tea-text">{progressCount}</span>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Read</span>
@@ -662,7 +668,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Your Tea Collection</span>
                   <button
                     onClick={() => setPanelView('collection')}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border  hover:bg-tea-elevated transition-colors group"
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-[rgba(0,0,0,0.15)] border border-[rgba(184,146,78,0.08)] hover:bg-[rgba(0,0,0,0.25)] transition-colors group"
                   >
                     <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                     <div className="flex flex-col items-start flex-1">
@@ -683,10 +689,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Reading & Stories */}
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Reading</span>
-                  <div className="border border-tea-border  overflow-hidden">
+                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
                     <button
                       onClick={() => setPanelView('saved-stories')}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
@@ -699,7 +705,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </button>
                     <button
                       onClick={() => setPanelView('reading-history')}
-                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-elevated/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.BookOpen className={`w-5 h-5 ${progressCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
@@ -716,11 +722,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Preferences: Theme + Currency */}
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Preferences</span>
-                  <div className="border border-tea-border  overflow-hidden">
+                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
                     {/* Theme Toggle */}
                     <button
                       onClick={toggleTheme}
-                      className="w-full flex items-center justify-between px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         {theme === 'light' ? (
@@ -750,8 +756,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                             onClick={() => setCurrency(opt.code)}
                             className={`px-2.5 py-1.5 text-[11px] uppercase tracking-wider border transition-colors ${
                               currency === opt.code
-                                ? 'bg-tea-gold text-tea-paper border-tea-gold'
-                                : 'border-tea-border  text-tea-text/60 /50 hover:border-tea-gold/30'
+                                ? 'bg-tea-gold text-tea-bg border-tea-gold'
+                                : 'border-[rgba(184,146,78,0.08)] text-tea-text-dim hover:border-tea-gold/30'
                             }`}
                           >
                             {opt.symbol} {opt.code}
@@ -765,10 +771,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Quick Actions */}
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Quick Actions</span>
-                  <div className="border border-tea-border  overflow-hidden">
+                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
                     <button
                       onClick={handleOpenCart}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Open Cart</span>
@@ -780,7 +786,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                     <a
                       href="mailto:hello@teajia.com"
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Mail className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Contact Us</span>
@@ -791,7 +797,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       href="https://instagram.com/teajia.journal"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-elevated/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Instagram className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">@teajia.journal</span>
@@ -805,7 +811,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div>
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text/50 /40 hover:text-red-500 border border-tea-border  hover:border-red-500/20 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text-dim hover:text-red-500 border border-[rgba(184,146,78,0.08)] hover:border-red-500/20 transition-colors rounded-md"
                     >
                       <Icons.LogOut className="w-4 h-4" />
                       <span className="text-xs uppercase tracking-[0.2em] font-medium">Sign Out</span>
@@ -819,8 +825,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-tea-border  bg-tea-surface  flex flex-col items-center gap-2">
-          <SealIcon className="w-6 h-6 text-tea-gold opacity-60" />
+        <div className="p-6 border-t border-[rgba(184,146,78,0.08)] bg-[rgba(0,0,0,0.15)] flex flex-col items-center gap-2">
+          <LogoEmblem size={28} color="var(--tea-gold)" className="opacity-60" />
           <span className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim">Teajia</span>
         </div>
       </div>

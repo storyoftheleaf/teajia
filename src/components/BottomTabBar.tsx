@@ -140,26 +140,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </div>
           ))}
 
-          {/* Account button — shows for authenticated users, with admin badge for admins */}
-          {auth.isAuthenticated && onAccountClick && (
-            <div className="flex items-center h-full" style={{ flex: '0 0 48px' }}>
-              <button
-                onClick={onAccountClick}
-                className="h-full flex flex-col items-center justify-center relative transition-all duration-300 group px-2 animate-[fadeIn_0.5s_ease-out]"
-                title="Account"
-              >
-                <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center">
-                  <Icons.User
-                    className="text-tea-paper/60 w-5 h-5 group-hover:text-tea-paper/85 transition-all duration-300"
-                    strokeWidth={2}
-                  />
-                  {auth.isAdmin && (
-                    <div className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-tea-gold rounded-full border border-tea-surface dark:border-tea-surface" />
-                  )}
-                </div>
-              </button>
-            </div>
-          )}
+          {/* Account button removed — account accessible via sidebar/header */}
         </div>
       </nav>
 
