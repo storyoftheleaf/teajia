@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, ExternalLink, Users } from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -18,10 +18,10 @@ interface NavButtonProps {
 }
 
 const NavButton: React.FC<NavButtonProps> = ({ item, isActive, onClick }) => {
-  const baseClass = `w-full flex items-center gap-2.5 px-3 py-1.5 text-xs transition-all duration-200 group ${
+  const baseClass = `w-full flex items-center gap-2 px-2.5 py-1.5 text-xs transition-all duration-200 group ${
     isActive
       ? 'text-tea-accent border-r-2 border-tea-accent bg-tea-surface/50'
-      : 'text-tea-muted hover:text-tea-text hover:pl-4'
+      : 'text-tea-muted hover:text-tea-text hover:pl-3.5'
   }`;
 
   const content = (
@@ -57,8 +57,6 @@ export const Sidebar = ({
   isMobileOpen,
   setIsMobileOpen,
   cartItemCount,
-  isDevAdmin,
-  onToggleDevAdmin,
   onOpenCart
 }: {
   isAdmin: boolean;
@@ -68,8 +66,6 @@ export const Sidebar = ({
   isMobileOpen: boolean;
   setIsMobileOpen: (v: boolean) => void;
   cartItemCount: number;
-  isDevAdmin: boolean;
-  onToggleDevAdmin: () => void;
   onOpenCart: () => void;
 }) => {
   const location = useLocation();
@@ -94,16 +90,15 @@ export const Sidebar = ({
   };
 
   return (
-    <div className={`fixed inset-y-0 left-0 z-50 w-44 bg-tea-surface/90 backdrop-blur-xl border-r border-tea-border transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 flex flex-col`}>
-      <div className="px-3 pt-4 pb-2">
-        <h1 className="text-base font-serif tracking-widest text-tea-text">TEAJIA</h1>
-        <div className="h-px w-6 bg-tea-accent/50 mt-1.5 mb-1"></div>
-        <p className="text-[9px] text-tea-muted tracking-[0.2em] uppercase font-medium">Admin</p>
+    <div className={`fixed inset-y-0 left-0 z-50 w-36 bg-tea-surface/90 backdrop-blur-xl border-r border-tea-border transform transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 flex flex-col`}>
+      <div className="px-2.5 pt-3 pb-1.5">
+        <h1 className="text-sm font-serif tracking-widest text-tea-text">TEAJIA</h1>
+        <p className="text-[9px] text-tea-muted tracking-[0.15em] uppercase font-medium mt-1">Admin</p>
       </div>
 
-      <nav className="flex-1 py-2 space-y-3 overflow-y-auto no-scrollbar">
+      <nav className="flex-1 py-2 space-y-2 overflow-y-auto no-scrollbar">
         <div>
-          <h3 className="px-3 text-[9px] font-bold text-tea-muted/50 uppercase tracking-[0.2em] mb-1">Catalog</h3>
+          <h3 className="px-2.5 text-[9px] font-bold text-tea-muted/50 uppercase tracking-[0.15em] mb-1">Catalog</h3>
           {navItems.map((item) => (
             <NavButton key={item.id} item={item} isActive={currentPath === item.path || (currentPath === '/admin' && item.id === 'catalog')} onClick={handleNav} />
           ))}
@@ -111,35 +106,28 @@ export const Sidebar = ({
 
         {isAdmin && (
           <div>
-            <h3 className="px-3 text-[9px] font-bold text-tea-muted/50 uppercase tracking-[0.2em] mb-1">Admin</h3>
+            <h3 className="px-2.5 text-[9px] font-bold text-tea-muted/50 uppercase tracking-[0.15em] mb-1">Admin</h3>
             {adminItems.map((item) => (
               <NavButton key={item.id} item={item} isActive={currentPath === item.path} onClick={handleNav} />
             ))}
           </div>
         )}
 
-        <div className="pt-3 px-3 border-t border-tea-border space-y-1.5">
+        <div className="pt-2 px-2.5 border-t border-tea-border space-y-1">
             <Link
               to="/"
-              className="w-full flex items-center gap-2 px-1 text-tea-muted hover:text-tea-text transition-colors"
+              className="w-full flex items-center gap-1.5 px-0.5 text-tea-muted hover:text-tea-text transition-colors"
             >
-              <ExternalLink size={13} />
-              <span className="text-[11px] font-serif italic">Main Site</span>
+              <ExternalLink size={12} />
+              <span className="text-[10px] font-serif italic">Main Site</span>
             </Link>
 
              <button
               onClick={isLoggedIn ? onLogoutClick : onLoginClick}
-              className="w-full flex items-center gap-2 px-1 text-tea-muted hover:text-tea-text transition-colors"
+              className="w-full flex items-center gap-1.5 px-0.5 text-tea-muted hover:text-tea-text transition-colors"
             >
-              {isLoggedIn ? <LogOut size={13} /> : <User size={13} />}
-              <span className="text-[11px] font-serif italic">{isLoggedIn ? 'Sign Out' : 'Sign In'}</span>
-            </button>
-
-            <button
-              onClick={onToggleDevAdmin}
-              className="w-full text-[9px] text-tea-muted/50 hover:text-tea-muted font-mono text-left pl-6"
-            >
-              {isDevAdmin ? '> DEV: ON' : '> DEV: OFF'}
+              {isLoggedIn ? <LogOut size={12} /> : <User size={12} />}
+              <span className="text-[10px] font-serif italic">{isLoggedIn ? 'Sign Out' : 'Sign In'}</span>
             </button>
         </div>
       </nav>

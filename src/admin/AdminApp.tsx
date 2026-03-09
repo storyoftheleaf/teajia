@@ -159,8 +159,6 @@ const AdminContent = () => {
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         cartItemCount={cart.length}
-        isDevAdmin={isDevAdmin}
-        onToggleDevAdmin={toggleDevAdmin}
         onOpenCart={() => setIsCartOpen(true)}
       />
 
