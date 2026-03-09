@@ -17,7 +17,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
 }) => {
   return (
     <div
-      className={`relative overflow-hidden bg-white/5 ${className}`}
+      className={`relative overflow-hidden bg-tea-text-dim/5 ${className}`}
       style={{
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof height === 'number' ? `${height}px` : height,

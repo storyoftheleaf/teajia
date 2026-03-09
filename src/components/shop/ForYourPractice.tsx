@@ -112,7 +112,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
                 className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
               >
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
-                <span className="w-[1px] h-3 bg-white/30" />
+                <span className="w-[1px] h-3 bg-tea-text-sec/30" />
                 <span className="font-mono text-sm">{price}</span>
               </button>
             </div>
@@ -220,7 +220,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
   );
 
   return (
-    <div className="flex flex-col flex-1 bg-white animate-[fadeIn_0.5s_ease-out]">
+    <div className="flex flex-col flex-1 bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
       <PageHeader
         title="For Your Practice"
         onBack={onBack}

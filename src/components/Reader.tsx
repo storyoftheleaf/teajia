@@ -425,18 +425,18 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
           aria-valuemax={pages.length}
           aria-label="Reading progress"
         >
-          <div className="w-full h-[3px] bg-white/10 rounded-full relative">
+          <div className="w-full h-[3px] bg-tea-text-dim/15 rounded-full relative">
             <div
-              className="absolute inset-y-0 left-0 bg-white/60 rounded-full transition-all duration-300 ease-out"
+              className="absolute inset-y-0 left-0 bg-tea-text-sec/60 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progress * 100}%` }}
             />
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-[0_0_6px_rgba(255,255,255,0.3)] transition-all duration-300 ease-out group-hover:w-2.5 group-hover:h-2.5"
+              className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-tea-text-sec rounded-full shadow-[0_0_6px_rgba(181,168,146,0.3)] transition-all duration-300 ease-out group-hover:w-2.5 group-hover:h-2.5"
               style={{ left: `calc(${progress * 100}% - 4px)` }}
             />
           </div>
         </div>
-        <span className="text-xs font-mono text-white/35 tabular-nums w-4">{pages.length}</span>
+        <span className="text-xs font-mono text-tea-text-dim/50 tabular-nums w-4">{pages.length}</span>
       </div>
     );
   };

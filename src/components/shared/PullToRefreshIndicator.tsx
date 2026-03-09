@@ -22,7 +22,7 @@ export const PullToRefreshIndicator: React.FC<PullToRefreshIndicatorProps> = ({
         opacity: Math.min(progress * 1.5, 1),
       }}
     >
-      <div className="bg-white shadow-lg rounded-full p-3 -mt-6">
+      <div className="bg-tea-surface shadow-lg rounded-full p-3 -mt-6">
         <Icons.Leaf
           className={`w-5 h-5 text-tea-gold transition-transform duration-200 ${
             isRefreshing ? 'animate-spin' : ''
