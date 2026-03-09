@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { fmtNum } from '../../utils/formatNumber';
+import { TeaPlaceholder } from './TeaPlaceholder';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -350,14 +351,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             maxHeight: "140px",
             borderBottom: "1px solid rgba(200,170,120,0.08)",
           }}>
-            {/* Photo behind notes — decorative only, no expand */}
-            {photoUrl && (
-              <div
-                style={{
-                  position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
-                  overflow: "hidden", pointerEvents: "none",
-                }}
-              >
+            {/* Photo or placeholder behind notes */}
+            <div
+              style={{
+                position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
+                overflow: "hidden", pointerEvents: photoUrl ? "none" : "none",
+              }}
+            >
+              {photoUrl ? (
                 <img
                   src={photoUrl}
                   alt=""
@@ -371,8 +372,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     maskComposite: "intersect",
                   }}
                 />
-              </div>
-            )}
+              ) : (
+                <div style={{
+                  width: "100%", height: "100%",
+                  WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                  WebkitMaskComposite: "destination-in",
+                  maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
+                  maskComposite: "intersect",
+                }}>
+                  <TeaPlaceholder type={teaType} style={{ width: "100%", height: "100%" }} />
+                </div>
+              )}
+            </div>
 
             <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -658,7 +669,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       }} />
 
       {/* Fullscreen image overlay */}
-      {imageExpanded && photoUrl && (
+      {imageExpanded && (
         <div
           onClick={() => setImageExpanded(false)}
           style={{
@@ -668,15 +679,25 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             cursor: "pointer",
           }}
         >
-          <img
-            src={photoUrl}
-            alt={item.name}
-            style={{
-              maxWidth: "90vw", maxHeight: "90vh",
-              objectFit: "contain",
-              borderRadius: "4px",
-            }}
-          />
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={item.name}
+              style={{
+                maxWidth: "90vw", maxHeight: "90vh",
+                objectFit: "contain",
+                borderRadius: "4px",
+              }}
+            />
+          ) : (
+            <TeaPlaceholder
+              type={teaType}
+              style={{
+                width: "60vmin", height: "60vmin",
+                maxWidth: "400px", maxHeight: "400px",
+              }}
+            />
+          )}
           <button
             style={{
               position: "absolute", top: "16px", right: "16px",
