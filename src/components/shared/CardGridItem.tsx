@@ -9,6 +9,7 @@ interface CardGridItemProps {
   badgesComponent?: React.ReactNode;
   priceDisplay: React.ReactNode;
   descriptionComponent?: React.ReactNode;
+  sliderComponent?: React.ReactNode;
   title: string;
 }
 
@@ -24,16 +25,19 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
   badgesComponent,
   priceDisplay,
   descriptionComponent,
+  sliderComponent,
   title,
 }) => {
   return (
     <div
-      className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
-      onClick={(e) => onCardClick(item, e)}
+      className="group relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
     >
       <CardContainer className="p-2 md:p-3">
-        {/* Image Container */}
-        <div className="relative w-full overflow-hidden aspect-square bg-tea-elevated/90 mb-3">
+        {/* Image Container — clicking opens detail */}
+        <div
+          className="relative w-full overflow-hidden aspect-square bg-tea-elevated/90 mb-3 cursor-pointer"
+          onClick={(e) => onCardClick(item, e)}
+        >
           {imageComponent}
           {/* Mobile: persistent view hint */}
           <div className="lg:hidden absolute bottom-2 right-2 px-2.5 py-1 bg-black/40 rounded-sm">
@@ -49,8 +53,8 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           </div>
         </div>
 
-        {/* Info Section */}
-        <div className="px-1">
+        {/* Info Section — clicking opens detail */}
+        <div className="px-1 cursor-pointer" onClick={(e) => onCardClick(item, e)}>
           {/* Title and Price Row */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
             <h4 className="card-grid-title">{title}</h4>
@@ -63,6 +67,13 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           {/* Description */}
           {descriptionComponent && descriptionComponent}
         </div>
+
+        {/* Slider strip — always visible below card content */}
+        {sliderComponent && (
+          <div className="px-1 pt-2 mt-1 border-t border-tea-gold/[0.06]" onClick={(e) => e.stopPropagation()}>
+            {sliderComponent}
+          </div>
+        )}
       </CardContainer>
     </div>
   );

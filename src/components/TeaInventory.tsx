@@ -370,24 +370,53 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* GRID VIEW - Optimized for tablets */}
          {viewMode === 'GRID' && filteredInventory.length > 0 && (
             <ShopGridLayout className="xl:grid-cols-5">
-               {filteredInventory.map(item => (
-                  <CardGridItem
-                     key={item.id}
-                     item={item}
-                     title={item.name}
-                     onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
-                     imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" />}
-                     badgesComponent={
-                        <span className="card-grid-badge">{item.type}</span>
-                     }
-                     priceDisplay={
-                        <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
-                     }
-                     descriptionComponent={
-                        <p className="card-grid-description">{item.description}</p>
-                     }
-                  />
-               ))}
+               {filteredInventory.map(item => {
+                  const gridQty = selectedQuantities[item.id] || 25;
+                  const gridMax = parseInt(String(item.stock_g)) || 100;
+                  const gridPpg = parseFloat(item.price_per_gram || '0') || 0;
+                  const gridTotal = Math.round(gridPpg * gridQty * 100) / 100;
+                  return (
+                     <CardGridItem
+                        key={item.id}
+                        item={item}
+                        title={item.name}
+                        onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
+                        imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" />}
+                        badgesComponent={
+                           <span className="card-grid-badge">{item.type}</span>
+                        }
+                        priceDisplay={
+                           <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
+                        }
+                        descriptionComponent={
+                           <p className="card-grid-description">{item.description}</p>
+                        }
+                        sliderComponent={
+                           <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                 <span className="num text-[11px] text-tea-text/50 shrink-0 min-w-[32px]">{gridQty}g</span>
+                                 <HapticSlider
+                                    min={25}
+                                    max={gridMax}
+                                    step={25}
+                                    value={gridQty}
+                                    onChange={(val) => updateQuantity(item.id, val)}
+                                    size="sm"
+                                 />
+                              </div>
+                              <button
+                                 onClick={() => onAddToCart && onAddToCart(item, gridQty, gridTotal)}
+                                 className="w-full bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-[10px] uppercase tracking-[0.12em] font-medium py-1.5 rounded-sm transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                              >
+                                 <span>Add</span>
+                                 <span className="w-px h-2.5 bg-tea-bg/20" />
+                                 <span className="num">{fmtPrice(gridTotal)}</span>
+                              </button>
+                           </div>
+                        }
+                     />
+                  );
+               })}
             </ShopGridLayout>
          )}
 
