@@ -282,13 +282,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         onClick={onClose}
       ></div>
 
-      {/* Drawer Panel — Alcove-inspired warm dark aesthetic */}
+      {/* Drawer Panel */}
       <div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full md:w-[450px] z-[100] shadow-2xl flex flex-col ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full md:w-[450px] bg-tea-bg text-tea-text-sec z-[100] shadow-2xl flex flex-col ${isOpen ? '' : 'translate-x-full'}`}
         style={{
-          background: '#1c1b19',
-          color: '#c0b49a',
           transform: isOpen ? `translateX(${touchOffset}px)` : 'translateX(100%)',
           opacity: isDragging ? swipeOpacity : 1,
           transition: isDragging ? 'none' : 'transform 300ms ease-out, opacity 300ms ease-out'
@@ -299,11 +297,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
       >
         {/* Ambient warmth layer */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: 'radial-gradient(ellipse at 85% 8%, rgba(181,101,29,0.09) 0%, rgba(181,101,29,0.04) 40%, transparent 70%)'
+          background: 'radial-gradient(ellipse at 85% 8%, rgba(184,146,78,0.09) 0%, rgba(184,146,78,0.04) 40%, transparent 70%)'
         }} />
         {/* Noise grain */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          opacity: 0.06,
+          opacity: 0.04,
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'repeat',
           backgroundSize: '128px 128px'
@@ -312,55 +310,52 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         {/* Header */}
         <div className="flex flex-col relative z-10">
             {/* Mobile drag handle */}
-            <div data-drag-handle className="md:hidden flex justify-center py-3 cursor-grab active:cursor-grabbing touch-pan-x" style={{ background: '#1e1d1b' }}>
+            <div data-drag-handle className="md:hidden flex justify-center py-3 bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
                 <div className="rounded-full transition-all duration-150" style={{
                   height: 3,
                   width: isDragging ? 64 : 48,
-                  background: isDragging ? '#b5651d' : 'rgba(200,170,120,0.2)'
+                  background: isDragging ? 'var(--tea-gold)' : 'rgba(184,146,78,0.2)'
                 }} />
             </div>
 
-            <div className="flex items-center justify-between px-6 py-5" style={{
-              borderBottom: '1px solid rgba(200,170,120,0.08)',
-              background: '#1e1d1b'
-            }}>
+            <div className="flex items-center justify-between px-6 py-5 bg-tea-surface border-b border-tea-border">
                 {step !== 'CART' ? (
                     <button onClick={handleBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Back to cart">
-                        <Icons.Back className="w-5 h-5" style={{ color: '#8a7e6a' }} />
+                        <Icons.Back className="w-5 h-5 text-tea-text-dim" />
                     </button>
                 ) : (
                     <div className="w-[44px]" />
                 )}
                 <div className="text-center">
-                    <h2 style={{ color: '#ede6d8', fontFamily: 'Fraunces, serif', fontSize: 20, fontWeight: 300, letterSpacing: '0.02em' }}>
+                    <h2 className="text-tea-text tracking-wide" style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400 }}>
                         {step === 'CART' ? 'Your Selection' : 'Request Order'}
                     </h2>
                     {step === 'CHECKOUT' && (
-                        <p style={{ fontSize: 10, fontFamily: 'monospace', color: '#6a6050', marginTop: 2 }}>{orderRef}</p>
+                        <p className="text-tea-text-dim mt-0.5" style={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}>{orderRef}</p>
                     )}
                 </div>
                 <button onClick={onClose} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Close cart">
-                    <Icons.Close className="w-6 h-6" style={{ color: '#6a6050' }} />
+                    <Icons.Close className="w-6 h-6 text-tea-text-dim" />
                 </button>
             </div>
         </div>
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 relative z-10">
-           
+
            {/* Undo remove toast */}
            {removedItem && (
                <div className="relative z-20 mb-4 animate-[slideUp_0.3s_ease-out]">
-                   <div className="flex items-center justify-between px-4 py-3 rounded-sm" style={{ background: '#252420', color: '#c0b49a' }}>
-                       <span style={{ fontSize: 12, fontFamily: 'Bricolage Grotesque, sans-serif' }}>{removedItem.item.name} removed</span>
+                   <div className="flex items-center justify-between px-4 py-3 rounded-sm bg-tea-elevated text-tea-text-sec">
+                       <span style={{ fontSize: 12, fontFamily: 'var(--font-sans)' }}>{removedItem.item.name} removed</span>
                        <button
                            onClick={() => {
                                clearTimeout(removedItem.undoTimeout);
                                onUpdateQuantity(removedItem.item.id, removedItem.item.quantityGrams);
                                setRemovedItem(null);
                            }}
-                           className="ml-4 transition-colors"
-                           style={{ color: '#b5651d', fontSize: 11, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' as const }}
+                           className="ml-4 transition-colors text-tea-gold"
+                           style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' as const }}
                        >
                            Undo
                        </button>
@@ -372,45 +367,44 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
            {step === 'CART' && (
                <div className="space-y-6 relative z-10">
                    {cart.length === 0 ? (
-                       <div className="text-center py-20" style={{ opacity: 0.35 }}>
-                           <Icons.Bag className="w-12 h-12 mx-auto mb-4" style={{ color: '#8a7e6a' }} />
-                           <p style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: '#8a7e6a' }}>Your ledger is empty.</p>
+                       <div className="text-center py-20 opacity-35">
+                           <Icons.Bag className="w-12 h-12 mx-auto mb-4 text-tea-text-dim" />
+                           <p className="text-tea-text-dim italic" style={{ fontFamily: 'var(--font-serif)' }}>Your ledger is empty.</p>
                        </div>
                    ) : (
                        cart.map(item => (
-                           <div key={item.id} className="flex gap-4 pb-4" style={{ borderBottom: '1px solid rgba(200,170,120,0.08)' }}>
-                               <div className="w-16 h-16 flex items-center justify-center overflow-hidden shrink-0" style={{ borderRadius: 2, background: '#252420' }}>
+                           <div key={item.id} className="flex gap-4 pb-4 border-b border-tea-border">
+                               <div className="w-16 h-16 flex items-center justify-center overflow-hidden shrink-0 bg-tea-elevated" style={{ borderRadius: 2 }}>
                                    {item.image ? (
                                        <img src={item.image} className="w-full h-full object-cover" style={{ filter: 'sepia(0.2) brightness(0.9)' }} alt={item.name} loading="eager" />
                                    ) : (
-                                       <Icons.Leaf className="w-6 h-6" style={{ color: '#6a6050', opacity: 0.4 }} />
+                                       <Icons.Leaf className="w-6 h-6 text-tea-text-dim opacity-40" />
                                    )}
                                </div>
                                <div className="flex-1 min-w-0">
                                    <div className="flex justify-between items-start">
-                                       <h3 style={{ fontFamily: 'Fraunces, serif', color: '#ede6d8', fontSize: 18, fontWeight: 300, lineHeight: 1, marginBottom: 4 }}>{item.name}</h3>
+                                       <h3 className="text-tea-text" style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400, lineHeight: 1, marginBottom: 4 }}>{item.name}</h3>
                                        <button
                                            onClick={() => {
                                                const timeout = setTimeout(() => setRemovedItem(null), 5000);
                                                setRemovedItem({ item, undoTimeout: timeout });
                                                onRemoveItem(item.id);
                                            }}
-                                           className="p-2 -mr-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                           style={{ color: '#6a6050' }}
+                                           className="p-2 -mr-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-dim"
                                            aria-label={`Remove ${item.name} from cart`}
                                        >
                                            <Icons.Close className="w-4 h-4" />
                                        </button>
                                    </div>
-                                   <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: '#8a7e6a', marginBottom: 10 }}>{item.variant}</p>
+                                   <p className="text-tea-text-dim" style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 10 }}>{item.variant}</p>
 
                                    {/* Quantity stepper */}
-                                   <div className="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-md" style={{ background: 'rgba(200,170,120,0.08)' }}>
+                                   <div className="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-md bg-tea-accent-sub">
                                        <div className="flex items-center gap-2">
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - (item.category === 'tea' ? 10 : 1)))}
-                                               className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors"
-                                               style={{ background: 'rgba(200,170,120,0.12)', color: '#c0b49a' }}
+                                               className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors text-tea-text-sec"
+                                               style={{ background: 'rgba(184,146,78,0.12)' }}
                                                aria-label="Decrease quantity"
                                            >−</button>
                                            <div className="flex items-center gap-1">
@@ -429,19 +423,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                                      const val = parseInt(e.target.value);
                                                      if (isNaN(val) || val < 1) onUpdateQuantity(item.id, 1);
                                                    }}
-                                                   className="w-12 bg-transparent num text-xs text-center focus:outline-none"
-                                                   style={{ color: '#ede6d8', borderBottom: '1px solid rgba(200,170,120,0.15)' }}
+                                                   className="w-12 bg-transparent num text-xs text-center focus:outline-none text-tea-text border-b border-tea-border"
                                                />
-                                               {item.category === 'tea' && <span className="num text-xs" style={{ color: '#6a6050' }}>g</span>}
+                                               {item.category === 'tea' && <span className="num text-xs text-tea-text-dim">g</span>}
                                            </div>
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + (item.category === 'tea' ? 10 : 1)))}
-                                               className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors"
-                                               style={{ background: 'rgba(200,170,120,0.12)', color: '#c0b49a' }}
+                                               className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors text-tea-text-sec"
+                                               style={{ background: 'rgba(184,146,78,0.12)' }}
                                                aria-label="Increase quantity"
                                            >+</button>
                                        </div>
-                                       <span className="num text-sm" style={{ color: '#ede6d8', fontWeight: 400 }}>
+                                       <span className="num text-sm text-tea-text font-medium">
                                            {fmtPrice(item.totalPrice)}
                                        </span>
                                    </div>
@@ -452,16 +445,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                </div>
            )}
 
-           {/* STEP 2: CHECKOUT — Alcove-inspired */}
+           {/* STEP 2: CHECKOUT */}
            {step === 'CHECKOUT' && (
                <div className="space-y-5 relative z-10">
-                   <p style={{ fontFamily: 'Fraunces, serif', fontSize: 14, color: '#8a7e6a', fontStyle: 'italic', marginBottom: 4 }}>
+                   <p className="text-tea-text-dim italic" style={{ fontFamily: 'var(--font-serif)', fontSize: 14, marginBottom: 4 }}>
                        Fill in your details below. Your order inquiry will be generated automatically.
                    </p>
 
                    {/* Shipping Method Selector */}
                    <div>
-                       <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 8 }}>Shipping Method</label>
+                       <label className="block text-tea-text-dim mb-2" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Shipping Method</label>
                        <div className="grid grid-cols-1 gap-2">
                            {([
                              { key: 'international' as ShippingMethod, label: 'International Shipping', desc: 'Shipping cost calculated and confirmed separately' },
@@ -472,35 +465,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                key={opt.key}
                                type="button"
                                onClick={() => setShippingMethod(opt.key)}
-                               className="flex items-start gap-3 p-3 rounded-md text-left transition-all"
+                               className={`flex items-start gap-3 p-3 rounded-md text-left transition-all ${
+                                 shippingMethod === opt.key ? 'bg-tea-accent-sub' : 'bg-tea-surface'
+                               }`}
                                style={{
-                                 border: `1px solid ${shippingMethod === opt.key ? 'rgba(181,101,29,0.5)' : 'rgba(200,170,120,0.08)'}`,
-                                 background: shippingMethod === opt.key ? 'rgba(181,101,29,0.08)' : '#1e1d1b',
+                                 border: `1px solid ${shippingMethod === opt.key ? 'rgba(184,146,78,0.35)' : 'var(--tea-border)'}`,
                                }}
                              >
                                <div className="mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{
-                                 border: `2px solid ${shippingMethod === opt.key ? '#b5651d' : 'rgba(154,144,128,0.3)'}`
+                                 border: `2px solid ${shippingMethod === opt.key ? 'var(--tea-gold)' : 'rgba(128,115,95,0.3)'}`
                                }}>
-                                 {shippingMethod === opt.key && <div className="w-2 h-2 rounded-full" style={{ background: '#b5651d' }} />}
+                                 {shippingMethod === opt.key && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--tea-gold)' }} />}
                                </div>
                                <div>
-                                 <span style={{ display: 'block', fontFamily: 'Fraunces, serif', fontSize: 14, fontWeight: 300, color: '#ede6d8' }}>{opt.label}</span>
-                                 <span style={{ display: 'block', fontSize: 10, color: '#6a6050', marginTop: 2 }}>{opt.desc}</span>
+                                 <span className="block text-tea-text" style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 400 }}>{opt.label}</span>
+                                 <span className="block text-tea-text-dim" style={{ fontSize: 10, marginTop: 2 }}>{opt.desc}</span>
                                </div>
                              </button>
                            ))}
                        </div>
                    </div>
 
-                   {/* Inset Form Panel — Alcove-style */}
-                   <div className="rounded-md p-4 space-y-4" style={{
-                     background: '#1e1d1b',
-                     boxShadow: 'inset 0 1px 0 0 rgba(200,170,120,0.04), inset 0 -1px 0 0 rgba(0,0,0,0.3)',
-                     border: '1px solid rgba(200,170,120,0.06)'
+                   {/* Inset Form Panel */}
+                   <div className="rounded-md p-4 space-y-4 bg-tea-surface border border-tea-border" style={{
+                     boxShadow: 'inset 0 1px 0 0 rgba(184,146,78,0.04), inset 0 -1px 0 0 rgba(0,0,0,0.3)',
                    }}>
                        {/* Name */}
                        <div>
-                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Name</label>
+                           <label className="block text-tea-text-dim mb-1" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Name</label>
                            <div className="relative">
                                <input
                                    type="text"
@@ -509,19 +501,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('name')}
                                    aria-invalid={touched.name && !!errors.name}
                                    placeholder="Your full name"
-                                   className="w-full focus:outline-none transition-colors"
+                                   className="w-full bg-transparent focus:outline-none transition-colors text-tea-text"
                                    style={{
-                                     background: 'transparent',
-                                     borderBottom: `1px solid ${touched.name && errors.name ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     borderBottom: `1px solid ${touched.name && errors.name ? '#c0392b' : 'rgba(184,146,78,0.12)'}`,
                                      padding: '6px 0',
-                                     fontFamily: 'Fraunces, serif',
+                                     fontFamily: 'var(--font-serif)',
                                      fontSize: 17,
-                                     fontWeight: 300,
-                                     color: '#ede6d8',
+                                     fontWeight: 400,
                                    }}
                                />
                                {details.name && !errors.name && (
-                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tea-green" />
                                )}
                            </div>
                            {touched.name && errors.name && (
@@ -531,7 +521,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
 
                        {/* Contact (Email) */}
                        <div>
-                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Email</label>
+                           <label className="block text-tea-text-dim mb-1" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Email</label>
                            <div className="relative">
                                <input
                                    type="email"
@@ -542,19 +532,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('contact')}
                                    aria-invalid={touched.contact && !!errors.contact}
                                    placeholder="your@email.com"
-                                   className="w-full focus:outline-none transition-colors"
+                                   className="w-full bg-transparent focus:outline-none transition-colors text-tea-text"
                                    style={{
-                                     background: 'transparent',
-                                     borderBottom: `1px solid ${touched.contact && errors.contact ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     borderBottom: `1px solid ${touched.contact && errors.contact ? '#c0392b' : 'rgba(184,146,78,0.12)'}`,
                                      padding: '6px 0',
-                                     fontFamily: 'Fraunces, serif',
+                                     fontFamily: 'var(--font-serif)',
                                      fontSize: 17,
-                                     fontWeight: 300,
-                                     color: '#ede6d8',
+                                     fontWeight: 400,
                                    }}
                                />
                                {details.contact && !errors.contact && (
-                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tea-green" />
                                )}
                            </div>
                            {touched.contact && errors.contact && (
@@ -565,7 +553,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        {/* Phone — shown for pickup & gojek */}
                        {needsPhone && (
                        <div>
-                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Phone Number</label>
+                           <label className="block text-tea-text-dim mb-1" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Phone Number</label>
                            <div className="relative">
                                <input
                                    type="tel"
@@ -576,19 +564,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('phone')}
                                    aria-invalid={touched.phone && !!errors.phone}
                                    placeholder={shippingMethod === 'gojek' ? 'For Go-Jek driver coordination' : 'For pick up coordination'}
-                                   className="w-full focus:outline-none transition-colors"
+                                   className="w-full bg-transparent focus:outline-none transition-colors text-tea-text"
                                    style={{
-                                     background: 'transparent',
-                                     borderBottom: `1px solid ${touched.phone && errors.phone ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     borderBottom: `1px solid ${touched.phone && errors.phone ? '#c0392b' : 'rgba(184,146,78,0.12)'}`,
                                      padding: '6px 0',
-                                     fontFamily: 'Fraunces, serif',
+                                     fontFamily: 'var(--font-serif)',
                                      fontSize: 17,
-                                     fontWeight: 300,
-                                     color: '#ede6d8',
+                                     fontWeight: 400,
                                    }}
                                />
                                {details.phone && !errors.phone && (
-                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tea-green" />
                                )}
                            </div>
                            {touched.phone && errors.phone && (
@@ -600,7 +586,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        {/* Shipping Location — international */}
                        {shippingMethod === 'international' && (
                        <div>
-                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Shipping Location</label>
+                           <label className="block text-tea-text-dim mb-1" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Shipping Location</label>
                            <div className="relative">
                                <input
                                    type="text"
@@ -609,19 +595,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('location')}
                                    aria-invalid={touched.location && !!errors.location}
                                    placeholder="City, Country"
-                                   className="w-full focus:outline-none transition-colors"
+                                   className="w-full bg-transparent focus:outline-none transition-colors text-tea-text"
                                    style={{
-                                     background: 'transparent',
-                                     borderBottom: `1px solid ${touched.location && errors.location ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     borderBottom: `1px solid ${touched.location && errors.location ? '#c0392b' : 'rgba(184,146,78,0.12)'}`,
                                      padding: '6px 0',
-                                     fontFamily: 'Fraunces, serif',
+                                     fontFamily: 'var(--font-serif)',
                                      fontSize: 17,
-                                     fontWeight: 300,
-                                     color: '#ede6d8',
+                                     fontWeight: 400,
                                    }}
                                />
                                {details.location && !errors.location && (
-                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tea-green" />
                                )}
                            </div>
                            {touched.location && errors.location && (
@@ -633,7 +617,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        {/* Delivery Address — gojek */}
                        {shippingMethod === 'gojek' && (
                        <div>
-                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Delivery Address</label>
+                           <label className="block text-tea-text-dim mb-1" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Delivery Address</label>
                            <div className="relative">
                                <input
                                    type="text"
@@ -642,19 +626,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    onBlur={() => handleFieldBlur('location')}
                                    aria-invalid={touched.location && !!errors.location}
                                    placeholder="Full address for Go-Jek delivery"
-                                   className="w-full focus:outline-none transition-colors"
+                                   className="w-full bg-transparent focus:outline-none transition-colors text-tea-text"
                                    style={{
-                                     background: 'transparent',
-                                     borderBottom: `1px solid ${touched.location && errors.location ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     borderBottom: `1px solid ${touched.location && errors.location ? '#c0392b' : 'rgba(184,146,78,0.12)'}`,
                                      padding: '6px 0',
-                                     fontFamily: 'Fraunces, serif',
+                                     fontFamily: 'var(--font-serif)',
                                      fontSize: 17,
-                                     fontWeight: 300,
-                                     color: '#ede6d8',
+                                     fontWeight: 400,
                                    }}
                                />
                                {details.location && !errors.location && (
-                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tea-green" />
                                )}
                            </div>
                            {touched.location && errors.location && (
@@ -665,38 +647,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
 
                        {/* Notes */}
                        <div>
-                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6a6050', marginBottom: 4 }}>Special Requests <span style={{ fontStyle: 'italic', textTransform: 'none' as const, letterSpacing: 0 }}>optional</span></label>
+                           <label className="block text-tea-text-dim mb-1" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Special Requests <span style={{ fontStyle: 'italic', textTransform: 'none' as const, letterSpacing: 0 }}>optional</span></label>
                            <textarea
                                value={details.notes}
                                onChange={(e) => setDetails({...details, notes: e.target.value})}
                                placeholder="Any special requests..."
-                               className="w-full focus:outline-none resize-none"
+                               className="w-full bg-transparent focus:outline-none resize-none text-tea-text-sec"
                                style={{
-                                 background: 'transparent',
-                                 borderBottom: '1px solid rgba(200,170,120,0.08)',
+                                 borderBottom: '1px solid rgba(184,146,78,0.08)',
                                  padding: '6px 0',
-                                 fontFamily: 'Fraunces, serif',
+                                 fontFamily: 'var(--font-serif)',
                                  fontSize: 15,
-                                 fontWeight: 300,
-                                 color: '#c0b49a',
+                                 fontWeight: 400,
                                  height: 60,
                                }}
                            />
                        </div>
                    </div>
 
-                   {/* Message Preview — inset with depth */}
+                   {/* Message Preview */}
                    <div>
-                       <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6a6050', marginBottom: 6 }}>Order Inquiry Preview</label>
-                       <div className="overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto" style={{
-                         background: '#161514',
-                         border: '1px solid rgba(200,170,120,0.06)',
+                       <label className="block text-tea-text-dim mb-1.5" style={{ fontSize: 11, fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>Order Inquiry Preview</label>
+                       <div className="overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto bg-tea-bg border border-tea-border" style={{
                          borderRadius: 4,
                          padding: 14,
-                         fontFamily: 'monospace',
+                         fontFamily: 'var(--font-mono)',
                          fontSize: 11,
                          lineHeight: 1.6,
-                         color: '#9a9080',
+                         color: 'var(--tea-text-dim)',
                          boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)'
                        }}>
                            {orderMessage}
@@ -706,9 +684,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                    {/* Success Message */}
                    {successMessage.show && (
                        <div className="animate-[fadeIn_0.3s_ease-out] flex items-center gap-2 px-4 py-3 rounded-md" style={{
-                         background: 'rgba(122,154,114,0.1)',
-                         border: '1px solid rgba(122,154,114,0.25)',
-                         color: '#7a9a72'
+                         background: 'rgba(90,110,90,0.1)',
+                         border: '1px solid rgba(90,110,90,0.25)',
+                         color: '#5A6E5A'
                        }}>
                            <Icons.Check className="w-4 h-4" />
                            <span style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontWeight: 500 }}>
@@ -719,59 +697,57 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        </div>
                    )}
 
-                   {/* Send Buttons — Alcove action style */}
+                   {/* Send Buttons */}
                    <div className="grid grid-cols-1 gap-2.5">
                        <button
                            onClick={handleWhatsApp}
                            disabled={!isFormValid}
                            className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                            style={{
-                             border: `1px solid ${preferredChannel === 'whatsapp' ? 'rgba(122,154,114,0.4)' : 'rgba(122,154,114,0.2)'}`,
-                             background: preferredChannel === 'whatsapp' ? 'rgba(122,154,114,0.08)' : 'transparent',
-                             color: '#7a9a72',
+                             border: `1px solid ${preferredChannel === 'whatsapp' ? 'rgba(90,110,90,0.4)' : 'rgba(90,110,90,0.2)'}`,
+                             background: preferredChannel === 'whatsapp' ? 'rgba(90,110,90,0.08)' : 'transparent',
+                             color: '#5A6E5A',
                              borderRadius: 4,
                            }}
                        >
                            <Icons.Message className="w-4 h-4" />
-                           <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 400 }}>Send via WhatsApp</span>
+                           <span style={{ fontSize: 11, fontFamily: 'var(--font-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>Send via WhatsApp</span>
                            {preferredChannel === 'whatsapp' && <span style={{ fontSize: 11, marginLeft: 4 }}>&#10003;</span>}
                        </button>
                        <button
                            onClick={handleEmail}
                            disabled={!isFormValid}
-                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-tea-border"
                            style={{
-                             border: `1px solid ${preferredChannel === 'email' ? 'rgba(200,170,120,0.2)' : 'rgba(200,170,120,0.08)'}`,
-                             background: preferredChannel === 'email' ? 'rgba(200,170,120,0.04)' : 'transparent',
-                             color: '#c0b49a',
+                             background: preferredChannel === 'email' ? 'rgba(184,146,78,0.04)' : 'transparent',
+                             color: 'var(--tea-text-sec)',
                              borderRadius: 4,
+                             borderColor: preferredChannel === 'email' ? 'rgba(184,146,78,0.2)' : undefined,
                            }}
                        >
-                           <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 400 }}>Send via Email</span>
+                           <span style={{ fontSize: 11, fontFamily: 'var(--font-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>Send via Email</span>
                            {preferredChannel === 'email' && <span style={{ fontSize: 11, marginLeft: 4 }}>&#10003;</span>}
                        </button>
                        <button
                            onClick={handleCopy}
                            disabled={!isFormValid}
-                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-tea-border text-tea-text-dim"
                            style={{
-                             border: '1px solid rgba(200,170,120,0.08)',
                              background: 'transparent',
-                             color: '#9a9080',
                              borderRadius: 4,
                            }}
                        >
-                           <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 400 }}>Copy to Clipboard</span>
+                           <span style={{ fontSize: 11, fontFamily: 'var(--font-sans)', letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 500 }}>Copy to Clipboard</span>
                        </button>
                    </div>
 
                    {recoveredCart && (
-                       <p className="text-center" style={{ fontSize: 12, color: '#b5651d', fontStyle: 'italic' }}>
+                       <p className="text-center text-tea-gold italic" style={{ fontSize: 12 }}>
                            Recovered your previous order request
                        </p>
                    )}
 
-                   <p className="text-center" style={{ fontSize: 11, color: '#6a6050', fontStyle: 'italic' }}>
+                   <p className="text-center text-tea-text-dim italic" style={{ fontSize: 11 }}>
                        Sending this message will initiate your order request with Teajia.
                    </p>
                </div>
@@ -779,13 +755,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         </div>
 
         {/* Footer */}
-        <div className="p-6 relative z-20" style={{
-          borderTop: '1px solid rgba(200,170,120,0.08)',
-          background: '#1e1d1b'
-        }}>
+        <div className="relative z-20 bg-tea-surface border-t border-tea-border" style={{ padding: step === 'CART' ? '24px' : '0' }}>
             {step === 'CART' && (
                 <div className="flex flex-col gap-4">
-                    <div className="flex justify-between items-center" style={{ fontFamily: 'Fraunces, serif', fontSize: 20, fontWeight: 300, color: '#ede6d8' }}>
+                    <div className="flex justify-between items-center text-tea-text" style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400 }}>
                         <span>Total</span>
                         <span className="num">{fmtPrice(subtotal)}</span>
                     </div>
@@ -794,11 +767,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                         disabled={cart.length === 0}
                         className="w-full py-3.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                         style={{
-                          background: 'rgba(181,101,29,0.15)',
-                          border: '1px solid rgba(181,101,29,0.3)',
-                          color: '#d4a574',
+                          background: 'rgba(184,146,78,0.12)',
+                          border: '1px solid rgba(184,146,78,0.25)',
+                          color: 'var(--tea-gold-lt)',
                           fontSize: 11,
-                          fontWeight: 400,
+                          fontFamily: 'var(--font-sans)',
+                          fontWeight: 500,
                           letterSpacing: '0.12em',
                           textTransform: 'uppercase' as const,
                           borderRadius: 4,
@@ -807,12 +781,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                         Request This Order
                     </button>
                 </div>
-            )}
-
-            {step === 'CHECKOUT' && (
-                <p className="text-center" style={{ fontSize: 11, color: '#6a6050' }}>
-                    Send your order inquiry via WhatsApp, Email, or copy to clipboard
-                </p>
             )}
         </div>
 
