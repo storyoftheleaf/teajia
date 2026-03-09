@@ -35,7 +35,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [storyExpanded, setStoryExpanded] = useState(false);
 
   const sliderMin = 25;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -102,7 +101,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const feeling = item.mood || '';
   const feelingDescription = item.experience || '';
   const photoUrl = item.image;
-  const magazineUrl = item.magazineUrl;
   const isRecommended = item.isFeatured;
 
   const handleAdd = () => {
@@ -169,95 +167,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>
-
-        {/* Story expanded overlay — covers entire content area down to slider */}
-        {storyExpanded && story && (
-          <div style={{
-            position: "absolute", inset: 0, zIndex: 20,
-            background: alcoveColors.bg,
-            display: "flex", flexDirection: "column",
-            animation: "panelReveal 0.3s ease-out",
-          }}>
-            {/* Noise texture */}
-            <div style={{
-              position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.06,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-              backgroundSize: "120px",
-            }} />
-            <div className="tea-card-scroll" style={{
-              flex: 1, overflowY: "auto",
-              padding: "20px 18px",
-              position: "relative",
-            }}>
-              <p style={{
-                fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                fontSize: "9px", fontWeight: 500,
-                letterSpacing: "0.12em", textTransform: "uppercase",
-                color: alcoveColors.subtitle, margin: "0 0 10px 0",
-                opacity: 0.6,
-              }}>
-                {productName}
-              </p>
-              {magazineUrl ? (
-                <a
-                  href={magazineUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onMouseEnter={() => setHovered("magazine")}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{ textDecoration: "none" }}
-                >
-                  <p style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "17px", fontWeight: 300, lineHeight: 1.7,
-                    color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                    margin: 0, transition: "color 0.2s ease",
-                  }}>
-                    {story}
-                  </p>
-                </a>
-              ) : (
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "17px", fontWeight: 300, lineHeight: 1.7,
-                  color: alcoveColors.body, margin: 0,
-                }}>
-                  {story}
-                </p>
-              )}
-              {feelingDescription && (
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                  color: alcoveColors.subtitle, margin: "16px 0 0 0",
-                  lineHeight: 1.6,
-                }}>
-                  {feelingDescription}
-                </p>
-              )}
-            </div>
-            {/* Collapse — subtle italic text */}
-            <button
-              onClick={() => setStoryExpanded(false)}
-              onMouseEnter={() => setHovered("collapse")}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                position: "absolute",
-                bottom: "8px", right: "12px", zIndex: 10,
-                background: "none", border: "none",
-                cursor: "pointer", padding: 0,
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                fontSize: "11px", fontWeight: 300, fontStyle: "italic",
-                color: alcoveColors.mutedDark,
-                opacity: hovered === "collapse" ? 0.9 : 0.55,
-                letterSpacing: "0.03em",
-                transition: "opacity 0.2s ease",
-              }}
-            >
-              less
-            </button>
-          </div>
-        )}
 
         {/* Block 1: Identity — tighter top */}
         {chineseCharacters && (
@@ -345,62 +254,30 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Story peek — clamped, chevron opens full-page overlay */}
-          {story && (
-            <div style={{
-              position: "relative",
+          {/* Personal connection — variable height, no clamp */}
+          {feelingDescription && (
+            <p style={{
+              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+              fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+              color: alcoveColors.body, margin: 0,
+              padding: "8px 14px",
+              lineHeight: 1.5,
+              flexShrink: 0,
               borderBottom: "1px solid rgba(200,170,120,0.08)",
             }}>
-              <div style={{
-                maxHeight: "110px",
-                overflow: "hidden",
-                padding: "10px 14px",
-              }}>
-                <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "16px", fontWeight: 300, lineHeight: 1.6,
-                  color: alcoveColors.body, margin: 0,
-                }}>
-                  {story}
-                </p>
-              </div>
-              {/* Bottom fade */}
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0, height: "28px",
-                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                pointerEvents: "none",
-              }} />
-              {/* Expand — subtle italic text */}
-              <button
-                onClick={() => setStoryExpanded(true)}
-                onMouseEnter={() => setHovered("expand")}
-                onMouseLeave={() => setHovered(null)}
-                aria-label="Read more"
-                style={{
-                  position: "absolute",
-                  bottom: "5px", right: "10px", zIndex: 10,
-                  background: "none", border: "none",
-                  cursor: "pointer", padding: 0,
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "11px", fontWeight: 300, fontStyle: "italic",
-                  color: alcoveColors.mutedDark,
-                  opacity: hovered === "expand" ? 0.9 : 0.55,
-                  letterSpacing: "0.03em",
-                  transition: "opacity 0.2s ease",
-                }}
-              >
-                more
-              </button>
-            </div>
+              {feelingDescription}
+            </p>
           )}
 
-          {/* Notes + photo section — always visible */}
+          {/* Notes + photo section — compact, max height for ~5 notes */}
           <div style={{
-            padding: "14px 14px",
+            padding: "10px 14px",
             background: "rgba(184,146,78,0.03)",
             position: "relative",
             overflow: "hidden",
             flexShrink: 0,
+            maxHeight: "140px",
+            borderBottom: "1px solid rgba(200,170,120,0.08)",
           }}>
             {/* Photo behind notes — decorative only, no expand */}
             {photoUrl && (
@@ -467,22 +344,33 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           </div>
 
-          {/* Feeling description — clamped to 3 lines */}
-          {feelingDescription && (
-            <p style={{
-              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-              fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-              color: alcoveColors.body, margin: 0,
-              padding: "8px 14px",
-              lineHeight: 1.5,
-              flexShrink: 0,
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical" as const,
+          {/* Story — at the bottom, scrollable */}
+          {story && (
+            <div style={{
+              position: "relative",
+              flex: 1, minHeight: 0,
               overflow: "hidden",
             }}>
-              {feelingDescription}
-            </p>
+              <div className="tea-card-scroll" style={{
+                height: "100%",
+                overflowY: "auto",
+                padding: "10px 14px",
+              }}>
+                <p style={{
+                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontSize: "14px", fontWeight: 300, lineHeight: 1.6,
+                  color: alcoveColors.subtitle, margin: 0,
+                }}>
+                  {story}
+                </p>
+              </div>
+              {/* Bottom fade */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
+                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
+                pointerEvents: "none",
+              }} />
+            </div>
           )}
         </div>
       </div>
