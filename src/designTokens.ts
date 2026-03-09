@@ -561,7 +561,152 @@ export const ICON_SIZES = {
  *   </div>
  */
 
-// (First SURFACE_TREATMENTS removed — consolidated version is in §12 below)
+/* =====================================================
+   §12 — SURFACE_TREATMENTS
+   The full Alcove texture system.
+   Canonical values for both dark and light modes.
+   Source of truth: src/components/shop/AlcoveCard.tsx
+   ===================================================== */
+
+export const SURFACE_TREATMENTS = {
+  /** Alcove card-level colors (CSS custom-prop with fallback) */
+  alcoveColors: {
+    bg:            'var(--alcove-bg, #1c1b19)',
+    title:         'var(--alcove-title, #ede6d8)',
+    subtitle:      'var(--alcove-subtitle, #8a7e6a)',
+    body:          'var(--alcove-body, #c0b49a)',
+    bodyHighlight: 'var(--alcove-body-highlight, #d0c4aa)',
+    note:          'var(--alcove-note, #c4b89a)',
+    accent:        'var(--alcove-accent, #b5651d)',
+    muted:         'var(--alcove-muted, #9a9080)',
+    mutedDark:     'var(--alcove-muted-dark, #6a6050)',
+    success:       'var(--alcove-success, #7a9a72)',
+  },
+
+  /** Warm bronze palette used for all transparency-based treatments.
+   *  Base RGB: 200,170,120 — the single source for dividers, glows, borders. */
+  warmBronze: {
+    rgb: '200,170,120',
+    divider:    'rgba(200,170,120,0.08)',
+    border:     'rgba(200,170,120,0.06)',
+    borderHover:'rgba(200,170,120,0.20)',
+    glow:       'rgba(200,170,120,0.04)',
+    scrollbar:  'rgba(200,170,120,0.15)',
+    tagBg:      'rgba(200,170,120,0.03)',
+  },
+
+  /** Card frame — outermost wrapper */
+  cardFrame: {
+    background: 'var(--tea-surface)',
+    border: '1px solid var(--tea-border)',
+    borderRadius: 8,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(200,170,120,0.06)',
+  } as React.CSSProperties,
+
+  /** Recessed panel — darkened inset used for content sections
+   *  (The Process, Offerings table, story text area) */
+  recessedPanel: {
+    background: 'rgba(0,0,0,0.25)',
+    boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
+    borderRadius: 6,
+  } as React.CSSProperties,
+
+  /** Image inset — recessed treatment for hero/product photos */
+  imageInset: {
+    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(200,170,120,0.06)',
+  } as React.CSSProperties,
+
+  /** Radial warmth — ambient light overlay placed behind content.
+   *  Two radial ellipses at top-right create a soft glow. */
+  radialWarmth: {
+    position: 'absolute' as const,
+    inset: 0,
+    pointerEvents: 'none' as const,
+    background: `
+      radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
+    `,
+  } as React.CSSProperties,
+
+  /** Fine grain texture — SVG fractal noise overlay.
+   *  Applied at card-level and panel-level with different opacities. */
+  grainTexture: {
+    card: {
+      position: 'absolute' as const,
+      inset: 0,
+      pointerEvents: 'none' as const,
+      opacity: 0.06,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+      backgroundSize: '120px',
+    } as React.CSSProperties,
+    panel: {
+      position: 'absolute' as const,
+      inset: 0,
+      pointerEvents: 'none' as const,
+      opacity: 0.08,
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+      backgroundSize: '120px',
+    } as React.CSSProperties,
+  },
+
+  /** Ambient top glow — radial gradient at top of recessed panels */
+  ambientGlow: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '60%',
+    pointerEvents: 'none' as const,
+    background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
+  } as React.CSSProperties,
+
+  /** Scroll fade gradients — mask content overflow at edges */
+  scrollFade: {
+    top: {
+      position: 'absolute' as const,
+      top: 0, left: 0, right: 0,
+      height: 20,
+      background: 'linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)',
+      pointerEvents: 'none' as const,
+      zIndex: 1,
+      borderRadius: '6px 6px 0 0',
+    } as React.CSSProperties,
+    bottom: {
+      position: 'absolute' as const,
+      bottom: 0, left: 0, right: 0,
+      height: 20,
+      background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)',
+      pointerEvents: 'none' as const,
+      zIndex: 1,
+    } as React.CSSProperties,
+  },
+
+  /** Commerce section — pinned bottom area */
+  commerceBar: {
+    borderTop: '1px solid rgba(200,170,120,0.06)',
+    background: 'var(--alcove-bg, #1c1b19)',
+  },
+
+  /** Price tag recessed background */
+  priceTag: {
+    background: 'rgba(200,170,120,0.03)',
+    borderRadius: 3,
+  } as React.CSSProperties,
+
+  /** Button outline (Save / Share) */
+  buttonOutline: {
+    border: '1px solid rgba(200,170,120,0.2)',
+    borderRadius: 3,
+  } as React.CSSProperties,
+
+  /** Image mask — dual-layer gradient for hero photo fade-in */
+  imageMask: {
+    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+    WebkitMaskComposite: 'destination-in' as const,
+    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
+    maskComposite: 'intersect',
+  } as React.CSSProperties,
+} as const;
 
 
 // ─────────────────────────────────────────────────────────────
@@ -730,150 +875,3 @@ export const FONT_SIZE_SCALES = {
 } as const;
 
 export type DesignTokens = typeof DESIGN_TOKENS;
-
-/* =====================================================
-   §12 — SURFACE_TREATMENTS
-   The full Alcove texture system.
-   Canonical values for both dark and light modes.
-   Source of truth: src/components/shop/AlcoveCard.tsx
-   ===================================================== */
-
-export const SURFACE_TREATMENTS = {
-  /** Alcove card-level colors (CSS custom-prop with fallback) */
-  alcoveColors: {
-    bg:            'var(--alcove-bg, #1c1b19)',
-    title:         'var(--alcove-title, #ede6d8)',
-    subtitle:      'var(--alcove-subtitle, #8a7e6a)',
-    body:          'var(--alcove-body, #c0b49a)',
-    bodyHighlight: 'var(--alcove-body-highlight, #d0c4aa)',
-    note:          'var(--alcove-note, #c4b89a)',
-    accent:        'var(--alcove-accent, #b5651d)',
-    muted:         'var(--alcove-muted, #9a9080)',
-    mutedDark:     'var(--alcove-muted-dark, #6a6050)',
-    success:       'var(--alcove-success, #7a9a72)',
-  },
-
-  /** Warm bronze palette used for all transparency-based treatments.
-   *  Base RGB: 200,170,120 — the single source for dividers, glows, borders. */
-  warmBronze: {
-    rgb: '200,170,120',
-    divider:    'rgba(200,170,120,0.08)',
-    border:     'rgba(200,170,120,0.06)',
-    borderHover:'rgba(200,170,120,0.20)',
-    glow:       'rgba(200,170,120,0.04)',
-    scrollbar:  'rgba(200,170,120,0.15)',
-    tagBg:      'rgba(200,170,120,0.03)',
-  },
-
-  /** Card frame — outermost wrapper */
-  cardFrame: {
-    background: 'var(--tea-surface)',
-    border: '1px solid var(--tea-border)',
-    borderRadius: 8,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(200,170,120,0.06)',
-  } as React.CSSProperties,
-
-  /** Recessed panel — darkened inset used for content sections
-   *  (The Process, Offerings table, story text area) */
-  recessedPanel: {
-    background: 'rgba(0,0,0,0.25)',
-    boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
-    borderRadius: 6,
-  } as React.CSSProperties,
-
-  /** Image inset — recessed treatment for hero/product photos */
-  imageInset: {
-    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(200,170,120,0.06)',
-  } as React.CSSProperties,
-
-  /** Radial warmth — ambient light overlay placed behind content.
-   *  Two radial ellipses at top-right create a soft glow. */
-  radialWarmth: {
-    position: 'absolute' as const,
-    inset: 0,
-    pointerEvents: 'none' as const,
-    background: `
-      radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
-    `,
-  } as React.CSSProperties,
-
-  /** Fine grain texture — SVG fractal noise overlay.
-   *  Applied at card-level and panel-level with different opacities. */
-  grainTexture: {
-    card: {
-      position: 'absolute' as const,
-      inset: 0,
-      pointerEvents: 'none' as const,
-      opacity: 0.06,
-      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-      backgroundSize: '120px',
-    } as React.CSSProperties,
-    panel: {
-      position: 'absolute' as const,
-      inset: 0,
-      pointerEvents: 'none' as const,
-      opacity: 0.08,
-      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-      backgroundSize: '120px',
-    } as React.CSSProperties,
-  },
-
-  /** Ambient top glow — radial gradient at top of recessed panels */
-  ambientGlow: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '60%',
-    pointerEvents: 'none' as const,
-    background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
-  } as React.CSSProperties,
-
-  /** Scroll fade gradients — mask content overflow at edges */
-  scrollFade: {
-    top: {
-      position: 'absolute' as const,
-      top: 0, left: 0, right: 0,
-      height: 20,
-      background: 'linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)',
-      pointerEvents: 'none' as const,
-      zIndex: 1,
-      borderRadius: '6px 6px 0 0',
-    } as React.CSSProperties,
-    bottom: {
-      position: 'absolute' as const,
-      bottom: 0, left: 0, right: 0,
-      height: 20,
-      background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)',
-      pointerEvents: 'none' as const,
-      zIndex: 1,
-    } as React.CSSProperties,
-  },
-
-  /** Commerce section — pinned bottom area */
-  commerceBar: {
-    borderTop: '1px solid rgba(200,170,120,0.06)',
-    background: 'var(--alcove-bg, #1c1b19)',
-  },
-
-  /** Price tag recessed background */
-  priceTag: {
-    background: 'rgba(200,170,120,0.03)',
-    borderRadius: 3,
-  } as React.CSSProperties,
-
-  /** Button outline (Save / Share) */
-  buttonOutline: {
-    border: '1px solid rgba(200,170,120,0.2)',
-    borderRadius: 3,
-  } as React.CSSProperties,
-
-  /** Image mask — dual-layer gradient for hero photo fade-in */
-  imageMask: {
-    WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
-    WebkitMaskComposite: 'destination-in' as const,
-    maskImage: "linear-gradient(to right, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 25%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.55) 60%, black 85%, black 100%), linear-gradient(to bottom, black 85%, transparent 100%)",
-    maskComposite: 'intersect',
-  } as React.CSSProperties,
-} as const;
