@@ -257,6 +257,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                           <CardThumbnail
                                               src={item.image}
                                               alt={item.name}
+                                              teaType={item.type}
                                               onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
                                           />
                                           <div className="flex-1 min-w-0 flex items-center justify-between">

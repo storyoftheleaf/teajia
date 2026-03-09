@@ -381,7 +381,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         item={item}
                         title={item.name}
                         onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
-                        imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" />}
+                        imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" teaType={item.type} />}
                         badgesComponent={
                            <span className="card-grid-badge">{item.type}</span>
                         }
@@ -396,11 +396,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                               <div className="flex items-center gap-2">
                                  <span className="num text-[11px] text-tea-text/50 shrink-0 min-w-[32px]">{gridQty}g</span>
                                  <HapticSlider
-                                    min={25}
+                                    min={5}
                                     max={gridMax}
-                                    step={25}
+                                    step={5}
                                     value={gridQty}
                                     onChange={(val) => updateQuantity(item.id, val)}
+                                    snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
                                     size="sm"
                                  />
                               </div>
@@ -516,37 +517,40 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         <p className="font-serif text-sm text-tea-text/80 mb-3 leading-relaxed max-w-2xl">
                                             {item.description}
                                         </p>
-                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-tea-gold/[0.04] rounded-sm p-3 pr-4">
-                                            <div className="flex-1 flex items-center gap-3 px-2">
-                                                <div className="flex flex-col" style={{ minWidth: 72 }}>
-                                                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50">Qty</span>
-                                                    <span className="text-sm text-tea-text whitespace-nowrap" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                                        {currentQty}g <span className="opacity-30 mx-0.5">/</span> <span className="opacity-40">{maxStock}g</span>
-                                                    </span>
-                                                </div>
-                                                <HapticSlider
-                                                    min={25}
-                                                    max={maxStock}
-                                                    step={25}
-                                                    value={currentQty}
-                                                    onChange={(val) => updateQuantity(item.id, val)}
-                                                    size="sm"
-                                                />
+                                        <div className="flex flex-col gap-2 pt-1">
+                                            {/* Price + quantity row */}
+                                            <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 1 }}>
+                                                <span className="font-serif text-xs text-tea-text/70" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                                    {fmtPricePerGram(pricePerGram)}
+                                                </span>
+                                                <span className="font-serif text-xs text-tea-text/70" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                                    {currentQty}<span className="text-[9px] text-tea-text/40 ml-px">g</span>
+                                                </span>
                                             </div>
-                                            <div className="flex items-center gap-2 shrink-0">
+                                            {/* Slider */}
+                                            <HapticSlider
+                                                min={5}
+                                                max={maxStock}
+                                                step={5}
+                                                value={currentQty}
+                                                onChange={(val) => updateQuantity(item.id, val)}
+                                                snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
+                                                size="sm"
+                                            />
+                                            {/* Action row */}
+                                            <div className="flex items-center gap-1 mt-0.5">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-text/60 hover:text-tea-gold text-[11px] uppercase tracking-[0.15em] py-2 px-3 rounded-sm transition-all"
+                                                    className="text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.08em] py-2 px-3 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-[11px] uppercase tracking-[0.15em] font-medium py-2.5 px-5 rounded-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                    className="flex-1 text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30 hover:bg-tea-gold/[0.06] flex items-center justify-center gap-2 active:scale-[0.98]"
                                                 >
                                                     <span>Add</span>
-                                                    <span className="w-px h-3 bg-tea-bg/20"></span>
-                                                    <span className="num">{fmtPrice(totalPrice)}</span>
+                                                    <span className="font-serif italic text-[11px] opacity-70 num">{fmtPrice(totalPrice)}</span>
                                                 </button>
                                             </div>
                                         </div>

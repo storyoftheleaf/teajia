@@ -561,211 +561,6 @@ export const ICON_SIZES = {
  *   </div>
  */
 
-export const SURFACE_TREATMENT_PRESETS = {
-  /** Primary warm surface — radial warmth + grain */
-  warm: {
-    warmthGradient: `
-      radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
-    `,
-    grain: TEXTURES.alcoveGrain,
-    grainOpacity: 0.06,
-    grainSize: '120px',
-  },
-
-  /** Recessed inset surface — darker bg, edge-lit, denser grain, ambient glow */
-  warmInset: {
-    background: 'rgba(0,0,0,0.25)',
-    boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
-    borderRadius: '6px',
-    grain: TEXTURES.alcoveGrain,
-    grainOpacity: 0.08,
-    grainSize: '120px',
-    ambientGlow: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
-    ambientGlowHeight: '60%',
-  },
-
-  /** Light mode warm inset — softer treatment */
-  warmInsetLight: {
-    background: 'rgba(0,0,0,0.04)',
-    boxShadow: 'inset 0 1px 0 rgba(142,109,46,0.08), inset 0 -1px 0 rgba(142,109,46,0.04), 0 -1px 0 rgba(142,109,46,0.06)',
-    borderRadius: '6px',
-    grain: TEXTURES.alcoveGrain,
-    grainOpacity: 0.04,
-    grainSize: '120px',
-    ambientGlow: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(142,109,46,0.03), transparent)',
-    ambientGlowHeight: '60%',
-  },
-} as const;
-
-
-// ─────────────────────────────────────────────────────────────
-// 13. COMPONENT PATTERNS
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Common component styling patterns for reference.
- * Not used programmatically — documentation for consistency.
- *
- * IMPORTANT: Never use white (#fff, rgba(255,255,255,*)) for borders,
- * rings, glows, or backgrounds. Use warm palette tones instead:
- *   - Borders/rings: --tea-border or --tea-text-dim at low opacity
- *   - Backgrounds: --tea-surface or --tea-elevated
- *   - Glows: rgba(200,170,120,0.1) — the warm accent glow
- *   - Spinners: border-t color should be --tea-text-sec, not white
- *
- * CARDS (card-grid-item):
- *   - Background: cardWarmth gradient + var(--tea-surface)
- *   - Shadow: SHADOWS.card → SHADOWS.cardHover on hover
- *   - Border radius: 1px (intentionally minimal)
- *   - Transform: translateY(-3px) scale(1.01) on hover
- *   - Image: aspect-ratio 1/1, opacity 0.9 → 1 on hover, scale(1.06)
- *   - Title: font-display (Vollkorn), color transitions to --tea-gold on hover
- *   - Price: .num class (JetBrains Mono, tabular-nums)
- *
- * SURFACE TREATMENTS (see §12):
- *   - .surface-warm: Radial warmth gradient + grain noise — use on all panels/drawers
- *   - .surface-warm-inset: Recessed content area with edge lighting + denser grain
- *   - These classes replace ad-hoc texture layering throughout the site
- *
- * INSET PANELS (.inset-panel):
- *   - Background: insetHighlight gradient + rgba(0,0,0,0.15)
- *   - Shadow: SHADOWS.insetPanel
- *   - Border radius: 6px
- *   - Grain overlay: alcoveGrain at 0.05 opacity
- *
- * TAGS / PILLS:
- *   - Font: Inter 400, 10px, uppercase, 2px tracking
- *   - Border: 1px solid --tea-border (inactive) or gold+50% alpha (active)
- *   - Border radius: full (pill)
- *   - Padding: 5px 14px
- *
- * LINKS / CTAs:
- *   - Font: Inter 400, 13px, 0.3px tracking
- *   - Color: --tea-gold
- *   - Border-bottom: 1px solid --tea-gold
- *
- * PULL QUOTES:
- *   - Border-left: 3px solid --tea-gold
- *   - Background: pullQuote gradient
- *   - Font: body italic
- *   - Color: --tea-text-sec
- *
- * DROP CAPS:
- *   - Font-size: 2.5em, weight: 700, float: left
- *   - Color: --tea-gold
- *
- * ARTICLE BODY (.article-body):
- *   - Line-height: 1.85
- *   - Letter-spacing: 0.2px
- *   - Paragraph margin-bottom: 1.5rem
- *   - Section break: 1px height, --tea-border color, 3rem vertical margin
- *
- * SCROLLBARS:
- *   - Thumb: rgba(200,170,120,0.15)
- *   - Width: 3px (tea card), 6px (desktop hover)
- *   - Border-radius: 2–3px
- *   - Track: transparent
- *
- * FOCUS STATES:
- *   - Outline: 2px solid --tea-gold, offset 2px
- *   - Box-shadow: SHADOWS.focusRing
- */
-
-
-// ─────────────────────────────────────────────────────────────
-// 13. ACCESSIBILITY
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Reduced motion: All animations collapse to 0.01ms.
- * Applied via @media (prefers-reduced-motion: reduce) in index.html.
- *
- * Focus visible: 2px gold outline + 2px offset on all focusable elements.
- *
- * Skip link: .sr-only → visible on focus, positioned top-left,
- * styled with --tea-gold background.
- *
- * Color contrast targets:
- *   Dark mode:  #ede4d4 on #18130e = 13.3:1 (AAA)
- *               #b5a892 on #18130e = 6.7:1  (AA)
- *               #b8924e on #18130e = 5.2:1  (AA)
- *   Light mode: #18130e on #f4ece0 = 13.3:1 (AAA)
- *               #5e5342 on #f4ece0 = 6.1:1  (AA)
- *               #8e6d2e on #f4ece0 = 4.7:1  (AA for large text)
- */
-
-
-// ─────────────────────────────────────────────────────────────
-// COMBINED EXPORT (for backward compatibility)
-// ─────────────────────────────────────────────────────────────
-
-export const DESIGN_TOKENS = {
-  fontFamily: {
-    display: FONT_STACKS.display,
-    serif:   FONT_STACKS.body,
-    body:    FONT_STACKS.body,
-    sans:    FONT_STACKS.sans,
-    mono:    FONT_STACKS.mono,
-  },
-  typeScale:       TYPE_SCALE,
-  typography:      TYPOGRAPHY_CLASSES,
-  fontSize:        FONT_SIZES,
-  fontWeight:      FONT_WEIGHTS,
-  lineHeight:      LINE_HEIGHTS,
-  colors:          COLORS,
-  teaTypeColors:   TEA_TYPE_COLORS,
-  alcoveColors:    ALCOVE_COLORS,
-  gradients:       GRADIENTS,
-  textures:        TEXTURES,
-  shadows:         SHADOWS,
-  surfaceTreatments: SURFACE_TREATMENT_PRESETS,
-  spacing:         SPACING,
-  borderRadius:    BORDER_RADIUS,
-  timing:          TIMING,
-  easing:          EASING,
-  keyframes:       KEYFRAMES,
-  animations:      ANIMATIONS,
-  iconSizes:       ICON_SIZES,
-  backgroundImage: { 'paper-texture': TEXTURES.paperTexture },
-} as const;
-
-// Font Theme Presets for testing and customization
-export const FONT_THEMES = {
-  default: {
-    name: 'Default (Vollkorn + Lora)',
-    display: FONT_STACKS.display,
-    serif: FONT_STACKS.body,
-    sans: FONT_STACKS.sans,
-    mono: FONT_STACKS.mono,
-  },
-  georgia: {
-    name: 'Georgia Classic',
-    display: ['Georgia', 'serif'],
-    serif: ['Georgia', 'serif'],
-    sans: ['Arial', 'sans-serif'],
-    mono: ['Courier New', 'monospace'],
-  },
-  modern: {
-    name: 'Modern (System)',
-    display: ['Georgia', 'serif'],
-    serif: ['Georgia', 'serif'],
-    sans: ['system-ui', 'sans-serif'],
-    mono: ['monospace'],
-  },
-} as const;
-
-// Font Size Scales for proportional sizing
-export const FONT_SIZE_SCALES = {
-  compact:     { name: 'Compact (90%)',      multiplier: 0.9 },
-  default:     { name: 'Default (100%)',      multiplier: 1.0 },
-  comfortable: { name: 'Comfortable (110%)', multiplier: 1.1 },
-  large:       { name: 'Large (120%)',        multiplier: 1.2 },
-  xlarge:      { name: 'Extra Large (130%)',  multiplier: 1.3 },
-} as const;
-
-export type DesignTokens = typeof DESIGN_TOKENS;
-
 /* =====================================================
    §12 — SURFACE_TREATMENTS
    The full Alcove texture system.
@@ -912,3 +707,171 @@ export const SURFACE_TREATMENTS = {
     maskComposite: 'intersect',
   } as React.CSSProperties,
 } as const;
+
+
+// ─────────────────────────────────────────────────────────────
+// 13. COMPONENT PATTERNS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Common component styling patterns for reference.
+ * Not used programmatically — documentation for consistency.
+ *
+ * IMPORTANT: Never use white (#fff, rgba(255,255,255,*)) for borders,
+ * rings, glows, or backgrounds. Use warm palette tones instead:
+ *   - Borders/rings: --tea-border or --tea-text-dim at low opacity
+ *   - Backgrounds: --tea-surface or --tea-elevated
+ *   - Glows: rgba(200,170,120,0.1) — the warm accent glow
+ *   - Spinners: border-t color should be --tea-text-sec, not white
+ *
+ * CARDS (card-grid-item):
+ *   - Background: cardWarmth gradient + var(--tea-surface)
+ *   - Shadow: SHADOWS.card → SHADOWS.cardHover on hover
+ *   - Border radius: 1px (intentionally minimal)
+ *   - Transform: translateY(-3px) scale(1.01) on hover
+ *   - Image: aspect-ratio 1/1, opacity 0.9 → 1 on hover, scale(1.06)
+ *   - Title: font-display (Vollkorn), color transitions to --tea-gold on hover
+ *   - Price: .num class (JetBrains Mono, tabular-nums)
+ *
+ * SURFACE TREATMENTS (see §12):
+ *   - .surface-warm: Radial warmth gradient + grain noise — use on all panels/drawers
+ *   - .surface-warm-inset: Recessed content area with edge lighting + denser grain
+ *   - These classes replace ad-hoc texture layering throughout the site
+ *
+ * INSET PANELS (.inset-panel):
+ *   - Background: insetHighlight gradient + rgba(0,0,0,0.15)
+ *   - Shadow: SHADOWS.insetPanel
+ *   - Border radius: 6px
+ *   - Grain overlay: alcoveGrain at 0.05 opacity
+ *
+ * TAGS / PILLS:
+ *   - Font: Inter 400, 10px, uppercase, 2px tracking
+ *   - Border: 1px solid --tea-border (inactive) or gold+50% alpha (active)
+ *   - Border radius: full (pill)
+ *   - Padding: 5px 14px
+ *
+ * LINKS / CTAs:
+ *   - Font: Inter 400, 13px, 0.3px tracking
+ *   - Color: --tea-gold
+ *   - Border-bottom: 1px solid --tea-gold
+ *
+ * PULL QUOTES:
+ *   - Border-left: 3px solid --tea-gold
+ *   - Background: pullQuote gradient
+ *   - Font: body italic
+ *   - Color: --tea-text-sec
+ *
+ * DROP CAPS:
+ *   - Font-size: 2.5em, weight: 700, float: left
+ *   - Color: --tea-gold
+ *
+ * ARTICLE BODY (.article-body):
+ *   - Line-height: 1.85
+ *   - Letter-spacing: 0.2px
+ *   - Paragraph margin-bottom: 1.5rem
+ *   - Section break: 1px height, --tea-border color, 3rem vertical margin
+ *
+ * SCROLLBARS:
+ *   - Thumb: rgba(200,170,120,0.15)
+ *   - Width: 3px (tea card), 6px (desktop hover)
+ *   - Border-radius: 2–3px
+ *   - Track: transparent
+ *
+ * FOCUS STATES:
+ *   - Outline: 2px solid --tea-gold, offset 2px
+ *   - Box-shadow: SHADOWS.focusRing
+ */
+
+
+// ─────────────────────────────────────────────────────────────
+// 13. ACCESSIBILITY
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Reduced motion: All animations collapse to 0.01ms.
+ * Applied via @media (prefers-reduced-motion: reduce) in index.html.
+ *
+ * Focus visible: 2px gold outline + 2px offset on all focusable elements.
+ *
+ * Skip link: .sr-only → visible on focus, positioned top-left,
+ * styled with --tea-gold background.
+ *
+ * Color contrast targets:
+ *   Dark mode:  #ede4d4 on #18130e = 13.3:1 (AAA)
+ *               #b5a892 on #18130e = 6.7:1  (AA)
+ *               #b8924e on #18130e = 5.2:1  (AA)
+ *   Light mode: #18130e on #f4ece0 = 13.3:1 (AAA)
+ *               #5e5342 on #f4ece0 = 6.1:1  (AA)
+ *               #8e6d2e on #f4ece0 = 4.7:1  (AA for large text)
+ */
+
+
+// ─────────────────────────────────────────────────────────────
+// COMBINED EXPORT (for backward compatibility)
+// ─────────────────────────────────────────────────────────────
+
+export const DESIGN_TOKENS = {
+  fontFamily: {
+    display: FONT_STACKS.display,
+    serif:   FONT_STACKS.body,
+    body:    FONT_STACKS.body,
+    sans:    FONT_STACKS.sans,
+    mono:    FONT_STACKS.mono,
+  },
+  typeScale:       TYPE_SCALE,
+  typography:      TYPOGRAPHY_CLASSES,
+  fontSize:        FONT_SIZES,
+  fontWeight:      FONT_WEIGHTS,
+  lineHeight:      LINE_HEIGHTS,
+  colors:          COLORS,
+  teaTypeColors:   TEA_TYPE_COLORS,
+  alcoveColors:    ALCOVE_COLORS,
+  gradients:       GRADIENTS,
+  textures:        TEXTURES,
+  shadows:         SHADOWS,
+  surfaceTreatments: SURFACE_TREATMENTS,
+  spacing:         SPACING,
+  borderRadius:    BORDER_RADIUS,
+  timing:          TIMING,
+  easing:          EASING,
+  keyframes:       KEYFRAMES,
+  animations:      ANIMATIONS,
+  iconSizes:       ICON_SIZES,
+  backgroundImage: { 'paper-texture': TEXTURES.paperTexture },
+} as const;
+
+// Font Theme Presets for testing and customization
+export const FONT_THEMES = {
+  default: {
+    name: 'Default (Vollkorn + Lora)',
+    display: FONT_STACKS.display,
+    serif: FONT_STACKS.body,
+    sans: FONT_STACKS.sans,
+    mono: FONT_STACKS.mono,
+  },
+  georgia: {
+    name: 'Georgia Classic',
+    display: ['Georgia', 'serif'],
+    serif: ['Georgia', 'serif'],
+    sans: ['Arial', 'sans-serif'],
+    mono: ['Courier New', 'monospace'],
+  },
+  modern: {
+    name: 'Modern (System)',
+    display: ['Georgia', 'serif'],
+    serif: ['Georgia', 'serif'],
+    sans: ['system-ui', 'sans-serif'],
+    mono: ['monospace'],
+  },
+} as const;
+
+// Font Size Scales for proportional sizing
+export const FONT_SIZE_SCALES = {
+  compact:     { name: 'Compact (90%)',      multiplier: 0.9 },
+  default:     { name: 'Default (100%)',      multiplier: 1.0 },
+  comfortable: { name: 'Comfortable (110%)', multiplier: 1.1 },
+  large:       { name: 'Large (120%)',        multiplier: 1.2 },
+  xlarge:      { name: 'Extra Large (130%)',  multiplier: 1.3 },
+} as const;
+
+export type DesignTokens = typeof DESIGN_TOKENS;

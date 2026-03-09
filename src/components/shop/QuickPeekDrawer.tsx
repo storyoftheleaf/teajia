@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 import { HapticSlider } from '../shared/HapticSlider';
+import { TeaPlaceholder } from './TeaPlaceholder';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import type { InventoryItem } from '../../types';
 import { fmtPrice } from '../../utils/formatNumber';
@@ -100,11 +101,15 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         <div className="p-6 space-y-5">
           {/* Image */}
           <div className="aspect-square rounded-lg overflow-hidden bg-tea-text/5">
-            <img
-              src={item.image}
-              alt={item.name}
-              className="w-full h-full object-cover"
-            />
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
+            )}
           </div>
 
           {/* Meta */}

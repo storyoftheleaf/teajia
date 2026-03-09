@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Icons } from '../Icons';
 import { HapticSlider } from './HapticSlider';
+import { TeaPlaceholder } from '../shop/TeaPlaceholder';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { fmtPrice } from '../../utils/formatNumber';
@@ -256,7 +257,13 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             className="relative max-h-[65vh] w-auto shadow-2xl rounded-sm overflow-hidden transition-transform duration-100"
             style={{ transform: `translateX(${swipeOffset * 0.5}px)` }}
           >
-            <img src={item.image} className="w-full h-full object-contain max-h-[65vh]" alt={item.name} />
+            {item.image ? (
+              <img src={item.image} className="w-full h-full object-contain max-h-[65vh]" alt={item.name} />
+            ) : (
+              <div className="w-full flex items-center justify-center" style={{ height: '40vh' }}>
+                <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />
+              </div>
+            )}
             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
@@ -296,7 +303,13 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           className="relative w-full overflow-hidden transition-transform duration-100"
           style={{ transform: `translateX(${swipeOffset * 0.5}px)`, maxHeight: '40vh' }}
         >
-          <img src={item.image} className="w-full h-full object-contain max-h-[40vh]" alt={item.name} />
+          {item.image ? (
+            <img src={item.image} className="w-full h-full object-contain max-h-[40vh]" alt={item.name} />
+          ) : (
+            <div className="w-full flex items-center justify-center" style={{ height: '30vh' }}>
+              <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />
+            </div>
+          )}
           <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-[#1a1a1a] to-transparent pointer-events-none" />
         </div>
 

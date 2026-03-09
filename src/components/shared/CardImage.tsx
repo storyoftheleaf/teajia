@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TeaPlaceholder } from '../shop/TeaPlaceholder';
 
 interface CardImageProps {
   src?: string;
@@ -7,6 +8,7 @@ interface CardImageProps {
   className?: string;
   onClick?: () => void;
   priority?: boolean;
+  teaType?: string;
 }
 
 /**
@@ -19,7 +21,8 @@ export const CardImage: React.FC<CardImageProps> = ({
   aspect = 'square',
   className = '',
   onClick,
-  priority = false
+  priority = false,
+  teaType
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -63,7 +66,11 @@ export const CardImage: React.FC<CardImageProps> = ({
         </>
       ) : (
         <div className={`w-full h-full ${placeholderBg} flex items-center justify-center`}>
-          <span className="text-tea-paper/30 text-xs">No image</span>
+          {teaType ? (
+            <TeaPlaceholder type={teaType} style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <span className="text-tea-paper/30 text-xs">No image</span>
+          )}
         </div>
       )}
     </div>

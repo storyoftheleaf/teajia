@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { AlcoveModal } from './AlcoveModal';
+import { TeaPlaceholder } from './TeaPlaceholder';
 import { Icons } from '../Icons';
 import type { InventoryItem } from '../../types';
 import { fmtPricePerGram } from '../../utils/formatNumber';
@@ -69,12 +70,16 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
             >
               <div className="flex flex-col md:flex-row">
                 {/* Image */}
-                <div className="w-full md:w-2/5 aspect-[16/9] md:aspect-auto md:min-h-[280px] overflow-hidden">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                  />
+                <div className="w-full md:w-2/5 aspect-[16/9] md:aspect-auto md:min-h-[280px] overflow-hidden bg-tea-elevated/50">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                    />
+                  ) : (
+                    <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
+                  )}
                 </div>
 
                 {/* Details */}
