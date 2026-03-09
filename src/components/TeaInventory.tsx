@@ -401,6 +401,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                     step={5}
                                     value={gridQty}
                                     onChange={(val) => updateQuantity(item.id, val)}
+                                    snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
                                     size="sm"
                                  />
                               </div>
@@ -530,6 +531,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                     step={5}
                                                     value={currentQty}
                                                     onChange={(val) => updateQuantity(item.id, val)}
+                                                    snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
                                                     size="sm"
                                                 />
                                             </div>

@@ -7,7 +7,7 @@ interface HapticSliderProps {
   value: number;
   onChange: (value: number) => void;
   unit?: string;
-  accentColor?: string;
+  snapPoints?: number[];
   size?: 'sm' | 'md';
 }
 
@@ -18,6 +18,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   value,
   onChange,
   unit = 'g',
+  snapPoints,
   size = 'md',
 }) => {
   const lastStepRef = useRef(value);
@@ -25,14 +26,16 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const thumbSize = size === 'sm' ? 10 : 12;
 
-  // Generate tick marks at each step
+  // Use snap points for tick marks (like Alcove), not every step
   const ticks = useMemo(() => {
+    if (snapPoints) return snapPoints.filter(p => p >= min && p <= max);
+    // Fallback: generate sensible ticks from step
     const points: number[] = [];
     for (let v = min; v <= max; v += step) {
       points.push(v);
     }
     return points;
-  }, [min, max, step]);
+  }, [min, max, step, snapPoints]);
 
   // Haptic feedback on step change
   useEffect(() => {
@@ -49,7 +52,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
   }, [onChange]);
 
   return (
-    <div className="slider-area relative flex-1 flex flex-col gap-1.5 select-none">
+    <div className="slider-area relative flex-1 flex flex-col select-none">
       {/* Track + Thumb */}
       <div
         className="relative w-full flex items-center group cursor-pointer"
@@ -76,9 +79,9 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
             borderRadius: 2,
           }}
         >
-          {/* Fill — gradient to match Alcove */}
+          {/* Gradient fill */}
           <div
-            className="absolute h-full rounded-sm"
+            className="absolute h-full"
             style={{
               width: `${percentage}%`,
               background: 'linear-gradient(90deg, rgba(184,146,78,0.45), rgba(184,146,78,0.75))',
@@ -87,7 +90,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
             }}
           />
 
-          {/* Tick marks at each step */}
+          {/* Tick marks at snap points only */}
           {ticks.map((tick) => {
             const pct = max > min ? ((tick - min) / (max - min)) * 100 : 0;
             return (
@@ -123,12 +126,6 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
             transition: 'left 0.075s ease',
           }}
         />
-      </div>
-
-      {/* Min and max labels */}
-      <div className="flex justify-between px-0.5">
-        <span className="text-[9px] font-mono text-tea-text/30">{min}{unit}</span>
-        <span className="text-[9px] font-mono text-tea-text/30">{max}{unit}</span>
       </div>
     </div>
   );
