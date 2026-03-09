@@ -18,6 +18,7 @@ interface CartDrawerProps {
 }
 
 type CheckoutStep = 'CART' | 'CHECKOUT';
+type ShippingMethod = 'international' | 'pickup' | 'gojek';
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, onRemoveItem, onUpdateQuantity }) => {
   useScrollLock(isOpen);
@@ -30,6 +31,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
   const [touchOffset, setTouchOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
   const isDragHandle = useRef(false);
+
+  // Shipping Method State
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('international');
 
   // Customer Details State
   const [details, setDetails] = useState({
@@ -83,7 +87,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
     }
   };
 
-  const isFormValid = details.name.trim() && details.contact.trim() && details.location.trim();
+  const isFormValid = details.name.trim() && details.contact.trim() && (shippingMethod === 'pickup' || details.location.trim());
 
   // Option 2: Device detection for smart button selection
   const [isLikelyMobile, setIsLikelyMobile] = useState(false);
@@ -197,10 +201,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
   };
 
   // --- Message Generation ---
+  const shippingLabel = shippingMethod === 'international'
+    ? 'International Shipping'
+    : shippingMethod === 'pickup'
+    ? 'Local Pick Up'
+    : 'Local Go-Jek Delivery';
+
   const orderMessage = useMemo(() => {
     const date = new Date().toLocaleDateString();
     let msg = `ORDER INQUIRY [TEAJIA]\nRef: ${orderRef}\nDate: ${date}\n\n`;
-    msg += `CUSTOMER:\nName: ${details.name}\nContact: ${details.contact}\nShipping To: ${details.location}\n`;
+    msg += `CUSTOMER:\nName: ${details.name}\nContact: ${details.contact}\n`;
+    msg += `Shipping: ${shippingLabel}\n`;
+    if (shippingMethod === 'international') {
+      msg += `Ship To: ${details.location}\n`;
+    } else if (shippingMethod === 'gojek') {
+      msg += `Delivery Address: ${details.location}\n`;
+    }
     if (details.notes) msg += `Notes: ${details.notes}\n`;
 
     msg += `\nITEMS:\n`;
@@ -209,10 +225,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         msg += `- ${item.name} (${item.variant}): ${qtyLabel} @ $${fmtNum(item.totalPrice)}\n`;
     });
 
-    msg += `\nTOTAL ESTIMATE: ${fmtPrice(subtotal)}\n\n`;
-    msg += `Please confirm availability and shipping costs.`;
+    msg += `\nTOTAL ESTIMATE: ${fmtPrice(subtotal)}`;
+    if (shippingMethod === 'international') {
+      msg += ` (excluding shipping)`;
+    }
+    msg += `\n\n`;
+    if (shippingMethod === 'international') {
+      msg += `Please confirm availability and shipping costs.`;
+    } else if (shippingMethod === 'pickup') {
+      msg += `Please confirm availability and arrange pick up.`;
+    } else {
+      msg += `Please confirm availability and arrange Go-Jek delivery.`;
+    }
     return msg;
-  }, [cart, details, subtotal]);
+  }, [cart, details, subtotal, shippingMethod, shippingLabel]);
 
   // Option 4: Show success message with animation
   const showSuccess = (type: 'whatsapp' | 'email' | 'copy') => {
@@ -412,6 +438,70 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        Fill in your details below. Your order inquiry will be generated automatically.
                    </p>
 
+                   {/* Shipping Method Selector */}
+                   <div className="space-y-2">
+                       <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2">Shipping Method *</label>
+                       <div className="grid grid-cols-1 gap-2">
+                           <button
+                               type="button"
+                               onClick={() => setShippingMethod('international')}
+                               className={`flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
+                                   shippingMethod === 'international'
+                                       ? 'border-tea-gold bg-tea-gold/10'
+                                       : 'border-tea-gold/[0.08] bg-tea-surface hover:border-tea-gold/20'
+                               }`}
+                           >
+                               <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                   shippingMethod === 'international' ? 'border-tea-gold' : 'border-tea-text-dim/30'
+                               }`}>
+                                   {shippingMethod === 'international' && <div className="w-2 h-2 rounded-full bg-tea-gold" />}
+                               </div>
+                               <div>
+                                   <span className="block font-serif text-sm text-tea-text">International Shipping</span>
+                                   <span className="block text-[10px] text-tea-text-dim mt-0.5">Shipping cost will be calculated and confirmed separately</span>
+                               </div>
+                           </button>
+                           <button
+                               type="button"
+                               onClick={() => setShippingMethod('pickup')}
+                               className={`flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
+                                   shippingMethod === 'pickup'
+                                       ? 'border-tea-gold bg-tea-gold/10'
+                                       : 'border-tea-gold/[0.08] bg-tea-surface hover:border-tea-gold/20'
+                               }`}
+                           >
+                               <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                   shippingMethod === 'pickup' ? 'border-tea-gold' : 'border-tea-text-dim/30'
+                               }`}>
+                                   {shippingMethod === 'pickup' && <div className="w-2 h-2 rounded-full bg-tea-gold" />}
+                               </div>
+                               <div>
+                                   <span className="block font-serif text-sm text-tea-text">Local Pick Up</span>
+                                   <span className="block text-[10px] text-tea-text-dim mt-0.5">Collect your order in person</span>
+                               </div>
+                           </button>
+                           <button
+                               type="button"
+                               onClick={() => setShippingMethod('gojek')}
+                               className={`flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
+                                   shippingMethod === 'gojek'
+                                       ? 'border-tea-gold bg-tea-gold/10'
+                                       : 'border-tea-gold/[0.08] bg-tea-surface hover:border-tea-gold/20'
+                               }`}
+                           >
+                               <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                   shippingMethod === 'gojek' ? 'border-tea-gold' : 'border-tea-text-dim/30'
+                               }`}>
+                                   {shippingMethod === 'gojek' && <div className="w-2 h-2 rounded-full bg-tea-gold" />}
+                               </div>
+                               <div>
+                                   <span className="block font-serif text-sm text-tea-text">Local Go-Jek</span>
+                                   <span className="block text-[10px] text-tea-text-dim mt-0.5">Same-day delivery via Go-Jek (Bali area)</span>
+                               </div>
+                           </button>
+                       </div>
+                   </div>
+
                    {/* Required Fields Form */}
                    <div className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-gold/[0.08] ">
                        <div>
@@ -466,6 +556,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                <p id="contact-error" role="alert" className="text-red-500 text-xs mt-1">{errors.contact}</p>
                            )}
                        </div>
+                       {shippingMethod === 'international' && (
                        <div>
                            <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Shipping Location *</label>
                            <div className="relative">
@@ -491,6 +582,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                <p id="location-error" role="alert" className="text-red-500 text-xs mt-1">{errors.location}</p>
                            )}
                        </div>
+                       )}
+                       {shippingMethod === 'gojek' && (
+                       <div>
+                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Delivery Address *</label>
+                           <div className="relative">
+                               <input
+                                   type="text"
+                                   value={details.location}
+                                   onChange={(e) => handleFieldChange('location', e.target.value)}
+                                   onBlur={() => handleFieldBlur('location')}
+                                   aria-describedby={touched.location && errors.location ? 'location-error' : undefined}
+                                   aria-invalid={touched.location && !!errors.location}
+                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
+                                       touched.location && errors.location
+                                           ? 'border-red-500 focus:border-red-500'
+                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
+                                   }`}
+                                   placeholder="Full address for Go-Jek delivery"
+                               />
+                               {details.location && !errors.location && (
+                                   <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                               )}
+                           </div>
+                           {touched.location && errors.location && (
+                               <p id="location-error" role="alert" className="text-red-500 text-xs mt-1">{errors.location}</p>
+                           )}
+                       </div>
+                       )}
                        <div>
                            <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Special Requests (Optional)</label>
                            <textarea
@@ -526,7 +645,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        {/* Option 2: Smart Device Detection - Highlight Preferred Channel */}
                        <button
                            onClick={handleWhatsApp}
-                           disabled={!details.name || !details.contact || !details.location}
+                           disabled={!isFormValid}
                            className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                                preferredChannel === 'whatsapp'
                                    ? 'border-tea-green/50 bg-tea-green/10 text-tea-green shadow-md'
@@ -539,7 +658,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        </button>
                        <button
                            onClick={handleEmail}
-                           disabled={!details.name || !details.contact || !details.location}
+                           disabled={!isFormValid}
                            className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                                preferredChannel === 'email'
                                    ? 'border-tea-gold/[0.08]  bg-tea-bg/10 text-tea-text  shadow-md'
@@ -551,7 +670,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        </button>
                        <button
                            onClick={handleCopy}
-                           disabled={!details.name || !details.contact || !details.location}
+                           disabled={!isFormValid}
                            className="flex items-center justify-center gap-2 py-3 border border-tea-gold/[0.08]  hover:bg-tea-bg/5 text-tea-text  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                        >
                            <span className="text-[10px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
