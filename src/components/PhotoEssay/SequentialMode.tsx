@@ -167,7 +167,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
         <div className="relative max-w-6xl max-h-full">
           {!imagesPreloaded[currentIndex] && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-tea-text-dim/30 border-t-tea-text-sec rounded-full animate-spin" />
             </div>
           )}
 

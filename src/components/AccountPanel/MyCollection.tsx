@@ -117,7 +117,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       {/* Copy link bar */}
       <button
         onClick={handleCopyLink}
-        className="w-full flex items-center gap-3 px-3 py-2.5 mb-4 bg-white/30 border border-tea-border  hover:bg-white/50 transition-colors group"
+        className="w-full flex items-center gap-3 px-3 py-2.5 mb-4 bg-tea-elevated/30 border border-tea-border hover:bg-tea-elevated/50 transition-colors group"
       >
         <Icons.Link className="w-3.5 h-3.5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
         <span className="text-[11px] text-tea-text/60 /50 truncate flex-1 text-left">
@@ -131,7 +131,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         {favoriteItems.map((item, i) => (
           <div
             key={item.id}
-            className={`flex items-center gap-3 px-3 py-3 hover:bg-white/30 transition-colors ${
+            className={`flex items-center gap-3 px-3 py-3 hover:bg-tea-elevated/30 transition-colors ${
               i < favoriteItems.length - 1 ? 'border-b border-tea-border ' : ''
             }`}
           >

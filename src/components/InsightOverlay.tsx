@@ -30,7 +30,7 @@ export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose
       onClick={onClose}
     >
       <div
-        className="bg-white max-w-md w-full p-8 rounded-lg relative shadow-2xl animate-[scaleIn_0.3s_ease-out]"
+        className="bg-tea-surface max-w-md w-full p-8 rounded-lg relative shadow-2xl animate-[scaleIn_0.3s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

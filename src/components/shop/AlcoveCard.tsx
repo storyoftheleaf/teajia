@@ -79,17 +79,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const markerOpacities = [0.7, 0.5, 0.35, 0.2];
   const markerWidths = [18, 16, 14, 12];
 
+  // Alcove uses the main Espresso+Gold palette — see designTokens.ts
   const alcoveColors = {
-    bg: 'var(--alcove-bg, #1c1b19)',
-    title: 'var(--alcove-title, #ede6d8)',
-    subtitle: 'var(--alcove-subtitle, #8a7e6a)',
-    body: 'var(--alcove-body, #c0b49a)',
-    bodyHighlight: 'var(--alcove-body-highlight, #d0c4aa)',
-    note: 'var(--alcove-note, #c4b89a)',
-    accent: 'var(--alcove-accent, #b8924e)',
-    muted: 'var(--alcove-muted, #9a9080)',
-    mutedDark: 'var(--alcove-muted-dark, #6a6050)',
-    success: 'var(--alcove-success, #7a9a72)',
+    bg: 'var(--tea-bg)',
+    title: 'var(--tea-text)',
+    subtitle: 'var(--tea-text-dim)',
+    body: 'var(--tea-text-sec)',
+    bodyHighlight: 'var(--tea-text)',
+    note: 'var(--tea-text-sec)',
+    accent: 'var(--tea-gold)',
+    muted: 'var(--tea-text-dim)',
+    mutedDark: 'var(--tea-text-dim)',
+    success: '#5A6E5A',
   };
   const accent = alcoveColors.accent;
 
@@ -188,7 +189,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         }}>
             <>
               <h1 style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontFamily: "var(--font-display)",
                 fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
                 margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
               }}>
@@ -196,7 +197,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               </h1>
               {givenName && (
                 <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontFamily: "var(--font-display)",
                   fontSize: "18px", fontStyle: "italic", fontWeight: 300,
                   color: alcoveColors.subtitle, margin: "0",
                 }}>
@@ -247,7 +248,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             position: "relative", flexShrink: 0,
           }}>
             <p style={{
-              fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+              fontFamily: "var(--font-display)",
               fontSize: "14px", fontWeight: 300, fontStyle: "italic",
               color: alcoveColors.subtitle, margin: 0, textAlign: "center",
             }}>
@@ -310,7 +311,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       background: accent, opacity: markerOpacities[0], borderRadius: "1px",
                     }} />
                     <span style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontFamily: "var(--font-display)",
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note, opacity: noteOpacities[0],
                       textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
@@ -328,7 +329,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       borderRadius: "1px",
                     }} />
                     <span style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                      fontFamily: "var(--font-display)",
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note,
                       opacity: noteOpacities[i] ?? 0.5,
@@ -625,13 +626,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             style={{
               position: "absolute", top: "16px", right: "16px",
               width: "36px", height: "36px",
-              background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
+              background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer",
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              stroke="var(--tea-text-sec)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
