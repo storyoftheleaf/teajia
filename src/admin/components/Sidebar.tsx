@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink } from 'lucide-react';
 
 interface NavItem {
   id: string;
@@ -142,6 +142,14 @@ export const Sidebar = ({
         )}
 
         <div className="pt-8 px-4 border-t border-tea-border space-y-4">
+            <Link
+              to="/"
+              className="w-full flex items-center gap-3 px-2 text-tea-muted hover:text-tea-text transition-colors"
+            >
+              <ExternalLink size={16} />
+              <span className="text-xs font-serif italic">View Main Site</span>
+            </Link>
+
              <button
               onClick={isLoggedIn ? onLogoutClick : onLoginClick}
               className="w-full flex items-center gap-3 px-2 text-tea-muted hover:text-tea-text transition-colors"
