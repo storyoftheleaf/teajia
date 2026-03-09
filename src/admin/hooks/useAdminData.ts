@@ -8,6 +8,8 @@ import { fetchLiveRates } from '../utils';
 export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
+    staleTime: 1000 * 60 * 5,   // 5 min — prevents background refetch from overwriting inline edits
+    refetchOnWindowFocus: false, // window focus should not clobber optimistic updates
     queryFn: async () => {
       const data = await api.products.list();
 

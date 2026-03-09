@@ -164,7 +164,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       });
       setWisdomOpen(false);
     }
-  }, [isOpen, initialData, rates]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialData]);
 
   // LIVE CALCULATOR LOGIC
   const calc = useMemo(() => {
