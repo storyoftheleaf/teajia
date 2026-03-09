@@ -38,10 +38,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [hovered, setHovered] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const storyScrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
-  const [storyFadeTop, setStoryFadeTop] = useState(false);
-  const [storyFadeBottom, setStoryFadeBottom] = useState(false);
 
   const sliderMin = 25;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -127,22 +124,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       window.removeEventListener("resize", check);
     };
   }, []);
-
-  // Story scroll fade detection + overflow check
-  useEffect(() => {
-    const el = storyScrollRef.current;
-    if (!el) return;
-    const checkStory = () => {
-      const canScroll = el.scrollHeight > el.clientHeight;
-      const atTop = el.scrollTop < 4;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
-      setStoryFadeTop(canScroll && !atTop);
-      setStoryFadeBottom(canScroll && !atBottom);
-    };
-    checkStory();
-    el.addEventListener("scroll", checkStory, { passive: true });
-    return () => el.removeEventListener("scroll", checkStory);
-  }, [item]);
 
   const handleAdd = () => {
     setAdded(true);
@@ -234,15 +215,51 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         minHeight: 0,
       }}>
 
-        {/* Inset content panel — edge-to-edge for more room */}
+        {/* Hero image — leads the content */}
         <div style={{
           position: "relative",
-          margin: "6px 4px 0",
-          borderRadius: "6px",
+          margin: "4px 4px 0",
+          borderRadius: "6px 6px 0 0",
+          overflow: "hidden",
+          flexShrink: 0,
+        }}>
+          {photoUrl ? (
+            <div
+              onClick={() => setImageExpanded(true)}
+              style={{ cursor: "pointer", position: "relative" }}
+            >
+              <img
+                src={photoUrl}
+                alt={productName}
+                style={{
+                  width: "100%",
+                  aspectRatio: "4 / 3",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+              {/* Bottom fade into panel */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: "40%",
+                background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)",
+                pointerEvents: "none",
+              }} />
+            </div>
+          ) : (
+            <div style={{ aspectRatio: "4 / 3", background: "rgba(0,0,0,0.2)" }}>
+              <TeaPlaceholder type={teaType} style={{ width: "100%", height: "100%" }} />
+            </div>
+          )}
+        </div>
+
+        {/* Inset content panel */}
+        <div style={{
+          position: "relative",
+          margin: "0 4px 0",
+          borderRadius: "0 0 6px 6px",
           background: "rgba(0,0,0,0.25)",
           boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)",
           overflow: "hidden",
-          flex: 1, minHeight: 0,
           display: "flex", flexDirection: "column",
           animation: "panelReveal 0.5s ease-out",
         }}>
@@ -252,16 +269,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
             backgroundSize: "120px",
           }} />
-          {/* Ambient top-glow */}
-          <div style={{
-            position: "absolute", top: 0, left: 0, right: 0, height: "60%",
-            pointerEvents: "none",
-            background: "radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)",
-          }} />
 
-          {/* Tea details */}
+          {/* Tea type · origin · year */}
           <div style={{
-            padding: "8px 14px",
+            padding: "10px 14px",
             borderBottom: "1px solid rgba(200,170,120,0.08)",
             position: "relative", flexShrink: 0,
           }}>
@@ -276,116 +287,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Personal connection — variable height, no clamp */}
-          {feelingDescription && (
+          {/* Tasting notes */}
+          {(feeling || notes.length > 0) && (
             <div style={{
+              padding: "10px 14px",
+              background: "rgba(184,146,78,0.03)",
               position: "relative",
               flexShrink: 0,
               borderBottom: "1px solid rgba(200,170,120,0.08)",
             }}>
-              {/* Top fade */}
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, height: "20px",
-                background: "linear-gradient(to bottom, rgba(0,0,0,0.25), transparent)",
-                pointerEvents: "none", zIndex: 1, borderRadius: "6px 6px 0 0",
-                opacity: storyFadeTop ? 1 : 0,
-                transition: "opacity 0.2s ease",
-              }} />
-              <div
-                ref={storyScrollRef}
-                className="tea-card-scroll"
-                style={{
-                  maxHeight: "none",
-                  overflowY: "auto",
-                  padding: "12px 16px",
-                  transition: "max-height 0.4s ease",
-                }}
-              >
-                {magazineUrl ? (
-                  <a
-                    href={magazineUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onMouseEnter={() => setHovered("magazine")}
-                    onMouseLeave={() => setHovered(null)}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <p style={{
-                      fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                      fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                      color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                      margin: 0, transition: "color 0.2s ease",
-                    }}>
-                      {story}
-                    </p>
-                  </a>
-                ) : (
-                  <p style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                    fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
-                    color: alcoveColors.body, margin: 0,
-                  }}>
-                    {story}
-                  </p>
-                )}
-              </div>
-              {/* Bottom fade */}
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
-                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                pointerEvents: "none", zIndex: 1,
-                opacity: storyFadeBottom ? 1 : 0,
-                transition: "opacity 0.2s ease",
-              }} />
-              {/* Bottom fade spacer — story expand button moved to top-right of card */}
-            </div>
-          )}
-
-          {/* Notes + photo section — compact, max height for ~5 notes */}
-          <div style={{
-            padding: "10px 14px",
-            background: "rgba(184,146,78,0.03)",
-            position: "relative",
-            overflow: "hidden",
-            flexShrink: 0,
-            maxHeight: "140px",
-            borderBottom: "1px solid rgba(200,170,120,0.08)",
-          }}>
-            {/* Photo or placeholder behind notes */}
-            <div
-              style={{
-                position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
-                overflow: "hidden", pointerEvents: photoUrl ? "none" : "none",
-              }}
-            >
-              {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt=""
-                  style={{
-                    width: "100%", height: "100%",
-                    objectFit: "cover", objectPosition: "center right",
-                    transform: "scale(1.05)",
-                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                    WebkitMaskComposite: "destination-in",
-                    maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                    maskComposite: "intersect",
-                  }}
-                />
-              ) : (
-                <div style={{
-                  width: "100%", height: "100%",
-                  WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                  WebkitMaskComposite: "destination-in",
-                  maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                  maskComposite: "intersect",
-                }}>
-                  <TeaPlaceholder type={teaType} style={{ width: "100%", height: "100%" }} />
-                </div>
-              )}
-            </div>
-
-            <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {feeling && (
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -397,7 +307,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note, opacity: noteOpacities[0],
-                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
                       {feeling}
                     </span>
@@ -416,7 +325,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note,
                       opacity: noteOpacities[i] ?? 0.5,
-                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
                       {note}
                     </span>
@@ -424,49 +332,59 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Story — at the bottom, scrollable */}
+          {/* Story / Lore — single instance */}
           {story && (
             <div style={{
+              padding: "12px 16px",
               position: "relative",
-              flex: 1, minHeight: 0,
-              overflow: "hidden",
+              borderBottom: feelingDescription ? "1px solid rgba(200,170,120,0.08)" : "none",
             }}>
-              <div className="tea-card-scroll" style={{
-                height: "100%",
-                overflowY: "auto",
-                padding: "10px 14px",
-              }}>
+              {magazineUrl ? (
+                <a
+                  href={magazineUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onMouseEnter={() => setHovered("magazine")}
+                  onMouseLeave={() => setHovered(null)}
+                  style={{ textDecoration: "none" }}
+                >
+                  <p style={{
+                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
+                    color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
+                    margin: 0, transition: "color 0.2s ease",
+                  }}>
+                    {story}
+                  </p>
+                </a>
+              ) : (
                 <p style={{
                   fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "14px", fontWeight: 300, lineHeight: 1.6,
-                  color: alcoveColors.subtitle, margin: 0,
+                  fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
+                  color: alcoveColors.body, margin: 0,
                 }}>
                   {story}
                 </p>
-              </div>
-              {/* Bottom fade */}
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0, height: "20px",
-                background: "linear-gradient(to top, rgba(0,0,0,0.25), transparent)",
-                pointerEvents: "none",
-              }} />
+              )}
+            </div>
+          )}
+
+          {/* Experience — personal connection */}
+          {feelingDescription && (
+            <div style={{ padding: "12px 16px" }}>
+              <p style={{
+                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+                lineHeight: 1.6,
+                color: alcoveColors.subtitle, margin: 0,
+              }}>
+                {feelingDescription}
+              </p>
             </div>
           )}
         </div>
-
-        {feelingDescription && (
-          <p style={{
-            fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-            fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-            color: alcoveColors.body, margin: 0,
-            padding: "10px 20px",
-            lineHeight: 1.6,
-          }}>
-            {feelingDescription}
-          </p>
-        )}
       </div>
 
       {/* === PINNED BOTTOM: Commerce === */}
