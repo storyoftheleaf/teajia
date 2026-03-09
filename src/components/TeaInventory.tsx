@@ -381,7 +381,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         item={item}
                         title={item.name}
                         onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
-                        imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" />}
+                        imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" teaType={item.type} />}
                         badgesComponent={
                            <span className="card-grid-badge">{item.type}</span>
                         }

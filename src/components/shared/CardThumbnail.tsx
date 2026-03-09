@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { THUMBNAIL_SIZE_CLASS } from '../../utils/cardSize';
+import { TeaPlaceholder } from '../shop/TeaPlaceholder';
 
 interface CardThumbnailProps {
   src?: string;
   alt: string;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
+  teaType?: string;
 }
 
 /**
@@ -17,7 +19,8 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
   src,
   alt,
   className = '',
-  onClick
+  onClick,
+  teaType
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -60,7 +63,11 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
         </>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-tea-elevated">
-          <span className="text-tea-paper/20 text-[8px]">—</span>
+          {teaType ? (
+            <TeaPlaceholder type={teaType} style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <span className="text-tea-paper/20 text-[8px]">—</span>
+          )}
         </div>
       )}
     </div>
