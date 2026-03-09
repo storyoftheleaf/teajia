@@ -17,7 +17,7 @@ import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
-import { CartDrawer } from './components/CartDrawer';
+import { CartPanel } from './components/shared/CartPanel';
 import { LearnHub } from './components/LearnHub';
 import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
@@ -483,7 +483,8 @@ const AppContent = () => {
          <ShareModal story={sharingStory} onClose={() => setSharingStory(null)} />
       )}
 
-      <CartDrawer
+      <CartPanel
+         mode="public"
          isOpen={isCartOpen}
          onClose={handleCloseCart}
          cart={cart}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, X, ArrowRight, Search } from 'lucide-react';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isConfigured, hasToken, clearToken, getTokenClaims } from '../lib/api';
 import { Product } from './types';
@@ -12,7 +12,7 @@ import { Sidebar } from './components/Sidebar';
 import { TeaTable } from './components/TeaTable';
 import { TeawareCatalog } from './components/TeawareCatalog';
 import { InventoryView } from './components/InventoryView';
-import { InvoiceBuilder } from './components/InvoiceBuilder';
+import { CartPanel } from '../components/shared/CartPanel';
 import { RecordsView } from './components/SoldItemsView';
 import { OrdersView } from './components/OrdersView';
 import { PersonalCollectionView } from './components/PersonalCollectionView';
@@ -236,38 +236,18 @@ const AdminContent = () => {
             </div>
         )}
 
-        {/* --- PERSISTENT CART DRAWER --- */}
-        <div
-          className={`fixed inset-y-0 right-0 z-50 w-full md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)] transform transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] border-l border-tea-border ${
-            isCartOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-        >
-          <div className="h-full relative">
-            <button
-                onClick={() => setIsCartOpen(false)}
-                className="absolute top-5 right-5 z-20 text-tea-muted hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border"
-            >
-                <X size={20} />
-            </button>
-
-            <InvoiceBuilder
-                products={products}
-                rates={rates}
-                cart={cart}
-                setCart={setCart}
-                onClearCart={clearCart}
-                onSuccess={refetchProducts}
-            />
-          </div>
-        </div>
-
-        {/* --- OVERLAY FOR DRAWER --- */}
-        {isCartOpen && (
-            <div
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-500"
-                onClick={() => setIsCartOpen(false)}
-            />
-        )}
+        {/* --- REGISTRY MANIFEST DRAWER --- */}
+        <CartPanel
+          mode="admin"
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          cart={cart}
+          setCart={setCart}
+          onClearCart={clearCart}
+          onSuccess={refetchProducts}
+          rates={rates}
+          showToast={showToast}
+        />
 
         <AddToCartModal
           isOpen={isAddModalOpen}
