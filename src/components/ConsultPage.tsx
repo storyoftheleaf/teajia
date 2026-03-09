@@ -202,8 +202,8 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         {/* Adrian — between overview and depth */}
         <AdrianSection />
 
-        {/* All service sections — always visible, scroll-revealed */}
-        <div className="mt-12 md:mt-16">
+        {/* All service sections — expandable cards, scroll-revealed */}
+        <div className="mt-10 md:mt-14">
           <p className="text-xs uppercase tracking-[0.2em] text-tea-text/30 font-sans mb-0">
             Services
           </p>
