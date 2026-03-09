@@ -14,6 +14,11 @@ const alcovePanelStyle: React.CSSProperties = {
   borderRadius: 6,
 };
 
+/** Alcove-style inset for the hero image — recessed with warm rim-light */
+const alcoveInsetStyle: React.CSSProperties = {
+  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(200,170,120,0.06)',
+};
+
 /** Printable card wrapper — the unified expandable container */
 const cardFrameStyle: React.CSSProperties = {
   border: '1px solid rgba(200,170,120,0.10)',
@@ -91,21 +96,7 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
     return (
       <section ref={ref} className={`pt-8 md:pt-10 ${revealClassName}`} style={revealStyle}>
         <div style={cardFrameStyle} className="overflow-hidden">
-          {/* Card hero image — fixed height, never changes */}
-          {img && (
-            <div className="relative overflow-hidden" style={{ height: 120 }}>
-              <img
-                src={img}
-                alt={imgAlt}
-                className="w-full h-full object-cover bg-tea-elevated/90"
-                loading="lazy"
-              />
-              {/* Subtle gradient overlay at bottom for text separation */}
-              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-            </div>
-          )}
-
-          {/* Card body — the "printable" area */}
+          {/* Card body — the "printable" area with padding around everything */}
           <div className="px-5 py-5 md:px-7 md:py-6">
             {/* Header row: label + heading + badge */}
             <div className="flex items-start justify-between gap-4">
@@ -121,10 +112,23 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
               )}
             </div>
 
-            {/* Summary — always visible */}
+            {/* Summary */}
             <p className="font-sans text-sm leading-relaxed text-tea-text/60 mt-3 max-w-[640px]">
               {summary}
             </p>
+
+            {/* Inset hero image — padded inside the card like the Alcove tea photo */}
+            {img && (
+              <div className="relative overflow-hidden rounded-md mt-5" style={{ height: 120, ...alcoveInsetStyle }}>
+                <img
+                  src={img}
+                  alt={imgAlt}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+              </div>
+            )}
 
             {/* Expand/collapse button — integrated as a subtle divider with action */}
             <button
@@ -133,9 +137,7 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
               className="w-full group mt-5 mb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
             >
               <div className="flex items-center gap-3">
-                {/* Left line */}
                 <div className="flex-1 h-[1px] bg-tea-gold/12 group-hover:bg-tea-gold/20 transition-colors" />
-                {/* Button label */}
                 <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text/35
                                  group-hover:text-tea-gold/70 transition-colors select-none whitespace-nowrap">
                   {expanded ? 'Less' : 'Details'}
@@ -144,32 +146,21 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
                     : <Icons.ChevronDown className="w-3 h-3 transition-transform" />
                   }
                 </span>
-                {/* Right line */}
                 <div className="flex-1 h-[1px] bg-tea-gold/12 group-hover:bg-tea-gold/20 transition-colors" />
               </div>
             </button>
 
-            {/* Expandable content — animated height, scrollable if tall */}
+            {/* Expandable content — no inner scroll, page scrolls naturally */}
             <div
               className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ maxHeight: expanded ? Math.min(contentHeight, 420) : 0, opacity: expanded ? 1 : 0 }}
+              style={{ maxHeight: expanded ? contentHeight : 0, opacity: expanded ? 1 : 0 }}
             >
-              <div className="relative" style={{ maxHeight: 420 }}>
-                <div
-                  ref={contentRef}
-                  className="pt-5 pb-1 overflow-y-auto"
-                  style={{ maxHeight: 420 }}
-                >
-                  {children}
-                </div>
-                {/* Bottom fade when content is scrollable */}
-                {contentHeight > 420 && (
-                  <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[rgba(0,0,0,0.06)] to-transparent pointer-events-none" />
-                )}
+              <div ref={contentRef} className="pt-5 pb-1">
+                {children}
               </div>
             </div>
 
-            {/* Footer CTAs — always visible at the card bottom */}
+            {/* Footer CTAs */}
             {footer && (
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(200,170,120,0.08)' }}>
                 {footer}
