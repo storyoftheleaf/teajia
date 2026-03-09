@@ -199,7 +199,7 @@ export const TeaInspireGallery: React.FC = () => {
                       onClick={(e) => handleMemberClick(e, image.communityMemberId)}
                       className="flex items-center gap-2 group/member hover:gap-3 transition-all"
                     >
-                      <div className="w-6 h-6 rounded-full overflow-hidden bg-tea-gold/15 ring-1 ring-white/30 flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full overflow-hidden bg-tea-gold/15 ring-1 ring-tea-text-dim/20 flex-shrink-0">
                         <img
                           src={member.photo}
                           alt={member.name}
@@ -320,7 +320,7 @@ export const TeaInspireGallery: React.FC = () => {
                     onClick={(e) => handleMemberClick(e, selectedImage.communityMemberId)}
                     className="flex items-center gap-3 group"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-tea-gold/15 ring-1 ring-white/30">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-tea-gold/15 ring-1 ring-tea-text-dim/20">
                       <img
                         src={memberMap.get(selectedImage.communityMemberId)?.photo}
                         alt={memberMap.get(selectedImage.communityMemberId)?.name}

@@ -681,13 +681,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             style={{
               position: "absolute", top: "16px", right: "16px",
               width: "36px", height: "36px",
-              background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%",
+              background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer",
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              stroke="var(--tea-text-sec)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>

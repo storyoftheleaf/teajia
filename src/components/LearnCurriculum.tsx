@@ -260,7 +260,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                         onClick={() => onStoryClick(lesson)}
                                      >
                                          {/* Status Node */}
-                                         <div className={`w-3 h-3 rounded-full border z-10 shrink-0 transition-all duration-300 ${isWatched ? 'bg-tea-gold border-tea-gold' : 'border-tea-text/40  bg-white group-hover/lesson:border-tea-gold/[0.08] dark:group-hover/lesson:border-tea-paper'}`}></div>
+                                         <div className={`w-3 h-3 rounded-full border z-10 shrink-0 transition-all duration-300 ${isWatched ? 'bg-tea-gold border-tea-gold' : 'border-tea-text/40 bg-tea-surface group-hover/lesson:border-tea-gold/[0.08]'}`}></div>
 
                                          {/* Lesson Card */}
                                          <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-gold/[0.08] rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>

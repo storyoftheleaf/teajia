@@ -110,11 +110,11 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
   const arrowBase = 'absolute top-1/2 -translate-y-1/2 z-10 hidden md:flex p-2 rounded-full transition-all disabled:opacity-0 disabled:pointer-events-none';
   const arrowColors = arrowTheme === 'light'
     ? 'bg-tea-text/8 hover:bg-tea-text/15 text-tea-text/50 hover:text-tea-text/80'
-    : 'bg-white/10 hover:bg-white/20 text-white/60 hover:text-white';
+    : 'bg-tea-text-dim/10 hover:bg-tea-text-dim/20 text-tea-text-sec/60 hover:text-tea-text-sec';
 
   // Dot styling based on theme
-  const dotActive = arrowTheme === 'light' ? 'bg-tea-gold' : 'bg-white';
-  const dotInactive = arrowTheme === 'light' ? 'bg-tea-text/15' : 'bg-white/30';
+  const dotActive = arrowTheme === 'light' ? 'bg-tea-gold' : 'bg-tea-text-sec';
+  const dotInactive = arrowTheme === 'light' ? 'bg-tea-text/15' : 'bg-tea-text-dim/30';
 
   return (
     <div className={`relative ${className}`} onKeyDown={handleKeyDown} tabIndex={0} role="region" aria-label="Carousel">

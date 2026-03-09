@@ -247,7 +247,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
               onClick={() => onPersonClick(story.author!)}
               className="flex items-center gap-3 active:opacity-70 transition-opacity py-2"
             >
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-tea-text/10 ring-1 ring-tea-border dark:ring-white/10">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-tea-text/10 ring-1 ring-tea-border">
                 {story.author.avatarUrl ? (
                   <img
                     src={story.author.avatarUrl}
@@ -288,7 +288,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 // Full-width image with premium styling
                 <div className="relative px-0">
                   <div
-                    className="relative w-full overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/5 active:scale-[0.99] transition-transform cursor-pointer"
+                    className="relative w-full overflow-hidden shadow-lg ring-1 ring-tea-border active:scale-[0.99] transition-transform cursor-pointer"
                     onClick={() => handleImageClick(group.items[0].index)}
                   >
                     {/* Subtle texture overlay */}
@@ -331,7 +331,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   {group.items.map(({ image, index }) => (
                     <div key={index} className="flex-1 relative">
                       <div
-                        className="relative overflow-hidden shadow-md ring-1 ring-black/5 dark:ring-white/5 active:scale-[0.98] transition-transform cursor-pointer"
+                        className="relative overflow-hidden shadow-md ring-1 ring-tea-border active:scale-[0.98] transition-transform cursor-pointer"
                         onClick={() => handleImageClick(index)}
                       >
                         {/* Subtle texture overlay */}
@@ -519,7 +519,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
             <img
               src={story.gallery[selectedImageIndex].url}
               alt={story.gallery[selectedImageIndex].caption || story.title}
-              className="max-w-full max-h-full object-contain shadow-2xl ring-1 ring-white/10"
+              className="max-w-full max-h-full object-contain shadow-2xl ring-1 ring-tea-text-dim/10"
             />
           </div>
 
@@ -535,8 +535,8 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   }}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     idx === selectedImageIndex
-                      ? 'bg-white scale-125'
-                      : 'bg-tea-gold/25 hover:bg-white/60'
+                      ? 'bg-tea-text scale-125'
+                      : 'bg-tea-gold/25 hover:bg-tea-text-sec/60'
                   }`}
                   aria-label={`Go to image ${idx + 1}`}
                 />

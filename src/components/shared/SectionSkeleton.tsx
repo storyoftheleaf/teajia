@@ -9,7 +9,7 @@ const ShimmerBar: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div
       className="absolute inset-0 animate-shimmer"
       style={{
-        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)',
+        background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.06), transparent)',
       }}
     />
   </div>

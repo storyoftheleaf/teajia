@@ -334,7 +334,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     className="w-full py-3.5 bg-tea-gold text-tea-paper font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
-                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
                     ) : (
                       'Sign In'
                     )}
@@ -425,7 +425,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     className="w-full py-3.5 bg-tea-gold text-tea-paper font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
-                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
                     ) : (
                       'Create Account'
                     )}
@@ -481,7 +481,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           onNavigateToStory?.(storyId);
                           onClose();
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/30 transition-colors group text-left ${
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-elevated/30 transition-colors group text-left ${
                           i < savedStoryEntries.length - 1 ? 'border-b border-tea-border ' : ''
                         }`}
                       >
@@ -527,7 +527,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           onNavigateToStory?.(entry.storyId);
                           onClose();
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/30 transition-colors group text-left ${
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-elevated/30 transition-colors group text-left ${
                           i < readingHistory.length - 1 ? 'border-b border-tea-border ' : ''
                         }`}
                       >
@@ -686,7 +686,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div className="border border-tea-border  overflow-hidden">
                     <button
                       onClick={() => setPanelView('saved-stories')}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-white/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors group"
                     >
                       <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
@@ -699,7 +699,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </button>
                     <button
                       onClick={() => setPanelView('reading-history')}
-                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-white/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-elevated/30 transition-colors group"
                     >
                       <Icons.BookOpen className={`w-5 h-5 ${progressCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
@@ -720,7 +720,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     {/* Theme Toggle */}
                     <button
                       onClick={toggleTheme}
-                      className="w-full flex items-center justify-between px-4 py-4 border-b border-tea-border  hover:bg-white/30 transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         {theme === 'light' ? (
@@ -733,7 +733,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         </span>
                       </div>
                       <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${theme === 'dark' ? 'bg-tea-gold' : 'bg-tea-bg/20'}`}>
-                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-tea-text shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0.5'}`} />
                       </div>
                     </button>
 
@@ -768,7 +768,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div className="border border-tea-border  overflow-hidden">
                     <button
                       onClick={handleOpenCart}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-white/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors group"
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Open Cart</span>
@@ -780,7 +780,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                     <a
                       href="mailto:hello@teajia.com"
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-white/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-tea-border  hover:bg-tea-elevated/30 transition-colors group"
                     >
                       <Icons.Mail className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Contact Us</span>
@@ -791,7 +791,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       href="https://instagram.com/teajia.journal"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-white/30 transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-elevated/30 transition-colors group"
                     >
                       <Icons.Instagram className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">@teajia.journal</span>

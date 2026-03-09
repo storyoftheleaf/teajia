@@ -317,7 +317,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin"></div>
                     Sending...
                   </>
                 ) : (

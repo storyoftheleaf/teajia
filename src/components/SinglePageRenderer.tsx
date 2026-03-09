@@ -323,7 +323,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
             onClick={handlePlay}
             className="absolute inset-0 flex items-center justify-center group cursor-pointer"
           >
-            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-gold/30 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-white group-active:scale-95">
+            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-gold/30 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
               <Icons.Play className="w-8 h-8 text-tea-text ml-1" />
             </div>
           </button>
@@ -649,7 +649,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                  <path d="M20,0 Q30,50 20,100" fill="none" stroke="currentColor" strokeWidth="0.5" />
                                  <path d="M80,0 Q70,50 80,100" fill="none" stroke="currentColor" strokeWidth="0.5" />
                              </svg>
-                             <div className="relative z-10 text-center bg-white/60 backdrop-blur-sm p-16 border border-black/10 shadow-sm rounded-sm">
+                             <div className="relative z-10 text-center bg-tea-surface/60 backdrop-blur-sm p-16 border border-tea-border shadow-sm rounded-sm">
                                  <Icons.Grid className="w-16 h-16 mx-auto mb-6 opacity-50" />
                                  <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-5xl font-serif tracking-[0.15em] uppercase font-bold" placeholder="Location Name" tag="h2" readOnly={readOnly} />
                                  <p className="text-2xl font-mono mt-6 opacity-60">32.4° N, 118.2° E</p>

@@ -100,7 +100,7 @@ export const Shop: React.FC<ShopProps> = ({
               className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
             >
               <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
-              <span className="w-[1px] h-3 bg-white/30" />
+              <span className="w-[1px] h-3 bg-tea-text-sec/30" />
               <span className="font-mono text-sm">{set.price}</span>
             </button>
           </div>

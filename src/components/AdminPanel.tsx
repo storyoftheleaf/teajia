@@ -112,7 +112,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                 {/* Main Canvas Area */}
                 {tab === 'CANVAS' ? (
                     <div className="flex-1 bg-tea-bg relative flex items-center justify-center overflow-hidden" ref={containerRef}>
-                        <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})` }} className="shadow-2xl ring-1 ring-white/10 relative group bg-tea-bg transition-all duration-300">
+                        <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})` }} className="shadow-2xl ring-1 ring-tea-border relative group bg-tea-bg transition-all duration-300">
                              {/* Focus Ring Indication */}
                              <div className="absolute inset-0 pointer-events-none border-2 border-transparent group-hover:border-blue-500/20 transition-colors z-50"></div>
                              

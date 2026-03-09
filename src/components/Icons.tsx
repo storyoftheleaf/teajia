@@ -16,9 +16,9 @@ export const TeaLeafIcon = ({ className, filled, style, ...props }: { className?
       d="M12 20.5C12 20.5 5 16 4 10C3 4 9 2 12 4C15 2 21 4 20 10C19 16 12 20.5 12 20.5Z"
       fill={filled ? "currentColor" : "none"}
     />
-    <path d="M12 20.5V8" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-    <path d="M12 8L8 5" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-    <path d="M12 8L16 5" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
+    <path d="M12 20.5V8" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+    <path d="M12 8L8 5" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+    <path d="M12 8L16 5" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
   </svg>
 );
 
@@ -35,9 +35,9 @@ export const OfferingsIcon = ({ className, filled, style, ...props }: { classNam
   <svg viewBox="0 0 24 24" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <g>
       <path d="M13 8.5h4v1.2c0 1.2-0.9 2.1-2 2.1s-2-0.9-2-2.1V8.5Z" fill={filled ? "currentColor" : "none"} />
-      <path d="M12.4 12.5h5.2" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <path d="M14 6.5c0.6-0.5 0.6-1.3 0-1.8" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <path d="M16 6.5c0.6-0.5 0.6-1.3 0-1.8" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
+      <path d="M12.4 12.5h5.2" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <path d="M14 6.5c0.6-0.5 0.6-1.3 0-1.8" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <path d="M16 6.5c0.6-0.5 0.6-1.3 0-1.8" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
       <path d="M5 13.8c1.1 0.4 2.1 0.6 3.1 0.6H11c0.7 0 1.2 0.3 1.6 0.7l1.1 1.1c0.4 0.4 0.2 1.1-0.3 1.3-1.7 0.7-3.3 1-5.1 1-1.1 0-1.9-0.2-2.7-0.5-0.8-0.3-1.6-0.8-2.1-1.4" fill={filled ? "currentColor" : "none"} />
     </g>
   </svg>
@@ -47,9 +47,9 @@ export const LearnIcon = ({ className, filled, style, ...props }: { className?: 
   <svg viewBox="0 0 24 24" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <g>
       <path d="M8 5.5H16C16.83 5.5 17.5 6.17 17.5 7v11H9C7.62 18 6.5 18.5 6.5 18.5V7C6.5 6.17 7.17 5.5 8 5.5Z" fill={filled ? "currentColor" : "none"} />
-      <path d="M8 5.5V17.5" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <path d="M12.5 9.5c1.1 0 2 .9 2 2 0 1.6-1.15 2.9-3.2 3.6" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <path d="M12.5 9.5c-0.7 0.4-1.4 1.2-1.7 2.3" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
+      <path d="M8 5.5V17.5" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <path d="M12.5 9.5c1.1 0 2 .9 2 2 0 1.6-1.15 2.9-3.2 3.6" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <path d="M12.5 9.5c-0.7 0.4-1.4 1.2-1.7 2.3" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
     </g>
   </svg>
 );
@@ -59,11 +59,11 @@ export const MagazineIcon = ({ className, filled, style, ...props }: { className
     <g>
       <path d="M5 6.5C7.5 6 9.5 6 12 7v10c-2.5-1-4.5-1-7 0V6.5Z" fill={filled ? "currentColor" : "none"} />
       <path d="M19 6.5C16.5 6 14.5 6 12 7v10c2.5-1 4.5-1 7 0V6.5Z" fill={filled ? "currentColor" : "none"} />
-      <line x1="12" y1="7" x2="12" y2="17" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <line x1="7" y1="9" x2="10" y2="9" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <line x1="7" y1="11" x2="10" y2="11" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
-      <circle cx="15.5" cy="10" r="1.1" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} fill={filled ? "rgba(255,255,255,0.3)" : "none"} />
-      <line x1="14.3" y1="12.5" x2="16.7" y2="12.5" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
+      <line x1="12" y1="7" x2="12" y2="17" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <line x1="7" y1="9" x2="10" y2="9" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <line x1="7" y1="11" x2="10" y2="11" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
+      <circle cx="15.5" cy="10" r="1.1" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} fill={filled ? "var(--tea-text-dim)" : "none"} />
+      <line x1="14.3" y1="12.5" x2="16.7" y2="12.5" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
     </g>
   </svg>
 );
@@ -72,9 +72,9 @@ export const ShopIcon = ({ className, filled, style, ...props }: { className?: s
   <svg viewBox="0 0 24 24" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <g>
       <rect x="9" y="6" width="6" height="1.6" rx="0.5" fill={filled ? "currentColor" : "none"} />
-      <path d="M10 7.6h4" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
+      <path d="M10 7.6h4" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
       <path d="M8.5 7.6C7.7 8.3 7.2 9.5 7.2 10.8v4.3c0 2 1.7 3.7 3.7 3.7h2.2c2 0 3.7-1.7 3.7-3.7v-4.3c0-1.3-0.5-2.5-1.3-3.2" fill={filled ? "currentColor" : "none"} />
-      <path d="M8.7 12.1h6.6" stroke={filled ? "rgba(255,255,255,0.5)" : "currentColor"} />
+      <path d="M8.7 12.1h6.6" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
     </g>
   </svg>
 );
