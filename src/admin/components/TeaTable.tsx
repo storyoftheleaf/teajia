@@ -99,7 +99,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   };
 
   const SortIcon = ({ colKey }: { colKey: keyof Product }) => {
-      if (sortConfig?.key !== colKey) return <ArrowUpDown size={10} className="ml-1 text-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />;
+      if (sortConfig?.key !== colKey) return <ArrowUpDown size={10} className="ml-1 text-white/10 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-40 transition-opacity" />;
       return sortConfig.direction === 'asc' 
         ? <ArrowUp size={10} className="ml-1 text-neutral-400" /> 
         : <ArrowDown size={10} className="ml-1 text-neutral-400" />;
@@ -185,14 +185,14 @@ export const TeaTable: React.FC<TeaTableProps> = ({
       <div className="flex flex-wrap gap-2 w-full border-b border-tea-border pb-6">
             <button 
                 onClick={() => setFilter('All')} 
-                className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border ${filter === 'All' ? 'bg-tea-text text-tea-bg border-tea-text' : 'text-tea-muted border-tea-border hover:border-tea-muted hover:text-tea-text'}`}
+                className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border ${filter === 'All' ? 'bg-tea-text text-tea-bg border-tea-text' : 'text-tea-muted border-tea-border hover:border-tea-muted hover:text-tea-text'}`}
             >
                 All
             </button>
             {activeProducts.some(p => p.isFeatured) && (
                 <button 
                     onClick={() => setFilter('Featured')} 
-                    className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border flex items-center gap-1.5 ${filter === 'Featured' ? 'bg-tea-accent text-tea-bg border-tea-accent' : 'text-tea-accent/70 border-tea-accent/30 hover:border-tea-accent/60 hover:text-tea-accent'}`}
+                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border flex items-center gap-1.5 ${filter === 'Featured' ? 'bg-tea-accent text-tea-bg border-tea-accent' : 'text-tea-accent/70 border-tea-accent/30 hover:border-tea-accent/60 hover:text-tea-accent'}`}
                 >
                     <Star size={10} className={filter === 'Featured' ? 'fill-tea-bg' : 'fill-tea-accent/70'} />
                     Featured
@@ -206,7 +206,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                 <button 
                     key={type} 
                     onClick={() => setFilter(type)} 
-                    className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border ${isActive ? `bg-tea-text text-tea-bg border-tea-text` : 'text-tea-muted border-tea-border hover:border-tea-muted hover:text-tea-text'}`}
+                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border ${isActive ? `bg-tea-text text-tea-bg border-tea-text` : 'text-tea-muted border-tea-border hover:border-tea-muted hover:text-tea-text'}`}
                 >
                     {type}
                 </button>
@@ -328,7 +328,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     <td className="py-3 px-4 text-right align-middle">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); onAdd(product); }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-2 border border-tea-border rounded-full hover:bg-tea-accent hover:text-tea-bg text-tea-muted hover:border-tea-accent"
+                                            className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 transition-opacity p-3 md:p-2 border border-tea-border rounded-full hover:bg-tea-accent hover:text-tea-bg text-tea-muted hover:border-tea-accent"
                                         >
                                             <Plus size={14} />
                                         </button>
