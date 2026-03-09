@@ -561,7 +561,7 @@ export const ICON_SIZES = {
  *   </div>
  */
 
-export const SURFACE_TREATMENTS = {
+export const SURFACE_TREATMENTS_BASE = {
   /** Primary warm surface — radial warmth + grain */
   warm: {
     warmthGradient: `
