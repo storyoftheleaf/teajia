@@ -561,42 +561,7 @@ export const ICON_SIZES = {
  *   </div>
  */
 
-export const SURFACE_TREATMENTS = {
-  /** Primary warm surface — radial warmth + grain */
-  warm: {
-    warmthGradient: `
-      radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
-    `,
-    grain: TEXTURES.alcoveGrain,
-    grainOpacity: 0.06,
-    grainSize: '120px',
-  },
-
-  /** Recessed inset surface — darker bg, edge-lit, denser grain, ambient glow */
-  warmInset: {
-    background: 'rgba(0,0,0,0.25)',
-    boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
-    borderRadius: '6px',
-    grain: TEXTURES.alcoveGrain,
-    grainOpacity: 0.08,
-    grainSize: '120px',
-    ambientGlow: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
-    ambientGlowHeight: '60%',
-  },
-
-  /** Light mode warm inset — softer treatment */
-  warmInsetLight: {
-    background: 'rgba(0,0,0,0.04)',
-    boxShadow: 'inset 0 1px 0 rgba(142,109,46,0.08), inset 0 -1px 0 rgba(142,109,46,0.04), 0 -1px 0 rgba(142,109,46,0.06)',
-    borderRadius: '6px',
-    grain: TEXTURES.alcoveGrain,
-    grainOpacity: 0.04,
-    grainSize: '120px',
-    ambientGlow: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(142,109,46,0.03), transparent)',
-    ambientGlowHeight: '60%',
-  },
-} as const;
+// (First SURFACE_TREATMENTS removed — consolidated version is in §12 below)
 
 
 // ─────────────────────────────────────────────────────────────
