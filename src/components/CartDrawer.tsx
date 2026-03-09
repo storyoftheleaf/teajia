@@ -39,6 +39,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
   const [details, setDetails] = useState({
     name: '',
     contact: '', // Email or Phone
+    phone: '',   // Phone number for local pickup/Go-Jek
     location: '',
     notes: ''
   });
@@ -69,6 +70,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
   const validateField = (field: string, value: string): string => {
     if (field === 'name' && !value.trim()) return 'Name is required';
     if (field === 'contact' && !value.trim()) return 'Email or phone is required';
+    if (field === 'phone' && !value.trim()) return 'Phone number is required';
     if (field === 'location' && !value.trim()) return 'Location is required';
     return '';
   };
@@ -87,7 +89,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
     }
   };
 
-  const isFormValid = details.name.trim() && details.contact.trim() && (shippingMethod === 'pickup' || details.location.trim());
+  const needsPhone = shippingMethod === 'pickup' || shippingMethod === 'gojek';
+  const needsLocation = shippingMethod === 'international' || shippingMethod === 'gojek';
+  const isFormValid = details.name.trim() && details.contact.trim()
+    && (!needsPhone || details.phone.trim())
+    && (!needsLocation || details.location.trim());
 
   // Option 2: Device detection for smart button selection
   const [isLikelyMobile, setIsLikelyMobile] = useState(false);
@@ -211,6 +217,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
     const date = new Date().toLocaleDateString();
     let msg = `ORDER INQUIRY [TEAJIA]\nRef: ${orderRef}\nDate: ${date}\n\n`;
     msg += `CUSTOMER:\nName: ${details.name}\nContact: ${details.contact}\n`;
+    if (details.phone) msg += `Phone: ${details.phone}\n`;
     msg += `Shipping: ${shippingLabel}\n`;
     if (shippingMethod === 'international') {
       msg += `Ship To: ${details.location}\n`;
@@ -275,11 +282,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         onClick={onClose}
       ></div>
 
-      {/* Drawer Panel */}
+      {/* Drawer Panel — Alcove-inspired warm dark aesthetic */}
       <div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full md:w-[450px] bg-tea-bg  z-[100] shadow-2xl flex flex-col ${isOpen ? '' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full md:w-[450px] z-[100] shadow-2xl flex flex-col ${isOpen ? '' : 'translate-x-full'}`}
         style={{
+          background: '#1c1b19',
+          color: '#c0b49a',
           transform: isOpen ? `translateX(${touchOffset}px)` : 'translateX(100%)',
           opacity: isDragging ? swipeOpacity : 1,
           transition: isDragging ? 'none' : 'transform 300ms ease-out, opacity 300ms ease-out'
@@ -288,61 +297,70 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Ambient warmth layer */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse at 85% 8%, rgba(181,101,29,0.09) 0%, rgba(181,101,29,0.04) 40%, transparent 70%)'
+        }} />
+        {/* Noise grain */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          opacity: 0.06,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '128px 128px'
+        }} />
 
         {/* Header */}
-        <div className="flex flex-col">
-            {/* Mobile drag handle — swipe-to-dismiss is gated here (#21) */}
-            <div data-drag-handle className="md:hidden flex justify-center py-3 bg-tea-surface  cursor-grab active:cursor-grabbing touch-pan-x">
-                <div className={`h-1 rounded-full transition-all duration-150 ${
-                  isDragging
-                    ? 'bg-tea-gold w-16'
-                    : 'bg-tea-bg/20 w-12'
-                }`}></div>
+        <div className="flex flex-col relative z-10">
+            {/* Mobile drag handle */}
+            <div data-drag-handle className="md:hidden flex justify-center py-3 cursor-grab active:cursor-grabbing touch-pan-x" style={{ background: '#1e1d1b' }}>
+                <div className="rounded-full transition-all duration-150" style={{
+                  height: 3,
+                  width: isDragging ? 64 : 48,
+                  background: isDragging ? '#b5651d' : 'rgba(200,170,120,0.2)'
+                }} />
             </div>
 
-            <div className="flex items-center justify-between p-6 border-b border-tea-gold/[0.08]  bg-tea-surface ">
-                {/* Left: Back (checkout step) or empty spacer */}
+            <div className="flex items-center justify-between px-6 py-5" style={{
+              borderBottom: '1px solid rgba(200,170,120,0.08)',
+              background: '#1e1d1b'
+            }}>
                 {step !== 'CART' ? (
                     <button onClick={handleBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Back to cart">
-                        <Icons.Back className="w-5 h-5 text-tea-text/50 hover:text-tea-text" />
+                        <Icons.Back className="w-5 h-5" style={{ color: '#8a7e6a' }} />
                     </button>
                 ) : (
                     <div className="w-[44px]" />
                 )}
-                {/* Centre: Title + reference */}
                 <div className="text-center">
-                    <h2 className="text-lg font-serif text-tea-text  tracking-wide">
+                    <h2 style={{ color: '#ede6d8', fontFamily: 'Fraunces, serif', fontSize: 20, fontWeight: 300, letterSpacing: '0.02em' }}>
                         {step === 'CART' ? 'Your Selection' : 'Request Order'}
                     </h2>
                     {step === 'CHECKOUT' && (
-                        <p className="text-[10px] font-mono text-tea-text-dim mt-0.5">{orderRef}</p>
+                        <p style={{ fontSize: 10, fontFamily: 'monospace', color: '#6a6050', marginTop: 2 }}>{orderRef}</p>
                     )}
                 </div>
-                {/* Right: Close */}
                 <button onClick={onClose} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Close cart">
-                    <Icons.Close className="w-6 h-6 text-tea-text-dim hover:text-tea-text" />
+                    <Icons.Close className="w-6 h-6" style={{ color: '#6a6050' }} />
                 </button>
             </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 relative">
-           {/* Texture */}
-           <div className="absolute inset-0 opacity-[0.1] bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] mix-blend-multiply pointer-events-none"></div>
+        <div className="flex-1 overflow-y-auto p-6 relative z-10">
            
-           {/* Undo remove toast (#68) */}
+           {/* Undo remove toast */}
            {removedItem && (
                <div className="relative z-20 mb-4 animate-[slideUp_0.3s_ease-out]">
-                   <div className="flex items-center justify-between bg-tea-bg text-tea-text  px-4 py-3 rounded-sm">
-                       <span className="text-xs font-sans">{removedItem.item.name} removed</span>
+                   <div className="flex items-center justify-between px-4 py-3 rounded-sm" style={{ background: '#252420', color: '#c0b49a' }}>
+                       <span style={{ fontSize: 12, fontFamily: 'Bricolage Grotesque, sans-serif' }}>{removedItem.item.name} removed</span>
                        <button
                            onClick={() => {
                                clearTimeout(removedItem.undoTimeout);
-                               // Re-add the item
                                onUpdateQuantity(removedItem.item.id, removedItem.item.quantityGrams);
                                setRemovedItem(null);
                            }}
-                           className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors"
+                           className="ml-4 transition-colors"
+                           style={{ color: '#b5651d', fontSize: 11, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase' as const }}
                        >
                            Undo
                        </button>
@@ -354,44 +372,45 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
            {step === 'CART' && (
                <div className="space-y-6 relative z-10">
                    {cart.length === 0 ? (
-                       <div className="text-center py-20 opacity-40">
-                           <Icons.Bag className="w-12 h-12 mx-auto mb-4" />
-                           <p className="font-serif italic">Your ledger is empty.</p>
+                       <div className="text-center py-20" style={{ opacity: 0.35 }}>
+                           <Icons.Bag className="w-12 h-12 mx-auto mb-4" style={{ color: '#8a7e6a' }} />
+                           <p style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', color: '#8a7e6a' }}>Your ledger is empty.</p>
                        </div>
                    ) : (
                        cart.map(item => (
-                           <div key={item.id} className="flex gap-4 border-b border-tea-gold/[0.08]  pb-4">
-                               <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-[1px] shrink-0">
+                           <div key={item.id} className="flex gap-4 pb-4" style={{ borderBottom: '1px solid rgba(200,170,120,0.08)' }}>
+                               <div className="w-16 h-16 flex items-center justify-center overflow-hidden shrink-0" style={{ borderRadius: 2, background: '#252420' }}>
                                    {item.image ? (
-                                       <img src={item.image} className="w-full h-full object-cover sepia-[0.3]" alt={item.name} loading="eager" />
+                                       <img src={item.image} className="w-full h-full object-cover" style={{ filter: 'sepia(0.2) brightness(0.9)' }} alt={item.name} loading="eager" />
                                    ) : (
-                                       <Icons.Leaf className="w-6 h-6 opacity-20" />
+                                       <Icons.Leaf className="w-6 h-6" style={{ color: '#6a6050', opacity: 0.4 }} />
                                    )}
                                </div>
                                <div className="flex-1 min-w-0">
                                    <div className="flex justify-between items-start">
-                                       <h3 className="font-serif text-tea-text  text-lg leading-none mb-1">{item.name}</h3>
-                                       {/* Remove button always visible (#67) */}
+                                       <h3 style={{ fontFamily: 'Fraunces, serif', color: '#ede6d8', fontSize: 18, fontWeight: 300, lineHeight: 1, marginBottom: 4 }}>{item.name}</h3>
                                        <button
                                            onClick={() => {
                                                const timeout = setTimeout(() => setRemovedItem(null), 5000);
                                                setRemovedItem({ item, undoTimeout: timeout });
                                                onRemoveItem(item.id);
                                            }}
-                                           className="text-tea-text-dim hover:text-red-500 p-2 -mr-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                           className="p-2 -mr-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                           style={{ color: '#6a6050' }}
                                            aria-label={`Remove ${item.name} from cart`}
                                        >
                                            <Icons.Close className="w-4 h-4" />
                                        </button>
                                    </div>
-                                   <p className="text-[10px] uppercase tracking-wider text-tea-text-dim mb-3">{item.variant}</p>
+                                   <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: '#8a7e6a', marginBottom: 10 }}>{item.variant}</p>
 
-                                   {/* Quantity stepper with +/− buttons (#23/#63) */}
-                                   <div className="flex items-center justify-between gap-3 bg-tea-gold/20 px-2 py-1.5 rounded-lg">
+                                   {/* Quantity stepper */}
+                                   <div className="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-md" style={{ background: 'rgba(200,170,120,0.08)' }}>
                                        <div className="flex items-center gap-2">
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - (item.category === 'tea' ? 10 : 1)))}
-                                               className="w-7 h-7 flex items-center justify-center rounded-sm bg-tea-gold/25 hover:bg-tea-gold/40 transition-colors text-tea-text  font-medium text-base leading-none"
+                                               className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors"
+                                               style={{ background: 'rgba(200,170,120,0.12)', color: '#c0b49a' }}
                                                aria-label="Decrease quantity"
                                            >−</button>
                                            <div className="flex items-center gap-1">
@@ -410,17 +429,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                                      const val = parseInt(e.target.value);
                                                      if (isNaN(val) || val < 1) onUpdateQuantity(item.id, 1);
                                                    }}
-                                                   className="w-12 bg-transparent num text-xs text-tea-text border-b border-tea-gold/[0.08] focus:outline-none focus:border-tea-gold text-center"
+                                                   className="w-12 bg-transparent num text-xs text-center focus:outline-none"
+                                                   style={{ color: '#ede6d8', borderBottom: '1px solid rgba(200,170,120,0.15)' }}
                                                />
-                                               {item.category === 'tea' && <span className="num text-xs text-tea-text-dim">g</span>}
+                                               {item.category === 'tea' && <span className="num text-xs" style={{ color: '#6a6050' }}>g</span>}
                                            </div>
                                            <button
                                                onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + (item.category === 'tea' ? 10 : 1)))}
-                                               className="w-7 h-7 flex items-center justify-center rounded-sm bg-tea-gold/25 hover:bg-tea-gold/40 transition-colors text-tea-text  font-medium text-base leading-none"
+                                               className="w-7 h-7 flex items-center justify-center rounded-sm transition-colors"
+                                               style={{ background: 'rgba(200,170,120,0.12)', color: '#c0b49a' }}
                                                aria-label="Increase quantity"
                                            >+</button>
                                        </div>
-                                       <span className="num text-sm text-tea-text font-medium">
+                                       <span className="num text-sm" style={{ color: '#ede6d8', fontWeight: 400 }}>
                                            {fmtPrice(item.totalPrice)}
                                        </span>
                                    </div>
@@ -431,106 +452,86 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                </div>
            )}
 
-           {/* STEP 2: CHECKOUT (Combined Details + Message) */}
+           {/* STEP 2: CHECKOUT — Alcove-inspired */}
            {step === 'CHECKOUT' && (
-               <div className="space-y-6 relative z-10">
-                   <p className="font-serif text-sm text-tea-text/70 /70 italic mb-4">
+               <div className="space-y-5 relative z-10">
+                   <p style={{ fontFamily: 'Fraunces, serif', fontSize: 14, color: '#8a7e6a', fontStyle: 'italic', marginBottom: 4 }}>
                        Fill in your details below. Your order inquiry will be generated automatically.
                    </p>
 
                    {/* Shipping Method Selector */}
-                   <div className="space-y-2">
-                       <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2">Shipping Method *</label>
+                   <div>
+                       <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 8 }}>Shipping Method</label>
                        <div className="grid grid-cols-1 gap-2">
-                           <button
+                           {([
+                             { key: 'international' as ShippingMethod, label: 'International Shipping', desc: 'Shipping cost calculated and confirmed separately' },
+                             { key: 'pickup' as ShippingMethod, label: 'Local Pick Up', desc: 'Collect your order in person' },
+                             { key: 'gojek' as ShippingMethod, label: 'Local Go-Jek', desc: 'Same-day delivery via Go-Jek (Bali area)' },
+                           ]).map(opt => (
+                             <button
+                               key={opt.key}
                                type="button"
-                               onClick={() => setShippingMethod('international')}
-                               className={`flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
-                                   shippingMethod === 'international'
-                                       ? 'border-tea-gold bg-tea-gold/10'
-                                       : 'border-tea-gold/[0.08] bg-tea-surface hover:border-tea-gold/20'
-                               }`}
-                           >
-                               <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                   shippingMethod === 'international' ? 'border-tea-gold' : 'border-tea-text-dim/30'
-                               }`}>
-                                   {shippingMethod === 'international' && <div className="w-2 h-2 rounded-full bg-tea-gold" />}
+                               onClick={() => setShippingMethod(opt.key)}
+                               className="flex items-start gap-3 p-3 rounded-md text-left transition-all"
+                               style={{
+                                 border: `1px solid ${shippingMethod === opt.key ? 'rgba(181,101,29,0.5)' : 'rgba(200,170,120,0.08)'}`,
+                                 background: shippingMethod === opt.key ? 'rgba(181,101,29,0.08)' : '#1e1d1b',
+                               }}
+                             >
+                               <div className="mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{
+                                 border: `2px solid ${shippingMethod === opt.key ? '#b5651d' : 'rgba(154,144,128,0.3)'}`
+                               }}>
+                                 {shippingMethod === opt.key && <div className="w-2 h-2 rounded-full" style={{ background: '#b5651d' }} />}
                                </div>
                                <div>
-                                   <span className="block font-serif text-sm text-tea-text">International Shipping</span>
-                                   <span className="block text-[10px] text-tea-text-dim mt-0.5">Shipping cost will be calculated and confirmed separately</span>
+                                 <span style={{ display: 'block', fontFamily: 'Fraunces, serif', fontSize: 14, fontWeight: 300, color: '#ede6d8' }}>{opt.label}</span>
+                                 <span style={{ display: 'block', fontSize: 10, color: '#6a6050', marginTop: 2 }}>{opt.desc}</span>
                                </div>
-                           </button>
-                           <button
-                               type="button"
-                               onClick={() => setShippingMethod('pickup')}
-                               className={`flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
-                                   shippingMethod === 'pickup'
-                                       ? 'border-tea-gold bg-tea-gold/10'
-                                       : 'border-tea-gold/[0.08] bg-tea-surface hover:border-tea-gold/20'
-                               }`}
-                           >
-                               <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                   shippingMethod === 'pickup' ? 'border-tea-gold' : 'border-tea-text-dim/30'
-                               }`}>
-                                   {shippingMethod === 'pickup' && <div className="w-2 h-2 rounded-full bg-tea-gold" />}
-                               </div>
-                               <div>
-                                   <span className="block font-serif text-sm text-tea-text">Local Pick Up</span>
-                                   <span className="block text-[10px] text-tea-text-dim mt-0.5">Collect your order in person</span>
-                               </div>
-                           </button>
-                           <button
-                               type="button"
-                               onClick={() => setShippingMethod('gojek')}
-                               className={`flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
-                                   shippingMethod === 'gojek'
-                                       ? 'border-tea-gold bg-tea-gold/10'
-                                       : 'border-tea-gold/[0.08] bg-tea-surface hover:border-tea-gold/20'
-                               }`}
-                           >
-                               <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                   shippingMethod === 'gojek' ? 'border-tea-gold' : 'border-tea-text-dim/30'
-                               }`}>
-                                   {shippingMethod === 'gojek' && <div className="w-2 h-2 rounded-full bg-tea-gold" />}
-                               </div>
-                               <div>
-                                   <span className="block font-serif text-sm text-tea-text">Local Go-Jek</span>
-                                   <span className="block text-[10px] text-tea-text-dim mt-0.5">Same-day delivery via Go-Jek (Bali area)</span>
-                               </div>
-                           </button>
+                             </button>
+                           ))}
                        </div>
                    </div>
 
-                   {/* Required Fields Form */}
-                   <div className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-gold/[0.08] ">
+                   {/* Inset Form Panel — Alcove-style */}
+                   <div className="rounded-md p-4 space-y-4" style={{
+                     background: '#1e1d1b',
+                     boxShadow: 'inset 0 1px 0 0 rgba(200,170,120,0.04), inset 0 -1px 0 0 rgba(0,0,0,0.3)',
+                     border: '1px solid rgba(200,170,120,0.06)'
+                   }}>
+                       {/* Name */}
                        <div>
-                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Name *</label>
+                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Name</label>
                            <div className="relative">
                                <input
                                    type="text"
                                    value={details.name}
                                    onChange={(e) => handleFieldChange('name', e.target.value)}
                                    onBlur={() => handleFieldBlur('name')}
-                                   aria-describedby={touched.name && errors.name ? 'name-error' : undefined}
                                    aria-invalid={touched.name && !!errors.name}
-                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
-                                       touched.name && errors.name
-                                           ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
-                                   }`}
                                    placeholder="Your full name"
+                                   className="w-full focus:outline-none transition-colors"
+                                   style={{
+                                     background: 'transparent',
+                                     borderBottom: `1px solid ${touched.name && errors.name ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     padding: '6px 0',
+                                     fontFamily: 'Fraunces, serif',
+                                     fontSize: 17,
+                                     fontWeight: 300,
+                                     color: '#ede6d8',
+                                   }}
                                />
                                {details.name && !errors.name && (
-                                   <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
                                )}
                            </div>
                            {touched.name && errors.name && (
-                               <p id="name-error" role="alert" className="text-red-500 text-xs mt-1">{errors.name}</p>
+                               <p role="alert" style={{ color: '#c0392b', fontSize: 11, marginTop: 4 }}>{errors.name}</p>
                            )}
                        </div>
+
+                       {/* Contact (Email) */}
                        <div>
-                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Contact *</label>
+                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Email</label>
                            <div className="relative">
                                <input
                                    type="email"
@@ -539,101 +540,178 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                                    value={details.contact}
                                    onChange={(e) => handleFieldChange('contact', e.target.value)}
                                    onBlur={() => handleFieldBlur('contact')}
-                                   aria-describedby={touched.contact && errors.contact ? 'contact-error' : undefined}
                                    aria-invalid={touched.contact && !!errors.contact}
-                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
-                                       touched.contact && errors.contact
-                                           ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
-                                   }`}
                                    placeholder="your@email.com"
+                                   className="w-full focus:outline-none transition-colors"
+                                   style={{
+                                     background: 'transparent',
+                                     borderBottom: `1px solid ${touched.contact && errors.contact ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     padding: '6px 0',
+                                     fontFamily: 'Fraunces, serif',
+                                     fontSize: 17,
+                                     fontWeight: 300,
+                                     color: '#ede6d8',
+                                   }}
                                />
                                {details.contact && !errors.contact && (
-                                   <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
                                )}
                            </div>
                            {touched.contact && errors.contact && (
-                               <p id="contact-error" role="alert" className="text-red-500 text-xs mt-1">{errors.contact}</p>
+                               <p role="alert" style={{ color: '#c0392b', fontSize: 11, marginTop: 4 }}>{errors.contact}</p>
                            )}
                        </div>
+
+                       {/* Phone — shown for pickup & gojek */}
+                       {needsPhone && (
+                       <div>
+                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Phone Number</label>
+                           <div className="relative">
+                               <input
+                                   type="tel"
+                                   inputMode="tel"
+                                   autoComplete="tel"
+                                   value={details.phone}
+                                   onChange={(e) => handleFieldChange('phone', e.target.value)}
+                                   onBlur={() => handleFieldBlur('phone')}
+                                   aria-invalid={touched.phone && !!errors.phone}
+                                   placeholder={shippingMethod === 'gojek' ? 'For Go-Jek driver coordination' : 'For pick up coordination'}
+                                   className="w-full focus:outline-none transition-colors"
+                                   style={{
+                                     background: 'transparent',
+                                     borderBottom: `1px solid ${touched.phone && errors.phone ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     padding: '6px 0',
+                                     fontFamily: 'Fraunces, serif',
+                                     fontSize: 17,
+                                     fontWeight: 300,
+                                     color: '#ede6d8',
+                                   }}
+                               />
+                               {details.phone && !errors.phone && (
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
+                               )}
+                           </div>
+                           {touched.phone && errors.phone && (
+                               <p role="alert" style={{ color: '#c0392b', fontSize: 11, marginTop: 4 }}>{errors.phone}</p>
+                           )}
+                       </div>
+                       )}
+
+                       {/* Shipping Location — international */}
                        {shippingMethod === 'international' && (
                        <div>
-                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Shipping Location *</label>
+                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Shipping Location</label>
                            <div className="relative">
                                <input
                                    type="text"
                                    value={details.location}
                                    onChange={(e) => handleFieldChange('location', e.target.value)}
                                    onBlur={() => handleFieldBlur('location')}
-                                   aria-describedby={touched.location && errors.location ? 'location-error' : undefined}
                                    aria-invalid={touched.location && !!errors.location}
-                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
-                                       touched.location && errors.location
-                                           ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
-                                   }`}
                                    placeholder="City, Country"
+                                   className="w-full focus:outline-none transition-colors"
+                                   style={{
+                                     background: 'transparent',
+                                     borderBottom: `1px solid ${touched.location && errors.location ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     padding: '6px 0',
+                                     fontFamily: 'Fraunces, serif',
+                                     fontSize: 17,
+                                     fontWeight: 300,
+                                     color: '#ede6d8',
+                                   }}
                                />
                                {details.location && !errors.location && (
-                                   <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
                                )}
                            </div>
                            {touched.location && errors.location && (
-                               <p id="location-error" role="alert" className="text-red-500 text-xs mt-1">{errors.location}</p>
+                               <p role="alert" style={{ color: '#c0392b', fontSize: 11, marginTop: 4 }}>{errors.location}</p>
                            )}
                        </div>
                        )}
+
+                       {/* Delivery Address — gojek */}
                        {shippingMethod === 'gojek' && (
                        <div>
-                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Delivery Address *</label>
+                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#8a7e6a', marginBottom: 4 }}>Delivery Address</label>
                            <div className="relative">
                                <input
                                    type="text"
                                    value={details.location}
                                    onChange={(e) => handleFieldChange('location', e.target.value)}
                                    onBlur={() => handleFieldBlur('location')}
-                                   aria-describedby={touched.location && errors.location ? 'location-error' : undefined}
                                    aria-invalid={touched.location && !!errors.location}
-                                   className={`w-full bg-tea-surface border-b border-tea-gold/[0.08] p-2 focus:outline-none  font-serif text-lg placeholder:text-tea-text/20 transition-colors ${
-                                       touched.location && errors.location
-                                           ? 'border-red-500 focus:border-red-500'
-                                           : 'border-tea-gold/[0.08]  focus:border-tea-gold'
-                                   }`}
                                    placeholder="Full address for Go-Jek delivery"
+                                   className="w-full focus:outline-none transition-colors"
+                                   style={{
+                                     background: 'transparent',
+                                     borderBottom: `1px solid ${touched.location && errors.location ? '#c0392b' : 'rgba(200,170,120,0.12)'}`,
+                                     padding: '6px 0',
+                                     fontFamily: 'Fraunces, serif',
+                                     fontSize: 17,
+                                     fontWeight: 300,
+                                     color: '#ede6d8',
+                                   }}
                                />
                                {details.location && !errors.location && (
-                                   <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                                   <Icons.Check className="absolute right-1 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#7a9a72' }} />
                                )}
                            </div>
                            {touched.location && errors.location && (
-                               <p id="location-error" role="alert" className="text-red-500 text-xs mt-1">{errors.location}</p>
+                               <p role="alert" style={{ color: '#c0392b', fontSize: 11, marginTop: 4 }}>{errors.location}</p>
                            )}
                        </div>
                        )}
+
+                       {/* Notes */}
                        <div>
-                           <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">Special Requests (Optional)</label>
+                           <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6a6050', marginBottom: 4 }}>Special Requests <span style={{ fontStyle: 'italic', textTransform: 'none' as const, letterSpacing: 0 }}>optional</span></label>
                            <textarea
                                value={details.notes}
                                onChange={(e) => setDetails({...details, notes: e.target.value})}
-                               className="w-full bg-tea-surface border-b border-tea-gold/[0.08] border-tea-gold/[0.08]  p-2 focus:outline-none focus:border-tea-gold  font-serif text-base h-20 resize-none placeholder:text-tea-text/20"
                                placeholder="Any special requests..."
+                               className="w-full focus:outline-none resize-none"
+                               style={{
+                                 background: 'transparent',
+                                 borderBottom: '1px solid rgba(200,170,120,0.08)',
+                                 padding: '6px 0',
+                                 fontFamily: 'Fraunces, serif',
+                                 fontSize: 15,
+                                 fontWeight: 300,
+                                 color: '#c0b49a',
+                                 height: 60,
+                               }}
                            />
                        </div>
                    </div>
 
-                   {/* Message Preview */}
+                   {/* Message Preview — inset with depth */}
                    <div>
-                       <label className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2">Order Inquiry Preview</label>
-                       <div className="bg-tea-elevated border border-tea-gold/[0.08]  p-4 font-mono text-xs leading-relaxed text-tea-text/80 /80 shadow-inner overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
+                       <label style={{ display: 'block', fontSize: 11, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6a6050', marginBottom: 6 }}>Order Inquiry Preview</label>
+                       <div className="overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto" style={{
+                         background: '#161514',
+                         border: '1px solid rgba(200,170,120,0.06)',
+                         borderRadius: 4,
+                         padding: 14,
+                         fontFamily: 'monospace',
+                         fontSize: 11,
+                         lineHeight: 1.6,
+                         color: '#9a9080',
+                         boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)'
+                       }}>
                            {orderMessage}
                        </div>
                    </div>
 
-                   {/* Option 4: Success Message Animation */}
+                   {/* Success Message */}
                    {successMessage.show && (
-                       <div className="animate-[fadeIn_0.3s_ease-out] bg-tea-green/10 border border-tea-green/30 text-tea-green px-4 py-3 rounded-lg flex items-center gap-2">
+                       <div className="animate-[fadeIn_0.3s_ease-out] flex items-center gap-2 px-4 py-3 rounded-md" style={{
+                         background: 'rgba(122,154,114,0.1)',
+                         border: '1px solid rgba(122,154,114,0.25)',
+                         color: '#7a9a72'
+                       }}>
                            <Icons.Check className="w-4 h-4" />
-                           <span className="text-xs uppercase tracking-[0.15em] font-medium">
+                           <span style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase' as const, fontWeight: 500 }}>
                                {successMessage.type === 'whatsapp' && 'Opening WhatsApp...'}
                                {successMessage.type === 'email' && 'Opening email client...'}
                                {successMessage.type === 'copy' && 'Copied to clipboard!'}
@@ -641,68 +719,90 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
                        </div>
                    )}
 
-                   <div className="grid grid-cols-1 gap-3">
-                       {/* Option 2: Smart Device Detection - Highlight Preferred Channel */}
+                   {/* Send Buttons — Alcove action style */}
+                   <div className="grid grid-cols-1 gap-2.5">
                        <button
                            onClick={handleWhatsApp}
                            disabled={!isFormValid}
-                           className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                               preferredChannel === 'whatsapp'
-                                   ? 'border-tea-green/50 bg-tea-green/10 text-tea-green shadow-md'
-                                   : 'border-tea-green/30 bg-tea-green/5/10 hover:bg-tea-green/10 text-tea-green'
-                           }`}
+                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                           style={{
+                             border: `1px solid ${preferredChannel === 'whatsapp' ? 'rgba(122,154,114,0.4)' : 'rgba(122,154,114,0.2)'}`,
+                             background: preferredChannel === 'whatsapp' ? 'rgba(122,154,114,0.08)' : 'transparent',
+                             color: '#7a9a72',
+                             borderRadius: 4,
+                           }}
                        >
                            <Icons.Message className="w-4 h-4" />
-                           <span className="text-[10px] uppercase tracking-[0.15em]">Send via WhatsApp</span>
-                           {preferredChannel === 'whatsapp' && <span className="text-xs ml-1">✓</span>}
+                           <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 400 }}>Send via WhatsApp</span>
+                           {preferredChannel === 'whatsapp' && <span style={{ fontSize: 11, marginLeft: 4 }}>&#10003;</span>}
                        </button>
                        <button
                            onClick={handleEmail}
                            disabled={!isFormValid}
-                           className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                               preferredChannel === 'email'
-                                   ? 'border-tea-gold/[0.08]  bg-tea-bg/10 text-tea-text  shadow-md'
-                                   : 'border-tea-gold/[0.08]  hover:bg-tea-bg/5 text-tea-text '
-                           }`}
+                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                           style={{
+                             border: `1px solid ${preferredChannel === 'email' ? 'rgba(200,170,120,0.2)' : 'rgba(200,170,120,0.08)'}`,
+                             background: preferredChannel === 'email' ? 'rgba(200,170,120,0.04)' : 'transparent',
+                             color: '#c0b49a',
+                             borderRadius: 4,
+                           }}
                        >
-                           <span className="text-[10px] uppercase tracking-[0.15em]">Send via Email</span>
-                           {preferredChannel === 'email' && <span className="text-xs ml-1">✓</span>}
+                           <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 400 }}>Send via Email</span>
+                           {preferredChannel === 'email' && <span style={{ fontSize: 11, marginLeft: 4 }}>&#10003;</span>}
                        </button>
                        <button
                            onClick={handleCopy}
                            disabled={!isFormValid}
-                           className="flex items-center justify-center gap-2 py-3 border border-tea-gold/[0.08]  hover:bg-tea-bg/5 text-tea-text  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                           className="flex items-center justify-center gap-2 py-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                           style={{
+                             border: '1px solid rgba(200,170,120,0.08)',
+                             background: 'transparent',
+                             color: '#9a9080',
+                             borderRadius: 4,
+                           }}
                        >
-                           <span className="text-[10px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
+                           <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontWeight: 400 }}>Copy to Clipboard</span>
                        </button>
                    </div>
 
-                   {/* Abandoned Cart Recovery Indicator */}
                    {recoveredCart && (
-                       <p className="text-center text-xs text-tea-gold italic">
+                       <p className="text-center" style={{ fontSize: 12, color: '#b5651d', fontStyle: 'italic' }}>
                            Recovered your previous order request
                        </p>
                    )}
 
-                   <p className="text-center text-xs text-tea-text-dim italic">
+                   <p className="text-center" style={{ fontSize: 11, color: '#6a6050', fontStyle: 'italic' }}>
                        Sending this message will initiate your order request with Teajia.
                    </p>
                </div>
            )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-6 border-t border-tea-gold/[0.08]  bg-tea-surface  relative z-20">
+        {/* Footer */}
+        <div className="p-6 relative z-20" style={{
+          borderTop: '1px solid rgba(200,170,120,0.08)',
+          background: '#1e1d1b'
+        }}>
             {step === 'CART' && (
                 <div className="flex flex-col gap-4">
-                    <div className="flex justify-between items-center font-serif text-xl text-tea-text ">
+                    <div className="flex justify-between items-center" style={{ fontFamily: 'Fraunces, serif', fontSize: 20, fontWeight: 300, color: '#ede6d8' }}>
                         <span>Total</span>
                         <span className="num">{fmtPrice(subtotal)}</span>
                     </div>
                     <button
                         onClick={handleNext}
                         disabled={cart.length === 0}
-                        className="w-full py-4 bg-tea-gold text-tea-paper uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full py-3.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{
+                          background: 'rgba(181,101,29,0.15)',
+                          border: '1px solid rgba(181,101,29,0.3)',
+                          color: '#d4a574',
+                          fontSize: 11,
+                          fontWeight: 400,
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase' as const,
+                          borderRadius: 4,
+                        }}
                     >
                         Request This Order
                     </button>
@@ -710,7 +810,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cart, o
             )}
 
             {step === 'CHECKOUT' && (
-                <p className="text-xs text-center text-tea-text/60 /60 mb-4">
+                <p className="text-center" style={{ fontSize: 11, color: '#6a6050' }}>
                     Send your order inquiry via WhatsApp, Email, or copy to clipboard
                 </p>
             )}
