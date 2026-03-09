@@ -365,7 +365,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   style={{ textDecoration: "none" }}
                 >
                   <p style={{
-                    fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                    fontFamily: "var(--font-body)",
                     fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
                     color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
                     margin: 0, transition: "color 0.2s ease",
@@ -375,7 +375,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </a>
               ) : (
                 <p style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontFamily: "var(--font-body)",
                   fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
                   color: alcoveColors.body, margin: 0,
                 }}>
@@ -389,7 +389,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           {feelingDescription && (
             <div style={{ padding: "12px 16px" }}>
               <p style={{
-                fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                fontFamily: "var(--font-body)",
                 fontSize: "14px", fontWeight: 300, fontStyle: "italic",
                 lineHeight: 1.6,
                 color: alcoveColors.subtitle, margin: 0,
@@ -416,29 +416,29 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             }}>
               <div style={{ display: "flex", alignItems: "baseline" }}>
                 <span style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
-                  lineHeight: 1,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
+                  lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
                 }}>
                   ${fmtNum(pricePerGram)}
                 </span>
                 <span style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px", fontWeight: 400, color: alcoveColors.subtitle,
                   marginLeft: "1px",
                 }}>/g</span>
               </div>
               <div style={{ display: "flex", alignItems: "baseline" }}>
                 <span style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
-                  fontSize: "12px", fontWeight: 300, color: alcoveColors.body,
-                  lineHeight: 1,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
+                  lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
                 }}>
                   {grams}
                 </span>
                 <span style={{
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
-                  fontSize: "9px", fontWeight: 300, color: alcoveColors.subtitle,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px", fontWeight: 400, color: alcoveColors.subtitle,
                   marginLeft: "1px",
                 }}>g</span>
               </div>
@@ -529,7 +529,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 >
                   <BookmarkIcon filled={favorited} color={accent} strokeColor={alcoveColors.muted} />
                   <span style={{
-                    fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: "10px", fontWeight: 400,
                     letterSpacing: "0.08em", textTransform: "uppercase",
                     color: favorited ? accent : alcoveColors.subtitle,
@@ -549,7 +549,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 >
                   <ShareIcon color={alcoveColors.muted} />
                   <span style={{
-                    fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: "10px", fontWeight: 400,
                     letterSpacing: "0.08em", textTransform: "uppercase",
                     color: alcoveColors.subtitle,
@@ -563,7 +563,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 onMouseLeave={() => setHovered(null)}
                 style={{
                   flex: 1, height: "36px", boxSizing: "border-box",
-                  fontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', 'Arial', sans-serif",
+                  fontFamily: "var(--font-sans)",
                   fontSize: "11px", fontWeight: 400,
                   letterSpacing: "0.06em", textTransform: "uppercase",
                   color: added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
@@ -582,7 +582,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               >
                 <span>{added ? "Added" : "Add"}</span>
                 <span style={{
-                  fontFamily: "'Fraunces', 'Fraunces Fallback', 'Georgia', serif",
+                  fontFamily: "var(--font-mono)",
                   fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
                 }}>
                   ${total}

@@ -304,7 +304,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                         <div
                           className="absolute inset-0 animate-shimmer"
                           style={{
-                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)'
+                            background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)'
                           }}
                         />
                       </div>
@@ -346,7 +346,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                             <div
                               className="absolute inset-0 animate-shimmer"
                               style={{
-                                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)'
+                                background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)'
                               }}
                             />
                           </div>

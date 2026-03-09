@@ -20,14 +20,14 @@ const cardFrameStyle = SURFACE_TREATMENTS.cardFrame;
 
 const ServiceLabel = ({ children }: { children: string }) => (
   <p className="text-[11px] uppercase tracking-[0.2em] text-tea-gold mb-1.5"
-     style={{ fontFamily: "'Bricolage Grotesque', 'Inter', sans-serif", fontWeight: 400 }}>
+     style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
     {children}
   </p>
 );
 
 const ServiceHeading = ({ children }: { children: string }) => (
   <h3 className="text-xl md:text-2xl font-light text-tea-text mb-0 leading-snug"
-      style={{ fontFamily: "'Fraunces', 'Lora', serif" }}>
+      style={{ fontFamily: "var(--font-display)" }}>
     {children}
   </h3>
 );
@@ -106,7 +106,7 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
               {badge && (
                 <span className="shrink-0 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap mt-1
                                  border border-tea-gold/20 rounded-full px-3 py-1"
-                      style={{ fontFamily: "'Bricolage Grotesque', 'Inter', sans-serif", fontWeight: 400 }}>
+                      style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
                   {badge}
                 </span>
               )}

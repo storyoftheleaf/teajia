@@ -430,7 +430,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
                         <div className="pt-10 pb-2 first:pt-4 pl-2">
-                            <span className="font-serif italic text-[15px] text-tea-text/30">{group.type}</span>
+                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text/30">{group.type}</span>
                         </div>
                     )}
 
@@ -461,10 +461,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             </h3>
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
-                                        <div className="text-[11px] uppercase tracking-wider mt-1 truncate flex items-center gap-2">
-                                             <span className={`font-mono ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
-                                             <span className="text-tea-text/30">•</span>
-                                             <span className="text-tea-text/40">{item.variant}</span>
+                                        <div className="text-[13px] mt-1 truncate flex items-center gap-2">
+                                             <span className={`font-mono num text-[11px] ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
+                                             <span className="text-tea-text/20">·</span>
+                                             <span className="font-body italic text-tea-text/40">{item.variant}</span>
                                         </div>
                                     </div>
 
@@ -481,7 +481,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 </span>
                                             );
                                         })()}
-                                        <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
+                                        <span className={`font-mono num text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
                                             {fmtPricePerGram(pricePerGram)}
                                         </span>
                                         {/* Admin: edit button */}
@@ -511,19 +511,43 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                     </div>
                                 </div>
 
-                                {/* Accordion — quick add */}
-                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="pl-4 pr-2 pb-3 pt-0">
-                                        <p className="font-serif text-sm text-tea-text/80 mb-3 leading-relaxed max-w-2xl">
-                                            {item.description}
-                                        </p>
-                                        <div className="flex flex-col gap-2 pt-1">
+                                {/* Accordion — Alcove-styled quick add */}
+                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    {/* Inset panel with Alcove surface treatment */}
+                                    <div className="mx-2 mb-3 rounded-md overflow-hidden relative"
+                                        style={{
+                                            background: 'rgba(0,0,0,0.25)',
+                                            boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
+                                            animation: isExpanded ? 'panelReveal 0.5s ease-out' : undefined,
+                                        }}
+                                    >
+                                        {/* Grain texture overlay */}
+                                        <div className="absolute inset-0 pointer-events-none" style={{
+                                            opacity: 0.08,
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+                                            backgroundSize: '120px',
+                                        }} />
+                                        {/* Ambient top-glow */}
+                                        <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
+                                            height: '60%',
+                                            background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
+                                        }} />
+
+                                        {/* Description */}
+                                        <div className="relative px-3.5 pt-3 pb-2">
+                                            <p className="font-body text-sm text-tea-text-sec/80 leading-relaxed max-w-2xl">
+                                                {item.description}
+                                            </p>
+                                        </div>
+
+                                        {/* Commerce zone */}
+                                        <div className="relative px-3 py-2.5" style={{ borderTop: '1px solid rgba(200,170,120,0.06)' }}>
                                             {/* Price + quantity row */}
-                                            <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 1 }}>
-                                                <span className="font-serif text-xs text-tea-text/70" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                            <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 2 }}>
+                                                <span className="font-mono num text-xs text-tea-text/70">
                                                     {fmtPricePerGram(pricePerGram)}
                                                 </span>
-                                                <span className="font-serif text-xs text-tea-text/70" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                                <span className="font-mono num text-xs text-tea-text/70">
                                                     {currentQty}<span className="text-[9px] text-tea-text/40 ml-px">g</span>
                                                 </span>
                                             </div>
@@ -538,19 +562,31 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 size="sm"
                                             />
                                             {/* Action row */}
-                                            <div className="flex items-center gap-1 mt-0.5">
+                                            <div className="flex items-center gap-2.5 mt-1.5">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.08em] py-2 px-3 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30"
+                                                    className="font-sans text-tea-text-dim hover:text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-3 transition-colors duration-200"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="flex-1 text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30 hover:bg-tea-gold/[0.06] flex items-center justify-center gap-2 active:scale-[0.98]"
+                                                    className="flex-1 font-sans text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
+                                                    style={{
+                                                        background: 'rgba(184,146,78,0.10)',
+                                                        border: '1px solid rgba(200,170,120,0.20)',
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(184,146,78,0.18)';
+                                                        e.currentTarget.style.borderColor = 'rgba(200,170,120,0.35)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(184,146,78,0.10)';
+                                                        e.currentTarget.style.borderColor = 'rgba(200,170,120,0.20)';
+                                                    }}
                                                 >
                                                     <span>Add</span>
-                                                    <span className="font-serif italic text-[11px] opacity-70 num">{fmtPrice(totalPrice)}</span>
+                                                    <span className="font-mono num text-[11px] opacity-70">{fmtPrice(totalPrice)}</span>
                                                 </button>
                                             </div>
                                         </div>
