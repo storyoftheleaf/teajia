@@ -94,6 +94,12 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
   // ── Admin-only state ─────────────────────────────────────────────────────
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [allCustomers, setAllCustomers] = useState<any[]>([]);
+  const [customersLoaded, setCustomersLoaded] = useState(false);
+  const customerInputRef = useRef<HTMLInputElement>(null);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [shippingCostUSD, setShippingCostUSD] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -103,6 +109,68 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
 
   // Admin undo: store full previous cart state for 5s restore window
   const [adminUndoState, setAdminUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
+
+  // ── Load customers for autocomplete (admin only) ────────────────────────
+  useEffect(() => {
+    if (props.mode !== 'admin' || customersLoaded) return;
+    api.customers.list()
+      .then((data: any[]) => {
+        setAllCustomers((data || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          company: c.company,
+          whatsapp: c.whatsapp,
+          email: c.email,
+          preferredCurrency: c.preferred_currency || 'USD',
+          tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []),
+        })));
+        setCustomersLoaded(true);
+      })
+      .catch(() => setCustomersLoaded(true));
+  }, [props.mode, customersLoaded]);
+
+  const handleCustomerSearch = (value: string) => {
+    setCustomerName(value);
+    setValidationError('');
+    setSelectedCustomerId(null);
+    if (value.trim().length > 0 && allCustomers.length > 0) {
+      const q = value.toLowerCase();
+      const matches = allCustomers.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        (c.company || '').toLowerCase().includes(q)
+      ).slice(0, 6);
+      setCustomerSuggestions(matches);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectCustomer = (customer: any) => {
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.whatsapp || '');
+    setSelectedCustomerId(customer.id);
+    if (customer.preferredCurrency) setDisplayCurrency(customer.preferredCurrency);
+    setShowSuggestions(false);
+    setValidationError('');
+  };
+
+  const handleCreateAndSelectCustomer = async () => {
+    if (!customerName.trim()) return;
+    try {
+      const result = await api.customers.create({
+        name: customerName.trim(),
+        whatsapp: customerPhone || undefined,
+        preferred_currency: displayCurrency,
+      });
+      setSelectedCustomerId(result.id);
+      setShowSuggestions(false);
+      setCustomersLoaded(false); // Refresh the list
+      if (props.mode === 'admin') props.showToast(`"${customerName}" saved as a new contact`, 'success');
+    } catch {
+      // Non-critical — invoice still works without customer_id
+    }
+  };
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
@@ -248,6 +316,24 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     }
     if (props.cart.length === 0) return;
     setIsProcessing(true);
+
+    // Auto-create customer if this is a new name (no existing customer selected)
+    let custId = selectedCustomerId;
+    if (!custId && customerName.trim()) {
+      try {
+        const result = await api.customers.create({
+          name: customerName.trim(),
+          whatsapp: customerPhone || undefined,
+          preferred_currency: displayCurrency,
+        });
+        custId = result.id;
+        setSelectedCustomerId(custId);
+        setCustomersLoaded(false);
+      } catch {
+        // Non-critical — invoice still works without customer_id
+      }
+    }
+
     const invoiceNumber = `INV-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     try {
       const invoiceData = await api.invoices.create(
@@ -255,6 +341,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
           invoice_number: invoiceNumber,
           customer_name: customerName,
           customer_whatsapp: customerPhone || null,
+          customer_id: custId || null,
           display_currency: displayCurrency,
           shipping_cost_usd: shippingCostUSD,
           status: 'Pending',
@@ -285,6 +372,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     props.onClearCart();
     setCustomerName('');
     setCustomerPhone('');
+    setSelectedCustomerId(null);
     setShippingCostUSD(0);
     setLastInvoice(null);
     setTransactionComplete(false);
@@ -801,15 +889,49 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => { setCustomerName(e.target.value); setValidationError(''); }}
-                    className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none transition-colors placeholder-tea-muted/50 ${
-                      validationError ? 'border-tea-accent' : 'border-tea-border focus:border-tea-muted'
-                    }`}
-                    placeholder="Client Name *"
-                  />
+                  <div className="relative">
+                    <input
+                      ref={customerInputRef}
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => handleCustomerSearch(e.target.value)}
+                      onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none transition-colors placeholder-tea-muted/50 ${
+                        validationError ? 'border-tea-accent' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-muted'
+                      }`}
+                      placeholder="Client Name *"
+                    />
+                    {selectedCustomerId && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-green-400 uppercase tracking-wider">Linked</span>
+                    )}
+
+                    {showSuggestions && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-tea-bg border border-tea-border rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto">
+                        {customerSuggestions.map(c => (
+                          <button
+                            key={c.id}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => selectCustomer(c)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-tea-surface transition-colors flex items-center justify-between"
+                          >
+                            <div>
+                              <span className="text-tea-text">{c.name}</span>
+                              {c.company && <span className="text-tea-muted text-xs ml-2">{c.company}</span>}
+                            </div>
+                            {c.tags?.length > 0 && (
+                              <span className="text-[9px] text-tea-muted uppercase">{c.tags[0]}</span>
+                            )}
+                          </button>
+                        ))}
+                        {customerSuggestions.length === 0 && customerName.trim() && (
+                          <div className="px-3 py-2 text-xs text-tea-muted italic">
+                            New contact — will be saved automatically
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={customerPhone}

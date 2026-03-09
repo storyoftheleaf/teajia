@@ -15,6 +15,7 @@ import { InventoryView } from './components/InventoryView';
 import { CartPanel } from '../components/shared/CartPanel';
 import { RecordsView } from './components/SoldItemsView';
 import { OrdersView } from './components/OrdersView';
+import { CustomersView } from './components/CustomersView';
 import { PersonalCollectionView } from './components/PersonalCollectionView';
 import { SettingsView } from './components/SettingsView';
 import { ToastProvider, useToast } from './components/Toast';
@@ -213,6 +214,7 @@ const AdminContent = () => {
                 </ProtectedRoute>
               } />
               <Route path="personal" element={<ProtectedRoute><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
+              <Route path="customers" element={<ProtectedRoute><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
               <Route path="orders" element={<ProtectedRoute><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
               <Route path="records" element={<ProtectedRoute><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />

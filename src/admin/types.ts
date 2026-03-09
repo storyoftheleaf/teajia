@@ -61,3 +61,27 @@ export interface ExchangeRate {
 export interface CartItem extends InvoiceItem {
   product: Product;
 }
+
+export type CustomerTag = 'wholesale' | 'retail' | 'friend' | 'vendor' | 'vip' | 'inactive';
+
+export interface Customer {
+  id: string;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  preferredCurrency: Currency;
+  tags: CustomerTag[];
+  notes?: string;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Computed from joined invoice data
+  orderCount?: number;
+  totalSpentUSD?: number;
+  lastOrderDate?: string;
+}

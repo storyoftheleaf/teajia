@@ -197,6 +197,77 @@ export const api = {
     },
   },
 
+  customers: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    get: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getOrders: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/orders`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getTeas: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/teas`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getSuppliedProducts: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/products`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    linkProduct: async (vendorId: string, productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${vendorId}/products`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ product_id: productId }),
+      });
+      return handleResponse(res);
+    },
+    unlinkProduct: async (vendorId: string, productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${vendorId}/products/${productId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   rpc: {
     fulfillInvoice: async (invoiceId: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/rpc/fulfill-invoice`, {
@@ -219,6 +290,13 @@ export const api = {
         throw new Error('Operation cancelled by user');
       }
       const res = await fetchWithTimeout(`${API_URL}/api/rpc/truncate-all`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    backfillCustomerLinks: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/backfill-customer-links`, {
         method: 'POST',
         headers: authHeaders(),
       });

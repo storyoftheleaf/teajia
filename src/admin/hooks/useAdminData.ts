@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { Product, ExchangeRate } from '../types';
+import { Product, ExchangeRate, Customer } from '../types';
 import { INITIAL_RATES } from '../constants';
 import { fetchLiveRates } from '../utils';
 
@@ -86,6 +86,36 @@ export const useRates = () => {
     },
     staleTime: 1000 * 60 * 60,
     initialData: INITIAL_RATES
+  });
+};
+
+// Fetch Customers
+export const useCustomers = () => {
+  return useQuery({
+    queryKey: ['customers'],
+    queryFn: async () => {
+      const data = await api.customers.list();
+      return (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        company: c.company || undefined,
+        email: c.email || undefined,
+        phone: c.phone || undefined,
+        whatsapp: c.whatsapp || undefined,
+        address: c.address || undefined,
+        city: c.city || undefined,
+        country: c.country || undefined,
+        preferredCurrency: c.preferred_currency || 'USD',
+        tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []),
+        notes: c.notes || undefined,
+        source: c.source || undefined,
+        createdAt: c.created_at,
+        updatedAt: c.updated_at,
+        orderCount: Number(c.order_count) || 0,
+        totalSpentUSD: Number(c.total_spent_usd) || 0,
+        lastOrderDate: c.last_order_date || undefined,
+      })) as Customer[];
+    }
   });
 };
 

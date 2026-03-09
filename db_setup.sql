@@ -77,12 +77,32 @@ INSERT INTO exchange_rates (currency, rate_to_usd) VALUES
 ('HKD', 7.8)
 ON CONFLICT (currency) DO NOTHING;
 
+-- 3b. Create Customers Table
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL,
+    company TEXT,
+    email TEXT,
+    phone TEXT,
+    whatsapp TEXT,
+    address TEXT,
+    city TEXT,
+    country TEXT,
+    preferred_currency TEXT DEFAULT 'USD',
+    tags TEXT DEFAULT '[]',        -- JSON array e.g. ["wholesale","vip"]
+    notes TEXT,
+    source TEXT,                    -- e.g. "referral", "online", "event"
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 4. Create Invoices Table
 CREATE TABLE IF NOT EXISTS invoices (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     invoice_number TEXT NOT NULL,
     customer_name TEXT,
     customer_whatsapp TEXT,
+    customer_id UUID REFERENCES customers(id),
     display_currency TEXT,
     shipping_cost_usd NUMERIC DEFAULT 0,
     status TEXT DEFAULT 'Draft',
@@ -251,6 +271,11 @@ BEGIN
         ALTER TABLE products ADD COLUMN quantity_units INTEGER;
     END IF;
 
+    -- INVOICES: customer_id FK
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'invoices' AND column_name = 'customer_id') THEN
+        ALTER TABLE invoices ADD COLUMN customer_id UUID REFERENCES customers(id);
+    END IF;
+
     -- ENABLE RLS
     ALTER TABLE products ENABLE ROW LEVEL SECURITY;
     ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
@@ -292,6 +317,13 @@ BEGIN
         CREATE POLICY "Allow public all rates" ON exchange_rates FOR ALL TO public USING (true) WITH CHECK (true);
     END IF;
 
+    -- CUSTOMERS POLICIES
+    ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'customers' AND policyname = 'Allow public all customers') THEN
+        CREATE POLICY "Allow public all customers" ON customers FOR ALL TO public USING (true) WITH CHECK (true);
+    END IF;
+
+    GRANT ALL ON TABLE customers TO anon, authenticated, service_role;
     GRANT ALL ON TABLE products TO anon, authenticated, service_role;
     GRANT ALL ON TABLE exchange_rates TO anon, authenticated, service_role;
     GRANT ALL ON TABLE invoices TO anon, authenticated, service_role;
