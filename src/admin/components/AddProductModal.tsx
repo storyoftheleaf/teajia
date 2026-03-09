@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles } from 'lucide-react';
+import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import { calculatePricing } from '../utils';
@@ -23,7 +23,7 @@ const ImageThumbnail = ({ src, type }: { src: string, type: string }) => {
 
     if (error) {
         return (
-            <div className="w-full h-full bg-neutral-800/50 flex items-center justify-center p-3 opacity-50 grayscale">
+            <div className="w-full h-full bg-tea-bg/50 flex items-center justify-center p-3 opacity-50 grayscale">
                 <TeaIllustration type={type as ProductType} />
             </div>
         );
@@ -127,6 +127,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         mood: initialData.mood || '',
         experience: initialData.experience || '',
       });
+      setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes));
     } else if (isOpen && !initialData) {
       setFormData({
         type: 'Dark',
@@ -161,6 +162,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         mood: '',
         experience: '',
       });
+      setWisdomOpen(false);
     }
   }, [isOpen, initialData, rates]);
 
@@ -214,6 +216,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   };
 
   const [generatingWisdom, setGeneratingWisdom] = useState(false);
+  const [wisdomOpen, setWisdomOpen] = useState(false);
 
   const handleGenerateWisdom = async () => {
     if (!formData.productName) {
@@ -398,472 +401,228 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   // Reusable input styles for the "Ledger" look
-  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-2 text-base font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-muted/30";
-  const labelStyle = "block text-[10px] uppercase tracking-wider text-tea-muted/70 mb-1.5 flex items-center gap-1 font-bold";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-muted/30";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans";
+  const labelStyle = "block text-[10px] uppercase tracking-wider text-tea-muted/70 mb-1 flex items-center gap-1 font-bold";
+  const wisdomInputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans";
 
   return (
-    <div 
+    <div
         className="fixed inset-0 z-[100] flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
         onClick={onClose}
     >
-      <div 
-        className="bg-tea-surface border border-tea-border w-full max-w-7xl h-[90vh] flex flex-col shadow-2xl rounded-2xl overflow-hidden relative"
+      <div
+        className="bg-tea-surface border border-tea-border w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl rounded-2xl overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
-        
+
         {/* Header */}
-        <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-tea-surface border border-tea-border rounded-full">
-              <Edit className="text-tea-accent" size={20} />
+        <div className="px-5 py-3 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-tea-surface border border-tea-border rounded-full">
+              <Edit className="text-tea-accent" size={16} />
             </div>
             <div>
-              <h2 className="text-2xl font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
-              <p className="text-[10px] text-tea-muted font-mono uppercase tracking-[0.2em]">Database Access</p>
+              <h2 className="text-lg font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
+              <p className="text-[9px] text-tea-muted font-mono uppercase tracking-[0.2em]">Database Access</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-tea-muted hover:text-tea-text transition-colors p-2 hover:bg-tea-bg rounded-full">
-            <X size={24} />
+          <button onClick={onClose} className="text-tea-muted hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
+            <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
-          
-          {/* --- COLUMN 1: IDENTIFICATION (4/12) --- */}
-          <div className="lg:col-span-4 p-6 lg:p-8 space-y-8 border-b lg:border-b-0 lg:border-r border-tea-border">
-            
-            {/* GROUP 1: CLASSIFICATION (Horizontal) */}
-            <div className="grid grid-cols-3 gap-4">
-               <div className="group">
-                  <label className={labelStyle}>
-                      <Layers size={10} /> Type *
-                  </label>
-                  <select 
-                    name="type" 
-                    value={formData.type} 
-                    onChange={handleChange}
-                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-2 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans"
+        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
+
+          {/* --- LEFT COLUMN: IDENTITY & DETAILS (7/12) --- */}
+          <div className="lg:col-span-7 p-4 lg:p-5 space-y-4 border-b lg:border-b-0 lg:border-r border-tea-border">
+
+            {/* TOGGLE CHIPS */}
+            <div className="flex flex-wrap gap-1.5">
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPersonal ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
+                    <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="hidden" />
+                    <UserCheck size={12} /> Personal
+                </label>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.canReorder ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
+                    <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="hidden" />
+                    <RefreshCw size={12} /> Restockable
+                </label>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPublic ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
+                    <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="hidden" />
+                    <Globe size={12} /> Public
+                </label>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isFeatured ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
+                    <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="hidden" />
+                    <Star size={12} /> Featured
+                </label>
+            </div>
+
+            {/* CLASSIFICATION ROW */}
+            <div className="grid grid-cols-4 gap-3">
+               <div>
+                  <label className={labelStyle}><Layers size={9} /> Type *</label>
+                  <select
+                    name="type" value={formData.type} onChange={handleChange}
+                    className={selectStyle}
                   >
-                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface">{t}</option>)}
+                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
                   </select>
                </div>
-               <div className="group">
-                  <label className={labelStyle}>
-                      Form
-                  </label>
+               <div>
+                  <label className={labelStyle}>Form</label>
                   <select
-                    name="form"
-                    value={formData.form}
-                    onChange={handleChange}
-                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-2 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans"
+                    name="form" value={formData.form} onChange={handleChange}
+                    className={selectStyle}
                   >
-                    <option value="" className="bg-tea-surface">— unset —</option>
+                    <option value="" className="bg-tea-surface text-tea-text">— unset —</option>
                     {['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
-                      <option key={f} value={f} className="bg-tea-surface">{f}</option>
+                      <option key={f} value={f} className="bg-tea-surface text-tea-text">{f}</option>
                     ))}
                   </select>
                </div>
-               <div className="group">
-                  <label className={labelStyle}>
-                       Year
-                  </label>
-                  <input
-                    name="year"
-                    type="number"
-                    value={formData.year}
-                    onChange={handleChange}
-                    className={inputStyle.replace('text-lg', 'text-base')}
-                    placeholder="YYYY"
-                  />
+               <div>
+                  <label className={labelStyle}>Year</label>
+                  <input name="year" type="number" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
                </div>
-               <div className="group">
-                  <label className={labelStyle}>
-                      Status
-                  </label>
-                    <select 
-                    name="status" 
-                    value={formData.status} 
-                    onChange={handleChange}
-                    className={`w-full border-b px-0 py-2 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
-                        formData.status === 'Draft' ? 'text-tea-muted/80 border-tea-muted/30' : 
+               <div>
+                  <label className={labelStyle}>Status</label>
+                  <select
+                    name="status" value={formData.status} onChange={handleChange}
+                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
+                        formData.status === 'Draft' ? 'text-tea-muted/80 border-tea-muted/30' :
                         formData.status === 'Sold Out' ? 'text-tea-muted/80 border-tea-muted/30' :
                         'text-tea-accent border-tea-accent/50'
                     }`}
                   >
-                    <option value="Active" className="bg-tea-surface">Active</option>
-                    <option value="Draft" className="bg-tea-surface">Draft</option>
-                    <option value="Sold Out" className="bg-tea-surface">Sold Out</option>
-                </select>
+                    <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
+                    <option value="Draft" className="bg-tea-surface text-tea-text">Draft</option>
+                    <option value="Sold Out" className="bg-tea-surface text-tea-text">Sold Out</option>
+                  </select>
                </div>
             </div>
 
-            {/* GROUP 2: NOMENCLATURE */}
-            <div className="space-y-4 pt-2">
-                <div className="group">
-                    <label className={labelStyle}>
-                        <Tag size={10} /> Product Name / Cultivar *
-                    </label>
-                    <input 
-                        name="productName" 
-                        required
-                        value={formData.productName} 
-                        onChange={handleChange}
-                        onBlur={handleProductNameBlur}
-                        className={inputStyle}
-                        placeholder="e.g. Alishan High Mountain"
-                    />
+            {/* NOMENCLATURE */}
+            <div className="space-y-2">
+                <div>
+                    <label className={labelStyle}><Tag size={9} /> Product Name / Cultivar *</label>
+                    <input name="productName" required value={formData.productName} onChange={handleChange} onBlur={handleProductNameBlur} className={inputStyle} placeholder="e.g. Alishan High Mountain" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="group">
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
                         <label className={labelStyle}>Given Name (Marketing)</label>
-                        <input 
-                            name="givenName" 
-                            value={formData.givenName} 
-                            onChange={handleChange}
-                            className={inputStyle.replace('text-lg', 'text-base')}
-                            placeholder="e.g. Mist Walker"
-                        />
+                        <input name="givenName" value={formData.givenName} onChange={handleChange} className={inputStyle} placeholder="e.g. Mist Walker" />
                     </div>
-                    <div className="group">
+                    <div>
                         <label className={labelStyle}>Chinese Name</label>
-                        <input 
-                            name="chineseName" 
-                            value={formData.chineseName} 
-                            onChange={handleChange}
-                            className={inputStyle.replace('text-lg', 'text-base')}
-                            placeholder="e.g. 阿里山"
-                        />
+                        <input name="chineseName" value={formData.chineseName} onChange={handleChange} className={inputStyle} placeholder="e.g. 阿里山" />
                     </div>
                 </div>
             </div>
 
-            {/* GROUP 3: PROVENANCE */}
-            <div className="grid grid-cols-2 gap-4 pt-2">
-                 <div className="group">
-                    <label className={labelStyle}>
-                        <Globe size={10} /> Origin Region
-                    </label>
-                    <input 
-                        name="originRegion"
-                        value={formData.originRegion}
-                        onChange={handleChange}
-                        className={inputStyle.replace('text-lg', 'text-base')}
-                        placeholder="e.g. Nantou, Taiwan"
-                    />
+            {/* PROVENANCE */}
+            <div className="grid grid-cols-2 gap-3">
+                 <div>
+                    <label className={labelStyle}><Globe size={9} /> Origin Region</label>
+                    <input name="originRegion" value={formData.originRegion} onChange={handleChange} className={inputStyle} placeholder="e.g. Nantou, Taiwan" />
                  </div>
-                 <div className="group">
-                    <label className={labelStyle}>
-                        Vendor
-                    </label>
-                    <input 
-                        name="vendor" 
-                        value={formData.vendor} 
-                        onChange={handleChange}
-                        className={inputStyle.replace('text-lg', 'text-base')}
-                        placeholder="e.g. Chen Family"
-                    />
+                 <div>
+                    <label className={labelStyle}>Vendor</label>
+                    <input name="vendor" value={formData.vendor} onChange={handleChange} className={inputStyle} placeholder="e.g. Chen Family" />
                  </div>
+            </div>
+
+            {/* PHOTO UPLOAD */}
+            <div>
+                <label className={labelStyle}><ImageIcon size={9} /> Photo (Cloudflare R2)</label>
+                {!formData.imageUrl ? (
+                    <div className="relative mt-1">
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
+                        <label
+                            htmlFor="img-upload"
+                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:border-tea-muted transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                        >
+                            {uploading ? <Loader2 className="animate-spin text-tea-accent" size={16} /> : <Upload className="text-tea-muted" size={16} />}
+                            <span className="text-xs text-tea-muted font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
+                        </label>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:border-tea-muted/50 transition-colors mt-1">
+                        <div className="w-10 h-10 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0">
+                            <ImageThumbnail src={formData.imageUrl} type={formData.type} />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="text-[10px] text-tea-muted font-mono truncate">{formData.imageUrl}</p>
+                        </div>
+                        <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-muted hover:text-tea-accent hover:bg-tea-bg rounded transition-colors" title="Remove Image">
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* DESCRIPTION */}
+            <div>
+                <label className={labelStyle}><FileText size={9} /> Private Admin Notes / Description</label>
+                <textarea
+                    name="description" value={formData.description} onChange={handleChange} rows={2}
+                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors resize-none font-sans"
+                    placeholder="Private notes (e.g. Bought from Mr. Chen's son, needs 6 months rest)..."
+                />
             </div>
           </div>
 
-          {/* --- COLUMN 2: DETAILS & LORE (4/12) --- */}
-          <div className="lg:col-span-4 p-6 lg:p-8 space-y-6 border-b lg:border-b-0 lg:border-r border-tea-border">
-             {/* GROUP 4: SETTINGS & NOTES */}
-             <div className="flex flex-wrap gap-2">
-                    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none transition-all text-[10px] uppercase tracking-[0.2em] font-bold ${formData.isPersonal ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
-                        <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="hidden" />
-                        <UserCheck size={14} /> Personal
-                    </label>
-                    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none transition-all text-[10px] uppercase tracking-[0.2em] font-bold ${formData.canReorder ? 'bg-[#859F85]/10 text-[#859F85] border-[#859F85]/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
-                        <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="hidden" />
-                        <RefreshCw size={14} /> Restockable
-                    </label>
-                    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none transition-all text-[10px] uppercase tracking-[0.2em] font-bold ${formData.isPublic ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
-                        <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="hidden" />
-                        <Globe size={14} /> Public
-                    </label>
-                    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer select-none transition-all text-[10px] uppercase tracking-[0.2em] font-bold ${formData.isFeatured ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-muted border-tea-border hover:border-tea-muted/50'}`}>
-                        <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="hidden" />
-                        <Star size={14} /> Featured
-                    </label>
-                 </div>
-                 
-                 {/* ASSETS SECTION (Image Upload) */}
-                 <div className="group pt-2">
-                    <label className={labelStyle}>
-                        <ImageIcon size={10} /> Photo (Cloudflare R2)
-                    </label>
-                    
-                    {!formData.imageUrl ? (
-                        <div className="relative mt-2">
-                            <input 
-                                ref={fileInputRef}
-                                type="file" 
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                className="hidden" 
-                                id="img-upload"
-                            />
-                            <label 
-                                htmlFor="img-upload"
-                                className={`flex items-center justify-center gap-3 w-full border border-dashed border-tea-border rounded-lg p-6 cursor-pointer hover:bg-tea-bg hover:border-tea-muted transition-all ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-                            >
-                                {uploading ? (
-                                    <Loader2 className="animate-spin text-tea-accent" size={20} />
-                                ) : (
-                                    <Upload className="text-tea-muted" size={20} />
-                                )}
-                                <span className="text-sm text-tea-muted font-mono">
-                                    {uploading ? 'Uploading...' : 'Click to Upload Image'}
-                                </span>
-                            </label>
-                        </div>
-                    ) : (
-                        <div className="flex items-start gap-4 p-3 bg-tea-bg/50 border border-tea-border rounded-lg group hover:border-tea-muted/50 transition-colors mt-2">
-                            <div className="w-16 h-16 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0">
-                                <ImageThumbnail src={formData.imageUrl} type={formData.type} />
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="text-xs text-tea-muted font-mono truncate mb-1">{formData.imageUrl}</p>
-                                <span className="text-[10px] text-tea-accent uppercase tracking-wider font-bold bg-tea-accent/10 px-1.5 py-0.5 rounded">Uploaded</span>
-                            </div>
-                            <button 
-                                type="button"
-                                onClick={handleRemoveImage}
-                                className="p-2 text-tea-muted hover:text-tea-accent hover:bg-tea-bg rounded transition-colors"
-                                title="Remove Image"
-                            >
-                                <Trash2 size={16} />
-                            </button>
-                        </div>
-                    )}
-                 </div>
+          {/* --- RIGHT COLUMN: RECEIPT + WISDOM (5/12) --- */}
+          <div className="lg:col-span-5 p-4 lg:p-5 space-y-4">
 
-                 <div className="group">
-                    <label className={labelStyle}>
-                        <FileText size={10} /> Private Admin Notes / Description
-                    </label>
-                    <textarea 
-                        name="description"
-                        value={formData.description}
-                        onChange={handleChange}
-                        rows={2}
-                        className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors resize-none font-sans"
-                        placeholder="Private notes (e.g. Bought from Mr. Chen's son, needs 6 months rest)..."
-                    />
-                 </div>
-
-                 {/* WISDOM & LORE SECTION */}
-                 <div className="pt-4 border-t border-dashed border-tea-border space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Star size={14} className="text-tea-accent" />
-                            <span className="text-xs font-serif italic text-tea-muted">Wisdom & Lore</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={handleGenerateWisdom}
-                                disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
-                            >
-                                {generatingWisdom ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                Generate with AI
-                            </button>
-                            <label className="flex items-center gap-2 cursor-pointer group/toggle">
-                                <div className="relative">
-                                    <input 
-                                        type="checkbox" 
-                                        name="showWisdom" 
-                                        checked={formData.showWisdom} 
-                                        onChange={handleChange}
-                                        className="sr-only" 
-                                    />
-                                    <div className={`block w-8 h-4 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-accent/30' : 'bg-tea-border'}`}></div>
-                                    <div className={`absolute left-1 top-1 bg-tea-text w-2 h-2 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-4 bg-tea-accent' : ''}`}></div>
-                                </div>
-                                <span className="text-[10px] uppercase tracking-wider text-tea-muted group-hover/toggle:text-tea-text transition-colors">
-                                    Show Publicly
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="group">
-                        <div className="flex justify-between items-center mb-1">
-                            <label className={labelStyle}>
-                                Lore (History & Terroir)
-                            </label>
-                            {formData.isCustomWisdom ? (
-                                <span className="text-[9px] text-tea-accent uppercase tracking-wider flex items-center gap-1">
-                                    <Edit size={10} /> Handcrafted
-                                </span>
-                            ) : formData.lore ? (
-                                <span className="text-[9px] text-tea-muted uppercase tracking-wider flex items-center gap-1">
-                                    <Star size={10} /> AI Generated
-                                </span>
-                            ) : null}
-                        </div>
-                        <textarea 
-                            name="lore"
-                            value={formData.lore}
-                            onChange={(e) => {
-                                handleChange(e);
-                                setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                            }}
-                            rows={4}
-                            className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors resize-none font-sans"
-                            placeholder="Legend says these bushes were draped in imperial red robes..."
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="group">
-                            <label className={labelStyle}>
-                                Mood
-                            </label>
-                            <input 
-                                name="mood"
-                                type="text"
-                                value={formData.mood}
-                                onChange={(e) => {
-                                    handleChange(e);
-                                    setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                                }}
-                                className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans"
-                                placeholder="Grounding & Meditative"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="group">
-                        <label className={labelStyle}>
-                            Experience Description
-                        </label>
-                        <textarea 
-                            name="experience"
-                            value={formData.experience}
-                            onChange={(e) => {
-                                handleChange(e);
-                                setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                            }}
-                            rows={2}
-                            className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors resize-none font-sans"
-                            placeholder="A deeply centering tea. The heavy roast anchors the body..."
-                        />
-                    </div>
-
-                    <div className="group">
-                        <label className={labelStyle}>
-                            Terroir
-                        </label>
-                        <input
-                            name="terroir"
-                            type="text"
-                            value={formData.terroir}
-                            onChange={(e) => {
-                                handleChange(e);
-                                setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                            }}
-                            className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans"
-                            placeholder="High-altitude granite soils above 1200m, with dramatic day-night temperature swings."
-                        />
-                    </div>
-                    <div className="group">
-                        <label className={labelStyle}>
-                            Processing / Craft Notes
-                        </label>
-                        <input
-                            name="processingNotes"
-                            type="text"
-                            value={formData.processingNotes}
-                            onChange={(e) => {
-                                handleChange(e);
-                                setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                            }}
-                            className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors font-sans"
-                            placeholder="Heavy charcoal roast over pine wood."
-                        />
-                    </div>
-
-                    <div className="group">
-                        <label className={labelStyle}>
-                            Tasting Notes (Comma separated)
-                        </label>
-                        <textarea 
-                            name="tastingNotes"
-                            value={formData.tastingNotes}
-                            onChange={(e) => {
-                                handleChange(e);
-                                setFormData(prev => ({ ...prev, isCustomWisdom: true }));
-                            }}
-                            rows={2}
-                            className="w-full bg-transparent border-b border-tea-border rounded-none p-2 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-muted/30 transition-colors resize-none font-sans"
-                            placeholder="Pine resin, dried longan, campfire"
-                        />
-                    </div>
-                 </div>
-          </div>
-
-          {/* --- COLUMN 3: THE RECEIPT (4/12) --- */}
-          <div className="lg:col-span-4 bg-tea-surface p-6 lg:p-8 space-y-6 flex flex-col h-full relative">
-             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-b from-tea-bg/20 to-transparent"></div>
-            
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator size={14} className="text-tea-muted" />
+            {/* COST CALCULATION */}
+            <div className="flex items-center gap-2 mb-1">
+              <Calculator size={12} className="text-tea-muted" />
               <span className="text-xs font-serif italic text-tea-muted">Cost Calculation</span>
             </div>
 
-            {/* RECEIPT PAPER EFFECT */}
-            <div className="bg-tea-bg p-6 rounded-xl border border-tea-border shadow-inner space-y-6 font-mono text-sm">
-               
-               {/* INPUTS SECTION */}
-               <div className="space-y-5 border-b border-dashed border-tea-border pb-6">
+            <div className="bg-tea-bg p-4 rounded-xl border border-tea-border shadow-inner space-y-4 font-mono text-sm">
+
+               {/* INPUTS */}
+               <div className="space-y-3 border-b border-dashed border-tea-border pb-4">
                     <div className="flex justify-between items-center">
                         <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Batch Cost</label>
                         <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-muted transition-colors">
-                            <select 
+                            <select
                                 name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                className="bg-transparent text-[10px] text-tea-accent font-bold outline-none cursor-pointer uppercase"
+                                className="bg-transparent appearance-none rounded-none text-[10px] text-tea-accent font-bold outline-none cursor-pointer uppercase"
                             >
-                                <option value="USD" className="bg-tea-surface">USD</option>
-                                <option value="NT" className="bg-tea-surface">NT</option>
-                                <option value="Yuan" className="bg-tea-surface">CNY</option>
-                                <option value="IDR" className="bg-tea-surface">IDR</option>
-                                <option value="JPY" className="bg-tea-surface">JPY</option>
-                                <option value="MYR" className="bg-tea-surface">MYR</option>
+                                <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
+                                <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
+                                <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
+                                <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
+                                <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                                <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
                             </select>
-                            <input 
-                                name="costAmount" 
-                                type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
-                                className="w-20 bg-transparent text-right text-tea-text outline-none placeholder-tea-muted/30 tabular-nums" 
-                                placeholder="0.00"
+                            <input
+                                name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
+                                className="w-20 bg-transparent text-right text-tea-text outline-none placeholder-tea-muted/30 tabular-nums" placeholder="0.00"
                             />
                         </div>
                     </div>
-
                     <div className="flex justify-between items-center">
                         <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Weight (g)</label>
-                        <input 
+                        <input
                             name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" 
-                            placeholder="0"
+                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="0"
                         />
                     </div>
-
                     <div className="flex justify-between items-center">
                         <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Ship (USD/kg)</label>
-                        <input 
+                        <input
                             name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" 
-                            placeholder="10.00"
+                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="10.00"
                         />
                     </div>
                </div>
 
-               {/* CALCULATED SECTION */}
-               <div className="space-y-3">
+               {/* CALCULATED */}
+               <div className="space-y-2">
                     <div className="flex justify-between text-tea-muted text-xs">
                          <span>Source Cost/g</span>
                          <span className="num">{calc.costPerGramSource.toFixed(3)} {formData.costCurrency}</span>
@@ -872,81 +631,192 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                          <span>Exchange Rate</span>
                          <span className="num">{calc.rateUsed}</span>
                     </div>
-                    <div className="flex justify-between text-tea-text text-xs pt-2">
+                    <div className="flex justify-between text-tea-text text-xs pt-1">
                          <span>True Cost (USD)</span>
                          <span className="num text-tea-accent font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
                     </div>
                </div>
 
-               {/* OUTPUT SECTION */}
-               <div className="pt-5 border-t border-dashed border-tea-border">
-                  <div className="flex justify-between items-center mb-2">
+               {/* RETAIL OUTPUT */}
+               <div className="pt-3 border-t border-dashed border-tea-border">
+                  <div className="flex justify-between items-center mb-1.5">
                      <label className="text-[10px] uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
                      <span className="text-[9px] text-tea-muted/70 num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-4 py-3">
-                     <span className="text-lg text-tea-muted font-serif">$</span>
-                     <input 
-                        name="fixedRetailPriceUSD" 
-                        type="number" 
-                        step="0.01" 
-                        value={formData.fixedRetailPriceUSD} 
-                        onChange={handleChange}
-                        onFocus={(e) => {
+                  <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
+                     <span className="text-base text-tea-muted font-serif">$</span>
+                     <input
+                        name="fixedRetailPriceUSD" type="number" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
+                        onFocus={() => {
                             if (!formData.fixedRetailPriceUSD && calc.suggestedRetailUSD > 0) {
                                 setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
                             }
                         }}
-                        className={`flex-1 bg-transparent text-xl num outline-none text-right ${
-                            formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD 
-                            ? 'text-tea-accent font-bold' 
-                            : 'text-tea-text'
+                        className={`flex-1 bg-transparent text-lg num outline-none text-right ${
+                            formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
+                            ? 'text-tea-accent font-bold' : 'text-tea-text'
                         }`}
                         placeholder={calc.suggestedRetailUSD.toFixed(2)}
                      />
                   </div>
                </div>
 
-               <div className="pt-3">
+               {/* STOCK */}
+               <div className="pt-2">
                     <div className="flex justify-between items-center">
                         <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Current Stock</label>
                         <input
                             name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums"
-                            placeholder="0"
+                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="0"
                         />
                     </div>
-                    <label className="flex items-center gap-2 mt-2 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            name="recheckStock"
-                            checked={formData.recheckStock}
-                            onChange={handleChange}
-                            className="accent-amber-400"
-                        />
-                        <span className="text-[10px] text-tea-muted group-hover:text-amber-400 transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                    <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
+                        <div className="relative">
+                            <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
+                            <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-accent border-tea-accent' : 'border-tea-border group-hover:border-tea-muted'}`}>
+                                {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </div>
+                        </div>
+                        <span className="text-[10px] text-tea-muted group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
                     </label>
                </div>
             </div>
-            
-            <div className="flex-1"></div>
 
-            <div className="flex gap-4">
-                <button onClick={onClose} className="flex-1 py-4 text-xs font-medium text-tea-muted hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
-                    Cancel
-                </button>
-                <button 
-                    onClick={handleSubmit} 
-                    disabled={loading || !formData.productName || uploading}
-                    className="flex-1 py-4 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-accent/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-accent/10"
+            {/* WISDOM & LORE — COLLAPSIBLE */}
+            <div className="border-t border-dashed border-tea-border pt-3">
+                <button
+                    type="button"
+                    onClick={() => setWisdomOpen(!wisdomOpen)}
+                    className="flex items-center justify-between w-full group"
                 >
-                    {loading || uploading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-                    <span>Save Item</span>
+                    <div className="flex items-center gap-2">
+                        <ChevronDown size={14} className={`text-tea-muted transition-transform duration-200 ${wisdomOpen ? '' : '-rotate-90'}`} />
+                        <Star size={12} className="text-tea-accent" />
+                        <span className="text-xs font-serif italic text-tea-muted group-hover:text-tea-text transition-colors">Wisdom & Lore</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {!wisdomOpen && formData.lore && (
+                            <span className="text-[9px] text-tea-accent/60 uppercase tracking-wider">has content</span>
+                        )}
+                    </div>
                 </button>
+
+                {wisdomOpen && (
+                    <div className="space-y-3 mt-3">
+                        {/* AI + Show Publicly controls */}
+                        <div className="flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={handleGenerateWisdom}
+                                disabled={generatingWisdom || !formData.productName}
+                                className="flex items-center gap-1.5 px-2 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-[9px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+                            >
+                                {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                                Generate with AI
+                            </button>
+                            <label className="flex items-center gap-2 cursor-pointer group/toggle">
+                                <div className="relative">
+                                    <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="sr-only" />
+                                    <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-accent/30' : 'bg-tea-border'}`}></div>
+                                    <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-accent' : ''}`}></div>
+                                </div>
+                                <span className="text-[9px] uppercase tracking-wider text-tea-muted group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
+                            </label>
+                        </div>
+
+                        {/* Lore */}
+                        <div>
+                            <div className="flex justify-between items-center mb-0.5">
+                                <label className={labelStyle}>Lore (History & Terroir)</label>
+                                {formData.isCustomWisdom ? (
+                                    <span className="text-[9px] text-tea-accent uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
+                                ) : formData.lore ? (
+                                    <span className="text-[9px] text-tea-muted uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
+                                ) : null}
+                            </div>
+                            <textarea
+                                name="lore" value={formData.lore}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={2}
+                                className={`${wisdomInputStyle} resize-none`}
+                                placeholder="Legend says these bushes were draped in imperial red robes..."
+                            />
+                        </div>
+
+                        {/* Mood + Terroir on one row */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className={labelStyle}>Mood</label>
+                                <input
+                                    name="mood" type="text" value={formData.mood}
+                                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                    className={wisdomInputStyle} placeholder="Grounding & Meditative"
+                                />
+                            </div>
+                            <div>
+                                <label className={labelStyle}>Terroir</label>
+                                <input
+                                    name="terroir" type="text" value={formData.terroir}
+                                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                    className={wisdomInputStyle} placeholder="High-altitude granite soils..."
+                                />
+                            </div>
+                        </div>
+
+                        {/* Experience */}
+                        <div>
+                            <label className={labelStyle}>Experience Description</label>
+                            <textarea
+                                name="experience" value={formData.experience}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={2}
+                                className={`${wisdomInputStyle} resize-none`}
+                                placeholder="A deeply centering tea. The heavy roast anchors the body..."
+                            />
+                        </div>
+
+                        {/* Processing Notes */}
+                        <div>
+                            <label className={labelStyle}>Processing / Craft Notes</label>
+                            <input
+                                name="processingNotes" type="text" value={formData.processingNotes}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                className={wisdomInputStyle} placeholder="Heavy charcoal roast over pine wood."
+                            />
+                        </div>
+
+                        {/* Tasting Notes */}
+                        <div>
+                            <label className={labelStyle}>Tasting Notes (Comma separated)</label>
+                            <textarea
+                                name="tastingNotes" value={formData.tastingNotes}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={2}
+                                className={`${wisdomInputStyle} resize-none`}
+                                placeholder="Pine resin, dried longan, campfire"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
           </div>
-
         </form>
+
+        {/* STICKY FOOTER */}
+        <div className="px-5 py-3 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
+            <button type="button" onClick={onClose} className="px-6 py-2.5 text-xs font-medium text-tea-muted hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
+                Cancel
+            </button>
+            <button
+                type="submit"
+                form="add-product-form"
+                disabled={loading || !formData.productName || uploading}
+                className="px-8 py-2.5 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-accent/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-accent/10"
+            >
+                {loading || uploading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                <span>Save Item</span>
+            </button>
+        </div>
       </div>
     </div>
   );
