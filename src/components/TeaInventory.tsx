@@ -12,6 +12,7 @@ import { fmtPrice, fmtPricePerGram } from '../utils/formatNumber';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 
 import { HapticSlider } from './shared/HapticSlider';
+import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
@@ -430,7 +431,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
                         <div className="pt-10 pb-2 first:pt-4 pl-2">
-                            <span className="font-serif italic text-[15px] text-tea-text/30">{group.type}</span>
+                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text/30">{group.type}</span>
                         </div>
                     )}
 
@@ -461,10 +462,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             </h3>
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
-                                        <div className="text-[11px] uppercase tracking-wider mt-1 truncate flex items-center gap-2">
-                                             <span className={`font-mono ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
-                                             <span className="text-tea-text/30">•</span>
-                                             <span className="text-tea-text/40">{item.variant}</span>
+                                        <div className="text-[13px] mt-1 truncate flex items-center gap-2">
+                                             <span className={`font-mono num text-[11px] ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
+                                             <span className="text-tea-text/20">·</span>
+                                             <span className="font-body italic text-tea-text/40">{item.variant}</span>
                                         </div>
                                     </div>
 
@@ -481,7 +482,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 </span>
                                             );
                                         })()}
-                                        <span className={`font-mono text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
+                                        <span className={`font-mono num text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
                                             {fmtPricePerGram(pricePerGram)}
                                         </span>
                                         {/* Admin: edit button */}
@@ -511,19 +512,106 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                     </div>
                                 </div>
 
-                                {/* Accordion — quick add */}
-                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="pl-4 pr-2 pb-3 pt-0">
-                                        <p className="font-serif text-sm text-tea-text/80 mb-3 leading-relaxed max-w-2xl">
-                                            {item.description}
-                                        </p>
-                                        <div className="flex flex-col gap-2 pt-1">
+                                {/* Accordion — Alcove-styled quick add */}
+                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    {/* Inset panel with Alcove surface treatment */}
+                                    <div className="mx-2 mb-3 rounded-md overflow-hidden relative"
+                                        style={{
+                                            background: 'rgba(0,0,0,0.25)',
+                                            boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
+                                            animation: isExpanded ? 'panelReveal 0.5s ease-out' : undefined,
+                                        }}
+                                    >
+                                        {/* Grain texture overlay */}
+                                        <div className="absolute inset-0 pointer-events-none" style={{
+                                            opacity: 0.08,
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+                                            backgroundSize: '120px',
+                                        }} />
+                                        {/* Ambient top-glow */}
+                                        <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
+                                            height: '60%',
+                                            background: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
+                                        }} />
+
+                                        {/* Notes + image section */}
+                                        <div className="relative overflow-hidden" style={{
+                                            padding: '10px 14px',
+                                            background: 'rgba(184,146,78,0.03)',
+                                            borderBottom: '1px solid rgba(200,170,120,0.08)',
+                                            maxHeight: '140px',
+                                        }}>
+                                            {/* Tea image/placeholder on right with fade mask */}
+                                            <div className="absolute top-0 right-0 bottom-0 pointer-events-none" style={{ width: '60%' }}>
+                                                {item.image ? (
+                                                    <img src={item.image} alt="" className="w-full h-full object-cover" style={{
+                                                        transform: 'scale(1.05)',
+                                                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
+                                                        WebkitMaskComposite: 'destination-in',
+                                                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
+                                                        maskComposite: 'intersect',
+                                                    }} />
+                                                ) : (
+                                                    <div className="w-full h-full" style={{
+                                                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
+                                                        WebkitMaskComposite: 'destination-in',
+                                                        maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)',
+                                                        maskComposite: 'intersect',
+                                                    }}>
+                                                        <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Structured notes with declining opacity */}
+                                            <div className="relative z-[1] flex flex-col gap-1.5">
+                                                {item.mood && (
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="shrink-0 rounded-sm" style={{ width: 18, height: 2, background: 'var(--tea-gold)', opacity: 0.7 }} />
+                                                        <span className="font-display text-[15px] font-light italic text-tea-text-sec" style={{
+                                                            textShadow: '0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)',
+                                                        }}>{item.mood}</span>
+                                                    </div>
+                                                )}
+                                                {(item.tags || []).slice(0, 3).map((tag, i) => {
+                                                    const opacities = [0.82, 0.65, 0.5];
+                                                    const markerOpacities = [0.5, 0.35, 0.2];
+                                                    const markerWidths = [16, 14, 12];
+                                                    return (
+                                                        <div key={tag} className="flex items-center gap-2.5">
+                                                            <div className="shrink-0 rounded-sm" style={{ width: markerWidths[i], height: 2, background: 'var(--tea-gold)', opacity: markerOpacities[i] }} />
+                                                            <span className="font-display text-[14px] font-light italic text-tea-text-sec" style={{
+                                                                opacity: opacities[i],
+                                                                textShadow: '0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)',
+                                                            }}>{tag}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {!item.mood && (!item.tags || item.tags.length === 0) && (
+                                                    <p className="font-body text-sm text-tea-text-sec leading-relaxed max-w-[60%]" style={{
+                                                        textShadow: '0 1px 8px rgba(28,27,25,0.9)',
+                                                    }}>{item.description}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Story/description text */}
+                                        {(item.mood || (item.tags && item.tags.length > 0)) && item.description && (
+                                            <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(200,170,120,0.08)' }}>
+                                                <p className="font-body text-sm text-tea-text-sec/80 leading-relaxed max-w-2xl">
+                                                    {item.description}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Commerce zone */}
+                                        <div className="relative px-3 py-2.5" style={{ borderTop: '1px solid rgba(200,170,120,0.06)' }}>
                                             {/* Price + quantity row */}
-                                            <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 1 }}>
-                                                <span className="font-serif text-xs text-tea-text/70" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                            <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 2 }}>
+                                                <span className="font-mono num text-xs text-tea-text/70">
                                                     {fmtPricePerGram(pricePerGram)}
                                                 </span>
-                                                <span className="font-serif text-xs text-tea-text/70" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                                <span className="font-mono num text-xs text-tea-text/70">
                                                     {currentQty}<span className="text-[9px] text-tea-text/40 ml-px">g</span>
                                                 </span>
                                             </div>
@@ -538,19 +626,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 size="sm"
                                             />
                                             {/* Action row */}
-                                            <div className="flex items-center gap-1 mt-0.5">
+                                            <div className="flex items-center gap-1 mt-1.5">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.08em] py-2 px-3 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30"
+                                                    className="font-sans text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.12em] py-2 px-3 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30"
                                                 >
                                                     Details
                                                 </button>
                                                 <button
                                                     onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="flex-1 text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30 hover:bg-tea-gold/[0.06] flex items-center justify-center gap-2 active:scale-[0.98]"
+                                                    className="flex-1 font-sans text-tea-text/50 hover:text-tea-text/80 text-[10px] uppercase tracking-[0.08em] py-2 px-4 rounded-sm transition-all border border-tea-gold/[0.18] hover:border-tea-gold/30 hover:bg-tea-gold/[0.06] flex items-center justify-center gap-2 active:scale-[0.98]"
                                                 >
                                                     <span>Add</span>
-                                                    <span className="font-serif italic text-[11px] opacity-70 num">{fmtPrice(totalPrice)}</span>
+                                                    <span className="font-mono num text-[11px] opacity-70">{fmtPrice(totalPrice)}</span>
                                                 </button>
                                             </div>
                                         </div>

@@ -322,7 +322,7 @@ export const GRADIENTS = {
   pullQuote: 'linear-gradient(90deg, rgba(184, 146, 78, 0.04) 0%, transparent 80%)',
 
   /** Image overlays for photo essays and cards */
-  imageSheen: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+  imageSheen: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)',
 
   /** Alcove card top warmth — the signature glow */
   alcoveWarmth: 'radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09), transparent)',
