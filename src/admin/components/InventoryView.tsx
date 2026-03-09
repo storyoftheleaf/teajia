@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, MapPin
 } from 'lucide-react';
 import Papa from 'papaparse';
 import Fuse from 'fuse.js';
@@ -106,6 +106,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Modals
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetInput, setResetInput] = useState('');
   const [isResetting, setIsResetting] = useState(false);
@@ -815,71 +816,159 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {/* MOBILE CARDS */}
-        <div className={`md:hidden p-4 space-y-4 pb-24 ${filterType === 'Pending' ? 'hidden' : ''}`}>
-            {processedProducts.map(product => {
+        {/* MOBILE CARDS — compact list with expandable detail */}
+        <div className={`md:hidden pb-24 ${filterType === 'Pending' ? 'hidden' : ''}`}>
+            {processedProducts.map((product, idx) => {
                 const dotColor = getThemeColor(product.type);
+                const isExpanded = expandedCardId === product.id;
+                const isOutOfStock = product.stockGrams === 0;
+                const isLowStock = product.stockGrams > 0 && product.stockGrams <= (product.lowStockThreshold || 10);
                 return (
-                <div key={product.id} className="bg-tea-surface border border-tea-border rounded-xl p-4 flex flex-col gap-3" onClick={() => setEditingProduct(product)}>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <span className="text-tea-text font-serif text-lg flex items-center gap-2">
-                                {product.productName}
-                                {product.lore && (
-                                    <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                                        {product.isCustomWisdom ? (
-                                            <Pencil size={12} className="text-tea-accent" />
-                                        ) : (
-                                            <Sparkles size={12} className="text-tea-muted" />
-                                        )}
-                                    </span>
-                                )}
-                            </span>
-                            <span className="text-tea-muted text-xs">{product.givenName}</span>
-                        </div>
-                        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-tea-muted">
-                             <span style={{ color: dotColor }}>●</span> {product.type}
-                        </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 py-2 border-t border-tea-border mt-1">
-                        <div>
-                            <label className="text-[10px] text-tea-muted uppercase tracking-wider">Stock</label>
-                            <div className="text-tea-text num">{product.stockGrams}g</div>
-                        </div>
-                        <div>
-                             <label className="text-[10px] text-tea-muted uppercase tracking-wider">Retail</label>
-                             <div className="text-tea-text num">${fmtNum(product.pricePerGramUSD)}</div>
-                        </div>
-                    </div>
+                <div key={product.id}>
+                    {/* Compact row */}
+                    <button
+                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                        onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                    >
+                        {/* Type dot */}
+                        <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: dotColor }} />
 
-                    <div className="flex justify-end gap-3 pt-2 border-t border-tea-border/50">
-                        <button 
-                            onClick={(e) => {e.stopPropagation(); handleProductUpdate(product.id, 'isFeatured', !product.isFeatured);}} 
-                            className={`p-2 rounded-lg transition-colors ${product.isFeatured ? 'bg-tea-accent/10 text-tea-accent' : 'bg-tea-bg text-tea-muted hover:text-tea-text'}`}
-                        >
-                            <Star size={16} className={product.isFeatured ? "fill-tea-accent" : ""} />
-                        </button>
-                        {(!product.showWisdom && product.lore) && (
-                            <button 
-                                onClick={(e) => {e.stopPropagation(); handleProductUpdate(product.id, 'showWisdom', true);}} 
-                                className="p-2 bg-tea-accent/10 rounded-lg text-tea-accent hover:bg-tea-accent/20 transition-colors"
-                                title="Approve AI Wisdom"
-                            >
-                                <Check size={16}/>
-                            </button>
-                        )}
-                        <button 
-                            onClick={(e) => {e.stopPropagation(); handleProductUpdate(product.id, 'isPublic', !product.isPublic);}} 
-                            className={`p-2 rounded-lg transition-colors ${product.isPublic ? 'bg-tea-bg text-tea-muted hover:text-tea-text' : 'bg-tea-muted/20 text-tea-muted'}`}
-                        >
-                            {product.isPublic ? <Eye size={16}/> : <EyeOff size={16}/>}
-                        </button>
-                        <button onClick={(e) => {e.stopPropagation(); setEditingProduct(product);}} className="p-2 bg-tea-bg rounded-lg text-tea-muted hover:text-tea-text transition-colors"><Pencil size={16}/></button>
-                        <button onClick={(e) => {e.stopPropagation(); setQrProduct(product);}} className="p-2 bg-tea-bg rounded-lg text-tea-muted hover:text-tea-text transition-colors"><QrCode size={16}/></button>
-                    </div>
+                        {/* Name + given name */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
+                                {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
+                                {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-muted/40" />}
+                                {product.lore && (
+                                    product.isCustomWisdom
+                                        ? <Pencil size={9} className="flex-shrink-0 text-tea-accent/60" />
+                                        : <Sparkles size={9} className="flex-shrink-0 text-tea-muted/40" />
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-tea-muted/70 mt-0.5">
+                                <span>{product.type}</span>
+                                {product.originRegion && (
+                                    <>
+                                        <span className="opacity-40">·</span>
+                                        <span className="truncate">{product.originRegion}</span>
+                                    </>
+                                )}
+                                {product.year && (
+                                    <>
+                                        <span className="opacity-40">·</span>
+                                        <span>{product.year}</span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Stock + Price */}
+                        <div className="flex-shrink-0 text-right">
+                            <div className={`text-xs tabular-nums ${isOutOfStock ? 'text-tea-muted/40' : isLowStock ? 'text-amber-500/80' : 'text-tea-text/80'}`}>
+                                {product.stockGrams}g
+                            </div>
+                            <div className="text-[10px] text-tea-muted/60 tabular-nums">
+                                ${fmtNum(product.pricePerGramUSD)}/g
+                            </div>
+                        </div>
+
+                        {/* Expand indicator */}
+                        <ChevronDown size={14} className={`flex-shrink-0 text-tea-muted/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Expanded detail panel */}
+                    {isExpanded && (
+                        <div className="bg-tea-surface/40 px-4 pb-3 pt-1 border-b border-tea-border/30">
+                            {/* Info grid */}
+                            <div className="grid grid-cols-3 gap-x-4 gap-y-2 py-2">
+                                <div>
+                                    <div className="text-[9px] text-tea-muted/50 uppercase tracking-wider">Stock</div>
+                                    <div className={`text-sm tabular-nums ${isOutOfStock ? 'text-tea-muted/40' : 'text-tea-text'}`}>{product.stockGrams}g</div>
+                                </div>
+                                <div>
+                                    <div className="text-[9px] text-tea-muted/50 uppercase tracking-wider">Retail</div>
+                                    <div className="text-sm text-tea-text tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
+                                </div>
+                                <div>
+                                    <div className="text-[9px] text-tea-muted/50 uppercase tracking-wider">Status</div>
+                                    <div className="text-sm text-tea-text">{product.status}</div>
+                                </div>
+                                {product.originRegion && (
+                                    <div className="col-span-2">
+                                        <div className="text-[9px] text-tea-muted/50 uppercase tracking-wider">Origin</div>
+                                        <div className="text-sm text-tea-text">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
+                                    </div>
+                                )}
+                                {product.vendor && (
+                                    <div>
+                                        <div className="text-[9px] text-tea-muted/50 uppercase tracking-wider">Vendor</div>
+                                        <div className="text-sm text-tea-text truncate">{product.vendor}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Description / Lore */}
+                            {(product.lore || product.description) && (
+                                <p className="text-xs text-tea-muted/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3">
+                                    {product.showWisdom && product.lore ? product.lore : product.description}
+                                </p>
+                            )}
+
+                            {/* Tasting notes */}
+                            {product.tastingNotes && product.tastingNotes.length > 0 && product.showWisdom && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {product.tastingNotes.map(note => (
+                                        <span key={note} className="text-[10px] text-tea-muted/60 bg-tea-bg/60 px-2 py-0.5 rounded-full">{note}</span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border/20">
+                                <button
+                                    onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
+                                    className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-muted/50 hover:text-tea-muted'}`}
+                                >
+                                    <Star size={15} className={product.isFeatured ? "fill-tea-accent" : ""} />
+                                </button>
+                                {(!product.showWisdom && product.lore) && (
+                                    <button
+                                        onClick={() => handleProductUpdate(product.id, 'showWisdom', true)}
+                                        className="p-1.5 rounded-md text-tea-accent/70 hover:text-tea-accent transition-colors"
+                                        title="Approve AI Wisdom"
+                                    >
+                                        <Check size={15} />
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
+                                    className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-muted/50 hover:text-tea-muted' : 'text-tea-muted/30'}`}
+                                >
+                                    {product.isPublic ? <Eye size={15} /> : <EyeOff size={15} />}
+                                </button>
+                                <button onClick={() => setQrProduct(product)} className="p-1.5 rounded-md text-tea-muted/50 hover:text-tea-muted transition-colors">
+                                    <QrCode size={15} />
+                                </button>
+
+                                <div className="ml-auto">
+                                    <button
+                                        onClick={() => setEditingProduct(product)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-muted hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                                    >
+                                        <Pencil size={12} /> Edit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )})}
+
+            {processedProducts.length === 0 && (
+              <div className="text-center py-16 text-tea-muted font-serif italic">
+                No items found.
+              </div>
+            )}
         </div>
 
         {/* DESKTOP TABLE */}
