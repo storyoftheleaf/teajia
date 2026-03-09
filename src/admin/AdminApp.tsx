@@ -21,6 +21,8 @@ import { SettingsView } from './components/SettingsView';
 import { ToastProvider, useToast } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AdminBottomNav } from './components/AdminBottomNav';
+import { DashboardView } from './components/DashboardView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -64,6 +66,7 @@ const AdminContent = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
 
   // React Query Hooks
@@ -159,14 +162,15 @@ const AdminContent = () => {
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         cartItemCount={cart.length}
-        isDevAdmin={isDevAdmin}
-        onToggleDevAdmin={toggleDevAdmin}
         onOpenCart={() => setIsCartOpen(true)}
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
         <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-6 py-4 flex justify-end items-center gap-4 flex-none">
-           <button onClick={handleRefresh} className="text-tea-muted hover:text-tea-text transition-colors">
+           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-muted hover:text-tea-text transition-colors p-2.5">
+              <Search size={18} />
+           </button>
+           <button onClick={handleRefresh} className="text-tea-muted hover:text-tea-text transition-colors p-2">
               <RefreshCw size={16} />
            </button>
 
@@ -185,13 +189,13 @@ const AdminContent = () => {
 
            <div className="w-px h-4 bg-tea-border"></div>
 
-           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-muted hover:text-tea-text transition-colors">
+           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-muted hover:text-tea-text transition-colors p-2">
              <ShoppingCart size={20} />
              {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
            </button>
         </div>
 
-        <div className="flex-1 overflow-auto relative">
+        <div className="flex-1 overflow-auto relative pb-16 md:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />
@@ -217,6 +221,7 @@ const AdminContent = () => {
               <Route path="customers" element={<ProtectedRoute><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
               <Route path="orders" element={<ProtectedRoute><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
               <Route path="records" element={<ProtectedRoute><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
 
               <Route path="*" element={<Navigate to="inventory" replace />} />
@@ -226,7 +231,7 @@ const AdminContent = () => {
 
         {/* --- PERSISTENT CART BAR (When Drawer Closed) --- */}
         {cart.length > 0 && !isCartOpen && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in duration-300">
+            <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in duration-300">
                 <button
                     onClick={() => setIsCartOpen(true)}
                     className="bg-tea-accent text-tea-bg px-6 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-4 border border-tea-accent/20"
@@ -273,7 +278,14 @@ const AdminContent = () => {
           rates={rates}
         />
 
-        <CommandPalette onAddProduct={() => setIsCreateModalOpen(true)} />
+        <CommandPalette onAddProduct={() => setIsCreateModalOpen(true)} externalOpen={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+
+        <AdminBottomNav
+          onSearchClick={() => setIsCommandPaletteOpen(true)}
+          onCartClick={() => setIsCartOpen(true)}
+          cartItemCount={cart.length}
+          isAdmin={isAdmin}
+        />
 
       </main>
     </div>

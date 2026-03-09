@@ -82,12 +82,12 @@ export const OrdersView = () => {
 
   return (
     <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center border-b border-tea-border pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-tea-border pb-6">
          <div>
             <h2 className="text-2xl font-serif text-tea-text">Order Management</h2>
             <p className="text-tea-muted text-sm mt-1">Fulfill pending orders and track history.</p>
          </div>
-         <div className="relative">
+         <div className="relative w-full md:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-muted" size={16} />
             <input 
               type="text" 
@@ -99,7 +99,7 @@ export const OrdersView = () => {
          </div>
       </div>
 
-      <div className="overflow-x-auto border border-tea-border rounded-xl bg-tea-surface">
+      <div className="hidden md:block overflow-x-auto border border-tea-border rounded-xl bg-tea-surface">
         <table className="w-full text-left text-sm">
            <thead className="bg-tea-bg text-tea-muted font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
              <tr>
@@ -157,26 +157,26 @@ export const OrdersView = () => {
                              </button>
                          )}
                          
-                         <button 
-                             onClick={() => handleView(order)} 
-                             className="p-2 text-tea-muted hover:text-tea-text transition-colors"
+                         <button
+                             onClick={() => handleView(order)}
+                             className="p-2.5 text-tea-muted hover:text-tea-text transition-colors"
                              title="View Details"
                          >
                             <Eye size={16} />
                          </button>
-                         
+
                          {!isVoid && (
-                             <button 
+                             <button
                                 onClick={() => handleVoid(order.id, order.invoice_number)}
-                                className="p-2 text-tea-muted hover:text-tea-muted/80 transition-colors"
+                                className="p-2.5 text-tea-muted hover:text-tea-muted/80 transition-colors"
                                 title="Void Order"
                              >
                                 <XCircle size={16} />
                              </button>
                          )}
-                         <button 
+                         <button
                              onClick={() => handleDelete(order.id, order.invoice_number)}
-                             className="p-2 text-tea-muted hover:text-tea-muted/80 transition-colors"
+                             className="p-2.5 text-tea-muted hover:text-tea-muted/80 transition-colors"
                              title="Delete Record"
                          >
                             <Trash2 size={16} />
@@ -188,6 +188,62 @@ export const OrdersView = () => {
              )}
            </tbody>
         </table>
+      </div>
+
+      {/* MOBILE CARD VIEW */}
+      <div className="md:hidden space-y-3">
+        {filteredOrders.length === 0 ? (
+          <div className="p-8 text-center text-tea-muted border border-tea-border rounded-xl bg-tea-surface">No orders found.</div>
+        ) : (
+          filteredOrders.map((order: any) => {
+            const isPending = order.status === 'Pending';
+            const isVoid = order.status === 'Void';
+            const isFilled = order.status === 'Filled' || order.status === 'Completed';
+
+            return (
+              <div key={order.id} className="border border-tea-border rounded-xl bg-tea-surface p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-tea-muted">{new Date(order.created_at).toLocaleDateString()}</span>
+                  <span className="text-sm text-tea-text num cursor-pointer hover:text-tea-accent transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                </div>
+                <div className="text-tea-text font-medium">{order.customer_name}</div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-tea-text num">{order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}</span>
+                  <span className={`text-xs px-2 py-1 rounded border font-medium uppercase tracking-wider ${
+                    isVoid ? 'border-tea-muted/50 text-tea-muted bg-tea-muted/10' :
+                    isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
+                    'border-tea-text/50 text-tea-text bg-tea-text/10'
+                  }`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t border-tea-border">
+                  {isPending && (
+                    <button
+                      onClick={() => handleFulfill(order.id, order.invoice_number)}
+                      className="px-3 py-1.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors"
+                      title="Mark as Filled (Deduct Stock)"
+                    >
+                      <PackageCheck size={14} /> FILL
+                    </button>
+                  )}
+                  <div className="flex-1" />
+                  <button onClick={() => handleView(order)} className="p-2.5 text-tea-muted hover:text-tea-text transition-colors" title="View Details">
+                    <Eye size={16} />
+                  </button>
+                  {!isVoid && (
+                    <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-2.5 text-tea-muted hover:text-tea-muted/80 transition-colors" title="Void Order">
+                      <XCircle size={16} />
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-2.5 text-tea-muted hover:text-tea-muted/80 transition-colors" title="Delete Record">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {orders.length >= pageSize && (

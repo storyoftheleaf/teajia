@@ -3,6 +3,15 @@ import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { CartItem as PublicCartItem } from '../types';
 
+interface InventoryViewConfig {
+  id: string;
+  name: string;
+  columns: string[];
+  sortConfig: { key: string; direction: 'asc' | 'desc' }[];
+  filterType: string;
+  groupBy: string | null;
+}
+
 interface AppState {
   // Admin Cart (for invoice builder)
   cart: AdminCartItem[];
@@ -41,6 +50,20 @@ interface AppState {
   toggleFavoriteTea: (id: string) => void;
   isFavoriteTea: (id: string) => boolean;
   clearFavoriteTeas: () => void;
+
+  // Inventory view management
+  inventoryColumns: string[];
+  savedViews: InventoryViewConfig[];
+  activeViewId: string | null;
+  inventoryGroupBy: string | null;
+  inventorySortConfig: { key: string; direction: 'asc' | 'desc' }[];
+  setInventoryColumns: (columns: string[]) => void;
+  toggleInventoryColumn: (column: string) => void;
+  saveView: (view: InventoryViewConfig) => void;
+  deleteView: (viewId: string) => void;
+  setActiveView: (viewId: string | null) => void;
+  setInventoryGroupBy: (groupBy: string | null) => void;
+  setInventorySortConfig: (sortConfig: { key: string; direction: 'asc' | 'desc' }[]) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -151,6 +174,35 @@ export const useAppStore = create<AppState>()(
         })),
       isFavoriteTea: (id) => false, // computed via selector below
       clearFavoriteTeas: () => set({ favoriteTeas: [] }),
+
+      // Inventory view management
+      inventoryColumns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
+      savedViews: [],
+      activeViewId: null,
+      inventoryGroupBy: null,
+      inventorySortConfig: [{ key: 'type', direction: 'asc' }],
+
+      setInventoryColumns: (columns) => set({ inventoryColumns: columns }),
+      toggleInventoryColumn: (column) =>
+        set((state) => ({
+          inventoryColumns: state.inventoryColumns.includes(column)
+            ? state.inventoryColumns.filter((c) => c !== column)
+            : [...state.inventoryColumns, column],
+        })),
+      saveView: (view) =>
+        set((state) => ({
+          savedViews: state.savedViews.some((v) => v.id === view.id)
+            ? state.savedViews.map((v) => (v.id === view.id ? view : v))
+            : [...state.savedViews, view],
+        })),
+      deleteView: (viewId) =>
+        set((state) => ({
+          savedViews: state.savedViews.filter((v) => v.id !== viewId),
+          activeViewId: state.activeViewId === viewId ? null : state.activeViewId,
+        })),
+      setActiveView: (viewId) => set({ activeViewId: viewId }),
+      setInventoryGroupBy: (groupBy) => set({ inventoryGroupBy: groupBy }),
+      setInventorySortConfig: (sortConfig) => set({ inventorySortConfig: sortConfig }),
     }),
     {
       name: 'teajia-storage',
@@ -160,6 +212,11 @@ export const useAppStore = create<AppState>()(
         currency: state.currency,
         aiPromptTemplate: state.aiPromptTemplate,
         favoriteTeas: state.favoriteTeas,
+        inventoryColumns: state.inventoryColumns,
+        savedViews: state.savedViews,
+        activeViewId: state.activeViewId,
+        inventoryGroupBy: state.inventoryGroupBy,
+        inventorySortConfig: state.inventorySortConfig,
       }),
     }
   )

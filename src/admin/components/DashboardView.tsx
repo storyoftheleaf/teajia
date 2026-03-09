@@ -102,7 +102,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
              <DollarSign size={80} strokeWidth={1} />
           </div>
           <p className="text-tea-muted text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Total Asset Cost</p>
-          <h3 className="text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
+          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
           <p className="text-xs text-tea-muted/70 mt-4 num">Capital deployed in inventory</p>
         </div>
 
@@ -111,13 +111,13 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
              <PieIcon size={80} strokeWidth={1} />
           </div>
           <p className="text-tea-muted text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Retail Valuation</p>
-          <h3 className="text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
+          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
           <p className="text-xs text-tea-muted/70 mt-4 num">Potential revenue at current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-accent/50 transition-colors">
           <p className="text-tea-muted text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Unrealized P&L</p>
-          <h3 className="text-5xl font-serif font-light text-tea-accent num">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-accent num">+{fmtDollars(metrics.potentialProfit)}</h3>
           <p className="text-xs text-tea-muted/70 mt-4 num">Projected Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
@@ -125,7 +125,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* CHART 1: Currency Exposure */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-96">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-64 md:h-96">
           <div className="flex justify-between items-center mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Capital Exposure by Currency</h4>
             <div className="text-[10px] text-tea-muted uppercase tracking-wider">Base: USD Equivalent</div>
@@ -161,7 +161,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 2: Live Exchange Rates */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-96 flex flex-col">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-64 md:h-96 flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
@@ -197,13 +197,13 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 3: Value by Region */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-96">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-64 md:h-96">
           <div className="flex justify-between items-center mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Asset Value by Terroir</h4>
             <MapPin size={14} className="text-tea-muted" />
           </div>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={metrics.regionValue} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+            <BarChart data={metrics.regionValue} layout="vertical" margin={{ top: 5, right: 20, left: 30, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#26221D" horizontal={false} />
               <XAxis type="number" stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
               <YAxis dataKey="name" type="category" stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false} width={80} />
@@ -218,7 +218,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 4: Portfolio Composition */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-96 lg:col-span-2">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl h-64 md:h-96 lg:col-span-2">
            <h4 className="text-sm font-medium text-tea-text font-serif mb-6">Portfolio Distribution (Retail Value)</h4>
            <ResponsiveContainer width="100%" height="90%">
             <BarChart data={metrics.typeValue}>
