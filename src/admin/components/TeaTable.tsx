@@ -14,11 +14,14 @@ interface TeaTableProps {
   onAdd: (product: Product) => void;
   isAdmin: boolean;
   isLoading: boolean;
+  isError?: boolean;
+  error?: Error | null;
   onEdit?: (product: Product) => void;
+  onRefresh?: () => void;
 }
 
-export const TeaTable: React.FC<TeaTableProps> = ({ 
-  products, currency, rates, onAdd, isAdmin, isLoading, onEdit 
+export const TeaTable: React.FC<TeaTableProps> = ({
+  products, currency, rates, onAdd, isAdmin, isLoading, isError, error, onEdit, onRefresh
 }) => {
   const [filter, setFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,6 +119,25 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
   if (isLoading) {
     return <div className="p-12 text-center text-tea-muted flex justify-center items-center h-full"><Loader2 className="animate-spin mr-2" /> Accessing Archives...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-16 text-center h-full">
+        <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 mb-6">
+          <AlertCircle className="text-red-400" size={32} />
+        </div>
+        <h2 className="text-lg font-serif text-tea-text mb-2">Failed to load catalog</h2>
+        <p className="text-tea-muted text-sm mb-6 max-w-md">
+          {error?.message || 'Could not connect to the server. Please check your connection and try again.'}
+        </p>
+        {onRefresh && (
+          <button onClick={onRefresh} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors">
+            Try Again
+          </button>
+        )}
+      </div>
+    );
   }
 
   const handleNext = () => {

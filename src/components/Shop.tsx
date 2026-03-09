@@ -26,6 +26,9 @@ interface ShopProps {
   cartItemCount?: number;
   onCartClick?: () => void;
   onAccountClick?: () => void;
+  isError?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 const TABS = [
@@ -42,6 +45,9 @@ export const Shop: React.FC<ShopProps> = ({
   cartItemCount = 0,
   onCartClick,
   onAccountClick,
+  isError,
+  error,
+  onRetry,
 }) => {
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
@@ -151,14 +157,34 @@ export const Shop: React.FC<ShopProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
-        {activeTab === 'collection' && (
+        {isError && (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-[fadeIn_0.5s_ease-out]">
+            <div className="w-14 h-14 border border-tea-seal/30 rounded-full flex items-center justify-center mb-5">
+              <Icons.Leaf className="w-6 h-6 text-tea-seal/60" />
+            </div>
+            <h3 className="font-serif text-lg text-tea-ink mb-2">Unable to load teas</h3>
+            <p className="text-tea-ink/50 text-sm mb-6 max-w-sm">
+              {error?.message || 'We couldn\'t reach the server. Please check your connection and try again.'}
+            </p>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="bg-tea-seal text-white text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-seal/90 transition-all active:scale-95"
+              >
+                Try Again
+              </button>
+            )}
+          </div>
+        )}
+
+        {!isError && activeTab === 'collection' && (
           <CollectionTab
             inventory={[...teaInventory, ...teawareInventory]}
             onAddToCart={onAddToCart}
           />
         )}
 
-        {activeTab === 'tea' && (
+        {!isError && activeTab === 'tea' && (
           <TeaInventory
             inventory={teaInventory}
             onAddToCart={onAddToCart}
@@ -169,7 +195,7 @@ export const Shop: React.FC<ShopProps> = ({
           />
         )}
 
-        {activeTab === 'teaware' && (
+        {!isError && activeTab === 'teaware' && (
           <TeawareCatalog
             externalInventory={teawareInventory}
             onAddToCart={onAddToCart}
@@ -180,7 +206,7 @@ export const Shop: React.FC<ShopProps> = ({
           />
         )}
 
-        {activeTab === 'sets' && renderSets()}
+        {!isError && activeTab === 'sets' && renderSets()}
       </div>
 
       {/* Admin: Floating Action Button for quick product creation */}

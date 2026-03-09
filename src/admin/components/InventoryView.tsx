@@ -21,6 +21,8 @@ const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's res
 interface InventoryViewProps {
   products: Product[];
   isLoading: boolean;
+  isError?: boolean;
+  error?: Error | null;
   onImportClick: () => void;
   onAddClick: () => void;
   onRefresh: () => void;
@@ -76,8 +78,8 @@ const GhostInput = ({
     );
 };
 
-export const InventoryView: React.FC<InventoryViewProps> = ({ 
-  products, isLoading, onImportClick, onAddClick, onRefresh 
+export const InventoryView: React.FC<InventoryViewProps> = ({
+  products, isLoading, isError, error, onImportClick, onAddClick, onRefresh
 }) => {
   const { showToast } = useToast();
   
@@ -542,6 +544,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   if (isLoading) {
     return <div className="p-12 text-center text-tea-muted font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading inventory...</div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-16 text-center">
+        <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 mb-6">
+          <AlertTriangle className="text-red-400" size={32} />
+        </div>
+        <h2 className="text-lg font-serif text-tea-text mb-2">Failed to load inventory</h2>
+        <p className="text-tea-muted text-sm mb-6 max-w-md">
+          {error?.message || 'Could not connect to the server. Please check your connection and try again.'}
+        </p>
+        <button
+          onClick={onRefresh}
+          className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors flex items-center gap-2"
+        >
+          <RefreshCw size={16} />
+          Try Again
+        </button>
+      </div>
+    );
   }
 
   return (
