@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, X, Eye, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Tag, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf } from 'lucide-react';
 import { useCustomers } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -193,15 +193,23 @@ const CustomerDetail = ({
   onDelete: () => void;
 }) => {
   const [orders, setOrders] = useState<any[]>([]);
+  const [teas, setTeas] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [loadingTeas, setLoadingTeas] = useState(true);
   const [showOrders, setShowOrders] = useState(true);
+  const [showTeas, setShowTeas] = useState(true);
 
   React.useEffect(() => {
     setLoadingOrders(true);
+    setLoadingTeas(true);
     api.customers.getOrders(customer.id)
       .then(setOrders)
       .catch(() => setOrders([]))
       .finally(() => setLoadingOrders(false));
+    api.customers.getTeas(customer.id)
+      .then(setTeas)
+      .catch(() => setTeas([]))
+      .finally(() => setLoadingTeas(false));
   }, [customer.id]);
 
   const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) => {
@@ -287,6 +295,56 @@ const CustomerDetail = ({
               <p className="text-sm text-tea-text whitespace-pre-wrap leading-relaxed">{customer.notes}</p>
             </div>
           )}
+
+          {/* Teas Purchased */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <button
+              onClick={() => setShowTeas(!showTeas)}
+              className="w-full flex justify-between items-center"
+            >
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-muted flex items-center gap-2">
+                <Leaf size={12} /> Teas Purchased
+              </h4>
+              {showTeas ? <ChevronUp size={14} className="text-tea-muted" /> : <ChevronDown size={14} className="text-tea-muted" />}
+            </button>
+
+            {showTeas && (
+              <div className="mt-4 space-y-3">
+                {loadingTeas ? (
+                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-muted" size={16} /></div>
+                ) : teas.length === 0 ? (
+                  <p className="text-tea-muted text-sm italic">No tea purchases yet.</p>
+                ) : (
+                  teas.map((tea: any) => (
+                    <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
+                      {tea.image_url ? (
+                        <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
+                          <Leaf size={14} className="text-tea-muted" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-tea-text font-medium truncate">
+                          {tea.given_name || tea.product_name}
+                        </div>
+                        <div className="text-xs text-tea-muted flex items-center gap-2">
+                          <span className="uppercase">{tea.type}</span>
+                          {tea.origin_region && <span>· {tea.origin_region}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-sm text-tea-text">{tea.total_quantity}g</div>
+                        <div className="text-[10px] text-tea-muted">
+                          {tea.order_count} order{tea.order_count !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Order History */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">

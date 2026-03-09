@@ -597,6 +597,30 @@ const handleGetCustomerOrders: Handler = async (request, env, params) => {
   return json(orders.results);
 };
 
+const handleGetCustomerTeas: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Get all teas this customer has purchased, with quantities and dates
+  const result = await env.DB.prepare(`
+    SELECT
+      p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
+      p.origin_country, p.origin_region,
+      SUM(ili.quantity) as total_quantity,
+      COUNT(DISTINCT i.id) as order_count,
+      MIN(i.created_at) as first_purchased,
+      MAX(i.created_at) as last_purchased
+    FROM invoice_line_items ili
+    JOIN invoices i ON i.id = ili.invoice_id
+    JOIN products p ON p.id = ili.product_id
+    WHERE i.customer_id = ? AND i.status != 'Void'
+    GROUP BY p.id
+    ORDER BY last_purchased DESC
+  `).bind(params.id).all();
+
+  return json(result.results);
+};
+
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -653,6 +677,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/customers/:id', handleUpdateCustomer],
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],
   ['GET', '/api/customers/:id/orders', handleGetCustomerOrders],
+  ['GET', '/api/customers/:id/teas', handleGetCustomerTeas],
 
   // RPC
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],

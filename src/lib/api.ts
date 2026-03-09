@@ -239,6 +239,12 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getTeas: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/teas`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
   },
 
   rpc: {
