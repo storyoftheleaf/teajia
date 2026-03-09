@@ -617,7 +617,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {auth.isAuthenticated && auth.isAdmin && (
                   <div>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Administration</span>
-                    <div className="border border-tea-gold/15 overflow-hidden">
+                    <div className="border border-tea-border overflow-hidden rounded-md">
                       {[
                         { path: '/admin/inventory', label: 'Inventory', desc: 'Manage products & stock', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
                         { path: '/admin/personal', label: 'Collection', desc: 'Personal tea collection', icon: <Icons.Heart className="w-4.5 h-4.5" /> },
@@ -628,8 +628,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         <button
                           key={item.path}
                           onClick={() => handleGoToAdmin(item.path)}
-                          className={`w-full flex items-center gap-4 px-4 py-3.5 bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group ${
-                            i < arr.length - 1 ? 'border-b border-tea-gold/10' : ''
+                          className={`w-full flex items-center gap-4 px-4 py-3.5 bg-tea-accent-sub hover:bg-tea-gold/10 transition-colors group ${
+                            i < arr.length - 1 ? 'border-b border-tea-border' : ''
                           }`}
                         >
                           <div className="text-tea-gold">{item.icon}</div>
@@ -646,17 +646,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 {/* Activity Stats — 3 columns now */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-4 flex flex-col items-center gap-2 rounded-md" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}>
+                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
                     <Icons.Bag className="w-5 h-5 text-tea-text-dim" />
                     <span className="font-sans text-2xl font-light text-tea-text">{cartCount}</span>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Cart</span>
                   </div>
-                  <div className="bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-4 flex flex-col items-center gap-2 rounded-md" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}>
+                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
                     <Icons.Heart className="w-5 h-5 text-tea-text-dim" />
                     <span className="font-sans text-2xl font-light text-tea-text">{favoriteTeas.length}</span>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Favorites</span>
                   </div>
-                  <div className="bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-4 flex flex-col items-center gap-2 rounded-md" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}>
+                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
                     <Icons.BookOpen className="w-5 h-5 text-tea-text-dim" />
                     <span className="font-sans text-2xl font-light text-tea-text">{progressCount}</span>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Read</span>
@@ -668,7 +668,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Your Tea Collection</span>
                   <button
                     onClick={() => setPanelView('collection')}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-[rgba(0,0,0,0.15)] border border-[rgba(184,146,78,0.08)] hover:bg-[rgba(0,0,0,0.25)] transition-colors group"
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border hover:bg-[rgba(0,0,0,0.25)] transition-colors group"
                   >
                     <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                     <div className="flex flex-col items-start flex-1">
