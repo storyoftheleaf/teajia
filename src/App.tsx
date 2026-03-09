@@ -55,6 +55,8 @@ const AppContent = () => {
   } = useAppStore();
   const preloader = useImagePreloader();
   const { isAdmin } = useAuth();
+  const [adminToolbarCollapsed, setAdminToolbarCollapsed] = useState(false);
+  const showAdminBar = isAdmin && !adminToolbarCollapsed;
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
 
@@ -329,16 +331,16 @@ const AppContent = () => {
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
 
       {/* Admin Toolbar — visible only for admin users */}
-      {isAdmin && <AdminToolbar />}
+      {isAdmin && <AdminToolbar collapsed={adminToolbarCollapsed} onCollapsedChange={setAdminToolbarCollapsed} />}
 
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       {/* Left Sidebar for Desktop */}
-      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} cartItemCount={cart.length} />
+      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative lg:ml-20 xl:ml-56">
+      <div className={`flex-1 flex flex-col relative lg:ml-20 xl:ml-56 ${showAdminBar ? 'pt-9' : ''}`}>
 
       <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-32 md:pb-24 lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
           {isSectionTransitioning ? (

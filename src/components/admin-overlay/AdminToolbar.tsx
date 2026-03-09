@@ -4,10 +4,21 @@ import { useAdminOverlay } from '../../hooks/useAdminOverlay';
 import { Icons } from '../Icons';
 import { fmtDollars } from '../../utils/formatNumber';
 
-export const AdminToolbar: React.FC = () => {
+interface AdminToolbarProps {
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+}
+
+export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlledCollapsed, onCollapsedChange }) => {
   const { isAdmin, stats } = useAdminOverlay();
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
   const navigate = useNavigate();
+
+  const collapsed = controlledCollapsed ?? internalCollapsed;
+  const setCollapsed = (value: boolean) => {
+    setInternalCollapsed(value);
+    onCollapsedChange?.(value);
+  };
 
   if (!isAdmin) return null;
 
