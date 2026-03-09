@@ -230,7 +230,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           className={`${SECTION_GAP} border-l-2 border-tea-gold/60 pl-6 md:pl-8 py-6 md:py-8 bg-tea-gold/[0.03] ${quoteReveal.className}`}
           style={quoteReveal.style}
         >
-          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif" }}>
+          <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3" style={{ fontFamily: "var(--font-display)" }}>
             &ldquo;{pullQuote.description}&rdquo;
           </p>
           <p className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans">
@@ -311,7 +311,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
             </CardContainer>
             <div className="flex-1 min-w-0 pt-1">
-              <h3 className="text-xl md:text-2xl text-tea-text mb-1" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 400 }}>
+              <h3 className="text-xl md:text-2xl text-tea-text mb-1" style={{ fontFamily: "var(--font-display)", fontWeight: 400 }}>
                 {curatedTea.name}
               </h3>
               <p className="text-xs text-tea-text/40 uppercase tracking-wider mb-3">
@@ -375,7 +375,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-2">
               Design &amp; Curation
             </p>
-            <p className="text-lg md:text-xl text-tea-text" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 300 }}>
+            <p className="text-lg md:text-xl text-tea-text" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>
               We design tea spaces — from a quiet corner to a full room
             </p>
           </div>

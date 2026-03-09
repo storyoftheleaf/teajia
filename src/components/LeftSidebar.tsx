@@ -60,7 +60,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               : 'opacity-80 group-hover:opacity-100 group-hover:scale-105'
           }`}
         />
-        <span className="hidden xl:block text-lg text-tea-text tracking-wide" style={{ fontFamily: "'Fraunces', 'Fraunces Fallback', 'Lora', serif", fontWeight: 300 }}>Teajia</span>
+        <span className="hidden xl:block text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
         {activeSection === 'HOME' && (
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full animate-[slideIn_0.3s_ease-out]"></div>
         )}
