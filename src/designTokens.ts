@@ -530,7 +530,77 @@ export const ICON_SIZES = {
 
 
 // ─────────────────────────────────────────────────────────────
-// 12. COMPONENT PATTERNS
+// 12. SURFACE TREATMENTS — "The Alcove System"
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * The Alcove texture system is the STANDARD surface treatment for
+ * panels, drawers, modals, and any container that needs atmospheric depth.
+ *
+ * It consists of layered effects applied via CSS classes (see card-utilities.css):
+ *
+ *   .surface-warm        — Primary panel surface
+ *                           Layers: radial warmth gradient + grain noise overlay
+ *                           Use on: drawers, sidebars, full-panel backgrounds
+ *
+ *   .surface-warm-inset  — Recessed content area within a .surface-warm panel
+ *                           Layers: darkened bg + edge-lit inset shadows +
+ *                                   denser grain + ambient top-glow
+ *                           Use on: content areas, scrollable regions, form sections
+ *
+ * The system creates tactile, editorial depth without relying on borders or
+ * heavy shadows. Everything is warm-toned — never white, never cold.
+ *
+ * Example structure:
+ *   <div class="surface-warm">           ← Drawer/panel shell
+ *     <header>...</header>
+ *     <div class="surface-warm-inset">   ← Recessed content area
+ *       ...scrollable content...
+ *     </div>
+ *     <footer>...</footer>
+ *   </div>
+ */
+
+export const SURFACE_TREATMENTS = {
+  /** Primary warm surface — radial warmth + grain */
+  warm: {
+    warmthGradient: `
+      radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
+    `,
+    grain: TEXTURES.alcoveGrain,
+    grainOpacity: 0.06,
+    grainSize: '120px',
+  },
+
+  /** Recessed inset surface — darker bg, edge-lit, denser grain, ambient glow */
+  warmInset: {
+    background: 'rgba(0,0,0,0.25)',
+    boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)',
+    borderRadius: '6px',
+    grain: TEXTURES.alcoveGrain,
+    grainOpacity: 0.08,
+    grainSize: '120px',
+    ambientGlow: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)',
+    ambientGlowHeight: '60%',
+  },
+
+  /** Light mode warm inset — softer treatment */
+  warmInsetLight: {
+    background: 'rgba(0,0,0,0.04)',
+    boxShadow: 'inset 0 1px 0 rgba(142,109,46,0.08), inset 0 -1px 0 rgba(142,109,46,0.04), 0 -1px 0 rgba(142,109,46,0.06)',
+    borderRadius: '6px',
+    grain: TEXTURES.alcoveGrain,
+    grainOpacity: 0.04,
+    grainSize: '120px',
+    ambientGlow: 'radial-gradient(ellipse 80% 30% at 70% 0%, rgba(142,109,46,0.03), transparent)',
+    ambientGlowHeight: '60%',
+  },
+} as const;
+
+
+// ─────────────────────────────────────────────────────────────
+// 13. COMPONENT PATTERNS
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -552,6 +622,11 @@ export const ICON_SIZES = {
  *   - Image: aspect-ratio 1/1, opacity 0.9 → 1 on hover, scale(1.06)
  *   - Title: font-display (Vollkorn), color transitions to --tea-gold on hover
  *   - Price: .num class (JetBrains Mono, tabular-nums)
+ *
+ * SURFACE TREATMENTS (see §12):
+ *   - .surface-warm: Radial warmth gradient + grain noise — use on all panels/drawers
+ *   - .surface-warm-inset: Recessed content area with edge lighting + denser grain
+ *   - These classes replace ad-hoc texture layering throughout the site
  *
  * INSET PANELS (.inset-panel):
  *   - Background: insetHighlight gradient + rgba(0,0,0,0.15)
@@ -644,6 +719,7 @@ export const DESIGN_TOKENS = {
   gradients:       GRADIENTS,
   textures:        TEXTURES,
   shadows:         SHADOWS,
+  surfaceTreatments: SURFACE_TREATMENTS,
   spacing:         SPACING,
   borderRadius:    BORDER_RADIUS,
   timing:          TIMING,
