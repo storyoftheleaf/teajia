@@ -234,7 +234,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             .replace('{{type}}', formData.type);
 
         const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-2.5-flash-preview-04-17",
             contents: prompt,
             config: {
                 responseMimeType: "application/json",

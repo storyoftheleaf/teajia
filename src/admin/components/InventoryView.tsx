@@ -309,7 +309,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     .replace('{{type}}', tea.type);
 
                 const response = await ai.models.generateContent({
-                    model: "gemini-3-flash-preview",
+                    model: "gemini-2.5-flash-preview-04-17",
                     contents: prompt,
                     config: {
                         responseMimeType: "application/json",
@@ -479,7 +479,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         .replace('{{productName}}', product.productName)
         .replace('{{type}}', product.type);
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.5-flash-preview-04-17",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
