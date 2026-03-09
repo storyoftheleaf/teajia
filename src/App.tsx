@@ -389,9 +389,11 @@ const AppContent = () => {
                 } />
                 <Route path="/shop" element={
                   <ErrorBoundary>
-                    <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                      <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} />
-                    </div>
+                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                      <div className="w-full animate-[fadeIn_0.5s_ease-out]">
+                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} />
+                      </div>
+                    </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/consult" element={
@@ -431,38 +433,44 @@ const AppContent = () => {
       {/* --- Full Screen Views --- */}
 
       {viewState === 'READER' && selectedStory && (
-         <Reader
-           story={selectedStory}
-           onBack={handleBackToBrowse}
-           onNavigate={(s) => { setSelectedStory(s); setWatchedStoryIds(prev => ({ ...prev, [s.id]: true })); }}
-           onPersonClick={setSelectedPerson}
-           isSaved={savedStoryIds[selectedStory.id]}
-           onToggleSave={() => toggleSave(selectedStory.id)}
-           onShare={handleShare}
-           watchedStories={watchedStoryIds}
-           recommendations={stories.filter(s => s.id !== selectedStory.id && s.type === ContentType.Article).slice(0, 3)}
-         />
+         <Suspense fallback={<SectionSkeleton variant="grid" />}>
+           <Reader
+             story={selectedStory}
+             onBack={handleBackToBrowse}
+             onNavigate={(s) => { setSelectedStory(s); setWatchedStoryIds(prev => ({ ...prev, [s.id]: true })); }}
+             onPersonClick={setSelectedPerson}
+             isSaved={savedStoryIds[selectedStory.id]}
+             onToggleSave={() => toggleSave(selectedStory.id)}
+             onShare={handleShare}
+             watchedStories={watchedStoryIds}
+             recommendations={stories.filter(s => s.id !== selectedStory.id && s.type === ContentType.Article).slice(0, 3)}
+           />
+         </Suspense>
       )}
 
       {viewState === 'STORY_VIEW' && selectedStory && (
-         <MediaViewer
-            story={selectedStory}
-            onBack={handleBackToBrowse}
-            isSaved={savedStoryIds[selectedStory.id]}
-            onToggleSave={() => toggleSave(selectedStory.id)}
-            onShare={handleShare}
-         />
+         <Suspense fallback={<SectionSkeleton variant="grid" />}>
+           <MediaViewer
+              story={selectedStory}
+              onBack={handleBackToBrowse}
+              isSaved={savedStoryIds[selectedStory.id]}
+              onToggleSave={() => toggleSave(selectedStory.id)}
+              onShare={handleShare}
+           />
+         </Suspense>
       )}
 
       {viewState === 'PHOTO_ESSAY' && selectedStory && (
-         <VisualFeatureViewer
-            story={selectedStory}
-            onBack={handleBackToBrowse}
-            onPersonClick={setSelectedPerson}
-            isSaved={savedStoryIds[selectedStory.id]}
-            onToggleSave={() => toggleSave(selectedStory.id)}
-            onShare={handleShare}
-         />
+         <Suspense fallback={<SectionSkeleton variant="grid" />}>
+           <VisualFeatureViewer
+              story={selectedStory}
+              onBack={handleBackToBrowse}
+              onPersonClick={setSelectedPerson}
+              isSaved={savedStoryIds[selectedStory.id]}
+              onToggleSave={() => toggleSave(selectedStory.id)}
+              onShare={handleShare}
+           />
+         </Suspense>
       )}
 
       {selectedPerson && (
