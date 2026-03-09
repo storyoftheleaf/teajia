@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, MapPin
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
 import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
@@ -18,6 +19,60 @@ import { getThemeColor } from '../themeUtils';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
+// --- COLUMN DEFINITIONS ---
+const COLUMN_DEFS = [
+  { key: 'productName', label: 'Product', defaultWidth: 'w-[30%]', alwaysVisible: true },
+  { key: 'type', label: 'Type', defaultWidth: 'w-[10%]' },
+  { key: 'year', label: 'Year', defaultWidth: 'w-[8%]' },
+  { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
+  { key: 'stockGrams', label: 'Stock', defaultWidth: 'w-[10%]' },
+  { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[10%]' },
+  { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[10%]' },
+] as const;
+
+const GROUPBY_OPTIONS = [
+  { value: '', label: 'None' },
+  { value: 'type', label: 'Type' },
+  { value: 'vendor', label: 'Vendor' },
+  { value: 'status', label: 'Status' },
+  { value: 'originCountry', label: 'Origin Country' },
+] as const;
+
+const DEFAULT_VIEWS = [
+  {
+    id: 'default-all',
+    name: 'All Products',
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'All',
+    groupBy: null,
+  },
+  {
+    id: 'default-low-stock',
+    name: 'Low Stock',
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'stockGrams', direction: 'asc' as const }],
+    filterType: 'Alerts',
+    groupBy: null,
+  },
+  {
+    id: 'default-unpublished',
+    name: 'Unpublished',
+    columns: ['productName', 'type', 'stockGrams', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Unpublished',
+    groupBy: null,
+  },
+];
+
+const BULK_EDIT_FIELDS: readonly { key: string; label: string; type: 'select' | 'boolean'; options?: readonly string[] }[] = [
+  { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Archived', 'Sold Out', 'Draft'] },
+  { key: 'isPublic', label: 'Public', type: 'boolean' },
+  { key: 'isFeatured', label: 'Featured', type: 'boolean' },
+  { key: 'isPersonal', label: 'Personal', type: 'boolean' },
+  { key: 'canReorder', label: 'Can Reorder', type: 'boolean' },
+];
+
 interface InventoryViewProps {
   products: Product[];
   isLoading: boolean;
@@ -28,20 +83,22 @@ interface InventoryViewProps {
 
 // --- GHOST INPUT COMPONENT ---
 // Invisible input that looks like text until focused
-const GhostInput = ({ 
-    value, 
-    onSave, 
-    type = 'text', 
+const GhostInput = ({
+    value,
+    onSave,
+    type = 'text',
     align = 'left',
     className = '',
-    placeholder = ''
-}: { 
-    value: string | number, 
-    onSave: (val: any) => void, 
+    placeholder = '',
+    inputMode
+}: {
+    value: string | number,
+    onSave: (val: any) => void,
     type?: 'text' | 'number',
     align?: 'left' | 'right',
     className?: string,
-    placeholder?: string
+    placeholder?: string,
+    inputMode?: string
 }) => {
     const [localValue, setLocalValue] = useState(value);
     
@@ -71,7 +128,8 @@ const GhostInput = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-muted/50 leading-none ${className}`}
+            inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border/30 focus:border-tea-accent focus:border-solid focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-muted/50 leading-none ${className}`}
         />
     );
 };
@@ -80,12 +138,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, onImportClick, onAddClick, onRefresh 
 }) => {
   const { showToast } = useToast();
-  
+
+  // --- STORE ---
+  const {
+    inventoryColumns, toggleInventoryColumn, setInventoryColumns,
+    savedViews, activeViewId, saveView, deleteView, setActiveView,
+    inventoryGroupBy, setInventoryGroupBy,
+    inventorySortConfig, setInventorySortConfig,
+    aiPromptTemplate,
+  } = useAppStore();
+
   // --- STATE ---
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
   const [showOptions, setShowOptions] = useState(false);
-  
+
   // EDIT MODE STATE
   const [isEditMode, setIsEditMode] = useState(false);
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
@@ -95,13 +162,40 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setLocalProducts(products);
   }, [products]);
 
-  // Sorting
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Product; direction: 'asc' | 'desc' }>({ key: 'type', direction: 'asc' });
+  // Feature 2: Column Show/Hide popover
+  const [showColumnsPopover, setShowColumnsPopover] = useState(false);
+
+  // Feature 3: Row Grouping collapsed state
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // Feature 4: Saved Views — initialize defaults
+  useEffect(() => {
+    if (savedViews.length === 0) {
+      DEFAULT_VIEWS.forEach(v => saveView(v));
+      setActiveView('default-all');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Feature 4: Save View prompt
+  const [showSaveViewPrompt, setShowSaveViewPrompt] = useState(false);
+  const [newViewName, setNewViewName] = useState('');
+
+  // Feature 5: Record Panel
+  const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+
+  // Feature 6: Keyboard Navigation
+  const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null);
+
+  // Feature 7: Bulk Edit
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkField, setBulkField] = useState<string>('status');
+  const [bulkValue, setBulkValue] = useState<string>('');
+  const [isBulkApplying, setIsBulkApplying] = useState(false);
 
   // Virtualization State
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(600); 
+  const [containerHeight, setContainerHeight] = useState(600);
 
   // Modals
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -111,7 +205,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [resetInput, setResetInput] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  
+
   const { data: rates = [] } = useRates();
 
   // --- DATA PROCESSING ---
@@ -133,28 +227,50 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
     } else if (filterType === 'Pending') {
       result = result.filter(p => p.lore && !p.showWisdom);
+    } else if (filterType === 'Unpublished') {
+      result = result.filter(p => !p.isPublic);
     } else if (filterType !== 'All') {
       result = result.filter(p => p.type === filterType);
     }
 
-    // 3. Sort
+    // 3. Multi-level Sort
     return [...result].sort((a, b) => {
-        if (sortConfig.key === 'type') {
-             if (a.type === 'Teaware' && b.type !== 'Teaware') return 1;
-             if (a.type !== 'Teaware' && b.type === 'Teaware') return -1;
+      for (const sort of inventorySortConfig) {
+        const key = sort.key as keyof Product;
+        // Teaware always sorts last when sorting by type
+        if (key === 'type') {
+          if (a.type === 'Teaware' && b.type !== 'Teaware') return 1;
+          if (a.type !== 'Teaware' && b.type === 'Teaware') return -1;
         }
-
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
-        
-        if (aVal === bVal) return 0;
+        const aVal = a[key];
+        const bVal = b[key];
+        if (aVal === bVal) continue;
         if (aVal === null || aVal === undefined) return 1;
         if (bVal === null || bVal === undefined) return -1;
-        
         const comparison = aVal < bVal ? -1 : 1;
-        return sortConfig.direction === 'asc' ? comparison : -comparison;
+        const result = sort.direction === 'asc' ? comparison : -comparison;
+        if (result !== 0) return result;
+      }
+      return 0;
     });
-  }, [localProducts, searchQuery, filterType, sortConfig, fuse]);
+  }, [localProducts, searchQuery, filterType, inventorySortConfig, fuse]);
+
+  // Visible columns (filtered by store)
+  const visibleCols = useMemo(() => COLUMN_DEFS.filter(col => inventoryColumns.includes(col.key)), [inventoryColumns]);
+  const colCount = visibleCols.length + 1; // +1 for actions column
+  const colCountWithBulk = colCount + (isEditMode ? 1 : 0); // +1 for checkbox column in edit mode
+
+  // Grouped data for Feature 3
+  const groupedProducts = useMemo(() => {
+    if (!inventoryGroupBy) return null;
+    const groups: Record<string, Product[]> = {};
+    for (const p of processedProducts) {
+      const key = String((p as any)[inventoryGroupBy] || 'Unknown');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(p);
+    }
+    return groups;
+  }, [processedProducts, inventoryGroupBy]);
 
   const pendingCount = useMemo(() => localProducts.filter(p => p.lore && !p.showWisdom).length, [localProducts]);
 
@@ -211,14 +327,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const paddingBottom = Math.max(0, totalHeight - paddingTop - (visibleProducts.length * ROW_HEIGHT));
 
   // --- HANDLERS ---
-  const { aiPromptTemplate } = useAppStore();
-
   const handleSort = (key: keyof Product) => {
-      let direction: 'asc' | 'desc' = 'asc';
-      if (sortConfig.key === key && sortConfig.direction === 'asc') {
-          direction = 'desc';
+      const existing = inventorySortConfig.find(s => s.key === key);
+      if (existing) {
+        if (existing.direction === 'asc') {
+          // Flip to descending
+          setInventorySortConfig(inventorySortConfig.map(s => s.key === key ? { ...s, direction: 'desc' as const } : s));
+        } else {
+          // Remove from sort
+          setInventorySortConfig(inventorySortConfig.filter(s => s.key !== key));
+        }
+      } else {
+        // Add as ascending
+        setInventorySortConfig([...inventorySortConfig, { key, direction: 'asc' }]);
       }
-      setSortConfig({ key, direction });
   };
 
   // GENERIC UPDATE HANDLER (Optimistic + DB)
@@ -523,30 +645,304 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // --- COMPONENTS ---
-  // Replaced div SortHeader with th
-  const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
-      <th 
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-muted text-${align} truncate`}
-        onClick={() => handleSort(colKey)}
-      >
-        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
-           {label}
-           <div className="flex-shrink-0 relative z-0 flex items-center">
-            {sortConfig.key === colKey ? (
-                sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-muted" /> : <ArrowDown size={10} className="ml-1 text-tea-muted" />
-            ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-muted/50 ml-1 transition-opacity" />}
-           </div>
-        </div>
-      </th>
-  );
+  const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => {
+      const sortIndex = inventorySortConfig.findIndex(s => s.key === colKey);
+      const sortEntry = sortIndex >= 0 ? inventorySortConfig[sortIndex] : null;
+      const showBadge = inventorySortConfig.length > 1 && sortEntry;
+      return (
+        <th
+          className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-muted text-${align} truncate`}
+          onClick={() => handleSort(colKey)}
+        >
+          <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
+             {label}
+             <div className="flex-shrink-0 relative z-0 flex items-center">
+              {sortEntry ? (
+                <span className="flex items-center">
+                  {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-muted" /> : <ArrowDown size={10} className="ml-1 text-tea-muted" />}
+                  {showBadge && <span className="ml-0.5 text-[8px] text-tea-accent font-bold">{sortIndex + 1}</span>}
+                </span>
+              ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-muted/50 ml-1 transition-opacity" />}
+             </div>
+          </div>
+        </th>
+      );
+  };
+
+  // --- FEATURE 5: Panel keyboard shortcuts ---
+  useEffect(() => {
+    if (!panelProduct) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setPanelProduct(null); e.preventDefault(); }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        const idx = processedProducts.findIndex(p => p.id === panelProduct.id);
+        if (idx > 0) setPanelProduct(processedProducts[idx - 1]);
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        const idx = processedProducts.findIndex(p => p.id === panelProduct.id);
+        if (idx < processedProducts.length - 1) setPanelProduct(processedProducts[idx + 1]);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [panelProduct, processedProducts]);
+
+  // --- FEATURE 6: KEYBOARD NAVIGATION ---
+  useEffect(() => {
+    if (!isEditMode || panelProduct) { setFocusedCell(null); return; }
+    const handler = (e: KeyboardEvent) => {
+      if (!focusedCell) {
+        if (e.key === 'ArrowDown') { setFocusedCell({ row: 0, col: 0 }); e.preventDefault(); }
+        return;
+      }
+      const maxRow = processedProducts.length - 1;
+      const maxCol = visibleCols.length - 1;
+      if (e.key === 'ArrowDown') { setFocusedCell(prev => prev ? { ...prev, row: Math.min(prev.row + 1, maxRow) } : null); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { setFocusedCell(prev => prev ? { ...prev, row: Math.max(prev.row - 1, 0) } : null); e.preventDefault(); }
+      else if (e.key === 'ArrowRight' || e.key === 'Tab') { setFocusedCell(prev => prev ? { ...prev, col: Math.min(prev.col + 1, maxCol) } : null); if (e.key === 'Tab') e.preventDefault(); }
+      else if (e.key === 'ArrowLeft') { setFocusedCell(prev => prev ? { ...prev, col: Math.max(prev.col - 1, 0) } : null); e.preventDefault(); }
+      else if (e.key === 'Enter' && focusedCell) {
+        const cellId = `ghost-${focusedCell.row}-${focusedCell.col}`;
+        const el = document.getElementById(cellId);
+        if (el) (el as HTMLInputElement).focus();
+        e.preventDefault();
+      }
+      else if (e.key === 'Escape') { setFocusedCell(null); e.preventDefault(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isEditMode, focusedCell, processedProducts.length, visibleCols.length]);
+
+  // Auto-scroll focused cell into view
+  useEffect(() => {
+    if (focusedCell) {
+      const cellId = `cell-${focusedCell.row}-${focusedCell.col}`;
+      document.getElementById(cellId)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [focusedCell]);
+
+  // --- FEATURE 7: BULK EDIT HANDLERS ---
+  const toggleSelectId = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === processedProducts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(processedProducts.map(p => p.id)));
+    }
+  };
+
+  const handleBulkApply = async () => {
+    if (selectedIds.size === 0 || !bulkField) return;
+    setIsBulkApplying(true);
+    const fieldDef = BULK_EDIT_FIELDS.find(f => f.key === bulkField);
+    const parsedValue = fieldDef?.type === 'boolean' ? bulkValue === 'true' : bulkValue;
+    let done = 0;
+    try {
+      for (const id of selectedIds) {
+        await handleProductUpdate(id, bulkField as keyof Product, parsedValue);
+        done++;
+      }
+      showToast(`Updated ${done} items`, 'success');
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      showToast(`Bulk update failed after ${done} items: ${err.message}`, 'error');
+    } finally {
+      setIsBulkApplying(false);
+    }
+  };
+
+  // Helper to render a cell for a given column key
+  const renderCell = (product: Product, colKey: string, rowIndex: number, colIndex: number) => {
+    const isFocused = focusedCell?.row === rowIndex && focusedCell?.col === colIndex;
+    const focusRing = isFocused ? 'ring-1 ring-tea-accent/50 rounded' : '';
+    const ghostId = `ghost-${rowIndex}-${colIndex}`;
+
+    switch (colKey) {
+      case 'productName':
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
+            <div className="flex flex-col justify-center h-full">
+              {isEditMode ? (
+                <GhostInput
+                  value={product.productName}
+                  onSave={(val) => handleProductUpdate(product.id, 'productName', val)}
+                  className="font-serif text-sm text-tea-text tracking-wide truncate"
+                />
+              ) : (
+                <>
+                  <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
+                    {product.productName}
+                    {product.lore && (
+                      <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
+                        {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-muted" />}
+                      </span>
+                    )}
+                  </span>
+                  {product.givenName && (
+                    <span className="text-[10px] text-tea-muted font-sans mt-0.5 truncate block">
+                      {product.givenName}
+                      {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
+                    </span>
+                  )}
+                  {!product.givenName && product.form && (
+                    <span className="text-[10px] text-tea-muted/50 font-sans mt-0.5 truncate block">{product.form}</span>
+                  )}
+                </>
+              )}
+            </div>
+          </td>
+        );
+      case 'type': {
+        const dotColor = getThemeColor(product.type);
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
+            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-muted truncate">
+              <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+            </span>
+          </td>
+        );
+      }
+      case 'year':
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
+            {isEditMode ? (
+              <GhostInput id={ghostId} value={product.year || ''} onSave={(val) => handleProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-muted tabular-nums" />
+            ) : <span className="text-xs text-tea-muted font-sans tabular-nums">{product.year || '-'}</span>}
+          </td>
+        );
+      case 'originRegion':
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
+            {isEditMode ? (
+              <GhostInput id={ghostId} value={product.originRegion} onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-muted truncate" />
+            ) : <span className="text-xs text-tea-muted font-sans truncate block">{product.originRegion}</span>}
+          </td>
+        );
+      case 'stockGrams': {
+        const isLow = product.stockGrams <= product.lowStockThreshold;
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+            {isEditMode ? (
+              <div className="flex items-center justify-end gap-1">
+                <GhostInput id={ghostId} value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className="num text-xs" />
+                <button title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-muted' : 'text-tea-border hover:text-amber-400'}`}>&#9888;</button>
+              </div>
+            ) : (
+              <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
+                {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">&#9888;</span>}
+                {product.stockGrams}g
+              </span>
+            )}
+          </td>
+        );
+      }
+      case 'costAmount':
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+            {isEditMode ? (
+              <GhostInput id={ghostId} value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className="num text-xs" />
+            ) : <span className="num text-xs text-tea-muted">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
+          </td>
+        );
+      case 'pricePerGramUSD':
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+            {isEditMode ? (
+              <GhostInput id={ghostId} value={product.pricePerGramUSD?.toFixed(2)} onSave={(val) => handleProductUpdate(product.id, 'pricePerGramUSD', val)} type="number" align="right" className="num text-xs" />
+            ) : <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? fmtNum(product.pricePerGramUSD) : '-'}</span>}
+          </td>
+        );
+      default:
+        return <td className="px-4 align-middle text-xs text-tea-muted">-</td>;
+    }
+  };
+
+  const getRowBorderClass = (product: Product) => {
+    if (product.status === 'Draft') return 'border-l-2 border-l-amber-500/50';
+    if (product.recheckStock) return 'border-l-2 border-l-orange-400/60';
+    if (product.stockGrams <= product.lowStockThreshold && product.stockGrams > 0) return 'border-l-2 border-l-red-500/50';
+    if (product.isFeatured) return 'border-l-2 border-l-tea-accent/40';
+    return '';
+  };
 
   if (isLoading) {
     return <div className="p-12 text-center text-tea-muted font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading inventory...</div>;
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
-      
+    <div className={`h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
+
+      {/* --- SAVED VIEWS TAB BAR --- */}
+      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-tea-border/50 bg-tea-bg overflow-x-auto custom-scrollbar">
+        {(savedViews.length > 0 ? savedViews : DEFAULT_VIEWS).map(view => (
+          <button
+            key={view.id}
+            onClick={() => {
+              setActiveView(view.id);
+              setInventoryColumns(view.columns);
+              setInventorySortConfig(view.sortConfig);
+              setFilterType(view.filterType);
+              setInventoryGroupBy(view.groupBy);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+              activeViewId === view.id
+                ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent/30'
+                : 'text-tea-muted hover:text-tea-text hover:bg-tea-surface border border-transparent'
+            }`}
+          >
+            {view.name}
+            {!view.id.startsWith('default-') && (
+              <span
+                onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
+                className="ml-1 text-tea-muted/40 hover:text-tea-accent transition-colors"
+              >
+                <XIcon size={10} />
+              </span>
+            )}
+          </button>
+        ))}
+        <div className="w-px h-4 bg-tea-border/30 mx-1" />
+        {showSaveViewPrompt ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              value={newViewName}
+              onChange={(e) => setNewViewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newViewName.trim()) {
+                  const id = `custom-${Date.now()}`;
+                  saveView({ id, name: newViewName.trim(), columns: inventoryColumns, sortConfig: inventorySortConfig, filterType, groupBy: inventoryGroupBy });
+                  setActiveView(id);
+                  setNewViewName('');
+                  setShowSaveViewPrompt(false);
+                } else if (e.key === 'Escape') {
+                  setShowSaveViewPrompt(false);
+                  setNewViewName('');
+                }
+              }}
+              placeholder="View name..."
+              className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
+            />
+            <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-muted/40 hover:text-tea-muted"><XIcon size={10} /></button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowSaveViewPrompt(true)}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] text-tea-muted/50 hover:text-tea-muted uppercase tracking-[0.15em] transition-colors"
+          >
+            <Save size={10} /> Save View
+          </button>
+        )}
+      </div>
+
       {/* --- HEADER CONTROLS --- */}
       <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/30' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
@@ -595,7 +991,66 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <Plus size={14} /> New
                     </button>
 
-                    <button 
+                    {/* Columns Toggle */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowColumnsPopover(!showColumnsPopover)}
+                        className={`p-1.5 rounded-lg transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-muted hover:text-tea-text hover:bg-tea-surface'}`}
+                        title="Show/Hide Columns"
+                      >
+                        <Columns size={15} />
+                      </button>
+                      {showColumnsPopover && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
+                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                            <div className="px-3 pb-1.5 text-[9px] text-tea-muted/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                            {COLUMN_DEFS.map(col => (
+                              <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={inventoryColumns.includes(col.key)}
+                                  onChange={() => !col.alwaysVisible && toggleInventoryColumn(col.key)}
+                                  disabled={col.alwaysVisible}
+                                  className="accent-tea-accent"
+                                />
+                                <span className="text-tea-text">{col.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Group By Dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById('groupby-dropdown');
+                          if (el) el.classList.toggle('hidden');
+                        }}
+                        className={`flex items-center gap-1 p-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-muted hover:text-tea-text hover:bg-tea-surface'}`}
+                        title="Group By"
+                      >
+                        <Layers size={15} />
+                      </button>
+                      <div id="groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
+                        {GROUPBY_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => {
+                              setInventoryGroupBy(opt.value || null);
+                              document.getElementById('groupby-dropdown')?.classList.add('hidden');
+                            }}
+                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-muted'}`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
                         onClick={() => setShowOptions(!showOptions)}
                         className="p-1.5 text-tea-muted hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
                     >
@@ -827,7 +1282,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <div key={product.id}>
                     {/* Compact row */}
                     <button
-                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''}`}
                         onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
                     >
                         {/* Type dot */}
@@ -973,165 +1428,147 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
         {/* DESKTOP TABLE */}
         <div className={`w-full max-w-7xl mx-auto border-x border-tea-border bg-tea-surface min-h-full ${filterType === 'Pending' ? 'hidden' : 'hidden md:block'}`}>
+
+          {/* --- GROUPED VIEW --- */}
+          {groupedProducts ? (
+            <div>
+              {/* Table header (sticky) */}
+              <table className="w-full table-fixed border-collapse">
+                <colgroup>
+                  {isEditMode && <col className="w-[32px]" />}
+                  {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
+                  <col className="w-[7%]" />
+                </colgroup>
+                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                  <tr>
+                    {isEditMode && (
+                      <th className="px-2 py-2 border-b border-tea-border">
+                        <button onClick={toggleSelectAll} className="text-tea-muted hover:text-tea-text">
+                          {selectedIds.size === processedProducts.length ? <CheckSquare size={14} /> : <Square size={14} />}
+                        </button>
+                      </th>
+                    )}
+                    {visibleCols.map(col => (
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD'].includes(col.key) ? 'right' : 'left'} />
+                    ))}
+                    <th className="px-4 py-2 border-b border-tea-border"></th>
+                  </tr>
+                </thead>
+              </table>
+
+              {/* Grouped sections */}
+              {Object.entries(groupedProducts).map(([groupKey, items]) => {
+                const isCollapsed = collapsedGroups.has(groupKey);
+                const totalStock = items.reduce((sum, p) => sum + (p.stockGrams || 0), 0);
+                const totalRetail = items.reduce((sum, p) => sum + (p.pricePerGramUSD || 0) * (p.stockGrams || 0), 0);
+                return (
+                  <div key={groupKey}>
+                    <button
+                      onClick={() => setCollapsedGroups(prev => {
+                        const next = new Set(prev);
+                        if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
+                        return next;
+                      })}
+                      className="w-full flex items-center gap-3 px-5 py-2 bg-tea-bg/70 border-b border-tea-border hover:bg-tea-bg transition-colors text-left"
+                    >
+                      {isCollapsed ? <ChevronRight size={14} className="text-tea-muted" /> : <ChevronDown size={14} className="text-tea-muted" />}
+                      <span className="text-sm font-serif text-tea-text">{groupKey}</span>
+                      <span className="text-[10px] text-tea-muted uppercase tracking-[0.15em]">{items.length} items</span>
+                      <span className="text-[10px] text-tea-muted tabular-nums ml-auto">{totalStock}g total</span>
+                      <span className="text-[10px] text-tea-muted tabular-nums">${fmtNum(totalRetail)} value</span>
+                    </button>
+                    {!isCollapsed && (
+                      <table className="w-full table-fixed border-collapse">
+                        <colgroup>
+                          {isEditMode && <col className="w-[32px]" />}
+                          {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
+                          <col className="w-[7%]" />
+                        </colgroup>
+                        <tbody>
+                          {items.map((product, rowIdx) => {
+                            const globalIdx = processedProducts.indexOf(product);
+                            return (
+                              <tr
+                                key={product.id}
+                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''}`}
+                                style={{ height: ROW_HEIGHT }}
+                                onClick={() => !isEditMode && setPanelProduct(product)}
+                              >
+                                {isEditMode && (
+                                  <td className="px-2 align-middle" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => toggleSelectId(product.id)} className="text-tea-muted hover:text-tea-text">
+                                      {selectedIds.has(product.id) ? <CheckSquare size={14} className="text-tea-accent" /> : <Square size={14} />}
+                                    </button>
+                                  </td>
+                                )}
+                                {visibleCols.map((col, colIdx) => renderCell(product, col.key, globalIdx, colIdx))}
+                                <td className="px-4 align-middle text-right">
+                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                    {!isEditMode && (
+                                      <>
+                                        <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-muted hover:text-tea-text'} p-1 transition-colors`}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                        <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-muted hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
+                                        <button onClick={() => setEditingProduct(product)} className="text-tea-muted hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* --- FLAT TABLE (with virtualization) --- */
             <table className="w-full table-fixed border-collapse">
                 <colgroup>
-                    <col className="w-[30%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[8%]" />
-                    <col className="w-[15%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[10%]" />
+                    {isEditMode && <col className="w-[32px]" />}
+                    {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                     <col className="w-[7%]" />
                 </colgroup>
-                
-                {/* Sticky Header inside scroll container */}
+
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
-                        <SortHeader colKey="productName" label="Product" />
-                        <SortHeader colKey="type" label="Type" />
-                        <SortHeader colKey="year" label="Year" />
-                        <SortHeader colKey="originRegion" label="Origin" />
-                        <SortHeader colKey="stockGrams" label="Stock" align="right" />
-                        <SortHeader colKey="costAmount" label="Cost" align="right" />
-                        <SortHeader colKey="pricePerGramUSD" label="Retail" align="right" />
+                        {isEditMode && (
+                          <th className="px-2 py-2 border-b border-tea-border">
+                            <button onClick={toggleSelectAll} className="text-tea-muted hover:text-tea-text">
+                              {selectedIds.size === processedProducts.length ? <CheckSquare size={14} /> : <Square size={14} />}
+                            </button>
+                          </th>
+                        )}
+                        {visibleCols.map(col => (
+                          <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD'].includes(col.key) ? 'right' : 'left'} />
+                        ))}
                         <th className="px-4 py-2 border-b border-tea-border"></th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    {/* Top Spacer */}
-                    {paddingTop > 0 && <tr style={{ height: paddingTop }}><td colSpan={8}></td></tr>}
-                    
-                    {visibleProducts.map(product => {
-                        const dotColor = getThemeColor(product.type);
-                        const isLow = product.stockGrams <= product.lowStockThreshold;
+                    {paddingTop > 0 && <tr style={{ height: paddingTop }}><td colSpan={colCountWithBulk}></td></tr>}
 
+                    {visibleProducts.map((product, idx) => {
+                        const globalIdx = startIndex + idx;
                         return (
-                            <tr 
+                            <tr
                                 key={product.id}
-                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'}`}
+                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${panelProduct?.id === product.id ? 'bg-tea-accent/5' : ''}`}
                                 style={{ height: ROW_HEIGHT }}
-                                onClick={() => !isEditMode && setEditingProduct(product)}
+                                onClick={() => !isEditMode && setPanelProduct(product)}
                             >
-                                {/* Product Name */}
-                                <td className="px-4 align-middle overflow-hidden">
-                                    <div className="flex flex-col justify-center h-full">
-                                        {isEditMode ? (
-                                            <GhostInput 
-                                                value={product.productName} 
-                                                onSave={(val) => handleProductUpdate(product.id, 'productName', val)}
-                                                className="font-serif text-sm text-tea-text tracking-wide truncate"
-                                            />
-                                        ) : (
-                                            <>
-                                                <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
-                                                    {product.productName}
-                                                    {!isEditMode && product.lore && (
-                                                        <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                                                            {product.isCustomWisdom ? (
-                                                                <Pencil size={10} className="text-tea-accent" />
-                                                            ) : (
-                                                                <Sparkles size={10} className="text-tea-muted" />
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </span>
-                                                {product.givenName && (
-                                                    <span className="text-[10px] text-tea-muted font-sans mt-0.5 truncate block">
-                                                        {product.givenName}
-                                                        {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
-                                                    </span>
-                                                )}
-                                                {!product.givenName && product.form && (
-                                                    <span className="text-[10px] text-tea-muted/50 font-sans mt-0.5 truncate block">{product.form}</span>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                </td>
+                                {isEditMode && (
+                                  <td className="px-2 align-middle" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => toggleSelectId(product.id)} className="text-tea-muted hover:text-tea-text">
+                                      {selectedIds.has(product.id) ? <CheckSquare size={14} className="text-tea-accent" /> : <Square size={14} />}
+                                    </button>
+                                  </td>
+                                )}
 
-                                {/* Type */}
-                                <td className="px-4 align-middle overflow-hidden">
-                                    <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-muted truncate">
-                                        <span style={{ color: dotColor, fontSize: '10px' }}>●</span> {product.type}
-                                    </span>
-                                </td>
-
-                                {/* Year */}
-                                <td className="px-4 align-middle overflow-hidden">
-                                    {isEditMode ? (
-                                        <GhostInput 
-                                            value={product.year || ''} 
-                                            onSave={(val) => handleProductUpdate(product.id, 'year', val)}
-                                            type="number"
-                                            placeholder="YYYY"
-                                            className="font-sans text-xs text-tea-muted tabular-nums"
-                                        />
-                                    ) : <span className="text-xs text-tea-muted font-sans tabular-nums">{product.year || '-'}</span>}
-                                </td>
-
-                                {/* Origin */}
-                                <td className="px-4 align-middle overflow-hidden">
-                                    {isEditMode ? (
-                                        <GhostInput 
-                                            value={product.originRegion} 
-                                            onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)}
-                                            className="font-sans text-xs text-tea-muted truncate"
-                                        />
-                                    ) : <span className="text-xs text-tea-muted font-sans truncate block">{product.originRegion}</span>}
-                                </td>
-                                
-                                {/* Stock */}
-                                <td className="px-4 align-middle overflow-hidden text-right">
-                                    {isEditMode ? (
-                                        <div className="flex items-center justify-end gap-1">
-                                            <GhostInput
-                                                value={product.stockGrams}
-                                                onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)}
-                                                type="number"
-                                                align="right"
-                                                className="num text-xs"
-                                            />
-                                            <button
-                                                title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"}
-                                                onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }}
-                                                className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-muted' : 'text-tea-border hover:text-amber-400'}`}
-                                            >⚠</button>
-                                        </div>
-                                    ) : (
-                                        <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-muted'}`}>
-                                            {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">⚠</span>}
-                                            {product.stockGrams}g
-                                        </span>
-                                    )}
-                                </td>
-
-                                {/* Cost */}
-                                <td className="px-4 align-middle overflow-hidden text-right">
-                                    {isEditMode ? (
-                                        <GhostInput 
-                                            value={product.costAmount} 
-                                            onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)}
-                                            type="number"
-                                            align="right"
-                                            className="num text-xs"
-                                        />
-                                    ) : <span className="num text-xs text-tea-muted">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
-                                </td>
-
-                                {/* Retail */}
-                                <td className="px-4 align-middle overflow-hidden text-right">
-                                    {isEditMode ? (
-                                        <GhostInput 
-                                            value={product.pricePerGramUSD?.toFixed(2)} 
-                                            onSave={(val) => handleProductUpdate(product.id, 'pricePerGramUSD', val)}
-                                            type="number"
-                                            align="right"
-                                            className="num text-xs"
-                                        />
-                                    ) : <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? fmtNum(product.pricePerGramUSD) : '-'}</span>}
-                                </td>
+                                {visibleCols.map((col, colIdx) => renderCell(product, col.key, globalIdx, colIdx))}
 
                                 {/* Actions */}
                                 <td className="px-4 align-middle text-right">
@@ -1139,28 +1576,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                         {!isEditMode && (
                                             <>
                                                 {(!product.showWisdom && product.lore) && (
-                                                    <button 
-                                                        onClick={() => handleProductUpdate(product.id, 'showWisdom', true)} 
-                                                        className="text-tea-accent hover:text-tea-accent/80 p-1 transition-colors"
-                                                        title="Approve AI Wisdom"
-                                                    >
-                                                        <Check size={14}/>
-                                                    </button>
+                                                    <button onClick={() => handleProductUpdate(product.id, 'showWisdom', true)} className="text-tea-accent hover:text-tea-accent/80 p-1 transition-colors" title="Approve AI Wisdom"><Check size={14}/></button>
                                                 )}
-                                                <button 
-                                                    onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} 
-                                                    className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-muted hover:text-tea-text'} p-1 transition-colors`}
-                                                    title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}
-                                                >
-                                                    <Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} 
-                                                    className={`${product.isPublic ? 'text-tea-muted hover:text-tea-text' : 'text-tea-muted/50 hover:text-tea-muted'} p-1 transition-colors`}
-                                                    title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}
-                                                >
-                                                    {product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}
-                                                </button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-muted hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-muted hover:text-tea-text' : 'text-tea-muted/50 hover:text-tea-muted'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
                                                 <button onClick={() => setQrProduct(product)} className="text-tea-muted hover:text-tea-text p-1 transition-colors"><QrCode size={14}/></button>
                                                 <button onClick={() => setEditingProduct(product)} className="text-tea-muted hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
                                             </>
@@ -1171,10 +1590,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         );
                     })}
 
-                    {/* Bottom Spacer */}
-                    {paddingBottom > 0 && <tr style={{ height: paddingBottom }}><td colSpan={8}></td></tr>}
+                    {paddingBottom > 0 && <tr style={{ height: paddingBottom }}><td colSpan={colCountWithBulk}></td></tr>}
                 </tbody>
             </table>
+          )}
         </div>
       </div>
 
@@ -1270,6 +1689,188 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
         </div>
       )}
+
+      {/* --- FEATURE 5: RECORD PANEL (Side Panel) --- */}
+      <AnimatePresence>
+        {panelProduct && (
+          <>
+            {/* Mobile: full overlay */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg border-l border-tea-border shadow-2xl flex flex-col"
+            >
+              {/* Panel Header */}
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border bg-tea-surface/50">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-serif text-tea-text truncate">{panelProduct.productName}</h3>
+                  <span className="text-[10px] text-tea-muted">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const idx = processedProducts.findIndex(p => p.id === panelProduct.id);
+                      if (idx > 0) setPanelProduct(processedProducts[idx - 1]);
+                    }}
+                    className="p-1 text-tea-muted hover:text-tea-text transition-colors"
+                    title="Previous"
+                  ><ChevronUp size={16} /></button>
+                  <button
+                    onClick={() => {
+                      const idx = processedProducts.findIndex(p => p.id === panelProduct.id);
+                      if (idx < processedProducts.length - 1) setPanelProduct(processedProducts[idx + 1]);
+                    }}
+                    className="p-1 text-tea-muted hover:text-tea-text transition-colors"
+                    title="Next"
+                  ><ChevronDown size={16} /></button>
+                  <button onClick={() => setPanelProduct(null)} className="p-1 text-tea-muted hover:text-tea-text transition-colors ml-1"><XIcon size={16} /></button>
+                </div>
+              </div>
+
+              {/* Panel Content */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+                {/* Image */}
+                {panelProduct.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border border-tea-border">
+                    <img src={panelProduct.imageUrl} alt={panelProduct.productName} className="w-full h-40 object-cover" />
+                  </div>
+                )}
+
+                {/* Fields */}
+                {[
+                  { label: 'Type', field: 'type' as const, value: panelProduct.type },
+                  { label: 'Year', field: 'year' as const, value: panelProduct.year || '', editable: true, type: 'number' as const },
+                  { label: 'Origin', field: 'originRegion' as const, value: panelProduct.originRegion, editable: true },
+                  { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '' },
+                  { label: 'Stock (g)', field: 'stockGrams' as const, value: panelProduct.stockGrams, editable: true, type: 'number' as const },
+                  { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, editable: true, type: 'number' as const },
+                  { label: 'Retail ($/g)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, editable: true, type: 'number' as const },
+                  { label: 'Status', field: 'status' as const, value: panelProduct.status },
+                ].map(item => (
+                  <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border/30">
+                    <span className="text-[10px] text-tea-muted uppercase tracking-[0.15em] flex-shrink-0 w-20">{item.label}</span>
+                    {item.editable ? (
+                      <GhostInput
+                        value={item.value}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, item.field, val);
+                          setPanelProduct(prev => prev ? { ...prev, [item.field]: item.type === 'number' ? Number(val) : val } : null);
+                        }}
+                        type={item.type || 'text'}
+                        align="right"
+                        className="text-xs text-tea-text flex-1"
+                      />
+                    ) : (
+                      <span className="text-xs text-tea-text">{String(item.value || '-')}</span>
+                    )}
+                  </div>
+                ))}
+
+                {/* Lore */}
+                {panelProduct.lore && (
+                  <div className="mt-4">
+                    <div className="text-[10px] text-tea-muted/60 uppercase tracking-[0.2em] mb-1.5">Lore</div>
+                    <p className="text-xs text-tea-text/70 font-serif italic leading-relaxed">{panelProduct.lore}</p>
+                  </div>
+                )}
+
+                {/* Tasting Notes */}
+                {panelProduct.tastingNotes && panelProduct.tastingNotes.length > 0 && (
+                  <div>
+                    <div className="text-[10px] text-tea-muted/60 uppercase tracking-[0.2em] mb-1.5">Tasting Notes</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {panelProduct.tastingNotes.map(note => (
+                        <span key={note} className="text-[10px] text-tea-muted bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border/50">{note}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Panel Quick Actions */}
+              <div className="px-5 py-3 border-t border-tea-border flex items-center gap-2 flex-wrap bg-tea-surface/30">
+                <button
+                  onClick={() => { handleProductUpdate(panelProduct.id, 'isFeatured', !panelProduct.isFeatured); setPanelProduct(prev => prev ? { ...prev, isFeatured: !prev.isFeatured } : null); }}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isFeatured ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-muted border-tea-border hover:border-tea-muted'}`}
+                ><Star size={11} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} /> Featured</button>
+                <button
+                  onClick={() => { handleProductUpdate(panelProduct.id, 'isPublic', !panelProduct.isPublic); setPanelProduct(prev => prev ? { ...prev, isPublic: !prev.isPublic } : null); }}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isPublic ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-muted border-tea-border hover:border-tea-muted'}`}
+                >{panelProduct.isPublic ? <Eye size={11} /> : <EyeOff size={11} />} Public</button>
+                <button
+                  onClick={() => { handleProductUpdate(panelProduct.id, 'recheckStock', !panelProduct.recheckStock); setPanelProduct(prev => prev ? { ...prev, recheckStock: !prev.recheckStock } : null); }}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.recheckStock ? 'text-amber-400 border-amber-400/30 bg-amber-400/10' : 'text-tea-muted border-tea-border hover:border-tea-muted'}`}
+                ><RefreshCw size={11} /> Recheck</button>
+                <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] text-tea-muted uppercase tracking-[0.15em] rounded-md border border-tea-border hover:border-tea-muted transition-colors">
+                  <QrCode size={11} /> QR
+                </button>
+                <button
+                  onClick={() => { setEditingProduct(panelProduct); }}
+                  className="ml-auto flex items-center gap-1 px-3 py-1 text-[10px] uppercase tracking-[0.15em] bg-tea-accent/10 border border-tea-accent/30 text-tea-accent rounded-md hover:bg-tea-accent/20 transition-colors"
+                ><Pencil size={11} /> Edit Full</button>
+              </div>
+            </motion.div>
+            {/* Mobile backdrop */}
+            <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setPanelProduct(null)} />
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* --- FEATURE 7: BULK EDIT FLOATING TOOLBAR --- */}
+      <AnimatePresence>
+        {isEditMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-tea-surface border border-tea-border shadow-2xl rounded-xl px-5 py-3 flex items-center gap-4"
+          >
+            <span className="text-xs text-tea-text font-bold">{selectedIds.size} selected</span>
+            <div className="w-px h-5 bg-tea-border" />
+            <select
+              value={bulkField}
+              onChange={(e) => { setBulkField(e.target.value); setBulkValue(''); }}
+              className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none"
+            >
+              {BULK_EDIT_FIELDS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+            </select>
+            {(() => {
+              const fieldDef = BULK_EDIT_FIELDS.find(f => f.key === bulkField);
+              if (fieldDef?.type === 'select') {
+                return (
+                  <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none">
+                    <option value="">Select...</option>
+                    {fieldDef.options.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                );
+              } else if (fieldDef?.type === 'boolean') {
+                return (
+                  <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none">
+                    <option value="">Select...</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                );
+              }
+              return null;
+            })()}
+            <button
+              onClick={handleBulkApply}
+              disabled={!bulkValue || isBulkApplying}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-accent text-tea-bg text-[10px] font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-40"
+            >
+              {isBulkApplying ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Apply
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-[10px] text-tea-muted hover:text-tea-text uppercase tracking-[0.15em] transition-colors"
+            >Cancel</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

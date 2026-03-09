@@ -424,7 +424,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <h2 className="text-lg font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
-              <p className="text-[9px] text-tea-muted font-mono uppercase tracking-[0.2em]">Database Access</p>
+              <p className="text-xs md:text-[9px] text-tea-muted font-mono uppercase tracking-[0.2em]">Database Access</p>
             </div>
           </div>
           <button onClick={onClose} className="text-tea-muted hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
@@ -459,7 +459,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
 
             {/* CLASSIFICATION ROW */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                <div>
                   <label className={labelStyle}><Layers size={9} /> Type *</label>
                   <select
@@ -483,7 +483,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                </div>
                <div>
                   <label className={labelStyle}>Year</label>
-                  <input name="year" type="number" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
+                  <input name="year" type="number" inputMode="decimal" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
                </div>
                <div>
                   <label className={labelStyle}>Status</label>
@@ -586,7 +586,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                {/* INPUTS */}
                <div className="space-y-3 border-b border-dashed border-tea-border pb-4">
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Batch Cost</label>
+                        <label className="text-tea-muted uppercase text-xs md:text-[10px] tracking-[0.2em]">Batch Cost</label>
                         <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-muted transition-colors">
                             <select
                                 name="costCurrency" value={formData.costCurrency} onChange={handleChange}
@@ -601,22 +601,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             </select>
                             <input
                                 name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
-                                className="w-20 bg-transparent text-right text-tea-text outline-none placeholder-tea-muted/30 tabular-nums" placeholder="0.00"
+                                className="w-24 md:w-20 bg-transparent text-right text-tea-text outline-none placeholder-tea-muted/30 tabular-nums" placeholder="0.00"
+                                inputMode="decimal"
                             />
                         </div>
                     </div>
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Weight (g)</label>
+                        <label className="text-tea-muted uppercase text-xs md:text-[10px] tracking-[0.2em]">Weight (g)</label>
                         <input
                             name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="0"
+                            className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="0"
+                            inputMode="decimal"
                         />
                     </div>
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Ship (USD/kg)</label>
+                        <label className="text-tea-muted uppercase text-xs md:text-[10px] tracking-[0.2em]">Ship (USD/kg)</label>
                         <input
                             name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="10.00"
+                            className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="10.00"
+                            inputMode="decimal"
                         />
                     </div>
                </div>
@@ -646,7 +649,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
                      <span className="text-base text-tea-muted font-serif">$</span>
                      <input
-                        name="fixedRetailPriceUSD" type="number" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
+                        name="fixedRetailPriceUSD" type="number" inputMode="decimal" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
                         onFocus={() => {
                             if (!formData.fixedRetailPriceUSD && calc.suggestedRetailUSD > 0) {
                                 setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
@@ -667,7 +670,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <label className="text-tea-muted uppercase text-[10px] tracking-[0.2em]">Current Stock</label>
                         <input
                             name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                            className="w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="0"
+                            className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-muted outline-none placeholder-tea-muted/30 transition-colors tabular-nums" placeholder="0"
+                            inputMode="decimal"
                         />
                     </div>
                     <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
@@ -709,7 +713,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 type="button"
                                 onClick={handleGenerateWisdom}
                                 disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-[9px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-2 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-xs md:text-[9px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
                             >
                                 {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                 Generate with AI
