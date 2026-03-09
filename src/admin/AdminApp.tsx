@@ -66,7 +66,7 @@ const AdminContent = () => {
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
 
   // React Query Hooks
-  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useProducts();
+  const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
   const { data: rates = [], refetch: refetchRates } = useRates();
 
   const loading = productsLoading;
@@ -194,7 +194,7 @@ const AdminContent = () => {
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />
-              <Route path="catalog" element={<PageTransition><TeaTable products={products} currency={currency} rates={rates} onAdd={openAddModal} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} isLoading={loading} /></PageTransition>} />
+              <Route path="catalog" element={<PageTransition><TeaTable products={products} currency={currency} rates={rates} onAdd={openAddModal} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} isLoading={loading} isError={productsError} error={productsErrorObj} onRefresh={refetchProducts} /></PageTransition>} />
               <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} /></PageTransition>} />
 
               <Route path="inventory" element={
@@ -203,6 +203,8 @@ const AdminContent = () => {
                     <InventoryView
                       products={products}
                       isLoading={loading}
+                      isError={productsError}
+                      error={productsErrorObj}
                       onImportClick={() => setIsImportOpen(true)}
                       onAddClick={() => setIsCreateModalOpen(true)}
                       onRefresh={refetchProducts}

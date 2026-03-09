@@ -44,7 +44,7 @@ import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 // Create an inner component to use the context
 const AppContent = () => {
   const { stories } = useStories();
-  const { inventory } = useInventory();
+  const { inventory, isError: inventoryError, error: inventoryErrorObj, refetch: refetchInventory } = useInventory();
   const {
     publicCart: cart,
     isPublicCartOpen: isCartOpen,
@@ -393,7 +393,7 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} />
+                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
                       </div>
                     </Suspense>
                   </ErrorBoundary>
