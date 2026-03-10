@@ -330,4 +330,193 @@ export const api = {
     });
     return handleResponse(res);
   },
+
+  events: {
+    listAdmin: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getAttendees: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/attendees`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    updateAttendee: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/attendees/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    getNotifications: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/notifications`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    createNotifications: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/notifications`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    upsertPostSession: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/post-session`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    duplicate: async (id: string, newSlug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/duplicate`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ slug: newSlug }),
+      });
+      return handleResponse(res);
+    },
+    batchAttendance: async (id: string, attendeeIds: string[], attended: boolean) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/attendance`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ attendee_ids: attendeeIds, attended }),
+      });
+      return handleResponse(res);
+    },
+    getTeaMenu: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/tea-menu`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    upsertTeaMenu: async (id: string, items: Record<string, any>[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/tea-menu`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ items }),
+      });
+      return handleResponse(res);
+    },
+    deleteTeaMenuItem: async (id: string, itemId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/tea-menu/${itemId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getTastingNotes: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/tasting-notes`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getPublic: async (slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
+    getAvailability: async (slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
+    uploadFlyer: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = localStorage.getItem('teajia_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetchWithTimeout(`${API_URL}/api/upload-flyer`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+      return handleResponse(res);
+    },
+  },
+
+  rsvp: {
+    submit: async (slug: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    get: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
+    update: async (token: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    claim: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}/claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
+    getPostSession: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}/post-session`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
+    submitTastingNotes: async (token: string, notes: Record<string, any>[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}/tasting-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+      return handleResponse(res);
+    },
+    findByPhone: async (slug: string, phoneNumber: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/find-rsvp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+      return handleResponse(res);
+    },
+  },
 };
