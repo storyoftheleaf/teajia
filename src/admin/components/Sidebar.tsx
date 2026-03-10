@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users, Sun, Moon } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
+import { Icons } from '../../components/Icons';
+import { useTheme } from '../../context/ThemeContext';
 
 function getCurrentSeason(): { name: string; icon: string } {
   const month = new Date().getMonth();
@@ -101,6 +103,14 @@ export const Sidebar = ({
   const location = useLocation();
   const currentPath = location.pathname;
   const season = getCurrentSeason();
+  const { theme, toggleTheme } = useTheme();
+
+  const browseItems: NavItem[] = [
+    { id: 'read', path: '/magazine', label: 'Read', icon: <Icons.Magazine className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'learn', path: '/learn', label: 'Learn', icon: <Icons.School className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'consult', path: '/consult', label: 'Consult', icon: <Icons.Sparkles className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'shop', path: '/shop', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} /> },
+  ];
 
   const navItems: NavItem[] = [
     { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf size={20} strokeWidth={2} /> },
@@ -149,8 +159,22 @@ export const Sidebar = ({
         </div>
       </Link>
 
-      {/* Catalog Navigation */}
+      {/* Browse Navigation */}
       <nav className="flex flex-col py-6 gap-1 px-3">
+        <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Browse</span>
+        {browseItems.map((item, index) => (
+          <NavButton
+            key={item.id}
+            item={item}
+            isActive={currentPath === item.path}
+            onClick={handleNav}
+            animationDelay={index * 50}
+          />
+        ))}
+      </nav>
+
+      {/* Catalog Navigation */}
+      <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
         <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
         {navItems.map((item, index) => (
           <NavButton
@@ -213,6 +237,22 @@ export const Sidebar = ({
           )}
           <span className="text-sm font-semibold text-tea-text-dim group-hover:text-tea-text transition-all duration-300">
             {isLoggedIn ? 'Sign Out' : 'Sign In'}
+          </span>
+        </button>
+
+        <button
+          onClick={(e) => toggleTheme(e)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
+          ) : (
+            <Moon className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
+          )}
+          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-dim group-hover:text-tea-text">
+            {theme === 'dark' ? 'Light' : 'Dark'}
           </span>
         </button>
       </div>
