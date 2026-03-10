@@ -51,6 +51,20 @@ Two audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSI
 | 39 | [JWT Expiry Handling](./39-jwt-expiry-handling.md) | Polish | Half-day |
 | 40 | [Populate About Page](./40-about-page.md) | Polish | 1 day |
 
+### UI Consistency Audit (47–55)
+
+| # | Task | Priority | Effort |
+|---|------|----------|--------|
+| 47 | [Standardize Border-Radius Scale](./47-standardize-border-radius.md) | Low | 1–2 hours |
+| 48 | [Unify Icon Sizing System](./48-unify-icon-sizing.md) | Low | 2–3 hours |
+| 49 | [Establish Text Size Hierarchy](./49-establish-text-hierarchy.md) | Low | 2–3 hours |
+| 50 | [Replace Hardcoded Hex Colors](./50-replace-hardcoded-hex-colors.md) | High | 2–3 hours |
+| 51 | [Standardize Focus/Hover States](./51-standardize-focus-hover-states.md) | Medium | 2–3 hours |
+| 52 | [Card/Panel Recipe](./52-card-panel-recipe.md) | Medium | 2–3 hours |
+| 53 | [Normalize Spacing Scale](./53-spacing-scale-consistency.md) | Low | 1–2 hours |
+| 54 | [Unify Transitions](./54-unify-transitions.md) | Low | 1–2 hours |
+| 55 | [Accessibility / ARIA Audit](./55-accessibility-aria-audit.md) | Medium | 2–3 hours |
+
 ---
 
 ## Overlap & Deduplication Notes
@@ -106,6 +120,15 @@ Some tasks across the two audits address related areas. Here's how they relate:
 
 ### Group H — Visual Polish (Functional Audit)
 `32`, `36` — Independent visual enhancements.
+
+### Group I — UI Consistency (Consistency Audit)
+`47`, `48`, `49`, `53`, `54` — Low-priority styling normalization. All independent.
+
+### Group J — Theme & Interaction (Consistency Audit)
+`50` (hex colors, related to `06`), `51` (focus/hover), `52` (card recipe). Medium-high priority.
+
+### Group K — Accessibility (Consistency Audit)
+`55` — Standalone ARIA/a11y sweep.
 
 ---
 
@@ -187,3 +210,14 @@ Some tasks across the two audits address related areas. Here's how they relate:
 - [ ] 38 — Learn Hub Breadcrumbs
 - [ ] 39 — JWT Expiry Handling
 - [ ] 40 — Populate About Page
+
+### UI Consistency Audit (47–55)
+- [ ] 47 — Standardize Border-Radius Scale
+- [ ] 48 — Unify Icon Sizing System
+- [ ] 49 — Establish Text Size Hierarchy
+- [ ] 50 — Replace Hardcoded Hex Colors
+- [ ] 51 — Standardize Focus/Hover States
+- [ ] 52 — Card/Panel Recipe
+- [ ] 53 — Normalize Spacing Scale
+- [ ] 54 — Unify Transitions
+- [ ] 55 — Accessibility / ARIA Audit
