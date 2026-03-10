@@ -136,7 +136,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 <span className="text-sm font-medium text-tea-text">More</span>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="p-1.5 rounded-lg text-tea-muted hover:text-tea-text hover:bg-white/5 transition-colors"
+                  className="p-1.5 rounded-lg text-tea-muted hover:text-tea-text hover:bg-tea-elevated/50 transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -156,7 +156,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                       className={`w-full flex items-center gap-4 py-4 px-6 transition-colors duration-150 ${
                         active
                           ? 'text-tea-accent bg-tea-accent/5'
-                          : 'text-tea-muted hover:text-tea-text hover:bg-white/5'
+                          : 'text-tea-muted hover:text-tea-text hover:bg-tea-elevated/50'
                       }`}
                     >
                       <Icon size={20} strokeWidth={1.8} />

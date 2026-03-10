@@ -31,7 +31,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, produ
         
         <div className="text-center space-y-4">
           <h3 className="text-xl font-serif text-tea-text print:text-black">{product.givenName}</h3>
-          <p className="text-tea-muted text-sm font-serif italic print:text-gray-600">{product.productName} ({product.year})</p>
+          <p className="text-tea-muted text-sm font-serif italic print:text-tea-text-dim">{product.productName} ({product.year})</p>
           
           <div className="flex justify-center p-4 bg-white rounded-xl mx-auto w-fit border border-tea-border/50 shadow-sm">
             <QRCodeCanvas value={qrValue} size={200} />

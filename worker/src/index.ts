@@ -1278,8 +1278,8 @@ const handleCreateEvent: Handler = async (request, env) => {
   await env.DB.prepare(
     `INSERT INTO events (id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       timezone, status, session_flow, playlist_url, location_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     body.slug,
@@ -1299,7 +1299,7 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.timezone || 'Asia/Taipei',
     body.status || 'draft',
     body.session_flow ? (typeof body.session_flow === 'string' ? body.session_flow : JSON.stringify(body.session_flow)) : null,
-    body.playlist_url || null
+    body.location_id || null
   ).run();
 
   return json({ id, slug: body.slug }, 201);
@@ -1648,6 +1648,45 @@ const handleUploadFlyer: Handler = async (request, env) => {
   return json({ url: publicUrl, key }, 201);
 };
 
+// ── Saved Locations ──
+const handleGetSavedLocations: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const result = await env.DB.prepare('SELECT * FROM saved_locations ORDER BY name ASC').all();
+  return json(result.results);
+};
+
+const handleCreateSavedLocation: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as Record<string, any>;
+  if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO saved_locations (id, name, address, map_link, guidelines, venue_guide) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(id, body.name, body.address, body.map_link || null, body.guidelines || null, body.venue_guide || null).run();
+  return json({ id, name: body.name }, 201);
+};
+
+const handleUpdateSavedLocation: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as Record<string, any>;
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(`UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  return json({ success: true });
+};
+
+const handleDeleteSavedLocation: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  await env.DB.prepare('DELETE FROM saved_locations WHERE id = ?').bind(params.id).run();
+  return json({ success: true });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -1712,6 +1751,12 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rsvp/:token/claim', handleClaimSpot],
   ['GET', '/api/rsvp/:token/post-session', handleGetPostSession],
   ['POST', '/api/rsvp/:token/tasting-notes', handleSubmitTastingNotes],
+
+  // Saved Locations — Admin
+  ['GET', '/api/admin/locations', handleGetSavedLocations],
+  ['POST', '/api/admin/locations', handleCreateSavedLocation],
+  ['PUT', '/api/admin/locations/:id', handleUpdateSavedLocation],
+  ['DELETE', '/api/admin/locations/:id', handleDeleteSavedLocation],
 
   // Events — Admin
   ['GET', '/api/admin/events', handleGetEvents],
