@@ -1,6 +1,6 @@
 # Teajia — Audit Todo Tracker
 
-15 actionable tasks extracted from the [Website Teardown](../WEBSITE_TEARDOWN.md). Organized by priority so you can tackle several in parallel.
+21 actionable tasks: 01–15 from the [Website Teardown](../WEBSITE_TEARDOWN.md) (frontend), 16–21 from the backend performance audit (Cloudflare Worker + D1). Organized by priority so you can tackle several in parallel.
 
 ---
 
@@ -39,6 +39,16 @@ These tasks are independent and can be worked on simultaneously:
 | 02 | [SEO Meta + Sitemap](./02-seo-meta-sitemap.md) | P0 | 1–2 weeks |
 | 12 | [Lazy-Load Content](./12-lazy-load-content.md) | P2 | 1–2 days |
 
+### Group E: Backend / Worker Performance (no frontend overlap)
+| # | Task | Priority | Effort |
+|---|------|----------|--------|
+| 16 | [D1 Database Indexes](./16-d1-database-indexes.md) | P0 | 1 hour |
+| 17 | [Cache-Control Headers](./17-cache-control-headers.md) | P0 | 1–2 hours |
+| 18 | [Batch Sequential Queries](./18-batch-sequential-queries.md) | P1 | 2–3 hours |
+| 19 | [SELECT * Elimination](./19-select-star-elimination.md) | P1 | Half-day |
+| 20 | [Loop → Batch Operations](./20-loop-batch-operations.md) | P1 | 1–2 hours |
+| 21 | [CORS Preflight Caching](./21-cors-preflight-caching.md) | P2 | 30 minutes |
+
 ---
 
 ## Priority Legend
@@ -69,6 +79,15 @@ Work in parallel:
 - **06** rgba Remediation + **10** Banned Tokens *(Group B — can split files between two people)*
 - **14** Unified Button Component *(Group B — can start once tokens are clean)*
 
+### Sprint 1.5: Backend Quick Wins (can run alongside Sprint 1)
+Work in parallel with Group A:
+- **16** D1 Database Indexes + **21** CORS Preflight Caching *(Group E — deploy-only, no code review needed)*
+- **17** Cache-Control Headers *(Group E — small worker change)*
+
+### Sprint 2.5: Backend Deeper Fixes (can run alongside Sprint 2)
+- **18** Batch Sequential Queries + **20** Loop → Batch *(Group E — refactor worker handlers)*
+- **19** SELECT * Elimination *(Group E — query optimization)*
+
 ### Sprint 4: SEO & Conversion (1–2 weeks)
 - **02** SEO Foundation *(Group D)*
 - **04** Checkout Flow *(Group C — depends on #07 being done)*
@@ -96,3 +115,9 @@ Mark tasks as you go:
 - [ ] 13 — Scope ImagePreloader
 - [ ] 14 — Unified Button Component
 - [ ] 15 — Trust Signals
+- [ ] 16 — D1 Database Indexes
+- [ ] 17 — Cache-Control Headers
+- [ ] 18 — Batch Sequential Queries
+- [ ] 19 — SELECT * Elimination
+- [ ] 20 — Loop → Batch Operations
+- [ ] 21 — CORS Preflight Caching
