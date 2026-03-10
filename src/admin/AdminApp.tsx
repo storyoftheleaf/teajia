@@ -144,7 +144,7 @@ const AdminContent = () => {
   };
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!isAdmin) return <div className="p-12 text-center text-neutral-500 font-serif">Access Restricted</div>;
+    if (!isAdmin) return <div className="p-12 text-center text-tea-text-dim font-serif">Access Restricted</div>;
     return <>{children}</>;
   };
 
@@ -182,7 +182,7 @@ const AdminContent = () => {
               </button>
               <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden backdrop-blur-xl">
                 {rates.map(rate => (
-                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-white/5 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-muted'}`}>
+                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-muted'}`}>
                     {rate.currency}
                   </button>
                 ))}

@@ -372,7 +372,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                             <TeaIllustration type={product.type} className="w-full h-full max-w-[150px] max-h-[150px] object-contain" />
                             {isAdmin && onEdit && (
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20">
-                                    <Pencil size={24} className="text-white drop-shadow-md" />
+                                    <Pencil size={24} className="text-tea-text drop-shadow-md" />
                                 </div>
                             )}
                         </div>

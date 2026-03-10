@@ -35,7 +35,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[55] bg-tea-ink/90 dark:bg-[#1a1a1a]/95 backdrop-blur-md border-b border-white/5 h-9 flex items-center px-3 lg:pl-24 xl:pl-60 shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-[55] bg-tea-ink/90 dark:bg-[#1a1a1a]/95 backdrop-blur-md border-b border-tea-border h-9 flex items-center px-3 lg:pl-24 xl:pl-60 shadow-lg">
       {/* Stats */}
       <div className="flex items-center gap-4 flex-1 overflow-x-auto no-scrollbar">
         <button

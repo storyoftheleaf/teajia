@@ -331,7 +331,7 @@ const AppContent = () => {
   if (location.pathname.startsWith('/admin')) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-neutral-400 font-sans text-sm">Loading admin...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-tea-text-dim font-sans text-sm">Loading admin...</div>}>
           <Routes>
             <Route path="/admin/*" element={<AdminApp />} />
           </Routes>

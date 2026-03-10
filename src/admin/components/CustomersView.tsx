@@ -14,7 +14,7 @@ const TAG_COLORS: Record<CustomerTag, string> = {
   friend: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
   vendor: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
   vip: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-  inactive: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/30',
+  inactive: 'bg-tea-text-dim/10 text-tea-text-dim border-tea-text-dim/30',
 };
 
 interface CustomerFormData {

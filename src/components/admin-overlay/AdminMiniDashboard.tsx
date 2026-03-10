@@ -17,7 +17,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
 
   return (
     <div className="space-y-3">
-      <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-white/50 block">
+      <span className="text-[10px] uppercase tracking-widest text-tea-charcoal/50 dark:text-tea-text-dim block">
         Quick Overview
       </span>
 
@@ -25,36 +25,36 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
       <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => goTo('/admin/orders')}
-          className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+          className="bg-white/30 dark:bg-tea-elevated/30 border border-tea-charcoal/5 dark:border-tea-border p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-tea-elevated/50 transition-colors"
         >
-          <span className={`font-mono text-xl ${stats.pendingOrders > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-tea-charcoal dark:text-white'}`}>
+          <span className={`font-mono text-xl ${stats.pendingOrders > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-tea-charcoal dark:text-tea-text'}`}>
             {stats.pendingOrders}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-white/40">
+          <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-tea-text-dim/60">
             Pending
           </span>
         </button>
 
         <button
           onClick={() => goTo('/admin/inventory')}
-          className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+          className="bg-white/30 dark:bg-tea-elevated/30 border border-tea-charcoal/5 dark:border-tea-border p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-tea-elevated/50 transition-colors"
         >
-          <span className={`font-mono text-xl ${stats.lowStockItems > 0 ? 'text-red-600 dark:text-red-400' : 'text-tea-charcoal dark:text-white'}`}>
+          <span className={`font-mono text-xl ${stats.lowStockItems > 0 ? 'text-red-600 dark:text-red-400' : 'text-tea-charcoal dark:text-tea-text'}`}>
             {stats.lowStockItems}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-white/40">
+          <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-tea-text-dim/60">
             Low Stock
           </span>
         </button>
 
         <button
           onClick={() => goTo('/admin/records')}
-          className="bg-white/30 dark:bg-white/5 border border-tea-charcoal/5 dark:border-white/10 p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+          className="bg-white/30 dark:bg-tea-elevated/30 border border-tea-charcoal/5 dark:border-tea-border p-3 flex flex-col items-center gap-1 hover:bg-white/50 dark:hover:bg-tea-elevated/50 transition-colors"
         >
-          <span className="num text-xl text-tea-charcoal dark:text-white">
+          <span className="num text-xl text-tea-charcoal dark:text-tea-text">
             {fmtDollars(stats.revenueThisWeek)}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-white/40">
+          <span className="text-[9px] uppercase tracking-widest text-tea-charcoal/40 dark:text-tea-text-dim/60">
             This Week
           </span>
         </button>
@@ -69,7 +69,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
           <div className="space-y-1.5">
             {stats.lowStockProducts.slice(0, 4).map(p => (
               <div key={p.id} className="flex items-center justify-between text-xs">
-                <span className="text-tea-charcoal/70 dark:text-white/70 truncate flex-1 mr-2 font-serif">
+                <span className="text-tea-charcoal/70 dark:text-tea-text/70 truncate flex-1 mr-2 font-serif">
                   {p.givenName || p.productName}
                 </span>
                 <span className="font-mono text-red-600 dark:text-red-400 shrink-0">
@@ -87,7 +87,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
       )}
 
       {/* Catalog summary */}
-      <div className="flex items-center justify-between text-[10px] text-tea-charcoal/40 dark:text-white/30 uppercase tracking-widest px-1">
+      <div className="flex items-center justify-between text-[10px] text-tea-charcoal/40 dark:text-tea-text/30 uppercase tracking-widest px-1">
         <span>{stats.activeProducts} active / {stats.totalProducts} total</span>
       </div>
     </div>

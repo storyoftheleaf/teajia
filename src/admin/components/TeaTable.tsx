@@ -99,10 +99,10 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   };
 
   const SortIcon = ({ colKey }: { colKey: keyof Product }) => {
-      if (sortConfig?.key !== colKey) return <ArrowUpDown size={10} className="ml-1 text-white/10 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-40 transition-opacity" />;
-      return sortConfig.direction === 'asc' 
-        ? <ArrowUp size={10} className="ml-1 text-neutral-400" /> 
-        : <ArrowDown size={10} className="ml-1 text-neutral-400" />;
+      if (sortConfig?.key !== colKey) return <ArrowUpDown size={10} className="ml-1 text-tea-text-dim/30 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-40 transition-opacity" />;
+      return sortConfig.direction === 'asc'
+        ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" />
+        : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />;
   };
 
   const HeaderCell = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
