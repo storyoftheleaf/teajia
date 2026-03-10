@@ -8,13 +8,14 @@ interface StagingRow {
   id: string;
   type: string;
   givenName: string;
-  chineseName: string; 
+  chineseName: string;
   productName: string;
-  year: string; 
+  form: string;
+  year: string;
   grams: string; // Grams / Quantity Purchased
   costAmount: string; // Raw cost amount
   currency: string; // Raw currency code
-  stockAmount: string; 
+  stockAmount: string;
   vendor: string;
   originCountry: string;
   originRegion: string;
@@ -160,6 +161,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           const getProductName = () => getSafeValue(row, ['Product Name', 'ProductName', 'Name', 'Cultivar']);
           const getYear = () => getSafeValue(row, ['Year', 'Age', 'Harvest Year']);
           
+          const getForm = () => getSafeValue(row, ['Form', 'Leaf Form', 'Tea Form', 'Shape']);
           const getGrams = () => getSafeValue(row, ['Quantity Purchased', 'Grams', 'Bag Size', 'Weight']);
           const getCostAmount = () => getSafeValue(row, ['Cost Amount', 'Cost', 'Bag Cost', 'Price']);
           const getCurrency = () => getSafeValue(row, ['Cost Currency', 'Currency']);
@@ -191,6 +193,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             givenName: (getGivenName() || '').trim(),
             chineseName: (getChineseName() || '').trim(),
             productName: (getProductName() || '').trim(),
+            form: (getForm() || '').trim(),
             year: (getYear() || '').trim(),
             grams: (getGrams() || '').trim(),
             costAmount: (getCostAmount() || '').trim(),
@@ -283,11 +286,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         const qtyPurchased = parseNum(r.grams);
         const cost = parseNum(r.costAmount);
         
-        // 3. Extract Year (Find first 4-digit number)
-        let year = null;
-        if (r.year) {
-             const yearMatch = r.year.toString().match(/\b(19|20)\d{2}\b/);
-             if (yearMatch) year = parseInt(yearMatch[0]);
+        // 3. Handle Year (preserve "1980s" style, pass "Unknown" as null)
+        let year: string | null = null;
+        if (r.year && !isMissingOrUnknown(r.year)) {
+             year = r.year.toString().trim();
         }
 
         // 4. Handle Currency
@@ -302,18 +304,24 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             else if (['HKD', 'HK'].includes(c)) curr = 'HKD';
         }
 
+        // Validate form against known values
+        const validForms = ['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
+        const matchedForm = validForms.find(f => f.toLowerCase() === (r.form || '').toLowerCase());
+        const hasWisdom = !!(r.lore || r.tastingNotes || r.mood || r.experience);
+
         return {
-          type: typeToSave, 
-          given_name: r.givenName, 
-          chinese_name: r.chineseName || null, 
-          product_name: r.productName || r.givenName || 'Unnamed Product', 
+          type: typeToSave,
+          given_name: r.givenName,
+          chinese_name: r.chineseName || null,
+          product_name: r.productName || r.givenName || 'Unnamed Product',
+          form: matchedForm || null,
           year: year,
           origin_country: r.originCountry || 'Unknown',
           origin_region: r.originRegion || '',
           stock_grams: stock,
           quantity_purchased: qtyPurchased,
           cost_amount: cost,
-          cost_currency: curr, 
+          cost_currency: curr,
           vendor: r.vendor,
           description: r.description || '',
           status: r.status,
@@ -325,6 +333,8 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           terroir: r.terroir || null,
           mood: r.mood || null,
           experience: r.experience || null,
+          is_custom_wisdom: false,
+          show_wisdom: hasWisdom,
           material: r.material || null,
           capacity_ml: parseNum(r.capacityMl) || null,
           teaware_category: r.teawareCategory || null,
