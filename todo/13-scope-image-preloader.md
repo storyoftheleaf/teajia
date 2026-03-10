@@ -1,4 +1,4 @@
-# TODO 09: Scope ImagePreloaderProvider to Reader Only
+# TODO 13: Scope ImagePreloaderProvider to Reader Only
 
 **Priority:** P2 — MEDIUM
 **Impact:** Memory usage (save up to 40MB global cache), startup performance

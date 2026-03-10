@@ -1,4 +1,4 @@
-# TODO 08: Establish a Z-Index Scale
+# TODO 11: Establish a Z-Index Scale
 
 **Priority:** P2 — MEDIUM
 **Impact:** Layering predictability, overlay stacking correctness

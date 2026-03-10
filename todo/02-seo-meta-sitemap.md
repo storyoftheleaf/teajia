@@ -1,6 +1,6 @@
 # TODO 02: Add SEO Foundation — Meta Tags, Sitemap, Structured Data
 
-> **Branch progress:** Meta tags (canonical, og:, twitter:), robots.txt, and security headers done on `claude/comprehensive-review-audit-YGUXB`. Remaining: sitemap.xml generation, structured data (JSON-LD), per-route Helmet tags.
+> **Branch progress:** Meta tags (canonical, og:, twitter:), robots.txt, favicon, and security headers done on `claude/comprehensive-review-audit-YGUXB`. Remaining: sitemap.xml generation, structured data (JSON-LD), per-route Helmet tags.
 
 **Priority:** P0 — CRITICAL
 **Impact:** Discoverability, organic traffic, social sharing

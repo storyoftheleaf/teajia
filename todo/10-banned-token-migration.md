@@ -1,6 +1,4 @@
-# TODO 07: Migrate Banned Color Tokens Across 49 Files
-
-> **Branch progress:** Design system plan exists on `claude/teajia-palettes-design-KozBZ` and admin audit on `claude/airtable-design-analysis-QFXcz`. Full token migration still needed.
+# TODO 10: Migrate Banned Color Tokens Across 49 Files
 
 **Priority:** P2 — MEDIUM
 **Impact:** Theme reliability, dark/light mode correctness

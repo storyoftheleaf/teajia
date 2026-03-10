@@ -1,4 +1,4 @@
-# TODO 06: Split CartPanel into PublicCart and AdminCart
+# TODO 07: Split CartPanel into PublicCart and AdminCart
 
 **Priority:** P1 — HIGH
 **Impact:** Maintainability, UX clarity, bundle size

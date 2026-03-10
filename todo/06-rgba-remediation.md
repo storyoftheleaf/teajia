@@ -1,4 +1,4 @@
-# TODO 05: Remediate 328 Hardcoded rgba() Values
+# TODO 06: Remediate 328 Hardcoded rgba() Values
 
 **Priority:** P1 — HIGH
 **Impact:** Theme consistency, light/dark mode reliability
