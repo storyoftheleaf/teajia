@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS products (
     given_name TEXT,
     chinese_name TEXT,
     product_name TEXT NOT NULL,
-    year INTEGER,
+    year TEXT,
     origin_country TEXT,
     origin_region TEXT,
     description TEXT,
