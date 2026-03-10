@@ -40,6 +40,7 @@ export interface Product {
   terroir?: string; // e.g. "High-altitude granite soils above 1200m, with dramatic day-night temperature swings."
   mood?: string; // e.g. "Grounding & Meditative"
   experience?: string; // e.g. "A deeply centering tea..."
+  additionalImages?: string[]; // Extra photos (different angles, detail shots)
   // Teaware-specific fields (null/undefined for tea)
   material?: string; // e.g. "Yixing clay", "porcelain", "silver"
   capacityMl?: number; // Vessel capacity in ml

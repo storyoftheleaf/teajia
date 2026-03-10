@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS products (
     material TEXT,           -- Teaware: e.g. "Yixing clay", "porcelain", "silver"
     capacity_ml INTEGER,     -- Teaware: vessel capacity in ml
     teaware_category TEXT,   -- Teaware: "pot" | "cup" | "tray" | "storage" | "accessory" | "decorative"
+    additional_images TEXT DEFAULT '[]', -- JSON array of extra image URLs
     quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
     vendor_id TEXT,                -- FK to customers table (vendor contact)
     created_at TEXT DEFAULT (datetime('now'))

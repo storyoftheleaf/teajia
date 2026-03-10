@@ -31,6 +31,7 @@ export const useProducts = () => {
         description: p.description || '',
         tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],
         imageUrl: p.image_url || '',
+        additionalImages: Array.isArray(p.additional_images) ? p.additional_images : [],
         status: p.status,
         vendor: p.vendor,
         costCurrency: p.cost_currency || 'USD',
