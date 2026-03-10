@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users, Calendar } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 
 function getCurrentSeason(): { name: string; icon: string } {
@@ -110,8 +110,8 @@ export const Sidebar = ({
 
   const adminItems: NavItem[] = [
     { id: 'inventory', path: '/admin/inventory', label: 'Master Inventory', icon: <Settings size={20} strokeWidth={2} /> },
-    { id: 'personal', path: '/admin/personal', label: 'Collection', icon: <UserCheck size={20} strokeWidth={2} /> },
     { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users size={20} strokeWidth={2} /> },
+    { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar size={20} strokeWidth={2} /> },
     { id: 'orders', path: '/admin/orders', label: 'Orders', icon: <History size={20} strokeWidth={2} /> },
     { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen size={20} strokeWidth={2} /> },
     { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings size={20} strokeWidth={2} /> },

@@ -23,6 +23,8 @@ import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AdminBottomNav } from './components/AdminBottomNav';
 import { DashboardView } from './components/DashboardView';
+import { EventsManager } from './components/EventsManager';
+import { EventDetail } from './components/EventDetail';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -223,6 +225,8 @@ const AdminContent = () => {
               <Route path="records" element={<ProtectedRoute><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
+              <Route path="events" element={<ProtectedRoute><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events/:id" element={<ProtectedRoute><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
 
               <Route path="*" element={<Navigate to="inventory" replace />} />
             </Routes>
