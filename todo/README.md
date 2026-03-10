@@ -1,6 +1,6 @@
 # Teajia — Combined Audit Todo Tracker
 
-Two audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSITE_TEARDOWN.md) (performance, design system, SEO). Tasks 21–40 come from the [Functional Audit](../FUNCTIONAL_AUDIT.md) (UX flows, friction, interactions).
+Four audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSITE_TEARDOWN.md) (performance, design system, SEO). Tasks 21–40 come from the [Functional Audit](../FUNCTIONAL_AUDIT.md) (UX flows, friction, interactions). Tasks 41–46 come from the backend performance audit (Cloudflare Worker + D1). Tasks 47–55 come from the UI consistency audit (styling, interaction patterns, accessibility).
 
 ---
 
@@ -51,6 +51,17 @@ Two audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSI
 | 39 | [JWT Expiry Handling](./39-jwt-expiry-handling.md) | Polish | Half-day |
 | 40 | [Populate About Page](./40-about-page.md) | Polish | 1 day |
 
+### Backend Performance Audit (41–46)
+
+| # | Task | Priority | Effort |
+|---|------|----------|--------|
+| 41 | [D1 Database Indexes](./41-d1-database-indexes.md) | P0 | 1 hour |
+| 42 | [Cache-Control Headers](./42-cache-control-headers.md) | P0 | 1–2 hours |
+| 43 | [Batch Sequential Queries](./43-batch-sequential-queries.md) | P1 | 2–3 hours |
+| 44 | [SELECT * Elimination](./44-select-star-elimination.md) | P1 | Half-day |
+| 45 | [Loop → Batch Operations](./45-loop-batch-operations.md) | P1 | 1–2 hours |
+| 46 | [CORS Preflight Caching](./46-cors-preflight-caching.md) | P2 | 30 minutes |
+
 ### UI Consistency Audit (47–55)
 
 | # | Task | Priority | Effort |
@@ -83,7 +94,7 @@ Two audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSI
 
 ### Cross-Audit Overlap
 
-Some tasks across the two audits address related areas. Here's how they relate:
+Some tasks across the audits address related areas. Here's how they relate:
 
 | Teardown | Functional Audit | Relationship |
 |----------|-----------------|--------------|
@@ -92,6 +103,10 @@ Some tasks across the two audits address related areas. Here's how they relate:
 | 07 Split CartPanel | 28 View Cart Toast | **Independent** — 07 refactors the component, 28 adds a toast. Can parallelize. |
 | 08 Homepage Product Showcase | 27 Price-Per-Gram | **Independent** — different aspects of product display. |
 | 15 Trust Signals | 40 About Page | **Complementary** — both build brand confidence. Can combine into one effort. |
+
+Backend tasks (41–46) have **no overlap** with teardown or functional audit tasks — they operate entirely within `worker/src/index.ts` and D1.
+
+UI consistency task 50 (hardcoded hex colors) complements teardown task 06 (rgba remediation) — 06 targets `rgba()` in inline styles, 50 targets hex literals in Tailwind classes. Can be done together or separately.
 
 ---
 
@@ -121,13 +136,16 @@ Some tasks across the two audits address related areas. Here's how they relate:
 ### Group H — Visual Polish (Functional Audit)
 `32`, `36` — Independent visual enhancements.
 
-### Group I — UI Consistency (Consistency Audit)
+### Group I — Backend / Worker Performance (Backend Audit)
+`41`, `42`, `43`, `44`, `45`, `46` — All within the Cloudflare Worker. No frontend overlap.
+
+### Group J — UI Consistency: Styling (Consistency Audit)
 `47`, `48`, `49`, `53`, `54` — Low-priority styling normalization. All independent.
 
-### Group J — Theme & Interaction (Consistency Audit)
+### Group K — UI Consistency: Theme & Interaction (Consistency Audit)
 `50` (hex colors, related to `06`), `51` (focus/hover), `52` (card recipe). Medium-high priority.
 
-### Group K — Accessibility (Consistency Audit)
+### Group L — Accessibility (Consistency Audit)
 `55` — Standalone ARIA/a11y sweep.
 
 ---
@@ -138,11 +156,13 @@ Some tasks across the two audits address related areas. Here's how they relate:
 - **Performance:** 01, 05, 09, 13 (Group A)
 - **Quick UX fixes:** 22 (share button), 28 (cart toast), 23 (checkout copy), 37 (theme toggle)
 - **Design cleanup:** 11 (z-index)
+- **Backend quick wins:** 41 (D1 indexes), 46 (CORS preflight), 42 (Cache-Control headers) — can run alongside, deploy-only
 
 ### Sprint 2: Product Experience (1 week)
 - **Product pages:** 03 + 21 (detail pages + URL routing)
 - **Shop UX:** 27 ($/g), 33 (stock), 34 (carousel)
 - **Cart:** 07 (split CartPanel)
+- **Backend deeper:** 43 (batch queries) + 45 (loop → batch) + 44 (SELECT * elimination)
 
 ### Sprint 3: Design System (1–2 weeks)
 - **Tokens:** 06 (rgba), 10 (banned tokens)
@@ -210,6 +230,14 @@ Some tasks across the two audits address related areas. Here's how they relate:
 - [ ] 38 — Learn Hub Breadcrumbs
 - [ ] 39 — JWT Expiry Handling
 - [ ] 40 — Populate About Page
+
+### Backend Performance (41–46)
+- [x] 46 — CORS Preflight Caching
+- [ ] 41 — D1 Database Indexes
+- [ ] 42 — Cache-Control Headers
+- [ ] 43 — Batch Sequential Queries
+- [ ] 44 — SELECT * Elimination
+- [ ] 45 — Loop → Batch Operations
 
 ### UI Consistency Audit (47–55)
 - [ ] 47 — Standardize Border-Radius Scale
