@@ -103,6 +103,7 @@ function cors(response: Response, origin: string): Response {
   headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -1786,9 +1787,17 @@ export default {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '*';
 
-    // CORS preflight
+    // CORS preflight — cache for 24h to eliminate redundant OPTIONS round-trips
     if (request.method === 'OPTIONS') {
-      return cors(new Response(null, { status: 204 }), origin);
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
     }
 
     const match = matchRoute(request.method, url.pathname, routes);
