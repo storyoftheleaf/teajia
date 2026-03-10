@@ -440,15 +440,11 @@ export const api = {
       return handleResponse(res);
     },
     getPublic: async (slug: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`);
       return handleResponse(res);
     },
     getAvailability: async (slug: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`);
       return handleResponse(res);
     },
     uploadFlyer: async (file: File) => {

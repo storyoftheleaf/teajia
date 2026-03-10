@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import {
   EventAvailability,
@@ -6,6 +6,7 @@ import {
   TeaEvent,
   EventAttendee,
   TeaMenuItem,
+  TastingNote,
 } from '../types/events';
 
 // --- Snake-to-camelCase mapping helpers ---
@@ -125,3 +126,56 @@ export const useGuestManagement = (token: string) => {
     staleTime: 5_000,
   });
 };
+
+// --- Mutation hooks ---
+
+/** Toggle +1 guest. */
+export function useUpdatePlusOne(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ plusOne, plusOneName }: { plusOne: boolean; plusOneName?: string }) =>
+      api.rsvp.update(token, { plus_one: plusOne ? 1 : 0, plus_one_name: plusOneName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}
+
+/** Cancel RSVP. */
+export function useCancelRSVP(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.rsvp.update(token, { status: 'cancelled' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}
+
+/** Claim an offered seat (waitlist promotion). */
+export function useClaimSeat(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.rsvp.claim(token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}
+
+/** Submit tasting notes after session. */
+export function useSubmitTastingNotes(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (notes: Array<{ teaMenuId?: string; rating?: number; impression?: string; isFavorite: boolean }>) =>
+      api.rsvp.submitTastingNotes(token, notes.map(n => ({
+        tea_menu_id: n.teaMenuId,
+        rating: n.rating,
+        impression: n.impression,
+        is_favorite: n.isFavorite,
+      }))),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}

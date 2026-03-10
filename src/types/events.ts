@@ -50,6 +50,13 @@ export interface TeaEvent {
   seatsRemaining?: number;
 }
 
+export interface EventAvailability {
+  totalCapacity: number;
+  confirmedCount: number;
+  seatsRemaining: number;
+  isFull: boolean;
+}
+
 export interface EventAttendee {
   id: string;
   eventId: string;
@@ -122,13 +129,6 @@ export interface EventNotification {
   sentAt?: string;
   // Joined
   attendeeName?: string;
-}
-
-export interface EventAvailability {
-  totalCapacity: number;
-  confirmedCount: number;
-  seatsRemaining: number;
-  isFull: boolean;
 }
 
 export interface RSVPResponse {
