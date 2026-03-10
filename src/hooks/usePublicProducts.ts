@@ -22,6 +22,7 @@ export const usePublicProducts = () => {
         description: p.description || '',
         tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],
         imageUrl: p.image_url || '',
+        additionalImages: Array.isArray(p.additional_images) ? p.additional_images : [],
         status: p.status || 'Active',
         isPersonal: !!p.is_personal,
         canReorder: !!p.can_reorder,

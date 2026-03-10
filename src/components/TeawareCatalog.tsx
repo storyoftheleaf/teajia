@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Icons } from './Icons';
-import { PopupModal } from './shared/PopupModal';
+import { TeawareAlcoveModal } from './shop/TeawareAlcoveModal';
 import { CardGridItem } from './shared/CardGridItem';
 import { CardImage } from './shared/CardImage';
 import { CardThumbnail } from './shared/CardThumbnail';
@@ -112,7 +112,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
     <div className="w-full pb-32 animate-[fadeIn_0.5s_ease-out]">
 
       {/* --- DETAIL MODAL --- */}
-      <PopupModal
+      <TeawareAlcoveModal
         item={viewItem}
         items={externalInventory}
         onClose={() => setViewItem(null)}
@@ -121,11 +121,6 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
           if (onAddToCart) onAddToCart(item, quantity, total);
           setViewItem(null);
         }}
-        showQuantityControls={true}
-        quantityStep={1}
-        defaultQuantity={1}
-        maxQuantity={parseInt(viewItem?.stock_g || '100')}
-        itemType="teaware"
       />
 
       {/* --- HEADER (shared PageHeader) --- */}

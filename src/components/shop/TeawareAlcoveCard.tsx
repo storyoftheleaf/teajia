@@ -1,0 +1,661 @@
+import React, { useState, useRef, useEffect } from 'react';
+import type { InventoryItem } from '../../types';
+import { useAppStore } from '../../lib/store';
+import { fmtNum } from '../../utils/formatNumber';
+import { TeaPlaceholder } from './TeaPlaceholder';
+
+interface TeawareAlcoveCardProps {
+  item: InventoryItem;
+  onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
+  onClose?: () => void;
+}
+
+function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? color : "none"}
+      stroke={filled ? color : strokeColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18l-7-4-7 4V4z" />
+    </svg>
+  );
+}
+
+function ShareIcon({ color }: { color: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />
+      <polyline points="12 3 12 16" />
+      <polyline points="8 7 12 3 16 7" />
+    </svg>
+  );
+}
+
+export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
+  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const favorited = favoriteTeas.includes(item.id);
+  const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [imageExpanded, setImageExpanded] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showFade, setShowFade] = useState(false);
+  const galleryTouchStart = useRef<number | null>(null);
+
+  // Build gallery: primary image + additional images
+  const allImages = [item.image, ...(item.additionalImages || [])].filter(Boolean);
+  const hasGallery = allImages.length > 1;
+  const currentImage = allImages[activeImageIndex] || '';
+
+  const maxStock = Math.max(1, Math.floor(item.stock_g || 1));
+  const unitPrice = parseFloat(item.price_50g || '0');
+  const total = fmtNum(unitPrice * quantity);
+
+  const colors = {
+    bg: 'var(--tea-bg)',
+    title: 'var(--tea-text)',
+    subtitle: 'var(--tea-text-dim)',
+    body: 'var(--tea-text-sec)',
+    bodyHighlight: 'var(--tea-text)',
+    note: 'var(--tea-text-sec)',
+    accent: 'var(--tea-gold)',
+    muted: 'var(--tea-text-dim)',
+    success: '#5A6E5A',
+  };
+  const accent = colors.accent;
+
+  // Derive display values
+  const productName = item.variant || item.name;
+  const givenName = item.variant !== item.name ? item.name : '';
+  const chineseCharacters = item.chineseName || '';
+  const material = item.material || '';
+  const capacity = item.capacityMl ? `${item.capacityMl}ml` : '';
+  const story = item.lore || item.description || '';
+  const technique = item.processingNotes || '';
+  const origin = item.terroir || item.origin || '';
+  const feeling = item.mood || '';
+  const feelingDescription = item.experience || '';
+  const hasContent = !!(story || technique || feeling);
+
+  // Scroll overflow detection
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => {
+      const canScroll = el.scrollHeight > el.clientHeight;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
+      setShowFade(canScroll && !atBottom);
+    };
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      el.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+
+  const handleAdd = () => {
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+    if (onAddToCart) {
+      onAddToCart(item, quantity, parseFloat(total));
+    }
+  };
+
+  // Gallery swipe handlers
+  const handleGalleryTouchStart = (e: React.TouchEvent) => {
+    galleryTouchStart.current = e.touches[0].clientX;
+  };
+
+  const handleGalleryTouchEnd = (e: React.TouchEvent) => {
+    if (galleryTouchStart.current === null) return;
+    const diff = galleryTouchStart.current - e.changedTouches[0].clientX;
+    const threshold = 40;
+    if (Math.abs(diff) > threshold && hasGallery) {
+      if (diff > 0 && activeImageIndex < allImages.length - 1) {
+        setActiveImageIndex(i => i + 1);
+      } else if (diff < 0 && activeImageIndex > 0) {
+        setActiveImageIndex(i => i - 1);
+      }
+    }
+    galleryTouchStart.current = null;
+  };
+
+  return (
+    <div style={{
+      width: "100%",
+      height: "100%",
+      maxHeight: "100%",
+      background: colors.bg,
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: "3px",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+
+      {/* Layer 1: Subtle warmth */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: `
+          radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.06) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.03) 0%, transparent 50%)
+        `,
+      }} />
+
+      {/* Layer 2: Fine noise grain */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.04,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        backgroundSize: "120px",
+      }} />
+
+      {/* === SCROLLABLE CONTENT === */}
+      <div ref={scrollRef} className="tea-card-scroll" style={{
+        position: "relative", zIndex: 1,
+        flex: 1,
+        overflowY: "auto",
+        minHeight: 0,
+      }}>
+
+        {/* === GALLERY SECTION === */}
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            maxHeight: hasContent ? "55%" : "65%",
+            background: "rgba(0,0,0,0.3)",
+            overflow: "hidden",
+            cursor: currentImage ? "pointer" : "default",
+            flexShrink: 0,
+          }}
+          onClick={() => currentImage && setImageExpanded(true)}
+          onTouchStart={handleGalleryTouchStart}
+          onTouchEnd={handleGalleryTouchEnd}
+        >
+          {currentImage ? (
+            <img
+              key={currentImage}
+              src={currentImage}
+              alt={productName}
+              style={{
+                width: "100%", height: "100%",
+                objectFit: "cover",
+                animation: "fadeIn 0.3s ease-out",
+              }}
+            />
+          ) : (
+            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <TeaPlaceholder type={item.type} style={{ width: "60%", height: "60%", opacity: 0.4 }} />
+            </div>
+          )}
+
+          {/* Bottom gradient fade */}
+          <div style={{
+            position: "absolute", bottom: 0, left: 0, right: 0, height: "40%",
+            background: `linear-gradient(to top, ${colors.bg}, transparent)`,
+            pointerEvents: "none",
+          }} />
+
+          {/* Gallery dot indicators */}
+          {hasGallery && (
+            <div style={{
+              position: "absolute", bottom: "10px", left: "50%", transform: "translateX(-50%)",
+              display: "flex", gap: "6px", zIndex: 2,
+            }}>
+              {allImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i); }}
+                  style={{
+                    width: i === activeImageIndex ? "16px" : "6px",
+                    height: "6px",
+                    borderRadius: "3px",
+                    background: i === activeImageIndex ? accent : "rgba(200,170,120,0.3)",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* === IDENTITY + INFO === */}
+        <div style={{
+          position: "relative",
+          padding: "16px 20px 8px",
+        }}>
+          {/* Chinese characters watermark */}
+          {chineseCharacters && (
+            <div style={{
+              position: "absolute", right: "14px", top: "8px",
+              fontFamily: "'Ma Shan Zheng', cursive",
+              fontSize: "56px", fontWeight: 400, lineHeight: 1,
+              color: "rgba(200,170,120,0.05)",
+              letterSpacing: "0.05em",
+              userSelect: "none", pointerEvents: "none",
+              whiteSpace: "nowrap",
+            }}>
+              {chineseCharacters}
+            </div>
+          )}
+
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "28px", fontWeight: 300, color: colors.title,
+            margin: "0 0 4px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+          }}>
+            {productName}
+          </h1>
+
+          {givenName && (
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "17px", fontStyle: "italic", fontWeight: 300,
+              color: colors.subtitle, margin: "0 0 8px 0",
+            }}>
+              {givenName}
+            </p>
+          )}
+
+          {/* Material / Capacity / Origin line */}
+          {(material || capacity || origin) && (
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "13px", fontWeight: 300, fontStyle: "italic",
+              color: colors.subtitle, margin: "0 0 4px 0",
+            }}>
+              {[material, capacity, origin].filter(Boolean).map((val, i, arr) => (
+                <React.Fragment key={i}>
+                  {val}
+                  {i < arr.length - 1 && <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>}
+                </React.Fragment>
+              ))}
+            </p>
+          )}
+        </div>
+
+        {/* === CRAFT CONTENT (only if present) === */}
+        {hasContent && (
+          <div style={{
+            margin: "4px 4px 0",
+            borderRadius: "6px",
+            background: "rgba(0,0,0,0.2)",
+            boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04)",
+            overflow: "hidden",
+          }}>
+            {/* Fine noise texture overlay */}
+            <div style={{
+              position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.06,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+              backgroundSize: "120px",
+            }} />
+
+            {/* Mood line */}
+            {feeling && (
+              <div style={{
+                padding: "10px 14px",
+                borderBottom: (story || technique) ? "1px solid rgba(200,170,120,0.08)" : "none",
+                display: "flex", alignItems: "center", gap: "10px",
+              }}>
+                <div style={{
+                  width: "18px", height: "2px", flexShrink: 0,
+                  background: accent, opacity: 0.7, borderRadius: "1px",
+                }} />
+                <span style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                  color: colors.note, opacity: 0.9,
+                }}>
+                  {feeling}
+                </span>
+              </div>
+            )}
+
+            {/* Craft story */}
+            {story && (
+              <div style={{
+                padding: "12px 16px",
+                borderBottom: (technique || feelingDescription) ? "1px solid rgba(200,170,120,0.08)" : "none",
+                position: "relative",
+              }}>
+                <p style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
+                  color: colors.body, margin: 0,
+                }}>
+                  {story}
+                </p>
+              </div>
+            )}
+
+            {/* Technique / Processing */}
+            {technique && (
+              <div style={{
+                padding: "10px 16px",
+                borderBottom: feelingDescription ? "1px solid rgba(200,170,120,0.08)" : "none",
+              }}>
+                <p style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "13px", fontWeight: 300, fontStyle: "italic",
+                  lineHeight: 1.55,
+                  color: colors.subtitle, margin: 0,
+                }}>
+                  {technique}
+                </p>
+              </div>
+            )}
+
+            {/* Experience */}
+            {feelingDescription && (
+              <div style={{ padding: "10px 16px" }}>
+                <p style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+                  lineHeight: 1.6,
+                  color: colors.subtitle, margin: 0,
+                }}>
+                  {feelingDescription}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* === PINNED BOTTOM: Commerce === */}
+      <div style={{
+        position: "relative", zIndex: 3, flexShrink: 0,
+        padding: "10px 14px 14px",
+        borderTop: "1px solid rgba(200,170,120,0.08)",
+        background: colors.bg,
+      }}>
+        {/* Quantity + Price row */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: "8px",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center",
+            borderRadius: "3px",
+            border: "1px solid rgba(200,170,120,0.15)",
+            overflow: "hidden",
+          }}>
+            <button
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+              style={{
+                width: "32px", height: "32px",
+                background: "none", border: "none",
+                color: colors.subtitle,
+                cursor: quantity <= 1 ? "default" : "pointer",
+                opacity: quantity <= 1 ? 0.3 : 0.7,
+                fontFamily: "var(--font-mono)",
+                fontSize: "14px",
+                transition: "opacity 0.15s ease",
+              }}
+            >-</button>
+            <span style={{
+              width: "36px", textAlign: "center",
+              fontFamily: "var(--font-mono)",
+              fontSize: "13px", fontWeight: 400, color: colors.body,
+              borderLeft: "1px solid rgba(200,170,120,0.1)",
+              borderRight: "1px solid rgba(200,170,120,0.1)",
+              lineHeight: "32px",
+            }}>
+              {quantity}
+            </span>
+            <button
+              onClick={() => setQuantity(q => Math.min(maxStock, q + 1))}
+              disabled={quantity >= maxStock}
+              style={{
+                width: "32px", height: "32px",
+                background: "none", border: "none",
+                color: colors.subtitle,
+                cursor: quantity >= maxStock ? "default" : "pointer",
+                opacity: quantity >= maxStock ? 0.3 : 0.7,
+                fontFamily: "var(--font-mono)",
+                fontSize: "14px",
+                transition: "opacity 0.15s ease",
+              }}
+            >+</button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "baseline" }}>
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "12px", fontWeight: 400, color: colors.subtitle,
+              marginRight: "4px",
+            }}>
+              ${fmtNum(unitPrice)}
+            </span>
+            {quantity > 1 && (
+              <span style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px", fontWeight: 400, color: colors.subtitle,
+                opacity: 0.6,
+              }}>
+                each
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Action row */}
+        <div style={{ display: "flex", gap: "4px" }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+            height: "36px", boxSizing: "border-box",
+            border: "1px solid rgba(200,170,120,0.18)",
+            borderRadius: "3px",
+            flexShrink: 0,
+            padding: "0 10px",
+          }}>
+            <button
+              onClick={() => toggleFavoriteTea(item.id)}
+              onMouseEnter={() => setHovered("fav")}
+              onMouseLeave={() => setHovered(null)}
+              aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+              style={{
+                background: "none", border: "none", padding: "0",
+                cursor: "pointer", transition: "all 0.2s ease",
+                display: "inline-flex", alignItems: "center", gap: "4px",
+                opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
+              }}
+            >
+              <BookmarkIcon filled={favorited} color={accent} strokeColor={colors.muted} />
+              <span style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "10px", fontWeight: 400,
+                letterSpacing: "0.08em", textTransform: "uppercase",
+                color: favorited ? accent : colors.subtitle,
+              }}>Save</span>
+            </button>
+            <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.12)" }} />
+            <button
+              onMouseEnter={() => setHovered("share")}
+              onMouseLeave={() => setHovered(null)}
+              aria-label="Share"
+              style={{
+                background: "none", border: "none", padding: "0",
+                cursor: "pointer", transition: "all 0.2s ease",
+                display: "inline-flex", alignItems: "center", gap: "4px",
+                opacity: hovered === "share" ? 0.9 : 0.7,
+              }}
+            >
+              <ShareIcon color={colors.muted} />
+              <span style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "10px", fontWeight: 400,
+                letterSpacing: "0.08em", textTransform: "uppercase",
+                color: colors.subtitle,
+              }}>Share</span>
+            </button>
+          </div>
+
+          <button
+            onClick={handleAdd}
+            onMouseEnter={() => setHovered("cart")}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              flex: 1, height: "36px", boxSizing: "border-box",
+              fontFamily: "var(--font-sans)",
+              fontSize: "11px", fontWeight: 400,
+              letterSpacing: "0.06em", textTransform: "uppercase",
+              color: added ? colors.bg : (hovered === "cart" ? colors.note : colors.muted),
+              background: added
+                ? colors.success
+                : hovered === "cart"
+                  ? "rgba(200,170,120,0.06)"
+                  : "transparent",
+              border: added
+                ? `1px solid ${colors.success}`
+                : `1px solid rgba(200,170,120,${hovered === "cart" ? 0.3 : 0.18})`,
+              borderRadius: "3px", cursor: "pointer",
+              transition: "all 0.25s ease",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            }}
+          >
+            <span>{added ? "Added" : "Add"}</span>
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
+            }}>
+              ${total}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Fade indicator */}
+      <div style={{
+        position: "relative", flexShrink: 0, height: 0,
+        pointerEvents: "none", zIndex: 2,
+      }}>
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
+          background: `linear-gradient(to top, ${colors.bg}, transparent)`,
+          opacity: showFade ? 1 : 0,
+          transition: "opacity 0.3s ease",
+        }} />
+      </div>
+
+      {/* Fullscreen image overlay with gallery */}
+      {imageExpanded && (
+        <div
+          onClick={() => setImageExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.95)",
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          {currentImage ? (
+            <img
+              key={currentImage}
+              src={currentImage}
+              alt={item.name}
+              style={{
+                maxWidth: "90vw", maxHeight: "80vh",
+                objectFit: "contain",
+                borderRadius: "4px",
+                animation: "fadeIn 0.2s ease-out",
+              }}
+            />
+          ) : (
+            <TeaPlaceholder
+              type={item.type}
+              style={{ width: "60vmin", height: "60vmin", maxWidth: "400px", maxHeight: "400px" }}
+            />
+          )}
+
+          {/* Gallery navigation in fullscreen */}
+          {hasGallery && (
+            <div style={{
+              display: "flex", gap: "8px", marginTop: "16px",
+            }}>
+              {allImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i); }}
+                  style={{
+                    width: "48px", height: "48px",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                    border: i === activeImageIndex ? `2px solid ${accent}` : "2px solid rgba(200,170,120,0.15)",
+                    padding: 0,
+                    cursor: "pointer",
+                    opacity: i === activeImageIndex ? 1 : 0.5,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </button>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={(e) => { e.stopPropagation(); setImageExpanded(false); }}
+            style={{
+              position: "absolute", top: "16px", right: "16px",
+              width: "36px", height: "36px",
+              background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="var(--tea-text-sec)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+
+          {/* Prev/Next arrows in fullscreen */}
+          {hasGallery && activeImageIndex > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i => i - 1); }}
+              style={{
+                position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)",
+                width: "40px", height: "40px",
+                background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="var(--tea-text-sec)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
+          {hasGallery && activeImageIndex < allImages.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveImageIndex(i => i + 1); }}
+              style={{
+                position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)",
+                width: "40px", height: "40px",
+                background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="var(--tea-text-sec)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

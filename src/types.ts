@@ -218,8 +218,13 @@ export interface InventoryItem {
   chineseName?: string;
   lore?: string;
   showWisdom?: boolean;
+  terroir?: string;
+  processingNotes?: string;
   mood?: string;
   experience?: string;
+  additionalImages?: string[];
+  material?: string;
+  capacityMl?: number;
   isFeatured?: boolean;
   isOneOfAKind?: boolean;
   magazineUrl?: string;
@@ -254,6 +259,7 @@ export interface PublicProduct {
   terroir?: string;
   mood?: string;
   experience?: string;
+  additionalImages?: string[];
   material?: string;
   capacityMl?: number;
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';

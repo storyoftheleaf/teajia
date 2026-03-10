@@ -245,9 +245,12 @@ const handleGetProducts: Handler = async (request, env) => {
 
   const result = await env.DB.prepare('SELECT * FROM products ORDER BY created_at DESC').all();
   const products = result.results.map(p => {
-    // Parse tasting_notes from JSON string
+    // Parse JSON array fields
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+    }
+    if (typeof p.additional_images === 'string') {
+      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
     }
     return addPricingFields(p, rates);
   });
@@ -259,7 +262,7 @@ const PUBLIC_FIELDS = [
   'id', 'type', 'given_name', 'chinese_name', 'product_name', 'year',
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
-  'image_url', 'status', 'is_personal', 'can_reorder', 'is_featured',
+  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
 ] as const;
 
@@ -277,6 +280,9 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
   const products = result.results.map(p => {
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+    }
+    if (typeof p.additional_images === 'string') {
+      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
     }
     const withPricing = addPricingFields(p, rates);
     // Strip sensitive fields — only return whitelisted public fields
@@ -298,6 +304,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (body.quantity_purchased == null) body.quantity_purchased = body.stock_grams || 0;
   // Convert tasting_notes array to JSON string
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
+  if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
@@ -322,6 +329,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   for (const body of products) {
     if (body.quantity_purchased == null) body.quantity_purchased = body.stock_grams || 0;
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
+    if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
       if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
     }
@@ -342,6 +350,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
+  if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
