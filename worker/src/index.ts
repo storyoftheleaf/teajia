@@ -327,7 +327,13 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   const { products } = await request.json() as { products: Record<string, any>[] };
   let inserted = 0;
 
-  for (const body of products) {
+  for (const raw of products) {
+    // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
+    const body: Record<string, any> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (v !== null && v !== undefined && v !== '') body[k] = v;
+    }
+
     if (body.quantity_purchased == null) body.quantity_purchased = body.stock_grams || 0;
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
