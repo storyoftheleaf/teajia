@@ -26,11 +26,11 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
   const handleAddFromInventory = async (productId: string, productName: string) => {
     setLoadingAction('add');
     try {
-      await api.events.addTeaMenuItem(eventId, {
+      await api.events.upsertTeaMenu(eventId, [{
         product_id: productId,
-        name: productName,
+        custom_name: productName,
         brew_order: menuItems.length,
-      });
+      }]);
       refetch();
       setShowPicker(false);
       setSearchQuery('');
@@ -46,11 +46,11 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
     if (!customName.trim()) return;
     setLoadingAction('add');
     try {
-      await api.events.addTeaMenuItem(eventId, {
-        name: customName,
-        description: customDescription || null,
+      await api.events.upsertTeaMenu(eventId, [{
+        custom_name: customName,
+        custom_description: customDescription || null,
         brew_order: menuItems.length,
-      });
+      }]);
       refetch();
       setShowCustom(false);
       setCustomName('');
@@ -66,7 +66,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
   const handleRemove = async (itemId: string) => {
     setLoadingAction(itemId);
     try {
-      await api.events.removeTeaMenuItem(eventId, itemId);
+      await api.events.deleteTeaMenuItem(eventId, itemId);
       refetch();
       showToast('Removed from menu', 'success');
     } catch (err: any) {
@@ -81,9 +81,16 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
     if (target < 0 || target >= sortedItems.length) return;
     const reordered = [...sortedItems];
     [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
-    const itemIds = reordered.map(i => i.id);
+    // Use upsertTeaMenu with updated brew_order values
+    const updatedItems = reordered.map((item, i) => ({
+      id: item.id,
+      product_id: item.productId || undefined,
+      custom_name: item.customName || item.productName || '',
+      custom_description: item.customDescription || '',
+      brew_order: i,
+    }));
     try {
-      await api.events.reorderTeaMenu(eventId, itemIds);
+      await api.events.upsertTeaMenu(eventId, updatedItems);
       refetch();
     } catch (err: any) {
       showToast(err.message || 'Failed to reorder', 'error');
@@ -92,7 +99,14 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
   const handleUpdateRevealDate = async (item: TeaMenuItem, date: string) => {
     try {
-      await api.events.updateTeaMenuItem(eventId, item.id, { reveal_date: date || null });
+      await api.events.upsertTeaMenu(eventId, [{
+        id: item.id,
+        product_id: item.productId || undefined,
+        custom_name: item.customName || item.productName || '',
+        custom_description: item.customDescription || '',
+        brew_order: item.brewOrder,
+        reveal_date: date || null,
+      }]);
       refetch();
     } catch (err: any) {
       showToast(err.message || 'Failed to update', 'error');
@@ -101,7 +115,13 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
   const handleUpdateDescription = async (item: TeaMenuItem, description: string) => {
     try {
-      await api.events.updateTeaMenuItem(eventId, item.id, { description: description || null });
+      await api.events.upsertTeaMenu(eventId, [{
+        id: item.id,
+        product_id: item.productId || undefined,
+        custom_name: item.customName || item.productName || '',
+        custom_description: description || null,
+        brew_order: item.brewOrder,
+      }]);
       refetch();
     } catch (err: any) {
       showToast(err.message || 'Failed to update', 'error');
@@ -152,11 +172,11 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-tea-text font-medium">{item.name}</div>
-                {item.description && (
-                  <p className="text-xs text-tea-text-dim mt-0.5">{item.description}</p>
+                <div className="text-sm text-tea-text font-medium">{item.customName || item.productName || ''}</div>
+                {(item.customDescription) && (
+                  <p className="text-xs text-tea-text-dim mt-0.5">{item.customDescription}</p>
                 )}
-                {!item.description && (
+                {!item.customDescription && (
                   <input
                     type="text"
                     placeholder="Add description..."

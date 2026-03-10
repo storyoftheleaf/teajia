@@ -3,7 +3,9 @@ import { Bell, Copy, Check, Loader2, Send, CheckCircle, AlertCircle, Clock } fro
 import { api } from '../../lib/api';
 import { useEventNotifications } from '../hooks/useEventData';
 import { useToast } from './Toast';
-import { TeaEvent, EventNotification, NotificationStatus } from '../../types/events';
+import { TeaEvent, EventNotification } from '../../types/events';
+
+type NotificationStatus = 'pending' | 'sent' | 'failed';
 
 interface NotificationPanelProps {
   eventId: string;
@@ -41,7 +43,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      await api.events.generateReminders(eventId);
+      await api.events.createNotifications(eventId);
       refetch();
       showToast('Reminders generated', 'success');
     } catch (err: any) {
@@ -79,21 +81,10 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
     }
   };
 
-  const toggleSent = async (notif: EventNotification) => {
-    setLoadingId(notif.id);
-    const newStatus = notif.status === 'sent' ? 'pending' : 'sent';
-    try {
-      await api.events.updateNotification(eventId, notif.id, {
-        status: newStatus,
-        sent_at: newStatus === 'sent' ? new Date().toISOString() : null,
-      });
-      refetch();
-      showToast(`Marked as ${newStatus}`, 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update', 'error');
-    } finally {
-      setLoadingId(null);
-    }
+  // toggleSent disabled — api.events.updateNotification does not exist.
+  // The API only supports createNotifications. Manual status toggling is not available.
+  const toggleSent = async (_notif: EventNotification) => {
+    showToast('Manual status toggling is not supported by the API', 'info');
   };
 
   const pendingCount = notifications.filter(n => n.status === 'pending').length;

@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
-import type { RSVPFormData, TeaPreference, RSVPSubmitResult } from '../../types/events';
+import type { RSVPFormData, TeaPreference, RSVPResponse } from '../../types/events';
 
 interface RSVPFormSheetProps {
   slug: string;
@@ -12,10 +12,10 @@ interface RSVPFormSheetProps {
 }
 
 const TEA_PREFERENCES: { id: TeaPreference; label: string; emoji: string }[] = [
-  { id: 'Light & Floral', label: 'Light & Floral', emoji: '\u{1F338}' },
-  { id: 'Rich & Roasted', label: 'Rich & Roasted', emoji: '\u{1F525}' },
-  { id: 'Aged & Earthy', label: 'Aged & Earthy', emoji: '\u{1FAB4}' },
-  { id: 'Surprise me!', label: 'Surprise me!', emoji: '\u{2728}' },
+  { id: 'light_floral', label: 'Light & Floral', emoji: '\u{1F338}' },
+  { id: 'rich_roasted', label: 'Rich & Roasted', emoji: '\u{1F525}' },
+  { id: 'aged_earthy', label: 'Aged & Earthy', emoji: '\u{1FAB4}' },
+  { id: 'surprise_me', label: 'Surprise me!', emoji: '\u{2728}' },
 ];
 
 const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
@@ -23,14 +23,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
   useScrollLock(true);
 
   const [formData, setFormData] = useState<RSVPFormData>({
-    full_name: '',
-    phone: '',
+    fullName: '',
+    phoneNumber: '',
     email: '',
-    plus_one: false,
-    plus_one_name: '',
-    tea_preference: undefined,
-    bringing_tea: '',
-    photo_consent: false,
+    plusOne: false,
+    plusOneName: '',
+    teaPreference: undefined,
+    bringingTea: '',
+    photoConsent: false,
     notes: '',
   });
 
@@ -74,19 +74,19 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
   const handleTouchMove = (e: React.TouchEvent) => handleDragMove(e.touches[0].clientY);
   const handleTouchEnd = () => handleDragEnd();
 
-  const submitMutation = useMutation<RSVPSubmitResult, Error, RSVPFormData>({
+  const submitMutation = useMutation<RSVPResponse, Error, RSVPFormData>({
     mutationFn: (data) => api.rsvp.submit(slug, data),
     onSuccess: (result) => {
       setSubmitted(true);
       setTimeout(() => {
-        navigate(`/m/${result.magic_token}`);
+        navigate(`/m/${result.magicToken}`);
       }, 2000);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.full_name.trim() || !formData.phone.trim()) return;
+    if (!formData.fullName.trim() || !formData.phoneNumber.trim()) return;
     submitMutation.mutate(formData);
   };
 
@@ -94,7 +94,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isValid = formData.full_name.trim().length > 0 && formData.phone.trim().length > 0;
+  const isValid = formData.fullName.trim().length > 0 && formData.phoneNumber.trim().length > 0;
 
   return (
     <div
@@ -157,8 +157,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 </label>
                 <input
                   type="text"
-                  value={formData.full_name}
-                  onChange={(e) => updateField('full_name', e.target.value)}
+                  value={formData.fullName}
+                  onChange={(e) => updateField('fullName', e.target.value)}
                   placeholder="Your name"
                   required
                   className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
@@ -172,8 +172,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 </label>
                 <input
                   type="tel"
-                  value={formData.phone}
-                  onChange={(e) => updateField('phone', e.target.value)}
+                  value={formData.phoneNumber}
+                  onChange={(e) => updateField('phoneNumber', e.target.value)}
                   placeholder="+62 812 3456 7890"
                   required
                   className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
@@ -203,25 +203,25 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => updateField('plus_one', !formData.plus_one)}
+                    onClick={() => updateField('plusOne', !formData.plusOne)}
                     className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                      formData.plus_one ? 'bg-tea-gold' : 'bg-tea-text-dim/20'
+                      formData.plusOne ? 'bg-tea-gold' : 'bg-tea-text-dim/20'
                     }`}
                     aria-label="Toggle plus one"
                   >
                     <span
                       className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${
-                        formData.plus_one ? 'translate-x-5' : ''
+                        formData.plusOne ? 'translate-x-5' : ''
                       }`}
                     />
                   </button>
                 </div>
-                {formData.plus_one && (
+                {formData.plusOne && (
                   <div className="mt-3 animate-[fadeIn_0.3s_ease-out]">
                     <input
                       type="text"
-                      value={formData.plus_one_name || ''}
-                      onChange={(e) => updateField('plus_one_name', e.target.value)}
+                      value={formData.plusOneName || ''}
+                      onChange={(e) => updateField('plusOneName', e.target.value)}
                       placeholder="Guest's name"
                       className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                     />
@@ -241,12 +241,12 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                       type="button"
                       onClick={() =>
                         updateField(
-                          'tea_preference',
-                          formData.tea_preference === pref.id ? undefined : pref.id
+                          'teaPreference',
+                          formData.teaPreference === pref.id ? undefined : pref.id
                         )
                       }
                       className={`px-3 py-2.5 rounded-sm text-xs text-left transition-all duration-200 border ${
-                        formData.tea_preference === pref.id
+                        formData.teaPreference === pref.id
                           ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
                           : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/20'
                       }`}
@@ -265,8 +265,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 </label>
                 <input
                   type="text"
-                  value={formData.bringing_tea || ''}
-                  onChange={(e) => updateField('bringing_tea', e.target.value)}
+                  value={formData.bringingTea || ''}
+                  onChange={(e) => updateField('bringingTea', e.target.value)}
                   placeholder="e.g. 2005 Aged Oolong from Nantou"
                   className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
@@ -276,15 +276,15 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
               <div className="flex items-start gap-3 bg-tea-surface border border-tea-border rounded-md p-4">
                 <button
                   type="button"
-                  onClick={() => updateField('photo_consent', !formData.photo_consent)}
+                  onClick={() => updateField('photoConsent', !formData.photoConsent)}
                   className={`mt-0.5 w-5 h-5 rounded-sm border shrink-0 flex items-center justify-center transition-all duration-200 ${
-                    formData.photo_consent
+                    formData.photoConsent
                       ? 'bg-tea-gold border-tea-gold'
                       : 'border-tea-border hover:border-tea-gold/40'
                   }`}
                   aria-label="Toggle photo consent"
                 >
-                  {formData.photo_consent && <Check className="w-3 h-3 text-white" />}
+                  {formData.photoConsent && <Check className="w-3 h-3 text-white" />}
                 </button>
                 <div>
                   <p className="text-sm text-tea-text">I'm okay with photos being shared</p>

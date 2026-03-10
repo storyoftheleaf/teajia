@@ -47,7 +47,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
     }
     list.sort((a, b) => {
       let cmp = 0;
-      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      if (sortField === 'name') cmp = a.fullName.localeCompare(b.fullName);
       else if (sortField === 'status') cmp = a.status.localeCompare(b.status);
       else cmp = (a.createdAt || '').localeCompare(b.createdAt || '');
       return sortAsc ? cmp : -cmp;
@@ -63,8 +63,8 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
   const updateStatus = async (attendee: EventAttendee, newStatus: AttendeeStatus) => {
     setLoadingId(attendee.id);
     try {
-      await api.events.updateAttendee(eventId, attendee.id, { status: newStatus });
-      showToast(`${attendee.name} ${newStatus === 'confirmed' ? 'promoted' : newStatus}`, 'success');
+      await api.events.updateAttendee(attendee.id, { status: newStatus });
+      showToast(`${attendee.fullName} ${newStatus === 'confirmed' ? 'promoted' : newStatus}`, 'success');
       onRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to update', 'error');
@@ -76,8 +76,8 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
   const toggleAttended = async (attendee: EventAttendee) => {
     setLoadingId(attendee.id);
     try {
-      await api.events.updateAttendee(eventId, attendee.id, { attended: !attendee.attended });
-      showToast(`${attendee.name} marked as ${!attendee.attended ? 'attended' : 'not attended'}`, 'success');
+      await api.events.updateAttendee(attendee.id, { attended: !attendee.attended });
+      showToast(`${attendee.fullName} marked as ${!attendee.attended ? 'attended' : 'not attended'}`, 'success');
       onRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to update', 'error');
@@ -153,10 +153,10 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
             <tbody>
               {filtered.map(attendee => (
                 <tr key={attendee.id} className="border-b border-tea-border/50 hover:bg-tea-elevated/30 transition-colors">
-                  <td className="py-2.5 px-2 text-tea-text font-medium">{attendee.name}</td>
+                  <td className="py-2.5 px-2 text-tea-text font-medium">{attendee.fullName}</td>
                   <td className="py-2.5 px-2 text-tea-text-sec text-xs">
-                    {attendee.phone ? (
-                      <span className="flex items-center gap-1"><Phone size={10} /> {attendee.phone}</span>
+                    {attendee.phoneNumber ? (
+                      <span className="flex items-center gap-1"><Phone size={10} /> {attendee.phoneNumber}</span>
                     ) : (
                       <span className="text-tea-text-dim">—</span>
                     )}
@@ -167,7 +167,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     </span>
                   </td>
                   <td className="py-2.5 px-2">
-                    {attendee.tier === 'golden' ? (
+                    {attendee.accessTier === 'golden' ? (
                       <span className="flex items-center gap-1 text-tea-gold text-xs">
                         <Star size={10} fill="currentColor" /> Golden
                       </span>

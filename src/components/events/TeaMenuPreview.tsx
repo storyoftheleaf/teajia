@@ -17,15 +17,15 @@ function isRevealed(item: TeaMenuItem, eventDate: string): boolean {
   }
 
   // If item has a specific reveal date
-  if (item.reveal_date) {
-    return now >= new Date(item.reveal_date);
+  if (item.revealDate) {
+    return now >= new Date(item.revealDate);
   }
 
   return false;
 }
 
 const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, className = '' }) => {
-  const sortedMenu = [...teaMenu].sort((a, b) => a.order - b.order);
+  const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
 
   return (
     <div className={`${className}`}>
@@ -52,31 +52,20 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
-                          {item.type || `Tea ${index + 1}`}
+                          {item.productType || `Tea ${index + 1}`}
                         </span>
-                        {item.year && (
-                          <span className="text-[10px] text-tea-text-dim">
-                            {item.year}
-                          </span>
-                        )}
                       </div>
                       <h4 className="font-serif text-base text-tea-text">
-                        {item.name}
+                        {item.customName || item.productName}
                       </h4>
-                      {item.chinese_name && (
-                        <p className="text-sm text-tea-text-sec mt-0.5">{item.chinese_name}</p>
-                      )}
-                      {item.origin && (
-                        <p className="text-xs text-tea-text-dim mt-1">{item.origin}</p>
-                      )}
                     </div>
                     <span className="text-tea-gold/30 font-serif text-2xl leading-none shrink-0">
                       {index + 1}
                     </span>
                   </div>
-                  {item.description && (
+                  {item.customDescription && (
                     <p className="text-sm text-tea-text-sec leading-relaxed mt-3 border-t border-tea-border/50 pt-3">
-                      {item.description}
+                      {item.customDescription}
                     </p>
                   )}
                 </>

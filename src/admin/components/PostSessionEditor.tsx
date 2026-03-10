@@ -28,12 +28,14 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     if (ledgerLoaded) return;
     const loadData = async () => {
       try {
-        const data = await api.events.get(eventId);
+        const events = await api.events.listAdmin();
+        const data = events.find((e: any) => e.id === eventId);
+        if (!data) { setLedgerLoaded(true); return; }
         const postSession = data.post_session
           ? (typeof data.post_session === 'string' ? JSON.parse(data.post_session) : data.post_session)
           : {};
         setTeaLedger(postSession.teaLedger || '');
-        setPlaylistUrl(postSession.playlistUrl || data.playlist_url || '');
+        setPlaylistUrl(postSession.playlistUrl || (data as any).playlist_url || '');
         setGallery(postSession.gallery || []);
         setSessionNotes(postSession.sessionNotes || '');
         setLedgerLoaded(true);
@@ -47,7 +49,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.events.updatePostSession(eventId, {
+      await api.events.upsertPostSession(eventId, {
         teaLedger,
         playlistUrl,
         gallery,

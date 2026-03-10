@@ -14,9 +14,9 @@ function generateICS(event: TeaEvent): string {
       .replace(/[-:]/g, '')
       .replace('.000', '');
 
-  const start = formatDate(event.event_date);
-  const end = event.event_end_date
-    ? formatDate(event.event_end_date)
+  const start = formatDate(event.eventDate);
+  const end = event.eventEndDate
+    ? formatDate(event.eventEndDate)
     : start;
 
   // Escape special characters for ICS format
@@ -33,7 +33,7 @@ function generateICS(event: TeaEvent): string {
     `DTSTART:${start}`,
     `DTEND:${end}`,
     `SUMMARY:${escapeICS(event.title)}`,
-    event.location_name ? `LOCATION:${escapeICS(event.location_name)}` : null,
+    event.locationName ? `LOCATION:${escapeICS(event.locationName)}` : null,
     event.description ? `DESCRIPTION:${escapeICS(event.description)}` : null,
     `UID:${event.id}@teajia.com`,
     'END:VEVENT',

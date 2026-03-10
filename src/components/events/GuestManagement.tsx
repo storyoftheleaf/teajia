@@ -94,20 +94,20 @@ const GuestManagement: React.FC = () => {
   }
 
   const { attendee, event } = data;
-  const isCompleted = event.status === 'completed';
+  const isCompleted = event.status === 'closed';
   const isConfirmed = attendee.status === 'confirmed';
-  const isWaitlisted = attendee.status === 'waitlisted';
+  const isWaitlisted = attendee.status === 'waitlist';
   const isCancelled = attendee.status === 'cancelled';
-  const hasClaimOffer = attendee.claim_status === 'offered' && attendee.claim_deadline;
-  const showDayOf = isDayOf(event.event_date);
+  const hasClaimOffer = !!attendee.claimExpiresAt && new Date(attendee.claimExpiresAt).getTime() > Date.now();
+  const showDayOf = isDayOf(event.eventDate);
 
   // Initialize plus one name
-  if (attendee.plus_one_name && !plusOneName) {
-    setPlusOneName(attendee.plus_one_name);
+  if (attendee.plusOneName && !plusOneName) {
+    setPlusOneName(attendee.plusOneName);
   }
 
   const handleTogglePlusOne = () => {
-    if (attendee.plus_one) {
+    if (attendee.plusOne) {
       updatePlusOne.mutate({ plusOne: false });
     } else {
       updatePlusOne.mutate({ plusOne: true, plusOneName: plusOneName || undefined });
@@ -138,7 +138,7 @@ const GuestManagement: React.FC = () => {
           {/* Completed header */}
           <div className="text-center mb-10">
             <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-4">
-              {formatEventDate(event.event_date)}
+              {formatEventDate(event.eventDate)}
             </p>
             <h1 className="font-serif text-3xl text-tea-text mb-2">{event.title}</h1>
             <p className="text-sm text-tea-text-sec">Session Complete</p>
@@ -147,19 +147,17 @@ const GuestManagement: React.FC = () => {
           {/* Post-session archive */}
           <Suspense fallback={null}>
             <PostSessionArchive
-              teaMenu={event.tea_menu}
-              playlistUrl={event.playlist_url}
-              galleryImages={event.gallery_images}
-              aggregatedNotes={event.aggregated_notes}
+              teaMenu={data.teaMenu}
+              playlistUrl={event.playlistUrl}
               className="mb-10"
             />
           </Suspense>
 
           {/* Tasting notes form */}
-          {event.tea_menu && event.tea_menu.length > 0 && magicToken && (
+          {data.teaMenu && data.teaMenu.length > 0 && magicToken && (
             <Suspense fallback={null}>
               <div className="border-t border-tea-border pt-10">
-                <TastingNotesForm teaMenu={event.tea_menu} token={magicToken} />
+                <TastingNotesForm teaMenu={data.teaMenu} token={magicToken} />
               </div>
             </Suspense>
           )}
@@ -218,11 +216,11 @@ const GuestManagement: React.FC = () => {
               </p>
 
               {/* Claim deadline */}
-              {attendee.claim_deadline && (
+              {attendee.claimExpiresAt && (
                 <div className="flex items-center justify-center gap-2 mb-6 text-tea-gold">
                   <Clock className="w-4 h-4" />
                   <span className="text-xs uppercase tracking-[0.15em] font-medium">
-                    {getClaimTimeRemaining(attendee.claim_deadline)}
+                    {getClaimTimeRemaining(attendee.claimExpiresAt)}
                   </span>
                 </div>
               )}
@@ -249,9 +247,9 @@ const GuestManagement: React.FC = () => {
 
           {/* Event info */}
           <div className="text-center text-sm text-tea-text-sec">
-            <p>{formatEventDate(event.event_date)}</p>
-            <p className="text-tea-gold mt-1">{formatTime(event.event_date)}</p>
-            {event.location_name && <p className="mt-1">{event.location_name}</p>}
+            <p>{formatEventDate(event.eventDate)}</p>
+            <p className="text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
+            {event.locationName && <p className="mt-1">{event.locationName}</p>}
           </div>
         </div>
       </div>
@@ -279,7 +277,7 @@ const GuestManagement: React.FC = () => {
               <p className="text-sm text-tea-text-dim mb-1">
                 You're on the waitlist. We'll notify you if a spot opens up.
               </p>
-              {event.waitlist_count > 1 && (
+              {(event.waitlistCount ?? 0) > 1 && (
                 <p className="text-xs text-tea-text-dim/60 mt-2">
                   Others are waiting too
                 </p>
@@ -289,10 +287,10 @@ const GuestManagement: React.FC = () => {
 
           {/* Event details */}
           <div className="text-center mb-8">
-            <p className="text-sm text-tea-text-sec">{formatEventDate(event.event_date)}</p>
-            <p className="text-sm text-tea-gold mt-1">{formatTime(event.event_date)}</p>
-            {event.location_name && (
-              <p className="text-sm text-tea-text-dim mt-1">{event.location_name}</p>
+            <p className="text-sm text-tea-text-sec">{formatEventDate(event.eventDate)}</p>
+            <p className="text-sm text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
+            {event.locationName && (
+              <p className="text-sm text-tea-text-dim mt-1">{event.locationName}</p>
             )}
           </div>
 
@@ -309,8 +307,8 @@ const GuestManagement: React.FC = () => {
           {/* Cancel confirmation */}
           {showCancelConfirm && (
             <CancelConfirmModal
-              attendeeName={attendee.full_name}
-              plusOneName={attendee.plus_one ? attendee.plus_one_name : undefined}
+              attendeeName={attendee.fullName}
+              plusOneName={attendee.plusOne ? attendee.plusOneName : undefined}
               onConfirm={handleCancel}
               onClose={() => setShowCancelConfirm(false)}
               isPending={cancelRSVP.isPending}
@@ -327,9 +325,9 @@ const GuestManagement: React.FC = () => {
       <div className="max-w-xl mx-auto px-6 py-10">
         {/* Flyer card with gold border */}
         <div className="border-2 border-tea-gold/30 rounded-md overflow-hidden mb-8">
-          {event.flyer_image_url && (
+          {event.flyerImageUrl && (
             <img
-              src={event.flyer_image_url}
+              src={event.flyerImageUrl}
               alt={event.title}
               className="w-full h-auto"
             />
@@ -344,24 +342,24 @@ const GuestManagement: React.FC = () => {
 
             {/* Guest info */}
             <p className="text-sm text-tea-text-sec mt-3">
-              {attendee.full_name}
-              {attendee.plus_one && attendee.plus_one_name && (
-                <span className="text-tea-text-dim"> + {attendee.plus_one_name}</span>
+              {attendee.fullName}
+              {attendee.plusOne && attendee.plusOneName && (
+                <span className="text-tea-text-dim"> + {attendee.plusOneName}</span>
               )}
             </p>
 
             <div className="w-8 h-px bg-tea-gold/30 mx-auto my-5" />
 
-            <p className="font-serif text-base text-tea-text">{formatEventDate(event.event_date)}</p>
-            <p className="font-serif text-base text-tea-gold mt-1">{formatTime(event.event_date)}</p>
-            {event.location_name && (
-              <p className="text-sm text-tea-text-dim mt-2">{event.location_name}</p>
+            <p className="font-serif text-base text-tea-text">{formatEventDate(event.eventDate)}</p>
+            <p className="font-serif text-base text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
+            {event.locationName && (
+              <p className="text-sm text-tea-text-dim mt-2">{event.locationName}</p>
             )}
           </div>
         </div>
 
         {/* Countdown */}
-        <EventCountdown eventDate={event.event_date} className="mb-8" />
+        <EventCountdown eventDate={event.eventDate} className="mb-8" />
 
         {/* Calendar download */}
         <div className="flex justify-center mb-10">
@@ -378,7 +376,7 @@ const GuestManagement: React.FC = () => {
               <div>
                 <p className="text-sm text-tea-text font-medium">Plus One</p>
                 <p className="text-xs text-tea-text-dim mt-0.5">
-                  {attendee.plus_one ? 'A second seat is reserved' : 'Bring a guest'}
+                  {attendee.plusOne ? 'A second seat is reserved' : 'Bring a guest'}
                 </p>
               </div>
               <button
@@ -386,19 +384,19 @@ const GuestManagement: React.FC = () => {
                 onClick={handleTogglePlusOne}
                 disabled={updatePlusOne.isPending}
                 className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                  attendee.plus_one ? 'bg-tea-gold' : 'bg-tea-text-dim/20'
+                  attendee.plusOne ? 'bg-tea-gold' : 'bg-tea-text-dim/20'
                 }`}
                 aria-label="Toggle plus one"
               >
                 <span
                   className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${
-                    attendee.plus_one ? 'translate-x-5' : ''
+                    attendee.plusOne ? 'translate-x-5' : ''
                   }`}
                 />
               </button>
             </div>
 
-            {attendee.plus_one && (
+            {attendee.plusOne && (
               <div className="mt-3 flex gap-2 animate-[fadeIn_0.3s_ease-out]">
                 <input
                   type="text"
@@ -407,7 +405,7 @@ const GuestManagement: React.FC = () => {
                   placeholder="Guest's name"
                   className="flex-1 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
-                {plusOneName !== (attendee.plus_one_name || '') && (
+                {plusOneName !== (attendee.plusOneName || '') && (
                   <button
                     onClick={handleUpdatePlusOneName}
                     disabled={updatePlusOne.isPending}
@@ -422,25 +420,25 @@ const GuestManagement: React.FC = () => {
         </div>
 
         {/* Venue guide */}
-        {event.venue_guide && (
+        {event.venueGuide && (
           <Suspense fallback={null}>
             <VenueGuide
-              venueGuide={event.venue_guide}
-              mapLink={event.map_link}
+              venueGuide={event.venueGuide}
+              mapLink={event.mapLink}
               className="mb-10"
             />
           </Suspense>
         )}
 
         {/* Session flow (day-of only) */}
-        {showDayOf && event.session_flow && event.session_flow.length > 0 && (
+        {showDayOf && event.sessionFlow && event.sessionFlow.length > 0 && (
           <div className="mb-10 animate-[fadeIn_0.5s_ease-out]">
             <h3 className="font-serif text-xl text-tea-text mb-5">Today's Flow</h3>
             <div className="space-y-0">
-              {event.session_flow.map((item, idx) => (
+              {event.sessionFlow.map((item, idx) => (
                 <div key={idx} className="flex gap-4 pb-5 relative">
                   {/* Timeline line */}
-                  {idx < event.session_flow!.length - 1 && (
+                  {idx < event.sessionFlow!.length - 1 && (
                     <div className="absolute left-[11px] top-6 bottom-0 w-px bg-tea-border" />
                   )}
                   {/* Dot */}
@@ -448,7 +446,9 @@ const GuestManagement: React.FC = () => {
                     <div className="w-2 h-2 rounded-full bg-tea-gold" />
                   </div>
                   <div className="flex-1 min-w-0 pt-0.5">
-                    <p className="text-xs text-tea-gold uppercase tracking-[0.15em] mb-1">{item.time}</p>
+                    {item.duration_minutes && (
+                      <p className="text-xs text-tea-gold uppercase tracking-[0.15em] mb-1">{item.duration_minutes} min</p>
+                    )}
                     <p className="text-sm text-tea-text font-medium">{item.title}</p>
                     {item.description && (
                       <p className="text-xs text-tea-text-dim mt-1">{item.description}</p>
@@ -461,18 +461,18 @@ const GuestManagement: React.FC = () => {
         )}
 
         {/* Tea menu preview */}
-        {event.tea_menu && event.tea_menu.length > 0 && (
+        {data.teaMenu && data.teaMenu.length > 0 && (
           <Suspense fallback={null}>
             <TeaMenuPreview
-              teaMenu={event.tea_menu}
-              eventDate={event.event_date}
+              teaMenu={data.teaMenu}
+              eventDate={event.eventDate}
               className="mb-10"
             />
           </Suspense>
         )}
 
         {/* Guidelines (expandable) */}
-        {event.guidelines && event.guidelines.length > 0 && (
+        {event.guidelinesText && (
           <div className="mb-10">
             <button
               onClick={() => setGuidelinesExpanded(!guidelinesExpanded)}
@@ -490,7 +490,7 @@ const GuestManagement: React.FC = () => {
             {guidelinesExpanded && (
               <div className="animate-[fadeIn_0.3s_ease-out] pt-2">
                 <ul className="space-y-3">
-                  {event.guidelines.map((guideline, idx) => (
+                  {event.guidelinesText.split('\n').filter(Boolean).map((guideline, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-sm text-tea-text-sec">
                       <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/40 mt-1.5 shrink-0" />
                       {guideline}
@@ -515,8 +515,8 @@ const GuestManagement: React.FC = () => {
         {/* Cancel confirmation modal */}
         {showCancelConfirm && (
           <CancelConfirmModal
-            attendeeName={attendee.full_name}
-            plusOneName={attendee.plus_one ? attendee.plus_one_name : undefined}
+            attendeeName={attendee.fullName}
+            plusOneName={attendee.plusOne ? attendee.plusOneName : undefined}
             onConfirm={handleCancel}
             onClose={() => setShowCancelConfirm(false)}
             isPending={cancelRSVP.isPending}

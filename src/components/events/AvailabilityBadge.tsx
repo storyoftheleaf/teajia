@@ -18,7 +18,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
     );
   }
 
-  if (data.registration_closed || data.status === 'cancelled') {
+  if (data.isFull) {
     return (
       <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-dim bg-tea-surface border border-tea-border rounded-sm ${className}`}>
         <span className="w-2 h-2 rounded-full bg-tea-text-dim/40" />
@@ -27,16 +27,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
     );
   }
 
-  if (data.status === 'completed') {
-    return (
-      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec bg-tea-surface border border-tea-border rounded-sm ${className}`}>
-        <span className="w-2 h-2 rounded-full bg-tea-text-sec/60" />
-        Session complete
-      </span>
-    );
-  }
-
-  if (data.seats_remaining <= 0) {
+  if (data.seatsRemaining <= 0) {
     return (
       <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec bg-tea-surface border border-tea-border rounded-sm ${className}`}>
         <span className="w-2 h-2 rounded-full bg-tea-gold/60 animate-pulse" />
@@ -45,7 +36,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
     );
   }
 
-  const isLow = data.seats_remaining <= 3;
+  const isLow = data.seatsRemaining <= 3;
 
   return (
     <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] rounded-sm ${
@@ -54,7 +45,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
         : 'text-tea-gold bg-tea-surface border border-tea-border'
     } ${className}`}>
       <span className={`w-2 h-2 rounded-full bg-tea-gold ${isLow ? 'animate-pulse' : ''}`} />
-      {data.seats_remaining} {data.seats_remaining === 1 ? 'seat' : 'seats'} remaining
+      {data.seatsRemaining} {data.seatsRemaining === 1 ? 'seat' : 'seats'} remaining
     </span>
   );
 };

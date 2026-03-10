@@ -27,16 +27,16 @@ const emptyForm: EventFormData = {
   subtitle: '',
   description: '',
   eventDate: '',
-  endDate: '',
+  eventEndDate: '',
   totalCapacity: 12,
   claimWindowMinutes: 60,
   status: 'draft',
   flyerImageUrl: '',
   locationName: '',
-  address: '',
+  addressText: '',
   mapLink: '',
-  guidelines: '',
-  venueGuide: { steps: [], parkingNotes: '', transitNotes: '', arrivalNotes: '' },
+  guidelinesText: '',
+  venueGuide: { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' },
   sessionFlow: [],
   playlistUrl: '',
 };
@@ -82,16 +82,16 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           subtitle: initialData.subtitle || '',
           description: initialData.description || '',
           eventDate: initialData.eventDate ? initialData.eventDate.slice(0, 16) : '',
-          endDate: initialData.endDate ? initialData.endDate.slice(0, 16) : '',
+          eventEndDate: initialData.eventEndDate ? initialData.eventEndDate.slice(0, 16) : '',
           totalCapacity: initialData.totalCapacity,
           claimWindowMinutes: initialData.claimWindowMinutes,
           status: initialData.status,
           flyerImageUrl: initialData.flyerImageUrl || '',
           locationName: initialData.locationName || '',
-          address: initialData.address || '',
+          addressText: initialData.addressText || '',
           mapLink: initialData.mapLink || '',
-          guidelines: initialData.guidelines || '',
-          venueGuide: initialData.venueGuide || { steps: [], parkingNotes: '', transitNotes: '', arrivalNotes: '' },
+          guidelinesText: initialData.guidelinesText || '',
+          venueGuide: initialData.venueGuide || { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' },
           sessionFlow: initialData.sessionFlow || [],
           playlistUrl: initialData.playlistUrl || '',
         });
@@ -130,12 +130,12 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
   };
 
   // ── Venue Guide helpers ──
-  const venueGuide = form.venueGuide || { steps: [], parkingNotes: '', transitNotes: '', arrivalNotes: '' };
+  const venueGuide = form.venueGuide || { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' };
 
   const addVenueStep = () => {
     updateField('venueGuide', {
       ...venueGuide,
-      steps: [...venueGuide.steps, { description: '', imageUrl: '' }],
+      steps: [...venueGuide.steps, { description: '', image_url: '' }],
     });
   };
 
@@ -156,7 +156,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
   const sessionFlow = form.sessionFlow || [];
 
   const addFlowItem = () => {
-    updateField('sessionFlow', [...sessionFlow, { title: '', description: '', durationMinutes: 10 }]);
+    updateField('sessionFlow', [...sessionFlow, { title: '', description: '', duration_minutes: 10 }]);
   };
 
   const updateFlowItem = (idx: number, field: keyof SessionFlowItem, value: any) => {
@@ -192,15 +192,15 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
         subtitle: form.subtitle || null,
         description: form.description || null,
         event_date: form.eventDate,
-        end_date: form.endDate || null,
+        end_date: form.eventEndDate || null,
         total_capacity: form.totalCapacity,
         claim_window_minutes: form.claimWindowMinutes,
         status: form.status,
         flyer_image_url: form.flyerImageUrl || null,
         location_name: form.locationName || null,
-        address: form.address || null,
+        address: form.addressText || null,
         map_link: form.mapLink || null,
-        guidelines: form.guidelines || null,
+        guidelines: form.guidelinesText || null,
         venue_guide: form.venueGuide ? JSON.stringify(form.venueGuide) : null,
         session_flow: form.sessionFlow && form.sessionFlow.length > 0 ? JSON.stringify(form.sessionFlow) : null,
         playlist_url: form.playlistUrl || null,
@@ -305,8 +305,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                   <Field label="End Date">
                     <input
                       type="datetime-local"
-                      value={form.endDate || ''}
-                      onChange={(e) => updateField('endDate', e.target.value)}
+                      value={form.eventEndDate || ''}
+                      onChange={(e) => updateField('eventEndDate', e.target.value)}
                       className={inputClass}
                     />
                   </Field>
@@ -406,8 +406,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                 <Field label="Address">
                   <input
                     type="text"
-                    value={form.address || ''}
-                    onChange={(e) => updateField('address', e.target.value)}
+                    value={form.addressText || ''}
+                    onChange={(e) => updateField('addressText', e.target.value)}
                     className={inputClass}
                     placeholder="123 Tea Lane"
                   />
@@ -425,8 +425,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
 
                 <Field label="Guidelines">
                   <textarea
-                    value={form.guidelines || ''}
-                    onChange={(e) => updateField('guidelines', e.target.value)}
+                    value={form.guidelinesText || ''}
+                    onChange={(e) => updateField('guidelinesText', e.target.value)}
                     className={textareaClass}
                     placeholder="Dress code, what to bring, etc."
                     rows={3}
@@ -461,8 +461,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                         />
                         <input
                           type="text"
-                          value={step.imageUrl || ''}
-                          onChange={(e) => updateVenueStep(idx, 'imageUrl', e.target.value)}
+                          value={step.image_url || ''}
+                          onChange={(e) => updateVenueStep(idx, 'image_url', e.target.value)}
                           className={`${inputClass} text-xs`}
                           placeholder="Image URL (optional)"
                         />
@@ -485,8 +485,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                     <Field label="Parking Notes">
                       <input
                         type="text"
-                        value={venueGuide.parkingNotes || ''}
-                        onChange={(e) => updateField('venueGuide', { ...venueGuide, parkingNotes: e.target.value })}
+                        value={venueGuide.parking_notes || ''}
+                        onChange={(e) => updateField('venueGuide', { ...venueGuide, parking_notes: e.target.value })}
                         className={inputClass}
                         placeholder="Free parking available"
                       />
@@ -494,8 +494,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                     <Field label="Transit Notes">
                       <input
                         type="text"
-                        value={venueGuide.transitNotes || ''}
-                        onChange={(e) => updateField('venueGuide', { ...venueGuide, transitNotes: e.target.value })}
+                        value={venueGuide.transit_notes || ''}
+                        onChange={(e) => updateField('venueGuide', { ...venueGuide, transit_notes: e.target.value })}
                         className={inputClass}
                         placeholder="Take the Blue Line"
                       />
@@ -503,8 +503,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                     <Field label="Arrival Notes">
                       <input
                         type="text"
-                        value={venueGuide.arrivalNotes || ''}
-                        onChange={(e) => updateField('venueGuide', { ...venueGuide, arrivalNotes: e.target.value })}
+                        value={venueGuide.arrival_notes || ''}
+                        onChange={(e) => updateField('venueGuide', { ...venueGuide, arrival_notes: e.target.value })}
                         className={inputClass}
                         placeholder="Ring the bell"
                       />
@@ -556,8 +556,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                       <div className="w-16 shrink-0">
                         <input
                           type="number"
-                          value={item.durationMinutes}
-                          onChange={(e) => updateFlowItem(idx, 'durationMinutes', parseInt(e.target.value) || 0)}
+                          value={item.duration_minutes}
+                          onChange={(e) => updateFlowItem(idx, 'duration_minutes', parseInt(e.target.value) || 0)}
                           className={`${inputClass} text-center text-xs`}
                           min={0}
                           title="Minutes"

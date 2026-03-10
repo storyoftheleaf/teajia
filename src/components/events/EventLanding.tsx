@@ -67,15 +67,15 @@ const EventLanding: React.FC = () => {
     );
   }
 
-  const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(event.event_date);
-  const isCompleted = event.status === 'completed';
-  const isCancelled = event.status === 'cancelled';
-  const canRSVP = !isCompleted && !isCancelled && !event.registration_closed;
+  const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(event.eventDate);
+  const isCompleted = event.status === 'closed';
+  const isCancelled = event.status === 'archived';
+  const canRSVP = !isCompleted && !isCancelled && event.seatsRemaining !== 0;
 
   return (
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
       {/* Hero / Flyer Image */}
-      {event.flyer_image_url && (
+      {event.flyerImageUrl && (
         <div ref={heroRef} className="relative w-full overflow-hidden" style={{ maxHeight: '70vh' }}>
           <div
             className="w-full"
@@ -85,7 +85,7 @@ const EventLanding: React.FC = () => {
             }}
           >
             <img
-              src={event.flyer_image_url}
+              src={event.flyerImageUrl}
               alt={event.title}
               className="w-full h-auto object-cover"
               style={{ minHeight: '50vh', maxHeight: '75vh', objectFit: 'cover' }}
@@ -126,29 +126,29 @@ const EventLanding: React.FC = () => {
           </div>
 
           {/* Location */}
-          {event.location_name && (
+          {event.locationName && (
             <div className="flex items-center justify-center gap-2 text-tea-text-sec mb-6">
               <MapPin className="w-4 h-4 text-tea-gold/60" />
-              <span className="text-sm">{event.location_name}</span>
+              <span className="text-sm">{event.locationName}</span>
             </div>
           )}
 
           {/* No flyer - show badge here */}
-          {!event.flyer_image_url && <AvailabilityBadge slug={slug!} className="mb-6" />}
+          {!event.flyerImageUrl && <AvailabilityBadge slug={slug!} className="mb-6" />}
 
           {/* Social proof */}
-          {event.confirmed_count > 0 && !isCompleted && (
+          {(event.confirmedCount ?? 0) > 0 && !isCompleted && (
             <div className="flex items-center justify-center gap-2 text-tea-text-dim mb-6">
               <Users className="w-3.5 h-3.5" />
               <span className="text-xs">
-                {event.confirmed_count} {event.confirmed_count === 1 ? 'seat' : 'seats'} confirmed
+                {event.confirmedCount} {event.confirmedCount === 1 ? 'seat' : 'seats'} confirmed
               </span>
             </div>
           )}
 
           {/* Countdown */}
           {!isCompleted && !isCancelled && (
-            <EventCountdown eventDate={event.event_date} className="mb-8" />
+            <EventCountdown eventDate={event.eventDate} className="mb-8" />
           )}
 
           {/* RSVP Button */}
@@ -184,7 +184,7 @@ const EventLanding: React.FC = () => {
         )}
 
         {/* Guidelines (expandable) */}
-        {event.guidelines && event.guidelines.length > 0 && (
+        {event.guidelinesText && (
           <div className="mb-10">
             <button
               onClick={() => setGuidelinesExpanded(!guidelinesExpanded)}
@@ -202,7 +202,7 @@ const EventLanding: React.FC = () => {
             {guidelinesExpanded && (
               <div className="animate-[fadeIn_0.3s_ease-out] pt-2">
                 <ul className="space-y-3">
-                  {event.guidelines.map((guideline, idx) => (
+                  {event.guidelinesText.split('\n').filter(Boolean).map((guideline, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-sm text-tea-text-sec">
                       <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/40 mt-1.5 shrink-0" />
                       {guideline}
@@ -214,41 +214,29 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Logistics */}
-        {event.logistics_notes && (
-          <div className="mb-10">
-            <h3 className="font-serif text-lg text-tea-text mb-4">Logistics</h3>
-            <div className="p-5 bg-tea-surface border border-tea-border rounded-md">
-              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
-                {event.logistics_notes}
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Venue Guide */}
-        {event.venue_guide && (
+        {event.venueGuide && (
           <Suspense fallback={null}>
             <VenueGuide
-              venueGuide={event.venue_guide}
-              mapLink={event.map_link}
+              venueGuide={event.venueGuide}
+              mapLink={event.mapLink}
               className="mb-10"
             />
           </Suspense>
         )}
 
         {/* Location address + map link */}
-        {event.location_address && (
+        {event.addressText && (
           <div className="mb-10">
             <div className="p-5 bg-tea-surface border border-tea-border rounded-md">
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm text-tea-text">{event.location_name}</p>
-                  <p className="text-xs text-tea-text-dim mt-1">{event.location_address}</p>
-                  {event.map_link && (
+                  <p className="text-sm text-tea-text">{event.locationName}</p>
+                  <p className="text-xs text-tea-text-dim mt-1">{event.addressText}</p>
+                  {event.mapLink && (
                     <a
-                      href={event.map_link}
+                      href={event.mapLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block text-xs text-tea-gold hover:text-tea-gold/80 mt-2 transition-colors"

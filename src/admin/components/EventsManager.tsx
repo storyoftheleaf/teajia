@@ -33,8 +33,10 @@ export const EventsManager: React.FC = () => {
 
   const handleDuplicate = async (e: React.MouseEvent, event: TeaEvent & { confirmedCount?: number }) => {
     e.stopPropagation();
+    const newSlug = prompt('Enter slug for duplicated event:');
+    if (!newSlug) return;
     try {
-      await api.events.duplicate(event.id);
+      await api.events.duplicate(event.id, newSlug);
       refetch();
       showToast('Event duplicated', 'success');
     } catch (err: any) {

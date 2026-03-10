@@ -49,10 +49,10 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
     }
   }, [dragY, onClose]);
 
-  const findMutation = useMutation<{ magic_token: string }, Error, string>({
+  const findMutation = useMutation<{ magicToken: string }, Error, string>({
     mutationFn: (phoneNumber) => api.rsvp.findByPhone(slug, phoneNumber),
     onSuccess: (result) => {
-      navigate(`/m/${result.magic_token}`);
+      navigate(`/m/${result.magicToken}`);
     },
   });
 

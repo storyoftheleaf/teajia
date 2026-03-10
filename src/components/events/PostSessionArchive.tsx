@@ -42,33 +42,24 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
             <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim">Tea Ledger</h4>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {[...teaMenu!].sort((a, b) => a.order - b.order).map((item) => (
+            {[...teaMenu!].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0)).map((item) => (
               <div
                 key={item.id}
                 className="p-4 bg-tea-surface border border-tea-border rounded-md"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    {item.type && (
+                    {item.productType && (
                       <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
-                        {item.type}
+                        {item.productType}
                       </span>
                     )}
-                    <h5 className="font-serif text-base text-tea-text mt-0.5">{item.name}</h5>
-                    {item.chinese_name && (
-                      <p className="text-sm text-tea-text-sec">{item.chinese_name}</p>
-                    )}
-                    {item.origin && (
-                      <p className="text-xs text-tea-text-dim mt-1">{item.origin}</p>
-                    )}
+                    <h5 className="font-serif text-base text-tea-text mt-0.5">{item.customName || item.productName}</h5>
                   </div>
-                  {item.year && (
-                    <span className="text-xs text-tea-text-dim shrink-0">{item.year}</span>
-                  )}
                 </div>
-                {item.description && (
+                {item.customDescription && (
                   <p className="text-sm text-tea-text-sec leading-relaxed mt-3 pt-3 border-t border-tea-border/50">
-                    {item.description}
+                    {item.customDescription}
                   </p>
                 )}
               </div>

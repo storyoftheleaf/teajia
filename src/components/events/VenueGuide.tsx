@@ -51,7 +51,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
               <div className="relative aspect-[16/9] overflow-hidden">
                 <img
                   src={steps[activeStep].image_url}
-                  alt={steps[activeStep].title}
+                  alt={`Step ${activeStep + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
@@ -65,13 +65,10 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                 <span className="flex items-center justify-center w-7 h-7 rounded-full bg-tea-gold text-white text-xs font-semibold shrink-0">
                   {activeStep + 1}
                 </span>
-                <h4 className="font-serif text-lg text-tea-text">
-                  {steps[activeStep].title}
-                </h4>
+                <p className="text-sm text-tea-text-sec leading-relaxed">
+                  {steps[activeStep].description}
+                </p>
               </div>
-              <p className="text-sm text-tea-text-sec leading-relaxed pl-10">
-                {steps[activeStep].description}
-              </p>
 
               {/* Video link if available */}
               {steps[activeStep].video_url && (

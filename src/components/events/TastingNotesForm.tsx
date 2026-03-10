@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
 import { useSubmitTastingNotes } from '../../hooks/useEventPolling';
-import type { TeaMenuItem, TastingNote } from '../../types/events';
+import type { TeaMenuItem } from '../../types/events';
 
 interface TastingNotesFormProps {
   teaMenu: TeaMenuItem[];
@@ -13,16 +13,16 @@ interface TastingNotesFormProps {
 interface NoteState {
   rating: number;
   impression: string;
-  is_favorite: boolean;
+  isFavorite: boolean;
 }
 
 const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '' }) => {
-  const sortedMenu = [...teaMenu].sort((a, b) => a.order - b.order);
+  const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
 
   const [notes, setNotes] = useState<Record<string, NoteState>>(() => {
     const initial: Record<string, NoteState> = {};
     sortedMenu.forEach((item) => {
-      initial[item.id] = { rating: 0, impression: '', is_favorite: false };
+      initial[item.id] = { rating: 0, impression: '', isFavorite: false };
     });
     return initial;
   });
@@ -34,10 +34,10 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
     setNotes((prev) => {
       const updated = { ...prev };
 
-      if (field === 'is_favorite' && value === true) {
+      if (field === 'isFavorite' && value === true) {
         // Only one favorite allowed
         Object.keys(updated).forEach((key) => {
-          updated[key] = { ...updated[key], is_favorite: false };
+          updated[key] = { ...updated[key], isFavorite: false };
         });
       }
 
@@ -47,13 +47,13 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
   };
 
   const handleSubmit = () => {
-    const tastingNotes: TastingNote[] = sortedMenu
+    const tastingNotes = sortedMenu
       .filter((item) => notes[item.id].rating > 0)
       .map((item) => ({
-        tea_menu_item_id: item.id,
+        teaMenuId: item.id,
         rating: notes[item.id].rating,
         impression: notes[item.id].impression || undefined,
-        is_favorite: notes[item.id].is_favorite,
+        isFavorite: notes[item.id].isFavorite,
       }));
 
     if (tastingNotes.length === 0) return;
@@ -98,15 +98,15 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
               {/* Tea info */}
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-1">
-                  {item.type && (
+                  {item.productType && (
                     <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
-                      {item.type}
+                      {item.productType}
                     </span>
                   )}
                 </div>
-                <h4 className="font-serif text-base text-tea-text">{item.name}</h4>
-                {item.description && (
-                  <p className="text-xs text-tea-text-dim mt-1 line-clamp-2">{item.description}</p>
+                <h4 className="font-serif text-base text-tea-text">{item.customName || item.productName}</h4>
+                {item.customDescription && (
+                  <p className="text-xs text-tea-text-dim mt-1 line-clamp-2">{item.customDescription}</p>
                 )}
               </div>
 
@@ -151,14 +151,14 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
               {/* Favorite toggle */}
               <button
                 type="button"
-                onClick={() => updateNote(item.id, 'is_favorite', !note.is_favorite)}
+                onClick={() => updateNote(item.id, 'isFavorite', !note.isFavorite)}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs transition-all duration-200 border ${
-                  note.is_favorite
+                  note.isFavorite
                     ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
                     : 'bg-transparent border-tea-border text-tea-text-dim hover:border-tea-gold/20 hover:text-tea-text-sec'
                 }`}
               >
-                <TeaLeafIcon className="w-3.5 h-3.5" filled={note.is_favorite} />
+                <TeaLeafIcon className="w-3.5 h-3.5" filled={note.isFavorite} />
                 This was my favorite
               </button>
             </div>
