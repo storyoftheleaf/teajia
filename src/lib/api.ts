@@ -463,6 +463,38 @@ export const api = {
     },
   },
 
+  savedLocations: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/locations`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/locations`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/locations/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/locations/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   rsvp: {
     submit: async (slug: string, data: Record<string, any>) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {

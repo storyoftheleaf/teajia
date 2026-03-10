@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, MapPin, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
-import { TeaEvent, EventFormData, EventStatus, VenueGuideStep, SessionFlowItem } from '../../types/events';
+import { TeaEvent, EventFormData, EventStatus, VenueGuideStep, SessionFlowItem, SavedLocation } from '../../types/events';
 
 interface EventFormProps {
   isOpen: boolean;
@@ -38,7 +38,6 @@ const emptyForm: EventFormData = {
   guidelinesText: '',
   venueGuide: { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' },
   sessionFlow: [],
-  playlistUrl: '',
 };
 
 const STATUS_OPTIONS: EventStatus[] = ['draft', 'active', 'closed', 'archived'];
@@ -58,8 +57,9 @@ const Field = ({
   </div>
 );
 
-const inputClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50';
+const inputClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50 [color-scheme:dark]';
 const textareaClass = 'w-full border border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text p-2 rounded-md placeholder:text-tea-text-dim/50 resize-y min-h-[80px]';
+const selectClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 appearance-none cursor-pointer [color-scheme:dark]';
 
 export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialData, onSuccess }) => {
   const { showToast } = useToast();
@@ -70,8 +70,23 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
   const [venueOpen, setVenueOpen] = useState(false);
   const [flowOpen, setFlowOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
+
+  // Saved locations state
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
+  const [showSaveLocation, setShowSaveLocation] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
 
   const isEdit = !!initialData;
+
+  // Fetch saved locations on open
+  useEffect(() => {
+    if (isOpen) {
+      api.savedLocations.list().then(setSavedLocations).catch(() => {});
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,13 +108,15 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           guidelinesText: initialData.guidelinesText || '',
           venueGuide: initialData.venueGuide || { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' },
           sessionFlow: initialData.sessionFlow || [],
-          playlistUrl: initialData.playlistUrl || '',
         });
         setSlugManual(true);
+        setSelectedLocationId('');
       } else {
         setForm(emptyForm);
         setSlugManual(false);
+        setSelectedLocationId('');
       }
+      setShowSaveLocation(false);
     }
   }, [isOpen, initialData]);
 
@@ -129,6 +146,49 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
     }
   };
 
+  // ── Saved Location helpers ──
+  const handleSelectLocation = (locationId: string) => {
+    setSelectedLocationId(locationId);
+    if (!locationId) return;
+    const loc = savedLocations.find(l => l.id === locationId);
+    if (!loc) return;
+    updateField('locationName', loc.name);
+    updateField('addressText', loc.address);
+    updateField('mapLink', loc.mapLink || '');
+    updateField('guidelinesText', loc.guidelines || '');
+    if (loc.venueGuide) {
+      updateField('venueGuide', loc.venueGuide);
+    }
+    updateField('locationId', locationId);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!form.locationName?.trim() || !form.addressText?.trim()) {
+      showToast('Location name and address are required to save', 'error');
+      return;
+    }
+    setSavingLocation(true);
+    try {
+      const data: Record<string, any> = {
+        name: form.locationName,
+        address: form.addressText,
+        map_link: form.mapLink || null,
+        guidelines: form.guidelinesText || null,
+        venue_guide: form.venueGuide ? JSON.stringify(form.venueGuide) : null,
+      };
+      const result = await api.savedLocations.create(data);
+      const refreshed = await api.savedLocations.list();
+      setSavedLocations(refreshed);
+      setSelectedLocationId(result.id);
+      setShowSaveLocation(false);
+      showToast('Location saved', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save location', 'error');
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
   // ── Venue Guide helpers ──
   const venueGuide = form.venueGuide || { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' };
 
@@ -150,6 +210,22 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
       ...venueGuide,
       steps: venueGuide.steps.filter((_, i) => i !== idx),
     });
+  };
+
+  const handleVenueStepImageUpload = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVenueStepUploading(idx);
+    try {
+      const { uploadUrl, publicUrl } = await api.uploadImage(file.name, file.type);
+      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+      updateVenueStep(idx, 'image_url', publicUrl);
+      showToast('Photo uploaded', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Upload failed', 'error');
+    } finally {
+      setVenueStepUploading(null);
+    }
   };
 
   // ── Session Flow helpers ──
@@ -186,7 +262,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
 
     setSaving(true);
     try {
-      const payload = {
+      const payload: Record<string, any> = {
         slug: form.slug || slugify(form.title),
         title: form.title,
         subtitle: form.subtitle || null,
@@ -198,12 +274,12 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
         status: form.status,
         flyer_image_url: form.flyerImageUrl || null,
         location_name: form.locationName || null,
-        address: form.addressText || null,
+        address_text: form.addressText || null,
         map_link: form.mapLink || null,
-        guidelines: form.guidelinesText || null,
+        guidelines_text: form.guidelinesText || null,
         venue_guide: form.venueGuide ? JSON.stringify(form.venueGuide) : null,
         session_flow: form.sessionFlow && form.sessionFlow.length > 0 ? JSON.stringify(form.sessionFlow) : null,
-        playlist_url: form.playlistUrl || null,
+        location_id: selectedLocationId || null,
       };
 
       if (isEdit && initialData) {
@@ -237,7 +313,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-5xl mx-4 shadow-2xl"
+          className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-5xl mx-4"
+          style={{ boxShadow: '0 25px 50px -12px var(--tea-bg)' }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
@@ -332,106 +409,145 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                     />
                   </Field>
                   <Field label="Status">
-                    <select
-                      value={form.status}
-                      onChange={(e) => updateField('status', e.target.value as EventStatus)}
-                      className={`${inputClass} bg-tea-surface`}
-                    >
-                      {STATUS_OPTIONS.map(s => (
-                        <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={form.status}
+                        onChange={(e) => updateField('status', e.target.value as EventStatus)}
+                        className={selectClass}
+                      >
+                        {STATUS_OPTIONS.map(s => (
+                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                    </div>
                   </Field>
                 </div>
-
-                <Field label="Playlist URL">
-                  <input
-                    type="text"
-                    value={form.playlistUrl || ''}
-                    onChange={(e) => updateField('playlistUrl', e.target.value)}
-                    className={inputClass}
-                    placeholder="https://open.spotify.com/playlist/..."
-                  />
-                </Field>
               </div>
 
               {/* ── Right Column ── */}
               <div className="space-y-5">
                 {/* Flyer Image */}
                 <Field label="Flyer Image">
-                  <div className="space-y-2">
-                    {form.flyerImageUrl ? (
-                      <div className="relative w-full h-40 rounded-md overflow-hidden border border-tea-border">
-                        <img src={form.flyerImageUrl} alt="Flyer" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => updateField('flyerImageUrl', '')}
-                          className="absolute top-2 right-2 bg-tea-bg/80 text-tea-text p-1 rounded-full hover:bg-tea-bg transition-colors"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
+                  {form.flyerImageUrl ? (
+                    <div className="relative w-full h-40 rounded-md overflow-hidden border border-tea-border">
+                      <img src={form.flyerImageUrl} alt="Flyer" className="w-full h-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="w-full h-40 border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-2 text-tea-text-dim hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors"
+                        onClick={() => updateField('flyerImageUrl', '')}
+                        className="absolute top-2 right-2 bg-tea-bg/80 text-tea-text p-1 rounded-full hover:bg-tea-bg transition-colors"
                       >
-                        {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                        <span className="text-xs">{uploading ? 'Uploading...' : 'Upload flyer'}</span>
+                        <X size={12} />
                       </button>
-                    )}
-                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    <input
-                      type="text"
-                      value={form.flyerImageUrl || ''}
-                      onChange={(e) => updateField('flyerImageUrl', e.target.value)}
-                      className={inputClass}
-                      placeholder="Or paste image URL"
-                    />
-                  </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="w-full h-40 border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-2 text-tea-text-dim hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors"
+                    >
+                      {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                      <span className="text-xs">{uploading ? 'Uploading...' : 'Upload flyer'}</span>
+                    </button>
+                  )}
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </Field>
 
-                <Field label="Location Name">
+                {/* Location Section with Saved Location Picker */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Location</label>
+                    {form.locationName?.trim() && form.addressText?.trim() && !selectedLocationId && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSaveLocation(true)}
+                        className="flex items-center gap-1 text-[10px] text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
+                      >
+                        <Bookmark size={10} /> Save Location
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Saved locations dropdown */}
+                  {savedLocations.length > 0 && (
+                    <div className="relative">
+                      <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim" />
+                      <select
+                        value={selectedLocationId}
+                        onChange={(e) => handleSelectLocation(e.target.value)}
+                        className={`${selectClass} pl-5`}
+                      >
+                        <option value="">Choose a saved location...</option>
+                        {savedLocations.map(loc => (
+                          <option key={loc.id} value={loc.id}>{loc.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                    </div>
+                  )}
+
+                  {/* Save location confirmation */}
+                  {showSaveLocation && (
+                    <div className="bg-tea-bg/50 border border-tea-border rounded-md p-3 space-y-2">
+                      <p className="text-xs text-tea-text-sec">
+                        Save "{form.locationName}" as a reusable location?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSaveLocation}
+                          disabled={savingLocation}
+                          className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                        >
+                          {savingLocation ? <Loader2 size={10} className="animate-spin" /> : <Bookmark size={10} />}
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowSaveLocation(false)}
+                          className="text-xs text-tea-text-dim hover:text-tea-text px-3 py-1.5 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <input
                     type="text"
                     value={form.locationName || ''}
-                    onChange={(e) => updateField('locationName', e.target.value)}
+                    onChange={(e) => { updateField('locationName', e.target.value); setSelectedLocationId(''); }}
                     className={inputClass}
-                    placeholder="The Tea Room"
+                    placeholder="Location name"
                   />
-                </Field>
 
-                <Field label="Address">
                   <input
                     type="text"
                     value={form.addressText || ''}
-                    onChange={(e) => updateField('addressText', e.target.value)}
+                    onChange={(e) => { updateField('addressText', e.target.value); setSelectedLocationId(''); }}
                     className={inputClass}
-                    placeholder="123 Tea Lane"
+                    placeholder="Address"
                   />
-                </Field>
 
-                <Field label="Map Link">
                   <input
                     type="text"
                     value={form.mapLink || ''}
                     onChange={(e) => updateField('mapLink', e.target.value)}
                     className={inputClass}
-                    placeholder="https://maps.google.com/..."
+                    placeholder="Map link"
                   />
-                </Field>
 
-                <Field label="Guidelines">
-                  <textarea
-                    value={form.guidelinesText || ''}
-                    onChange={(e) => updateField('guidelinesText', e.target.value)}
-                    className={textareaClass}
-                    placeholder="Dress code, what to bring, etc."
-                    rows={3}
-                  />
-                </Field>
+                  <Field label="Guidelines">
+                    <textarea
+                      value={form.guidelinesText || ''}
+                      onChange={(e) => updateField('guidelinesText', e.target.value)}
+                      className={textareaClass}
+                      placeholder="Dress code, what to bring, etc."
+                      rows={3}
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
 
@@ -459,12 +575,39 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                           className={inputClass}
                           placeholder="Step description"
                         />
+                        {/* Image upload for venue step */}
+                        {step.image_url ? (
+                          <div className="relative w-full h-24 rounded-md overflow-hidden border border-tea-border">
+                            <img src={step.image_url} alt={`Step ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => updateVenueStep(idx, 'image_url', '')}
+                              className="absolute top-1 right-1 bg-tea-bg/80 text-tea-text p-0.5 rounded-full hover:bg-tea-bg transition-colors"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => venueStepFileRefs.current[idx]?.click()}
+                            disabled={venueStepUploading === idx}
+                            className="w-full h-16 border border-dashed border-tea-border rounded-md flex items-center justify-center gap-2 text-tea-text-dim hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors text-xs"
+                          >
+                            {venueStepUploading === idx ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Upload size={14} />
+                            )}
+                            <span>{venueStepUploading === idx ? 'Uploading...' : 'Upload photo'}</span>
+                          </button>
+                        )}
                         <input
-                          type="text"
-                          value={step.image_url || ''}
-                          onChange={(e) => updateVenueStep(idx, 'image_url', e.target.value)}
-                          className={`${inputClass} text-xs`}
-                          placeholder="Image URL (optional)"
+                          ref={(el) => { venueStepFileRefs.current[idx] = el; }}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleVenueStepImageUpload(idx, e)}
+                          className="hidden"
                         />
                       </div>
                       <button type="button" onClick={() => removeVenueStep(idx)} className="text-tea-text-dim hover:text-tea-text p-1 mt-1">

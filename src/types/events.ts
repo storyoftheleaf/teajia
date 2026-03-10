@@ -3,6 +3,17 @@ export type AttendeeStatus = 'confirmed' | 'waitlist' | 'cancelled';
 export type AccessTier = 'standard' | 'golden';
 export type TeaPreference = 'light_floral' | 'rich_roasted' | 'aged_earthy' | 'surprise_me';
 
+export interface SavedLocation {
+  id: string;
+  name: string;
+  address: string;
+  mapLink?: string;
+  guidelines?: string;
+  venueGuide?: VenueGuide;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VenueGuideStep {
   description: string;
   image_url?: string;
@@ -174,5 +185,5 @@ export interface EventFormData {
   timezone?: string;
   status?: EventStatus;
   sessionFlow?: SessionFlowItem[];
-  playlistUrl?: string;
+  locationId?: string;
 }
