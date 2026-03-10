@@ -1,4 +1,4 @@
-# TODO 18: Batch Sequential D1 Queries into Parallel Operations
+# TODO 43: Batch Sequential D1 Queries into Parallel Operations
 
 **Priority:** P1 — HIGH
 **Impact:** 30-50% latency reduction on multi-query endpoints (saves one D1 round-trip per batch)

@@ -1,4 +1,4 @@
-# TODO 19: Replace `SELECT *` with Column-Specific Queries
+# TODO 44: Replace `SELECT *` with Column-Specific Queries
 
 **Priority:** P1 — HIGH
 **Impact:** Reduced payload size (30-50% smaller responses), faster D1 reads, less JSON serialization
@@ -102,7 +102,7 @@ This eliminates the need to fetch exchange rates as a separate query AND removes
 
 ## Notes
 
-- Coordinate with TODO 18 (batch queries) — if pricing moves into SQL, the rates query is no longer needed for public products
+- Coordinate with TODO 43 (batch queries) — if pricing moves into SQL, the rates query is no longer needed for public products
 - The `addPricingFields()` function should still exist for admin endpoints where the full calculation is displayed
 - Test that all fields the frontend expects are still present after the change
 - The `PUBLIC_FIELDS` whitelist in the worker acts as a safety net, but defense-in-depth means not fetching sensitive data in the first place

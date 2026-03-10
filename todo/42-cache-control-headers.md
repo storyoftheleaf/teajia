@@ -1,4 +1,4 @@
-# TODO 17: Add Cache-Control Headers to Public API Endpoints
+# TODO 42: Add Cache-Control Headers to Public API Endpoints
 
 **Priority:** P0 — CRITICAL
 **Impact:** Eliminates redundant D1 queries for public data; reduces TTFB by 50-200ms per cached hit
@@ -85,4 +85,4 @@ return corsResponse;
 - The CORS wrapper runs after caching — cached responses still get correct CORS headers
 - `s-maxage` controls Cloudflare edge cache; `max-age` controls browser cache
 - React Query's staleTime (5 min) acts as a second layer — even without HTTP caching, it prevents refetch within a tab
-- Coordinate with TODO 16 (indexes) — caching reduces the number of queries, indexes speed up the ones that do hit D1
+- Coordinate with TODO 41 (indexes) — caching reduces the number of queries, indexes speed up the ones that do hit D1

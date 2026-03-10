@@ -1,4 +1,4 @@
-# TODO 16: Add D1 Database Indexes for Frequently Queried Columns
+# TODO 41: Add D1 Database Indexes for Frequently Queried Columns
 
 **Priority:** P0 — CRITICAL
 **Impact:** Query latency reduction across every endpoint (estimated 2-10x on filtered queries)

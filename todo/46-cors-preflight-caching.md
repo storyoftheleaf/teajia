@@ -1,4 +1,4 @@
-# TODO 21: Cache CORS Preflight Responses and Optimize CORS Handling
+# TODO 46: Cache CORS Preflight Responses and Optimize CORS Handling
 
 **Priority:** P2 — MEDIUM
 **Impact:** Eliminates redundant OPTIONS round-trips (saves ~50-150ms per preflight)
@@ -88,4 +88,4 @@ function cors(response: Response, origin: string): Response {
 - `Access-Control-Max-Age: 86400` is the maximum Chrome will honor (Firefox allows up to 86400 too)
 - Public GET requests without custom headers (like `/api/products/public` from the shop) are "simple requests" and don't trigger preflight — this fix primarily helps admin endpoints
 - This is a pure performance win with no behavioral change
-- Coordinate with TODO 17 (Cache-Control headers) — both reduce unnecessary network traffic
+- Coordinate with TODO 42 (Cache-Control headers) — both reduce unnecessary network traffic

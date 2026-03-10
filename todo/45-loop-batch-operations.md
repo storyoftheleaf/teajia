@@ -1,4 +1,4 @@
-# TODO 20: Convert Loop-Based DB Operations to `env.DB.batch()`
+# TODO 45: Convert Loop-Based DB Operations to `env.DB.batch()`
 
 **Priority:** P1 — HIGH
 **Impact:** N round-trips → 1 round-trip for bulk operations (invoice creation, fulfillment, bulk import)
