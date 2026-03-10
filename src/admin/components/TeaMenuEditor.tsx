@@ -1,0 +1,296 @@
+import React, { useState } from 'react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Search, Leaf, Loader2, X } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useTeaMenu } from '../hooks/useEventData';
+import { useProducts } from '../hooks/useAdminData';
+import { useToast } from './Toast';
+import { TeaMenuItem } from '../../types/events';
+
+interface TeaMenuEditorProps {
+  eventId: string;
+}
+
+export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
+  const { showToast } = useToast();
+  const { data: menuItems = [], refetch } = useTeaMenu(eventId);
+  const { data: products = [] } = useProducts();
+  const [showPicker, setShowPicker] = useState(false);
+  const [showCustom, setShowCustom] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [customName, setCustomName] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+  const sortedItems = [...menuItems].sort((a, b) => a.brewOrder - b.brewOrder);
+
+  const handleAddFromInventory = async (productId: string, productName: string) => {
+    setLoadingAction('add');
+    try {
+      await api.events.addTeaMenuItem(eventId, {
+        product_id: productId,
+        name: productName,
+        brew_order: menuItems.length,
+      });
+      refetch();
+      setShowPicker(false);
+      setSearchQuery('');
+      showToast(`${productName} added to menu`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to add', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleAddCustom = async () => {
+    if (!customName.trim()) return;
+    setLoadingAction('add');
+    try {
+      await api.events.addTeaMenuItem(eventId, {
+        name: customName,
+        description: customDescription || null,
+        brew_order: menuItems.length,
+      });
+      refetch();
+      setShowCustom(false);
+      setCustomName('');
+      setCustomDescription('');
+      showToast('Custom tea added to menu', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to add', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleRemove = async (itemId: string) => {
+    setLoadingAction(itemId);
+    try {
+      await api.events.removeTeaMenuItem(eventId, itemId);
+      refetch();
+      showToast('Removed from menu', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to remove', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleMove = async (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= sortedItems.length) return;
+    const reordered = [...sortedItems];
+    [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+    const itemIds = reordered.map(i => i.id);
+    try {
+      await api.events.reorderTeaMenu(eventId, itemIds);
+      refetch();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to reorder', 'error');
+    }
+  };
+
+  const handleUpdateRevealDate = async (item: TeaMenuItem, date: string) => {
+    try {
+      await api.events.updateTeaMenuItem(eventId, item.id, { reveal_date: date || null });
+      refetch();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update', 'error');
+    }
+  };
+
+  const handleUpdateDescription = async (item: TeaMenuItem, description: string) => {
+    try {
+      await api.events.updateTeaMenuItem(eventId, item.id, { description: description || null });
+      refetch();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update', 'error');
+    }
+  };
+
+  // Filter products for picker
+  const teaProducts = products.filter(p =>
+    p.type !== 'Teaware' && p.type !== 'Misc' &&
+    p.status === 'Active' &&
+    (!searchQuery || p.productName.toLowerCase().includes(searchQuery.toLowerCase()) || p.givenName.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div>
+      {/* Menu Items */}
+      {sortedItems.length === 0 ? (
+        <div className="text-center py-8 text-tea-text-dim text-sm">
+          <Leaf className="mx-auto mb-2" size={20} />
+          No teas on the menu yet
+        </div>
+      ) : (
+        <div className="space-y-2 mb-4">
+          {sortedItems.map((item, idx) => (
+            <div key={item.id} className="bg-tea-surface border border-tea-border rounded-md p-3 flex items-start gap-3">
+              {/* Reorder buttons */}
+              <div className="flex flex-col gap-0.5 shrink-0 mt-0.5">
+                <button
+                  onClick={() => handleMove(idx, -1)}
+                  disabled={idx === 0}
+                  className="text-tea-text-dim hover:text-tea-text disabled:opacity-20 transition-colors"
+                >
+                  <ArrowUp size={12} />
+                </button>
+                <button
+                  onClick={() => handleMove(idx, 1)}
+                  disabled={idx === sortedItems.length - 1}
+                  className="text-tea-text-dim hover:text-tea-text disabled:opacity-20 transition-colors"
+                >
+                  <ArrowDown size={12} />
+                </button>
+              </div>
+
+              {/* Brew order badge */}
+              <div className="w-6 h-6 rounded-full bg-tea-gold/10 text-tea-gold text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                {idx + 1}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-tea-text font-medium">{item.name}</div>
+                {item.description && (
+                  <p className="text-xs text-tea-text-dim mt-0.5">{item.description}</p>
+                )}
+                {!item.description && (
+                  <input
+                    type="text"
+                    placeholder="Add description..."
+                    className="w-full border-b border-transparent hover:border-tea-border focus:border-tea-gold bg-transparent outline-none text-xs text-tea-text-dim py-1 mt-0.5 transition-colors"
+                    onBlur={(e) => {
+                      if (e.target.value) handleUpdateDescription(item, e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Reveal date */}
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">Reveal</label>
+                  <input
+                    type="datetime-local"
+                    value={item.revealDate ? item.revealDate.slice(0, 16) : ''}
+                    onChange={(e) => handleUpdateRevealDate(item, e.target.value)}
+                    className="border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-[11px] text-tea-text-sec py-0.5"
+                  />
+                </div>
+              </div>
+
+              {/* Remove */}
+              <button
+                onClick={() => handleRemove(item.id)}
+                disabled={loadingAction === item.id}
+                className="text-tea-text-dim hover:text-tea-text p-1 transition-colors shrink-0"
+              >
+                {loadingAction === item.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setShowPicker(true); setShowCustom(false); }}
+          className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors px-3 py-2 border border-tea-border rounded-md hover:border-tea-gold/30"
+        >
+          <Plus size={12} /> Add from Inventory
+        </button>
+        <button
+          onClick={() => { setShowCustom(true); setShowPicker(false); }}
+          className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors px-3 py-2 border border-tea-border rounded-md hover:border-tea-gold/30"
+        >
+          <Plus size={12} /> Add Custom Tea
+        </button>
+      </div>
+
+      {/* Product Picker */}
+      {showPicker && (
+        <div className="mt-3 bg-tea-bg border border-tea-border rounded-md p-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 flex-1">
+              <Search size={14} className="text-tea-text-dim shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-1 placeholder:text-tea-text-dim/50"
+                placeholder="Search inventory..."
+                autoFocus
+              />
+            </div>
+            <button onClick={() => setShowPicker(false)} className="text-tea-text-dim hover:text-tea-text p-1 ml-2">
+              <X size={14} />
+            </button>
+          </div>
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {teaProducts.slice(0, 20).map(product => (
+              <button
+                key={product.id}
+                onClick={() => handleAddFromInventory(product.id, product.productName)}
+                disabled={loadingAction === 'add'}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-tea-elevated/50 transition-colors text-left"
+              >
+                <Leaf size={12} className="text-tea-text-dim shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-tea-text">{product.productName}</span>
+                  {product.givenName && (
+                    <span className="text-xs text-tea-text-dim ml-2">{product.givenName}</span>
+                  )}
+                </div>
+                <span className="text-[10px] text-tea-text-dim">{product.type}</span>
+              </button>
+            ))}
+            {teaProducts.length === 0 && (
+              <div className="text-center py-4 text-tea-text-dim text-xs">No matching products</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Tea Form */}
+      {showCustom && (
+        <div className="mt-3 bg-tea-bg border border-tea-border rounded-md p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Custom Tea</span>
+            <button onClick={() => setShowCustom(false)} className="text-tea-text-dim hover:text-tea-text p-1">
+              <X size={14} />
+            </button>
+          </div>
+          <input
+            type="text"
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50"
+            placeholder="Tea name"
+            autoFocus
+          />
+          <input
+            type="text"
+            value={customDescription}
+            onChange={(e) => setCustomDescription(e.target.value)}
+            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50"
+            placeholder="Description (optional)"
+          />
+          <button
+            onClick={handleAddCustom}
+            disabled={!customName.trim() || loadingAction === 'add'}
+            className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+          >
+            {loadingAction === 'add' ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+            Add
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};

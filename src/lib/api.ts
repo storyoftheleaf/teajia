@@ -61,7 +61,6 @@ async function handleResponse(res: Response) {
     throw new Error(`Request failed (${res.status})`);
   }
   if (!res.ok) {
-    // Avoid leaking raw server errors — provide generic message
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;
@@ -332,6 +331,7 @@ export const api = {
   },
 
   events: {
+    // Admin endpoints
     listAdmin: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/events`, {
         headers: authHeaders(),
@@ -439,6 +439,7 @@ export const api = {
       });
       return handleResponse(res);
     },
+    // Public endpoints
     getPublic: async (slug: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`);
       return handleResponse(res);
