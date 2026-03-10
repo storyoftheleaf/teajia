@@ -170,19 +170,21 @@ export const Sidebar = ({
         ))}
       </nav>
 
-      {/* Catalog Navigation */}
-      <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
-        <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
-        {catalogItems.map((item, index) => (
-          <NavButton
-            key={item.id}
-            item={item}
-            isActive={currentPath === item.path || (currentPath === '/admin' && item.id === 'catalog')}
-            onClick={handleNav}
-            animationDelay={(browseItems.length + index) * 50}
-          />
-        ))}
-      </nav>
+      {/* Catalog Navigation — admin only */}
+      {isAdmin && (
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
+          {catalogItems.map((item, index) => (
+            <NavButton
+              key={item.id}
+              item={item}
+              isActive={currentPath === item.path || (currentPath === '/admin' && item.id === 'catalog')}
+              onClick={handleNav}
+              animationDelay={(browseItems.length + index) * 50}
+            />
+          ))}
+        </nav>
+      )}
 
       {/* Admin Navigation */}
       {isAdmin && (
