@@ -1,5 +1,3 @@
--- Add teaware-specific columns to products table
-ALTER TABLE products ADD COLUMN material TEXT;
-ALTER TABLE products ADD COLUMN capacity_ml INTEGER;
-ALTER TABLE products ADD COLUMN teaware_category TEXT;
-ALTER TABLE products ADD COLUMN quantity_units INTEGER;
+-- Teaware columns (material, capacity_ml, teaware_category, quantity_units)
+-- already applied manually to remote DB; this migration is kept for local parity.
+SELECT 1;

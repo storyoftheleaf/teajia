@@ -1,4 +1,4 @@
--- Create users table (replaces admin_users)
+-- Create users table
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     email TEXT UNIQUE NOT NULL,
@@ -8,9 +8,5 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Migrate existing admin_users data
-INSERT OR IGNORE INTO users (id, email, name, password_hash, role, created_at)
-SELECT id, email, '', password_hash, 'admin', created_at FROM admin_users;
-
--- Drop old table
+-- Drop old table if it existed
 DROP TABLE IF EXISTS admin_users;

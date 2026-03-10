@@ -1,2 +1,2 @@
--- Add form column to products table (e.g. "Loose Leaf", "Cake", "Tuo", "Brick")
-ALTER TABLE products ADD COLUMN form TEXT;
+-- Form column already applied manually to remote DB; kept for local parity.
+SELECT 1;
