@@ -161,7 +161,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           const getProductName = () => getSafeValue(row, ['Product Name', 'ProductName', 'Name', 'Cultivar']);
           const getYear = () => getSafeValue(row, ['Year', 'Age', 'Harvest Year']);
           
-          const getForm = () => getSafeValue(row, ['Form', 'Leaf Form', 'Tea Form', 'Shape']);
+          const getForm = () => getSafeValue(row, ['Form', 'Leaf Form', 'Tea Form', 'Shape', 'Style']);
           const getGrams = () => getSafeValue(row, ['Quantity Purchased', 'Grams', 'Bag Size', 'Weight']);
           const getCostAmount = () => getSafeValue(row, ['Cost Amount', 'Cost', 'Bag Cost', 'Price']);
           const getCurrency = () => getSafeValue(row, ['Cost Currency', 'Currency']);
@@ -205,12 +205,12 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             isPersonal: isYes(getPersonal()),
             canReorder: isYes(getRestockable()),
             description: (getSafeValue(row, ['Description', 'Desc']) || '').trim(),
-            lore: (getSafeValue(row, ['Lore', 'Story', 'History']) || '').trim(),
+            lore: (getSafeValue(row, ['Lore', 'Story', 'Stories', 'History', 'Background']) || '').trim(),
             tastingNotes: (getSafeValue(row, ['Tasting Notes', 'TastingNotes', 'Tasting', 'Flavors', 'Flavor Notes']) || '').trim(),
             processingNotes: (getSafeValue(row, ['Processing Notes', 'ProcessingNotes', 'Processing', 'Production Notes']) || '').trim(),
             terroir: (getSafeValue(row, ['Terroir', 'Terrain', 'Environment', 'Growing Conditions']) || '').trim(),
             mood: (getSafeValue(row, ['Mood', 'Feeling']) || '').trim(),
-            experience: (getSafeValue(row, ['Experience', 'Feeling Description']) || '').trim(),
+            experience: (getSafeValue(row, ['Experience', 'Feeling Description', 'Works', 'Notes']) || '').trim(),
             material: (getMaterial() || '').trim(),
             capacityMl: (getCapacityMl() || '').trim(),
             teawareCategory: (getTeawareCategory() || '').trim(),
@@ -309,21 +309,23 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         const matchedForm = validForms.find(f => f.toLowerCase() === (r.form || '').toLowerCase());
         const hasWisdom = !!(r.lore || r.tastingNotes || r.mood || r.experience);
 
-        return {
+        // Build the row object, then strip out null/empty values to avoid
+        // sending columns the DB might not have yet
+        const row: Record<string, any> = {
           type: typeToSave,
-          given_name: r.givenName,
+          given_name: r.givenName || null,
           chinese_name: r.chineseName || null,
           product_name: r.productName || r.givenName || 'Unnamed Product',
           form: matchedForm || null,
           year: year,
           origin_country: r.originCountry || 'Unknown',
-          origin_region: r.originRegion || '',
+          origin_region: r.originRegion || null,
           stock_grams: stock,
           quantity_purchased: qtyPurchased,
           cost_amount: cost,
           cost_currency: curr,
-          vendor: r.vendor,
-          description: r.description || '',
+          vendor: r.vendor || null,
+          description: r.description || null,
           status: r.status,
           is_personal: !!r.isPersonal,
           can_reorder: !!r.canReorder,
@@ -340,6 +342,13 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           teaware_category: r.teawareCategory || null,
           quantity_units: parseNum(r.quantityUnits) || null,
         };
+
+        // Remove null/empty entries so the API only sends columns with real data
+        const cleaned: Record<string, any> = {};
+        for (const [k, v] of Object.entries(row)) {
+          if (v !== null && v !== undefined && v !== '') cleaned[k] = v;
+        }
+        return cleaned;
     });
 
     // Batch Insert
