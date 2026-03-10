@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, ExternalLink, Users, Sun, Moon } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, Users, Sun, Moon } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -112,7 +112,7 @@ export const Sidebar = ({
     { id: 'shop', path: '/shop', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} /> },
   ];
 
-  const navItems: NavItem[] = [
+  const catalogItems: NavItem[] = [
     { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf size={20} strokeWidth={2} /> },
     { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee size={20} strokeWidth={2} /> },
     { id: 'invoices', path: '#', label: 'Registry', icon: <Receipt size={20} strokeWidth={2} />, badge: cartItemCount, action: onOpenCart },
@@ -150,13 +150,10 @@ export const Sidebar = ({
       >
         <LogoEmblem
           size={36}
-          color="#c0b49a"
+          color={theme === 'dark' ? '#c0b49a' : '#010101'}
           className="transition-all duration-300 shrink-0 opacity-80 group-hover:opacity-100 group-hover:scale-105"
         />
-        <div className="flex flex-col">
-          <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
-          <span className="text-[9px] uppercase tracking-[0.15em] text-tea-gold/50 font-sans -mt-0.5">Inventory</span>
-        </div>
+        <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
       </Link>
 
       {/* Browse Navigation */}
@@ -176,13 +173,13 @@ export const Sidebar = ({
       {/* Catalog Navigation */}
       <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
         <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
-        {navItems.map((item, index) => (
+        {catalogItems.map((item, index) => (
           <NavButton
             key={item.id}
             item={item}
             isActive={currentPath === item.path || (currentPath === '/admin' && item.id === 'catalog')}
             onClick={handleNav}
-            animationDelay={index * 50}
+            animationDelay={(browseItems.length + index) * 50}
           />
         ))}
       </nav>
@@ -197,7 +194,7 @@ export const Sidebar = ({
               item={item}
               isActive={currentPath === item.path}
               onClick={handleNav}
-              animationDelay={(navItems.length + index) * 50}
+              animationDelay={(browseItems.length + catalogItems.length + index) * 50}
             />
           ))}
         </nav>
@@ -216,15 +213,25 @@ export const Sidebar = ({
       <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
         <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
 
-        <Link
-          to="/"
+        <button
+          onClick={onOpenCart}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
         >
-          <ExternalLink className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-all duration-300 shrink-0" strokeWidth={2} />
-          <span className="text-sm font-semibold text-tea-text-dim group-hover:text-tea-text transition-all duration-300">
-            Main Site
+          <div className="relative shrink-0">
+            <Icons.Bag
+              className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105"
+              strokeWidth={2}
+            />
+            {cartItemCount > 0 && (
+              <div className="absolute -top-2 -right-3 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {cartItemCount > 9 ? '9+' : cartItemCount}
+              </div>
+            )}
+          </div>
+          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-dim group-hover:text-tea-text">
+            Cart
           </span>
-        </Link>
+        </button>
 
         <button
           onClick={isLoggedIn ? onLogoutClick : onLoginClick}

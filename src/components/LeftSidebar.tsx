@@ -5,6 +5,7 @@ import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, UserCheck, Users, History } from 'lucide-react';
 
 function getCurrentSeason(): { name: string; icon: string } {
   const month = new Date().getMonth();
@@ -21,6 +22,7 @@ interface NavItem {
   section?: Section;
   path?: string;
   badge?: number;
+  action?: () => void;
 }
 
 const NavButton: React.FC<{
@@ -57,6 +59,18 @@ const NavButton: React.FC<{
   const className = `relative flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
     isActive ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
   }`;
+
+  if (item.action) {
+    return (
+      <button
+        onClick={item.action}
+        className={`w-full ${className}`}
+        style={{ animationDelay: `${animationDelay}ms` }}
+      >
+        {content}
+      </button>
+    );
+  }
 
   if (item.path) {
     return (
@@ -102,6 +116,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const season = getCurrentSeason();
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const browseItems: NavItem[] = [
     { id: 'MAGAZINE', label: 'Read', icon: <Icons.Magazine className="w-5 h-5" strokeWidth={2} />, section: 'MAGAZINE' as Section },
@@ -110,15 +126,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     { id: 'SHOP', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} />, section: 'SHOP' as Section },
   ];
 
-  const adminItems: NavItem[] = [
-    { id: 'inventory', label: 'Inventory', icon: <Icons.Settings className="w-5 h-5" strokeWidth={2} />, path: '/admin/inventory' },
-    { id: 'personal', label: 'Collection', icon: <Icons.Heart className="w-5 h-5" strokeWidth={2} />, path: '/admin/personal' },
-    { id: 'orders', label: 'Orders', icon: <Icons.Clock className="w-5 h-5" strokeWidth={2} />, path: '/admin/orders' },
-    { id: 'records', label: 'Records', icon: <Icons.BookOpen className="w-5 h-5" strokeWidth={2} />, path: '/admin/records' },
+  const catalogItems: NavItem[] = [
+    { id: 'catalog', label: 'Tea Glossary', icon: <Leaf size={20} strokeWidth={2} />, path: '/admin/catalog' },
+    { id: 'teaware', label: 'Equipment', icon: <Coffee size={20} strokeWidth={2} />, path: '/admin/teaware' },
+    { id: 'invoices', label: 'Registry', icon: <Receipt size={20} strokeWidth={2} />, badge: cartItemCount, action: onCartClick },
   ];
 
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const adminItems: NavItem[] = [
+    { id: 'inventory', label: 'Master Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory' },
+    { id: 'personal', label: 'Collection', icon: <UserCheck size={20} strokeWidth={2} />, path: '/admin/personal' },
+    { id: 'customers', label: 'Customers', icon: <Users size={20} strokeWidth={2} />, path: '/admin/customers' },
+    { id: 'orders', label: 'Orders', icon: <History size={20} strokeWidth={2} />, path: '/admin/orders' },
+    { id: 'records', label: 'Records & Logs', icon: <FolderOpen size={20} strokeWidth={2} />, path: '/admin/records' },
+    { id: 'settings', label: 'Settings', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/settings' },
+  ];
 
   return (
     <aside
@@ -166,6 +187,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         ))}
       </nav>
 
+      {/* Catalog Navigation — visible only for authenticated users */}
+      {auth.isAuthenticated && (
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
+          {catalogItems.map((item, index) => (
+            <NavButton
+              key={item.id}
+              item={item}
+              isActive={currentPath === item.path}
+              onClick={() => {}}
+              animationDelay={(browseItems.length + index) * 50}
+            />
+          ))}
+        </nav>
+      )}
+
       {/* Admin Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
         <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
@@ -176,7 +213,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               item={item}
               isActive={currentPath === item.path}
               onClick={() => {}}
-              animationDelay={(browseItems.length + index) * 50}
+              animationDelay={(browseItems.length + catalogItems.length + index) * 50}
             />
           ))}
         </nav>
@@ -194,11 +231,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       {/* Utility Area */}
       <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
         <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
+
         <button
           onClick={onCartClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group relative hover:bg-tea-elevated/50"
-          title="Cart"
-          aria-label="Open shopping cart"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
         >
           <div className="relative shrink-0">
             <Icons.Bag
@@ -215,11 +251,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             Cart
           </span>
         </button>
+
         <button
           onClick={onAccountClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group relative hover:bg-tea-elevated/50"
-          title="Account"
-          aria-label="Open account settings"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
         >
           <Icons.User
             className={`transition-all duration-300 shrink-0 ${
@@ -228,7 +263,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 : 'text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105'
             }`}
             strokeWidth={2}
-            {...(activeSection === 'ACCOUNT' ? { fill: 'currentColor' } : {})}
           />
           <span className={`text-sm font-semibold transition-all duration-300 ${
             activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text'
@@ -236,9 +270,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             Account
           </span>
         </button>
+
         <button
           onClick={(e) => toggleTheme(e)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group relative hover:bg-tea-elevated/50"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
