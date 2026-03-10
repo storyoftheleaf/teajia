@@ -1,4 +1,4 @@
-# T3-15: Sync Favorites & Reading Progress to Account
+# T3-35: Sync Favorites & Reading Progress to Account
 
 **Status:** [ ] Not started
 **Priority:** Medium

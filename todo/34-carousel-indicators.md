@@ -1,4 +1,4 @@
-# T3-14: Add Swipe/Carousel Indicators to AlcoveModal
+# T3-34: Add Swipe/Carousel Indicators to AlcoveModal
 
 **Status:** [ ] Not started
 **Priority:** Medium

@@ -1,4 +1,4 @@
-# T4-19: Handle JWT Expiration Gracefully
+# T4-39: Handle JWT Expiration Gracefully
 
 **Status:** [ ] Not started
 **Priority:** Polish

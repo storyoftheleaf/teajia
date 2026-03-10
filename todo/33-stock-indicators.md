@@ -1,4 +1,4 @@
-# T3-13: Show Stock Level Indicators
+# T3-33: Show Stock Level Indicators
 
 **Status:** [ ] Not started
 **Priority:** Medium

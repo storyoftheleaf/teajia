@@ -10,7 +10,7 @@ The Share button on AlcoveCard has no `onClick` handler. Users tap it and nothin
 
 ## Requirements
 - Connect Share button to the existing ShareModal or Web Share API
-- Share should include: product name, description, and URL (once T1-01 is done, include product URL)
+- Share should include: product name, description, and URL (once T1-21 is done, include product URL)
 - Fallback to copy-to-clipboard if Web Share API unavailable
 
 ## Implementation Notes
@@ -22,4 +22,4 @@ The Share button on AlcoveCard has no `onClick` handler. Users tap it and nothin
 ## Acceptance Criteria
 - [ ] Share button triggers share action on tap
 - [ ] Works on both mobile (native share) and desktop (copy link / social links)
-- [ ] Shared link leads to the product (depends on T1-01)
+- [ ] Shared link leads to the product (depends on T1-21)

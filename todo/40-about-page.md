@@ -1,4 +1,4 @@
-# T4-20: Populate the About Page
+# T4-40: Populate the About Page
 
 **Status:** [ ] Not started
 **Priority:** Polish

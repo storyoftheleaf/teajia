@@ -1,4 +1,4 @@
-# T3-12: Add Product Comparison Feature
+# T3-32: Add Product Comparison Feature
 
 **Status:** [ ] Not started
 **Priority:** Medium

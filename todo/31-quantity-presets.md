@@ -1,4 +1,4 @@
-# T3-11: Improve Quantity Selection with Presets
+# T3-31: Improve Quantity Selection with Presets
 
 **Status:** [ ] Not started
 **Priority:** Medium
