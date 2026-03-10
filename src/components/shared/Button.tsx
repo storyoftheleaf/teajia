@@ -1,7 +1,7 @@
 import React from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'icon' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -9,7 +9,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   loading?: boolean;
   icon?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   fullWidth?: boolean;
 }
 
@@ -24,19 +24,20 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center gap-2 font-sans font-semibold tracking-wide rounded-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] focus-visible:outline-2 focus-visible:outline-tea-seal focus-visible:outline-offset-2 focus-visible:ring-4 focus-visible:ring-tea-gold/20';
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg';
 
   const variantClasses = {
-    primary: 'bg-tea-gold text-tea-paper hover:bg-tea-gold/90 active:bg-tea-gold/80',
-    secondary: 'bg-tea-text/10 text-tea-text hover:bg-tea-text/20',
-    ghost: 'bg-transparent text-tea-text hover:bg-tea-text/10',
-    danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
+    primary: 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt active:bg-tea-gold/80 rounded-xl min-w-[44px] min-h-[44px]',
+    secondary: 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated rounded-lg min-w-[44px] min-h-[44px]',
+    ghost: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-lg min-w-[44px] min-h-[44px]',
+    icon: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-lg min-w-[44px] min-h-[44px]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 rounded-xl min-w-[44px] min-h-[44px]',
   };
 
   const sizeClasses = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-3 text-base',
-    lg: 'px-6 py-4 text-lg'
+    sm: variant === 'icon' ? 'p-2 text-sm' : 'px-3 py-2 text-sm',
+    md: variant === 'icon' ? 'p-2.5 text-base' : 'px-5 py-2.5 text-base',
+    lg: variant === 'icon' ? 'p-3 text-lg' : 'px-6 py-3 text-lg',
   };
 
   const widthClass = fullWidth ? 'w-full' : '';
@@ -48,11 +49,11 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {loading ? (
-        <LoadingSpinner size="sm" className={variant === 'primary' ? 'border-t-tea-paper' : 'border-t-tea-seal'} />
+        <LoadingSpinner size="sm" className={variant === 'primary' ? 'border-t-tea-bg' : 'border-t-tea-gold'} />
       ) : (
         <>
           {icon && <span className="flex-shrink-0">{icon}</span>}
-          <span>{children}</span>
+          {children && <span>{children}</span>}
         </>
       )}
     </button>

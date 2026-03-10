@@ -1,6 +1,6 @@
 # Teajia — Combined Audit Todo Tracker
 
-Three audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSITE_TEARDOWN.md) (performance, design system, SEO). Tasks 21–40 come from the [Functional Audit](../FUNCTIONAL_AUDIT.md) (UX flows, friction, interactions). Tasks 41–46 come from the backend performance audit (Cloudflare Worker + D1).
+Four audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEBSITE_TEARDOWN.md) (performance, design system, SEO). Tasks 21–40 come from the [Functional Audit](../FUNCTIONAL_AUDIT.md) (UX flows, friction, interactions). Tasks 41–46 come from the backend performance audit (Cloudflare Worker + D1). Tasks 47–55 come from the UI consistency audit (styling, interaction patterns, accessibility).
 
 ---
 
@@ -62,9 +62,37 @@ Three audits, one backlog. Tasks 01–15 come from the [Website Teardown](../WEB
 | 45 | [Loop → Batch Operations](./45-loop-batch-operations.md) | P1 | 1–2 hours |
 | 46 | [CORS Preflight Caching](./46-cors-preflight-caching.md) | P2 | 30 minutes |
 
+### UI Consistency Audit (47–55)
+
+| # | Task | Priority | Effort |
+|---|------|----------|--------|
+| 47 | [Standardize Border-Radius Scale](./47-standardize-border-radius.md) | Low | 1–2 hours |
+| 48 | [Unify Icon Sizing System](./48-unify-icon-sizing.md) | Low | 2–3 hours |
+| 49 | [Establish Text Size Hierarchy](./49-establish-text-hierarchy.md) | Low | 2–3 hours |
+| 50 | [Replace Hardcoded Hex Colors](./50-replace-hardcoded-hex-colors.md) | High | 2–3 hours |
+| 51 | [Standardize Focus/Hover States](./51-standardize-focus-hover-states.md) | Medium | 2–3 hours |
+| 52 | [Card/Panel Recipe](./52-card-panel-recipe.md) | Medium | 2–3 hours |
+| 53 | [Normalize Spacing Scale](./53-spacing-scale-consistency.md) | Low | 1–2 hours |
+| 54 | [Unify Transitions](./54-unify-transitions.md) | Low | 1–2 hours |
+| 55 | [Accessibility / ARIA Audit](./55-accessibility-aria-audit.md) | Medium | 2–3 hours |
+
 ---
 
 ## Overlap & Deduplication Notes
+
+### Completed on Other Branches
+
+5 teardown tasks were completed on feature branches not yet merged to main:
+
+| # | Task | Completed On |
+|---|------|-------------|
+| 05 | Font Optimization | `claude/comprehensive-review-audit-YGUXB` |
+| 08 | Homepage Product Showcase | `claude/improve-desktop-design-n1X2M` |
+| 09 | Texture Overlay Optimization | `claude/improve-desktop-design-n1X2M` |
+| 12 | Lazy-Load Content | `claude/comprehensive-review-audit-YGUXB` |
+| 15 | Trust Signals | `claude/comprehensive-review-audit-YGUXB` |
+
+### Cross-Audit Overlap
 
 Some tasks across the audits address related areas. Here's how they relate:
 
@@ -77,6 +105,8 @@ Some tasks across the audits address related areas. Here's how they relate:
 | 15 Trust Signals | 40 About Page | **Complementary** — both build brand confidence. Can combine into one effort. |
 
 Backend tasks (41–46) have **no overlap** with teardown or functional audit tasks — they operate entirely within `worker/src/index.ts` and D1.
+
+UI consistency task 50 (hardcoded hex colors) complements teardown task 06 (rgba remediation) — 06 targets `rgba()` in inline styles, 50 targets hex literals in Tailwind classes. Can be done together or separately.
 
 ---
 
@@ -108,6 +138,15 @@ Backend tasks (41–46) have **no overlap** with teardown or functional audit ta
 
 ### Group I — Backend / Worker Performance (Backend Audit)
 `41`, `42`, `43`, `44`, `45`, `46` — All within the Cloudflare Worker. No frontend overlap.
+
+### Group J — UI Consistency: Styling (Consistency Audit)
+`47`, `48`, `49`, `53`, `54` — Low-priority styling normalization. All independent.
+
+### Group K — UI Consistency: Theme & Interaction (Consistency Audit)
+`50` (hex colors, related to `06`), `51` (focus/hover), `52` (card recipe). Medium-high priority.
+
+### Group L — Accessibility (Consistency Audit)
+`55` — Standalone ARIA/a11y sweep.
 
 ---
 
@@ -155,20 +194,20 @@ Backend tasks (41–46) have **no overlap** with teardown or functional audit ta
 
 ### Teardown (01–15)
 - [ ] 01 — Tailwind PostCSS Build
-- [ ] 02 — SEO Meta + Sitemap
+- [~] 02 — SEO Meta + Sitemap *(meta tags done on `comprehensive-review-audit`, sitemap remaining)*
 - [ ] 03 — Product Detail Pages
 - [ ] 04 — Checkout Flow
-- [ ] 05 — Font Optimization
+- [x] 05 — Font Optimization *(done on `comprehensive-review-audit`)*
 - [ ] 06 — rgba Remediation
 - [ ] 07 — Split CartPanel
-- [ ] 08 — Homepage Product Showcase
-- [ ] 09 — Texture Overlay Optimization
-- [ ] 10 — Banned Token Migration
+- [x] 08 — Homepage Product Showcase *(done on `improve-desktop-design`)*
+- [x] 09 — Texture Overlay Optimization *(done on `improve-desktop-design`)*
+- [~] 10 — Banned Token Migration *(design plan on `teajia-palettes-design`, implementation pending)*
 - [ ] 11 — Z-Index Scale
-- [ ] 12 — Lazy-Load Content
+- [x] 12 — Lazy-Load Content *(done on `comprehensive-review-audit`)*
 - [ ] 13 — Scope ImagePreloader
-- [ ] 14 — Unified Button Component
-- [ ] 15 — Trust Signals
+- [~] 14 — Unified Button Component *(component updated on `audit-ui-consistency`, adoption pending)*
+- [x] 15 — Trust Signals *(done on `comprehensive-review-audit`)*
 
 ### Functional Audit (21–40)
 - [ ] 21 — Product URLs
@@ -199,3 +238,14 @@ Backend tasks (41–46) have **no overlap** with teardown or functional audit ta
 - [ ] 43 — Batch Sequential Queries
 - [ ] 44 — SELECT * Elimination
 - [ ] 45 — Loop → Batch Operations
+
+### UI Consistency Audit (47–55)
+- [ ] 47 — Standardize Border-Radius Scale
+- [ ] 48 — Unify Icon Sizing System
+- [ ] 49 — Establish Text Size Hierarchy
+- [ ] 50 — Replace Hardcoded Hex Colors
+- [ ] 51 — Standardize Focus/Hover States
+- [ ] 52 — Card/Panel Recipe
+- [ ] 53 — Normalize Spacing Scale
+- [ ] 54 — Unify Transitions
+- [ ] 55 — Accessibility / ARIA Audit
