@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/consult';
@@ -113,6 +114,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     }));
   };
 
+  const [optionalOpen, setOptionalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }) => {

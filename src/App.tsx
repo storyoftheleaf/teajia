@@ -41,7 +41,7 @@ import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { ImagePreloaderProvider, useImagePreloader } from './context/ImagePreloaderContext';
+import { ImagePreloaderProvider } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
@@ -74,7 +74,6 @@ const AppContent = () => {
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
   } = useAppStore();
-  const preloader = useImagePreloader();
   const { isAdmin } = useAuth();
   const [adminToolbarCollapsed, setAdminToolbarCollapsed] = useState(false);
   const showAdminBar = isAdmin && !adminToolbarCollapsed;
@@ -620,10 +619,8 @@ export default function App() {
       <ThemeProvider>
         <StoryProvider>
           <InventoryProvider>
-            <ImagePreloaderProvider>
               <NetworkStatus />
               <AppContent />
-            </ImagePreloaderProvider>
           </InventoryProvider>
         </StoryProvider>
       </ThemeProvider>
