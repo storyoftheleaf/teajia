@@ -107,7 +107,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
   const HeaderCell = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
       <th 
-        className={`py-3 px-4 cursor-pointer hover:text-tea-text transition-colors duration-200 group select-none text-${align} border-b border-tea-border font-serif italic text-tea-text-dim uppercase tracking-[0.2em] text-xs sticky top-0 z-10 bg-tea-bg/90 backdrop-blur-md truncate`} 
+        className={`py-3 px-4 cursor-pointer hover:text-tea-text transition-colors duration-200 group select-none text-${align} border-b border-tea-border/40 font-serif italic text-tea-text-dim uppercase tracking-[0.2em] text-xs sticky top-0 z-10 bg-tea-bg/90 backdrop-blur-md truncate`} 
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -182,12 +182,12 @@ export const TeaTable: React.FC<TeaTableProps> = ({
       </div>
       
       {/* Filters - Pills to Tags */}
-      <div className="flex flex-wrap gap-2 w-full border-b border-tea-border pb-6" role="tablist" aria-label="Filter by tea type">
+      <div className="flex flex-wrap gap-2 w-full border-b border-tea-border/30 pb-6" role="tablist" aria-label="Filter by tea type">
             <button
                 onClick={() => setFilter('All')}
                 role="tab"
                 aria-selected={filter === 'All'}
-                className={`px-4 py-2 md:py-1.5 text-xs font-bold uppercase tracking-[0.15em] transition-colors duration-200 rounded-full border focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${filter === 'All' ? 'bg-tea-text text-tea-bg border-tea-text' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
+                className={`px-4 py-2 md:py-1.5 text-xs font-bold uppercase tracking-[0.15em] transition-colors duration-200 rounded-full border focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${filter === 'All' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
             >
                 All
             </button>
@@ -212,7 +212,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                     onClick={() => setFilter(type)}
                     role="tab"
                     aria-selected={isActive}
-                    className={`px-4 py-2 md:py-1.5 text-xs font-bold uppercase tracking-[0.15em] transition-colors duration-200 rounded-full border focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isActive ? `bg-tea-text text-tea-bg border-tea-text` : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
+                    className={`px-4 py-2 md:py-1.5 text-xs font-bold uppercase tracking-[0.15em] transition-colors duration-200 rounded-full border focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isActive ? `bg-tea-gold text-tea-bg border-tea-gold` : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
                 >
                     {type}
                 </button>
@@ -222,7 +222,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
       {/* ADVANCED TABLE */}
       {sortedProducts.length === 0 ? (
-           <div className="py-24 text-center text-tea-text-dim border border-tea-border rounded-lg bg-tea-surface/50">
+           <div className="py-24 text-center text-tea-text-dim border border-tea-border/30 rounded-lg bg-tea-surface/50">
                <div className="flex flex-col items-center gap-4">
                    <AlertCircle size={32} opacity={0.3} />
                    <span className="font-serif italic text-lg">No entries found in glossary.</span>
@@ -230,7 +230,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                </div>
            </div>
       ) : (
-        <div className="rounded-lg overflow-hidden border border-tea-border bg-tea-surface shadow-2xl">
+        <div className="rounded-lg overflow-hidden border border-tea-border/30 bg-tea-surface shadow-2xl">
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse table-fixed">
                     <colgroup>
@@ -250,7 +250,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                             <HeaderCell colKey="year" label="Year" />
                             {isAdmin && <HeaderCell colKey="stockGrams" label="Stock" align="right" />}
                             <HeaderCell colKey="pricePerGramUSD" label="Price" align="right" />
-                            <th className="py-3 px-4 text-right border-b border-tea-border sticky top-0 z-10 bg-tea-bg/90 backdrop-blur-md"></th>
+                            <th className="py-3 px-4 text-right border-b border-tea-border/40 sticky top-0 z-10 bg-tea-bg/90 backdrop-blur-md"></th>
                         </tr>
                     </thead>
                     <motion.tbody
@@ -273,7 +273,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     }}
                                     key={product.id} 
                                     onClick={() => setSelectedProduct(product)}
-                                    className="group hover:bg-tea-bg/50 transition-colors cursor-pointer border-b border-tea-border last:border-0 h-[60px]"
+                                    className="group hover:bg-tea-bg/50 transition-colors cursor-pointer border-b border-tea-border/20 last:border-0 h-[60px]"
                                 >
                                     <td className="py-3 px-4 align-middle">
                                         <div className="flex flex-col justify-center h-full overflow-hidden">
