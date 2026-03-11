@@ -320,6 +320,39 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
   return cachedJson(products, 60);
 };
 
+// ── Auto-resolve vendor name → vendor_id (find-or-create customer) ──
+async function resolveVendorId(env: Env, vendorName: string | null | undefined, originCountry?: string): Promise<string | null> {
+  if (!vendorName || !vendorName.trim()) return null;
+  const name = vendorName.trim();
+  const key = name.toLowerCase();
+
+  // Check if a customer with this name already exists
+  const existing = await env.DB.prepare(
+    'SELECT id, tags FROM customers WHERE LOWER(name) = ?'
+  ).bind(key).first();
+
+  if (existing) {
+    // Ensure the vendor tag is present
+    let tags: string[] = [];
+    try { tags = JSON.parse(existing.tags as string || '[]'); } catch { tags = []; }
+    if (!tags.includes('vendor')) {
+      tags.push('vendor');
+      await env.DB.prepare("UPDATE customers SET tags = ?, updated_at = datetime('now') WHERE id = ?")
+        .bind(JSON.stringify(tags), existing.id).run();
+    }
+    return existing.id as string;
+  }
+
+  // Create new customer tagged as vendor
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO customers (id, name, country, tags, source, created_at, updated_at)
+     VALUES (?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
+  ).bind(id, name, originCountry || null).run();
+
+  return id;
+}
+
 const handleCreateProduct: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
@@ -333,6 +366,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
+  }
+
+  // Auto-resolve vendor → vendor_id
+  if (body.vendor && !body.vendor_id) {
+    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
   }
 
   const id = crypto.randomUUID();
@@ -350,6 +388,18 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
 
   const { products } = await request.json() as { products: Record<string, any>[] };
 
+  // Pre-resolve all vendor names to vendor_ids (batch for efficiency)
+  const vendorCache: Record<string, string> = {};
+  for (const raw of products) {
+    if (raw.vendor && !raw.vendor_id) {
+      const key = (raw.vendor as string).trim().toLowerCase();
+      if (!vendorCache[key]) {
+        const vid = await resolveVendorId(env, raw.vendor as string, raw.origin_country as string);
+        if (vid) vendorCache[key] = vid;
+      }
+    }
+  }
+
   const stmts = products.map(raw => {
     // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
     const body: Record<string, any> = {};
@@ -362,6 +412,11 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
       if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
+    }
+    // Apply cached vendor_id
+    if (body.vendor && !body.vendor_id) {
+      const key = (body.vendor as string).trim().toLowerCase();
+      if (vendorCache[key]) body.vendor_id = vendorCache[key];
     }
     const id = crypto.randomUUID();
     const cols = Object.keys(body);
@@ -386,6 +441,11 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
+  }
+
+  // Auto-resolve vendor → vendor_id
+  if (body.vendor !== undefined && !body.vendor_id) {
+    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
   }
 
   const cols = Object.keys(body);

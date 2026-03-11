@@ -6,6 +6,7 @@ import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
+import { useCustomers } from '../hooks/useAdminData';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -36,6 +37,124 @@ const ImageThumbnail = ({ src, type }: { src: string, type: string }) => {
             onError={() => setError(true)} 
         />
     );
+};
+
+// ── Vendor Picker: combo input with dropdown ──
+const VendorPicker = ({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+  className?: string;
+}) => {
+  const { data: customers = [] } = useCustomers();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(value);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Get unique vendor names from customers tagged as vendor
+  const vendors = useMemo(() => {
+    return customers
+      .filter(c => c.tags?.includes('vendor'))
+      .map(c => c.name)
+      .sort((a, b) => a.localeCompare(b));
+  }, [customers]);
+
+  // Also include current value if it's not in vendors list (for pre-existing text values)
+  const allOptions = useMemo(() => {
+    const set = new Set(vendors);
+    if (value && !set.has(value)) set.add(value);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [vendors, value]);
+
+  const filtered = useMemo(() => {
+    if (!query) return allOptions;
+    const q = query.toLowerCase();
+    return allOptions.filter(v => v.toLowerCase().includes(q));
+  }, [allOptions, query]);
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={e => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          // Commit the typed value on blur
+          setTimeout(() => onChange(query.trim()), 150);
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onChange(query.trim());
+            setOpen(false);
+          }
+        }}
+        className={className}
+        placeholder="Type or pick a source..."
+      />
+      {isNew && query.trim() && (
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] uppercase tracking-wider text-tea-accent/70 font-bold">
+          + new
+        </span>
+      )}
+      {open && (filtered.length > 0 || (query.trim() && isNew)) && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {isNew && query.trim() && (
+            <button
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                onChange(query.trim());
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 text-sm text-tea-accent hover:bg-tea-bg transition-colors border-b border-tea-border"
+            >
+              + Add "{query.trim()}" as new source
+            </button>
+          )}
+          {filtered.map(v => (
+            <button
+              key={v}
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setQuery(v);
+                onChange(v);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-tea-bg transition-colors ${
+                v === value ? 'text-tea-accent font-medium' : 'text-tea-text'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onSuccess, initialData, rates = [] }) => {
@@ -476,8 +595,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <input name="originRegion" value={formData.originRegion} onChange={handleChange} className={inputStyle} placeholder="e.g. Nantou, Taiwan" />
                  </div>
                  <div>
-                    <label className={labelStyle}>Vendor</label>
-                    <input name="vendor" value={formData.vendor} onChange={handleChange} className={inputStyle} placeholder="e.g. Chen Family" />
+                    <label className={labelStyle}>Source</label>
+                    <VendorPicker
+                      value={formData.vendor}
+                      onChange={(name) => setFormData(prev => ({ ...prev, vendor: name }))}
+                      className={inputStyle}
+                    />
                  </div>
             </div>
 

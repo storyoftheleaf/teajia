@@ -23,7 +23,8 @@ export interface Product {
   description: string;
   tastingNotes: string[];
   imageUrl: string;
-  vendor?: string; 
+  vendor?: string;
+  vendorId?: string;
   status: 'Active' | 'Archived' | 'Sold Out' | 'Draft';
   costCurrency: Currency;
   quantityPurchased: number; // The amount purchased corresponding to the costAmount
