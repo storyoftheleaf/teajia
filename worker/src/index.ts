@@ -929,7 +929,7 @@ const handleGenerateWisdom: Handler = async (request, env) => {
         input_schema: {
           type: 'object',
           properties: {
-            lore: { type: 'string', description: '2-3 sentences of historical or geographical lore about the tea.' },
+            lore: { type: 'string', description: 'Historical and geographical lore about the tea, written as 2-3 short paragraphs separated by newlines (\\n\\n). Each paragraph should be 1-2 sentences. Cover origin story, terroir significance, and cultural context. Write in an evocative but grounded style.' },
             tastingNotes: { type: 'array', items: { type: 'string' }, description: '3-4 distinct sensory tasting notes.' },
             chineseName: { type: 'string', description: 'Traditional Chinese name of the tea, if known.' },
             originRegion: { type: 'string', description: 'Specific origin region, e.g., "Nantou, Taiwan".' },
