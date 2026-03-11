@@ -487,19 +487,22 @@ const AppContent = () => {
       {/* --- Full Screen Views --- */}
 
       {viewState === 'READER' && selectedStory && (
-         <Suspense fallback={<SectionSkeleton variant="grid" />}>
-           <Reader
-             story={selectedStory}
-             onBack={handleBackToBrowse}
-             onNavigate={(s) => { setSelectedStory(s); setWatchedStoryIds(prev => ({ ...prev, [s.id]: true })); }}
-             onPersonClick={setSelectedPerson}
-             isSaved={savedStoryIds[selectedStory.id]}
-             onToggleSave={() => toggleSave(selectedStory.id)}
-             onShare={handleShare}
-             watchedStories={watchedStoryIds}
-             recommendations={stories.filter(s => s.id !== selectedStory.id && s.type === ContentType.Article).slice(0, 3)}
-           />
-         </Suspense>
+         <ImagePreloaderProvider>
+           <Suspense fallback={<SectionSkeleton variant="grid" />}>
+             <Reader
+               story={selectedStory}
+               onBack={handleBackToBrowse}
+               onNavigate={(s) => { setSelectedStory(s); setWatchedStoryIds(prev => ({ ...prev, [s.id]: true })); }}
+               onPersonClick={setSelectedPerson}
+               isSaved={savedStoryIds[selectedStory.id]}
+               onToggleSave={() => toggleSave(selectedStory.id)}
+               onShare={handleShare}
+               watchedStories={watchedStoryIds}
+               recommendations={stories.filter(s => s.id !== selectedStory.id && s.type === ContentType.Article).slice(0, 3)}
+             />
+           </Suspense>
+           <PreloadIndicator />
+         </ImagePreloaderProvider>
       )}
 
       {viewState === 'STORY_VIEW' && selectedStory && (
@@ -588,8 +591,7 @@ const AppContent = () => {
         />
       )}
 
-      {/* Preload indicator */}
-      <PreloadIndicator />
+      {/* Preload indicator moved to Reader's ImagePreloaderProvider scope */}
 
       {/* Cart "View Cart" toast */}
       <CartToast

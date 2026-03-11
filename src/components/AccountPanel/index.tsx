@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { Icons, SealIcon } from '../Icons';
 import { LogoEmblem } from '../Logos/LogoEmblem';
 import { useTheme } from '../../context/ThemeContext';
@@ -268,6 +269,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               )}
             </button>
             <h2 className="text-lg font-serif text-tea-text  tracking-wide">{headerTitle}</h2>
+            <button
+              onClick={(e) => toggleTheme(e)}
+              className="absolute right-6 min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5 hover:bg-tea-gold/10 rounded-full transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-tea-gold" />
+              ) : (
+                <Moon className="w-5 h-5 text-tea-gold" />
+              )}
+            </button>
           </div>
         </div>
 
