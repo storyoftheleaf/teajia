@@ -53,7 +53,7 @@ const NavButton: React.FC<{
     </>
   );
 
-  const className = `relative flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
+  const className = `relative flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
     isActive ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
   }`;
 
@@ -63,6 +63,7 @@ const NavButton: React.FC<{
         onClick={item.action}
         className={`w-full ${className}`}
         style={{ animationDelay: `${animationDelay}ms` }}
+        aria-label={item.label}
       >
         {content}
       </button>
@@ -75,6 +76,7 @@ const NavButton: React.FC<{
       onClick={onClick}
       className={className}
       style={{ animationDelay: `${animationDelay}ms` }}
+      aria-current={isActive ? 'page' : undefined}
     >
       {content}
     </Link>
@@ -157,7 +159,7 @@ export const Sidebar = ({
       </Link>
 
       {/* Browse Navigation */}
-      <nav className="flex flex-col py-6 gap-1 px-3">
+      <nav className="flex flex-col py-6 gap-1 px-3" aria-label="Browse">
         <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Browse</span>
         {browseItems.map((item, index) => (
           <NavButton
@@ -217,7 +219,8 @@ export const Sidebar = ({
 
         <button
           onClick={onOpenCart}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          aria-label={`Cart${cartItemCount > 0 ? `, ${cartItemCount} items` : ''}`}
         >
           <div className="relative shrink-0">
             <Icons.Bag
@@ -237,7 +240,8 @@ export const Sidebar = ({
 
         <button
           onClick={isLoggedIn ? onLogoutClick : onLoginClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          aria-label={isLoggedIn ? 'Sign out' : 'Sign in'}
         >
           {isLoggedIn ? (
             <LogOut className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-all duration-300 shrink-0" strokeWidth={2} />
@@ -251,7 +255,7 @@ export const Sidebar = ({
 
         <button
           onClick={(e) => toggleTheme(e)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >

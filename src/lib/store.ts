@@ -50,6 +50,13 @@ interface AppState {
   toggleFavoriteTea: (id: string) => void;
   isFavoriteTea: (id: string) => boolean;
   clearFavoriteTeas: () => void;
+  mergeFavorites: (serverFavorites: string[]) => void;
+
+  // Product Comparison
+  compareItems: string[];
+  toggleCompare: (id: string) => void;
+  clearCompare: () => void;
+  removeCompareItem: (id: string) => void;
 
   // Inventory view management
   inventoryColumns: string[];
@@ -174,6 +181,26 @@ export const useAppStore = create<AppState>()(
         })),
       isFavoriteTea: (id) => false, // computed via selector below
       clearFavoriteTeas: () => set({ favoriteTeas: [] }),
+      mergeFavorites: (serverFavorites) =>
+        set((state) => ({
+          favoriteTeas: [...new Set([...state.favoriteTeas, ...serverFavorites])],
+        })),
+
+      // Product Comparison
+      compareItems: [],
+      toggleCompare: (id) =>
+        set((state) => {
+          if (state.compareItems.includes(id)) {
+            return { compareItems: state.compareItems.filter((cid) => cid !== id) };
+          }
+          if (state.compareItems.length >= 4) return state; // max 4
+          return { compareItems: [...state.compareItems, id] };
+        }),
+      clearCompare: () => set({ compareItems: [] }),
+      removeCompareItem: (id) =>
+        set((state) => ({
+          compareItems: state.compareItems.filter((cid) => cid !== id),
+        })),
 
       // Inventory view management
       inventoryColumns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
@@ -212,6 +239,7 @@ export const useAppStore = create<AppState>()(
         currency: state.currency,
         aiPromptTemplate: state.aiPromptTemplate,
         favoriteTeas: state.favoriteTeas,
+        compareItems: state.compareItems,
         inventoryColumns: state.inventoryColumns,
         savedViews: state.savedViews,
         activeViewId: state.activeViewId,
