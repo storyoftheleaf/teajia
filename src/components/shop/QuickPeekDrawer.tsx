@@ -59,7 +59,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 z-modal bg-tea-text/50 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
@@ -69,7 +69,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className={`
-          fixed z-[61] bg-tea-bg shadow-2xl overflow-y-auto
+          fixed z-modal bg-tea-bg shadow-2xl overflow-y-auto
           transition-transform duration-300 ease-out
           bottom-0 left-0 right-0 max-h-[70vh] rounded-t-xl
           lg:bottom-0 lg:right-0 lg:left-auto lg:top-0 lg:w-[400px] lg:max-h-none lg:h-full lg:rounded-none
@@ -85,7 +85,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         </div>
 
         {/* Header */}
-        <div className="sticky top-0 bg-tea-bg px-6 py-4 flex items-center justify-between z-10" style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}>
+        <div className="sticky top-0 bg-tea-bg px-6 py-4 flex items-center justify-between z-10" style={{ boxShadow: '0 1px 0 var(--tea-border)' }}>
           <h3 className="font-serif text-lg text-tea-text truncate pr-4">
             {item.name}
           </h3>

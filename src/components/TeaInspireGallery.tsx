@@ -241,7 +241,7 @@ export const TeaInspireGallery: React.FC = () => {
       {/* Image Detail Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 z-50 bg-tea-text/95 flex items-center justify-center animate-[fadeIn_0.2s_ease-out]"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative w-full h-full flex flex-col md:flex-row" onClick={(e) => e.stopPropagation()}>

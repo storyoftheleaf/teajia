@@ -59,9 +59,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <button
         key={section.id}
         onClick={() => onNavigate(section.id)}
-        className={`flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out]`}
+        className={`flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none`}
         style={{ animationDelay: `${index * 50}ms` }}
         title={section.label}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={section.label}
       >
         {/* Icon with relative positioning for badge */}
         <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-105">
@@ -69,7 +71,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             className={`transition-all duration-300 flex-shrink-0 ${
               isActive
                 ? 'text-tea-gold w-5 h-5 scale-110 origin-center'
-                : 'text-tea-paper/60 w-5 h-5 group-hover:text-tea-paper/85'
+                : 'text-tea-text/60 w-5 h-5 group-hover:text-tea-text/85'
             }`}
             strokeWidth={2}
             {...(isActive ? { fill: 'currentColor' } : {})}
@@ -93,10 +95,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     <>
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/92 backdrop-blur-xl z-[65] animate-[slideUp_0.4s_ease-out] transition-all duration-200 pb-[env(safe-area-inset-bottom)] ${
+        aria-label="Main navigation"
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/92 backdrop-blur-xl z-sticky animate-[slideUp_0.4s_ease-out] transition-all duration-200 pb-[env(safe-area-inset-bottom)] ${
           hidden ? 'opacity-0 pointer-events-none' : 'h-[56px] opacity-100'
         }`}
-        style={{ boxShadow: '0 -8px 24px rgba(0,0,0,0.04)' }}
+        style={{ boxShadow: '0 -8px 24px var(--tea-accent-sub)' }}
       >
         <div className="flex items-center w-full px-0 h-full">
           {/* Left sections */}
@@ -119,8 +122,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 <LogoEmblem
                   size={48}
                   color={isDark
-                    ? (activeSection === 'HOME' ? 'rgba(200,170,120,0.18)' : 'rgba(200,170,120,0.10)')
-                    : (activeSection === 'HOME' ? 'rgba(0,0,0,0.22)' : 'rgba(0,0,0,0.15)')
+                    ? (activeSection === 'HOME' ? 'var(--tea-border)' : 'var(--tea-accent-sub)')
+                    : (activeSection === 'HOME' ? 'var(--tea-text-dim)' : 'var(--tea-accent-sub)')
                   }
                   className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
                 />

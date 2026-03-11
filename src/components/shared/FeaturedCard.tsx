@@ -45,7 +45,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           <button
             onClick={onCtaClick}
             className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm pb-0.5"
-            style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.3)' }}
+            style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
           >
             {ctaLabel}
             <Icons.ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -54,7 +54,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
         {/* Decorative area — visible on all screens */}
         {decorativeElement && (
-          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06), inset 1px 0 0 rgba(184,146,78,0.06)' }}>
+          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 1px 0 0 var(--tea-accent-sub)' }}>
             {decorativeElement}
           </div>
         )}
@@ -62,15 +62,15 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
       {/* Metadata bar */}
       {metadata && metadata.length > 0 && (
-        <div className="px-6 md:px-8 py-3 flex items-center gap-6" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+        <div className="px-6 md:px-8 py-3 flex items-center gap-6" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           {metadata.map((item, i) => (
             <React.Fragment key={item.label}>
               {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-tea-paper/40 font-sans">
+                <span className="text-[10px] uppercase tracking-wider text-tea-text/40 font-sans">
                   {item.label}
                 </span>
-                <span className="text-xs text-tea-paper/60 font-sans">
+                <span className="text-xs text-tea-text/60 font-sans">
                   {item.value}
                 </span>
               </div>

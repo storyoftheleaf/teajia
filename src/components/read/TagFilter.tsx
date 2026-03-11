@@ -42,7 +42,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
         </svg>
         Filter
         {hasSelection && (
-          <span className="bg-tea-gold text-tea-paper text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+          <span className="bg-tea-gold text-tea-text text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
             {selectedTags.length}
           </span>
         )}
@@ -91,7 +91,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
                             onClick={() => onTagToggle(tag)}
                             className={`px-2.5 py-1 text-[11px] font-sans transition-all duration-150 ${
                               isSelected
-                                ? 'bg-tea-gold text-tea-paper'
+                                ? 'bg-tea-gold text-tea-text'
                                 : 'bg-tea-text/5/5 text-tea-text/70 hover:bg-tea-text/10 dark:hover:bg-tea-bg/10'
                             }`}
                           >

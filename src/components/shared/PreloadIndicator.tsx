@@ -25,7 +25,7 @@ export const PreloadIndicator: React.FC = () => {
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-[55] h-[2px] transition-opacity duration-500 ${
+      className={`fixed top-0 left-0 right-0 z-sticky h-[2px] transition-opacity duration-500 ${
         pendingCount > 0 ? 'opacity-100' : 'opacity-0'
       }`}
     >

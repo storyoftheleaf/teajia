@@ -185,7 +185,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const totalPrice = getQuantityPrice(item, currentQuantity);
 
   const purchaseControls = showQuantityControls && onAddToCart && (
-    <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'rgba(200,170,120,0.04)', boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.08), inset 0 -1px 0 rgba(200,170,120,0.04), 0 1px 4px rgba(0,0,0,0.2)' }}>
+    <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgba(0,0,0,0.2)' }}>
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
@@ -203,7 +203,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -213,24 +213,24 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-paper/60">Quantity</span>
-            <div className="flex items-center rounded-lg bg-black/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06)' }}>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
+            <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
-                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
+                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-text disabled:opacity-30"
               >−</button>
-              <span className="px-4 py-2 num text-sm min-w-[50px] text-center" style={{ boxShadow: 'inset 1px 0 0 rgba(200,170,120,0.08), inset -1px 0 0 rgba(200,170,120,0.08)' }}>{currentQuantity}</span>
+              <span className="px-4 py-2 num text-sm min-w-[50px] text-center" style={{ boxShadow: 'inset 1px 0 0 var(--tea-border), inset -1px 0 0 var(--tea-border)' }}>{currentQuantity}</span>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.min(maxQuantity, (prev[item.id] || defaultQuantity) + 1) }))}
                 disabled={currentQuantity >= maxQuantity}
-                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
+                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-text disabled:opacity-30"
               >+</button>
             </div>
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -244,7 +244,10 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   return (
     <div
       ref={focusTrapRef}
-      className={`fixed inset-0 z-[100] transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0'}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.name}
+      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-tea-text/95' : 'bg-tea-text/0'}`}
       onClick={onClose}
       onTouchStart={handleZoomTouchStart}
       onTouchMove={handleZoomTouchMove}
@@ -254,7 +257,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       <div className="hidden md:flex w-full h-full flex-col items-center justify-center p-8 cursor-zoom-out">
         <div className="relative w-full max-w-4xl flex flex-col items-center">
           <div
-            className="relative max-h-[65vh] w-auto shadow-2xl rounded-sm overflow-hidden transition-transform duration-100"
+            className="relative max-h-[65vh] w-auto shadow-2xl rounded-lg overflow-hidden transition-transform duration-100"
             style={{ transform: `translateX(${swipeOffset * 0.5}px)` }}
           >
             {item.image ? (
@@ -267,26 +270,26 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-3xl font-serif text-tea-paper mb-1">{item.name}</h2>
+            <h2 className="text-3xl font-serif text-tea-text mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center justify-center gap-3 text-tea-paper/70 text-xs uppercase tracking-[0.15em] mb-4">
+              <div className="flex items-center justify-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-4">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-paper/80 leading-relaxed mb-4">{item.description}</p>
+              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-4">{item.description}</p>
             )}
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-paper/70 hover:text-tea-text transition-colors" onClick={onClose}>
+        <button className="absolute top-6 right-6 text-tea-text/70 hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-lg" onClick={onClose} aria-label="Close">
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>
@@ -314,28 +317,28 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         </div>
 
         {/* Sheet content */}
-        <div className="bg-[#1a1a1a] rounded-t-2xl relative -mt-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
             <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />
           </div>
 
           <div className="px-6 pb-6">
-            <h2 className="text-2xl font-serif text-tea-paper mb-1">{item.name}</h2>
+            <h2 className="text-2xl font-serif text-tea-text mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center gap-3 text-tea-paper/70 text-xs uppercase tracking-[0.15em] mb-3">
+              <div className="flex items-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-3">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-paper/80 leading-relaxed mb-3">{item.description}</p>
+              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-3">{item.description}</p>
             )}
             {purchaseControls}
           </div>

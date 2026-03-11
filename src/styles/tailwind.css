@@ -1,0 +1,252 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   Espresso + Gold — Theme Variables
+   Dark mode (default) and Light mode
+   ============================================ */
+
+:root {
+  color-scheme: dark;
+  --tea-bg: #18130e;
+  --tea-surface: #28211a;
+  --tea-elevated: #3a3126;
+  --tea-text: #ede4d4;
+  --tea-text-sec: #b5a892;
+  --tea-text-dim: #80735f;
+  --tea-gold: #b8924e;
+  --tea-gold-lt: #d4ac66;
+  --tea-border: rgba(184,146,78,0.08);
+  --tea-accent-sub: rgba(184,146,78,0.1);
+
+  /* Font Families */
+  --font-display: 'Vollkorn', 'Lora', 'Noto Serif SC', Georgia, serif;
+  --font-serif: 'Lora', 'Noto Serif SC', serif;
+  --font-body: 'Lora', 'Noto Serif SC', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+
+  /* Legacy aliases (for CSS that still uses old names) */
+  --color-tea-seal: var(--tea-gold);
+  --color-tea-seal-dark: var(--tea-gold);
+}
+
+/* Light mode */
+:root.light, .light {
+  color-scheme: light;
+  --tea-bg: #f4ece0;
+  --tea-surface: #e6dbcc;
+  --tea-elevated: #d5c8b4;
+  --tea-text: #18130e;
+  --tea-text-sec: #5e5342;
+  --tea-text-dim: #9a8c78;
+  --tea-gold: #8e6d2e;
+  --tea-gold-lt: #a88340;
+  --tea-border: rgba(142,109,46,0.1);
+  --tea-accent-sub: rgba(142,109,46,0.07);
+}
+
+/* ============================================
+   Card & Scrollbar Styles
+   ============================================ */
+
+.tea-card-scroll::-webkit-scrollbar { width: 3px; }
+.tea-card-scroll::-webkit-scrollbar-track { background: transparent; }
+.tea-card-scroll::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
+
+/* Admin form overrides — kill native browser chrome */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
+
+/* Form elements — kill native browser grey/white chrome */
+select option { background: var(--tea-surface); color: var(--tea-text); }
+select { color-scheme: dark; }
+input[type="datetime-local"],
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6) sepia(0.5) hue-rotate(10deg) brightness(0.8);
+  cursor: pointer;
+  opacity: 0.6;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+@keyframes panelReveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom scrollbar for reader */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================
+   Base Typography — Inter for UI, Lora for reading
+   ============================================ */
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  transition: background-color 0.6s ease, color 0.6s ease;
+}
+
+p {
+  line-height: 1.7;
+}
+
+/* ============================================
+   Texture Overlay Classes
+   ============================================ */
+
+.texture-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.grain-texture {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='5' stitchTiles='stitch' seed='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.fabric-texture {
+  background-image: repeating-linear-gradient(90deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px),
+                    repeating-linear-gradient(0deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px);
+}
+
+/* ============================================
+   Vertical Text Utility
+   ============================================ */
+
+.writing-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* ============================================
+   Enhanced Typography for Articles
+   ============================================ */
+
+.article-h2 {
+  position: relative;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.article-h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 3rem;
+  height: 2px;
+  background-color: var(--tea-gold);
+  transition: width 0.3s ease-out;
+}
+
+.article-h2:hover::after {
+  width: 5rem;
+}
+
+/* Drop Cap styling */
+.drop-cap::first-letter {
+  font-size: 2.5em;
+  font-weight: 700;
+  float: left;
+  margin-right: 0.1em;
+  line-height: 1;
+  color: var(--tea-gold);
+}
+
+/* Pull Quote styling */
+.pull-quote {
+  border-left: 3px solid var(--tea-gold);
+  padding: 1.5rem 1.5rem 1.5rem 2rem;
+  margin: 2rem 0;
+  font-style: italic;
+  color: var(--tea-text-sec);
+  background: linear-gradient(90deg, rgba(184, 146, 78, 0.04) 0%, transparent 80%);
+}
+
+/* Side Note styling */
+.side-note {
+  background-color: var(--tea-accent-sub);
+  border-left: 2px solid var(--tea-gold);
+  padding: 1rem;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  color: var(--tea-text-sec);
+}
+
+/* Article body enhanced */
+.article-body {
+  line-height: 1.85;
+  letter-spacing: 0.2px;
+}
+
+.article-body p {
+  margin-bottom: 1.5rem;
+}
+
+.article-section-break {
+  height: 1px;
+  background-color: var(--tea-border);
+  margin: 3rem 0;
+}
+
+/* ============================================
+   Print styles
+   ============================================ */
+
+@media print {
+  .texture-overlay,
+  .wood-texture,
+  nav,
+  .no-scrollbar,
+  button { display: none !important; }
+  body { background: white !important; color: black !important; }
+  main { padding: 0 !important; margin: 0 !important; }
+}
+
+/* ============================================
+   Accessibility: Reduced Motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--tea-gold);
+  outline-offset: 2px;
+}

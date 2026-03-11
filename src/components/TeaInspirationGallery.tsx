@@ -34,7 +34,7 @@ export const TeaInspirationGallery: React.FC = () => {
             onClick={() => setActiveSection(section.id)}
             className={`px-4 md:px-6 py-2 md:py-3 rounded-sm transition-all duration-300 text-sm md:text-base font-medium uppercase tracking-wider ${
               activeSection === section.id
-                ? 'bg-tea-gold text-tea-paper shadow-lg'
+                ? 'bg-tea-gold text-tea-text shadow-lg'
                 : 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated'
             }`}
           >
@@ -60,7 +60,7 @@ export const TeaInspirationGallery: React.FC = () => {
           ))
         ) : (
           <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <Icons.Image className="w-12 h-12 text-tea-paper/30 mb-4" />
+            <Icons.Image className="w-12 h-12 text-tea-text/30 mb-4" />
             <p className="text-tea-text/50 text-sm">
               Gallery coming soon. Check back for inspiration.
             </p>
@@ -77,7 +77,7 @@ export const TeaInspirationGallery: React.FC = () => {
           <p className="text-tea-text/70 mb-6 max-w-md">
             We celebrate community creativity. Share your space and inspire others.
           </p>
-          <button className="px-6 md:px-8 py-2 md:py-3 border border-tea-gold text-tea-gold hover:bg-tea-gold hover:text-tea-paper uppercase tracking-wider text-xs font-medium rounded-sm transition-colors duration-300">
+          <button className="px-6 md:px-8 py-2 md:py-3 border border-tea-gold text-tea-gold hover:bg-tea-gold hover:text-tea-text uppercase tracking-wider text-xs font-medium rounded-sm transition-colors duration-300">
             Submit Your Space
           </button>
         </div>

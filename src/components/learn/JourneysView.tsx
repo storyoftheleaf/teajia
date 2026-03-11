@@ -102,7 +102,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                     ))}
                   </div>
                   {collection.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-5 pt-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+                    <div className="flex flex-wrap gap-2 mt-5 pt-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
                       {collection.tags.map(tag => (
                         <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                           {tag}

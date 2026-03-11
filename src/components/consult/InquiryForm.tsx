@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/consult';
@@ -113,6 +114,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     }));
   };
 
+  const [optionalOpen, setOptionalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }) => {
@@ -162,7 +164,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className={`fixed inset-0 z-[200] flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-black/40' : 'bg-black/0'}`}
+      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
     >
       <div
         ref={focusTrapRef}
@@ -210,6 +212,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 Tell me what you're looking for.
               </p>
 
+              {/* Required fields */}
               <FloatingField
                 label="Your name"
                 type="text"
@@ -229,75 +232,93 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
               />
 
               <FloatingField
-                label="City or country"
-                type="text"
-                value={formData.location}
-                onChange={v => setFormData(p => ({ ...p, location: v }))}
-                autoComplete="address-level2"
-              />
-
-              <FloatingField
-                label="WhatsApp number (for Bali-based conversations)"
-                type="text"
-                value={formData.whatsapp}
-                onChange={v => setFormData(p => ({ ...p, whatsapp: v }))}
-                autoComplete="tel"
-              />
-
-              {/* Interests checkboxes */}
-              <fieldset className="mb-6">
-                <legend className="font-sans text-sm mb-4 text-tea-text/70">
-                  What brings you here?
-                </legend>
-                <div className="space-y-4">
-                  {INQUIRY_OPTIONS.map(option => (
-                    <label
-                      key={option}
-                      className="flex items-center gap-3 cursor-pointer group min-h-[44px]"
-                    >
-                      <span
-                        className={`
-                          w-[18px] h-[18px] rounded-[3px] border flex-shrink-0 flex items-center justify-center
-                          transition-colors duration-200
-                          ${formData.interests.includes(option)
-                            ? 'border-transparent bg-tea-gold'
-                            : 'border-tea-border'
-                          }
-                        `}
-                      >
-                        {formData.interests.includes(option) && (
-                          <Icons.Check className="w-3 h-3 text-white" />
-                        )}
-                      </span>
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={formData.interests.includes(option)}
-                        onChange={() => toggleInterest(option)}
-                      />
-                      <span className="font-sans text-sm text-tea-text">
-                        {option}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <FloatingField
                 label="Tell me what you're envisioning (a few sentences is perfect)"
                 type="textarea"
                 value={formData.vision}
                 onChange={v => setFormData(p => ({ ...p, vision: v }))}
+                required
                 autoComplete="off"
               />
 
-              <FloatingField
-                label="How did you hear about us? (friend, article, Instagram…)"
-                type="text"
-                value={formData.referral}
-                onChange={v => setFormData(p => ({ ...p, referral: v }))}
-                autoComplete="off"
-              />
+              {/* Collapsible optional section */}
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => setOptionalOpen(prev => !prev)}
+                  className="flex items-center gap-2 text-sm text-tea-text-sec hover:text-tea-gold transition-colors duration-200 py-2"
+                  aria-expanded={optionalOpen}
+                >
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${optionalOpen ? 'rotate-180' : ''}`} />
+                  <span className="font-sans">Tell us more (optional)</span>
+                </button>
+
+                {optionalOpen && (
+                  <div className="mt-4 animate-[fadeIn_0.2s_ease-out]">
+                    <FloatingField
+                      label="WhatsApp number (for Bali-based conversations)"
+                      type="text"
+                      value={formData.whatsapp}
+                      onChange={v => setFormData(p => ({ ...p, whatsapp: v }))}
+                      autoComplete="tel"
+                    />
+
+                    <FloatingField
+                      label="City or country"
+                      type="text"
+                      value={formData.location}
+                      onChange={v => setFormData(p => ({ ...p, location: v }))}
+                      autoComplete="address-level2"
+                    />
+
+                    {/* Interests checkboxes */}
+                    <fieldset className="mb-6">
+                      <legend className="font-sans text-sm mb-4 text-tea-text/70">
+                        What brings you here?
+                      </legend>
+                      <div className="space-y-4">
+                        {INQUIRY_OPTIONS.map(option => (
+                          <label
+                            key={option}
+                            className="flex items-center gap-3 cursor-pointer group min-h-[44px]"
+                          >
+                            <span
+                              className={`
+                                w-[18px] h-[18px] rounded-md border flex-shrink-0 flex items-center justify-center
+                                transition-colors duration-200
+                                ${formData.interests.includes(option)
+                                  ? 'border-transparent bg-tea-gold'
+                                  : 'border-tea-border'
+                                }
+                              `}
+                            >
+                              {formData.interests.includes(option) && (
+                                <Icons.Check className="w-3 h-3 text-white" />
+                              )}
+                            </span>
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={formData.interests.includes(option)}
+                              onChange={() => toggleInterest(option)}
+                            />
+                            <span className="font-sans text-sm text-tea-text">
+                              {option}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <FloatingField
+                      label="How did you hear about us? (friend, article, Instagram…)"
+                      type="text"
+                      value={formData.referral}
+                      onChange={v => setFormData(p => ({ ...p, referral: v }))}
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="mt-8">
                 <Button type="submit" variant="primary" fullWidth loading={submitting} disabled={submitting}>

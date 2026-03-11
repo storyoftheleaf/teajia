@@ -89,7 +89,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                     <Icons.Heart
                       className={`w-6 h-6 ${
                         isSaved
-                          ? 'fill-tea-seal text-tea-gold'
+                          ? 'fill-tea-gold text-tea-gold'
                           : 'text-tea-text'
                       }`}
                     />

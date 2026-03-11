@@ -98,6 +98,16 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function cachedJson(data: unknown, maxAge: number, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, max-age=${maxAge}, s-maxage=${maxAge}`,
+    },
+  });
+}
+
 function cors(response: Response, origin: string): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', origin);
@@ -238,14 +248,16 @@ const handleGetProducts: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  // Get rates for pricing calculation
-  const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
+  // Batch rates + products in a single D1 round-trip
+  const [ratesResult, result] = await env.DB.batch([
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
+    env.DB.prepare('SELECT * FROM products ORDER BY created_at DESC'),
+  ]);
   const rates = new Map<string, number>();
   for (const r of ratesResult.results) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
 
-  const result = await env.DB.prepare('SELECT * FROM products ORDER BY created_at DESC').all();
   const products = result.results.map(p => {
     // Parse JSON array fields
     if (typeof p.tasting_notes === 'string') {
@@ -269,15 +281,26 @@ const PUBLIC_FIELDS = [
 ] as const;
 
 const handleGetPublicProducts: Handler = async (_request, env) => {
-  const ratesResult = await env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates').all();
+  // Batch rates + products in a single D1 round-trip; select only needed columns
+  const [ratesResult, result] = await env.DB.batch([
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
+    env.DB.prepare(
+      `SELECT id, type, given_name, chinese_name, product_name, year,
+              origin_country, origin_region, stock_grams, description,
+              tasting_notes, image_url, additional_images, status,
+              is_personal, can_reorder, is_featured, lore, show_wisdom,
+              processing_notes, terroir, mood, experience,
+              cost_amount, cost_currency, quantity_purchased,
+              shipping_rate_per_kg, fixed_retail_price_usd
+       FROM products
+       WHERE is_public = 1 AND status = 'Active'
+       ORDER BY created_at DESC`
+    ),
+  ]);
   const rates = new Map<string, number>();
   for (const r of ratesResult.results) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
-
-  const result = await env.DB.prepare(
-    "SELECT * FROM products WHERE is_public = 1 AND status = 'Active' ORDER BY created_at DESC"
-  ).all();
 
   const products = result.results.map(p => {
     if (typeof p.tasting_notes === 'string') {
@@ -294,7 +317,7 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
     }
     return safe;
   });
-  return json(products);
+  return cachedJson(products, 60);
 };
 
 const handleCreateProduct: Handler = async (request, env) => {
@@ -326,9 +349,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   if (authErr) return authErr;
 
   const { products } = await request.json() as { products: Record<string, any>[] };
-  let inserted = 0;
 
-  for (const raw of products) {
+  const stmts = products.map(raw => {
     // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
     const body: Record<string, any> = {};
     for (const [k, v] of Object.entries(raw)) {
@@ -344,12 +366,15 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     const id = crypto.randomUUID();
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
-    await env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
-      .bind(id, ...cols.map(c => body[c] ?? null)).run();
-    inserted++;
+    return env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
+      .bind(id, ...cols.map(c => body[c] ?? null));
+  });
+
+  for (let i = 0; i < stmts.length; i += 100) {
+    await env.DB.batch(stmts.slice(i, i + 100));
   }
 
-  return json({ inserted });
+  return json({ inserted: stmts.length });
 };
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
@@ -382,7 +407,7 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
 // ── Exchange Rates ──
 const handleGetRates: Handler = async (_request, env) => {
   const result = await env.DB.prepare('SELECT * FROM exchange_rates').all();
-  return json(result.results);
+  return cachedJson(result.results, 3600);
 };
 
 // ── Invoices ──
@@ -403,7 +428,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
-  await env.DB.prepare(
+  const invoiceStmt = env.DB.prepare(
     `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
@@ -415,14 +440,15 @@ const handleCreateInvoice: Handler = async (request, env) => {
     body.invoice.shipping_cost_usd || 0,
     body.invoice.status || 'Pending',
     0
-  ).run();
+  );
 
-  for (const item of body.lineItems) {
-    const itemId = crypto.randomUUID();
-    await env.DB.prepare(
+  const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
+    env.DB.prepare(
       'INSERT INTO invoice_line_items (id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?)'
-    ).bind(itemId, id, item.product_id, item.quantity, item.price_at_sale).run();
-  }
+    ).bind(crypto.randomUUID(), id, item.product_id, item.quantity, item.price_at_sale)
+  );
+
+  await env.DB.batch([invoiceStmt, ...lineItemStmts]);
 
   return json({ id, invoice_number: body.invoice.invoice_number }, 201);
 };
@@ -456,8 +482,10 @@ const handleDeleteInvoice: Handler = async (request, env, params) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
 
-  await env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?').bind(params.id).run();
-  await env.DB.prepare('DELETE FROM invoices WHERE id = ?').bind(params.id).run();
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM invoices WHERE id = ?').bind(params.id),
+  ]);
   return json({ success: true });
 };
 
@@ -474,16 +502,17 @@ const handleFulfillInvoice: Handler = async (request, env) => {
 
   const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
 
-  for (const item of items.results) {
-    await env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ?')
-      .bind(item.quantity, item.product_id).run();
-  }
+  const stockUpdates = items.results.map(item =>
+    env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ?')
+      .bind(item.quantity, item.product_id)
+  );
 
-  await env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?")
-    .bind(invoice_id).run();
-
-  await env.DB.prepare("INSERT INTO activity_logs (id, action, details) VALUES (?, 'FULFILLMENT', ?)")
-    .bind(crypto.randomUUID(), `Order ${invoice.invoice_number} marked as filled. Inventory deducted.`).run();
+  await env.DB.batch([
+    ...stockUpdates,
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id),
+    env.DB.prepare("INSERT INTO activity_logs (id, action, details) VALUES (?, 'FULFILLMENT', ?)")
+      .bind(crypto.randomUUID(), `Order ${invoice.invoice_number} marked as filled. Inventory deducted.`),
+  ]);
 
   return json({ success: true });
 };
@@ -504,10 +533,12 @@ const handleTruncateAll: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  await env.DB.prepare('DELETE FROM invoice_line_items').run();
-  await env.DB.prepare('DELETE FROM invoices').run();
-  await env.DB.prepare('DELETE FROM products').run();
-  await env.DB.prepare('DELETE FROM activity_logs').run();
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM invoice_line_items'),
+    env.DB.prepare('DELETE FROM invoices'),
+    env.DB.prepare('DELETE FROM products'),
+    env.DB.prepare('DELETE FROM activity_logs'),
+  ]);
   return json({ success: true });
 };
 
@@ -599,8 +630,10 @@ const handleDeleteCustomer: Handler = async (request, env, params) => {
   if (authErr) return authErr;
 
   // Unlink invoices (set customer_id to null) rather than cascade delete
-  await env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id).run();
-  await env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id),
+  ]);
   return json({ success: true });
 };
 
@@ -690,7 +723,7 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
 
   const customers = await env.DB.prepare('SELECT id, name, whatsapp FROM customers').all();
 
-  let linked = 0;
+  const updates: D1PreparedStatement[] = [];
   for (const inv of unlinked.results) {
     const name = (inv.customer_name as string || '').toLowerCase().trim();
     if (!name) continue;
@@ -706,13 +739,20 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
     }
 
     if (match) {
-      await env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
-        .bind(match.id, inv.id).run();
-      linked++;
+      updates.push(
+        env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
+          .bind(match.id, inv.id)
+      );
     }
   }
 
-  return json({ linked, total_unlinked: unlinked.results.length });
+  if (updates.length > 0) {
+    for (let i = 0; i < updates.length; i += 100) {
+      await env.DB.batch(updates.slice(i, i + 100));
+    }
+  }
+
+  return json({ linked: updates.length, total_unlinked: unlinked.results.length });
 };
 
 // ── AI Wisdom Generation ──
@@ -837,11 +877,11 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 
   const confirmedCount = (count?.total as number) || 0;
 
-  return json({
+  return cachedJson({
     ...event,
     confirmed_count: confirmedCount,
     seats_remaining: (event.total_capacity as number) - confirmedCount,
-  });
+  }, 30);
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
@@ -962,12 +1002,12 @@ const handleGetEventAvailability: Handler = async (_request, env, params) => {
   const confirmedCount = (count?.total as number) || 0;
   const totalCapacity = event.total_capacity as number;
 
-  return json({
+  return cachedJson({
     total_capacity: totalCapacity,
     confirmed_count: confirmedCount,
     seats_remaining: totalCapacity - confirmedCount,
     is_full: confirmedCount >= totalCapacity,
-  });
+  }, 10);
 };
 
 const handleGetRSVP: Handler = async (_request, env, params) => {
@@ -1688,6 +1728,67 @@ const handleDeleteSavedLocation: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Newsletter ──
+
+const handleNewsletterSubscribe: Handler = async (request, env) => {
+  const body = await request.json() as Record<string, any>;
+  const email = (body.email || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json({ error: 'Invalid email address' }, 400);
+  }
+  const source = typeof body.source === 'string' ? body.source.slice(0, 50) : 'website';
+  await env.DB.prepare(
+    'INSERT OR IGNORE INTO newsletter_subscribers (email, source) VALUES (?, ?)'
+  ).bind(email, source).run();
+  return json({ success: true });
+};
+
+const handleGetNewsletterSubscribers: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const { results } = await env.DB.prepare(
+    'SELECT id, email, subscribed_at, source FROM newsletter_subscribers ORDER BY subscribed_at DESC'
+  ).all();
+  return json({ subscribers: results });
+};
+
+// ── User Favorites ──
+const handleGetUserFavorites: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const userId = claims.sub;
+  const { results } = await env.DB.prepare(
+    'SELECT item_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC'
+  ).bind(userId).all();
+  return json({ favorites: (results || []).map((r: any) => r.item_id) });
+};
+
+const handlePutUserFavorites: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const userId = claims.sub;
+  const body = await request.json() as { favorites: string[] };
+  if (!Array.isArray(body.favorites)) {
+    return json({ error: 'favorites must be an array of item IDs' }, 400);
+  }
+  // Replace all favorites: delete existing, insert new
+  await env.DB.prepare('DELETE FROM user_favorites WHERE user_id = ?').bind(userId).run();
+  if (body.favorites.length > 0) {
+    const stmt = env.DB.prepare(
+      'INSERT OR IGNORE INTO user_favorites (user_id, item_id) VALUES (?, ?)'
+    );
+    const batch = body.favorites.map((itemId: string) => stmt.bind(userId, itemId));
+    await env.DB.batch(batch);
+  }
+  return json({ ok: true, count: body.favorites.length });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -1780,6 +1881,14 @@ const routes: [string, string, Handler][] = [
 
   // Media Upload
   ['POST', '/api/upload-flyer', handleUploadFlyer],
+
+  // Newsletter
+  ['POST', '/api/newsletter/subscribe', handleNewsletterSubscribe],
+  ['GET', '/api/newsletter/subscribers', handleGetNewsletterSubscribers],
+
+  // User Favorites
+  ['GET', '/api/user/favorites', handleGetUserFavorites],
+  ['PUT', '/api/user/favorites', handlePutUserFavorites],
 ];
 
 export default {

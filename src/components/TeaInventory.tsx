@@ -15,6 +15,8 @@ import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
+import { useProductUrl } from '../hooks/useProductUrl';
+import { CompareView } from './shop/CompareView';
 import type { Product } from '../admin/types';
 
 // Use shared type alias for backward compatibility in this component if needed,
@@ -47,14 +49,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems, toggleCompare, clearCompare } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
+  const compareSet = useMemo(() => new Set(compareItems), [compareItems]);
+  const [showCompare, setShowCompare] = useState(false);
 
   // Expanded Card State (Accordion)
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Image Modal State
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
+
+  // Sync modal state with URL (?product=ID) for shareability and back-button support
+  const { closeWithHistory } = useProductUrl(inventory, viewItem, setViewItem);
 
   // Local state for quantity selector map (id -> quantity)
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -220,11 +227,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       <AlcoveModal
         item={viewItem}
         items={filteredInventory}
-        onClose={() => setViewItem(null)}
+        onClose={closeWithHistory}
         onItemChange={(item) => setViewItem(item)}
         onAddToCart={(item, quantity, total) => {
           if (onAddToCart) onAddToCart(item, quantity, total);
-          setViewItem(null);
+          closeWithHistory();
         }}
       />
 
@@ -275,8 +282,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* --- Filter Modal --- */}
       {isFilterOpen && (
-          <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center p-0 md:p-4">
-              <div className="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
+          <div className="fixed inset-0 z-modal flex items-end md:items-center justify-center p-0 md:p-4">
+              <div className="absolute inset-0 bg-tea-text/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
               <div className="relative w-full md:max-w-xl bg-tea-bg rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
                   <div className="px-6 py-3 border-b border-tea-gold/[0.08] flex justify-between items-center bg-tea-surface">
                       <span className="text-xs uppercase tracking-[0.2em] text-tea-text font-semibold">Refine Collection</span>
@@ -286,18 +293,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                       <div className="mb-6">
                           <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Type</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-paper' : 'border-tea-gold/[0.08]'}`}>All</button>
+                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-text' : 'border-tea-gold/[0.08]'}`}>All</button>
                               {TEA_TYPES.map(t => (
-                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-paper' : 'border-tea-gold/[0.08]'}`}>{t}</button>
+                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-text' : 'border-tea-gold/[0.08]'}`}>{t}</button>
                               ))}
                           </div>
                       </div>
                       <div>
                           <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Feeling</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-paper border-tea-gold' : 'border-tea-gold/[0.08]'}`}>All</button>
+                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-gold/[0.08]'}`}>All</button>
                               {FEELINGS_LIST.map(f => (
-                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-paper border-tea-gold' : 'border-tea-gold/[0.08]'}`}>{f}</button>
+                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-gold/[0.08]'}`}>{f}</button>
                               ))}
                           </div>
                       </div>
@@ -323,9 +330,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <div className="border-t border-tea-gold/[0.08] pt-6">
                   <h3 className="font-serif italic text-sm text-tea-text/50 mb-3">Feeling</h3>
                   <div className="flex flex-col gap-1.5">
-                     <button onClick={() => setActiveFeeling('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-paper font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All</button>
+                     <button onClick={() => setActiveFeeling('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All</button>
                      {FEELINGS_LIST.map(f => (
-                        <button key={f} onClick={() => setActiveFeeling(f)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === f ? 'bg-tea-gold text-tea-paper font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>{f}</button>
+                        <button key={f} onClick={() => setActiveFeeling(f)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === f ? 'bg-tea-gold text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>{f}</button>
                      ))}
                   </div>
                </div>
@@ -383,7 +390,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
                         imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" teaType={item.type} />}
                         badgesComponent={
-                           <span className="card-grid-badge">{item.type}</span>
+                           <div className="flex items-center gap-1.5">
+                              <span className="card-grid-badge">{item.type}</span>
+                              <button
+                                 onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
+                                 className={`p-1 rounded-sm transition-colors ${compareSet.has(item.id) ? 'text-tea-gold bg-tea-accent-sub' : 'text-tea-text/30 hover:text-tea-text/60'}`}
+                                 aria-label={compareSet.has(item.id) ? 'Remove from compare' : 'Add to compare'}
+                                 title="Compare"
+                              >
+                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                    <rect x="14" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                 </svg>
+                              </button>
+                           </div>
                         }
                         priceDisplay={
                            <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
@@ -500,6 +520,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         >
                                             <Icons.Heart filled={isFavorite} className="w-5 h-5" />
                                         </button>
+                                        {/* Compare toggle */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
+                                            className={`-my-1 p-2 transition-colors ${compareSet.has(item.id) ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                            aria-label={compareSet.has(item.id) ? `Remove ${item.name} from compare` : `Add ${item.name} to compare`}
+                                            title={compareItems.length >= 4 && !compareSet.has(item.id) ? 'Max 4 items' : 'Compare'}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="3" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                                <rect x="14" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                            </svg>
+                                        </button>
                                         {/* Info button — opens AlcoveCard detail view */}
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
@@ -588,6 +620,30 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          )}
       </div>
       </div>
+
+      {/* Floating Compare Button */}
+      {compareItems.length > 0 && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 animate-[fadeIn_0.3s_ease-out]">
+          <button
+            onClick={() => setShowCompare(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="18" rx="1" />
+              <rect x="14" y="3" width="7" height="18" rx="1" />
+            </svg>
+            <span>Compare ({compareItems.length})</span>
+          </button>
+        </div>
+      )}
+
+      {/* Compare Overlay */}
+      {showCompare && (
+        <CompareView
+          items={inventory.filter((item) => compareItems.includes(item.id))}
+          onClose={() => setShowCompare(false)}
+        />
+      )}
     </div>
   );
 };

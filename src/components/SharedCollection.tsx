@@ -59,13 +59,13 @@ export const SharedCollection: React.FC = () => {
       </div>
 
       {/* Tea Grid */}
-      <div className="space-y-0" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+      <div className="space-y-0" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
         {collectionItems.map((item) => (
           <div
             key={item.id}
             onClick={() => setViewItem(item)}
             className="flex items-center gap-4 px-4 py-4 hover:bg-tea-elevated/50 cursor-pointer transition-colors group"
-            style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.06)' }}
+            style={{ boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
           >
             {/* Image */}
             {item.image && (

@@ -183,6 +183,29 @@ export const LINE_HEIGHTS = {
 
 
 // ─────────────────────────────────────────────────────────────
+// 1b. Z-INDEX SCALE
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Semantic z-index scale. Every layered element must use one of these
+ * values (via Tailwind `z-base` … `z-priority` utilities or the JS constant).
+ *
+ * The scale is intentionally compact (0–60) so that stacking conflicts
+ * are obvious. NEVER use arbitrary `z-[NNN]` values.
+ */
+export const Z_INDEX = {
+  base: 0,        // Normal content flow
+  dropdown: 10,   // Dropdowns, tooltips, popovers
+  sticky: 20,     // Sticky headers, bottom tab bar, floating action buttons
+  overlay: 30,    // Backdrop overlays (dim background)
+  drawer: 35,     // Side drawers, cart panel
+  modal: 40,      // Modal dialogs
+  toast: 50,      // Toast notifications (above modals)
+  priority: 60,   // Skip links, critical accessibility UI
+} as const;
+
+
+// ─────────────────────────────────────────────────────────────
 // 2. COLOR PALETTE — "Espresso + Gold"
 // ─────────────────────────────────────────────────────────────
 
@@ -837,6 +860,7 @@ export const DESIGN_TOKENS = {
   keyframes:       KEYFRAMES,
   animations:      ANIMATIONS,
   iconSizes:       ICON_SIZES,
+  zIndex:          Z_INDEX,
   backgroundImage: { 'paper-texture': TEXTURES.paperTexture },
 } as const;
 

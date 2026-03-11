@@ -25,11 +25,13 @@ const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ defau
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const GuestManagement = lazy(() => import('./components/events/GuestManagement'));
+const ProductPage = lazy(() => import('./pages/ProductPage'));
 
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import { useAppStore } from './lib/store';
 import { useAuth } from './hooks/useAuth';
+import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
@@ -40,8 +42,9 @@ import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { ImagePreloaderProvider, useImagePreloader } from './context/ImagePreloaderContext';
+import { ImagePreloaderProvider } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
+import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
 import { MagazineTabbed } from './components/MagazineTabbed';
@@ -52,8 +55,11 @@ import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { AdminToolbar } from './components/admin-overlay/AdminToolbar';
 import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
+import { NetworkStatus } from './components/shared/NetworkStatus';
+import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
+import { CartToast } from './components/shared/CartToast';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
 import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
@@ -61,7 +67,7 @@ import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 // Create an inner component to use the context
 const AppContent = () => {
   const { stories } = useStories();
-  const { inventory, isError: inventoryError, error: inventoryErrorObj, refetch: refetchInventory } = useInventory();
+  const { inventory, isLoading: inventoryLoading, isError: inventoryError, error: inventoryErrorObj, refetch: refetchInventory } = useInventory();
   const {
     publicCart: cart,
     isPublicCartOpen: isCartOpen,
@@ -70,8 +76,8 @@ const AppContent = () => {
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
   } = useAppStore();
-  const preloader = useImagePreloader();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
+  useFavoritesSync(isAuthenticated);
   const [adminToolbarCollapsed, setAdminToolbarCollapsed] = useState(false);
   const showAdminBar = isAdmin && !adminToolbarCollapsed;
 
@@ -165,9 +171,11 @@ const AppContent = () => {
   // Modal State
   const [showContact, setShowContact] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [cartToast, setCartToast] = useState<{ itemName: string; cartCount: number } | null>(null);
   const [flyAnimation, setFlyAnimation] = useState<{ x: number; y: number; image?: string } | null>(null);
 
   // Listen for cart open event from Account section
@@ -188,6 +196,18 @@ const AppContent = () => {
   }, [setActiveSection]);
 
   // Cart persistence handled by Zustand persist middleware
+
+  // Global search keyboard shortcut (Cmd/Ctrl+K)
+  useEffect(() => {
+    const handleSearchShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => window.removeEventListener('keydown', handleSearchShortcut);
+  }, []);
 
   // Desktop keyboard shortcuts
   useEffect(() => {
@@ -237,7 +257,9 @@ const AppContent = () => {
       totalPrice: total,
       image: item.image,
     });
-    showToast(`Added ${item.name}`);
+    // Show cart toast — read fresh count from store (Zustand updates synchronously)
+    const freshCart = useAppStore.getState().publicCart;
+    setCartToast({ itemName: item.name, cartCount: freshCart.length });
   };
 
   const handleRemoveFromCart = (id: string) => {
@@ -302,6 +324,13 @@ const AppContent = () => {
     setIsCartOpen(true);
   };
 
+  const dismissCartToast = useCallback(() => setCartToast(null), []);
+
+  const handleViewCartFromToast = useCallback(() => {
+    setCartToast(null);
+    setIsCartOpen(true);
+  }, []);
+
   const handleOpenAccount = () => {
     setShowAccountModal(true);
   };
@@ -354,14 +383,14 @@ const AppContent = () => {
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       {/* Left Sidebar for Desktop */}
-      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} cartItemCount={cart.length} topOffset={showAdminBar} />
+      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => setShowGlobalSearch(true)} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col relative lg:ml-56 ${showAdminBar ? 'pt-9' : ''}`}>
 
       <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-32 md:pb-24 lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
           {isSectionTransitioning ? (
-            <SectionSkeleton variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'list' : 'grid'} />
+            <SectionSkeleton variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
           ) : (
             viewState === 'BROWSE' && (
               <Routes>
@@ -410,8 +439,15 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
+                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
                       </div>
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/shop/product/:id" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <ProductPage onAddToCart={handleAddToCart} />
                     </Suspense>
                   </ErrorBoundary>
                 } />
@@ -454,19 +490,22 @@ const AppContent = () => {
       {/* --- Full Screen Views --- */}
 
       {viewState === 'READER' && selectedStory && (
-         <Suspense fallback={<SectionSkeleton variant="grid" />}>
-           <Reader
-             story={selectedStory}
-             onBack={handleBackToBrowse}
-             onNavigate={(s) => { setSelectedStory(s); setWatchedStoryIds(prev => ({ ...prev, [s.id]: true })); }}
-             onPersonClick={setSelectedPerson}
-             isSaved={savedStoryIds[selectedStory.id]}
-             onToggleSave={() => toggleSave(selectedStory.id)}
-             onShare={handleShare}
-             watchedStories={watchedStoryIds}
-             recommendations={stories.filter(s => s.id !== selectedStory.id && s.type === ContentType.Article).slice(0, 3)}
-           />
-         </Suspense>
+         <ImagePreloaderProvider>
+           <Suspense fallback={<SectionSkeleton variant="grid" />}>
+             <Reader
+               story={selectedStory}
+               onBack={handleBackToBrowse}
+               onNavigate={(s) => { setSelectedStory(s); setWatchedStoryIds(prev => ({ ...prev, [s.id]: true })); }}
+               onPersonClick={setSelectedPerson}
+               isSaved={savedStoryIds[selectedStory.id]}
+               onToggleSave={() => toggleSave(selectedStory.id)}
+               onShare={handleShare}
+               watchedStories={watchedStoryIds}
+               recommendations={stories.filter(s => s.id !== selectedStory.id && s.type === ContentType.Article).slice(0, 3)}
+             />
+           </Suspense>
+           <PreloadIndicator />
+         </ImagePreloaderProvider>
       )}
 
       {viewState === 'STORY_VIEW' && selectedStory && (
@@ -511,6 +550,9 @@ const AppContent = () => {
          onUpdateQuantity={handleUpdateCartQuantity}
       />
 
+      {/* --- GLOBAL SEARCH --- */}
+      <GlobalSearch isOpen={showGlobalSearch} onClose={() => setShowGlobalSearch(false)} />
+
       {/* --- ACCOUNT MODAL --- */}
       {showAccountModal && (
         <AccountPanel onClose={handleCloseAccount} />
@@ -518,7 +560,7 @@ const AppContent = () => {
 
       {/* --- CONTACT MODAL --- */}
       {showContact && (
-        <div className="fixed inset-0 z-[210] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
+        <div className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
             <div className="bg-tea-surface max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
                 <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-text-dim hover:text-tea-gold transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
                 <h2 className="text-2xl font-serif text-tea-text mb-8 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '150ms' }}>Contact Us</h2>
@@ -552,10 +594,18 @@ const AppContent = () => {
         />
       )}
 
-      {/* Preload indicator */}
-      <PreloadIndicator />
+      {/* Preload indicator moved to Reader's ImagePreloaderProvider scope */}
 
-      <div role="status" aria-live="polite" className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-[250] flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+      {/* Cart "View Cart" toast */}
+      <CartToast
+        itemName={cartToast?.itemName ?? ''}
+        cartCount={cartToast?.cartCount ?? 0}
+        isVisible={!!cartToast}
+        onViewCart={handleViewCartFromToast}
+        onDismiss={dismissCartToast}
+      />
+
+      <div role="status" aria-live="polite" className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>
@@ -574,9 +624,9 @@ export default function App() {
       <ThemeProvider>
         <StoryProvider>
           <InventoryProvider>
-            <ImagePreloaderProvider>
+              <NetworkStatus />
+              <SessionExpiredNotice />
               <AppContent />
-            </ImagePreloaderProvider>
           </InventoryProvider>
         </StoryProvider>
       </ThemeProvider>

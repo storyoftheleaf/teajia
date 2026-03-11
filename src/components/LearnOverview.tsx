@@ -13,7 +13,7 @@ import { teaMapPins } from '../data/teaMapPins';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
-const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-seal/50 focus-visible:ring-offset-2 rounded-sm';
+const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-sm';
 
 const PIN_TYPE_LABELS: Record<string, string> = {
   farm: 'Terroir',
@@ -180,7 +180,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         <div className="relative overflow-hidden rounded-[1px] mb-6 md:mb-8">
           <InkWashPlaceholder label="tea ceremony" aspectRatio="2.35/1" mood="warm" />
           {/* Quote overlaid at the bottom */}
-          <div className="absolute inset-0 bg-gradient-to-t from-tea-ink/60 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
             <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] max-w-md">
               "Everything I wish someone had given me when I started. Take what you need."
@@ -216,7 +216,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
               className={`w-full flex items-center gap-4 py-3.5 px-1 last:shadow-none hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
-              style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.06)' }}
+              style={{ boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
             >
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}

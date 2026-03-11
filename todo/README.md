@@ -193,59 +193,59 @@ UI consistency task 50 (hardcoded hex colors) complements teardown task 06 (rgba
 ## Status Tracking
 
 ### Teardown (01–15)
-- [ ] 01 — Tailwind PostCSS Build
-- [~] 02 — SEO Meta + Sitemap *(meta tags done on `comprehensive-review-audit`, sitemap remaining)*
-- [ ] 03 — Product Detail Pages
-- [ ] 04 — Checkout Flow
+- [x] 01 — Tailwind PostCSS Build *(done on `distribute-todos-agents`)*
+- [x] 02 — SEO Meta + Sitemap *(done on `distribute-todos-agents` — Helmet + sitemap.xml)*
+- [x] 03 — Product Detail Pages *(done on `distribute-todos-agents` — /shop/product/:id)*
+- [x] 04 — Checkout Flow *(done on `distribute-todos-agents` — form element, confirmation step)*
 - [x] 05 — Font Optimization *(done on `comprehensive-review-audit`)*
-- [ ] 06 — rgba Remediation
-- [ ] 07 — Split CartPanel
+- [x] 06 — rgba Remediation *(done on `distribute-todos-agents`)*
+- [x] 07 — Split CartPanel *(done on `distribute-todos-agents` — PublicCart + AdminCart)*
 - [x] 08 — Homepage Product Showcase *(done on `improve-desktop-design`)*
 - [x] 09 — Texture Overlay Optimization *(done on `improve-desktop-design`)*
-- [~] 10 — Banned Token Migration *(design plan on `teajia-palettes-design`, implementation pending)*
-- [ ] 11 — Z-Index Scale
+- [x] 10 — Banned Token Migration *(done on `distribute-todos-agents` — 637 occurrences across 69 files)*
+- [x] 11 — Z-Index Scale *(done on `distribute-todos-agents`)*
 - [x] 12 — Lazy-Load Content *(done on `comprehensive-review-audit`)*
-- [ ] 13 — Scope ImagePreloader
-- [~] 14 — Unified Button Component *(component updated on `audit-ui-consistency`, adoption pending)*
+- [x] 13 — Scope ImagePreloader *(done on `distribute-todos-agents` — moved to Reader only)*
+- [x] 14 — Unified Button Component *(done on `distribute-todos-agents` — adopted in CTAs)*
 - [x] 15 — Trust Signals *(done on `comprehensive-review-audit`)*
 
 ### Functional Audit (21–40)
-- [ ] 21 — Product URLs
-- [ ] 22 — Fix Share Button
-- [ ] 23 — Clarify Checkout Model
-- [ ] 24 — Connect Newsletter Signup
-- [ ] 25 — Network/Offline Indicator
-- [ ] 26 — Global Search
-- [ ] 27 — Price-Per-Gram Display
-- [ ] 28 — View Cart Toast
-- [ ] 29 — Simplify Inquiry Form
-- [ ] 30 — Content-Type Indicators
-- [ ] 31 — Quantity Presets
-- [ ] 32 — Product Comparison
-- [ ] 33 — Stock Level Indicators
-- [ ] 34 — Carousel Indicators
-- [ ] 35 — Sync Favorites to Account
-- [ ] 36 — Skeleton Loading Screens
-- [ ] 37 — Theme Toggle on Mobile
-- [ ] 38 — Learn Hub Breadcrumbs
-- [ ] 39 — JWT Expiry Handling
-- [ ] 40 — Populate About Page
+- [x] 21 — Product URLs *(done on `distribute-todos-agents` — useProductUrl hook)*
+- [x] 22 — Fix Share Button *(done on `distribute-todos-agents`)*
+- [x] 23 — Clarify Checkout Model *(done on `distribute-todos-agents` — renamed Checkout→Inquiry)*
+- [x] 24 — Connect Newsletter Signup *(done on `distribute-todos-agents` — API endpoint + D1 table)*
+- [x] 25 — Network/Offline Indicator *(done on `distribute-todos-agents` — NetworkStatus component)*
+- [x] 26 — Global Search *(done on `distribute-todos-agents` — Cmd/Ctrl+K, fuse.js)*
+- [x] 27 — Price-Per-Gram Display *(already implemented — AlcoveCard, TeaInventory list/grid, CollectionTab)*
+- [x] 28 — View Cart Toast *(done on `distribute-todos-agents`)*
+- [x] 29 — Simplify Inquiry Form *(done on `distribute-todos-agents` — 3 required + collapsible optional)*
+- [x] 30 — Content-Type Indicators *(done on `distribute-todos-agents` — reading time estimates)*
+- [x] 31 — Quantity Presets *(done on `distribute-todos-agents`)*
+- [x] 32 — Product Comparison *(done on `distribute-todos-agents` — CompareView overlay)*
+- [x] 33 — Stock Level Indicators *(done on `distribute-todos-agents`)*
+- [x] 34 — Carousel Indicators *(done on `distribute-todos-agents`)*
+- [x] 35 — Sync Favorites to Account *(done on `distribute-todos-agents` — useFavoritesSync hook)*
+- [x] 36 — Skeleton Loading Screens *(done on `distribute-todos-agents` — shop + magazine variants)*
+- [x] 37 — Theme Toggle on Mobile *(done on `distribute-todos-agents` — AccountPanel header)*
+- [x] 38 — Learn Hub Breadcrumbs *(done on `distribute-todos-agents` — Breadcrumb component)*
+- [x] 39 — JWT Expiry Handling *(done on `distribute-todos-agents` — SessionExpiredNotice)*
+- [x] 40 — Populate About Page *(done on `distribute-todos-agents` — founder story, philosophy, CTA)*
 
 ### Backend Performance (41–46)
 - [x] 46 — CORS Preflight Caching
-- [ ] 41 — D1 Database Indexes
-- [ ] 42 — Cache-Control Headers
-- [ ] 43 — Batch Sequential Queries
-- [ ] 44 — SELECT * Elimination
-- [ ] 45 — Loop → Batch Operations
+- [x] 41 — D1 Database Indexes *(done on `distribute-todos-agents`)*
+- [x] 42 — Cache-Control Headers *(done on `distribute-todos-agents`)*
+- [x] 43 — Batch Sequential Queries *(done on `distribute-todos-agents`)*
+- [x] 44 — SELECT * Elimination *(done on `distribute-todos-agents`)*
+- [x] 45 — Loop → Batch Operations *(done on `distribute-todos-agents`)*
 
 ### UI Consistency Audit (47–55)
-- [ ] 47 — Standardize Border-Radius Scale
-- [ ] 48 — Unify Icon Sizing System
-- [ ] 49 — Establish Text Size Hierarchy
-- [ ] 50 — Replace Hardcoded Hex Colors
-- [ ] 51 — Standardize Focus/Hover States
-- [ ] 52 — Card/Panel Recipe
-- [ ] 53 — Normalize Spacing Scale
-- [ ] 54 — Unify Transitions
-- [ ] 55 — Accessibility / ARIA Audit
+- [x] 47 — Standardize Border-Radius Scale *(done on `distribute-todos-agents`)*
+- [x] 48 — Unify Icon Sizing System *(done on `distribute-todos-agents`)*
+- [x] 49 — Establish Text Size Hierarchy *(done on `distribute-todos-agents`)*
+- [x] 50 — Replace Hardcoded Hex Colors *(done on `distribute-todos-agents`)*
+- [x] 51 — Standardize Focus/Hover States *(done on `distribute-todos-agents`)*
+- [x] 52 — Card/Panel Recipe *(done on `distribute-todos-agents`)*
+- [x] 53 — Normalize Spacing Scale *(done on `distribute-todos-agents`)*
+- [x] 54 — Unify Transitions *(done on `distribute-todos-agents`)*
+- [x] 55 — Accessibility / ARIA Audit *(done on `distribute-todos-agents`)*

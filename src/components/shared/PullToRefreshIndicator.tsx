@@ -16,7 +16,7 @@ export const PullToRefreshIndicator: React.FC<PullToRefreshIndicatorProps> = ({
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center pointer-events-none transition-transform duration-300"
+      className="fixed top-0 left-0 right-0 z-modal flex items-center justify-center pointer-events-none transition-transform duration-300"
       style={{
         transform: `translateY(${pullDistance}px)`,
         opacity: Math.min(progress * 1.5, 1),

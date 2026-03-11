@@ -210,7 +210,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   <Icons.Heart
                     className={`w-5 h-5 ${
                       isSaved
-                        ? 'fill-tea-seal text-tea-gold'
+                        ? 'fill-tea-gold text-tea-gold'
                         : 'text-tea-text'
                     }`}
                   />
@@ -304,7 +304,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                         <div
                           className="absolute inset-0 animate-shimmer"
                           style={{
-                            background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)'
+                            background: 'linear-gradient(90deg, transparent, var(--tea-border), transparent)'
                           }}
                         />
                       </div>
@@ -346,7 +346,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                             <div
                               className="absolute inset-0 animate-shimmer"
                               style={{
-                                background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)'
+                                background: 'linear-gradient(90deg, transparent, var(--tea-border), transparent)'
                               }}
                             />
                           </div>
@@ -460,7 +460,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
       {/* Image Overlay - Premium mobile-first with swipe navigation */}
       {selectedImageIndex !== null && story.gallery[selectedImageIndex] && (
         <div
-          className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-xl flex flex-col animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-xl flex flex-col animate-[fadeIn_0.2s_ease-out]"
           onClick={closeImageOverlay}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}

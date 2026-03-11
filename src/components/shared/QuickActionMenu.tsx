@@ -25,10 +25,10 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[200]" onClick={onClose} />
+      <div className="fixed inset-0 z-modal" onClick={onClose} />
       {/* Menu */}
       <div
-        className="fixed z-[201] bg-tea-elevated shadow-2xl rounded-lg overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-tea-gold/10"
+        className="fixed z-modal bg-tea-elevated shadow-2xl rounded-lg overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-tea-gold/10"
         style={{
           left: adjustedX,
           top: adjustedY,
@@ -39,7 +39,7 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
         {onSave && (
           <button
             onClick={() => { onSave(); onClose(); }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-tea-paper text-sm hover:bg-tea-gold/10 transition-colors"
+            className="flex items-center gap-3 w-full px-4 py-3 text-tea-text text-sm hover:bg-tea-gold/10 transition-colors"
           >
             <Icons.Heart filled={isSaved} className="w-4 h-4 text-tea-gold" />
             <span>{isSaved ? 'Unsave' : 'Save'}</span>
@@ -48,9 +48,9 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
         {onShare && (
           <button
             onClick={() => { onShare(); onClose(); }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-tea-paper text-sm hover:bg-tea-gold/10 transition-colors border-t border-tea-gold/[0.06]"
+            className="flex items-center gap-3 w-full px-4 py-3 text-tea-text text-sm hover:bg-tea-gold/10 transition-colors border-t border-tea-gold/[0.06]"
           >
-            <Icons.Share className="w-4 h-4 text-tea-paper/60" />
+            <Icons.Share className="w-4 h-4 text-tea-text/60" />
             <span>Share</span>
           </button>
         )}

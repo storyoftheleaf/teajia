@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { InventoryItem } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { TeaInventory } from './TeaInventory';
@@ -10,6 +11,7 @@ import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { SectionDivider } from './shared/SectionDivider';
+import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useRates } from '../admin/hooks/useAdminData';
 import type { StarterSet } from '../types';
@@ -26,6 +28,7 @@ interface ShopProps {
   cartItemCount?: number;
   onCartClick?: () => void;
   onAccountClick?: () => void;
+  isLoading?: boolean;
   isError?: boolean;
   error?: Error | null;
   onRetry?: () => void;
@@ -45,6 +48,7 @@ export const Shop: React.FC<ShopProps> = ({
   cartItemCount = 0,
   onCartClick,
   onAccountClick,
+  isLoading,
   isError,
   error,
   onRetry,
@@ -88,7 +92,7 @@ export const Shop: React.FC<ShopProps> = ({
       className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
       onClick={() => handleAddStarterSet(set)}
     >
-      <div className="p-2 md:p-3 bg-tea-surface rounded-[1px]">
+      <div className="p-2 md:p-3 bg-tea-surface rounded-lg">
         <CardImage src={set.image} alt={set.name} aspect="square" />
         <div className="px-1 mt-3">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
@@ -142,6 +146,10 @@ export const Shop: React.FC<ShopProps> = ({
 
   return (
     <div className="flex flex-col flex-1 bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
+      <Helmet>
+        <title>Shop — Teajia</title>
+        <meta name="description" content="Browse curated fine teas and teaware. Oolongs, pu-erh, greens, whites, and handmade vessels — sourced directly from farmers and artisans." />
+      </Helmet>
       <PageHeader
         title="Shop"
         onCartClick={onCartClick}
@@ -157,19 +165,23 @@ export const Shop: React.FC<ShopProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
+        {isLoading && !isError && teaInventory.length === 0 && (
+          <SectionSkeleton variant="shop" />
+        )}
+
         {isError && (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-[fadeIn_0.5s_ease-out]">
-            <div className="w-14 h-14 border border-tea-seal/30 rounded-full flex items-center justify-center mb-5">
-              <Icons.Leaf className="w-6 h-6 text-tea-seal/60" />
+            <div className="w-14 h-14 border border-tea-gold/30 rounded-full flex items-center justify-center mb-5">
+              <Icons.Leaf className="w-6 h-6 text-tea-gold/60" />
             </div>
-            <h3 className="font-serif text-lg text-tea-ink mb-2">Unable to load teas</h3>
-            <p className="text-tea-ink/50 text-sm mb-6 max-w-sm">
+            <h3 className="font-serif text-lg text-tea-text mb-2">Unable to load teas</h3>
+            <p className="text-tea-text/50 text-sm mb-6 max-w-sm">
               {error?.message || 'We couldn\'t reach the server. Please check your connection and try again.'}
             </p>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-seal text-white text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-seal/90 transition-all active:scale-95"
+                className="bg-tea-gold text-white text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold/90 transition-all active:scale-95"
               >
                 Try Again
               </button>
@@ -213,7 +225,7 @@ export const Shop: React.FC<ShopProps> = ({
       {isAdmin && (
         <button
           onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-28 right-6 lg:bottom-8 z-[50] w-12 h-12 rounded-full bg-tea-seal text-white shadow-lg hover:bg-tea-seal/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
+          className="fixed bottom-28 right-6 lg:bottom-8 z-sticky w-12 h-12 rounded-full bg-tea-gold text-white shadow-lg hover:bg-tea-gold/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
           title="Add new product"
         >
           <Icons.Plus className="w-5 h-5" />

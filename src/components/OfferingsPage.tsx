@@ -258,7 +258,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
               <div className="flex items-center gap-4 mb-8 lg:mb-12 pb-6 border-b border-tea-border">
                 <div className="text-tea-gold">{category.icon}</div>
                 <div className="flex-1">
-                  <h2 className="text-2xl lg:text-3xl font-serif text-tea-paper">{category.title}</h2>
+                  <h2 className="text-2xl lg:text-3xl font-serif text-tea-text">{category.title}</h2>
                   <p className="text-sm text-tea-text/60">{category.description}</p>
                 </div>
               </div>
@@ -324,7 +324,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
         <div className="flex items-center gap-4 mb-8 lg:mb-12 pb-6 border-b border-tea-border">
           <div className="text-tea-gold"><Icons.Palette className="w-6 h-6" /></div>
           <div className="flex-1">
-            <h2 className="text-2xl lg:text-3xl font-serif text-tea-paper">Tea Space Inspiration</h2>
+            <h2 className="text-2xl lg:text-3xl font-serif text-tea-text">Tea Space Inspiration</h2>
             <p className="text-sm text-tea-text/60">Ideas and guidance for creating your own ceremony environment</p>
           </div>
         </div>

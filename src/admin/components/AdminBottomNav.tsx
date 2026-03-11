@@ -73,7 +73,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   return (
     <>
       {/* Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-tea-surface/95 backdrop-blur-xl border-t border-tea-border pb-[env(safe-area-inset-bottom)]">
+      <nav aria-label="Admin navigation" className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-tea-surface/95 backdrop-blur-xl border-t border-tea-border pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-stretch">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -83,8 +83,10 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] py-2 transition-colors duration-200 relative ${
-                  active ? 'text-tea-accent' : 'text-tea-muted'
+                aria-current={active && tab.path ? 'page' : undefined}
+                aria-label={tab.label}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] py-2 transition-colors duration-200 relative focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
+                  active ? 'text-tea-accent' : 'text-tea-text-dim'
                 }`}
               >
                 <div className="relative">
@@ -110,7 +112,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           <>
             {/* Backdrop */}
             <motion.div
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-50 bg-tea-text/60 backdrop-blur-sm md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -136,7 +138,8 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 <span className="text-sm font-medium text-tea-text">More</span>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="p-1.5 rounded-lg text-tea-muted hover:text-tea-text hover:bg-tea-elevated/50 transition-colors"
+                  className="p-1.5 rounded-lg text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/50 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+                  aria-label="Close menu"
                 >
                   <X size={18} />
                 </button>
@@ -153,10 +156,11 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                     <button
                       key={item.id}
                       onClick={() => handleMoreItemClick(item)}
-                      className={`w-full flex items-center gap-4 py-4 px-6 transition-colors duration-150 ${
+                      aria-current={active ? 'page' : undefined}
+                      className={`w-full flex items-center gap-4 py-4 px-6 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
                         active
                           ? 'text-tea-accent bg-tea-accent/5'
-                          : 'text-tea-muted hover:text-tea-text hover:bg-tea-elevated/50'
+                          : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/50'
                       }`}
                     >
                       <Icon size={20} strokeWidth={1.8} />

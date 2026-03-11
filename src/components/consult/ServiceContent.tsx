@@ -126,7 +126,7 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+                <div className="absolute inset-0 bg-tea-text/10 pointer-events-none" />
               </div>
             )}
 

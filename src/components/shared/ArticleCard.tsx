@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { FileText, Play, Headphones, Camera } from 'lucide-react';
 import { Icons } from '../Icons';
 import { CardContainer } from './CardContainer';
+import { ContentType } from '../../types';
 
 interface ArticleCardProps {
   title: string;
@@ -9,6 +11,23 @@ interface ArticleCardProps {
   aspectRatio?: 'portrait' | 'square';
   onClick?: () => void;
   className?: string;
+  contentType?: ContentType;
+  duration?: string;
+  wordCount?: number;
+}
+
+const contentTypeConfig: Record<ContentType, { icon: React.ElementType; suffix: string }> = {
+  [ContentType.Article]: { icon: FileText, suffix: 'read' },
+  [ContentType.Reel]: { icon: Play, suffix: 'watch' },
+  [ContentType.Film]: { icon: Play, suffix: 'watch' },
+  [ContentType.Audio]: { icon: Headphones, suffix: 'listen' },
+  [ContentType.PhotoEssay]: { icon: Camera, suffix: '' },
+};
+
+/** Estimate reading time from word count at 200 words/min */
+function estimateReadingTime(wordCount: number): string {
+  const minutes = Math.max(1, Math.round(wordCount / 200));
+  return `${minutes} min`;
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({
@@ -18,6 +37,9 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   aspectRatio = 'portrait',
   onClick,
   className = '',
+  contentType,
+  duration,
+  wordCount,
 }) => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -42,7 +64,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                   <div
                     className="absolute inset-0 animate-shimmer"
                     style={{
-                      background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)',
+                      background: 'linear-gradient(90deg, transparent, var(--tea-border), transparent)',
                     }}
                   />
                 </div>
@@ -76,16 +98,39 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               {/* No-image fallback */}
               <div className="absolute inset-0 bg-tea-elevated flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full border border-tea-gold/10 flex items-center justify-center">
-                  <Icons.BookOpen className="w-5 h-5 text-tea-paper/30" />
+                  <Icons.BookOpen className="w-5 h-5 text-tea-text/30" />
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
             </>
           )}
 
+          {/* Content-type badge */}
+          {contentType && (() => {
+            const config = contentTypeConfig[contentType];
+            const Icon = config.icon;
+            // Build the badge label: prefer estimated reading time from word count, fall back to duration prop
+            let badgeLabel: string | undefined;
+            if (wordCount && contentType === ContentType.Article) {
+              badgeLabel = `${estimateReadingTime(wordCount)} ${config.suffix}`;
+            } else if (duration) {
+              // If duration already looks like "X min", append the suffix
+              const isMinutes = /^\d+\s*min/.test(duration);
+              badgeLabel = isMinutes && config.suffix ? `${duration} ${config.suffix}` : duration;
+            }
+            return (
+              <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-tea-bg/80 backdrop-blur-sm rounded-full px-2.5 py-1 border border-tea-border">
+                <Icon className="w-3 h-3 text-tea-gold" strokeWidth={2} />
+                {badgeLabel && (
+                  <span className="text-[9px] text-tea-text-sec font-sans tracking-wide">{badgeLabel}</span>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-            <h3 className="font-serif text-[19px] text-tea-paper leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
+            <h3 className="font-serif text-[19px] text-tea-text leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
               {title}
             </h3>
             {description && (

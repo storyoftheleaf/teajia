@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Story, ContentType } from '../types';
 import { ArticleCard } from './shared/ArticleCard';
 import { PageHeader } from './shared/PageHeader';
@@ -122,6 +123,12 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     { id: 'visual' as MagazineTab, label: 'Visual' },
   ];
 
+  /** Estimate word count from story content paragraphs */
+  const getWordCount = (story: Story): number | undefined => {
+    if (!story.content || story.content.length === 0) return undefined;
+    return story.content.join(' ').split(/\s+/).filter(Boolean).length;
+  };
+
   const renderArticleCards = (storiesList: Story[]) => (
     <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
       {storiesList.map((story) => (
@@ -132,6 +139,9 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           imageUrl={story.thumbnailUrl}
           aspectRatio="portrait"
           onClick={() => onCardClick(story)}
+          contentType={story.type}
+          duration={story.durationOrTime}
+          wordCount={getWordCount(story)}
         />
       ))}
     </div>
@@ -147,6 +157,9 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           imageUrl={story.thumbnailUrl}
           aspectRatio="square"
           onClick={() => onCardClick(story)}
+          contentType={story.type}
+          duration={story.durationOrTime}
+          wordCount={getWordCount(story)}
         />
       ))}
     </div>
@@ -219,6 +232,10 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+      <Helmet>
+        <title>Magazine — Teajia</title>
+        <meta name="description" content="Long-form stories, photo essays, and deep dives into tea culture, craft, and the people behind the leaf." />
+      </Helmet>
       <PageHeader
         title="Magazine"
         onCartClick={onCartClick}

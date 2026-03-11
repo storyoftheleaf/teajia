@@ -106,7 +106,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
             setActiveLetter(null);
           }}
           className="w-full pl-11 pr-4 py-3 bg-tea-surface rounded-[1px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/20 transition-colors"
-          style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(200,170,120,0.04)' }}
+          style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}
         />
         {searchQuery && (
           <button
@@ -196,8 +196,8 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                         : 'bg-tea-text/[0.03] hover:bg-tea-text/[0.06]'
                       }`}
                     style={{ boxShadow: expandedTermId === term.id
-                        ? 'inset 0 1px 0 rgba(184,146,78,0.08), 0 1px 3px rgba(0,0,0,0.2)'
-                        : 'inset 0 1px 0 rgba(200,170,120,0.04), 0 1px 2px rgba(0,0,0,0.15)'
+                        ? 'inset 0 1px 0 var(--tea-border), 0 1px 3px rgba(0,0,0,0.2)'
+                        : 'inset 0 1px 0 var(--tea-accent-sub), 0 1px 2px rgba(0,0,0,0.15)'
                     }}
                   >
                     <div className="p-4">
@@ -234,7 +234,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
                       {/* Expanded Content */}
                       {expandedTermId === term.id && (
-                        <div className="mt-4 pt-4 space-y-4 animate-[fadeIn_0.3s_ease-out]" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.08)' }}>
+                        <div className="mt-4 pt-4 space-y-4 animate-[fadeIn_0.3s_ease-out]" style={{ boxShadow: 'inset 0 1px 0 var(--tea-border)' }}>
                           {/* Audio */}
                           {term.audioUrl && (
                             <button
@@ -259,7 +259,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
                           {/* Cultural Context */}
                           {term.deepDive?.culturalContext && (
-                            <div className="pl-3" style={{ boxShadow: 'inset 2px 0 0 rgba(184,146,78,0.15)' }}>
+                            <div className="pl-3" style={{ boxShadow: 'inset 2px 0 0 var(--tea-border)' }}>
                               <p className="text-tea-text-dim text-[13px] leading-relaxed italic font-serif">
                                 {term.deepDive.culturalContext}
                               </p>

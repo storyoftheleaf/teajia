@@ -13,7 +13,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', cla
   };
 
   return (
-    <div className={`${sizeClasses[size]} border-tea-text/20  border-t-tea-seal rounded-full animate-spin ${className}`} />
+    <div className={`${sizeClasses[size]} border-tea-text/20  border-t-tea-gold rounded-full animate-spin ${className}`} />
   );
 };
 

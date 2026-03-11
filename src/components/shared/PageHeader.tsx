@@ -40,7 +40,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       className={`sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-10 bg-tea-surface/80 backdrop-blur-xl backdrop-saturate-150 transition-all duration-500 ease-out ${className}`}
-      style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08), 0 2px 8px rgba(0,0,0,0.12)' }}
+      style={{ boxShadow: '0 1px 0 var(--tea-border), 0 2px 8px rgba(0,0,0,0.12)' }}
     >
       <div className="w-full">
         {/* Back navigation — inside the glass */}
@@ -82,7 +82,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       className="p-2.5 relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
                       aria-label="Open shopping cart"
                     >
-                      <Icons.Bag className="w-[22px] h-[22px] text-tea-text/60" />
+                      <Icons.Bag className="w-5 h-5 text-tea-text/60" />
                       {cartItemCount > 0 && (
                         <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                           {cartItemCount > 9 ? '9+' : cartItemCount}
@@ -96,7 +96,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
                       aria-label="Open account settings"
                     >
-                      <Icons.User className="w-[22px] h-[22px] text-tea-text/60" />
+                      <Icons.User className="w-5 h-5 text-tea-text/60" />
                     </button>
                   )}
                 </div>
@@ -110,7 +110,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Toolbar row — below tabs, inside the glass */}
         {toolbar && (
-          <div className="px-4 py-2 md:px-6 lg:px-10" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+          <div className="px-4 py-2 md:px-6 lg:px-10" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
             {toolbar}
           </div>
         )}

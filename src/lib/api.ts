@@ -53,6 +53,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
   }
 }
 
+/** Custom event name dispatched when a 401 response indicates session expiry. */
+export const SESSION_EXPIRED_EVENT = 'teajia:session-expired';
+
 async function handleResponse(res: Response) {
   let data: any;
   try {
@@ -61,6 +64,11 @@ async function handleResponse(res: Response) {
     throw new Error(`Request failed (${res.status})`);
   }
   if (!res.ok) {
+    // Detect expired/invalid session
+    if (res.status === 401 && hasToken()) {
+      clearToken();
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+    }
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;
@@ -495,6 +503,23 @@ export const api = {
     },
   },
 
+  newsletter: {
+    subscribe: async (email: string, source = 'website') => {
+      const res = await fetchWithTimeout(`${API_URL}/api/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source }),
+      });
+      return handleResponse(res);
+    },
+    subscribers: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/newsletter/subscribers`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   rsvp: {
     submit: async (slug: string, data: Record<string, any>) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {
@@ -544,6 +569,23 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  favorites: {
+    get: async (): Promise<{ favorites: string[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    put: async (favorites: string[]): Promise<{ ok: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ favorites }),
       });
       return handleResponse(res);
     },

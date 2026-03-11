@@ -164,13 +164,13 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   const notes = (product.showWisdom && product.tastingNotes) ? product.tastingNotes : [];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-label={product?.productName || 'Tea details'} className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
       
       {/* Scrollbar styles for the Modal */}
       <style>{`
         .tea-card-scroll::-webkit-scrollbar { width: 3px; }
         .tea-card-scroll::-webkit-scrollbar-track { background: transparent; }
-        .tea-card-scroll::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
+        .tea-card-scroll::-webkit-scrollbar-thumb { background: var(--tea-border); border-radius: 2px; }
         @keyframes panelReveal {
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
@@ -180,7 +180,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onPrev && (
         <button 
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="hidden md:flex absolute left-4 md:left-12 z-[70] p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+          className="hidden md:flex absolute left-4 md:left-12 z-modal p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
         >
           <ChevronLeft size={32} />
         </button>
@@ -206,7 +206,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             {isAdmin && onEdit && (
                 <button 
                     onClick={() => { onClose(); onEdit(product); }} 
-                    className="p-2 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+                    className="p-2 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[var(--tea-border)]"
                     title="Edit Product"
                 >
                     <Pencil size={16} />
@@ -214,7 +214,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             )}
             <button 
                 onClick={onClose} 
-                className="p-2 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+                className="p-2 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[var(--tea-border)]"
             >
                 <X size={20} />
             </button>
@@ -249,7 +249,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 position: "absolute", right: "20px", top: "24px",
                 fontFamily: "'Ma Shan Zheng', cursive",
                 fontSize: "64px", fontWeight: 400, lineHeight: 1,
-                color: "rgba(200,170,120,0.05)",
+                color: "var(--tea-accent-sub)",
                 letterSpacing: "0.05em",
                 userSelect: "none", pointerEvents: "none",
                 whiteSpace: "nowrap",
@@ -278,8 +278,8 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 position: "relative",
                 margin: "8px 8px 10px",
                 borderRadius: "6px",
-                background: "rgba(0,0,0,0.25)",
-                boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)",
+                background: "var(--tea-surface)",
+                boxShadow: "inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub), 0 -1px 0 var(--tea-accent-sub)",
                 overflow: "hidden",
                 animation: "panelReveal 0.5s ease-out",
             }}>
@@ -293,13 +293,13 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 <div style={{
                     position: "absolute", top: 0, left: 0, right: 0, height: "60%",
                     pointerEvents: "none",
-                    background: "radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)",
+                    background: "radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)",
                 }} />
 
                 {/* Tea details */}
                 <div style={{
                     padding: "10px 16px",
-                    borderBottom: "1px solid rgba(200,170,120,0.08)",
+                    borderBottom: "1px solid var(--tea-border)",
                     position: "relative",
                 }}>
                     <p style={{
@@ -316,7 +316,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 </div>
 
                 {/* Story */}
-                <div style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid rgba(200,170,120,0.08)" }}>
+                <div style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid var(--tea-border)" }}>
                     <p style={{
                         fontFamily: "var(--font-display)",
                         fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
@@ -329,7 +329,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 {/* Notes + photo */}
                 <div style={{
                     padding: "14px 16px",
-                    background: "rgba(181,101,29,0.03)",
+                    background: "var(--tea-accent-sub)",
                     position: "relative",
                     overflow: "hidden",
                 }}>
@@ -371,7 +371,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                         }}>
                             <TeaIllustration type={product.type} className="w-full h-full max-w-[150px] max-h-[150px] object-contain" />
                             {isAdmin && onEdit && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-tea-text/20">
                                     <Pencil size={24} className="text-tea-text drop-shadow-md" />
                                 </div>
                             )}
@@ -438,7 +438,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 <div style={{
                     display: "flex", alignItems: "center",
                     padding: "10px 14px",
-                    background: "rgba(200,170,120,0.03)",
+                    background: "var(--tea-accent-sub)",
                     borderRadius: "3px",
                     marginBottom: "8px",
                 }}>
@@ -472,9 +472,9 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                     border: "none", borderRadius: "2px",
                                     cursor: "pointer", transition: "all 0.2s ease",
                                     background: grams === g
-                                        ? "rgba(200,170,120,0.15)"
+                                        ? "var(--tea-border)"
                                         : hovered === `preset-${g}`
-                                            ? "rgba(200,170,120,0.08)"
+                                            ? "var(--tea-border)"
                                             : "transparent",
                                     color: grams === g
                                         ? "var(--tea-text-sec)"
@@ -494,7 +494,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                     <div style={{
                         display: "flex", alignItems: "center", justifyContent: "center", gap: "14px",
                         height: "44px", boxSizing: "border-box",
-                        border: "1px solid rgba(200,170,120,0.2)",
+                        border: "1px solid var(--tea-border)",
                         borderRadius: "3px",
                         flexShrink: 0,
                         padding: "0 16px",
@@ -519,7 +519,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                 color: favorited ? accent : "var(--tea-text-dim)",
                             }}>Save</span>
                         </button>
-                        <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.15)" }} />
+                        <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
                         <button
                             onMouseEnter={() => setHovered("share")}
                             onMouseLeave={() => setHovered(null)}
@@ -554,7 +554,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                             background: added
                                 ? "#7a9a72"
                                 : hovered === "cart"
-                                    ? "rgba(200,170,120,0.06)"
+                                    ? "var(--tea-accent-sub)"
                                     : "transparent",
                             border: added
                                 ? "1px solid #7a9a72"
@@ -589,7 +589,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onNext && (
         <button 
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="hidden md:flex absolute right-4 md:right-12 z-[70] p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+          className="hidden md:flex absolute right-4 md:right-12 z-modal p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
         >
           <ChevronRight size={32} />
         </button>

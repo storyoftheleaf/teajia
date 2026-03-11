@@ -163,7 +163,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
       {/* Lightbox */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out] cursor-pointer"
+          className="fixed inset-0 z-toast bg-tea-text/95 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out] cursor-pointer"
           onClick={() => setLightboxImage(null)}
         >
           <img

@@ -62,9 +62,9 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
     const delPage = (i: number) => { if (pages.length > 1) onDeletePage(i); };
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-tea-surface text-tea-text overflow-hidden">
+        <div className="fixed inset-0 z-modal flex flex-col bg-tea-surface text-tea-text overflow-hidden">
             {/* Header */}
-            <div className="h-16 border-b border-tea-gold/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
+            <div className="h-16 border-b border-tea-gold/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-toast shadow-md relative">
                 <button
                     onClick={onCancel}
                     className="flex items-center gap-2 text-tea-text hover:text-white transition-colors group px-2 py-1 rounded-sm hover:bg-tea-gold/5"
@@ -75,15 +75,15 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                 </button>
 
                 <div className="flex bg-tea-bg rounded-lg p-0.5 border border-tea-gold/15 absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
-                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-tea-text hover:text-white'}`}>
+                    <button onClick={() => setTab('CANVAS')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'CANVAS' ? 'bg-tea-gold text-tea-text shadow-sm' : 'text-tea-text hover:text-white'}`}>
                         {isMedia ? 'Poster' : 'Canvas'}
                     </button>
-                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-paper shadow-sm' : 'text-tea-text hover:text-white'}`}>Meta</button>
+                    <button onClick={() => setTab('META')} className={`px-4 md:px-5 py-1.5 text-xs uppercase tracking-[0.15em] transition-all ${tab === 'META' ? 'bg-tea-gold text-tea-text shadow-sm' : 'text-tea-text hover:text-white'}`}>Meta</button>
                 </div>
 
                 <button 
                     onClick={() => onSave(currentStory, pages)} 
-                    className="flex items-center gap-2 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-[0.15em] transition-colors shadow-lg"
+                    className="flex items-center gap-2 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-text rounded-sm text-xs uppercase tracking-[0.15em] transition-colors shadow-lg"
                 >
                     <Icons.Check className="w-4 h-4" />
                     <span className="hidden md:inline">Save</span>
@@ -101,7 +101,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                         <SinglePageRenderer page={{...p, index: i+1}} readOnly={true} />
                                     </div>
                                 </div>
-                                <div className="absolute bottom-0 right-0 bg-black/80 text-white text-[10px] px-1 font-mono">{i+1}</div>
+                                <div className="absolute bottom-0 right-0 bg-tea-text/80 text-white text-[10px] px-1 font-mono">{i+1}</div>
                                 <button onClick={(e) => { e.stopPropagation(); delPage(i); }} className="absolute -top-1 -right-1 w-4 h-4 bg-red-900 text-white rounded-full flex items-center justify-center opacity-0 hover:opacity-100 z-10" aria-label={`Delete page ${i + 1}`}><Icons.Close className="w-3 h-3" /></button>
                             </div>
                         ))}
@@ -129,7 +129,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
                         {/* Mobile Page Controls (since sidebar is hidden) */}
                          {!isMedia && (
-                            <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#202020] px-4 py-2 rounded-full border border-tea-gold/10 z-40 shadow-xl">
+                            <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-tea-surface px-4 py-2 rounded-full border border-tea-gold/10 z-40 shadow-xl">
                                 <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0} className="text-tea-text disabled:opacity-30"><Icons.Back className="w-4 h-4" /></button>
                                 <span className="text-xs text-tea-text font-mono">{idx + 1} / {pages.length}</span>
                                 <button onClick={() => setIdx(Math.min(pages.length - 1, idx + 1))} disabled={idx === pages.length - 1} className="text-tea-text disabled:opacity-30"><Icons.Next className="w-4 h-4" /></button>
@@ -142,7 +142,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         {!isMedia && (
                             <button
                                 onClick={() => setShowTemplateModal(true)}
-                                className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper rounded-sm text-xs uppercase tracking-[0.15em] font-medium transition-colors z-50 shadow-lg"
+                                className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-text rounded-sm text-xs uppercase tracking-[0.15em] font-medium transition-colors z-50 shadow-lg"
                             >
                                 Choose Template
                             </button>
@@ -209,7 +209,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
             {/* Template Selector Modal */}
             {showTemplateModal && (
-                <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+                <div className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
                     <div className="bg-tea-bg rounded-sm border border-tea-gold/15 max-w-4xl w-full max-h-[90vh] flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-tea-bg border-b border-tea-gold/15 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">
@@ -422,7 +422,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                     <p className="text-tea-text-sec text-sm">No templates found matching "{templateSearch}"</p>
                                     <button
                                         onClick={() => setTemplateSearch('')}
-                                        className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.15em] rounded-sm transition-colors"
+                                        className="mt-4 px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm transition-colors"
                                     >
                                         Clear Search
                                     </button>
@@ -747,7 +747,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             >
                                 <Icons.Download className="w-4 h-4" />
                             </button>
-                            <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                            <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                                 <Icons.Plus className="w-4 h-4" /> New Article
                             </button>
                         </div>
@@ -758,7 +758,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <div key={s.id} onClick={() => handleEdit(s)} className="aspect-[3/4] bg-tea-bg relative group cursor-pointer border border-tea-gold/10 hover:border-tea-gold transition-all">
                                 {s.thumbnailUrl && <img src={s.thumbnailUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="" />}
                                 <div className="absolute top-2 left-2 flex gap-1">
-                                    <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg ${s.status === 'published' ? 'text-tea-green' : 'text-tea-text'}`}>
+                                    <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-tea-text/60 backdrop-blur-sm rounded-lg ${s.status === 'published' ? 'text-tea-green' : 'text-tea-text'}`}>
                                         {s.status}
                                     </span>
                                 </div>
@@ -781,7 +781,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                             <h2 className="text-2xl font-serif text-tea-text mb-1">Media Vault</h2>
                             <p className="text-tea-text text-xs uppercase tracking-wider">Reels, Films & Audio for future release</p>
                         </div>
-                        <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                        <button onClick={handleCreate} className="px-4 py-2 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                             <Icons.Plus className="w-4 h-4" /> New Media
                         </button>
                     </div>
@@ -800,17 +800,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     
                                     {/* Icon Overlay */}
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
-                                        <div className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-tea-gold/10">
+                                        <div className="w-10 h-10 rounded-full bg-tea-text/50 backdrop-blur-md flex items-center justify-center border border-tea-gold/10">
                                             {s.type === ContentType.Audio ? <Icons.Audio className="w-4 h-4 text-white" /> : <Icons.Play className="w-4 h-4 text-white" />}
                                         </div>
                                     </div>
 
                                     {/* Status Badge */}
                                     <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
-                                        <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-black/60 backdrop-blur-sm rounded-lg text-tea-text border border-tea-gold/10`}>
+                                        <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-tea-text/60 backdrop-blur-sm rounded-lg text-tea-text border border-tea-gold/10`}>
                                             {s.type}
                                         </span>
-                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-[0.15em] bg-black/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
+                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-[0.15em] bg-tea-text/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
                                     </div>
 
                                     {/* Bottom Meta */}
@@ -866,7 +866,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 onChange={handleImportInventory}
                                 className="hidden"
                             />
-                            <button onClick={handleInventoryCreate} className="px-4 py-1 bg-tea-gold text-tea-paper text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
+                            <button onClick={handleInventoryCreate} className="px-4 py-1 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 rounded-sm flex items-center gap-2">
                                 <Icons.Plus className="w-3 h-3" /> Add Item
                             </button>
                         </div>
@@ -956,7 +956,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                 <h3 className="text-lg font-serif text-white mb-2">Shopping Cart</h3>
                                 <p className="text-tea-text text-sm">Manage your product selections and generate orders</p>
                             </div>
-                            <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.15em] rounded-sm transition-colors flex items-center gap-2">
+                            <a href="#" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('openCart')); }} className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm transition-colors flex items-center gap-2">
                                 <Icons.Bag className="w-4 h-4" />
                                 View Cart
                             </a>

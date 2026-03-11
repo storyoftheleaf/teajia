@@ -80,10 +80,10 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                    <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-6 text-center">
                        <div className="w-16 h-16 rounded-full border border-tea-gold/15 flex items-center justify-center mb-5 relative group-hover:scale-105 transition-transform duration-700">
                             <div className="absolute inset-0 rounded-full border border-tea-gold/8 scale-110"></div>
-                            <Icons.Audio className="w-5 h-5 text-tea-paper/60 group-hover:text-tea-gold transition-colors" />
+                            <Icons.Audio className="w-5 h-5 text-tea-text/60 group-hover:text-tea-gold transition-colors" />
                        </div>
 
-                       <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-paper mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500">
+                       <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500">
                            {story.title}
                        </h3>
                        <p className="text-[10px] text-tea-text-dim font-sans uppercase tracking-[0.2em] mb-4">
@@ -96,7 +96,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                    </div>
                 ) : (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
-                        <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-paper leading-[1.2] tracking-[0.01em] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
+                        <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
                            {story.title}
                         </h3>
                         <div className="flex flex-col gap-1.5 items-center">
@@ -127,7 +127,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                    <div
                      className="absolute inset-0 animate-shimmer"
                      style={{
-                       background: 'linear-gradient(90deg, transparent, rgba(200,170,120,0.08), transparent)'
+                       background: 'linear-gradient(90deg, transparent, var(--tea-border), transparent)'
                      }}
                    />
                  </div>
@@ -147,7 +147,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                {/* Desktop hover excerpt overlay */}
                {story.description && (
                  <div className="hidden md:flex absolute bottom-0 left-0 right-0 z-20 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
-                   <p className="text-xs text-tea-paper/80 line-clamp-2 leading-relaxed">
+                   <p className="text-xs text-tea-text/80 line-clamp-2 leading-relaxed">
                      {story.description}
                    </p>
                  </div>
@@ -155,7 +155,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {/* Category Badge */}
                {story.category && CATEGORY_BADGES[story.category] && (
-                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-tea-paper text-[10px] uppercase tracking-[0.15em] font-sans rounded-sm shadow-md`}>
+                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-tea-text text-[10px] uppercase tracking-[0.15em] font-sans rounded-sm shadow-md`}>
                    {CATEGORY_BADGES[story.category].label}
                  </div>
                )}
@@ -163,11 +163,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                {isAudio && (
                  <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
                     <div className="w-12 h-12 rounded-full bg-tea-gold/10 backdrop-blur-md border border-tea-gold/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl">
-                        <Icons.Play className="w-4 h-4 text-tea-paper fill-tea-paper ml-0.5" />
+                        <Icons.Play className="w-4 h-4 text-tea-text fill-tea-text ml-0.5" />
                     </div>
 
                     <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black/90 to-transparent">
-                        <div className="flex justify-between items-end text-tea-paper">
+                        <div className="flex justify-between items-end text-tea-text">
                            <div className="flex items-center gap-2">
                               <Icons.Audio className="w-3 h-3 opacity-90" />
                               <span className="text-xs uppercase tracking-[0.15em] opacity-90">Listen</span>
@@ -181,7 +181,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                {isVideo && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-10 h-10 rounded-full border-[0.5px] border-tea-gold/20 flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[1px] group-hover:bg-tea-gold/5 group-hover:scale-105 transition-all duration-700">
-                        <Icons.Play className="w-3 h-3 text-tea-paper/90 fill-tea-paper/80 ml-0.5 opacity-80 group-hover:opacity-100" />
+                        <Icons.Play className="w-3 h-3 text-tea-text/90 fill-tea-text/80 ml-0.5 opacity-80 group-hover:opacity-100" />
                     </div>
                 </div>
                )}

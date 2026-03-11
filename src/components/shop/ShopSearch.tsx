@@ -30,7 +30,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
           placeholder={placeholder}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-6 pr-2 py-2 bg-transparent border-b border-tea-text/10 focus:border-tea-gold outline-none font-serif italic text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-paper/30 transition-colors"
+          className="w-full pl-6 pr-2 py-2 bg-transparent border-b border-tea-text/10 focus:border-tea-gold outline-none font-serif italic text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-text/30 transition-colors"
         />
       </div>
 
@@ -43,7 +43,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
             className={`px-3 py-1 text-xs uppercase tracking-wider rounded-sm transition-colors ${
               activeType === type
                 ? 'bg-tea-elevated text-tea-text font-medium'
-                : 'border border-tea-text/15  text-tea-text/60 hover:border-tea-text/30 dark:hover:border-tea-paper/30 hover:text-tea-text'
+                : 'border border-tea-text/15  text-tea-text/60 hover:border-tea-text/30 dark:hover:border-tea-border/30 hover:text-tea-text'
             }`}
           >
             {type}

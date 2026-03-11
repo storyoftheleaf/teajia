@@ -31,7 +31,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
   }, [currentIndex]);
 
   return (
-    <div className="border-t border-tea-gold/10 bg-black/50 backdrop-blur-sm">
+    <div className="border-t border-tea-gold/10 bg-tea-text/50 backdrop-blur-sm">
       <div ref={thumbnailRef} className="overflow-x-auto hide-scrollbar">
         <div className="flex gap-3 md:gap-4 p-5 md:p-6 justify-start">
           {images.map((img, idx) => (
@@ -52,7 +52,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
               />
               {/* Number overlay - only show on non-active */}
               {idx !== currentIndex && (
-                <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center">
+                <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-tea-text/70 backdrop-blur-sm flex items-center justify-center">
                   <span className="text-white text-[10px] font-serif">
                     {idx + 1}
                   </span>

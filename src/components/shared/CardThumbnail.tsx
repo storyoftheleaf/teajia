@@ -28,7 +28,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
   return (
     <div
       className={`${THUMBNAIL_SIZE_CLASS} relative shrink-0 rounded-[1px] overflow-hidden bg-tea-elevated cursor-pointer group/thumb transition-all ${className}`}
-      style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 rgba(200,170,120,0.04)' }}
+      style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 var(--tea-accent-sub)' }}
       onClick={onClick}
     >
       {src && !hasError ? (
@@ -48,11 +48,11 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
             }`}
           />
           {/* View affordance overlay */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/thumb:bg-black/30 transition-all duration-200">
+          <div className="absolute inset-0 flex items-center justify-center bg-tea-text/0 group-hover/thumb:bg-tea-text/30 transition-all duration-200">
             <svg
               width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              className="text-tea-paper opacity-0 group-hover/thumb:opacity-90 transition-opacity duration-200 drop-shadow-lg"
+              className="text-tea-text opacity-0 group-hover/thumb:opacity-90 transition-opacity duration-200 drop-shadow-lg"
             >
               <polyline points="15 3 21 3 21 9" />
               <polyline points="9 21 3 21 3 15" />
@@ -66,7 +66,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
           {teaType ? (
             <TeaPlaceholder type={teaType} style={{ width: '100%', height: '100%' }} />
           ) : (
-            <span className="text-tea-paper/20 text-[8px]">—</span>
+            <span className="text-tea-text/20 text-[8px]">—</span>
           )}
         </div>
       )}

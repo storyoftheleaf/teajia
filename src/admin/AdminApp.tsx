@@ -91,7 +91,7 @@ const AdminContent = () => {
   if (!isConfigured) {
     return (
       <div className="flex min-h-screen bg-tea-bg text-tea-text items-center justify-center p-6">
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-accent/50"></div>
             <div className="mb-6 flex justify-center">
               <div className="p-4 bg-tea-accent/10 rounded-full border border-tea-accent/20">
@@ -99,10 +99,10 @@ const AdminContent = () => {
               </div>
             </div>
             <h2 className="text-xl font-serif text-tea-text mb-2">Setup Required</h2>
-            <p className="text-tea-muted text-sm mb-6 leading-relaxed">
+            <p className="text-tea-text-dim text-sm mb-6 leading-relaxed">
                 The application cannot connect to the database. Please configure your API credentials to continue.
             </p>
-            <div className="text-left bg-tea-bg/50 p-4 rounded-xl text-xs font-mono text-tea-muted mb-6 border border-tea-border space-y-2">
+            <div className="text-left bg-tea-bg/50 p-4 rounded-xl text-xs font-mono text-tea-text-dim mb-6 border border-tea-border space-y-2">
                 <p>1. Open <span className="text-tea-text bg-tea-surface px-1 rounded">.env</span> file</p>
                 <p>2. Find <span className="text-tea-accent">VITE_API_URL</span></p>
                 <p>3. Set it to your Worker API URL</p>
@@ -150,11 +150,11 @@ const AdminContent = () => {
 
   return (
     <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
-      <button onClick={() => setIsMobileOpen(true)} className="fixed top-4 left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-muted backdrop-blur-md">
+      <button onClick={() => setIsMobileOpen(true)} className="fixed top-4 left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-text-dim backdrop-blur-md">
         <Menu size={24} />
       </button>
 
-      {isMobileOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
+      {isMobileOpen && <div className="fixed inset-0 bg-tea-text/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
 
       <Sidebar
         isAdmin={isAdmin}
@@ -169,20 +169,20 @@ const AdminContent = () => {
 
       <main className="flex-1 relative flex flex-col min-w-0">
         <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-6 py-4 flex justify-end items-center gap-4 flex-none">
-           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-muted hover:text-tea-text transition-colors p-2.5">
+           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-text-dim hover:text-tea-text transition-colors p-2.5">
               <Search size={18} />
            </button>
-           <button onClick={handleRefresh} className="text-tea-muted hover:text-tea-text transition-colors p-2">
+           <button onClick={handleRefresh} className="text-tea-text-dim hover:text-tea-text transition-colors p-2">
               <RefreshCw size={16} />
            </button>
 
            <div className="relative group">
-              <button className="flex items-center gap-2 text-sm font-medium text-tea-muted hover:text-tea-text transition-colors">
+              <button className="flex items-center gap-2 text-sm font-medium text-tea-text-dim hover:text-tea-text transition-colors">
                 {currency} <ChevronDown size={14} />
               </button>
               <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden backdrop-blur-xl">
                 {rates.map(rate => (
-                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-muted'}`}>
+                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-text-dim'}`}>
                     {rate.currency}
                   </button>
                 ))}
@@ -191,7 +191,7 @@ const AdminContent = () => {
 
            <div className="w-px h-4 bg-tea-border"></div>
 
-           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-muted hover:text-tea-text transition-colors p-2">
+           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-dim hover:text-tea-text transition-colors p-2">
              <ShoppingCart size={20} />
              {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
            </button>

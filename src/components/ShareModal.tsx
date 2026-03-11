@@ -144,7 +144,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-tea-bg/95 backdrop-blur-md"
@@ -153,13 +153,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
       {/* Hidden Container for Story Generation (9:16 Layout) */}
       <div className="fixed left-[-9999px] top-0">
-          <div id="story-format-export" className="w-[450px] h-[800px] relative bg-[#1a1a1a] flex flex-col items-center justify-center p-12 overflow-hidden">
+          <div id="story-format-export" className="w-[450px] h-[800px] relative bg-tea-bg flex flex-col items-center justify-center p-12 overflow-hidden">
               {/* Background */}
               <img src={story.thumbnailUrl || 'https://www.transparenttextures.com/patterns/wood-pattern.png'} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl" crossOrigin="anonymous" />
-              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="absolute inset-0 bg-tea-text/20"></div>
               
               {/* Card */}
-              <div className="relative z-10 bg-[#EAE7DD] p-6 shadow-2xl w-full aspect-[3/4] flex flex-col">
+              <div className="relative z-10 bg-tea-bg p-6 shadow-2xl w-full aspect-[3/4] flex flex-col">
                   <div className="relative w-full flex-1 overflow-hidden mb-4 bg-tea-bg">
                      <img src={story.thumbnailUrl} className="w-full h-full object-cover sepia-[0.15]" crossOrigin="anonymous" />
                   </div>
@@ -173,9 +173,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                      <div className="w-6 h-6 bg-tea-bg rounded-lg flex items-center justify-center">
                         <span className="text-tea-text font-serif font-bold text-xs mt-0.5">T</span>
                      </div>
-                     <span className="text-tea-paper text-xs tracking-[0.3em] font-serif">TEAJIA</span>
+                     <span className="text-tea-text text-xs tracking-[0.3em] font-serif">TEAJIA</span>
                   </div>
-                  <p className="text-[10px] text-tea-paper/40 font-mono tracking-[0.15em]">JOURNAL OF TEA</p>
+                  <p className="text-[10px] text-tea-text/40 font-mono tracking-[0.15em]">JOURNAL OF TEA</p>
               </div>
           </div>
       </div>
@@ -191,11 +191,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         {/* Header with Logo */}
         <div className="h-12 bg-tea-elevated border-b border-tea-gold/10 flex items-center px-4 justify-between">
           <LogoEmblem size={20} ariaLabel="Teajia" className="opacity-70 hover:opacity-90 transition-opacity" />
-          <span className="flex-1 text-center text-tea-paper/80 text-xs uppercase tracking-wider font-semibold">Share</span>
+          <span className="flex-1 text-center text-tea-text/80 text-xs uppercase tracking-wider font-semibold">Share</span>
           {/* Close */}
           <button
             onClick={onClose}
-            className="p-1 text-tea-paper/50 hover:text-tea-paper transition-colors"
+            className="p-1 text-tea-text/50 hover:text-tea-text transition-colors"
           >
             <Icons.Close className="w-5 h-5" />
           </button>
@@ -213,7 +213,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                  {story.thumbnailUrl ? (
                    <img src={story.thumbnailUrl} className="w-full h-full object-cover sepia-[0.15]" alt="story" crossOrigin="anonymous" />
                  ) : (
-                   <div className="w-full h-full flex items-center justify-center bg-tea-beige"><Icons.Seal className="w-8 h-8 text-tea-text/30" /></div>
+                   <div className="w-full h-full flex items-center justify-center bg-tea-elevated"><Icons.Seal className="w-8 h-8 text-tea-text/30" /></div>
                  )}
                </div>
                {/* Content Section */}
@@ -248,7 +248,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
            {/* 1. Native Share / Mobile Priority */}
            <button 
              onClick={handleNativeShare}
-             className="w-full py-3.5 bg-tea-bg text-tea-paper flex items-center justify-center gap-3 hover:bg-tea-elevated transition-colors shadow-lg group"
+             className="w-full py-3.5 bg-tea-bg text-tea-text flex items-center justify-center gap-3 hover:bg-tea-elevated transition-colors shadow-lg group"
            >
              <Icons.Share className="w-4 h-4 group-hover:scale-110 transition-transform" />
              <span className="text-xs uppercase tracking-[0.15em]">Share</span>

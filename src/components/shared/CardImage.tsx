@@ -69,7 +69,7 @@ export const CardImage: React.FC<CardImageProps> = ({
           {teaType ? (
             <TeaPlaceholder type={teaType} style={{ width: '100%', height: '100%' }} />
           ) : (
-            <span className="text-tea-paper/30 text-xs">No image</span>
+            <span className="text-tea-text/30 text-xs">No image</span>
           )}
         </div>
       )}

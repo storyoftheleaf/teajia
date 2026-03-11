@@ -60,12 +60,12 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-modal bg-tea-text/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div className="fixed z-[71] inset-x-4 bottom-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-tea-bg rounded-lg shadow-2xl overflow-hidden">
+      <div className="fixed z-modal inset-x-4 bottom-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-tea-bg rounded-lg shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-2">
           <h3 className="font-serif text-xl text-tea-text">
