@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Loader2, Search, XCircle, Trash2, Eye, X, CheckSquare, PackageCheck, Users } from 'lucide-react';
 import { useRates } from '../hooks/useAdminData';
@@ -8,14 +8,17 @@ import { useToast } from './Toast';
 
 export const OrdersView = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
   const { data: rates = [] } = useRates();
 
   const [pageSize, setPageSize] = useState(50);
   const { data: orders = [], isLoading, refetch } = useQuery({
     queryKey: ['orders', pageSize],
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       return await api.invoices.list(pageSize);
     }

@@ -96,6 +96,8 @@ export const useRates = () => {
 export const useCustomers = () => {
   return useQuery({
     queryKey: ['customers'],
+    staleTime: 1000 * 60 * 5,   // 5 min — same as products
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const data = await api.customers.list();
       return (data || []).map((c: any) => ({

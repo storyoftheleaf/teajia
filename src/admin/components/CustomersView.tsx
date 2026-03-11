@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -194,6 +194,7 @@ const CustomerDetail = ({
   onDelete: () => void;
   allProducts?: any[];
 }) => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [teas, setTeas] = useState<any[]>([]);
@@ -327,8 +328,12 @@ const CustomerDetail = ({
                                   <Leaf size={14} className="text-tea-text-dim" />
                                 </div>
                               )}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm text-tea-text font-medium truncate">
+                              <button
+                                onClick={() => { onClose(); navigate(`/admin/inventory?search=${encodeURIComponent(p.given_name || p.product_name || '')}`); }}
+                                className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                                title="View in Inventory"
+                              >
+                                <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
                                   {p.given_name || p.product_name}
                                 </div>
                                 <div className="text-xs text-tea-text-dim flex items-center gap-2">
@@ -336,7 +341,7 @@ const CustomerDetail = ({
                                   {p.origin_region && <span>· {p.origin_region}</span>}
                                   {p.stock_grams != null && <span>· {p.stock_grams}g in stock</span>}
                                 </div>
-                              </div>
+                              </button>
                               <button
                                 onClick={async () => {
                                   await api.customers.unlinkProduct(customer.id, p.id);
@@ -459,15 +464,19 @@ const CustomerDetail = ({
                           <Leaf size={14} className="text-tea-text-dim" />
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-tea-text font-medium truncate">
+                      <button
+                        onClick={() => { onClose(); navigate(`/admin/inventory?search=${encodeURIComponent(tea.given_name || tea.product_name || '')}`); }}
+                        className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                        title="View in Inventory"
+                      >
+                        <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
                           {tea.given_name || tea.product_name}
                         </div>
                         <div className="text-xs text-tea-text-dim flex items-center gap-2">
                           <span className="uppercase">{tea.type}</span>
                           {tea.origin_region && <span>· {tea.origin_region}</span>}
                         </div>
-                      </div>
+                      </button>
                       <div className="text-right flex-shrink-0">
                         <div className="text-sm text-tea-text">{tea.total_quantity}g</div>
                         <div className="text-[10px] text-tea-text-dim">
@@ -501,7 +510,14 @@ const CustomerDetail = ({
                   orders.map((order: any) => (
                     <div key={order.id} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
                       <div>
-                        <span className="text-tea-text font-medium">{order.invoice_number}</span>
+                        <button
+                          onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(order.invoice_number || '')}`); }}
+                          className="text-tea-text font-medium hover:text-tea-accent transition-colors inline-flex items-center gap-1"
+                          title="View in Orders"
+                        >
+                          {order.invoice_number}
+                          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100" />
+                        </button>
                         <span className="text-tea-text-dim text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded border font-medium uppercase tracking-wider ${
@@ -539,6 +555,7 @@ export const CustomersView = () => {
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterTag, setFilterTag] = useState<CustomerTag | ''>('');
+  const [sortBy, setSortBy] = useState<'name' | 'recent' | 'spent' | 'orders'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
@@ -558,8 +575,21 @@ export const CustomersView = () => {
     if (filterTag) {
       list = list.filter(c => c.tags.includes(filterTag));
     }
+    // Sort
+    list = [...list].sort((a, b) => {
+      switch (sortBy) {
+        case 'recent':
+          return (b.lastOrderDate || '').localeCompare(a.lastOrderDate || '');
+        case 'spent':
+          return (b.totalSpentUSD || 0) - (a.totalSpentUSD || 0);
+        case 'orders':
+          return (b.orderCount || 0) - (a.orderCount || 0);
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
     return list;
-  }, [customers, search, filterTag]);
+  }, [customers, search, filterTag, sortBy]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -642,6 +672,16 @@ export const CustomersView = () => {
             <option value="">All Tags</option>
             {TAG_OPTIONS.map(tag => <option key={tag} value={tag}>{tag}</option>)}
           </select>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as any)}
+            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+          >
+            <option value="name">Sort: Name</option>
+            <option value="recent">Sort: Recent</option>
+            <option value="spent">Sort: Top Spent</option>
+            <option value="orders">Sort: Most Orders</option>
+          </select>
           <button
             onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
             className="flex items-center gap-2 bg-tea-accent text-tea-bg px-4 py-2 rounded-lg text-sm font-medium hover:bg-tea-accent/90 transition-colors"
@@ -655,7 +695,22 @@ export const CustomersView = () => {
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-tea-text-dim">
           <p className="font-serif text-lg mb-2">No customers found</p>
-          <p className="text-sm">{search || filterTag ? 'Try adjusting your search or filter.' : 'Add your first customer to get started.'}</p>
+          {search && !filterTag ? (
+            <div className="space-y-3">
+              <p className="text-sm">No match for "{search}"</p>
+              <button
+                onClick={() => {
+                  setEditingCustomer(null);
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 bg-tea-accent text-tea-bg px-4 py-2 rounded-lg text-sm font-medium hover:bg-tea-accent/90 transition-colors"
+              >
+                <Plus size={16} /> Add "{search}" as new customer
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm">{filterTag ? 'Try adjusting your search or filter.' : 'Add your first customer to get started.'}</p>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -718,7 +773,7 @@ export const CustomersView = () => {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setEditingCustomer(null); }}
         onSave={handleSave}
-        initialData={editingCustomer ? formDataFromCustomer(editingCustomer) : undefined}
+        initialData={editingCustomer ? formDataFromCustomer(editingCustomer) : (search && !editingCustomer ? { ...emptyForm, name: search } : undefined)}
         isEditing={!!editingCustomer}
       />
 

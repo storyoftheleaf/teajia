@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
   Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee
@@ -183,8 +184,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   } = useAppStore();
 
   // --- STATE ---
+  const [searchParams] = useSearchParams();
   const [inventoryCategory, setInventoryCategory] = useState<InventoryCategory>('tea');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [filterType, setFilterType] = useState<string>('All');
   const [showOptions, setShowOptions] = useState(false);
 
