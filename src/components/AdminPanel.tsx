@@ -129,7 +129,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
                         {/* Mobile Page Controls (since sidebar is hidden) */}
                          {!isMedia && (
-                            <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#202020] px-4 py-2 rounded-full border border-tea-gold/10 z-40 shadow-xl">
+                            <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-tea-surface px-4 py-2 rounded-full border border-tea-gold/10 z-40 shadow-xl">
                                 <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0} className="text-tea-text disabled:opacity-30"><Icons.Back className="w-4 h-4" /></button>
                                 <span className="text-xs text-tea-text font-mono">{idx + 1} / {pages.length}</span>
                                 <button onClick={() => setIdx(Math.min(pages.length - 1, idx + 1))} disabled={idx === pages.length - 1} className="text-tea-text disabled:opacity-30"><Icons.Next className="w-4 h-4" /></button>

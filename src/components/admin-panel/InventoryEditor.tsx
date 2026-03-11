@@ -91,9 +91,9 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
     };
 
     return (
-        <div className="fixed inset-0 z-modal bg-[#1a1a1a] flex flex-col">
+        <div className="fixed inset-0 z-modal bg-tea-bg flex flex-col">
             {/* Header with Title and Action Buttons */}
-            <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-tea-gold/15 shrink-0 bg-[#0f0f0f]">
+            <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-tea-gold/15 shrink-0 bg-tea-surface">
                 <h2 className="text-xl md:text-2xl font-serif text-tea-text">Edit Inventory Item</h2>
                 <div className="flex gap-3">
                     <button
@@ -116,7 +116,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                 <div className="p-4 md:p-6 space-y-3 md:space-y-4">
 
                     {/* BASIC INFO SECTION - 3 column grid */}
-                    <div className="bg-[#0f0f0f] rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-tea-surface rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
                         {/* Row 1: Name (2 cols) | Type (1 col) */}
                         <div className="grid grid-cols-3 gap-3 mb-3">
                             <div className="col-span-2">
@@ -155,7 +155,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
 
                     {/* SOURCING SECTION - Supplier (2/3) | Location (1/3) */}
                     {currentItem.category === 'tea' && (
-                        <div className="bg-[#0f0f0f] rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
+                        <div className="bg-tea-surface rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="col-span-2">
                                     <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Supplier</label>
@@ -174,7 +174,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
 
 
                     {/* COST & STOCK SECTION - 3 column grid */}
-                    <div className="bg-[#0f0f0f] rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-tea-surface rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
                         <div className="grid grid-cols-3 gap-3">
                             {/* Stock field */}
                             <div>
@@ -253,7 +253,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                     </div>
 
                     {/* MEDIA SECTION */}
-                    <div className="bg-[#0f0f0f] rounded-md p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-tea-surface rounded-md p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
                         <div>
                             <label className="text-sm uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Description</label>
                             <textarea className="w-full bg-tea-bg border border-tea-gold/15 p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-20" value={currentItem.description} onChange={e => setCurrentItem({...currentItem, description: e.target.value})} />
@@ -266,7 +266,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
 
                     {/* IMAGE PREVIEW */}
                     {(currentItem.image || true) && (
-                        <div className="bg-[#0f0f0f] rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
+                        <div className="bg-tea-surface rounded-md p-4 animate-[fadeIn_0.3s_ease-out]">
                             <label className="text-sm uppercase text-tea-gold block mb-3 tracking-wider font-semibold">Preview</label>
                             <div className="flex gap-4">
                                 {currentItem.image ? (

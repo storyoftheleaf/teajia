@@ -14,7 +14,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
   };
 
   return (
-    <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center p-6 md:pb-6">
+    <div className="w-full h-full bg-tea-bg flex items-center justify-center p-6 md:pb-6">
       <button
         onClick={onClose}
         className="absolute top-6 left-6 text-white/60 hover:text-white"
@@ -35,7 +35,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
           onChange={e => setPwd(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && checkLogin()}
           placeholder="Passkey"
-          className="w-full bg-[#0f0f0f] border border-tea-gold/15 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-white/30"
+          className="w-full bg-tea-surface border border-tea-gold/15 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-white/30"
           aria-label="Enter passkey"
         />
 

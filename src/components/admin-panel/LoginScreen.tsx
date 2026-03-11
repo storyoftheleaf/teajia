@@ -31,7 +31,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                             onChange={e => setPwd(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && checkLogin()}
                             placeholder="Passkey"
-                            className="w-full bg-[#0f0f0f] border border-tea-gold/15 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-white/30"
+                            className="w-full bg-tea-surface border border-tea-gold/15 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-white/30"
                         />
                         <button onClick={checkLogin} className="w-full bg-tea-gold text-tea-bg py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-tea-gold-lt transition-colors rounded-sm mb-6">Enter</button>
                         
@@ -47,7 +47,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                         </div>
                     </>
                 ) : (
-                    <div className="bg-[#0f0f0f] border border-tea-gold/40 p-6 rounded-sm animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-tea-surface border border-tea-gold/40 p-6 rounded-sm animate-[fadeIn_0.3s_ease-out]">
                         <Icons.Check className="w-8 h-8 text-tea-gold mx-auto mb-3" />
                         <p className="text-white/80 text-sm mb-2 font-serif italic">Access Granted</p>
                         <p className="text-xs uppercase tracking-[0.15em] text-white/80 mb-1">Your Key</p>

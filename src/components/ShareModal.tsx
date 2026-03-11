@@ -153,13 +153,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
       {/* Hidden Container for Story Generation (9:16 Layout) */}
       <div className="fixed left-[-9999px] top-0">
-          <div id="story-format-export" className="w-[450px] h-[800px] relative bg-[#1a1a1a] flex flex-col items-center justify-center p-12 overflow-hidden">
+          <div id="story-format-export" className="w-[450px] h-[800px] relative bg-tea-bg flex flex-col items-center justify-center p-12 overflow-hidden">
               {/* Background */}
               <img src={story.thumbnailUrl || 'https://www.transparenttextures.com/patterns/wood-pattern.png'} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl" crossOrigin="anonymous" />
               <div className="absolute inset-0 bg-black/20"></div>
               
               {/* Card */}
-              <div className="relative z-10 bg-[#EAE7DD] p-6 shadow-2xl w-full aspect-[3/4] flex flex-col">
+              <div className="relative z-10 bg-tea-bg p-6 shadow-2xl w-full aspect-[3/4] flex flex-col">
                   <div className="relative w-full flex-1 overflow-hidden mb-4 bg-tea-bg">
                      <img src={story.thumbnailUrl} className="w-full h-full object-cover sepia-[0.15]" crossOrigin="anonymous" />
                   </div>

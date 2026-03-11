@@ -164,7 +164,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   // Desktop: Sidebar + Centered Vertical Player
   return (
-    <div className="fixed inset-0 z-modal bg-[#121212] flex">
+    <div className="fixed inset-0 z-modal bg-tea-bg flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
       <main className="flex-1 relative flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] p-12">
@@ -289,7 +289,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
   }
 
   return (
-    <div className="fixed inset-0 z-modal bg-[#050505] flex">
+    <div className="fixed inset-0 z-modal bg-tea-bg flex">
        <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
        
        <main className="flex-1 flex flex-col items-center overflow-y-auto">
@@ -388,7 +388,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
   // Desktop Audio
   return (
-    <div className="fixed inset-0 z-modal bg-[#1a1a1a] flex">
+    <div className="fixed inset-0 z-modal bg-tea-bg flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
       <main className="flex-1 flex flex-col items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] relative overflow-hidden">
