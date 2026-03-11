@@ -42,6 +42,7 @@ import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ImagePreloaderProvider, useImagePreloader } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
+import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
 import { MagazineTabbed } from './components/MagazineTabbed';
@@ -166,6 +167,7 @@ const AppContent = () => {
   // Modal State
   const [showContact, setShowContact] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
@@ -190,6 +192,18 @@ const AppContent = () => {
   }, [setActiveSection]);
 
   // Cart persistence handled by Zustand persist middleware
+
+  // Global search keyboard shortcut (Cmd/Ctrl+K)
+  useEffect(() => {
+    const handleSearchShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => window.removeEventListener('keydown', handleSearchShortcut);
+  }, []);
 
   // Desktop keyboard shortcuts
   useEffect(() => {
@@ -365,7 +379,7 @@ const AppContent = () => {
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       {/* Left Sidebar for Desktop */}
-      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} cartItemCount={cart.length} topOffset={showAdminBar} />
+      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => setShowGlobalSearch(true)} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col relative lg:ml-56 ${showAdminBar ? 'pt-9' : ''}`}>
@@ -521,6 +535,9 @@ const AppContent = () => {
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
       />
+
+      {/* --- GLOBAL SEARCH --- */}
+      <GlobalSearch isOpen={showGlobalSearch} onClose={() => setShowGlobalSearch(false)} />
 
       {/* --- ACCOUNT MODAL --- */}
       {showAccountModal && (

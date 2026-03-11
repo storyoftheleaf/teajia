@@ -9,9 +9,41 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: DESIGN_TOKENS.colors as Record<string, string>,
+      colors: {
+        // CSS variable-driven tokens (switch with dark/light mode)
+        'tea-bg': 'var(--tea-bg)',
+        'tea-surface': 'var(--tea-surface)',
+        'tea-elevated': 'var(--tea-elevated)',
+        'tea-text': 'var(--tea-text)',
+        'tea-text-sec': 'var(--tea-text-sec)',
+        'tea-text-dim': 'var(--tea-text-dim)',
+        'tea-gold': 'var(--tea-gold)',
+        'tea-gold-lt': 'var(--tea-gold-lt)',
+        'tea-border': 'var(--tea-border)',
+        'tea-accent-sub': 'var(--tea-accent-sub)',
+        // DEPRECATED LEGACY ALIASES — DO NOT USE IN NEW CODE
+        // See COLOR_RULES.md for correct tokens.
+        'tea-charcoal': 'var(--tea-bg)',
+        'tea-paper': '#ede4d4',
+        'tea-paper-dark': 'var(--tea-surface)',
+        'tea-beige': 'var(--tea-elevated)',
+        'tea-ink': 'var(--tea-text)',
+        'tea-ink-light': 'var(--tea-text-sec)',
+        'tea-ink-secondary': 'var(--tea-text-sec)',
+        'tea-paper-secondary': 'var(--tea-text-dim)',
+        'tea-seal': 'var(--tea-gold)',
+        'tea-seal-dark': 'var(--tea-gold)',
+        'tea-accent': 'var(--tea-gold)',
+        'tea-muted': 'var(--tea-text-dim)',
+        'tea-beige-dark': 'var(--tea-text-dim)',
+        'tea-green': '#5A6E5A',
+        'tea-moss': '#2A3430',
+        'tea-shadow': 'rgba(0,0,0,0.15)',
+      },
       fontFamily: {
+        display: DESIGN_TOKENS.fontFamily.display as string[],
         serif: DESIGN_TOKENS.fontFamily.serif as string[],
+        body: DESIGN_TOKENS.fontFamily.body as string[],
         sans: DESIGN_TOKENS.fontFamily.sans as string[],
         mono: DESIGN_TOKENS.fontFamily.mono as string[],
       },
