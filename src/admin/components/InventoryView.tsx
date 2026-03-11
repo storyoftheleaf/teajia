@@ -1761,7 +1761,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="w-full pt-4">
                         <input 
                             type="text" 
-                            className="w-full bg-black border border-tea-accent/30 rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
+                            className="w-full bg-tea-surface border border-tea-accent/30 rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
                             value={resetInput}
                             onChange={(e) => setResetInput(e.target.value)}
                             placeholder='Type "delete" to confirm'
@@ -1803,7 +1803,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         The archives are locked. Supabase requires administrative SQL execution to bypass integrity checks.
                     </p>
                     <div className="relative group mt-6">
-                        <pre className="bg-black border border-tea-border p-4 rounded-xl text-[10px] font-mono text-tea-text-dim overflow-x-auto whitespace-pre-wrap">
+                        <pre className="bg-tea-surface border border-tea-border p-4 rounded-xl text-[10px] font-mono text-tea-text-dim overflow-x-auto whitespace-pre-wrap">
                             {MAINTENANCE_SQL}
                         </pre>
                         <button 

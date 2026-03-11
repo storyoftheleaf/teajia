@@ -15,11 +15,11 @@ These are the ONLY color tokens that should be used in new code. They all use CS
 | `tea-elevated` | Modal/popover background | `#3a3126` | `#d5c8b4` |
 | `tea-text` | Primary text | `#ede4d4` cream | `#18130e` espresso |
 | `tea-text-sec` | Secondary/muted text | `#b5a892` | `#5e5342` |
-| `tea-text-dim` | Captions, labels, hints | `#80735f` | `#9a8c78` |
+| `tea-text-dim` | Captions, labels, hints | `#917a55` warm brown | `#9a8c78` |
 | `tea-gold` | Accent, links, active states | `#b8924e` | `#8e6d2e` |
 | `tea-gold-lt` | Hover/highlight gold | `#d4ac66` | `#a88340` |
-| `tea-border` | All borders and dividers | `rgba(184,146,78,0.08)` | `rgba(142,109,46,0.1)` |
-| `tea-accent-sub` | Subtle accent backgrounds | `rgba(184,146,78,0.1)` | `rgba(142,109,46,0.07)` |
+| `tea-border` | All borders and dividers | `rgba(160,130,70,0.18)` warm brown | `rgba(130,100,45,0.18)` |
+| `tea-accent-sub` | Subtle accent backgrounds | `rgba(160,130,70,0.12)` | `rgba(130,100,45,0.10)` |
 
 ### Fixed-value tokens (non-adaptive, use sparingly)
 | Token | Value | When to use |
