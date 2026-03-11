@@ -13,15 +13,22 @@ interface ArticleCardProps {
   className?: string;
   contentType?: ContentType;
   duration?: string;
+  wordCount?: number;
 }
 
-const contentTypeConfig: Record<ContentType, { icon: React.ElementType; label: string }> = {
-  [ContentType.Article]: { icon: FileText, label: 'Read' },
-  [ContentType.Reel]: { icon: Play, label: 'Watch' },
-  [ContentType.Film]: { icon: Play, label: 'Watch' },
-  [ContentType.Audio]: { icon: Headphones, label: 'Listen' },
-  [ContentType.PhotoEssay]: { icon: Camera, label: 'View' },
+const contentTypeConfig: Record<ContentType, { icon: React.ElementType; suffix: string }> = {
+  [ContentType.Article]: { icon: FileText, suffix: 'read' },
+  [ContentType.Reel]: { icon: Play, suffix: 'watch' },
+  [ContentType.Film]: { icon: Play, suffix: 'watch' },
+  [ContentType.Audio]: { icon: Headphones, suffix: 'listen' },
+  [ContentType.PhotoEssay]: { icon: Camera, suffix: '' },
 };
+
+/** Estimate reading time from word count at 200 words/min */
+function estimateReadingTime(wordCount: number): string {
+  const minutes = Math.max(1, Math.round(wordCount / 200));
+  return `${minutes} min`;
+}
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({
   title,
@@ -32,6 +39,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   className = '',
   contentType,
   duration,
+  wordCount,
 }) => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -101,11 +109,20 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           {contentType && (() => {
             const config = contentTypeConfig[contentType];
             const Icon = config.icon;
+            // Build the badge label: prefer estimated reading time from word count, fall back to duration prop
+            let badgeLabel: string | undefined;
+            if (wordCount && contentType === ContentType.Article) {
+              badgeLabel = `${estimateReadingTime(wordCount)} ${config.suffix}`;
+            } else if (duration) {
+              // If duration already looks like "X min", append the suffix
+              const isMinutes = /^\d+\s*min/.test(duration);
+              badgeLabel = isMinutes && config.suffix ? `${duration} ${config.suffix}` : duration;
+            }
             return (
               <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-tea-bg/80 backdrop-blur-sm rounded-full px-2.5 py-1 border border-tea-border">
                 <Icon className="w-3 h-3 text-tea-gold" strokeWidth={2} />
-                {duration && (
-                  <span className="text-[9px] text-tea-text-sec font-sans tracking-wide">{duration}</span>
+                {badgeLabel && (
+                  <span className="text-[9px] text-tea-text-sec font-sans tracking-wide">{badgeLabel}</span>
                 )}
               </div>
             );

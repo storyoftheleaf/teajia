@@ -117,6 +117,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     return inventory.filter(i => i.category === 'tea')[0] || null;
   }, [inventory]);
 
+  /** Estimate word count from story content paragraphs */
+  const getWordCount = (story: Story): number | undefined => {
+    if (!story.content || story.content.length === 0) return undefined;
+    return story.content.join(' ').split(/\s+/).filter(Boolean).length;
+  };
+
   const handleCardClick = (story: Story) => {
     if (onCardClick) onCardClick(story);
   };
@@ -222,6 +228,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onClick={() => handleCardClick(story)}
                 contentType={story.type}
                 duration={story.durationOrTime}
+                wordCount={getWordCount(story)}
               />
             ))}
           </div>
