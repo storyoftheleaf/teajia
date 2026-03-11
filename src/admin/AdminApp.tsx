@@ -44,6 +44,11 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
+const ProtectedRoute = ({ isAdmin, children }: { isAdmin: boolean; children: React.ReactNode }) => {
+  if (!isAdmin) return <div className="p-12 text-center text-tea-text-dim font-serif">Access Restricted</div>;
+  return <>{children}</>;
+};
+
 const AdminContent = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -143,11 +148,6 @@ const AdminContent = () => {
     showToast("Data refreshed", 'info');
   };
 
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!isAdmin) return <div className="p-12 text-center text-tea-text-dim font-serif">Access Restricted</div>;
-    return <>{children}</>;
-  };
-
   return (
     <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
       <button onClick={() => setIsMobileOpen(true)} className="fixed top-4 left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-text-dim backdrop-blur-md">
@@ -205,7 +205,7 @@ const AdminContent = () => {
               <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} /></PageTransition>} />
 
               <Route path="inventory" element={
-                <ProtectedRoute>
+                <ProtectedRoute isAdmin={isAdmin}>
                   <PageTransition>
                     <InventoryView
                       products={products}
@@ -219,14 +219,14 @@ const AdminContent = () => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="personal" element={<ProtectedRoute><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
-              <Route path="customers" element={<ProtectedRoute><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
-              <Route path="orders" element={<ProtectedRoute><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
-              <Route path="records" element={<ProtectedRoute><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
-              <Route path="dashboard" element={<ProtectedRoute><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
-              <Route path="settings" element={<ProtectedRoute><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
-              <Route path="events" element={<ProtectedRoute><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
-              <Route path="events/:id" element={<ProtectedRoute><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="personal" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
+              <Route path="customers" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
+              <Route path="orders" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
+              <Route path="records" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
+              <Route path="events" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
 
               <Route path="*" element={<Navigate to="inventory" replace />} />
             </Routes>

@@ -214,8 +214,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Switch columns when category changes
+  // Switch columns when category changes (skip initial mount to avoid redundant store writes)
+  const prevCategoryRef = useRef(inventoryCategory);
   useEffect(() => {
+    if (prevCategoryRef.current === inventoryCategory) return;
+    prevCategoryRef.current = inventoryCategory;
     const defaultView = inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS[0] : DEFAULT_TEA_VIEWS[0];
     setInventoryColumns(defaultView.columns);
     setInventorySortConfig(defaultView.sortConfig);
