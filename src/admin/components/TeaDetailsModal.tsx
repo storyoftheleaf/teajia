@@ -164,7 +164,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   const notes = (product.showWisdom && product.tastingNotes) ? product.tastingNotes : [];
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-label={product?.productName || 'Tea details'} className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
       
       {/* Scrollbar styles for the Modal */}
       <style>{`

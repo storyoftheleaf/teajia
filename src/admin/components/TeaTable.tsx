@@ -182,17 +182,21 @@ export const TeaTable: React.FC<TeaTableProps> = ({
       </div>
       
       {/* Filters - Pills to Tags */}
-      <div className="flex flex-wrap gap-2 w-full border-b border-tea-border pb-6">
-            <button 
-                onClick={() => setFilter('All')} 
-                className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border ${filter === 'All' ? 'bg-tea-text text-tea-bg border-tea-text' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
+      <div className="flex flex-wrap gap-2 w-full border-b border-tea-border pb-6" role="tablist" aria-label="Filter by tea type">
+            <button
+                onClick={() => setFilter('All')}
+                role="tab"
+                aria-selected={filter === 'All'}
+                className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${filter === 'All' ? 'bg-tea-text text-tea-bg border-tea-text' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
             >
                 All
             </button>
             {activeProducts.some(p => p.isFeatured) && (
-                <button 
-                    onClick={() => setFilter('Featured')} 
-                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border flex items-center gap-1.5 ${filter === 'Featured' ? 'bg-tea-accent text-tea-bg border-tea-accent' : 'text-tea-accent/70 border-tea-accent/30 hover:border-tea-accent/60 hover:text-tea-accent'}`}
+                <button
+                    onClick={() => setFilter('Featured')}
+                    role="tab"
+                    aria-selected={filter === 'Featured'}
+                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${filter === 'Featured' ? 'bg-tea-accent text-tea-bg border-tea-accent' : 'text-tea-accent/70 border-tea-accent/30 hover:border-tea-accent/60 hover:text-tea-accent'}`}
                 >
                     <Star size={10} className={filter === 'Featured' ? 'fill-tea-bg' : 'fill-tea-accent/70'} />
                     Featured
@@ -203,10 +207,12 @@ export const TeaTable: React.FC<TeaTableProps> = ({
               if (count === 0) return null;
               const isActive = filter === type;
               return (
-                <button 
-                    key={type} 
-                    onClick={() => setFilter(type)} 
-                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border ${isActive ? `bg-tea-text text-tea-bg border-tea-text` : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
+                <button
+                    key={type}
+                    onClick={() => setFilter(type)}
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isActive ? `bg-tea-text text-tea-bg border-tea-text` : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim hover:text-tea-text'}`}
                 >
                     {type}
                 </button>
@@ -326,9 +332,10 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     </td>
 
                                     <td className="py-3 px-4 text-right align-middle">
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); onAdd(product); }}
-                                            className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 transition-opacity p-3 md:p-2 border border-tea-border rounded-full hover:bg-tea-accent hover:text-tea-bg text-tea-text-dim hover:border-tea-accent"
+                                            className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 focus-visible:opacity-100 transition-opacity p-3 md:p-2 border border-tea-border rounded-full hover:bg-tea-accent hover:text-tea-bg text-tea-text-dim hover:border-tea-accent focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+                                            aria-label={`Add ${product.productName} to cart`}
                                         >
                                             <Plus size={14} />
                                         </button>

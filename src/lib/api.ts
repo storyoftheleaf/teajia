@@ -565,4 +565,21 @@ export const api = {
       return handleResponse(res);
     },
   },
+
+  favorites: {
+    get: async (): Promise<{ favorites: string[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    put: async (favorites: string[]): Promise<{ ok: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ favorites }),
+      });
+      return handleResponse(res);
+    },
+  },
 };

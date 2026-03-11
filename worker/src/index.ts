@@ -1752,6 +1752,43 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
   return json({ subscribers: results });
 };
 
+// ── User Favorites ──
+const handleGetUserFavorites: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const userId = claims.sub;
+  const { results } = await env.DB.prepare(
+    'SELECT item_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC'
+  ).bind(userId).all();
+  return json({ favorites: (results || []).map((r: any) => r.item_id) });
+};
+
+const handlePutUserFavorites: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const userId = claims.sub;
+  const body = await request.json() as { favorites: string[] };
+  if (!Array.isArray(body.favorites)) {
+    return json({ error: 'favorites must be an array of item IDs' }, 400);
+  }
+  // Replace all favorites: delete existing, insert new
+  await env.DB.prepare('DELETE FROM user_favorites WHERE user_id = ?').bind(userId).run();
+  if (body.favorites.length > 0) {
+    const stmt = env.DB.prepare(
+      'INSERT OR IGNORE INTO user_favorites (user_id, item_id) VALUES (?, ?)'
+    );
+    const batch = body.favorites.map((itemId: string) => stmt.bind(userId, itemId));
+    await env.DB.batch(batch);
+  }
+  return json({ ok: true, count: body.favorites.length });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -1848,6 +1885,10 @@ const routes: [string, string, Handler][] = [
   // Newsletter
   ['POST', '/api/newsletter/subscribe', handleNewsletterSubscribe],
   ['GET', '/api/newsletter/subscribers', handleGetNewsletterSubscribers],
+
+  // User Favorites
+  ['GET', '/api/user/favorites', handleGetUserFavorites],
+  ['PUT', '/api/user/favorites', handlePutUserFavorites],
 ];
 
 export default {

@@ -62,8 +62,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-tea-bg rounded-sm w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
-        style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.4), 0 1px 0 var(--tea-border) inset' }}
+        className="bg-tea-surface border border-tea-border rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -71,7 +70,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <h2 id="confirm-dialog-title" className="text-xl font-serif text-tea-text">{title}</h2>
           <button
             onClick={handleCancel}
-            className="p-2 hover:bg-tea-text/10 rounded-sm transition-colors"
+            className="p-2 hover:bg-tea-text/10 rounded-lg transition-colors"
             aria-label="Close dialog"
           >
             <Icons.Close className="w-5 h-5 text-tea-text/60" />
@@ -119,7 +118,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={!isTypingValid}
-            className={`px-6 py-2 ${confirmButtonClass} text-white text-sm uppercase tracking-wider font-medium rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2 ${confirmButtonClass} text-white text-sm uppercase tracking-wider font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {confirmText}
           </button>

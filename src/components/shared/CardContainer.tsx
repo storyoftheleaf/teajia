@@ -18,7 +18,7 @@ const CardContainerComponent: React.FC<CardContainerProps> = ({
   variant = 'dark',
   style,
 }) => {
-  const baseStyles = 'rounded-[1px] overflow-hidden transition-all duration-300';
+  const baseStyles = 'rounded-lg border border-tea-border overflow-hidden transition-all duration-300';
 
   const variantStyles = variant === 'dark'
     ? 'bg-tea-surface'

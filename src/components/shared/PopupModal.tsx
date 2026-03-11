@@ -203,7 +203,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -230,7 +230,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -244,6 +244,9 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   return (
     <div
       ref={focusTrapRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.name}
       className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-tea-text/95' : 'bg-tea-text/0'}`}
       onClick={onClose}
       onTouchStart={handleZoomTouchStart}
@@ -286,7 +289,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-text/70 hover:text-tea-text transition-colors" onClick={onClose}>
+        <button className="absolute top-6 right-6 text-tea-text/70 hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-lg" onClick={onClose} aria-label="Close">
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>

@@ -59,9 +59,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <button
         key={section.id}
         onClick={() => onNavigate(section.id)}
-        className={`flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out]`}
+        className={`flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none`}
         style={{ animationDelay: `${index * 50}ms` }}
         title={section.label}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={section.label}
       >
         {/* Icon with relative positioning for badge */}
         <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-105">
@@ -93,6 +95,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     <>
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
+        aria-label="Main navigation"
         className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/92 backdrop-blur-xl z-sticky animate-[slideUp_0.4s_ease-out] transition-all duration-200 pb-[env(safe-area-inset-bottom)] ${
           hidden ? 'opacity-0 pointer-events-none' : 'h-[56px] opacity-100'
         }`}

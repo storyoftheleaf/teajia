@@ -47,7 +47,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
 
   return (
     <div className="fixed inset-0 z-modal bg-tea-text/60 backdrop-blur-sm flex items-start justify-center pt-[20vh]" onClick={handleClose}>
-      <div className="w-full max-w-xl bg-tea-bg border border-tea-border rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label="Command palette" className="w-full max-w-xl bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden" onClick={e => e.stopPropagation()}>
         <Command className="w-full" label="Global Command Menu">
           <div className="flex items-center px-4 border-b border-tea-border">
             <Search className="w-5 h-5 text-tea-text-dim mr-2" />

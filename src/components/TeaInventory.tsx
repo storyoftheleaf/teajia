@@ -16,6 +16,7 @@ import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 import { useProductUrl } from '../hooks/useProductUrl';
+import { CompareView } from './shop/CompareView';
 import type { Product } from '../admin/types';
 
 // Use shared type alias for backward compatibility in this component if needed,
@@ -48,8 +49,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems, toggleCompare, clearCompare } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
+  const compareSet = useMemo(() => new Set(compareItems), [compareItems]);
+  const [showCompare, setShowCompare] = useState(false);
 
   // Expanded Card State (Accordion)
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -387,7 +390,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         onCardClick={(item, e) => { e.stopPropagation(); setViewItem(item); }}
                         imageComponent={<CardImage src={item.image} alt={item.name} aspect="square" className="card-grid-image" teaType={item.type} />}
                         badgesComponent={
-                           <span className="card-grid-badge">{item.type}</span>
+                           <div className="flex items-center gap-1.5">
+                              <span className="card-grid-badge">{item.type}</span>
+                              <button
+                                 onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
+                                 className={`p-1 rounded-sm transition-colors ${compareSet.has(item.id) ? 'text-tea-gold bg-tea-accent-sub' : 'text-tea-text/30 hover:text-tea-text/60'}`}
+                                 aria-label={compareSet.has(item.id) ? 'Remove from compare' : 'Add to compare'}
+                                 title="Compare"
+                              >
+                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                    <rect x="14" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                 </svg>
+                              </button>
+                           </div>
                         }
                         priceDisplay={
                            <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
@@ -504,6 +520,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         >
                                             <Icons.Heart filled={isFavorite} className="w-5 h-5" />
                                         </button>
+                                        {/* Compare toggle */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
+                                            className={`-my-1 p-2 transition-colors ${compareSet.has(item.id) ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                            aria-label={compareSet.has(item.id) ? `Remove ${item.name} from compare` : `Add ${item.name} to compare`}
+                                            title={compareItems.length >= 4 && !compareSet.has(item.id) ? 'Max 4 items' : 'Compare'}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="3" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                                <rect x="14" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
+                                            </svg>
+                                        </button>
                                         {/* Info button — opens AlcoveCard detail view */}
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
@@ -592,6 +620,30 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          )}
       </div>
       </div>
+
+      {/* Floating Compare Button */}
+      {compareItems.length > 0 && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 animate-[fadeIn_0.3s_ease-out]">
+          <button
+            onClick={() => setShowCompare(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="18" rx="1" />
+              <rect x="14" y="3" width="7" height="18" rx="1" />
+            </svg>
+            <span>Compare ({compareItems.length})</span>
+          </button>
+        </div>
+      )}
+
+      {/* Compare Overlay */}
+      {showCompare && (
+        <CompareView
+          items={inventory.filter((item) => compareItems.includes(item.id))}
+          onClose={() => setShowCompare(false)}
+        />
+      )}
     </div>
   );
 };
