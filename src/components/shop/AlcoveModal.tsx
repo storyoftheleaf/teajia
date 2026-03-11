@@ -184,17 +184,35 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
           </button>
         </div>
 
-        {/* Mobile counter + swipe hint */}
+        {/* Mobile nav buttons + counter */}
         {hasNavigation && (
-          <div className="mt-3 flex flex-col items-center gap-1 md:hidden" onClick={(e) => e.stopPropagation()}>
-            <span className="text-xs text-tea-text-dim tracking-wide">
-              {currentIndex + 1} of {items.length}
-            </span>
-            {showSwipeHint && (
-              <span className="text-xs text-tea-text-dim animate-pulse transition-opacity duration-500">
-                ← swipe →
+          <div className="mt-3 flex items-center gap-3 md:hidden" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => goPrev()}
+              disabled={isFirst}
+              className={`w-8 h-8 flex items-center justify-center rounded-full bg-tea-surface/60 border border-tea-border transition-all ${isFirst ? 'opacity-30 cursor-default' : 'hover:bg-tea-surface/80 text-tea-text-sec'}`}
+              aria-label="Previous tea"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-xs text-tea-text-dim tracking-wide">
+                {currentIndex + 1} of {items.length}
               </span>
-            )}
+              {showSwipeHint && (
+                <span className="text-xs text-tea-text-dim animate-pulse transition-opacity duration-500">
+                  ← swipe →
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => goNext()}
+              disabled={isLast}
+              className={`w-8 h-8 flex items-center justify-center rounded-full bg-tea-surface/60 border border-tea-border transition-all ${isLast ? 'opacity-30 cursor-default' : 'hover:bg-tea-surface/80 text-tea-text-sec'}`}
+              aria-label="Next tea"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
         )}
       </div>
