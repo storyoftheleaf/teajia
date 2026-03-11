@@ -83,7 +83,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         className={`fixed top-0 right-0 h-full w-full z-drawer shadow-2xl flex flex-col ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
-            : 'md:w-[450px] bg-tea-bg surface-warm'
+            : 'md:w-[450px] bg-tea-bg'
         } ${isOpen ? '' : 'pointer-events-none'}`}
         style={{
           transform: isOpen ? `translateX(${touchOffset}px)` : 'translateX(100%)',
@@ -111,7 +111,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             />
           </Suspense>
         ) : props.mode === 'public' ? (
-          <>
+          <div className="surface-warm flex flex-col h-full">
             {/* Public header */}
             <div className="flex flex-col relative z-10">
               <div data-drag-handle className="md:hidden flex justify-center py-3 bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
@@ -134,7 +134,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               onUpdateQuantity={props.onUpdateQuantity}
               isOpen={isOpen}
             />
-          </>
+          </div>
         ) : null}
       </div>
     </>
