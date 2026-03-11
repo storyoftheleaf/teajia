@@ -139,8 +139,8 @@ export const Sidebar = ({
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       } md:relative md:translate-x-0 flex flex-col overflow-y-auto no-scrollbar`}
       style={{
-        background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)',
-        boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgba(0,0,0,0.15)'
+        background: 'linear-gradient(180deg, var(--tea-surface) 0%, var(--tea-bg) 100%)',
+        boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgba(0,0,0,0.08)'
       }}
     >
       {/* Logo/Brand */}
@@ -152,7 +152,7 @@ export const Sidebar = ({
       >
         <LogoEmblem
           size={36}
-          color={theme === 'dark' ? '#c0b49a' : '#010101'}
+          color={theme === 'dark' ? 'var(--tea-text-sec)' : 'var(--tea-text)'}
           className="transition-opacity duration-200 shrink-0 opacity-80 group-hover:opacity-100"
         />
         <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
