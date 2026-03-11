@@ -349,9 +349,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   if (authErr) return authErr;
 
   const { products } = await request.json() as { products: Record<string, any>[] };
-  let inserted = 0;
 
-  for (const raw of products) {
+  const stmts = products.map(raw => {
     // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
     const body: Record<string, any> = {};
     for (const [k, v] of Object.entries(raw)) {
@@ -367,12 +366,15 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     const id = crypto.randomUUID();
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
-    await env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
-      .bind(id, ...cols.map(c => body[c] ?? null)).run();
-    inserted++;
+    return env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
+      .bind(id, ...cols.map(c => body[c] ?? null));
+  });
+
+  for (let i = 0; i < stmts.length; i += 100) {
+    await env.DB.batch(stmts.slice(i, i + 100));
   }
 
-  return json({ inserted });
+  return json({ inserted: stmts.length });
 };
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
@@ -721,7 +723,7 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
 
   const customers = await env.DB.prepare('SELECT id, name, whatsapp FROM customers').all();
 
-  let linked = 0;
+  const updates: D1PreparedStatement[] = [];
   for (const inv of unlinked.results) {
     const name = (inv.customer_name as string || '').toLowerCase().trim();
     if (!name) continue;
@@ -737,13 +739,20 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
     }
 
     if (match) {
-      await env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
-        .bind(match.id, inv.id).run();
-      linked++;
+      updates.push(
+        env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
+          .bind(match.id, inv.id)
+      );
     }
   }
 
-  return json({ linked, total_unlinked: unlinked.results.length });
+  if (updates.length > 0) {
+    for (let i = 0; i < updates.length; i += 100) {
+      await env.DB.batch(updates.slice(i, i + 100));
+    }
+  }
+
+  return json({ linked: updates.length, total_unlinked: unlinked.results.length });
 };
 
 // ── AI Wisdom Generation ──

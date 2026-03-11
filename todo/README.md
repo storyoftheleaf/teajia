@@ -198,12 +198,12 @@ UI consistency task 50 (hardcoded hex colors) complements teardown task 06 (rgba
 - [ ] 03 — Product Detail Pages
 - [ ] 04 — Checkout Flow
 - [x] 05 — Font Optimization *(done on `comprehensive-review-audit`)*
-- [ ] 06 — rgba Remediation
+- [x] 06 — rgba Remediation *(done on `distribute-todos-agents`)*
 - [ ] 07 — Split CartPanel
 - [x] 08 — Homepage Product Showcase *(done on `improve-desktop-design`)*
 - [x] 09 — Texture Overlay Optimization *(done on `improve-desktop-design`)*
 - [~] 10 — Banned Token Migration *(design plan on `teajia-palettes-design`, implementation pending)*
-- [ ] 11 — Z-Index Scale
+- [x] 11 — Z-Index Scale *(done on `distribute-todos-agents`)*
 - [x] 12 — Lazy-Load Content *(done on `comprehensive-review-audit`)*
 - [ ] 13 — Scope ImagePreloader
 - [~] 14 — Unified Button Component *(component updated on `audit-ui-consistency`, adoption pending)*
@@ -211,19 +211,19 @@ UI consistency task 50 (hardcoded hex colors) complements teardown task 06 (rgba
 
 ### Functional Audit (21–40)
 - [ ] 21 — Product URLs
-- [ ] 22 — Fix Share Button
-- [ ] 23 — Clarify Checkout Model
+- [x] 22 — Fix Share Button *(done on `distribute-todos-agents`)*
+- [x] 23 — Clarify Checkout Model *(done on `distribute-todos-agents` — renamed Checkout→Inquiry)*
 - [ ] 24 — Connect Newsletter Signup
 - [ ] 25 — Network/Offline Indicator
 - [ ] 26 — Global Search
-- [ ] 27 — Price-Per-Gram Display
-- [ ] 28 — View Cart Toast
+- [x] 27 — Price-Per-Gram Display *(already implemented — AlcoveCard, TeaInventory list/grid, CollectionTab)*
+- [x] 28 — View Cart Toast *(done on `distribute-todos-agents`)*
 - [ ] 29 — Simplify Inquiry Form
 - [ ] 30 — Content-Type Indicators
-- [ ] 31 — Quantity Presets
+- [x] 31 — Quantity Presets *(done on `distribute-todos-agents`)*
 - [ ] 32 — Product Comparison
-- [ ] 33 — Stock Level Indicators
-- [ ] 34 — Carousel Indicators
+- [x] 33 — Stock Level Indicators *(done on `distribute-todos-agents`)*
+- [x] 34 — Carousel Indicators *(done on `distribute-todos-agents`)*
 - [ ] 35 — Sync Favorites to Account
 - [ ] 36 — Skeleton Loading Screens
 - [ ] 37 — Theme Toggle on Mobile
@@ -233,11 +233,11 @@ UI consistency task 50 (hardcoded hex colors) complements teardown task 06 (rgba
 
 ### Backend Performance (41–46)
 - [x] 46 — CORS Preflight Caching
-- [ ] 41 — D1 Database Indexes
-- [ ] 42 — Cache-Control Headers
-- [ ] 43 — Batch Sequential Queries
-- [ ] 44 — SELECT * Elimination
-- [ ] 45 — Loop → Batch Operations
+- [x] 41 — D1 Database Indexes *(done on `distribute-todos-agents`)*
+- [x] 42 — Cache-Control Headers *(done on `distribute-todos-agents`)*
+- [x] 43 — Batch Sequential Queries *(done on `distribute-todos-agents`)*
+- [x] 44 — SELECT * Elimination *(done on `distribute-todos-agents`)*
+- [x] 45 — Loop → Batch Operations *(done on `distribute-todos-agents`)*
 
 ### UI Consistency Audit (47–55)
 - [ ] 47 — Standardize Border-Radius Scale

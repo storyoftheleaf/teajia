@@ -54,6 +54,7 @@ import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
+import { CartToast } from './components/shared/CartToast';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
 import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
@@ -168,6 +169,7 @@ const AppContent = () => {
 
   // UI Feedback State
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [cartToast, setCartToast] = useState<{ itemName: string; cartCount: number } | null>(null);
   const [flyAnimation, setFlyAnimation] = useState<{ x: number; y: number; image?: string } | null>(null);
 
   // Listen for cart open event from Account section
@@ -237,7 +239,9 @@ const AppContent = () => {
       totalPrice: total,
       image: item.image,
     });
-    showToast(`Added ${item.name}`);
+    // Show cart toast — read fresh count from store (Zustand updates synchronously)
+    const freshCart = useAppStore.getState().publicCart;
+    setCartToast({ itemName: item.name, cartCount: freshCart.length });
   };
 
   const handleRemoveFromCart = (id: string) => {
@@ -301,6 +305,13 @@ const AppContent = () => {
   const handleOpenCart = () => {
     setIsCartOpen(true);
   };
+
+  const dismissCartToast = useCallback(() => setCartToast(null), []);
+
+  const handleViewCartFromToast = useCallback(() => {
+    setCartToast(null);
+    setIsCartOpen(true);
+  }, []);
 
   const handleOpenAccount = () => {
     setShowAccountModal(true);
@@ -554,6 +565,15 @@ const AppContent = () => {
 
       {/* Preload indicator */}
       <PreloadIndicator />
+
+      {/* Cart "View Cart" toast */}
+      <CartToast
+        itemName={cartToast?.itemName ?? ''}
+        cartCount={cartToast?.cartCount ?? 0}
+        isVisible={!!cartToast}
+        onViewCart={handleViewCartFromToast}
+        onDismiss={dismissCartToast}
+      />
 
       <div role="status" aria-live="polite" className={`fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />

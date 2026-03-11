@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AlcoveCard } from './AlcoveCard';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import type { InventoryItem } from '../../types';
@@ -27,6 +28,22 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
 
+  // First-visit swipe hint
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
+  const isFirst = currentIndex <= 0;
+  const isLast = currentIndex >= items.length - 1;
+
+  const goNext = useCallback(() => {
+    if (!item || !onItemChange || isLast) return;
+    onItemChange(items[currentIndex + 1]);
+  }, [item, onItemChange, items, currentIndex, isLast]);
+
+  const goPrev = useCallback(() => {
+    if (!item || !onItemChange || isFirst) return;
+    onItemChange(items[currentIndex - 1]);
+  }, [item, onItemChange, items, currentIndex, isFirst]);
 
   useEffect(() => {
     if (item) {
@@ -36,15 +53,29 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     }
   }, [item]);
 
-  // Escape key
+  // First-visit swipe hint
+  useEffect(() => {
+    if (!item || items.length <= 1) return;
+    const hintShown = localStorage.getItem('teajia_swipeHintShown');
+    if (!hintShown) {
+      setShowSwipeHint(true);
+      localStorage.setItem('teajia_swipeHintShown', '1');
+      const timer = setTimeout(() => setShowSwipeHint(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [item, items.length]);
+
+  // Keyboard navigation (Escape + arrow keys)
   useEffect(() => {
     if (!item) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'ArrowRight') goNext();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [item, onClose]);
+  }, [item, onClose, goPrev, goNext]);
 
   if (!item) return null;
 
@@ -88,14 +119,38 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     if (onAddToCart) onAddToCart(addedItem, qty, total);
   };
 
+  const hasNavigation = items.length > 1 && onItemChange;
+
   return (
     <div
-      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/90' : 'bg-black/0 pointer-events-none'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 group ${isVisible ? 'bg-black/90' : 'bg-black/0 pointer-events-none'}`}
       onClick={onClose}
     >
+      {/* Desktop prev/next arrows — visible on hover */}
+      {hasNavigation && (
+        <>
+          <button
+            className={`hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center rounded-full bg-tea-surface/60 hover:bg-tea-surface/80 text-tea-text-sec transition-all opacity-0 group-hover:opacity-100 ${isFirst ? '!opacity-0 !pointer-events-none group-hover:!opacity-30 cursor-default' : ''}`}
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            disabled={isFirst}
+            aria-label="Previous tea"
+          >
+            <ChevronLeft size={22} />
+          </button>
+          <button
+            className={`hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center rounded-full bg-tea-surface/60 hover:bg-tea-surface/80 text-tea-text-sec transition-all opacity-0 group-hover:opacity-100 ${isLast ? '!opacity-0 !pointer-events-none group-hover:!opacity-30 cursor-default' : ''}`}
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            disabled={isLast}
+            aria-label="Next tea"
+          >
+            <ChevronRight size={22} />
+          </button>
+        </>
+      )}
+
       {/* Card container */}
       <div
-        className="flex items-center justify-center w-full h-full p-4 md:p-8"
+        className="flex flex-col items-center justify-center w-full h-full p-4 md:p-8"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -128,6 +183,20 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
             </svg>
           </button>
         </div>
+
+        {/* Mobile counter + swipe hint */}
+        {hasNavigation && (
+          <div className="mt-3 flex flex-col items-center gap-1 md:hidden" onClick={(e) => e.stopPropagation()}>
+            <span className="text-xs text-tea-text-dim tracking-wide">
+              {currentIndex + 1} of {items.length}
+            </span>
+            {showSwipeHint && (
+              <span className="text-xs text-tea-text-dim animate-pulse transition-opacity duration-500">
+                ← swipe →
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
