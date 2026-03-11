@@ -311,23 +311,17 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
               </div>
 
               {/* Submit Button */}
-              <button
+              <Button
                 type="submit"
+                variant="primary"
+                fullWidth
+                loading={isSubmitting}
                 disabled={isSubmitting}
-                className="w-full mt-6 px-6 py-3 bg-tea-gold text-white uppercase tracking-wider text-xs font-medium rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                icon={!isSubmitting ? <Icons.Send className="w-4 h-4" /> : undefined}
+                className="mt-6 uppercase tracking-wider text-xs"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin"></div>
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    Send Inquiry
-                    <Icons.Send className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+                {isSubmitting ? 'Sending...' : 'Send Inquiry'}
+              </Button>
 
               {/* Info Text */}
               <p className="text-xs text-tea-text/60 text-center mt-4">

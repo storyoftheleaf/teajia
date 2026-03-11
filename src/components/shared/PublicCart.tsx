@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { fmtPrice } from '../../utils/formatNumber';
 import { Icons } from '../Icons';
+import { Button } from './Button';
 import { CartItemRow } from './CartItem';
 
 const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
@@ -455,13 +456,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               <span>Total</span>
               <span className="num">{fmtPrice(subtotal)}</span>
             </div>
-            <button
+            <Button
               onClick={() => !isEmpty && setStep('INQUIRY')}
               disabled={isEmpty}
-              className="w-full py-4 bg-tea-gold text-white uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+              variant="primary"
+              fullWidth
+              className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
             >
               Send Inquiry
-            </button>
+            </Button>
           </div>
         )}
         {step === 'INQUIRY' && (
