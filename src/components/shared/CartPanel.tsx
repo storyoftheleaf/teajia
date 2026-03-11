@@ -405,7 +405,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 

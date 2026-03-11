@@ -48,7 +48,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
             }`}
           />
           {/* View affordance overlay */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/thumb:bg-black/30 transition-all duration-200">
+          <div className="absolute inset-0 flex items-center justify-center bg-tea-text/0 group-hover/thumb:bg-tea-text/30 transition-all duration-200">
             <svg
               width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"

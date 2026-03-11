@@ -23,7 +23,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, produ
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 print:bg-white print:p-0">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4 print:bg-white print:p-0">
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-2xl relative print:border-none print:shadow-none print:w-full print:max-w-none print:bg-white">
         <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-dim hover:text-tea-text transition-colors print:hidden">
           <X size={20} />

@@ -156,7 +156,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
           <div id="story-format-export" className="w-[450px] h-[800px] relative bg-tea-bg flex flex-col items-center justify-center p-12 overflow-hidden">
               {/* Background */}
               <img src={story.thumbnailUrl || 'https://www.transparenttextures.com/patterns/wood-pattern.png'} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl" crossOrigin="anonymous" />
-              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="absolute inset-0 bg-tea-text/20"></div>
               
               {/* Card */}
               <div className="relative z-10 bg-tea-bg p-6 shadow-2xl w-full aspect-[3/4] flex flex-col">

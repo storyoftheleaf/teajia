@@ -86,7 +86,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/90' : 'bg-black/0 pointer-events-none'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-tea-text/90' : 'bg-tea-text/0 pointer-events-none'}`}
       onClick={onClose}
     >
       <div
@@ -110,7 +110,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
             onClose={onClose}
           />
           <button
-            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors"
+            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
             onClick={onClose}
             aria-label="Close"
           >

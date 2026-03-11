@@ -60,7 +60,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-modal bg-tea-text/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 

@@ -154,7 +154,7 @@ const AdminContent = () => {
         <Menu size={24} />
       </button>
 
-      {isMobileOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
+      {isMobileOpen && <div className="fixed inset-0 bg-tea-text/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
 
       <Sidebar
         isAdmin={isAdmin}

@@ -1743,7 +1743,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       
       {/* RESET CONFIRMATION */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/95 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-accent/30 rounded-xl max-w-sm w-full p-8 relative shadow-2xl">
                 <div className="flex flex-col items-center text-center space-y-4">
                     <div className="p-4 rounded-full border border-tea-accent/30 text-tea-accent bg-tea-accent/10">
@@ -1780,7 +1780,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* MAINTENANCE MODAL */}
       {showMaintenanceModal && (
-        <div className="fixed inset-0 z-toast flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-toast flex items-center justify-center bg-tea-text/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
             <div className="bg-tea-bg border border-tea-border w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface">
                     <div className="flex items-center gap-3">
@@ -1956,7 +1956,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
             </motion.div>
             {/* Mobile backdrop */}
-            <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setPanelProduct(null)} />
+            <div className="fixed inset-0 z-40 bg-tea-text/50 md:hidden" onClick={() => setPanelProduct(null)} />
           </>
         )}
       </AnimatePresence>

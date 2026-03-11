@@ -102,7 +102,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-tea-text/80 backdrop-blur-sm" />
 
       {/* Sheet */}
       <div

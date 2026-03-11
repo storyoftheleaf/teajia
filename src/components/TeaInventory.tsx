@@ -276,7 +276,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {/* --- Filter Modal --- */}
       {isFilterOpen && (
           <div className="fixed inset-0 z-modal flex items-end md:items-center justify-center p-0 md:p-4">
-              <div className="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
+              <div className="absolute inset-0 bg-tea-text/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
               <div className="relative w-full md:max-w-xl bg-tea-bg rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
                   <div className="px-6 py-3 border-b border-tea-gold/[0.08] flex justify-between items-center bg-tea-surface">
                       <span className="text-xs uppercase tracking-[0.2em] text-tea-text font-semibold">Refine Collection</span>

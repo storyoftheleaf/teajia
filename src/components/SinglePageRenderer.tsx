@@ -187,14 +187,14 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
           onError={() => setImageLoading(false)}
         />
       ) : (
-        <div className={`w-full h-full bg-black/5 flex items-center justify-center ${readOnly ? 'opacity-50' : ''}`}>
+        <div className={`w-full h-full bg-tea-text/5 flex items-center justify-center ${readOnly ? 'opacity-50' : ''}`}>
           <Icons.Camera className="w-12 h-12 opacity-20" />
         </div>
       )}
 
       {/* Edit overlay for editable mode */}
       {onImageUpdate && !readOnly && (
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30">
+        <div className="absolute inset-0 bg-tea-text/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30">
           <Icons.Camera className="w-10 h-10 text-tea-text" />
           <input
             type="file"
@@ -364,7 +364,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     return (
       <div key={page.index} className="w-full h-full relative group/page overflow-hidden">
         <style>{ANIMATION_STYLES}</style>
-        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-tea-text border border-tea-gold/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
+        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-gold/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
         <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.05] mix-blend-overlay"><div className="w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div></div>
 
         {(() => {
@@ -509,9 +509,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} bg-black`}>
                          <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
-                         <div className="absolute inset-0 bg-black/30 z-10"></div>
+                         <div className="absolute inset-0 bg-tea-text/30 z-10"></div>
                          <div className="absolute inset-0 z-20 flex items-center justify-center p-12 text-center pointer-events-none">
-                              <div className={`bg-black/40 backdrop-blur-md p-16 border border-tea-gold/15 ${readOnly ? '' : 'pointer-events-auto'}`}>
+                              <div className={`bg-tea-text/40 backdrop-blur-md p-16 border border-tea-gold/15 ${readOnly ? '' : 'pointer-events-auto'}`}>
                                   <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-7xl font-serif text-tea-text tracking-wide leading-tight" placeholder="Title Overlay" tag="h2" readOnly={readOnly} />
                               </div>
                          </div>
@@ -548,7 +548,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col items-center justify-center`}>
                         <div className="w-[80%] aspect-square relative mb-16 shrink-0">
-                             <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-current/10 shadow-inner bg-black/5">
+                             <div className="absolute inset-0 rounded-full overflow-hidden border-4 border-current/10 shadow-inner bg-tea-text/5">
                                  <SafeImage index={0} className="w-full h-full object-cover scale-105" />
                              </div>
                         </div>
@@ -560,7 +560,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col items-center justify-center`}>
                         <div className="w-[85%] aspect-[3/4] relative mb-12 shrink-0">
-                             <div className="absolute inset-0 rounded-t-[2000px] overflow-hidden border-x-4 border-t-4 border-current/10 shadow-sm bg-black/5">
+                             <div className="absolute inset-0 rounded-t-[2000px] overflow-hidden border-x-4 border-t-4 border-current/10 shadow-sm bg-tea-text/5">
                                  <SafeImage index={0} className="w-full h-full object-cover" />
                              </div>
                         </div>
@@ -803,7 +803,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             </div>
                         ) : (
                             <div className={`w-full flex justify-center my-6`}>
-                                <div className={`${isVertical ? 'w-[60%] aspect-[9/16]' : 'w-full aspect-video'} bg-black/10 rounded-sm flex items-center justify-center border-2 border-dashed border-current/20`}>
+                                <div className={`${isVertical ? 'w-[60%] aspect-[9/16]' : 'w-full aspect-video'} bg-tea-text/10 rounded-sm flex items-center justify-center border-2 border-dashed border-current/20`}>
                                     <div className="text-center opacity-40">
                                         <Icons.Play className="w-12 h-12 mx-auto mb-2" />
                                         <span className="text-sm uppercase tracking-[0.15em]">Video ID required</span>

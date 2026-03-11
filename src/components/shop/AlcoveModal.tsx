@@ -123,7 +123,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-modal transition-all duration-300 group ${isVisible ? 'bg-black/90' : 'bg-black/0 pointer-events-none'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 group ${isVisible ? 'bg-tea-text/90' : 'bg-tea-text/0 pointer-events-none'}`}
       onClick={onClose}
     >
       {/* Desktop prev/next arrows — visible on hover */}
@@ -172,7 +172,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
           />
           {/* Close button */}
           <button
-            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors"
+            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
             onClick={onClose}
             aria-label="Close"
           >

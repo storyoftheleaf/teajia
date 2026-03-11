@@ -214,7 +214,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
-            <div className="flex items-center rounded-lg bg-black/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06)' }}>
+            <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
@@ -244,7 +244,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   return (
     <div
       ref={focusTrapRef}
-      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-tea-text/95' : 'bg-tea-text/0'}`}
       onClick={onClose}
       onTouchStart={handleZoomTouchStart}
       onTouchMove={handleZoomTouchMove}

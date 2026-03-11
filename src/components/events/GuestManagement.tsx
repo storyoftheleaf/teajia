@@ -545,7 +545,7 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
 }) => {
   return (
     <div
-      className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal bg-tea-text/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
     >
       <div
