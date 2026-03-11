@@ -1,10 +1,12 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X } from 'lucide-react';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
 import { TeaIllustration } from '../../admin/components/TeaIllustration';
+import { useCustomers } from '../../admin/hooks/useAdminData';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,13 +26,19 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   cart, setCart, onClearCart, onSuccess, onClose, rates, showToast,
 }) => {
   // ── State ──────────────────────────────────────────────────────────────
+  const queryClient = useQueryClient();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [allCustomers, setAllCustomers] = useState<any[]>([]);
-  const [customersLoaded, setCustomersLoaded] = useState(false);
+  const { data: customersData = [] } = useCustomers();
+  const allCustomers = useMemo(() => customersData.map(c => ({
+    id: c.id, name: c.name, company: c.company,
+    whatsapp: c.whatsapp, email: c.email,
+    preferredCurrency: c.preferredCurrency,
+    tags: c.tags,
+  })), [customersData]);
   const customerInputRef = useRef<HTMLInputElement>(null);
   const [displayCurrency, setDisplayCurrency] = useState<Currency>('USD');
   const [shippingCostUSD, setShippingCostUSD] = useState(0);
@@ -44,26 +52,6 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
   // Debounce timer ref for customer search
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Load customers ─────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (customersLoaded) return;
-    api.customers.list()
-      .then((data: any[]) => {
-        setAllCustomers((data || []).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          company: c.company,
-          whatsapp: c.whatsapp,
-          email: c.email,
-          preferredCurrency: c.preferred_currency || 'USD',
-          tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []),
-        })));
-        setCustomersLoaded(true);
-      })
-      .catch(() => setCustomersLoaded(true));
-  }, [customersLoaded]);
 
   // ── Customer search with 300ms debounce ────────────────────────────────
 
@@ -143,7 +131,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         });
         custId = result.id;
         setSelectedCustomerId(custId);
-        setCustomersLoaded(false);
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
       } catch {
         // Non-critical
       }
@@ -470,8 +458,9 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   </button>
                 ))}
                 {customerSuggestions.length === 0 && customerName.trim() && (
-                  <div className="px-3 py-2 text-xs text-tea-text-dim italic">
-                    New contact — will be saved automatically
+                  <div className="px-3 py-2 text-xs text-tea-text-dim">
+                    <span className="italic">New contact — will be saved automatically</span>
+                    <span className="block mt-1 text-tea-accent/70">Tip: Add full details in Customers & Sources after checkout</span>
                   </div>
                 )}
               </div>
