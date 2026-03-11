@@ -19,6 +19,7 @@ import {
   EventsSection,
 } from './consult/ServiceContent';
 import { useSectionReveal } from '../hooks/useSectionReveal';
+import { Button } from './shared/Button';
 
 /* =====================================================
    SERVICE_ITEMS — icon-led directory for wayfinding
@@ -375,12 +376,9 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
         ))}
       </div>
 
-      <button onClick={onViewAll}
-        className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
-                   flex items-center gap-1 transition-colors duration-300 min-h-[44px]
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
-        View all projects <Icons.ChevronRight className="w-3.5 h-3.5" />
-      </button>
+      <Button onClick={onViewAll} variant="ghost" size="sm" icon={<Icons.ChevronRight className="w-3.5 h-3.5" />} className="text-tea-gold hover:text-tea-gold/80 uppercase tracking-[0.15em] text-xs">
+        View all projects
+      </Button>
     </section>
   );
 };
@@ -463,13 +461,9 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => {
         Every project begins with a conversation.
       </h3>
       <div className="w-12 h-[1px] bg-tea-gold mx-auto mt-4 mb-8" />
-      <button onClick={onOpenInquiry}
-        className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium
-                   py-3.5 px-8 rounded-lg transition-colors min-h-[44px] mx-auto inline-flex items-center gap-2
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2">
+      <Button onClick={onOpenInquiry} variant="primary" size="lg" icon={<Icons.ChevronRight className="w-3.5 h-3.5" />} className="mx-auto uppercase tracking-[0.15em] text-xs">
         Start a Conversation
-        <Icons.ChevronRight className="w-3.5 h-3.5" />
-      </button>
+      </Button>
     </section>
   );
 };

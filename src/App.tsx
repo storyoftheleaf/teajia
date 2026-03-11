@@ -25,6 +25,7 @@ const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ defau
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const GuestManagement = lazy(() => import('./components/events/GuestManagement'));
+const ProductPage = lazy(() => import('./pages/ProductPage'));
 
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
@@ -438,6 +439,13 @@ const AppContent = () => {
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
                         <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
                       </div>
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/shop/product/:id" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <ProductPage onAddToCart={handleAddToCart} />
                     </Suspense>
                   </ErrorBoundary>
                 } />
