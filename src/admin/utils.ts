@@ -1,4 +1,5 @@
-import { Currency, ExchangeRate } from './types';
+import { Currency, ExchangeRate, Product } from './types';
+import type { InventoryItem } from '../types';
 import { INITIAL_RATES } from './constants';
 
 const FALLBACK_RATES = INITIAL_RATES;
@@ -110,3 +111,33 @@ export const calculatePricing = (
     rateUsed: rateToUSD
   };
 };
+
+/** Convert an admin Product to the public InventoryItem shape for AlcoveCard */
+export const productToInventoryItem = (product: Product): InventoryItem => ({
+  id: product.id,
+  category: product.type === 'Teaware' ? 'ware' : 'tea',
+  type: product.type,
+  name: product.givenName,
+  variant: product.productName,
+  year: product.year ? String(product.year) : '',
+  origin: product.originRegion || product.originCountry || '',
+  stock_g: product.stockGrams,
+  cost_price: String(product.costAmount),
+  cost_currency: undefined,
+  price_per_gram: String(product.pricePerGramUSD),
+  description: product.description,
+  tags: product.tastingNotes || [],
+  image: product.imageUrl,
+  chineseName: product.chineseName,
+  lore: product.lore,
+  showWisdom: product.showWisdom,
+  terroir: product.terroir,
+  processingNotes: product.processingNotes,
+  mood: product.mood,
+  experience: product.experience,
+  additionalImages: product.additionalImages,
+  material: product.material,
+  capacityMl: product.capacityMl,
+  isFeatured: product.isFeatured,
+  magazineUrl: undefined,
+});

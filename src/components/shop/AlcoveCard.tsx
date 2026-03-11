@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Pencil } from 'lucide-react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { fmtNum } from '../../utils/formatNumber';
@@ -8,6 +9,12 @@ interface AlcoveCardProps {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onClose?: () => void;
+  /** Admin mode — shows edit button */
+  isAdmin?: boolean;
+  /** Called when admin clicks edit */
+  onEdit?: (item: InventoryItem) => void;
+  /** Custom price formatter (admin uses formatCurrency with rates) */
+  formatPrice?: (pricePerGram: number, grams: number) => string;
 }
 
 function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
@@ -47,7 +54,7 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean)
   return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice }) => {
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
@@ -63,7 +70,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
   const pricePerGram = parseFloat(item.price_per_gram || '0');
-  const total = fmtNum(pricePerGram * grams);
+  const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(pricePerGram * grams);
+  const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
   // Stock status
@@ -241,6 +249,27 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {chineseCharacters}
           </div>
         )}
+        {/* Admin edit button */}
+        {isAdmin && onEdit && (
+          <button
+            onClick={() => onEdit(item)}
+            style={{
+              position: "absolute", right: chineseCharacters ? "auto" : "14px",
+              left: chineseCharacters ? "14px" : "auto",
+              top: "14px", zIndex: 10,
+              width: "32px", height: "32px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "var(--tea-surface)", border: "1px solid var(--tea-border)",
+              borderRadius: "50%", cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--tea-elevated)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--tea-surface)"; }}
+            title="Edit Product"
+          >
+            <Pencil size={14} style={{ color: "var(--tea-text-sec)" }} />
+          </button>
+        )}
         <div style={{
           padding: "24px 20px 8px",
           position: "relative",
@@ -401,12 +430,28 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           </div>
 
-          {/* Story / Lore — single instance */}
+          {/* Experience — personal connection */}
+          {feelingDescription && (
+            <div style={{
+              padding: "12px 16px",
+              borderBottom: story ? "1px solid var(--tea-border)" : "none",
+            }}>
+              <p style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+                lineHeight: 1.6,
+                color: alcoveColors.subtitle, margin: 0,
+              }}>
+                {feelingDescription}
+              </p>
+            </div>
+          )}
+
+          {/* Story / Lore — at the very bottom */}
           {story && (
             <div style={{
               padding: "12px 16px",
               position: "relative",
-              borderBottom: feelingDescription ? "1px solid var(--tea-border)" : "none",
             }}>
               {magazineUrl ? (
                 <a
@@ -435,20 +480,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   {story}
                 </p>
               )}
-            </div>
-          )}
-
-          {/* Experience — personal connection */}
-          {feelingDescription && (
-            <div style={{ padding: "12px 16px" }}>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-                lineHeight: 1.6,
-                color: alcoveColors.subtitle, margin: 0,
-              }}>
-                {feelingDescription}
-              </p>
             </div>
           )}
 
@@ -489,7 +520,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 color: alcoveColors.body,
                 fontVariantNumeric: "tabular-nums lining-nums",
               }}>
-                ${fmtNum(pricePerGram)}/g
+                {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
               </span>
             </div>
 
@@ -536,7 +567,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
                       lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
                     }}>
-                      ${total}
+                      {formatPrice ? total : `$${total}`}
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline" }}>
@@ -709,7 +740,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     fontFamily: "var(--font-mono)",
                     fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
                   }}>
-                    ${total}
+                    {formatPrice ? total : `$${total}`}
                   </span>
                 )}
               </button>
