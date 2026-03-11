@@ -17,8 +17,8 @@
   --tea-text-dim: #917a55;
   --tea-gold: #b8924e;
   --tea-gold-lt: #d4ac66;
-  --tea-border: rgba(160,130,70,0.18);
-  --tea-accent-sub: rgba(160,130,70,0.12);
+  --tea-border: rgba(181,168,146,0.14);
+  --tea-accent-sub: rgba(184,146,78,0.1);
 
   /* Font Families */
   --font-display: 'Vollkorn', 'Lora', 'Noto Serif SC', Georgia, serif;
@@ -43,8 +43,8 @@
   --tea-text-dim: #9a8c78;
   --tea-gold: #8e6d2e;
   --tea-gold-lt: #a88340;
-  --tea-border: rgba(130,100,45,0.18);
-  --tea-accent-sub: rgba(130,100,45,0.10);
+  --tea-border: rgba(24,19,14,0.1);
+  --tea-accent-sub: rgba(142,109,46,0.07);
 }
 
 /* ============================================

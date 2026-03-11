@@ -18,8 +18,8 @@ These are the ONLY color tokens that should be used in new code. They all use CS
 | `tea-text-dim` | Captions, labels, hints | `#917a55` warm brown | `#9a8c78` |
 | `tea-gold` | Accent, links, active states | `#b8924e` | `#8e6d2e` |
 | `tea-gold-lt` | Hover/highlight gold | `#d4ac66` | `#a88340` |
-| `tea-border` | All borders and dividers | `rgba(160,130,70,0.18)` warm brown | `rgba(130,100,45,0.18)` |
-| `tea-accent-sub` | Subtle accent backgrounds | `rgba(160,130,70,0.12)` | `rgba(130,100,45,0.10)` |
+| `tea-border` | All borders and dividers | `rgba(181,168,146,0.14)` warm brown | `rgba(24,19,14,0.1)` |
+| `tea-accent-sub` | Subtle accent backgrounds | `rgba(184,146,78,0.1)` | `rgba(142,109,46,0.07)` |
 
 ### Fixed-value tokens (non-adaptive, use sparingly)
 | Token | Value | When to use |

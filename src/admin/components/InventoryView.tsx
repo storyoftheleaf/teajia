@@ -164,7 +164,7 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border/30 focus:border-tea-accent focus:border-solid focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/50 leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border focus:border-tea-accent focus:border-solid focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/50 leading-none ${className}`}
         />
     );
 };
@@ -663,7 +663,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       const showBadge = inventorySortConfig.length > 1 && sortEntry;
       return (
         <th
-          className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border/40 group text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-${align} truncate`}
+          className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-${align} truncate`}
           onClick={() => handleSort(colKey)}
         >
           <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -946,9 +946,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div className={`h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
       {/* --- CATEGORY TOGGLE + SAVED VIEWS TAB BAR --- */}
-      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-tea-border/50 bg-tea-bg overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar">
         {/* Tea / Teaware category toggle */}
-        <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border/50 p-0.5 mr-2 flex-shrink-0">
+        <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 mr-2 flex-shrink-0">
           <button
             onClick={() => setInventoryCategory('tea')}
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
@@ -1018,7 +1018,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 }
               }}
               placeholder="View name..."
-              className="bg-transparent border-b border-tea-border/30 text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
+              className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
             />
             <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-dim/40 hover:text-tea-text-dim"><XIcon size={10} /></button>
           </div>
@@ -1033,7 +1033,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-30 border-b border-tea-border/30 py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
                 <Settings size={16} className={isEditMode ? "text-tea-text-dim" : "text-tea-accent"} />
@@ -1195,7 +1195,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* ENRICHMENT PROGRESS BANNER */}
       {enrichProgress && (
-        <div className="px-6 py-2 bg-tea-surface/80 border-b border-tea-border/30 flex items-center gap-4">
+        <div className="px-6 py-2 bg-tea-surface/80 border-b border-tea-border flex items-center gap-4">
           <Loader2 size={13} className="animate-spin text-tea-accent flex-shrink-0" />
           <div className="flex-1">
             <div className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] mb-1.5">
@@ -1249,12 +1249,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const isRegenerating = regeneratingId === product.id;
               const loreExtras = [draft.terroir, draft.processingNotes].filter(Boolean).join(' ');
               const storyPreview = (draft.lore || '') + (loreExtras ? ' ' + loreExtras : '');
-              const fieldClass = "w-full bg-transparent border-b border-tea-border/30 text-xs text-tea-text outline-none focus:border-tea-accent transition-colors py-1";
+              const fieldClass = "w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-accent transition-colors py-1";
 
               return (
-                <div key={product.id} className="bg-tea-surface border border-tea-border/30 rounded-xl overflow-hidden">
+                <div key={product.id} className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
                   {/* Identity */}
-                  <div className="px-5 py-3 bg-tea-bg/50 border-b border-tea-border/20 flex items-center justify-between gap-4">
+                  <div className="px-5 py-3 bg-tea-bg/50 border-b border-tea-border flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-serif text-tea-text text-sm truncate">{product.productName}</span>
                       {product.chineseName && <span className="text-tea-text-dim text-xs font-serif flex-shrink-0">{product.chineseName}</span>}
@@ -1267,7 +1267,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="p-5 space-y-4">
                     {/* Story preview */}
                     {storyPreview && (
-                      <div className="bg-tea-bg/60 border border-tea-border/50 rounded-lg p-4">
+                      <div className="bg-tea-bg/60 border border-tea-border rounded-lg p-4">
                         <div className="text-[10px] text-tea-text-dim/60 uppercase tracking-[0.2em] mb-2">Story Preview</div>
                         <p className="text-tea-text/70 text-xs font-serif italic leading-relaxed">{storyPreview}</p>
                       </div>
@@ -1280,7 +1280,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         value={draft.lore || ''}
                         onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], lore: e.target.value } }))}
                         rows={3}
-                        className="w-full bg-transparent border-b border-tea-border/30 text-sm text-tea-text font-serif outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
+                        className="w-full bg-transparent border-b border-tea-border text-sm text-tea-text font-serif outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
                       />
                     </div>
 
@@ -1316,13 +1316,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         value={draft.experience || ''}
                         onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], experience: e.target.value } }))}
                         rows={2}
-                        className="w-full bg-transparent border-b border-tea-border/30 text-xs text-tea-text outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
+                        className="w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
                       />
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="px-5 py-3 border-t border-tea-border/20 flex justify-between items-center bg-tea-bg/30">
+                  <div className="px-5 py-3 border-t border-tea-border flex justify-between items-center bg-tea-bg/30">
                     <button
                       onClick={() => handleRegenerateOne(product)}
                       disabled={!!regeneratingId}
@@ -1435,7 +1435,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     {/* Expanded detail panel */}
                     {isExpanded && (
-                        <div className="bg-tea-surface/40 px-4 pb-3 pt-1 border-b border-tea-border/30">
+                        <div className="bg-tea-surface/40 px-4 pb-3 pt-1 border-b border-tea-border">
                             {/* Info grid */}
                             <div className="grid grid-cols-3 gap-x-4 gap-y-2 py-2">
                               {inventoryCategory === 'teaware' ? (
@@ -1518,7 +1518,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             )}
 
                             {/* Action buttons */}
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border/20">
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
                                 <button
                                     onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
                                     className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-dim/50 hover:text-tea-text-dim'}`}
@@ -1581,7 +1581,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                   <tr>
                     {isEditMode && (
-                      <th className="px-2 py-2 border-b border-tea-border/40">
+                      <th className="px-2 py-2 border-b border-tea-border">
                         <button onClick={toggleSelectAll} className="text-tea-text-dim hover:text-tea-text">
                           {selectedIds.size === processedProducts.length ? <CheckSquare size={14} /> : <Square size={14} />}
                         </button>
@@ -1590,7 +1590,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD','capacityMl','quantityUnits'].includes(col.key) ? 'right' : 'left'} />
                     ))}
-                    <th className="px-4 py-2 border-b border-tea-border/40"></th>
+                    <th className="px-4 py-2 border-b border-tea-border"></th>
                   </tr>
                 </thead>
               </table>
@@ -1608,7 +1608,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
                         return next;
                       })}
-                      className="w-full flex items-center gap-3 px-5 py-2 bg-tea-bg/70 border-b border-tea-border/30 hover:bg-tea-bg transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-5 py-2 bg-tea-bg/70 border-b border-tea-border hover:bg-tea-bg transition-colors text-left"
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-dim" /> : <ChevronDown size={14} className="text-tea-text-dim" />}
                       <span className="text-sm font-serif text-tea-text">{groupKey}</span>
@@ -1629,7 +1629,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             return (
                               <tr
                                 key={product.id}
-                                className={`transition-colors border-b border-tea-border/20 group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''}`}
+                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''}`}
                                 style={{ height: ROW_HEIGHT }}
                                 onClick={() => !isEditMode && setPanelProduct(product)}
                               >
@@ -1674,7 +1674,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
                         {isEditMode && (
-                          <th className="px-2 py-2 border-b border-tea-border/40">
+                          <th className="px-2 py-2 border-b border-tea-border">
                             <button onClick={toggleSelectAll} className="text-tea-text-dim hover:text-tea-text">
                               {selectedIds.size === processedProducts.length ? <CheckSquare size={14} /> : <Square size={14} />}
                             </button>
@@ -1683,7 +1683,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         {visibleCols.map(col => (
                           <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD','capacityMl','quantityUnits'].includes(col.key) ? 'right' : 'left'} />
                         ))}
-                        <th className="px-4 py-2 border-b border-tea-border/40"></th>
+                        <th className="px-4 py-2 border-b border-tea-border"></th>
                     </tr>
                 </thead>
 
@@ -1695,7 +1695,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         return (
                             <tr
                                 key={product.id}
-                                className={`transition-colors border-b border-tea-border/20 group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${panelProduct?.id === product.id ? 'bg-tea-accent/5' : ''}`}
+                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${panelProduct?.id === product.id ? 'bg-tea-accent/5' : ''}`}
                                 style={{ height: ROW_HEIGHT }}
                                 onClick={() => !isEditMode && setPanelProduct(product)}
                             >
@@ -1839,11 +1839,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg border-l border-tea-border/30 flex flex-col"
+              className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg border-l border-tea-border flex flex-col"
               style={{ boxShadow: '-12px 0 40px -8px rgba(0,0,0,0.35)' }}
             >
               {/* Panel Header */}
-              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border/30 bg-tea-surface/50">
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border bg-tea-surface/50">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-serif text-tea-text truncate">{panelProduct.productName}</h3>
@@ -1874,7 +1874,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
                 {/* Image */}
                 {panelProduct.imageUrl && (
-                  <div className="rounded-lg overflow-hidden border border-tea-border/30">
+                  <div className="rounded-lg overflow-hidden border border-tea-border">
                     <img src={panelProduct.imageUrl} alt={panelProduct.productName} className="w-full h-40 object-cover" />
                   </div>
                 )}
@@ -1898,7 +1898,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   { label: 'Retail ($/g)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, editable: true, type: 'number' as const },
                   { label: 'Status', field: 'status' as const, value: panelProduct.status },
                 ]).map(item => (
-                  <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border/15">
+                  <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
                     <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.15em] flex-shrink-0 w-20">{item.label}</span>
                     {item.editable ? (
                       <GhostInput
@@ -1931,7 +1931,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="text-[10px] text-tea-text-dim/60 uppercase tracking-[0.2em] mb-1.5">Tasting Notes</div>
                     <div className="flex flex-wrap gap-1.5">
                       {panelProduct.tastingNotes.map(note => (
-                        <span key={note} className="text-[10px] text-tea-text-dim bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border/50">{note}</span>
+                        <span key={note} className="text-[10px] text-tea-text-dim bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border">{note}</span>
                       ))}
                     </div>
                   </div>
@@ -1939,7 +1939,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
 
               {/* Panel Quick Actions */}
-              <div className="px-5 py-3 border-t border-tea-border/30 flex items-center gap-2 flex-wrap bg-tea-surface/30">
+              <div className="px-5 py-3 border-t border-tea-border flex items-center gap-2 flex-wrap bg-tea-surface/30">
                 <button
                   onClick={() => { handleProductUpdate(panelProduct.id, 'isFeatured', !panelProduct.isFeatured); setPanelProduct(prev => prev ? { ...prev, isFeatured: !prev.isFeatured } : null); }}
                   className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isFeatured ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim'}`}
