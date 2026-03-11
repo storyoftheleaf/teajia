@@ -467,6 +467,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
                     color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
                     margin: 0, transition: "color 0.2s ease",
+                    whiteSpace: "pre-line",
                   }}>
                     {story}
                   </p>
@@ -476,6 +477,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   fontFamily: "var(--font-body)",
                   fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
                   color: alcoveColors.body, margin: 0,
+                  whiteSpace: "pre-line",
                 }}>
                   {story}
                 </p>

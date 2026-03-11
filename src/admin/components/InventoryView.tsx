@@ -526,59 +526,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }
   };
 
-  const handleRegenAllLore = async () => {
-    const teasWithLore = localProducts.filter(p => p.lore && p.type !== 'Teaware' && p.type !== 'Misc');
-
-    if (teasWithLore.length === 0) {
-      showToast("No teas have lore to re-generate.", "info");
-      return;
-    }
-
-    if (!confirm(`Re-generate lore for ${teasWithLore.length} teas? This will only update lore text (not tasting notes, mood, etc). This may take a few minutes.`)) {
-      return;
-    }
-
-    setIsEnriching(true);
-    setEnrichProgress({ current: 0, total: teasWithLore.length, currentName: '' });
-    let successCount = 0;
-    let failCount = 0;
-
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    try {
-      for (let i = 0; i < teasWithLore.length; i++) {
-        const tea = teasWithLore[i];
-        setEnrichProgress({ current: i + 1, total: teasWithLore.length, currentName: tea.productName });
-        try {
-          const prompt = aiPromptTemplate
-            .replace('{{productName}}', tea.productName)
-            .replace('{{type}}', tea.type);
-
-          const data = await api.generateWisdom(prompt);
-
-          await api.products.update(tea.id, {
-            lore: data.lore,
-            show_wisdom: tea.showWisdom ? true : false,
-          });
-
-          successCount++;
-          await delay(500);
-        } catch (err) {
-          console.error(`Failed to regen lore for ${tea.productName}:`, err);
-          failCount++;
-        }
-      }
-    } catch (error: any) {
-      console.error("Lore regen error:", error);
-      showToast("Lore regeneration failed.", "error");
-    } finally {
-      setIsEnriching(false);
-      setEnrichProgress(null);
-      onRefresh();
-      showToast(`Lore regen complete. ${successCount} succeeded, ${failCount} failed.`, successCount > 0 ? 'success' : 'error');
-    }
-  };
-
   const handleResetDatabase = async () => {
     if (resetInput !== 'delete') return;
     setIsResetting(true);
@@ -1231,7 +1178,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 disabled={isEnriching}
                                 className="px-4 py-2 text-left text-xs text-tea-text-dim hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                             >
-                                {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} 
+                                {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                 Enrich Missing Wisdom
                             </button>
                             <div className="h-px bg-tea-border my-1"></div>
@@ -1556,7 +1503,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                             {/* Description / Lore */}
                             {(product.lore || product.description) && (
-                                <p className="text-xs text-tea-text-dim/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3">
+                                <p className="text-xs text-tea-text-dim/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
                                     {product.showWisdom && product.lore ? product.lore : product.description}
                                 </p>
                             )}
@@ -1974,7 +1921,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {panelProduct.lore && (
                   <div className="mt-4">
                     <div className="text-[10px] text-tea-text-dim/60 uppercase tracking-[0.2em] mb-1.5">Lore</div>
-                    <p className="text-xs text-tea-text/70 font-serif italic leading-relaxed">{panelProduct.lore}</p>
+                    <p className="text-xs text-tea-text/70 font-serif italic leading-relaxed whitespace-pre-line">{panelProduct.lore}</p>
                   </div>
                 )}
 

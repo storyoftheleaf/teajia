@@ -171,7 +171,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Description / Lore */}
           {story && (
-            <p className="text-sm text-tea-text-sec leading-relaxed mb-5">
+            <p className="text-sm text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
               {story}
             </p>
           )}
