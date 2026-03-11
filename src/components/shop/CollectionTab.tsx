@@ -4,7 +4,7 @@ import { TeaPlaceholder } from './TeaPlaceholder';
 import { Icons } from '../Icons';
 import { useProductUrl } from '../../hooks/useProductUrl';
 import type { InventoryItem } from '../../types';
-import { fmtPricePerGram } from '../../utils/formatNumber';
+import { fmtPrice } from '../../utils/formatNumber';
 
 interface CollectionTabProps {
   inventory: InventoryItem[];
@@ -62,13 +62,13 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
         {featuredItems.map(item => {
           const pricePerGram = parseFloat(item.price_per_gram || '0');
           const notes = item.tags || [];
-          const accent = '#b5651d';
+          const accent = 'var(--tea-gold)';
 
           return (
             <div
               key={item.id}
               onClick={() => setViewItem(item)}
-              className="group cursor-pointer bg-tea-bg/80/90 backdrop-blur-md border border-tea-gold/10 rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
+              className="group cursor-pointer bg-tea-bg/90 backdrop-blur-md border border-tea-gold/10 rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
             >
               <div className="flex flex-col md:flex-row">
                 {/* Image */}
@@ -77,6 +77,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                     <img
                       src={item.image}
                       alt={item.name}
+                      loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                     />
                   ) : (
@@ -144,11 +145,21 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                     </div>
                   )}
 
-                  {/* Price */}
-                  <div className="mt-auto">
-                    <span className="num text-sm text-tea-gold">
-                      {fmtPricePerGram(pricePerGram)}
-                    </span>
+                  {/* Price + Quick Add */}
+                  <div className="mt-auto flex items-center gap-3">
+                    <div>
+                      <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 25)}</span>
+                      <span className="text-tea-text-dim text-xs ml-1">/ 25g</span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToCart(item, 25, Math.round(pricePerGram * 25 * 100) / 100);
+                      }}
+                      className="ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm bg-tea-gold hover:bg-tea-gold-lt text-tea-bg transition-all active:scale-95 min-h-[44px]"
+                    >
+                      Add 25g
+                    </button>
                   </div>
                 </div>
               </div>

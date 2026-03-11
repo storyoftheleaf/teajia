@@ -49,3 +49,9 @@ export function fmtPct(value: number, decimals = 1): string {
 export function fmtDollars(amount: number): string {
   return '$' + fmtNum(amount, 0);
 }
+
+/** Format a contextual portion price: "$7.00 / 25g" */
+export function fmtPortionPrice(pricePerGram: number, grams = 25): string {
+  const total = pricePerGram * grams;
+  return fmtPrice(total) + ' / ' + grams + 'g';
+}

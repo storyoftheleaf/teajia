@@ -3,15 +3,13 @@ import React, { useState, useMemo } from 'react';
 import { Icons } from './Icons';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { CardImage } from './shared/CardImage';
-// CardThumbnail removed — list items use text-only layout
+import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { CardGridItem } from './shared/CardGridItem';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { PageHeaderActions } from './shared/PageHeaderActions';
-import { fmtPrice, fmtPricePerGram } from '../utils/formatNumber';
+import { fmtPrice } from '../utils/formatNumber';
 import { ShopGridLayout } from './shared/ShopGridLayout';
-
-import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
@@ -46,16 +44,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, toggleFavoriteTea, compareItems, toggleCompare, clearCompare } = useAppStore();
+  const { favoriteTeas, compareItems } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
-  const compareSet = useMemo(() => new Set(compareItems), [compareItems]);
   const [showCompare, setShowCompare] = useState(false);
-
-  // Expanded Card State (Accordion)
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Image Modal State
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
@@ -63,24 +57,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Sync modal state with URL (?product=ID) for shareability and back-button support
   const { closeWithHistory } = useProductUrl(inventory, viewItem, setViewItem);
 
-  // Local state for quantity selector map (id -> quantity)
-  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
-
-  // Unit multiplier for portion size (25g, 50g, 100g, 250g, etc.)
-  const [unitMultiplier, setUnitMultiplier] = useState(() => {
-    const saved = localStorage.getItem('teajia_unitMultiplier');
-    return saved ? parseInt(saved) : 25;
-  });
-
-  // Touch gesture state for carousel swipe navigation
-  const [zoomTouchStart, setZoomTouchStart] = useState<number | null>(null);
-  const [zoomTouchStartTime, setZoomTouchStartTime] = useState<number | null>(null);
-  const [swipeOffset, setSwipeOffset] = useState<number>(0);
-
-  // Save unit multiplier to localStorage whenever it changes
-  React.useEffect(() => {
-    localStorage.setItem('teajia_unitMultiplier', String(unitMultiplier));
-  }, [unitMultiplier]);
 
   // Filter Logic
   const filteredInventory = useMemo(() => {
@@ -129,95 +105,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }));
   }, [filteredInventory, activeType]);
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(prev => prev === id ? null : id);
-  };
-
-  const toggleUserFavorite = (e: React.MouseEvent, id: string) => {
-      e.stopPropagation();
-      toggleFavoriteTea(id);
+  // Add-to-cart confirmation feedback
+  const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
+  const handleAddWithFeedback = (item: TeaItem, qty: number, total: number) => {
+    if (onAddToCart) onAddToCart(item, qty, total);
+    setAddedItems(prev => ({ ...prev, [item.id]: true }));
+    setTimeout(() => setAddedItems(prev => ({ ...prev, [item.id]: false })), 1500);
   };
 
   const clearFilters = () => {
     setActiveType('All');
     setActiveFeeling('All');
     setSpecialFilter('None');
-  };
-
-  const updateQuantity = (id: string, qty: number) => {
-      setSelectedQuantities(prev => ({...prev, [id]: qty}));
-  };
-
-  const handleZoomTouchStart = (e: React.TouchEvent) => {
-    setZoomTouchStart(e.touches[0].clientX);
-    setZoomTouchStartTime(Date.now());
-    setSwipeOffset(0);
-  };
-
-  const handleZoomTouchMove = (e: React.TouchEvent) => {
-    if (zoomTouchStart === null) return;
-    const currentX = e.touches[0].clientX;
-    const offset = currentX - zoomTouchStart;
-    setSwipeOffset(offset);
-  };
-
-  const handleZoomTouchEnd = (e: React.TouchEvent) => {
-    if (zoomTouchStart === null || zoomTouchStartTime === null || !viewItem) return;
-
-    const touchEnd = e.changedTouches[0].clientX;
-    const touchDuration = Date.now() - zoomTouchStartTime;
-    const diff = zoomTouchStart - touchEnd;
-    const distance = Math.abs(diff);
-
-    // Calculate velocity (pixels per millisecond)
-    const velocity = distance / touchDuration;
-
-    // Adaptive threshold: lower for fast swipes, higher for slow swipes
-    const BASE_THRESHOLD = 30;
-    const VELOCITY_THRESHOLD = 0.3; // Fast swipe if > 0.3 px/ms
-    const threshold = velocity > VELOCITY_THRESHOLD ? 20 : BASE_THRESHOLD;
-
-    if (distance < threshold) {
-      setZoomTouchStart(null);
-      setZoomTouchStartTime(null);
-      return;
-    }
-
-    // Find current item's position in ALL filtered inventory (not just current group)
-    const currentIndex = filteredInventory.findIndex(item => item.id === viewItem.id);
-    if (currentIndex === -1) {
-      setZoomTouchStart(null);
-      setZoomTouchStartTime(null);
-      return;
-    }
-
-    let newItem: TeaItem | null = null;
-    if (diff > 0) {
-      // Swiped left - go to next item
-      if (currentIndex < filteredInventory.length - 1) {
-        newItem = filteredInventory[currentIndex + 1];
-      }
-    } else {
-      // Swiped right - go to previous item
-      if (currentIndex > 0) {
-        newItem = filteredInventory[currentIndex - 1];
-      }
-    }
-
-    if (newItem) {
-      setViewItem(newItem);
-      setSelectedQuantities(prev => {
-        const newQty = { ...prev };
-        if (!newQty[newItem!.id]) {
-          newQty[newItem!.id] = 25;
-        }
-        return newQty;
-      });
-    }
-
-    setZoomTouchStart(null);
-    setZoomTouchStartTime(null);
-    setSwipeOffset(0);
   };
 
   return (
@@ -378,10 +277,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {viewMode === 'GRID' && filteredInventory.length > 0 && (
             <ShopGridLayout className="xl:grid-cols-5">
                {filteredInventory.map(item => {
-                  const gridQty = selectedQuantities[item.id] || 25;
-                  const gridMax = parseInt(String(item.stock_g)) || 100;
                   const gridPpg = parseFloat(item.price_per_gram || '0') || 0;
-                  const gridTotal = Math.round(gridPpg * gridQty * 100) / 100;
+                  const gridPrice25 = Math.round(gridPpg * 25 * 100) / 100;
+                  const isAdded = addedItems[item.id];
                   return (
                      <CardGridItem
                         key={item.id}
@@ -392,48 +290,36 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         badgesComponent={
                            <div className="flex items-center gap-1.5">
                               <span className="card-grid-badge">{item.type}</span>
-                              <button
-                                 onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
-                                 className={`p-1 rounded-sm transition-colors ${compareSet.has(item.id) ? 'text-tea-gold bg-tea-accent-sub' : 'text-tea-text/30 hover:text-tea-text/60'}`}
-                                 aria-label={compareSet.has(item.id) ? 'Remove from compare' : 'Add to compare'}
-                                 title="Compare"
-                              >
-                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="3" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
-                                    <rect x="14" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
-                                 </svg>
-                              </button>
+                              {item.origin && (
+                                 <span className="text-[10px] text-tea-text-dim italic">{item.origin}</span>
+                              )}
                            </div>
                         }
                         priceDisplay={
-                           <span className="card-grid-price">{fmtPricePerGram(parseFloat(item.price_per_gram))}</span>
-                        }
-                        descriptionComponent={
-                           <p className="card-grid-description">{item.description}</p>
+                           <span className="card-grid-price">
+                              <span className="num">{fmtPrice(gridPrice25)}</span>
+                              <span className="text-tea-text-dim text-[10px] ml-1">/ 25g</span>
+                           </span>
                         }
                         sliderComponent={
-                           <div className="flex flex-col gap-1.5">
-                              <div className="flex items-center gap-2">
-                                 <span className="num text-[11px] text-tea-text/50 shrink-0 min-w-[32px]">{gridQty}g</span>
-                                 <HapticSlider
-                                    min={5}
-                                    max={gridMax}
-                                    step={5}
-                                    value={gridQty}
-                                    onChange={(val) => updateQuantity(item.id, val)}
-                                    snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
-                                    size="sm"
-                                 />
-                              </div>
-                              <button
-                                 onClick={() => onAddToCart && onAddToCart(item, gridQty, gridTotal)}
-                                 className="w-full bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-[10px] uppercase tracking-[0.12em] font-medium py-1.5 rounded-sm transition-all active:scale-95 flex items-center justify-center gap-1.5"
-                              >
-                                 <span>Add</span>
-                                 <span className="w-px h-2.5 bg-tea-bg/20" />
-                                 <span className="num">{fmtPrice(gridTotal)}</span>
-                              </button>
-                           </div>
+                           <button
+                              onClick={() => handleAddWithFeedback(item, 25, gridPrice25)}
+                              className={`w-full text-[11px] uppercase tracking-[0.12em] font-medium py-2 rounded-sm transition-all active:scale-95 flex items-center justify-center gap-2 min-h-[44px] ${
+                                 isAdded
+                                    ? 'bg-tea-green text-tea-bg'
+                                    : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg'
+                              }`}
+                           >
+                              {isAdded ? (
+                                 <span>Added ✓</span>
+                              ) : (
+                                 <>
+                                    <span>Add 25g</span>
+                                    <span className="w-px h-3 bg-tea-bg/20" />
+                                    <span className="num">{fmtPrice(gridPrice25)}</span>
+                                 </>
+                              )}
+                           </button>
                         }
                      />
                   );
@@ -441,55 +327,63 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             </ShopGridLayout>
          )}
 
-         {/* LIST VIEW */}
+         {/* LIST VIEW — thumbnail rows, tap opens AlcoveCard */}
          {viewMode === 'LIST' && filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
                {groupedInventory.map((group) => (
                 <React.Fragment key={group.type}>
-                    
+
                     {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
-                        <div className="pt-10 pb-2 first:pt-4 pl-2">
-                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text/30">{group.type}</span>
+                        <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
+                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-dim">{group.type}</span>
                         </div>
                     )}
 
                     {group.items.map((item) => {
-                        const isExpanded = expandedId === item.id;
-                        const isFavorite = userFavorites.has(item.id);
                         const isTeajiaFav = !!item.isFeatured;
-
-                        const currentQty = selectedQuantities[item.id] || 25;
-                        const maxStock = parseInt(item.stock_g) || 100;
-                        // Price formula: use price_per_gram directly (already in $/gram)
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
-                        const totalPrice = pricePerGram > 0 ? Math.round(pricePerGram * currentQty * 100) / 100 : 0;
+                        const price25g = Math.round(pricePerGram * 25 * 100) / 100;
 
                         return (
                             <div
                                 key={item.id}
-                                className={`relative transition-colors duration-300 ${isExpanded ? 'bg-tea-gold/[0.05]' : ''}`}
+                                className="border-b border-tea-border hover:bg-tea-accent-sub/50 transition-colors cursor-pointer"
+                                onClick={() => setViewItem(item)}
                             >
-                                {/* Row — tap to expand accordion */}
-                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3 cursor-pointer select-none" onClick={() => toggleExpand(item.id)}>
+                                <div className="flex items-center py-3 lg:py-4 px-2 gap-3">
+                                    {/* Thumbnail */}
+                                    <div className="w-12 h-12 rounded-sm overflow-hidden shrink-0 bg-tea-elevated">
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                                        ) : (
+                                            <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
+                                        )}
+                                    </div>
 
-                                    {/* Left: name + metadata */}
+                                    {/* Name + metadata */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <h3 className={`font-serif text-lg leading-none transition-colors ${isExpanded ? 'text-tea-gold' : 'text-tea-text'}`}>
+                                            <h3 className="font-serif text-lg leading-none text-tea-text truncate">
                                                 {item.name}
                                             </h3>
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
                                         <div className="text-[13px] mt-1 truncate flex items-center gap-2">
-                                             <span className={`font-mono num text-[11px] ${isExpanded ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{item.year}</span>
-                                             <span className="text-tea-text/20">·</span>
-                                             <span className="font-body italic text-tea-text/40">{item.variant}</span>
+                                             <span className="text-[10px] uppercase tracking-wider text-tea-text-dim">{item.type}</span>
+                                             {item.origin && (
+                                                 <><span className="text-tea-text/20">·</span>
+                                                 <span className="font-body italic text-tea-text/40">{item.origin}</span></>
+                                             )}
+                                             {item.year && (
+                                                 <><span className="text-tea-text/20">·</span>
+                                                 <span className="font-mono num text-[11px] text-tea-gold/60">{item.year}</span></>
+                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Right: price, heart, info (detail) */}
-                                    <div className="flex items-center gap-3 shrink-0">
+                                    {/* Right: price + admin controls + chevron */}
+                                    <div className="flex items-center gap-2 shrink-0">
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
                                             const ap = adminProductMap.get(item.id)!;
@@ -501,9 +395,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 </span>
                                             );
                                         })()}
-                                        <span className={`font-mono num text-sm tracking-wide ${isExpanded ? 'text-tea-gold' : 'text-tea-text/80'}`}>
-                                            {fmtPricePerGram(pricePerGram)}
-                                        </span>
                                         {/* Admin: edit button */}
                                         {isAdmin && onAdminEdit && (
                                             <button
@@ -514,101 +405,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 <Icons.Edit className="w-3.5 h-3.5" />
                                             </button>
                                         )}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); toggleUserFavorite(e, item.id); }}
-                                            className={`-my-1 p-2 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
-                                        >
-                                            <Icons.Heart filled={isFavorite} className="w-5 h-5" />
-                                        </button>
-                                        {/* Compare toggle */}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
-                                            className={`-my-1 p-2 transition-colors ${compareSet.has(item.id) ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
-                                            aria-label={compareSet.has(item.id) ? `Remove ${item.name} from compare` : `Add ${item.name} to compare`}
-                                            title={compareItems.length >= 4 && !compareSet.has(item.id) ? 'Max 4 items' : 'Compare'}
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                                <rect x="3" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
-                                                <rect x="14" y="3" width="7" height="18" rx="1" fill={compareSet.has(item.id) ? 'currentColor' : 'none'} fillOpacity={compareSet.has(item.id) ? 0.15 : 0} />
-                                            </svg>
-                                        </button>
-                                        {/* Info button — opens AlcoveCard detail view */}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                            className={`-my-1 p-2 transition-colors text-tea-text/25 hover:text-tea-gold active:text-tea-gold`}
-                                            aria-label={`View details for ${item.name}`}
-                                        >
-                                            <Icons.Info className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Accordion — Alcove-styled quick add */}
-                                <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    {/* Inset panel with Alcove surface treatment */}
-                                    <div className="mx-2 mb-3 rounded-md overflow-hidden relative bg-tea-surface border border-tea-border"
-                                        style={{
-                                            boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)',
-                                            animation: isExpanded ? 'panelReveal 0.5s ease-out' : undefined,
-                                        }}
-                                    >
-                                        {/* Grain texture overlay */}
-                                        <div className="absolute inset-0 pointer-events-none" style={{
-                                            opacity: 0.08,
-                                            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-                                            backgroundSize: '120px',
-                                        }} />
-                                        {/* Ambient top-glow */}
-                                        <div className="absolute top-0 left-0 right-0 pointer-events-none" style={{
-                                            height: '60%',
-                                            background: 'radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)',
-                                        }} />
-
-                                        {/* Description */}
-                                        <div className="relative px-3.5 pt-3 pb-2">
-                                            <p className="font-body text-sm text-tea-text-sec/80 leading-relaxed max-w-2xl">
-                                                {item.description}
-                                            </p>
+                                        <div className="text-right">
+                                            <span className="num text-sm text-tea-gold">{fmtPrice(price25g)}</span>
+                                            <span className="text-[10px] text-tea-text-dim ml-1">/ 25g</span>
                                         </div>
-
-                                        {/* Commerce zone */}
-                                        <div className="relative px-3 py-2.5 border-t border-tea-border">
-                                            {/* Price + quantity row */}
-                                            <div className="flex items-baseline justify-between px-1" style={{ marginBottom: 2 }}>
-                                                <span className="font-mono num text-xs text-tea-text/70">
-                                                    {fmtPricePerGram(pricePerGram)}
-                                                </span>
-                                                <span className="font-mono num text-xs text-tea-text/70">
-                                                    {currentQty}<span className="text-[9px] text-tea-text/40 ml-px">g</span>
-                                                </span>
-                                            </div>
-                                            {/* Slider */}
-                                            <HapticSlider
-                                                min={5}
-                                                max={maxStock}
-                                                step={5}
-                                                value={currentQty}
-                                                onChange={(val) => updateQuantity(item.id, val)}
-                                                snapPoints={[25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]}
-                                                size="sm"
-                                            />
-                                            {/* Action row */}
-                                            <div className="flex items-center gap-2.5 mt-1.5">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setViewItem(item); }}
-                                                    className="font-sans text-tea-text-dim hover:text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-3 transition-colors duration-200"
-                                                >
-                                                    Details
-                                                </button>
-                                                <button
-                                                    onClick={() => onAddToCart && onAddToCart(item, currentQty, totalPrice)}
-                                                    className="flex-1 font-sans text-tea-gold text-[11px] uppercase tracking-[0.06em] py-2 px-4 rounded-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] bg-tea-accent-sub border border-tea-gold/20 hover:bg-tea-gold/15 hover:border-tea-gold/30"
-                                                >
-                                                    <span>Add</span>
-                                                    <span className="font-mono num text-[11px] opacity-70">{fmtPrice(totalPrice)}</span>
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <Icons.Next className="w-4 h-4 text-tea-text/20 shrink-0" />
                                     </div>
                                 </div>
                             </div>
