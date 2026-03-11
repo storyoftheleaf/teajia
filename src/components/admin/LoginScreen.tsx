@@ -17,17 +17,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
     <div className="w-full h-full bg-tea-bg flex items-center justify-center p-6 md:pb-6">
       <button
         onClick={onClose}
-        className="absolute top-6 left-6 text-white/60 hover:text-white"
+        className="absolute top-6 left-6 text-tea-text/60 hover:text-tea-text"
         aria-label="Close login screen"
       >
         <Icons.Close className="w-6 h-6" />
       </button>
 
       <div className="w-full max-w-xs text-center">
-        <div className="w-12 h-12 bg-tea-gold rounded-lg mx-auto mb-8 flex items-center justify-center text-black font-serif font-bold text-xl">
+        <div className="w-12 h-12 bg-tea-gold rounded-lg mx-auto mb-8 flex items-center justify-center text-tea-bg font-serif font-bold text-xl">
           T
         </div>
-        <h2 className="text-white font-serif text-xl mb-6">Editor Access</h2>
+        <h2 className="text-tea-text font-serif text-xl mb-6">Editor Access</h2>
 
         <input
           type="password"
@@ -35,7 +35,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
           onChange={e => setPwd(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && checkLogin()}
           placeholder="Passkey"
-          className="w-full bg-tea-surface border border-tea-gold/15 p-3 text-center text-white tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-white/30"
+          className="w-full bg-tea-surface border border-tea-gold/15 p-3 text-center text-tea-text tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-tea-text/30"
           aria-label="Enter passkey"
         />
 
@@ -47,8 +47,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
         </button>
 
         <div className="border-t border-tea-gold/15 mt-6 pt-6">
-          <p className="text-white/60 text-xs mb-3">Development Mode</p>
-          <p className="text-white/50 text-xs italic">
+          <p className="text-tea-text/60 text-xs mb-3">Development Mode</p>
+          <p className="text-tea-text/50 text-xs italic">
             Authentication is currently disabled
           </p>
         </div>
