@@ -55,7 +55,7 @@ export const SettingsView: React.FC = () => {
                 className="w-full bg-tea-bg border border-tea-border rounded-lg p-4 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors font-mono leading-relaxed resize-y"
                 placeholder="Enter your AI prompt template here..."
               />
-              <p className="text-[10px] text-tea-text-dim mt-2">
+              <p className="text-xs text-tea-text-dim mt-2">
                 Available variables: <code className="bg-tea-bg px-1 py-0.5 rounded text-tea-accent">{"{{productName}}"}</code>, <code className="bg-tea-bg px-1 py-0.5 rounded text-tea-accent">{"{{type}}"}</code>. The AI must return a JSON object with keys: <code className="text-tea-text">lore, tastingNotes, chineseName, originRegion, processingNotes, terroir, mood, experience</code>.
               </p>
             </div>

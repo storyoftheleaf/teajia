@@ -349,7 +349,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   // Reusable input styles for the "Ledger" look
   const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-text-dim/30";
   const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans";
-  const labelStyle = "block text-[10px] uppercase tracking-wider text-tea-text-dim/70 mb-1 flex items-center gap-1 font-bold";
+  const labelStyle = "block text-xs uppercase tracking-wider text-tea-text-dim/70 mb-1 flex items-center gap-1 font-bold";
   const wisdomInputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-text-dim/30 transition-colors font-sans";
 
   return (
@@ -501,7 +501,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <ImageThumbnail src={formData.imageUrl} type={formData.type} />
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-[10px] text-tea-text-dim font-mono truncate">{formData.imageUrl}</p>
+                            <p className="text-xs text-tea-text-dim font-mono truncate">{formData.imageUrl}</p>
                         </div>
                         <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-dim hover:text-tea-accent hover:bg-tea-bg rounded transition-colors" title="Remove Image">
                             <Trash2 size={14} />
@@ -539,7 +539,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-text-dim transition-colors">
                             <select
                                 name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                className="bg-transparent appearance-none rounded-none text-[10px] text-tea-accent font-bold outline-none cursor-pointer uppercase"
+                                className="bg-transparent appearance-none rounded-none text-xs text-tea-accent font-bold outline-none cursor-pointer uppercase"
                             >
                                 <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
                                 <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
@@ -592,7 +592,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                {/* RETAIL OUTPUT */}
                <div className="pt-3 border-t border-dashed border-tea-border">
                   <div className="flex justify-between items-center mb-1.5">
-                     <label className="text-[10px] uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
+                     <label className="text-xs uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
                      <span className="text-[9px] text-tea-text-dim/70 num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
@@ -616,7 +616,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                {/* STOCK */}
                <div className="pt-2">
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-text-dim uppercase text-[10px] tracking-[0.2em]">Current Stock</label>
+                        <label className="text-tea-text-dim uppercase text-xs tracking-[0.2em]">Current Stock</label>
                         <input
                             name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
                             className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-text-dim outline-none placeholder-tea-text-dim/30 transition-colors tabular-nums" placeholder="0"
@@ -630,7 +630,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </div>
                         </div>
-                        <span className="text-[10px] text-tea-text-dim group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                        <span className="text-xs text-tea-text-dim group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
                     </label>
                </div>
             </div>

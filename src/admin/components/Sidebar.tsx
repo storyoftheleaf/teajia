@@ -210,7 +210,7 @@ export const Sidebar = ({
       {/* Seasonal indicator */}
       <div className="flex items-center gap-2 px-6 py-3 text-tea-gold/40">
         <span className="text-sm">{season.icon}</span>
-        <span className="text-[10px] uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
+        <span className="text-xs uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
       </div>
 
       {/* Utility Area */}
