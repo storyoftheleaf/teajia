@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Link2 } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -559,6 +559,7 @@ export const CustomersView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [autoLinking, setAutoLinking] = useState(false);
 
   const filtered = useMemo(() => {
     let list = customers;
@@ -617,6 +618,26 @@ export const CustomersView = () => {
       refetch();
     } catch (err: any) {
       showToast('Error: ' + err.message, 'error');
+    }
+  };
+
+  const handleAutoLinkVendors = async () => {
+    setAutoLinking(true);
+    try {
+      const result = await api.rpc.autoLinkVendors();
+      if (result.linked === 0 && result.created === 0) {
+        showToast('All products are already linked to their sources', 'info');
+      } else {
+        showToast(
+          `Linked ${result.linked} tea${result.linked !== 1 ? 's' : ''} to ${result.vendors} vendor${result.vendors !== 1 ? 's' : ''}${result.created > 0 ? ` (${result.created} new)` : ''}`,
+          'success'
+        );
+        refetch();
+      }
+    } catch (err: any) {
+      showToast('Error: ' + err.message, 'error');
+    } finally {
+      setAutoLinking(false);
     }
   };
 
@@ -682,6 +703,15 @@ export const CustomersView = () => {
             <option value="spent">Sort: Top Spent</option>
             <option value="orders">Sort: Most Orders</option>
           </select>
+          <button
+            onClick={handleAutoLinkVendors}
+            disabled={autoLinking}
+            className="flex items-center gap-2 border border-tea-border text-tea-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-tea-surface transition-colors disabled:opacity-50"
+            title="Auto-create vendor records from product sources and link them"
+          >
+            {autoLinking ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
+            Link Sources
+          </button>
           <button
             onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
             className="flex items-center gap-2 bg-tea-accent text-tea-bg px-4 py-2 rounded-lg text-sm font-medium hover:bg-tea-accent/90 transition-colors"

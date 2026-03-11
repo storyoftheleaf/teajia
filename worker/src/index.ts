@@ -755,6 +755,91 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
   return json({ linked: updates.length, total_unlinked: unlinked.results.length });
 };
 
+// ── Auto-link vendors: create customer records from product vendor field ──
+const handleAutoLinkVendors: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Get all distinct vendor names from products that have a vendor but no vendor_id
+  const productsWithVendor = await env.DB.prepare(
+    `SELECT id, vendor, origin_country FROM products WHERE vendor IS NOT NULL AND vendor != '' AND (vendor_id IS NULL OR vendor_id = '')`
+  ).all();
+
+  if (productsWithVendor.results.length === 0) {
+    return json({ created: 0, linked: 0, message: 'All products are already linked to vendor records.' });
+  }
+
+  // Group products by vendor name (case-insensitive)
+  const vendorGroups: Record<string, { normalizedName: string; originalName: string; country: string; productIds: string[] }> = {};
+  for (const p of productsWithVendor.results) {
+    const vendorName = (p.vendor as string).trim();
+    const key = vendorName.toLowerCase();
+    if (!vendorGroups[key]) {
+      vendorGroups[key] = {
+        normalizedName: key,
+        originalName: vendorName,
+        country: (p.origin_country as string) || '',
+        productIds: [],
+      };
+    }
+    vendorGroups[key].productIds.push(p.id as string);
+  }
+
+  // Get existing customers to avoid duplicates
+  const existingCustomers = await env.DB.prepare('SELECT id, name, tags FROM customers').all();
+  const existingByName: Record<string, { id: string; tags: string }> = {};
+  for (const c of existingCustomers.results) {
+    existingByName[(c.name as string).toLowerCase().trim()] = { id: c.id as string, tags: c.tags as string };
+  }
+
+  let created = 0;
+  let linked = 0;
+  const linkUpdates: D1PreparedStatement[] = [];
+
+  for (const key of Object.keys(vendorGroups)) {
+    const group = vendorGroups[key];
+    let customerId: string;
+
+    if (existingByName[key]) {
+      // Customer already exists — ensure they have the 'vendor' tag
+      customerId = existingByName[key].id;
+      let tags: string[] = [];
+      try { tags = JSON.parse(existingByName[key].tags || '[]'); } catch { tags = []; }
+      if (!tags.includes('vendor')) {
+        tags.push('vendor');
+        await env.DB.prepare('UPDATE customers SET tags = ?, updated_at = datetime(\'now\') WHERE id = ?')
+          .bind(JSON.stringify(tags), customerId).run();
+      }
+    } else {
+      // Create new customer record tagged as vendor
+      customerId = crypto.randomUUID();
+      await env.DB.prepare(
+        `INSERT INTO customers (id, name, country, tags, source, created_at, updated_at)
+         VALUES (?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
+      ).bind(customerId, group.originalName, group.country || null).run();
+      created++;
+    }
+
+    // Link all products from this vendor
+    for (const pid of group.productIds) {
+      linkUpdates.push(
+        env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ?')
+          .bind(customerId, pid)
+      );
+      linked++;
+    }
+  }
+
+  // Batch the product updates
+  if (linkUpdates.length > 0) {
+    for (let i = 0; i < linkUpdates.length; i += 100) {
+      await env.DB.batch(linkUpdates.slice(i, i + 100));
+    }
+  }
+
+  return json({ created, linked, vendors: Object.keys(vendorGroups).length });
+};
+
 // ── AI Wisdom Generation ──
 const handleGenerateWisdom: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
@@ -1831,6 +1916,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
+  ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
 
   // Activity Logs
   ['GET', '/api/activity-logs', handleGetActivityLogs],
