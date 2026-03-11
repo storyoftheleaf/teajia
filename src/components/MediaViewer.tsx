@@ -371,7 +371,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
                 <div className="flex items-center space-x-8">
                    <Icons.Back className="w-8 h-8 text-tea-text/50 rotate-180 hover:text-tea-text transition-colors cursor-pointer" /> {/* Prev */}
-                   <button className="w-20 h-20 bg-tea-bg rounded-full flex items-center justify-center text-tea-text shadow-[0_0_30px_rgba(200,170,120,0.1)] active:scale-95 transition-transform hover:bg-tea-surface">
+                   <button className="w-20 h-20 bg-tea-bg rounded-full flex items-center justify-center text-tea-text shadow-[0_0_30px_var(--tea-accent-sub)] active:scale-95 transition-transform hover:bg-tea-surface">
                       <Icons.Play className="w-8 h-8 fill-current ml-1" />
                    </button>
                    <Icons.Next className="w-8 h-8 text-tea-text/50 hover:text-tea-text transition-colors cursor-pointer" />
@@ -443,7 +443,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                         <div className="absolute top-0 left-0 w-0 h-full bg-tea-bg group-hover:bg-tea-gold transition-colors"></div>
                         {/* Fake progress for visuals */}
                          <div className="absolute top-0 left-0 w-[30%] h-full bg-tea-bg">
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-tea-bg rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(200,170,120,0.3)]"></div>
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-tea-bg rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_var(--tea-gold-lt)]"></div>
                          </div>
                     </div>
                </div>
@@ -452,7 +452,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-8">
                       <button className="text-tea-text/50 hover:text-tea-text transition-colors"><Icons.Back className="w-6 h-6 rotate-180" /></button>
-                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-tea-surface transition-all shadow-[0_0_20px_rgba(200,170,120,0.1)]">
+                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-tea-surface transition-all shadow-[0_0_20px_var(--tea-accent-sub)]">
                          <Icons.Play className="w-6 h-6 text-tea-text ml-1 fill-current" />
                       </button>
                       <button className="text-tea-text/50 hover:text-tea-text transition-colors"><Icons.Next className="w-6 h-6" /></button>

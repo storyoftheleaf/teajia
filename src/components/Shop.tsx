@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { InventoryItem } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { TeaInventory } from './TeaInventory';
@@ -142,6 +143,10 @@ export const Shop: React.FC<ShopProps> = ({
 
   return (
     <div className="flex flex-col flex-1 bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
+      <Helmet>
+        <title>Shop — Teajia</title>
+        <meta name="description" content="Browse curated fine teas and teaware. Oolongs, pu-erh, greens, whites, and handmade vessels — sourced directly from farmers and artisans." />
+      </Helmet>
       <PageHeader
         title="Shop"
         onCartClick={onCartClick}

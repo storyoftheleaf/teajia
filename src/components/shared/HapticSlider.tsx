@@ -75,7 +75,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
           className="w-full relative"
           style={{
             height: 3,
-            background: 'rgba(200,170,120,0.1)',
+            background: 'var(--tea-accent-sub)',
             borderRadius: 2,
           }}
         >
@@ -84,7 +84,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
             className="absolute h-full"
             style={{
               width: `${percentage}%`,
-              background: 'linear-gradient(90deg, rgba(184,146,78,0.45), rgba(184,146,78,0.75))',
+              background: 'linear-gradient(90deg, var(--tea-gold), var(--tea-gold-lt))',
               borderRadius: 2,
               transition: 'width 0.075s ease',
             }}
@@ -103,7 +103,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
                   width: 1,
                   height: 9,
                   background: value === tick
-                    ? 'rgba(200,170,120,0.4)'
+                    ? 'var(--tea-gold)'
                     : 'var(--tea-border)',
                   transition: 'background 0.15s ease',
                   pointerEvents: 'none',

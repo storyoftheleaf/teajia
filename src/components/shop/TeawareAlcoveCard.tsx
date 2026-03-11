@@ -166,7 +166,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
             width: "100%",
             aspectRatio: "1 / 1",
             maxHeight: hasContent ? "55%" : "65%",
-            background: "rgba(0,0,0,0.3)",
+            background: "var(--tea-surface)",
             overflow: "hidden",
             cursor: currentImage ? "pointer" : "default",
             flexShrink: 0,
@@ -213,7 +213,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
                     width: i === activeImageIndex ? "16px" : "6px",
                     height: "6px",
                     borderRadius: "3px",
-                    background: i === activeImageIndex ? accent : "rgba(200,170,120,0.3)",
+                    background: i === activeImageIndex ? accent : "var(--tea-gold-lt)",
                     border: "none",
                     padding: 0,
                     cursor: "pointer",
@@ -236,7 +236,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
               position: "absolute", right: "14px", top: "8px",
               fontFamily: "'Ma Shan Zheng', cursive",
               fontSize: "56px", fontWeight: 400, lineHeight: 1,
-              color: "rgba(200,170,120,0.05)",
+              color: "var(--tea-accent-sub)",
               letterSpacing: "0.05em",
               userSelect: "none", pointerEvents: "none",
               whiteSpace: "nowrap",
@@ -285,7 +285,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
           <div style={{
             margin: "4px 4px 0",
             borderRadius: "6px",
-            background: "rgba(0,0,0,0.2)",
+            background: "var(--tea-surface)",
             boxShadow: "inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)",
             overflow: "hidden",
           }}>
@@ -404,8 +404,8 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
               width: "36px", textAlign: "center",
               fontFamily: "var(--font-mono)",
               fontSize: "13px", fontWeight: 400, color: colors.body,
-              borderLeft: "1px solid rgba(200,170,120,0.1)",
-              borderRight: "1px solid rgba(200,170,120,0.1)",
+              borderLeft: "1px solid var(--tea-accent-sub)",
+              borderRight: "1px solid var(--tea-accent-sub)",
               lineHeight: "32px",
             }}>
               {quantity}
@@ -451,7 +451,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
             height: "36px", boxSizing: "border-box",
-            border: "1px solid rgba(200,170,120,0.18)",
+            border: "1px solid var(--tea-border)",
             borderRadius: "3px",
             flexShrink: 0,
             padding: "0 10px",
@@ -551,7 +551,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
           onClick={() => setImageExpanded(false)}
           style={{
             position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.95)",
+            background: "var(--tea-bg)",
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             cursor: "pointer",
@@ -607,7 +607,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
             style={{
               position: "absolute", top: "16px", right: "16px",
               width: "36px", height: "36px",
-              background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+              background: "var(--tea-accent-sub)", border: "none", borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer",
             }}
@@ -626,7 +626,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
               style={{
                 position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)",
                 width: "40px", height: "40px",
-                background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+                background: "var(--tea-accent-sub)", border: "none", borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer",
               }}
@@ -643,7 +643,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
               style={{
                 position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)",
                 width: "40px", height: "40px",
-                background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+                background: "var(--tea-accent-sub)", border: "none", borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer",
               }}

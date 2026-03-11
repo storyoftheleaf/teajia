@@ -15,7 +15,13 @@ export const PATH_TO_SECTION: Record<string, Section> = Object.fromEntries(
 ) as Record<string, Section>;
 
 export function pathToSection(pathname: string): Section {
-  return PATH_TO_SECTION[pathname] || 'HOME';
+  // Exact match first
+  if (PATH_TO_SECTION[pathname]) return PATH_TO_SECTION[pathname];
+  // Nested route match (e.g. /shop/product/xxx -> SHOP)
+  for (const [path, section] of Object.entries(PATH_TO_SECTION)) {
+    if (path !== '/' && pathname.startsWith(path + '/')) return section;
+  }
+  return 'HOME';
 }
 
 export function sectionToPath(section: Section): string {

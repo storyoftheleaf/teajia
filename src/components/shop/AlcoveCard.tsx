@@ -233,7 +233,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             position: "absolute", right: "14px", top: "14px",
             fontFamily: "'Ma Shan Zheng', cursive",
             fontSize: "64px", fontWeight: 400, lineHeight: 1,
-            color: "rgba(200,170,120,0.05)",
+            color: "var(--tea-accent-sub)",
             letterSpacing: "0.05em",
             userSelect: "none", pointerEvents: "none",
             whiteSpace: "nowrap",
@@ -735,7 +735,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           onClick={() => setImageExpanded(false)}
           style={{
             position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.92)",
+            background: "var(--tea-bg)",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
           }}

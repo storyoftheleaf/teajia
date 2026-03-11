@@ -45,7 +45,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           <button
             onClick={onCtaClick}
             className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm pb-0.5"
-            style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.3)' }}
+            style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
           >
             {ctaLabel}
             <Icons.ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useStories } from '../context/StoryContext';
 import { useInventory } from '../context/InventoryContext';
 import { Story } from '../types';
@@ -130,6 +131,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="animate-[fadeIn_0.6s_ease-out] pb-24 md:pb-24 max-w-[1400px] mx-auto">
+      <Helmet>
+        <title>Teajia — Fine Tea & Teaware</title>
+        <meta name="description" content="Curated fine teas and teaware from Taiwan, China, and beyond. Stories, education, and a shop rooted in twenty years of tea culture." />
+      </Helmet>
 
       {/* Mobile PageHeader — matches other sections */}
       <div className="lg:hidden">
