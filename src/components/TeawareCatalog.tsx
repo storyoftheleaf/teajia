@@ -10,6 +10,7 @@ import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { SectionDivider } from './shared/SectionDivider';
 import { TeaItem } from './TeaInventory';
+import { useProductUrl } from '../hooks/useProductUrl';
 import type { Product } from '../admin/types';
 
 export interface TeawareCatalogProps {
@@ -37,6 +38,9 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+
+  // Sync modal state with URL (?product=ID)
+  const { closeWithHistory } = useProductUrl(externalInventory, viewItem, setViewItem);
 
   // List View State
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -115,11 +119,11 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       <TeawareAlcoveModal
         item={viewItem}
         items={externalInventory}
-        onClose={() => setViewItem(null)}
+        onClose={closeWithHistory}
         onItemChange={(item) => setViewItem(item)}
         onAddToCart={(item, quantity, total) => {
           if (onAddToCart) onAddToCart(item, quantity, total);
-          setViewItem(null);
+          closeWithHistory();
         }}
       />
 

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from './shared/PageHeader';
 import { CardContainer } from './shared/CardContainer';
@@ -175,6 +176,10 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   // Main layout — visual tiles + scroll-to-depth
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+      <Helmet>
+        <title>Consult — Teajia</title>
+        <meta name="description" content="Tea space design, sourcing guidance, ceremony training, and origin journeys. Twenty years of practice distilled into services for those who take tea seriously." />
+      </Helmet>
       <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
 
       <div className="max-w-[1400px] mx-auto">

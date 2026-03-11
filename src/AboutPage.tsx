@@ -1,10 +1,15 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Icons } from './components/Icons';
 
 
 export default function AboutPage() {
   return (
     <div className="animate-[fadeIn_0.6s_ease-out] pb-24 md:pb-24 max-w-4xl mx-auto px-6">
+      <Helmet>
+        <title>About — Teajia</title>
+        <meta name="description" content="The story behind Teajia — twenty years of tea culture, sourcing, and design practice rooted in Taiwan and mainland China." />
+      </Helmet>
       {/* Header */}
       <div className="pt-16 md:pt-24 mb-12 md:mb-16">
         <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-tea-text mb-4">

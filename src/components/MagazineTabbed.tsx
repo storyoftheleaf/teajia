@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Story, ContentType } from '../types';
 import { ArticleCard } from './shared/ArticleCard';
 import { PageHeader } from './shared/PageHeader';
@@ -223,6 +224,10 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+      <Helmet>
+        <title>Magazine — Teajia</title>
+        <meta name="description" content="Long-form stories, photo essays, and deep dives into tea culture, craft, and the people behind the leaf." />
+      </Helmet>
       <PageHeader
         title="Magazine"
         onCartClick={onCartClick}

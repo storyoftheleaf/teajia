@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Story } from '../types';
 import { Icons } from './Icons';
 import { LearnCurriculum } from './LearnCurriculum';
@@ -98,6 +99,10 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
+      <Helmet>
+        <title>Learn — Teajia</title>
+        <meta name="description" content="A structured curriculum for understanding tea — from leaf to cup. Courses, glossary, visual guides, and community wisdom." />
+      </Helmet>
       {!isSubView && (
         <PageHeader title="Learn" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}

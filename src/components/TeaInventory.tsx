@@ -15,6 +15,7 @@ import { HapticSlider } from './shared/HapticSlider';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
+import { useProductUrl } from '../hooks/useProductUrl';
 import type { Product } from '../admin/types';
 
 // Use shared type alias for backward compatibility in this component if needed,
@@ -55,6 +56,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Image Modal State
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
+
+  // Sync modal state with URL (?product=ID) for shareability and back-button support
+  const { closeWithHistory } = useProductUrl(inventory, viewItem, setViewItem);
 
   // Local state for quantity selector map (id -> quantity)
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -220,11 +224,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       <AlcoveModal
         item={viewItem}
         items={filteredInventory}
-        onClose={() => setViewItem(null)}
+        onClose={closeWithHistory}
         onItemChange={(item) => setViewItem(item)}
         onAddToCart={(item, quantity, total) => {
           if (onAddToCart) onAddToCart(item, quantity, total);
-          setViewItem(null);
+          closeWithHistory();
         }}
       />
 
