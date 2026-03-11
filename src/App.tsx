@@ -31,6 +31,7 @@ import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import { useAppStore } from './lib/store';
 import { useAuth } from './hooks/useAuth';
+import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
@@ -74,7 +75,8 @@ const AppContent = () => {
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
   } = useAppStore();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isAuthenticated } = useAuth();
+  useFavoritesSync(isAuthenticated);
   const [adminToolbarCollapsed, setAdminToolbarCollapsed] = useState(false);
   const showAdminBar = isAdmin && !adminToolbarCollapsed;
 

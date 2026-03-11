@@ -132,7 +132,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
           {error?.message || 'Could not connect to the server. Please check your connection and try again.'}
         </p>
         {onRefresh && (
-          <button onClick={onRefresh} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors">
+          <button onClick={onRefresh} className="bg-tea-gold text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors">
             Try Again
           </button>
         )}
@@ -169,13 +169,13 @@ export const TeaTable: React.FC<TeaTableProps> = ({
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-end">
             {/* Search Input - Sleek Box */}
             <div className="relative w-full md:w-64 group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim group-focus-within:text-tea-accent transition-colors" size={14} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim group-focus-within:text-tea-gold transition-colors" size={14} />
                 <input 
                 type="text" 
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-2 text-sm text-tea-text outline-none focus:border-tea-accent transition-all font-sans placeholder-tea-text-dim/50"
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold transition-all font-sans placeholder-tea-text-dim/50"
                 />
             </div>
         </div>
@@ -196,9 +196,9 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                     onClick={() => setFilter('Featured')}
                     role="tab"
                     aria-selected={filter === 'Featured'}
-                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${filter === 'Featured' ? 'bg-tea-accent text-tea-bg border-tea-accent' : 'text-tea-accent/70 border-tea-accent/30 hover:border-tea-accent/60 hover:text-tea-accent'}`}
+                    className={`px-4 py-2 md:py-1.5 text-xs md:text-[10px] font-bold uppercase tracking-[0.15em] transition-all rounded-full border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${filter === 'Featured' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-gold/70 border-tea-gold/30 hover:border-tea-gold/60 hover:text-tea-gold'}`}
                 >
-                    <Star size={10} className={filter === 'Featured' ? 'fill-tea-bg' : 'fill-tea-accent/70'} />
+                    <Star size={10} className={filter === 'Featured' ? 'fill-tea-bg' : 'fill-tea-gold/70'} />
                     Featured
                 </button>
             )}
@@ -277,10 +277,10 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                 >
                                     <td className="py-3 px-4 align-middle">
                                         <div className="flex flex-col justify-center h-full overflow-hidden">
-                                            <span className="font-serif text-tea-text text-base tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
+                                            <span className="font-serif text-tea-text text-base tracking-wide group-hover:text-tea-gold transition-colors truncate flex items-center gap-2">
                                                 {product.productName}
                                                 {product.isFeatured && (
-                                                    <Star size={12} className="fill-tea-accent text-tea-accent" />
+                                                    <Star size={12} className="fill-tea-gold text-tea-gold" />
                                                 )}
                                                 {isAdmin && !product.isPublic && (
                                                     <EyeOff size={12} className="text-tea-text-dim/70" />
@@ -288,7 +288,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                                 {product.showWisdom && product.lore && (
                                                     <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
                                                         {product.isCustomWisdom ? (
-                                                            <Pencil size={10} className="text-tea-accent" />
+                                                            <Pencil size={10} className="text-tea-gold" />
                                                         ) : (
                                                             <Sparkles size={10} className="text-tea-text-dim" />
                                                         )}
@@ -319,7 +319,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
                                     {isAdmin && (
                                         <td className="py-3 px-4 text-right num text-xs align-middle truncate">
-                                            <span className={isLowStock ? 'text-tea-accent font-medium' : 'text-tea-text-dim'}>
+                                            <span className={isLowStock ? 'text-tea-gold font-medium' : 'text-tea-text-dim'}>
                                                 {product.stockGrams}g
                                             </span>
                                         </td>
@@ -334,7 +334,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     <td className="py-3 px-4 text-right align-middle">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onAdd(product); }}
-                                            className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 focus-visible:opacity-100 transition-opacity p-3 md:p-2 border border-tea-border rounded-full hover:bg-tea-accent hover:text-tea-bg text-tea-text-dim hover:border-tea-accent focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+                                            className="opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-60 focus-visible:opacity-100 transition-opacity p-3 md:p-2 border border-tea-border rounded-full hover:bg-tea-gold hover:text-tea-bg text-tea-text-dim hover:border-tea-gold focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
                                             aria-label={`Add ${product.productName} to cart`}
                                         >
                                             <Plus size={14} />

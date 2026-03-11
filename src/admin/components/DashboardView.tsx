@@ -97,8 +97,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
       
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-accent/50 transition-colors">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-accent">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-gold/30 transition-colors">
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <DollarSign size={80} strokeWidth={1} />
           </div>
           <p className="text-tea-text-dim text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Total Asset Cost</p>
@@ -106,8 +106,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <p className="text-xs text-tea-text-dim/70 mt-4 num">Capital deployed in inventory</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-accent/50 transition-colors">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-accent">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-gold/30 transition-colors">
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <PieIcon size={80} strokeWidth={1} />
           </div>
           <p className="text-tea-text-dim text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Retail Valuation</p>
@@ -115,9 +115,9 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <p className="text-xs text-tea-text-dim/70 mt-4 num">Potential revenue at current prices</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-accent/50 transition-colors">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl relative overflow-hidden group hover:border-tea-gold/30 transition-colors">
           <p className="text-tea-text-dim text-[10px] uppercase tracking-[0.2em] mb-4 font-bold">Unrealized P&L</p>
-          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-accent num">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
           <p className="text-xs text-tea-text-dim/70 mt-4 num">Projected Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
@@ -167,8 +167,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
               <div className="text-[10px] text-tea-text-dim uppercase tracking-wider">Base: 1 USD</div>
             </div>
-            <div className="text-[10px] text-tea-accent bg-tea-accent/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-accent/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-tea-accent animate-pulse"></span>
+            <div className="text-[10px] text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-gold/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse"></span>
               Live
             </div>
           </div>
