@@ -39,18 +39,8 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
           onClick={(e) => onCardClick(item, e)}
         >
           {imageComponent}
-          {/* Mobile: persistent view hint */}
-          <div className="lg:hidden absolute bottom-2 right-2 px-2.5 py-1 bg-tea-text/40 rounded-sm">
-            <span className="text-[10px] uppercase tracking-widest text-tea-text/70 font-medium">
-              View
-            </span>
-          </div>
-          {/* Desktop: hover quick view overlay */}
-          <div className="hidden lg:flex absolute inset-0 items-center justify-center bg-tea-text/0 group-hover:bg-tea-text/30 transition-all duration-300">
-            <span className="text-xs uppercase tracking-[0.15em] text-tea-text font-medium px-4 py-2 bg-tea-gold/90 rounded-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
-              Quick View
-            </span>
-          </div>
+          {/* Desktop: hover overlay */}
+          <div className="hidden lg:block absolute inset-0 bg-tea-text/0 group-hover:bg-tea-text/10 transition-all duration-300 pointer-events-none" />
         </div>
 
         {/* Info Section — clicking opens detail */}

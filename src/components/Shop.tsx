@@ -53,7 +53,7 @@ export const Shop: React.FC<ShopProps> = ({
   error,
   onRetry,
 }) => {
-  const [activeTab, setActiveTab] = useState<ShopTab>('tea');
+  const [activeTab, setActiveTab] = useState<ShopTab>('collection');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
 
   // Admin overlay state
@@ -107,7 +107,7 @@ export const Shop: React.FC<ShopProps> = ({
             <button
               onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
               disabled={isAddingToCart[set.id]}
-              className="bg-tea-gold hover:bg-tea-gold/90 text-white text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
+              className="bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
             >
               <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
               <span className="w-[1px] h-3 bg-tea-text-sec/30" />
