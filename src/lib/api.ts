@@ -309,6 +309,13 @@ export const api = {
       });
       return handleResponse(res);
     },
+    autoLinkVendors: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/auto-link-vendors`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
   },
 
   activityLogs: {

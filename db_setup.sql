@@ -271,6 +271,11 @@ BEGIN
         ALTER TABLE products ADD COLUMN quantity_units INTEGER;
     END IF;
 
+    -- PRODUCTS: vendor_id FK to customers
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'vendor_id') THEN
+        ALTER TABLE products ADD COLUMN vendor_id UUID REFERENCES customers(id);
+    END IF;
+
     -- INVOICES: customer_id FK
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'invoices' AND column_name = 'customer_id') THEN
         ALTER TABLE invoices ADD COLUMN customer_id UUID REFERENCES customers(id);
