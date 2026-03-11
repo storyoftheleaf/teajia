@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AlcoveModal } from './AlcoveModal';
 import { TeaPlaceholder } from './TeaPlaceholder';
 import { Icons } from '../Icons';
+import { useProductUrl } from '../../hooks/useProductUrl';
 import type { InventoryItem } from '../../types';
 import { fmtPricePerGram } from '../../utils/formatNumber';
 
@@ -12,6 +13,7 @@ interface CollectionTabProps {
 
 export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart }) => {
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
+  const { closeWithHistory } = useProductUrl(inventory, viewItem, setViewItem);
 
   const featuredItems = useMemo(
     () => inventory.filter(item => item.isFeatured),
@@ -36,11 +38,11 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
       <AlcoveModal
         item={viewItem}
         items={featuredItems}
-        onClose={() => setViewItem(null)}
+        onClose={closeWithHistory}
         onItemChange={(item) => setViewItem(item)}
         onAddToCart={(item, qty, total) => {
           onAddToCart(item, qty, total);
-          setViewItem(null);
+          closeWithHistory();
         }}
       />
 
