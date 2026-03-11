@@ -53,6 +53,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
   }
 }
 
+/** Custom event name dispatched when a 401 response indicates session expiry. */
+export const SESSION_EXPIRED_EVENT = 'teajia:session-expired';
+
 async function handleResponse(res: Response) {
   let data: any;
   try {
@@ -61,6 +64,11 @@ async function handleResponse(res: Response) {
     throw new Error(`Request failed (${res.status})`);
   }
   if (!res.ok) {
+    // Detect expired/invalid session
+    if (res.status === 401 && hasToken()) {
+      clearToken();
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+    }
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;

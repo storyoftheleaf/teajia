@@ -91,7 +91,7 @@ const AdminContent = () => {
   if (!isConfigured) {
     return (
       <div className="flex min-h-screen bg-tea-bg text-tea-text items-center justify-center p-6">
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-accent/50"></div>
             <div className="mb-6 flex justify-center">
               <div className="p-4 bg-tea-accent/10 rounded-full border border-tea-accent/20">

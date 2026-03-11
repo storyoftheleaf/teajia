@@ -81,7 +81,7 @@ export const OrdersView = () => {
   if (isLoading) return <div className="p-12 text-center text-tea-text-dim flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-tea-border pb-6">
          <div>
             <h2 className="text-2xl font-serif text-tea-text">Order Management</h2>
@@ -94,7 +94,7 @@ export const OrdersView = () => {
               placeholder="Search orders..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors duration-200"
             />
          </div>
       </div>
@@ -103,12 +103,12 @@ export const OrdersView = () => {
         <table className="w-full text-left text-sm">
            <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
              <tr>
-               <th className="p-4">Date</th>
-               <th className="p-4">Invoice #</th>
-               <th className="p-4">Customer</th>
-               <th className="p-4 text-right">Total</th>
-               <th className="p-4 text-center">Status</th>
-               <th className="p-4 text-center">Actions</th>
+               <th className="py-3 px-4">Date</th>
+               <th className="py-3 px-4">Invoice #</th>
+               <th className="py-3 px-4">Customer</th>
+               <th className="py-3 px-4text-right">Total</th>
+               <th className="py-3 px-4text-center">Status</th>
+               <th className="py-3 px-4text-center">Actions</th>
              </tr>
            </thead>
            <tbody className="divide-y divide-tea-border">
@@ -121,10 +121,10 @@ export const OrdersView = () => {
                     const isFilled = order.status === 'Filled' || order.status === 'Completed';
 
                     return (
-                     <tr key={order.id} className="hover:bg-tea-bg/50 group transition-colors">
-                       <td className="p-4 text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</td>
-                       <td className="p-4 num text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</td>
-                       <td className="p-4">
+                     <tr key={order.id} className="hover:bg-tea-bg/50 group transition-colors duration-200">
+                       <td className="py-3 px-4text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</td>
+                       <td className="py-3 px-4num text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors duration-200" onClick={() => handleView(order)}>{order.invoice_number}</td>
+                       <td className="py-3 px-4">
                          <button
                            onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(order.customer_name || '')}`)}
                            className="text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust"
@@ -134,10 +134,10 @@ export const OrdersView = () => {
                            {order.customer_name}
                          </button>
                        </td>
-                       <td className="p-4 text-right text-tea-text num">
+                       <td className="py-3 px-4text-right text-tea-text num">
                            {order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}
                        </td>
-                       <td className="p-4 text-center">
+                       <td className="py-3 px-4text-center">
                          <span className={`text-xs px-2 py-1 rounded border font-medium uppercase tracking-wider ${
                             isVoid ? 'border-tea-text-dim/50 text-tea-text-dim bg-tea-text-dim/10' :
                             isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
@@ -146,11 +146,11 @@ export const OrdersView = () => {
                            {order.status}
                          </span>
                        </td>
-                       <td className="p-4 text-center flex justify-center gap-2">
+                       <td className="py-3 px-4text-center flex justify-center gap-2">
                          {isPending && (
                              <button 
                                 onClick={() => handleFulfill(order.id, order.invoice_number)}
-                                className="px-3 py-1 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors"
+                                className="px-3 py-1 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors duration-200"
                                 title="Mark as Filled (Deduct Stock)"
                              >
                                 <PackageCheck size={14} /> FILL
@@ -159,7 +159,7 @@ export const OrdersView = () => {
                          
                          <button
                              onClick={() => handleView(order)}
-                             className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors"
+                             className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors duration-200"
                              title="View Details"
                          >
                             <Eye size={16} />
@@ -168,7 +168,7 @@ export const OrdersView = () => {
                          {!isVoid && (
                              <button
                                 onClick={() => handleVoid(order.id, order.invoice_number)}
-                                className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors"
+                                className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200"
                                 title="Void Order"
                              >
                                 <XCircle size={16} />
@@ -176,7 +176,7 @@ export const OrdersView = () => {
                          )}
                          <button
                              onClick={() => handleDelete(order.id, order.invoice_number)}
-                             className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors"
+                             className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200"
                              title="Delete Record"
                          >
                             <Trash2 size={16} />
@@ -204,7 +204,7 @@ export const OrdersView = () => {
               <div key={order.id} className="border border-tea-border rounded-xl bg-tea-surface p-4 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</span>
-                  <span className="text-sm text-tea-text num cursor-pointer hover:text-tea-accent transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                  <span className="text-sm text-tea-text num cursor-pointer hover:text-tea-accent transition-colors duration-200" onClick={() => handleView(order)}>{order.invoice_number}</span>
                 </div>
                 <div className="text-tea-text font-medium">{order.customer_name}</div>
                 <div className="flex justify-between items-center">
@@ -221,22 +221,22 @@ export const OrdersView = () => {
                   {isPending && (
                     <button
                       onClick={() => handleFulfill(order.id, order.invoice_number)}
-                      className="px-3 py-1.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors"
+                      className="px-3 py-1.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors duration-200"
                       title="Mark as Filled (Deduct Stock)"
                     >
                       <PackageCheck size={14} /> FILL
                     </button>
                   )}
                   <div className="flex-1" />
-                  <button onClick={() => handleView(order)} className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors" title="View Details">
+                  <button onClick={() => handleView(order)} className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors duration-200" title="View Details">
                     <Eye size={16} />
                   </button>
                   {!isVoid && (
-                    <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors" title="Void Order">
+                    <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200" title="Void Order">
                       <XCircle size={16} />
                     </button>
                   )}
-                  <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors" title="Delete Record">
+                  <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200" title="Delete Record">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -250,7 +250,7 @@ export const OrdersView = () => {
         <div className="text-center pt-4">
           <button
             onClick={() => setPageSize(prev => prev + 50)}
-            className="text-xs text-tea-text-dim hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors"
+            className="text-xs text-tea-text-dim hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors duration-200"
           >
             Load More
           </button>
@@ -261,7 +261,7 @@ export const OrdersView = () => {
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative">
-                <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-text-dim hover:text-tea-text transition-colors">
+                <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-text-dim hover:text-tea-text transition-colors duration-200">
                     <X size={24} />
                 </button>
                 
@@ -275,7 +275,7 @@ export const OrdersView = () => {
                         <span className="text-tea-text-dim">Customer</span>
                         <button
                           onClick={() => { setViewingInvoice(null); navigate(`/admin/customers?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-accent transition-colors"
+                          className="text-tea-text font-medium hover:text-tea-accent transition-colors duration-200"
                         >
                           {viewingInvoice.customer_name}
                         </button>

@@ -28,7 +28,7 @@ export const SettingsView: React.FC = () => {
         {/* Header */}
         <div>
           <h2 className="text-2xl font-serif text-tea-text flex items-center gap-3">
-            <Settings2 size={24} className="text-tea-accent" />
+            <Settings2 className="w-6 h-6 text-tea-gold" />
             System Settings
           </h2>
           <p className="text-tea-text-dim text-sm mt-2">
@@ -65,7 +65,7 @@ export const SettingsView: React.FC = () => {
                 onClick={handleReset}
                 className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-tea-text-dim hover:text-tea-text transition-colors"
               >
-                <RefreshCw size={14} />
+                <RefreshCw className="w-4 h-4" />
                 Reset Default
               </button>
               <button
@@ -73,7 +73,7 @@ export const SettingsView: React.FC = () => {
                 disabled={localPrompt === aiPromptTemplate}
                 className="flex items-center gap-2 px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save size={14} />
+                <Save className="w-4 h-4" />
                 Save Changes
               </button>
             </div>

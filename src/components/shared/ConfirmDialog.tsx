@@ -80,7 +80,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         {/* Content */}
         <div className="px-6 py-4 space-y-4">
           {preview && (
-            <div className="bg-tea-text/5 rounded-sm p-4" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}>
+            <div className="bg-tea-text/5 rounded-lg p-4" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}>
               {preview}
             </div>
           )}
@@ -98,7 +98,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 value={typedText}
                 onChange={(e) => setTypedText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && isTypingValid && handleConfirm()}
-                className="w-full bg-tea-surface p-3 text-tea-text text-sm outline-none focus:ring-1 focus:ring-tea-gold/20 rounded-sm"
+                className="w-full bg-tea-surface p-3 text-tea-text text-sm outline-none focus:ring-1 focus:ring-tea-gold/20 rounded-lg"
                 style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}
                 placeholder={typeToConfirm}
                 autoFocus

@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Story } from '../types';
-import { Icons } from './Icons';
 import { LearnCurriculum } from './LearnCurriculum';
 import { LearnOverview } from './LearnOverview';
 import { PageHeader } from './shared/PageHeader';
@@ -15,10 +14,22 @@ import { JourneysView } from './learn/JourneysView';
 import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
 import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
+import { Breadcrumb } from './shared/Breadcrumb';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
 
-const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
+const VIEW_LABELS: Record<LearnView, string> = {
+  overview: 'Overview',
+  course: 'Go Deeper',
+  glossary: 'Glossary',
+  playlists: 'Playlists',
+  videos: 'Videos',
+  'visual-guides': 'Visual Guides',
+  reading: 'Reading',
+  journeys: 'Journeys',
+  wisdom: 'Community Wisdom',
+  spaces: 'Tea Spaces',
+};
 
 interface LearnHubProps {
   onStoryClick: (story: Story) => void;
@@ -64,15 +75,18 @@ export const LearnHub: React.FC<LearnHubProps> = ({
     navigateTo(section as LearnView);
   }, [navigateTo]);
 
+  const breadcrumbSegments = isSubView
+    ? [
+        { label: 'Learn', onClick: navigateBack },
+        { label: VIEW_LABELS[currentView] || currentView },
+      ]
+    : [];
+
   const renderSubView = () => {
     switch (currentView) {
       case 'course':
         return (
           <div className="w-full pb-32">
-            <button onClick={navigateBack} className={BACK_BTN}>
-              <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text/70" />
-              <span className="font-serif text-sm text-tea-text/70">Learn</span>
-            </button>
             <LearnCurriculum onStoryClick={onStoryClick} watchedStories={watchedStories} />
           </div>
         );
@@ -111,7 +125,10 @@ export const LearnHub: React.FC<LearnHubProps> = ({
         className={`${isSubView ? 'mt-8' : 'mt-0'} max-w-[1400px] mx-auto transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
       >
         {isSubView ? (
-          renderSubView()
+          <>
+            <Breadcrumb segments={breadcrumbSegments} />
+            {renderSubView()}
+          </>
         ) : (
           <LearnOverview
             onStoryClick={onStoryClick}

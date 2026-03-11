@@ -82,7 +82,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       className="p-2.5 relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
                       aria-label="Open shopping cart"
                     >
-                      <Icons.Bag className="w-[22px] h-[22px] text-tea-text/60" />
+                      <Icons.Bag className="w-5 h-5 text-tea-text/60" />
                       {cartItemCount > 0 && (
                         <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                           {cartItemCount > 9 ? '9+' : cartItemCount}
@@ -96,7 +96,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                       className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
                       aria-label="Open account settings"
                     >
-                      <Icons.User className="w-[22px] h-[22px] text-tea-text/60" />
+                      <Icons.User className="w-5 h-5 text-tea-text/60" />
                     </button>
                   )}
                 </div>

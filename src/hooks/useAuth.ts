@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api, setToken, clearToken, hasToken, getTokenClaims } from '../lib/api';
+import { api, setToken, clearToken, hasToken, getTokenClaims, SESSION_EXPIRED_EVENT } from '../lib/api';
 
 export interface AuthUser {
   email: string;
@@ -53,6 +53,15 @@ export function useAuth(): UseAuthReturn {
       checkSession();
     }
   }, [checkSession]);
+
+  // Clear React auth state when a 401 triggers session expiry
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await api.auth.login(email, password);

@@ -11,6 +11,7 @@ import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { SectionDivider } from './shared/SectionDivider';
+import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useRates } from '../admin/hooks/useAdminData';
 import type { StarterSet } from '../types';
@@ -27,6 +28,7 @@ interface ShopProps {
   cartItemCount?: number;
   onCartClick?: () => void;
   onAccountClick?: () => void;
+  isLoading?: boolean;
   isError?: boolean;
   error?: Error | null;
   onRetry?: () => void;
@@ -46,6 +48,7 @@ export const Shop: React.FC<ShopProps> = ({
   cartItemCount = 0,
   onCartClick,
   onAccountClick,
+  isLoading,
   isError,
   error,
   onRetry,
@@ -162,6 +165,10 @@ export const Shop: React.FC<ShopProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
+        {isLoading && !isError && teaInventory.length === 0 && (
+          <SectionSkeleton variant="shop" />
+        )}
+
         {isError && (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-[fadeIn_0.5s_ease-out]">
             <div className="w-14 h-14 border border-tea-gold/30 rounded-full flex items-center justify-center mb-5">

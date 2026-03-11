@@ -30,14 +30,14 @@ const NavButton: React.FC<{
 }> = ({ item, isActive, onClick, animationDelay = 0 }) => {
   const content = (
     <>
-      <div className={`transition-all duration-300 shrink-0 ${
+      <div className={`transition-colors duration-200 shrink-0 ${
         isActive
           ? 'text-tea-gold scale-110'
-          : 'text-tea-text-dim group-hover:text-tea-text group-hover:scale-105'
+          : 'text-tea-text-dim group-hover:text-tea-text'
       }`}>
         {item.icon}
       </div>
-      <span className={`text-sm font-semibold transition-all duration-300 ${
+      <span className={`text-sm font-semibold transition-colors duration-200 ${
         isActive ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text'
       }`}>
         {item.label}
@@ -53,7 +53,7 @@ const NavButton: React.FC<{
     </>
   );
 
-  const className = `relative flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
+  const className = `relative flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
     isActive ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
   }`;
 
@@ -115,18 +115,18 @@ export const Sidebar = ({
   ];
 
   const catalogItems: NavItem[] = [
-    { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf size={20} strokeWidth={2} /> },
-    { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee size={20} strokeWidth={2} /> },
-    { id: 'invoices', path: '#', label: 'Registry', icon: <Receipt size={20} strokeWidth={2} />, badge: cartItemCount, action: onOpenCart },
+    { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'invoices', path: '#', label: 'Registry', icon: <Receipt className="w-5 h-5" strokeWidth={2} />, badge: cartItemCount, action: onOpenCart },
   ];
 
   const adminItems: NavItem[] = [
-    { id: 'inventory', path: '/admin/inventory', label: 'Master Inventory', icon: <Settings size={20} strokeWidth={2} /> },
-    { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users size={20} strokeWidth={2} /> },
-    { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar size={20} strokeWidth={2} /> },
-    { id: 'orders', path: '/admin/orders', label: 'Orders', icon: <History size={20} strokeWidth={2} /> },
-    { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen size={20} strokeWidth={2} /> },
-    { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings size={20} strokeWidth={2} /> },
+    { id: 'inventory', path: '/admin/inventory', label: 'Master Inventory', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'orders', path: '/admin/orders', label: 'Orders', icon: <History className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
   ];
 
   const handleNav = () => {
@@ -147,13 +147,13 @@ export const Sidebar = ({
       <Link
         to="/admin"
         onClick={handleNav}
-        className="h-20 flex items-center justify-start px-6 gap-3 animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group"
+        className="h-20 flex items-center justify-start px-6 gap-3 animate-[fadeIn_0.5s_ease-out] transition-colors duration-200 group"
         style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
       >
         <LogoEmblem
           size={36}
           color={theme === 'dark' ? '#c0b49a' : '#010101'}
-          className="transition-all duration-300 shrink-0 opacity-80 group-hover:opacity-100 group-hover:scale-105"
+          className="transition-opacity duration-200 shrink-0 opacity-80 group-hover:opacity-100"
         />
         <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
       </Link>
@@ -219,12 +219,12 @@ export const Sidebar = ({
 
         <button
           onClick={onOpenCart}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           aria-label={`Cart${cartItemCount > 0 ? `, ${cartItemCount} items` : ''}`}
         >
           <div className="relative shrink-0">
             <Icons.Bag
-              className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105"
+              className="transition-colors duration-200 text-tea-text-dim w-5 h-5 group-hover:text-tea-text"
               strokeWidth={2}
             />
             {cartItemCount > 0 && (
@@ -233,38 +233,38 @@ export const Sidebar = ({
               </div>
             )}
           </div>
-          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-dim group-hover:text-tea-text">
+          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-dim group-hover:text-tea-text">
             Cart
           </span>
         </button>
 
         <button
           onClick={isLoggedIn ? onLogoutClick : onLoginClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           aria-label={isLoggedIn ? 'Sign out' : 'Sign in'}
         >
           {isLoggedIn ? (
-            <LogOut className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-all duration-300 shrink-0" strokeWidth={2} />
+            <LogOut className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
           ) : (
-            <User className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-all duration-300 shrink-0" strokeWidth={2} />
+            <User className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
           )}
-          <span className="text-sm font-semibold text-tea-text-dim group-hover:text-tea-text transition-all duration-300">
+          <span className="text-sm font-semibold text-tea-text-dim group-hover:text-tea-text transition-colors duration-200">
             {isLoggedIn ? 'Sign Out' : 'Sign In'}
           </span>
         </button>
 
         <button
           onClick={(e) => toggleTheme(e)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? (
-            <Sun className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
+            <Sun className="transition-colors duration-200 text-tea-text-dim w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
           ) : (
-            <Moon className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
+            <Moon className="transition-colors duration-200 text-tea-text-dim w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
           )}
-          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-dim group-hover:text-tea-text">
+          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-dim group-hover:text-tea-text">
             {theme === 'dark' ? 'Light' : 'Dark'}
           </span>
         </button>

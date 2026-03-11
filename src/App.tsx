@@ -56,6 +56,7 @@ import { AdminToolbar } from './components/admin-overlay/AdminToolbar';
 import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
+import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
@@ -66,7 +67,7 @@ import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 // Create an inner component to use the context
 const AppContent = () => {
   const { stories } = useStories();
-  const { inventory, isError: inventoryError, error: inventoryErrorObj, refetch: refetchInventory } = useInventory();
+  const { inventory, isLoading: inventoryLoading, isError: inventoryError, error: inventoryErrorObj, refetch: refetchInventory } = useInventory();
   const {
     publicCart: cart,
     isPublicCartOpen: isCartOpen,
@@ -389,7 +390,7 @@ const AppContent = () => {
 
       <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-32 md:pb-24 lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
           {isSectionTransitioning ? (
-            <SectionSkeleton variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'list' : 'grid'} />
+            <SectionSkeleton variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
           ) : (
             viewState === 'BROWSE' && (
               <Routes>
@@ -438,7 +439,7 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
-                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
+                        <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
                       </div>
                     </Suspense>
                   </ErrorBoundary>
@@ -624,6 +625,7 @@ export default function App() {
         <StoryProvider>
           <InventoryProvider>
               <NetworkStatus />
+              <SessionExpiredNotice />
               <AppContent />
           </InventoryProvider>
         </StoryProvider>

@@ -10,7 +10,7 @@ export const ActivityLogView = () => {
   }
 
   return (
-    <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       <div className="border-b border-tea-border pb-6">
         <h2 className="text-2xl font-serif text-tea-text">Logs</h2>
         <p className="text-tea-text-dim text-sm mt-1">Audit trail of inventory changes and sales.</p>
@@ -20,10 +20,10 @@ export const ActivityLogView = () => {
         <table className="w-full text-left text-sm">
           <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
             <tr>
-              <th className="p-4">Timestamp</th>
-              <th className="p-4">User</th>
-              <th className="p-4">Action</th>
-              <th className="p-4">Details</th>
+              <th className="py-3 px-4">Timestamp</th>
+              <th className="py-3 px-4">User</th>
+              <th className="py-3 px-4">Action</th>
+              <th className="py-3 px-4">Details</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-tea-border">
@@ -39,10 +39,10 @@ export const ActivityLogView = () => {
             ) : (
                 logs.map((log: any) => (
                 <tr key={log.id} className="hover:bg-tea-bg/50 transition-colors">
-                    <td className="p-4 text-tea-text-dim font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
-                    <td className="p-4 text-tea-text">{log.user_email || 'System'}</td>
-                    <td className="p-4 text-tea-accent">{log.action}</td>
-                    <td className="p-4 text-tea-text-dim">{log.details}</td>
+                    <td className="py-3 px-4 text-tea-text-dim font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
+                    <td className="py-3 px-4 text-tea-text">{log.user_email || 'System'}</td>
+                    <td className="py-3 px-4 text-tea-accent">{log.action}</td>
+                    <td className="py-3 px-4 text-tea-text-dim">{log.details}</td>
                 </tr>
                 ))
             )}

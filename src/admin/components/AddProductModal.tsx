@@ -361,7 +361,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         onClick={onClose}
     >
       <div
-        className="bg-tea-surface border border-tea-border w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl rounded-2xl overflow-hidden relative"
+        className="bg-tea-surface border border-tea-border w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl rounded-lg overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
 
@@ -535,7 +535,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                {/* INPUTS */}
                <div className="space-y-3 border-b border-dashed border-tea-border pb-4">
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-text-dim uppercase text-xs md:text-[10px] tracking-[0.2em]">Batch Cost</label>
+                        <label className="text-tea-text-dim uppercase text-xs tracking-[0.2em]">Batch Cost</label>
                         <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-text-dim transition-colors">
                             <select
                                 name="costCurrency" value={formData.costCurrency} onChange={handleChange}
@@ -556,7 +556,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         </div>
                     </div>
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-text-dim uppercase text-xs md:text-[10px] tracking-[0.2em]">Weight (g)</label>
+                        <label className="text-tea-text-dim uppercase text-xs tracking-[0.2em]">Weight (g)</label>
                         <input
                             name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
                             className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-text-dim outline-none placeholder-tea-text-dim/30 transition-colors tabular-nums" placeholder="0"
@@ -564,7 +564,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         />
                     </div>
                     <div className="flex justify-between items-center">
-                        <label className="text-tea-text-dim uppercase text-xs md:text-[10px] tracking-[0.2em]">Ship (USD/kg)</label>
+                        <label className="text-tea-text-dim uppercase text-xs tracking-[0.2em]">Ship (USD/kg)</label>
                         <input
                             name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
                             className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-text-dim outline-none placeholder-tea-text-dim/30 transition-colors tabular-nums" placeholder="10.00"
