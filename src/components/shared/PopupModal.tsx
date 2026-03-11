@@ -203,7 +203,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -213,24 +213,24 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-paper/60">Quantity</span>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
             <div className="flex items-center rounded-lg bg-black/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
-                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
+                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-text disabled:opacity-30"
               >−</button>
               <span className="px-4 py-2 num text-sm min-w-[50px] text-center" style={{ boxShadow: 'inset 1px 0 0 rgba(200,170,120,0.08), inset -1px 0 0 rgba(200,170,120,0.08)' }}>{currentQuantity}</span>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.min(maxQuantity, (prev[item.id] || defaultQuantity) + 1) }))}
                 disabled={currentQuantity >= maxQuantity}
-                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-paper disabled:opacity-30"
+                className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-text disabled:opacity-30"
               >+</button>
             </div>
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-paper text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -267,26 +267,26 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-3xl font-serif text-tea-paper mb-1">{item.name}</h2>
+            <h2 className="text-3xl font-serif text-tea-text mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center justify-center gap-3 text-tea-paper/70 text-xs uppercase tracking-[0.15em] mb-4">
+              <div className="flex items-center justify-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-4">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-paper/80 leading-relaxed mb-4">{item.description}</p>
+              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-4">{item.description}</p>
             )}
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-paper/70 hover:text-tea-text transition-colors" onClick={onClose}>
+        <button className="absolute top-6 right-6 text-tea-text/70 hover:text-tea-text transition-colors" onClick={onClose}>
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>
@@ -321,21 +321,21 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
 
           <div className="px-6 pb-6">
-            <h2 className="text-2xl font-serif text-tea-paper mb-1">{item.name}</h2>
+            <h2 className="text-2xl font-serif text-tea-text mb-1">{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center gap-3 text-tea-paper/70 text-xs uppercase tracking-[0.15em] mb-3">
+              <div className="flex items-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-3">
                 {item.year && <span className="font-mono">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-paper/80 leading-relaxed mb-3">{item.description}</p>
+              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-3">{item.description}</p>
             )}
             {purchaseControls}
           </div>

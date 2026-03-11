@@ -84,7 +84,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] py-2 transition-colors duration-200 relative ${
-                  active ? 'text-tea-accent' : 'text-tea-muted'
+                  active ? 'text-tea-accent' : 'text-tea-text-dim'
                 }`}
               >
                 <div className="relative">
@@ -136,7 +136,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 <span className="text-sm font-medium text-tea-text">More</span>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="p-1.5 rounded-lg text-tea-muted hover:text-tea-text hover:bg-tea-elevated/50 transition-colors"
+                  className="p-1.5 rounded-lg text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/50 transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -156,7 +156,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                       className={`w-full flex items-center gap-4 py-4 px-6 transition-colors duration-150 ${
                         active
                           ? 'text-tea-accent bg-tea-accent/5'
-                          : 'text-tea-muted hover:text-tea-text hover:bg-tea-elevated/50'
+                          : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/50'
                       }`}
                     >
                       <Icon size={20} strokeWidth={1.8} />

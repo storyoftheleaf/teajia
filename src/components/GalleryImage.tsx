@@ -74,7 +74,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
           {!imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-tea-gold/5">
-              <div className="w-6 h-6 border-2 border-tea-paper/20 border-t-tea-seal rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-tea-border/20 border-t-tea-gold rounded-full animate-spin"></div>
             </div>
           )}
         </div>
@@ -94,7 +94,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
                   onClick={() => setSelectedInsight(insight)}
                   className={`px-2 py-1 rounded-full ${
                     INSIGHT_COLORS[insight.type]
-                  } text-tea-paper text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:shadow-lg transition-all duration-300 hover:scale-105`}
+                  } text-tea-text text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:shadow-lg transition-all duration-300 hover:scale-105`}
                 >
                   {INSIGHT_ICONS[insight.type]}
                   {insight.type}
@@ -108,7 +108,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
                 href={image.attribution.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-tea-paper hover:text-tea-gold transition-colors duration-300 p-1"
+                className="text-tea-text hover:text-tea-gold transition-colors duration-300 p-1"
                 title={`Visit ${image.attribution.name}`}
               >
                 <Icons.ExternalLink className="w-4 h-4" />
@@ -119,10 +119,10 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
         {/* Attribution */}
         {image.attribution && isHovered && (
-          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-tea-paper text-xs">
+          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-tea-text text-xs">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-tea-paper/80 uppercase tracking-[0.15em] text-[10px] mb-1">
+                <p className="text-tea-text/80 uppercase tracking-[0.15em] text-[10px] mb-1">
                   {image.attribution.label}
                 </p>
                 <p className="font-serif text-sm">{image.attribution.name}</p>

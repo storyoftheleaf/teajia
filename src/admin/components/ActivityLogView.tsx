@@ -6,19 +6,19 @@ export const ActivityLogView = () => {
   const { data: logs, isLoading } = useActivityLogs();
 
   if (isLoading) {
-    return <div className="p-12 text-center text-tea-muted flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Loading logs...</div>;
+    return <div className="p-12 text-center text-tea-text-dim flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Loading logs...</div>;
   }
 
   return (
     <div className="p-6 md:p-12 max-w-7xl mx-auto space-y-6">
       <div className="border-b border-tea-border pb-6">
         <h2 className="text-2xl font-serif text-tea-text">Logs</h2>
-        <p className="text-tea-muted text-sm mt-1">Audit trail of inventory changes and sales.</p>
+        <p className="text-tea-text-dim text-sm mt-1">Audit trail of inventory changes and sales.</p>
       </div>
 
       <div className="overflow-hidden border border-tea-border rounded-xl bg-tea-surface">
         <table className="w-full text-left text-sm">
-          <thead className="bg-tea-bg text-tea-muted font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
+          <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
             <tr>
               <th className="p-4">Timestamp</th>
               <th className="p-4">User</th>
@@ -29,7 +29,7 @@ export const ActivityLogView = () => {
           <tbody className="divide-y divide-tea-border">
             {!logs || logs.length === 0 ? (
                 <tr>
-                    <td colSpan={4} className="p-8 text-center text-tea-muted">
+                    <td colSpan={4} className="p-8 text-center text-tea-text-dim">
                         <div className="flex flex-col items-center gap-2">
                            <AlertCircle size={24} />
                            <span>No activity recorded yet.</span>
@@ -39,10 +39,10 @@ export const ActivityLogView = () => {
             ) : (
                 logs.map((log: any) => (
                 <tr key={log.id} className="hover:bg-tea-bg/50 transition-colors">
-                    <td className="p-4 text-tea-muted font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
+                    <td className="p-4 text-tea-text-dim font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
                     <td className="p-4 text-tea-text">{log.user_email || 'System'}</td>
                     <td className="p-4 text-tea-accent">{log.action}</td>
-                    <td className="p-4 text-tea-muted">{log.details}</td>
+                    <td className="p-4 text-tea-text-dim">{log.details}</td>
                 </tr>
                 ))
             )}

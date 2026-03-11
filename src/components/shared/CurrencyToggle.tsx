@@ -24,7 +24,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] uppercase tracking-[0.15em] font-mono text-tea-paper/70 bg-tea-gold/5 border border-tea-gold/10 rounded-sm hover:bg-tea-gold/10 transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] uppercase tracking-[0.15em] font-mono text-tea-text/70 bg-tea-gold/5 border border-tea-gold/10 rounded-sm hover:bg-tea-gold/10 transition-colors"
       >
         <span>{CURRENCY_SYMBOLS[currency as CostCurrency]}</span>
         <span className="opacity-50">·</span>
@@ -44,7 +44,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
                 key={c}
                 onClick={() => { onCurrencyChange(c); setIsOpen(false); }}
                 className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-tea-gold/10 transition-colors flex items-center justify-between ${
-                  currency === c ? 'text-tea-gold' : 'text-tea-paper/70'
+                  currency === c ? 'text-tea-gold' : 'text-tea-text/70'
                 }`}
               >
                 <span>{CURRENCY_SYMBOLS[c as CostCurrency]} {c}</span>
@@ -61,7 +61,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
                 key={u}
                 onClick={() => { onUnitChange(u); setIsOpen(false); }}
                 className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-tea-gold/10 transition-colors flex items-center justify-between ${
-                  unit === u ? 'text-tea-gold' : 'text-tea-paper/70'
+                  unit === u ? 'text-tea-gold' : 'text-tea-text/70'
                 }`}
               >
                 <span>{u === 'g' ? 'Grams (g)' : 'Ounces (oz)'}</span>

@@ -29,7 +29,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <div className="flex min-h-screen bg-tea-bg text-tea-text items-center justify-center p-6">
           <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl max-w-md w-full shadow-2xl text-center">
             <h2 className="text-xl font-serif text-tea-text mb-2">Something went wrong</h2>
-            <p className="text-tea-muted text-sm mb-6">
+            <p className="text-tea-text-dim text-sm mb-6">
               {this.state.error?.message || 'An unexpected error occurred.'}
             </p>
             <button

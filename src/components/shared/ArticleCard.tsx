@@ -90,7 +90,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               {/* No-image fallback */}
               <div className="absolute inset-0 bg-tea-elevated flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full border border-tea-gold/10 flex items-center justify-center">
-                  <Icons.BookOpen className="w-5 h-5 text-tea-paper/30" />
+                  <Icons.BookOpen className="w-5 h-5 text-tea-text/30" />
                 </div>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
@@ -113,7 +113,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-            <h3 className="font-serif text-[19px] text-tea-paper leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
+            <h3 className="font-serif text-[19px] text-tea-text leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
               {title}
             </h3>
             {description && (

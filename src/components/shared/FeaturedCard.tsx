@@ -67,10 +67,10 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
             <React.Fragment key={item.label}>
               {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-tea-paper/40 font-sans">
+                <span className="text-[10px] uppercase tracking-wider text-tea-text/40 font-sans">
                   {item.label}
                 </span>
-                <span className="text-xs text-tea-paper/60 font-sans">
+                <span className="text-xs text-tea-text/60 font-sans">
                   {item.value}
                 </span>
               </div>

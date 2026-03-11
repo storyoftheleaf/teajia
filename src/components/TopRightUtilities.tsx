@@ -23,7 +23,7 @@ export const TopRightUtilities: React.FC<TopRightUtilitiesProps> = ({
         title="Shopping cart"
         aria-label="Open shopping cart"
       >
-        <Icons.Bag className="w-5 h-5 text-tea-text/70 group-hover:text-tea-text dark:group-hover:text-tea-paper transition-colors" />
+        <Icons.Bag className="w-5 h-5 text-tea-text/70 group-hover:text-tea-text dark:group-hover:text-tea-text transition-colors" />
 
         {/* Cart Badge */}
         {cartItemCount > 0 && (
@@ -48,7 +48,7 @@ export const TopRightUtilities: React.FC<TopRightUtilitiesProps> = ({
         title="Account settings"
         aria-label="Open account settings"
       >
-        <Icons.User className="w-5 h-5 text-tea-text/70 group-hover:text-tea-text dark:group-hover:text-tea-paper transition-colors" />
+        <Icons.User className="w-5 h-5 text-tea-text/70 group-hover:text-tea-text dark:group-hover:text-tea-text transition-colors" />
 
         {/* Tooltip */}
         <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-tea-elevated text-tea-text text-xs rounded-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">

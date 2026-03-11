@@ -69,7 +69,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             className={`transition-all duration-300 flex-shrink-0 ${
               isActive
                 ? 'text-tea-gold w-5 h-5 scale-110 origin-center'
-                : 'text-tea-paper/60 w-5 h-5 group-hover:text-tea-paper/85'
+                : 'text-tea-text/60 w-5 h-5 group-hover:text-tea-text/85'
             }`}
             strokeWidth={2}
             {...(isActive ? { fill: 'currentColor' } : {})}

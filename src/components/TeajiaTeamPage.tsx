@@ -55,7 +55,7 @@ export const TeajiaTeamPage: React.FC<TeajiaTeamPageProps> = ({ teamMembers = []
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       {/* Header Section */}
-      <div className="bg-gradient-to-b from-tea-seal/10 dark:from-tea-seal/5 to-transparent py-16 px-4 mb-12">
+      <div className="bg-gradient-to-b from-tea-gold/10 dark:from-tea-gold/5 to-transparent py-16 px-4 mb-12">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="font-serif text-4xl md:text-5xl text-tea-text mb-4">
             The Teajia Family

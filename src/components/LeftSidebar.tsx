@@ -101,6 +101,7 @@ interface LeftSidebarProps {
   onNavigate: (section: Section) => void;
   onAccountClick?: () => void;
   onCartClick?: () => void;
+  onSearchClick?: () => void;
   cartItemCount?: number;
   topOffset?: boolean;
 }
@@ -110,6 +111,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onNavigate,
   onAccountClick,
   onCartClick,
+  onSearchClick,
   cartItemCount = 0,
   topOffset = false
 }) => {
@@ -172,6 +174,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full animate-[slideIn_0.3s_ease-out]"></div>
         )}
       </button>
+
+      {/* Search Button */}
+      <div className="px-3 pt-4 pb-1">
+        <button
+          onClick={onSearchClick}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 border border-tea-border"
+          title="Search (Ctrl+K)"
+        >
+          <Icons.Search className="w-4 h-4 text-tea-text-dim group-hover:text-tea-text transition-colors duration-300 shrink-0" strokeWidth={2} />
+          <span className="text-sm text-tea-text-dim group-hover:text-tea-text transition-colors duration-300">Search...</span>
+          <kbd className="ml-auto text-[10px] text-tea-text-dim border border-tea-border rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
+        </button>
+      </div>
 
       {/* Browse Navigation */}
       <nav className="flex flex-col py-6 gap-1 px-3">

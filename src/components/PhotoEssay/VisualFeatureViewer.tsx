@@ -210,7 +210,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   <Icons.Heart
                     className={`w-5 h-5 ${
                       isSaved
-                        ? 'fill-tea-seal text-tea-gold'
+                        ? 'fill-tea-gold text-tea-gold'
                         : 'text-tea-text'
                     }`}
                   />

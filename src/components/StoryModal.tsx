@@ -42,12 +42,12 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
              <div className="w-full h-full flex items-center justify-center bg-zinc-900 relative group">
                 <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-50" alt="video thumb"/>
                 <div className="absolute inset-0 flex items-center justify-center">
-                   <div className="w-16 h-16 border border-tea-paper/30 rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
-                     <Icons.Play className="w-8 h-8 text-tea-paper fill-tea-paper/20" />
+                   <div className="w-16 h-16 border border-tea-border/30 rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
+                     <Icons.Play className="w-8 h-8 text-tea-text fill-tea-text/20" />
                    </div>
                 </div>
                 {/* Custom Player Frame */}
-                <div className="absolute inset-4 border border-tea-paper/20 pointer-events-none"></div>
+                <div className="absolute inset-4 border border-tea-border/20 pointer-events-none"></div>
              </div>
            )}
 
@@ -56,15 +56,15 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                {/* Abstract Waveform */}
                <div className="flex space-x-1 h-16 items-center mb-8">
                   {[...Array(20)].map((_, i) => (
-                    <div key={i} className="w-1 bg-tea-beige animate-pulse" style={{height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s`}}></div>
+                    <div key={i} className="w-1 bg-tea-elevated animate-pulse" style={{height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s`}}></div>
                   ))}
                </div>
                <div className="flex items-center space-x-6">
-                 <Icons.Play className="w-10 h-10 text-tea-paper cursor-pointer hover:text-tea-green transition-colors" />
+                 <Icons.Play className="w-10 h-10 text-tea-text cursor-pointer hover:text-tea-green transition-colors" />
                  <div className="w-48 h-1 bg-tea-text-dim/15 rounded-full overflow-hidden">
                    <div className="w-1/3 h-full bg-tea-bg"></div>
                  </div>
-                 <span className="text-xs text-tea-paper/60 font-mono">08:12 / {story.durationOrTime}</span>
+                 <span className="text-xs text-tea-text/60 font-mono">08:12 / {story.durationOrTime}</span>
                </div>
                <img src={story.thumbnailUrl || 'https://picsum.photos/400/400'} className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay" alt="audio bg"/>
              </div>
@@ -112,8 +112,8 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
           </div>
 
           {/* Actions */}
-          <div className="mt-auto pt-8 border-t border-tea-beige flex items-center justify-between">
-             <button className="p-2 hover:bg-tea-beige/20 rounded-full transition-colors text-tea-text-light">
+          <div className="mt-auto pt-8 border-t border-tea-elevated flex items-center justify-between">
+             <button className="p-2 hover:bg-tea-elevated/20 rounded-full transition-colors text-tea-text-light">
                <Icons.Share className="w-5 h-5" />
              </button>
           </div>

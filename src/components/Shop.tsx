@@ -159,17 +159,17 @@ export const Shop: React.FC<ShopProps> = ({
       <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
         {isError && (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-[fadeIn_0.5s_ease-out]">
-            <div className="w-14 h-14 border border-tea-seal/30 rounded-full flex items-center justify-center mb-5">
-              <Icons.Leaf className="w-6 h-6 text-tea-seal/60" />
+            <div className="w-14 h-14 border border-tea-gold/30 rounded-full flex items-center justify-center mb-5">
+              <Icons.Leaf className="w-6 h-6 text-tea-gold/60" />
             </div>
-            <h3 className="font-serif text-lg text-tea-ink mb-2">Unable to load teas</h3>
-            <p className="text-tea-ink/50 text-sm mb-6 max-w-sm">
+            <h3 className="font-serif text-lg text-tea-text mb-2">Unable to load teas</h3>
+            <p className="text-tea-text/50 text-sm mb-6 max-w-sm">
               {error?.message || 'We couldn\'t reach the server. Please check your connection and try again.'}
             </p>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-seal text-white text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-seal/90 transition-all active:scale-95"
+                className="bg-tea-gold text-white text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold/90 transition-all active:scale-95"
               >
                 Try Again
               </button>
@@ -213,7 +213,7 @@ export const Shop: React.FC<ShopProps> = ({
       {isAdmin && (
         <button
           onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-28 right-6 lg:bottom-8 z-sticky w-12 h-12 rounded-full bg-tea-seal text-white shadow-lg hover:bg-tea-seal/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
+          className="fixed bottom-28 right-6 lg:bottom-8 z-sticky w-12 h-12 rounded-full bg-tea-gold text-white shadow-lg hover:bg-tea-gold/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
           title="Add new product"
         >
           <Icons.Plus className="w-5 h-5" />
