@@ -495,6 +495,23 @@ export const api = {
     },
   },
 
+  newsletter: {
+    subscribe: async (email: string, source = 'website') => {
+      const res = await fetchWithTimeout(`${API_URL}/api/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source }),
+      });
+      return handleResponse(res);
+    },
+    subscribers: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/newsletter/subscribers`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   rsvp: {
     submit: async (slug: string, data: Record<string, any>) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {

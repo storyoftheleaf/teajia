@@ -1728,6 +1728,30 @@ const handleDeleteSavedLocation: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Newsletter ──
+
+const handleNewsletterSubscribe: Handler = async (request, env) => {
+  const body = await request.json() as Record<string, any>;
+  const email = (body.email || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json({ error: 'Invalid email address' }, 400);
+  }
+  const source = typeof body.source === 'string' ? body.source.slice(0, 50) : 'website';
+  await env.DB.prepare(
+    'INSERT OR IGNORE INTO newsletter_subscribers (email, source) VALUES (?, ?)'
+  ).bind(email, source).run();
+  return json({ success: true });
+};
+
+const handleGetNewsletterSubscribers: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const { results } = await env.DB.prepare(
+    'SELECT id, email, subscribed_at, source FROM newsletter_subscribers ORDER BY subscribed_at DESC'
+  ).all();
+  return json({ subscribers: results });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -1820,6 +1844,10 @@ const routes: [string, string, Handler][] = [
 
   // Media Upload
   ['POST', '/api/upload-flyer', handleUploadFlyer],
+
+  // Newsletter
+  ['POST', '/api/newsletter/subscribe', handleNewsletterSubscribe],
+  ['GET', '/api/newsletter/subscribers', handleGetNewsletterSubscribers],
 ];
 
 export default {
