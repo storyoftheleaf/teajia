@@ -473,24 +473,28 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               <span>Total</span>
               <span className="num">{fmtPrice(subtotal)}</span>
             </div>
-            <button
+            <Button
               type="submit"
               form="inquiry-form"
               disabled={!isFormValid}
-              className="w-full py-4 bg-tea-gold text-white uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+              variant="primary"
+              fullWidth
+              className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
             >
               Review Order
-            </button>
+            </Button>
           </div>
         )}
         {step === 'CONFIRM' && (
           <div className="flex flex-col gap-3">
-            <button
+            <Button
               onClick={() => setStep('INQUIRY')}
-              className="w-full py-3 border border-tea-border text-tea-text-sec uppercase tracking-[0.2em] text-xs hover:bg-tea-surface transition-colors min-h-[44px]"
+              variant="secondary"
+              fullWidth
+              className="py-3 uppercase tracking-[0.2em] text-xs"
             >
               Edit Details
-            </button>
+            </Button>
           </div>
         )}
       </div>
