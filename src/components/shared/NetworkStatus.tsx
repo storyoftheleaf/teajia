@@ -1,27 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 type Status = 'online' | 'offline' | 'back-online';
 
-export const NetworkStatus: React.FC = () => {
+export const NetworkStatus = () => {
   const [status, setStatus] = useState<Status>('online');
+  const [visible, setVisible] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const goOffline = () => {
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       setStatus('offline');
+      setVisible(true);
     };
 
     const goOnline = () => {
       setStatus('back-online');
+      setVisible(true);
       dismissTimer.current = setTimeout(() => {
-        setStatus('online');
+        setVisible(false);
+        // Reset to online after slide-out animation completes
+        setTimeout(() => setStatus('online'), 500);
       }, 3000);
     };
 
     // Check initial state
     if (!navigator.onLine) {
       setStatus('offline');
+      setVisible(true);
     }
 
     window.addEventListener('offline', goOffline);
@@ -42,14 +48,13 @@ export const NetworkStatus: React.FC = () => {
     <div
       role="alert"
       aria-live="polite"
-      className={`fixed top-0 left-0 right-0 z-toast flex items-center justify-center gap-2 px-4 py-2.5 text-xs tracking-wide border-b transition-all duration-500 ease-out ${
+      className={`fixed top-0 left-0 right-0 z-toast flex items-center justify-center gap-2 px-4 py-2.5 text-xs tracking-wide border-b transition-transform duration-500 ease-out ${
+        visible ? 'translate-y-0' : '-translate-y-full'
+      } ${
         isOffline
           ? 'bg-tea-surface border-tea-border text-tea-text-sec'
           : 'bg-tea-accent-sub border-tea-border text-tea-gold'
       }`}
-      style={{
-        animation: 'networkSlideDown 0.4s ease-out forwards',
-      }}
     >
       {isOffline ? (
         <>
@@ -61,6 +66,7 @@ export const NetworkStatus: React.FC = () => {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <line x1="1" y1="1" x2="23" y2="23" />
             <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
@@ -82,6 +88,7 @@ export const NetworkStatus: React.FC = () => {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <path d="M5 12.55a11 11 0 0 1 14.08 0" />
             <path d="M1.42 9a16 16 0 0 1 21.16 0" />

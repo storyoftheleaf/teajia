@@ -53,6 +53,7 @@ import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { AdminToolbar } from './components/admin-overlay/AdminToolbar';
 import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
+import { NetworkStatus } from './components/shared/NetworkStatus';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
@@ -612,6 +613,7 @@ export default function App() {
         <StoryProvider>
           <InventoryProvider>
             <ImagePreloaderProvider>
+              <NetworkStatus />
               <AppContent />
             </ImagePreloaderProvider>
           </InventoryProvider>
