@@ -104,7 +104,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
                   height: 9,
                   background: value === tick
                     ? 'rgba(200,170,120,0.4)'
-                    : 'rgba(200,170,120,0.12)',
+                    : 'var(--tea-border)',
                   transition: 'background 0.15s ease',
                   pointerEvents: 'none',
                 }}

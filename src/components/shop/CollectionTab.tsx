@@ -133,7 +133,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                           />
                           <span
                             className="font-serif italic text-xs"
-                            style={{ color: 'rgba(196,184,154,0.7)', opacity: 1 - i * 0.18 }}
+                            style={{ color: 'var(--tea-text-sec)', opacity: 1 - i * 0.18 }}
                           >
                             {note}
                           </span>

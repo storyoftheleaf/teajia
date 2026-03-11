@@ -216,7 +216,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
               className={`w-full flex items-center gap-4 py-3.5 px-1 last:shadow-none hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
-              style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.06)' }}
+              style={{ boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
             >
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}

@@ -54,7 +54,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
         {/* Decorative area — visible on all screens */}
         {decorativeElement && (
-          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06), inset 1px 0 0 rgba(184,146,78,0.06)' }}>
+          <div className="flex items-center justify-center p-4 md:p-6 md:w-2/5" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 1px 0 0 var(--tea-accent-sub)' }}>
             {decorativeElement}
           </div>
         )}
@@ -62,7 +62,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
 
       {/* Metadata bar */}
       {metadata && metadata.length > 0 && (
-        <div className="px-6 md:px-8 py-3 flex items-center gap-6" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+        <div className="px-6 md:px-8 py-3 flex items-center gap-6" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           {metadata.map((item, i) => (
             <React.Fragment key={item.label}>
               {i > 0 && <span className="w-1 h-1 rounded-full bg-tea-bg/20" />}

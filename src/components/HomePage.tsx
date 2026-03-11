@@ -302,7 +302,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="flex gap-5 md:gap-8 items-start relative inset-panel p-4 md:p-6">
-            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(200,170,120,0.06)' }}>
+            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--tea-accent-sub)' }}>
               <div className="aspect-square overflow-hidden">
                 <img
                   src={curatedTea.image}
@@ -335,7 +335,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               {isAdmin && productMap.has(curatedTea.id) && (() => {
                 const ap = productMap.get(curatedTea.id)!;
                 return (
-                  <div className="flex items-center gap-3 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+                  <div className="flex items-center gap-3 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
                     <button
                       onClick={() => updateProduct(curatedTea.id, { is_featured: !ap.isFeatured })}
                       className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-gold' : 'text-tea-text/30 hover:text-tea-text/60'}`}

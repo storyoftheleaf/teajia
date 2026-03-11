@@ -185,7 +185,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const totalPrice = getQuantityPrice(item, currentQuantity);
 
   const purchaseControls = showQuantityControls && onAddToCart && (
-    <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'rgba(200,170,120,0.04)', boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.08), inset 0 -1px 0 rgba(200,170,120,0.04), 0 1px 4px rgba(0,0,0,0.2)' }}>
+    <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgba(0,0,0,0.2)' }}>
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
@@ -214,13 +214,13 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
-            <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06)' }}>
+            <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
                 className="px-3 py-2 hover:bg-tea-gold/10 transition-colors text-tea-text disabled:opacity-30"
               >−</button>
-              <span className="px-4 py-2 num text-sm min-w-[50px] text-center" style={{ boxShadow: 'inset 1px 0 0 rgba(200,170,120,0.08), inset -1px 0 0 rgba(200,170,120,0.08)' }}>{currentQuantity}</span>
+              <span className="px-4 py-2 num text-sm min-w-[50px] text-center" style={{ boxShadow: 'inset 1px 0 0 var(--tea-border), inset -1px 0 0 var(--tea-border)' }}>{currentQuantity}</span>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.min(maxQuantity, (prev[item.id] || defaultQuantity) + 1) }))}
                 disabled={currentQuantity >= maxQuantity}

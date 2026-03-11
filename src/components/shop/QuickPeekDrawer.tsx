@@ -85,7 +85,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         </div>
 
         {/* Header */}
-        <div className="sticky top-0 bg-tea-bg px-6 py-4 flex items-center justify-between z-10" style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}>
+        <div className="sticky top-0 bg-tea-bg px-6 py-4 flex items-center justify-between z-10" style={{ boxShadow: '0 1px 0 var(--tea-border)' }}>
           <h3 className="font-serif text-lg text-tea-text truncate pr-4">
             {item.name}
           </h3>

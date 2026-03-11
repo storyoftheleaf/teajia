@@ -138,7 +138,7 @@ export const Sidebar = ({
       } md:relative md:translate-x-0 flex flex-col overflow-y-auto no-scrollbar`}
       style={{
         background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)',
-        boxShadow: 'inset -1px 0 0 rgba(200,170,120,0.06), 1px 0 8px rgba(0,0,0,0.15)'
+        boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgba(0,0,0,0.15)'
       }}
     >
       {/* Logo/Brand */}
@@ -146,7 +146,7 @@ export const Sidebar = ({
         to="/admin"
         onClick={handleNav}
         className="h-20 flex items-center justify-start px-6 gap-3 animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group"
-        style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}
+        style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
       >
         <LogoEmblem
           size={36}
@@ -172,7 +172,7 @@ export const Sidebar = ({
 
       {/* Catalog Navigation — admin only */}
       {isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
           {catalogItems.map((item, index) => (
             <NavButton
@@ -188,7 +188,7 @@ export const Sidebar = ({
 
       {/* Admin Navigation */}
       {isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>
           {adminItems.map((item, index) => (
             <NavButton
@@ -212,7 +212,7 @@ export const Sidebar = ({
       </div>
 
       {/* Utility Area */}
-      <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+      <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
         <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
 
         <button

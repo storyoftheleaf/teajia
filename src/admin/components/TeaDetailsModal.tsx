@@ -170,7 +170,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       <style>{`
         .tea-card-scroll::-webkit-scrollbar { width: 3px; }
         .tea-card-scroll::-webkit-scrollbar-track { background: transparent; }
-        .tea-card-scroll::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
+        .tea-card-scroll::-webkit-scrollbar-thumb { background: var(--tea-border); border-radius: 2px; }
         @keyframes panelReveal {
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
@@ -279,7 +279,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 margin: "8px 8px 10px",
                 borderRadius: "6px",
                 background: "rgba(0,0,0,0.25)",
-                boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)",
+                boxShadow: "inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub), 0 -1px 0 var(--tea-accent-sub)",
                 overflow: "hidden",
                 animation: "panelReveal 0.5s ease-out",
             }}>
@@ -293,13 +293,13 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 <div style={{
                     position: "absolute", top: 0, left: 0, right: 0, height: "60%",
                     pointerEvents: "none",
-                    background: "radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)",
+                    background: "radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)",
                 }} />
 
                 {/* Tea details */}
                 <div style={{
                     padding: "10px 16px",
-                    borderBottom: "1px solid rgba(200,170,120,0.08)",
+                    borderBottom: "1px solid var(--tea-border)",
                     position: "relative",
                 }}>
                     <p style={{
@@ -316,7 +316,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                 </div>
 
                 {/* Story */}
-                <div style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid rgba(200,170,120,0.08)" }}>
+                <div style={{ padding: "12px 16px", position: "relative", borderBottom: "1px solid var(--tea-border)" }}>
                     <p style={{
                         fontFamily: "var(--font-display)",
                         fontSize: "17px", fontWeight: 300, lineHeight: 1.6,
@@ -472,9 +472,9 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                     border: "none", borderRadius: "2px",
                                     cursor: "pointer", transition: "all 0.2s ease",
                                     background: grams === g
-                                        ? "rgba(200,170,120,0.15)"
+                                        ? "var(--tea-border)"
                                         : hovered === `preset-${g}`
-                                            ? "rgba(200,170,120,0.08)"
+                                            ? "var(--tea-border)"
                                             : "transparent",
                                     color: grams === g
                                         ? "var(--tea-text-sec)"
@@ -519,7 +519,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                                 color: favorited ? accent : "var(--tea-text-dim)",
                             }}>Save</span>
                         </button>
-                        <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.15)" }} />
+                        <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
                         <button
                             onMouseEnter={() => setHovered("share")}
                             onMouseLeave={() => setHovered(null)}
@@ -554,7 +554,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
                             background: added
                                 ? "#7a9a72"
                                 : hovered === "cart"
-                                    ? "rgba(200,170,120,0.06)"
+                                    ? "var(--tea-accent-sub)"
                                     : "transparent",
                             border: added
                                 ? "1px solid #7a9a72"

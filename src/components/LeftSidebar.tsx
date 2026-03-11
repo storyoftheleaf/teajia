@@ -148,7 +148,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       className={`hidden lg:flex flex-col w-56 text-tea-text fixed left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-40 ${topOffset ? 'top-9 h-[calc(100vh-2.25rem)]' : 'top-0 h-screen'}`}
       style={{
         background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)',
-        boxShadow: 'inset -1px 0 0 rgba(200,170,120,0.06), 1px 0 8px rgba(0,0,0,0.15)'
+        boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgba(0,0,0,0.15)'
       }}
     >
       {/* Logo/Brand - Home Button */}
@@ -158,7 +158,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           activeSection === 'HOME' ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
         }`}
         title="Home"
-        style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}
+        style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
       >
         <LogoEmblem
           size={36}
@@ -204,7 +204,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
       {/* Catalog Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
           {catalogItems.map((item, index) => (
             <NavButton
@@ -220,7 +220,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
       {/* Admin Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>
           {adminItems.map((item, index) => (
             <NavButton
@@ -244,7 +244,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       </div>
 
       {/* Utility Area */}
-      <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+      <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
         <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
 
         <button

@@ -249,7 +249,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim/40">Swipe to close</span>
           </div>
 
-          <div className="flex items-center justify-center p-6 border-b border-[rgba(184,146,78,0.08)] bg-[rgba(0,0,0,0.15)] relative">
+          <div className="flex items-center justify-center p-6 border-b border-[var(--tea-border)] bg-[rgba(0,0,0,0.15)] relative">
             <button
               onClick={() => {
                 if (panelView !== 'main') {
@@ -296,8 +296,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
-                      style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                       placeholder="you@example.com"
                       required
                       autoFocus
@@ -310,8 +310,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors font-sans text-sm"
-                        style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
+                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--tea-border)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors font-sans text-sm"
+                        style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                         required
                       />
                       <button
@@ -376,8 +376,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
-                      style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                       placeholder="Your name"
                       required
                       autoFocus
@@ -389,8 +389,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
-                      style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
+                      className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                       placeholder="you@example.com"
                       required
                     />
@@ -402,8 +402,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(184,146,78,0.08)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
-                        style={{ boxShadow: 'inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
+                        className="w-full bg-[rgba(0,0,0,0.2)] border border-[var(--tea-border)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                        style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 rgba(200,170,120,0.03)' }}
                         placeholder="Min 6 characters"
                         required
                       />
@@ -479,7 +479,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </p>
                   </div>
                 ) : (
-                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
+                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     {savedStoryEntries.map((storyId, i) => (
                       <button
                         key={storyId}
@@ -488,7 +488,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           onClose();
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[rgba(0,0,0,0.15)] transition-colors group text-left ${
-                          i < savedStoryEntries.length - 1 ? 'border-b border-[rgba(184,146,78,0.06)]' : ''
+                          i < savedStoryEntries.length - 1 ? 'border-b border-[var(--tea-accent-sub)]' : ''
                         }`}
                       >
                         <Icons.Leaf filled className="w-4 h-4 text-tea-gold shrink-0" />
@@ -525,7 +525,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </p>
                   </div>
                 ) : (
-                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
+                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     {readingHistory.map((entry, i) => (
                       <button
                         key={entry.storyId}
@@ -534,7 +534,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           onClose();
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-[rgba(0,0,0,0.15)] transition-colors group text-left ${
-                          i < readingHistory.length - 1 ? 'border-b border-[rgba(184,146,78,0.06)]' : ''
+                          i < readingHistory.length - 1 ? 'border-b border-[var(--tea-accent-sub)]' : ''
                         }`}
                       >
                         <Icons.BookOpen className="w-4 h-4 text-tea-text-dim shrink-0" />
@@ -689,10 +689,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Reading & Stories */}
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Reading</span>
-                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
+                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     <button
                       onClick={() => setPanelView('saved-stories')}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
@@ -722,11 +722,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Preferences: Theme + Currency */}
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Preferences</span>
-                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
+                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     {/* Theme Toggle */}
                     <button
                       onClick={toggleTheme}
-                      className="w-full flex items-center justify-between px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-[rgba(0,0,0,0.15)] transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         {theme === 'light' ? (
@@ -757,7 +757,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                             className={`px-2.5 py-1.5 text-[11px] uppercase tracking-wider border transition-colors ${
                               currency === opt.code
                                 ? 'bg-tea-gold text-tea-bg border-tea-gold'
-                                : 'border-[rgba(184,146,78,0.08)] text-tea-text-dim hover:border-tea-gold/30'
+                                : 'border-[var(--tea-border)] text-tea-text-dim hover:border-tea-gold/30'
                             }`}
                           >
                             {opt.symbol} {opt.code}
@@ -771,10 +771,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Quick Actions */}
                 <div>
                   <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Quick Actions</span>
-                  <div className="border border-[rgba(184,146,78,0.08)] overflow-hidden rounded-md">
+                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     <button
                       onClick={handleOpenCart}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Open Cart</span>
@@ -786,7 +786,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                     <a
                       href="mailto:hello@teajia.com"
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[rgba(184,146,78,0.06)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
+                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-[rgba(0,0,0,0.15)] transition-colors group"
                     >
                       <Icons.Mail className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Contact Us</span>
@@ -811,7 +811,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div>
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text-dim hover:text-red-500 border border-[rgba(184,146,78,0.08)] hover:border-red-500/20 transition-colors rounded-md"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text-dim hover:text-red-500 border border-[var(--tea-border)] hover:border-red-500/20 transition-colors rounded-md"
                     >
                       <Icons.LogOut className="w-4 h-4" />
                       <span className="text-xs uppercase tracking-[0.2em] font-medium">Sign Out</span>
@@ -825,7 +825,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[rgba(184,146,78,0.08)] bg-[rgba(0,0,0,0.15)] flex flex-col items-center gap-2">
+        <div className="p-6 border-t border-[var(--tea-border)] bg-[rgba(0,0,0,0.15)] flex flex-col items-center gap-2">
           <LogoEmblem size={28} color="var(--tea-gold)" className="opacity-60" />
           <span className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim">Teajia</span>
         </div>

@@ -40,7 +40,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       className={`sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-10 bg-tea-surface/80 backdrop-blur-xl backdrop-saturate-150 transition-all duration-500 ease-out ${className}`}
-      style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08), 0 2px 8px rgba(0,0,0,0.12)' }}
+      style={{ boxShadow: '0 1px 0 var(--tea-border), 0 2px 8px rgba(0,0,0,0.12)' }}
     >
       <div className="w-full">
         {/* Back navigation — inside the glass */}
@@ -110,7 +110,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Toolbar row — below tabs, inside the glass */}
         {toolbar && (
-          <div className="px-4 py-2 md:px-6 lg:px-10" style={{ boxShadow: 'inset 0 1px 0 rgba(184,146,78,0.06)' }}>
+          <div className="px-4 py-2 md:px-6 lg:px-10" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
             {toolbar}
           </div>
         )}
