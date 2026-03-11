@@ -244,7 +244,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   return (
     <div
       ref={focusTrapRef}
-      className={`fixed inset-0 z-[100] transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0'}`}
       onClick={onClose}
       onTouchStart={handleZoomTouchStart}
       onTouchMove={handleZoomTouchMove}
@@ -254,7 +254,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       <div className="hidden md:flex w-full h-full flex-col items-center justify-center p-8 cursor-zoom-out">
         <div className="relative w-full max-w-4xl flex flex-col items-center">
           <div
-            className="relative max-h-[65vh] w-auto shadow-2xl rounded-sm overflow-hidden transition-transform duration-100"
+            className="relative max-h-[65vh] w-auto shadow-2xl rounded-lg overflow-hidden transition-transform duration-100"
             style={{ transform: `translateX(${swipeOffset * 0.5}px)` }}
           >
             {item.image ? (
@@ -314,7 +314,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         </div>
 
         {/* Sheet content */}
-        <div className="bg-[#1a1a1a] rounded-t-2xl relative -mt-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-[#1a1a1a] rounded-t-lg relative -mt-4 pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
             <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />

@@ -124,7 +124,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-black z-[60]">
+      <div className="fixed inset-0 bg-black z-modal">
         {/* Video Background */}
         <div className="absolute inset-0 bg-zinc-900">
            {renderPlayer()}
@@ -164,7 +164,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   // Desktop: Sidebar + Centered Vertical Player
   return (
-    <div className="fixed inset-0 z-[60] bg-[#121212] flex">
+    <div className="fixed inset-0 z-modal bg-[#121212] flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
       <main className="flex-1 relative flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] p-12">
@@ -258,7 +258,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-tea-bg z-[60] flex flex-col overflow-y-auto">
+      <div className="fixed inset-0 bg-tea-bg z-modal flex flex-col overflow-y-auto">
          <MobileHeader title={story.title} onBack={onBack} />
          
          {/* Player */}
@@ -289,7 +289,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-[#050505] flex">
+    <div className="fixed inset-0 z-modal bg-[#050505] flex">
        <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
        
        <main className="flex-1 flex flex-col items-center overflow-y-auto">
@@ -328,7 +328,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-tea-bg z-[60] flex flex-col">
+      <div className="fixed inset-0 bg-tea-bg z-modal flex flex-col">
          <MobileHeader title="Now Playing" onBack={onBack} transparent />
          
          {/* Main Art Area */}
@@ -388,7 +388,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
   // Desktop Audio
   return (
-    <div className="fixed inset-0 z-[60] bg-[#1a1a1a] flex">
+    <div className="fixed inset-0 z-modal bg-[#1a1a1a] flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
       <main className="flex-1 flex flex-col items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] relative overflow-hidden">

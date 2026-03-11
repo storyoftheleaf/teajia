@@ -215,6 +215,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 imageUrl={story.thumbnailUrl}
                 aspectRatio="portrait"
                 onClick={() => handleCardClick(story)}
+                contentType={story.type}
+                duration={story.durationOrTime}
               />
             ))}
           </div>

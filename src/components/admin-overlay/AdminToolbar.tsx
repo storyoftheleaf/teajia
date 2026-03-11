@@ -26,7 +26,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="fixed top-2 right-2 z-[60] w-8 h-8 rounded-full bg-tea-ink/80 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center text-tea-paper/60 hover:text-tea-paper transition-colors shadow-lg"
+        className="fixed top-2 right-2 z-modal w-8 h-8 rounded-full bg-tea-ink/80 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center text-tea-paper/60 hover:text-tea-paper transition-colors shadow-lg"
         title="Show admin bar"
       >
         <Icons.Settings className="w-3.5 h-3.5" />
@@ -35,7 +35,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[55] bg-tea-ink/90 dark:bg-[#1a1a1a]/95 backdrop-blur-md border-b border-tea-border h-9 flex items-center px-3 lg:pl-24 xl:pl-60 shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-sticky bg-tea-ink/90 dark:bg-[#1a1a1a]/95 backdrop-blur-md border-b border-tea-border h-9 flex items-center px-3 lg:pl-24 xl:pl-60 shadow-lg">
       {/* Stats */}
       <div className="flex items-center gap-4 flex-1 overflow-x-auto no-scrollbar">
         <button

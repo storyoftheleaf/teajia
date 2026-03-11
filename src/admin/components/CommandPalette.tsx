@@ -46,7 +46,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[20vh]" onClick={handleClose}>
+    <div className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[20vh]" onClick={handleClose}>
       <div className="w-full max-w-xl bg-tea-bg border border-tea-border rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <Command className="w-full" label="Global Command Menu">
           <div className="flex items-center px-4 border-b border-tea-border">

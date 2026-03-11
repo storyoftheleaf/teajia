@@ -35,7 +35,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-2xl font-serif text-tea-text mb-2">Add to Order</h3>
         <p className="text-tea-muted text-sm mb-6 font-serif italic">{product.givenName} <span className="text-tea-border mx-2">•</span> {product.productName}</p>

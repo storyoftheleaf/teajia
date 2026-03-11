@@ -144,7 +144,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-tea-bg/95 backdrop-blur-md"

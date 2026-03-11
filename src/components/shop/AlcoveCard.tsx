@@ -30,6 +30,23 @@ function ShareIcon({ color }: { color: string }) {
   );
 }
 
+/** Returns stock status info for display */
+function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean) {
+  if (status === 'Sold Out' || stockG <= 0) {
+    return { label: 'Sold Out', color: '#c0392b', level: 'out' as const };
+  }
+  if (isOneOfAKind) {
+    return { label: 'Limited Edition', color: '#c87533', level: 'limited' as const };
+  }
+  if (stockG < 50) {
+    return { label: `Only ${stockG}g left`, color: '#c87533', level: 'low' as const };
+  }
+  if (stockG < 100) {
+    return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
+  }
+  return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
+}
+
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
@@ -37,6 +54,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
 
@@ -47,6 +65,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const total = fmtNum(pricePerGram * grams);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+
+  // Stock status
+  const stockStatus = getStockStatus(item.stock_g, undefined, item.isOneOfAKind);
+  const isSoldOut = stockStatus.level === 'out';
+
+  // Quantity presets - only show values that are <= stock
+  const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
   // Snap to nearest marked point on release
   const snapToNearest = (val: number) => {
@@ -132,10 +157,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   }, []);
 
   const handleAdd = () => {
+    if (isSoldOut) return;
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
     if (onAddToCart) {
       onAddToCart(item, grams, parseFloat(total));
+    }
+  };
+
+  // Share handler — uses Web Share API with clipboard fallback
+  const handleShare = async () => {
+    const shareText = `${item.name} — ${origin} ${teaType} from Teajia`;
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: item.name,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // User cancelled or error — silent
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        // Clipboard API unavailable
+      }
     }
   };
 
@@ -226,8 +279,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           position: "relative",
           margin: "6px 4px 0",
           borderRadius: "6px",
-          background: "rgba(0,0,0,0.25)",
-          boxShadow: "inset 0 1px 0 rgba(200,170,120,0.06), inset 0 -1px 0 rgba(200,170,120,0.04), 0 -1px 0 rgba(200,170,120,0.06)",
+          background: "var(--tea-surface)",
+          boxShadow: "inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub), 0 -1px 0 var(--tea-accent-sub)",
           overflow: "hidden",
           flex: 1, minHeight: 0,
           display: "flex", flexDirection: "column",
@@ -243,13 +296,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           <div style={{
             position: "absolute", top: 0, left: 0, right: 0, height: "60%",
             pointerEvents: "none",
-            background: "radial-gradient(ellipse 80% 30% at 70% 0%, rgba(200,170,120,0.04), transparent)",
+            background: "radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)",
           }} />
 
           {/* Tea type · origin · year */}
           <div style={{
             padding: "8px 14px",
-            borderBottom: "1px solid rgba(200,170,120,0.08)",
+            borderBottom: "1px solid var(--tea-border)",
             position: "relative", flexShrink: 0,
           }}>
             <p style={{
@@ -266,12 +319,12 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           {/* Notes + photo section — notes overlaid on photo */}
           <div style={{
             padding: "10px 14px",
-            background: "rgba(184,146,78,0.03)",
+            background: "var(--tea-accent-sub)",
             position: "relative",
             overflow: "hidden",
             flexShrink: 0,
             maxHeight: "180px",
-            borderBottom: "1px solid rgba(200,170,120,0.08)",
+            borderBottom: "1px solid var(--tea-border)",
           }}>
             {/* Photo or placeholder behind notes */}
             <div
@@ -353,7 +406,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             <div style={{
               padding: "12px 16px",
               position: "relative",
-              borderBottom: feelingDescription ? "1px solid rgba(200,170,120,0.08)" : "none",
+              borderBottom: feelingDescription ? "1px solid var(--tea-border)" : "none",
             }}>
               {magazineUrl ? (
                 <a
@@ -406,111 +459,171 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       <div style={{
         position: "relative", zIndex: 3, flexShrink: 0,
         padding: "10px 14px 14px",
-        borderTop: "1px solid rgba(200,170,120,0.08)",
+        borderTop: "1px solid var(--tea-border)",
         background: alcoveColors.bg,
       }}>
-            {/* Price Tag: price + gram selector */}
+            {/* Stock status indicator */}
             <div style={{
-              display: "flex", alignItems: "baseline", justifyContent: "space-between",
-              marginBottom: "1px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              marginBottom: "6px",
             }}>
-              <div style={{ display: "flex", alignItems: "baseline" }}>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
-                  lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
-                }}>
-                  ${fmtNum(pricePerGram)}
-                </span>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "9px", fontWeight: 400, color: alcoveColors.subtitle,
-                  marginLeft: "1px",
-                }}>/g</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline" }}>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
-                  lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
-                }}>
-                  {grams}
-                </span>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "9px", fontWeight: 400, color: alcoveColors.subtitle,
-                  marginLeft: "1px",
-                }}>g</span>
-              </div>
-            </div>
-            {/* Slider with tick marks */}
-            <div style={{ position: "relative", width: "100%", height: "16px", display: "flex", alignItems: "center", marginBottom: "8px" }}>
-              <input
-                type="range"
-                min={sliderMin}
-                max={sliderMax}
-                step={sliderStep}
-                value={grams}
-                onChange={handleSliderChange}
-                onMouseUp={() => setGrams(g => snapToNearest(g))}
-                onTouchEnd={() => setGrams(g => snapToNearest(g))}
-                aria-label={`Select quantity: ${grams}g`}
-                style={{
-                  position: "absolute", width: "100%", height: "100%",
-                  opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
-                }}
-              />
-              <div style={{
-                width: "100%", height: "3px",
-                background: "rgba(200,170,120,0.1)",
-                borderRadius: "2px",
-                position: "relative",
-              }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <div style={{
-                  position: "absolute", height: "100%",
-                  width: `${sliderPercentage}%`,
-                  background: `linear-gradient(90deg, rgba(184,146,78,0.45), rgba(184,146,78,0.75))`,
-                  borderRadius: "2px",
-                  transition: "width 0.075s ease",
+                  width: "6px", height: "6px", borderRadius: "50%",
+                  background: stockStatus.color,
+                  boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
                 }} />
-                {snapPoints.map((sp) => {
-                  const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
-                  return (
-                    <div
-                      key={sp}
-                      style={{
-                        position: "absolute",
-                        left: `${pct}%`,
-                        top: "-3px",
-                        width: "1px", height: "9px",
-                        background: grams === sp
-                          ? "rgba(200,170,120,0.4)"
-                          : "rgba(200,170,120,0.12)",
-                        transition: "background 0.15s ease",
-                        pointerEvents: "none",
-                      }}
-                    />
-                  );
-                })}
+                <span style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "10px", fontWeight: 400,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  color: stockStatus.color,
+                }}>
+                  {stockStatus.label}
+                </span>
               </div>
-              <div style={{
-                position: "absolute",
-                left: `calc(${sliderPercentage}% - 6px)`,
-                width: "12px", height: "12px",
-                borderRadius: "50%",
-                background: accent,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
-                pointerEvents: "none", zIndex: 10,
-                transition: "left 0.075s ease",
-              }} />
+              {/* Price per gram display */}
+              <span style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "11px", fontWeight: 400,
+                color: alcoveColors.body,
+                fontVariantNumeric: "tabular-nums lining-nums",
+              }}>
+                ${fmtNum(pricePerGram)}/g
+              </span>
             </div>
+
+            {/* Quantity presets */}
+            {!isSoldOut && presets.length > 1 && (
+              <div style={{
+                display: "flex", gap: "4px",
+                marginBottom: "6px",
+              }}>
+                {presets.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setGrams(p); if (navigator.vibrate) navigator.vibrate(8); }}
+                    style={{
+                      flex: 1,
+                      padding: "4px 0",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px", fontWeight: 400,
+                      letterSpacing: "0.04em",
+                      color: grams === p ? 'var(--tea-bg)' : 'var(--tea-text-sec)',
+                      background: grams === p ? 'var(--tea-gold)' : 'var(--tea-accent-sub)',
+                      border: grams === p ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
+                      borderRadius: "3px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {p}g
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Price Tag: price + gram selector */}
+            {!isSoldOut && (
+              <>
+                <div style={{
+                  display: "flex", alignItems: "baseline", justifyContent: "space-between",
+                  marginBottom: "1px",
+                }}>
+                  <div style={{ display: "flex", alignItems: "baseline" }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
+                      lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
+                    }}>
+                      ${total}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline" }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "12px", fontWeight: 400, color: alcoveColors.body,
+                      lineHeight: 1, fontVariantNumeric: "tabular-nums lining-nums",
+                    }}>
+                      {grams}
+                    </span>
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "9px", fontWeight: 400, color: alcoveColors.subtitle,
+                      marginLeft: "1px",
+                    }}>g</span>
+                  </div>
+                </div>
+                {/* Slider with tick marks */}
+                <div style={{ position: "relative", width: "100%", height: "16px", display: "flex", alignItems: "center", marginBottom: "8px" }}>
+                  <input
+                    type="range"
+                    min={sliderMin}
+                    max={sliderMax}
+                    step={sliderStep}
+                    value={grams}
+                    onChange={handleSliderChange}
+                    onMouseUp={() => setGrams(g => snapToNearest(g))}
+                    onTouchEnd={() => setGrams(g => snapToNearest(g))}
+                    aria-label={`Select quantity: ${grams}g`}
+                    style={{
+                      position: "absolute", width: "100%", height: "100%",
+                      opacity: 0, cursor: "pointer", zIndex: 20, margin: 0,
+                    }}
+                  />
+                  <div style={{
+                    width: "100%", height: "3px",
+                    background: "var(--tea-accent-sub)",
+                    borderRadius: "2px",
+                    position: "relative",
+                  }}>
+                    <div style={{
+                      position: "absolute", height: "100%",
+                      width: `${sliderPercentage}%`,
+                      background: `linear-gradient(90deg, var(--tea-gold), var(--tea-gold-lt))`,
+                      borderRadius: "2px",
+                      transition: "width 0.075s ease",
+                    }} />
+                    {snapPoints.map((sp) => {
+                      const pct = sliderMax > sliderMin ? ((sp - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
+                      return (
+                        <div
+                          key={sp}
+                          style={{
+                            position: "absolute",
+                            left: `${pct}%`,
+                            top: "-3px",
+                            width: "1px", height: "9px",
+                            background: grams === sp
+                              ? "var(--tea-gold)"
+                              : "var(--tea-border)",
+                            transition: "background 0.15s ease",
+                            pointerEvents: "none",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div style={{
+                    position: "absolute",
+                    left: `calc(${sliderPercentage}% - 6px)`,
+                    width: "12px", height: "12px",
+                    borderRadius: "50%",
+                    background: accent,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                    pointerEvents: "none", zIndex: 10,
+                    transition: "left 0.075s ease",
+                  }} />
+                </div>
+              </>
+            )}
 
             {/* Action row */}
             <div style={{ display: "flex", gap: "4px" }}>
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
                 height: "36px", boxSizing: "border-box",
-                border: "1px solid rgba(200,170,120,0.18)",
+                border: "1px solid var(--tea-border)",
                 borderRadius: "3px",
                 flexShrink: 0,
                 padding: "0 10px",
@@ -535,8 +648,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     color: favorited ? accent : alcoveColors.subtitle,
                   }}>Save</span>
                 </button>
-                <div style={{ width: "1px", height: "10px", background: "rgba(200,170,120,0.12)" }} />
+                <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
                 <button
+                  onClick={handleShare}
                   onMouseEnter={() => setHovered("share")}
                   onMouseLeave={() => setHovered(null)}
                   aria-label="Share"
@@ -547,18 +661,19 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     opacity: hovered === "share" ? 0.9 : 0.7,
                   }}
                 >
-                  <ShareIcon color={alcoveColors.muted} />
+                  <ShareIcon color={shareCopied ? alcoveColors.success : alcoveColors.muted} />
                   <span style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "10px", fontWeight: 400,
                     letterSpacing: "0.08em", textTransform: "uppercase",
-                    color: alcoveColors.subtitle,
-                  }}>Share</span>
+                    color: shareCopied ? alcoveColors.success : alcoveColors.subtitle,
+                  }}>{shareCopied ? 'Copied' : 'Share'}</span>
                 </button>
               </div>
 
               <button
                 onClick={handleAdd}
+                disabled={isSoldOut}
                 onMouseEnter={() => setHovered("cart")}
                 onMouseLeave={() => setHovered(null)}
                 style={{
@@ -566,27 +681,37 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   fontFamily: "var(--font-sans)",
                   fontSize: "11px", fontWeight: 400,
                   letterSpacing: "0.06em", textTransform: "uppercase",
-                  color: added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
-                  background: added
-                    ? alcoveColors.success
-                    : hovered === "cart"
-                      ? "rgba(200,170,120,0.06)"
-                      : "transparent",
-                  border: added
-                    ? `1px solid ${alcoveColors.success}`
-                    : `1px solid rgba(200,170,120,${hovered === "cart" ? 0.3 : 0.18})`,
-                  borderRadius: "3px", cursor: "pointer",
+                  color: isSoldOut
+                    ? 'var(--tea-text-dim)'
+                    : added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
+                  background: isSoldOut
+                    ? 'var(--tea-accent-sub)'
+                    : added
+                      ? alcoveColors.success
+                      : hovered === "cart"
+                        ? "var(--tea-accent-sub)"
+                        : "transparent",
+                  border: isSoldOut
+                    ? '1px solid var(--tea-border)'
+                    : added
+                      ? `1px solid ${alcoveColors.success}`
+                      : `1px solid var(--tea-border)`,
+                  borderRadius: "3px",
+                  cursor: isSoldOut ? "not-allowed" : "pointer",
                   transition: "all 0.25s ease",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                  opacity: isSoldOut ? 0.6 : 1,
                 }}
               >
-                <span>{added ? "Added" : "Add"}</span>
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
-                }}>
-                  ${total}
-                </span>
+                <span>{isSoldOut ? "Sold Out" : added ? "Added" : "Add"}</span>
+                {!isSoldOut && (
+                  <span style={{
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
+                  }}>
+                    ${total}
+                  </span>
+                )}
               </button>
             </div>
       </div>
@@ -638,7 +763,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             style={{
               position: "absolute", top: "16px", right: "16px",
               width: "36px", height: "36px",
-              background: "rgba(200,170,120,0.1)", border: "none", borderRadius: "50%",
+              background: "var(--tea-accent-sub)", border: "none", borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer",
             }}

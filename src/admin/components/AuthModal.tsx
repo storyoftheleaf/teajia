@@ -58,8 +58,8 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'} onKeyDown={(e) => { if (e.key === 'Escape') { resetForm(); onClose(); } }}>
-      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-2xl relative">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'} onKeyDown={(e) => { if (e.key === 'Escape') { resetForm(); onClose(); } }}>
+      <div className="bg-tea-bg border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-2xl relative">
         <button onClick={() => { resetForm(); onClose(); }} className="absolute top-4 right-4 text-tea-muted hover:text-tea-text transition-colors" aria-label="Close"><X size={20} /></button>
         <h3 className="text-2xl font-serif text-tea-text mb-2">
           {mode === 'login' ? 'Welcome Back' : 'Create Account'}

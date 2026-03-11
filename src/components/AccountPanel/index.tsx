@@ -222,14 +222,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[90] bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
         ref={focusTrapRef}
-        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg  z-[100] shadow-2xl flex flex-col"
+        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg  z-modal shadow-2xl flex flex-col"
         style={{
           transform: isVisible ? `translateX(${touchOffset}px)` : 'translateX(100%)',
           opacity: isDragging ? swipeOpacity : 1,

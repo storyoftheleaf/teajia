@@ -164,7 +164,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   const notes = (product.showWisdom && product.tastingNotes) ? product.tastingNotes : [];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
       
       {/* Scrollbar styles for the Modal */}
       <style>{`
@@ -180,7 +180,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onPrev && (
         <button 
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="hidden md:flex absolute left-4 md:left-12 z-[70] p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+          className="hidden md:flex absolute left-4 md:left-12 z-modal p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
         >
           <ChevronLeft size={32} />
         </button>
@@ -589,7 +589,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onNext && (
         <button 
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="hidden md:flex absolute right-4 md:right-12 z-[70] p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-[rgba(200,170,120,0.2)]"
+          className="hidden md:flex absolute right-4 md:right-12 z-modal p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
         >
           <ChevronRight size={32} />
         </button>

@@ -119,7 +119,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
       {/* Project Detail Modal */}
       {selectedProject && (
         <div
-          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-6 animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 z-modal bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 md:p-6 animate-[fadeIn_0.2s_ease-out]"
           onClick={closeModal}
         >
           <div

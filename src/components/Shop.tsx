@@ -88,7 +88,7 @@ export const Shop: React.FC<ShopProps> = ({
       className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
       onClick={() => handleAddStarterSet(set)}
     >
-      <div className="p-2 md:p-3 bg-tea-surface rounded-[1px]">
+      <div className="p-2 md:p-3 bg-tea-surface rounded-lg">
         <CardImage src={set.image} alt={set.name} aspect="square" />
         <div className="px-1 mt-3">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
@@ -213,7 +213,7 @@ export const Shop: React.FC<ShopProps> = ({
       {isAdmin && (
         <button
           onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-28 right-6 lg:bottom-8 z-[50] w-12 h-12 rounded-full bg-tea-seal text-white shadow-lg hover:bg-tea-seal/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
+          className="fixed bottom-28 right-6 lg:bottom-8 z-sticky w-12 h-12 rounded-full bg-tea-seal text-white shadow-lg hover:bg-tea-seal/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
           title="Add new product"
         >
           <Icons.Plus className="w-5 h-5" />

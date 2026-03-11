@@ -162,7 +162,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className={`fixed inset-0 z-[200] flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-black/40' : 'bg-black/0'}`}
+      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-black/40' : 'bg-black/0'}`}
     >
       <div
         ref={focusTrapRef}
@@ -257,7 +257,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                     >
                       <span
                         className={`
-                          w-[18px] h-[18px] rounded-[3px] border flex-shrink-0 flex items-center justify-center
+                          w-[18px] h-[18px] rounded-md border flex-shrink-0 flex items-center justify-center
                           transition-colors duration-200
                           ${formData.interests.includes(option)
                             ? 'border-transparent bg-tea-gold'

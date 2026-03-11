@@ -64,7 +64,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[200] animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
     >
       {/* Backdrop */}

@@ -20,7 +20,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]">
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-tea-bg/95 backdrop-blur-md" 

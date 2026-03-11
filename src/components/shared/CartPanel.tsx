@@ -34,7 +34,7 @@ type PublicProps = {
 
 type CartPanelProps = { isOpen: boolean; onClose: () => void } & (AdminProps | PublicProps);
 
-type CheckoutStep = 'CART' | 'CHECKOUT';
+type CheckoutStep = 'CART' | 'INQUIRY';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -405,14 +405,14 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[90] bg-black/80 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full z-[100] shadow-2xl flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full z-modal shadow-2xl flex flex-col ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-bg surface-warm'
@@ -561,9 +561,9 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                   )}
                   <div className="text-center">
                     <h2 className="text-lg font-serif text-tea-text tracking-wide">
-                      {step === 'CART' ? 'Your Selection' : 'Request Order'}
+                      {step === 'CART' ? 'Your Selection' : 'Send Inquiry'}
                     </h2>
-                    {step === 'CHECKOUT' && (
+                    {step === 'INQUIRY' && (
                       <p className="text-[10px] font-mono text-tea-text-dim mt-0.5">{orderRef}</p>
                     )}
                   </div>
@@ -651,7 +651,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                   )}
                 </>
               ) : (
-                /* ── Public cart / checkout ──────────────────────────── */
+                /* ── Public cart / inquiry ──────────────────────────── */
                 <div className="surface-warm-inset mx-2 mt-2 mb-2 p-4 min-h-full">
 
                   {/* Public undo toast */}
@@ -685,7 +685,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                       ) : (
                         props.mode === 'public' && props.cart.map(item => (
                           <div key={item.id} className="flex gap-4 pb-4">
-                            <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-[1px] shrink-0">
+                            <div className="w-16 h-16 bg-tea-bg/5 flex items-center justify-center overflow-hidden rounded-lg shrink-0">
                               {item.image ? (
                                 <img src={item.image} className="w-full h-full object-cover sepia-[0.3]" alt={item.name} loading="eager" />
                               ) : (
@@ -752,8 +752,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                     </div>
                   )}
 
-                  {/* Step 2: Checkout */}
-                  {step === 'CHECKOUT' && (
+                  {/* Step 2: Send Inquiry */}
+                  {step === 'INQUIRY' && (
                     <div className="space-y-6 relative z-[1]">
                       <p className="font-serif text-sm text-tea-text/70 italic mb-4">
                         Fill in your details below. Your order inquiry will be generated automatically.
@@ -961,25 +961,34 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                 </div>
               </div>
             ) : (
-              /* Public footer: total + "Request Order" or instruction text */
+              /* Public footer: total + "Send Inquiry" or instruction text */
               <div className="p-6 border-t border-tea-gold/20 bg-tea-surface relative z-20">
                 {step === 'CART' && (
                   <div className="flex flex-col gap-4">
+                    {/* How ordering works — explain before user proceeds */}
+                    {!isEmpty && (
+                      <div className="bg-tea-accent-sub border border-tea-border rounded-md px-4 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-medium mb-1.5">How ordering works</p>
+                        <p className="text-xs text-tea-text-sec leading-relaxed">
+                          We confirm every order personally — availability, pricing, and shipping are confirmed via WhatsApp or email. This is a personal service, not an automated checkout.
+                        </p>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center font-serif text-xl text-tea-text">
                       <span>Total</span>
                       <span className="num">{fmtPrice(publicSubtotal)}</span>
                     </div>
                     <button
-                      onClick={() => !isEmpty && setStep('CHECKOUT')}
+                      onClick={() => !isEmpty && setStep('INQUIRY')}
                       disabled={isEmpty}
-                      className="w-full py-4 bg-tea-gold text-tea-paper uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full py-4 bg-tea-gold text-white uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      Request This Order
+                      Send Inquiry
                     </button>
                   </div>
                 )}
-                {step === 'CHECKOUT' && (
-                  <p className="text-xs text-center text-tea-text/60 mb-4">
+                {step === 'INQUIRY' && (
+                  <p className="text-xs text-center text-tea-text-dim mb-4">
                     Send your order inquiry via WhatsApp, Email, or copy to clipboard
                   </p>
                 )}

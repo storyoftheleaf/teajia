@@ -132,6 +132,8 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           imageUrl={story.thumbnailUrl}
           aspectRatio="portrait"
           onClick={() => onCardClick(story)}
+          contentType={story.type}
+          duration={story.durationOrTime}
         />
       ))}
     </div>
@@ -147,6 +149,8 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           imageUrl={story.thumbnailUrl}
           aspectRatio="square"
           onClick={() => onCardClick(story)}
+          contentType={story.type}
+          duration={story.durationOrTime}
         />
       ))}
     </div>

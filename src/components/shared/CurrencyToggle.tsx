@@ -33,8 +33,8 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full right-0 mt-1 z-[101] bg-tea-elevated border border-tea-border rounded-sm shadow-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] origin-top-right min-w-[140px]">
+          <div className="fixed inset-0 z-modal" onClick={() => setIsOpen(false)} />
+          <div className="absolute top-full right-0 mt-1 z-modal bg-tea-elevated border border-tea-border rounded-sm shadow-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] origin-top-right min-w-[140px]">
             {/* Currency options */}
             <div className="border-b border-tea-gold/[0.06] px-3 py-2">
               <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">Currency</span>

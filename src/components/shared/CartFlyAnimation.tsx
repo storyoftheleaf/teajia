@@ -31,7 +31,7 @@ export const CartFlyAnimation: React.FC<CartFlyAnimationProps> = ({
 
   return (
     <div
-      className="fixed z-[300] pointer-events-none"
+      className="fixed z-toast pointer-events-none"
       style={{
         left: startX,
         top: startY,

@@ -259,7 +259,7 @@ export const OrdersView = () => {
 
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative">
                 <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-muted hover:text-tea-text transition-colors">
                     <X size={24} />

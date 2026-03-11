@@ -378,7 +378,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-7xl h-[85vh] flex flex-col shadow-2xl relative">
         <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface rounded-t-xl">
           <div>

@@ -89,7 +89,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {revealClip && (
         <div
           ref={overlayRef}
-          className="fixed inset-0 z-[9999] pointer-events-none transition-[clip-path] duration-500 ease-out"
+          className="fixed inset-0 z-overlay pointer-events-none transition-[clip-path] duration-500 ease-out"
           style={{
             clipPath: revealClip,
             backgroundColor: 'var(--tea-bg)',

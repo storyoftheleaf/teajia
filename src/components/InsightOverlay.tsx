@@ -26,7 +26,7 @@ const INSIGHT_COLORS: Record<Insight['type'], string> = {
 export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose }) => {
   return (
     <div
-      className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]"
+      className="fixed inset-0 z-modal bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]"
       onClick={onClose}
     >
       <div

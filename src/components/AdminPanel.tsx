@@ -62,9 +62,9 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
     const delPage = (i: number) => { if (pages.length > 1) onDeletePage(i); };
 
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-tea-surface text-tea-text overflow-hidden">
+        <div className="fixed inset-0 z-modal flex flex-col bg-tea-surface text-tea-text overflow-hidden">
             {/* Header */}
-            <div className="h-16 border-b border-tea-gold/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-[110] shadow-md relative">
+            <div className="h-16 border-b border-tea-gold/10 bg-tea-bg flex items-center justify-between px-4 md:px-6 shrink-0 z-toast shadow-md relative">
                 <button
                     onClick={onCancel}
                     className="flex items-center gap-2 text-tea-text hover:text-white transition-colors group px-2 py-1 rounded-sm hover:bg-tea-gold/5"
@@ -209,7 +209,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
             {/* Template Selector Modal */}
             {showTemplateModal && (
-                <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+                <div className="fixed inset-0 z-modal bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
                     <div className="bg-tea-bg rounded-sm border border-tea-gold/15 max-w-4xl w-full max-h-[90vh] flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-tea-bg border-b border-tea-gold/15 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0">

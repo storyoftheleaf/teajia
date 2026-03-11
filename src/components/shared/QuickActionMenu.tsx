@@ -25,10 +25,10 @@ export const QuickActionMenu: React.FC<QuickActionMenuProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[200]" onClick={onClose} />
+      <div className="fixed inset-0 z-modal" onClick={onClose} />
       {/* Menu */}
       <div
-        className="fixed z-[201] bg-tea-elevated shadow-2xl rounded-lg overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-tea-gold/10"
+        className="fixed z-modal bg-tea-elevated shadow-2xl rounded-lg overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-tea-gold/10"
         style={{
           left: adjustedX,
           top: adjustedY,

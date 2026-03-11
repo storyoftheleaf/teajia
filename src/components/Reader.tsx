@@ -444,7 +444,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
   // --- SUB-COMPONENTS (Nav Overlay) ---
   const NavOverlay = () => (
     <div 
-        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-end animate-[fadeIn_0.2s_ease-out]" 
+        className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm flex justify-end animate-[fadeIn_0.2s_ease-out]" 
         onClick={() => setShowNav(false)}
     >
         <div className="w-full max-w-sm bg-tea-bg h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-text/10 animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
@@ -478,7 +478,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
 
   // --- MAIN RENDER ---
   return (
-    <div className={`fixed inset-0 bg-tea-bg flex flex-col items-center justify-center overflow-hidden ${customZIndex || 'z-[60]'}`}>
+    <div className={`fixed inset-0 bg-tea-bg flex flex-col items-center justify-center overflow-hidden ${customZIndex || 'z-modal'}`}>
         
         {/* Background Texture for Immersion */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50 pointer-events-none"></div>

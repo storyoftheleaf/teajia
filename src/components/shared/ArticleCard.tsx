@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { FileText, Play, Headphones, Camera } from 'lucide-react';
 import { Icons } from '../Icons';
 import { CardContainer } from './CardContainer';
+import { ContentType } from '../../types';
 
 interface ArticleCardProps {
   title: string;
@@ -9,7 +11,17 @@ interface ArticleCardProps {
   aspectRatio?: 'portrait' | 'square';
   onClick?: () => void;
   className?: string;
+  contentType?: ContentType;
+  duration?: string;
 }
+
+const contentTypeConfig: Record<ContentType, { icon: React.ElementType; label: string }> = {
+  [ContentType.Article]: { icon: FileText, label: 'Read' },
+  [ContentType.Reel]: { icon: Play, label: 'Watch' },
+  [ContentType.Film]: { icon: Play, label: 'Watch' },
+  [ContentType.Audio]: { icon: Headphones, label: 'Listen' },
+  [ContentType.PhotoEssay]: { icon: Camera, label: 'View' },
+};
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({
   title,
@@ -18,6 +30,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   aspectRatio = 'portrait',
   onClick,
   className = '',
+  contentType,
+  duration,
 }) => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -82,6 +96,20 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
             </>
           )}
+
+          {/* Content-type badge */}
+          {contentType && (() => {
+            const config = contentTypeConfig[contentType];
+            const Icon = config.icon;
+            return (
+              <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-tea-bg/80 backdrop-blur-sm rounded-full px-2.5 py-1 border border-tea-border">
+                <Icon className="w-3 h-3 text-tea-gold" strokeWidth={2} />
+                {duration && (
+                  <span className="text-[9px] text-tea-text-sec font-sans tracking-wide">{duration}</span>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
