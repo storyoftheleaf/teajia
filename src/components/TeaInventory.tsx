@@ -43,7 +43,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // User Interaction State — persisted via Zustand store
@@ -144,10 +143,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             <PageHeaderActions
               viewMode={viewMode}
               onViewModeChange={setViewMode}
-              onFilter={() => setIsFilterOpen(true)}
               onReset={clearFilters}
               showReset={(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None')}
-              showFilter={true}
               activeType={activeType}
               activeFeeling={activeFeeling}
             />
@@ -165,100 +162,88 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         </PageHeader>
       ) : (
         /* Compact toolbar when embedded as a tab (hideHeader) */
-        <div className="flex items-center justify-between px-3 md:px-4 lg:px-6 py-2 lg:hidden">
+        <div className="flex items-center justify-between px-3 md:px-4 lg:px-6 py-2">
           <PageHeaderActions
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            onFilter={() => setIsFilterOpen(true)}
             onReset={clearFilters}
             showReset={(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None')}
-            showFilter={true}
             activeType={activeType}
             activeFeeling={activeFeeling}
           />
         </div>
       )}
 
-      {/* --- Filter Modal --- */}
-      {isFilterOpen && (
-          <div className="fixed inset-0 z-modal flex items-end md:items-center justify-center p-0 md:p-4">
-              <div className="absolute inset-0 bg-tea-text/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
-              <div className="relative w-full md:max-w-xl bg-tea-bg rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
-                  <div className="px-6 py-3 border-b border-tea-gold/[0.08] flex justify-between items-center bg-tea-surface">
-                      <span className="text-xs uppercase tracking-[0.2em] text-tea-text font-semibold">Refine Collection</span>
-                      <button onClick={() => setIsFilterOpen(false)}><Icons.Close className="w-4 h-4 text-tea-text/60" /></button>
-                  </div>
-                  <div className="p-6 overflow-y-auto text-tea-text flex-1">
-                      <div className="mb-6">
-                          <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Type</h3>
-                          <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-text' : 'border-tea-gold/[0.08]'}`}>All</button>
-                              {TEA_TYPES.map(t => (
-                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-text' : 'border-tea-gold/[0.08]'}`}>{t}</button>
-                              ))}
-                          </div>
-                      </div>
-                      <div>
-                          <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Feeling</h3>
-                          <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-gold/[0.08]'}`}>All</button>
-                              {FEELINGS_LIST.map(f => (
-                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-gold/[0.08]'}`}>{f}</button>
-                              ))}
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
+      {/* --- Inline Filter Bar + Content (full width) --- */}
+      <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4">
 
-      {/* --- Desktop: Sidebar + Content / Mobile: Full Width --- */}
-      <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 lg:flex lg:gap-8">
-         {/* Desktop persistent filter sidebar */}
-         <div className="hidden lg:block w-56 shrink-0">
-            <div className="sticky top-24 space-y-6">
-               <div>
-                  <h3 className="font-serif italic text-sm text-tea-text/50 mb-3">Type</h3>
-                  <div className="flex flex-col gap-1.5">
-                     <button onClick={() => setActiveType('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeType === 'All' ? 'bg-tea-elevated text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All Types</button>
-                     {TEA_TYPES.map(t => (
-                        <button key={t} onClick={() => setActiveType(t)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeType === t ? 'bg-tea-elevated text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>{t}</button>
-                     ))}
-                  </div>
-               </div>
-               <div className="border-t border-tea-gold/[0.08] pt-6">
-                  <h3 className="font-serif italic text-sm text-tea-text/50 mb-3">Feeling</h3>
-                  <div className="flex flex-col gap-1.5">
-                     <button onClick={() => setActiveFeeling('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All</button>
-                     {FEELINGS_LIST.map(f => (
-                        <button key={f} onClick={() => setActiveFeeling(f)} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === f ? 'bg-tea-gold text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>{f}</button>
-                     ))}
-                  </div>
-               </div>
+         {/* Inline filter chips */}
+         <div className="mb-4 space-y-3">
+            {/* Type chips — horizontally scrollable */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Type</span>
+               <button
+                  onClick={() => setActiveType('All')}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all ${
+                     activeType === 'All'
+                        ? 'bg-tea-elevated text-tea-text font-medium border border-tea-border'
+                        : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
+                  }`}
+               >
+                  All
+               </button>
+               {TEA_TYPES.map(t => (
+                  <button
+                     key={t}
+                     onClick={() => setActiveType(prev => prev === t ? 'All' : t)}
+                     className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all ${
+                        activeType === t
+                           ? 'bg-tea-gold text-tea-bg font-medium border border-tea-gold'
+                           : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
+                     }`}
+                  >
+                     {t}
+                  </button>
+               ))}
+            </div>
+
+            {/* Feeling chips — horizontally scrollable */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Mood</span>
+               {FEELINGS_LIST.map(f => (
+                  <button
+                     key={f}
+                     onClick={() => setActiveFeeling(prev => prev === f ? 'All' : f)}
+                     className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] tracking-wider transition-all ${
+                        activeFeeling === f
+                           ? 'bg-tea-gold text-tea-bg font-medium border border-tea-gold'
+                           : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
+                     }`}
+                  >
+                     {f}
+                  </button>
+               ))}
+            </div>
+
+            {/* Active filters summary + count */}
+            <div className="flex items-center justify-between">
+               <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50">
+                  {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
+               </p>
                {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
-                  <button onClick={clearFilters} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors underline uppercase tracking-wider">
-                     Clear All Filters
+                  <button
+                     onClick={clearFilters}
+                     className="text-[11px] text-tea-gold hover:text-tea-gold/80 transition-colors uppercase tracking-wider flex items-center gap-1.5"
+                  >
+                     <Icons.Close className="w-3 h-3" />
+                     Clear filters
                   </button>
                )}
             </div>
          </div>
 
-         {/* Main content area */}
-         <div className="flex-1 min-w-0">
-         {/* Results Count */}
-         <div className="flex items-center justify-between mb-4 px-0">
-            <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50">
-               {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
-               {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
-                  <button
-                     onClick={clearFilters}
-                     className="ml-3 text-tea-gold hover:text-tea-gold/80 transition-colors underline lg:hidden"
-                  >
-                     Clear filters
-                  </button>
-               )}
-            </p>
-         </div>
+         {/* Main content area (full width now) */}
+         <div className="w-full">
 
          {filteredInventory.length === 0 ? (
             <div className="text-center py-32">
