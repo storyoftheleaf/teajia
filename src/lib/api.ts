@@ -113,6 +113,69 @@ export const api = {
       });
       return handleResponse(res);
     },
+    changePassword: async (currentPassword: string, newPassword: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/change-password`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      return handleResponse(res);
+    },
+    updateProfile: async (data: { name?: string; email?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    requestAdmin: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/request-admin`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    resetPassword: async (token: string, newPassword: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  users: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/users`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    updateRole: async (userId: string, data: { role?: string; admin_request_status?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (userId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    createResetToken: async (userId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/reset-token`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ userId }),
+      });
+      return handleResponse(res);
+    },
   },
 
   products: {

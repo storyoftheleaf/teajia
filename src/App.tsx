@@ -26,6 +26,7 @@ const SharedCollection = lazy(() => import('./components/SharedCollection').then
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const GuestManagement = lazy(() => import('./components/events/GuestManagement'));
 const ProductPage = lazy(() => import('./pages/ProductPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
@@ -466,6 +467,7 @@ const AppContent = () => {
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestManagement /></Suspense></ErrorBoundary>} />
+                <Route path="/reset-password" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ResetPasswordPage /></Suspense></ErrorBoundary>} />
                 {/* 404 Page */}
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">

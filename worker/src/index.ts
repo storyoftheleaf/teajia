@@ -79,8 +79,20 @@ async function requireAdmin(request: Request, env: Env): Promise<Response | null
     return json({ error: 'Unauthorized' }, 401);
   }
   const claims = parseToken(token);
-  if (!claims || claims.role !== 'admin') {
+  if (!claims || (claims.role !== 'admin' && claims.role !== 'owner')) {
     return json({ error: 'Admin access required' }, 403);
+  }
+  return null;
+}
+
+async function requireOwner(request: Request, env: Env): Promise<Response | null> {
+  const token = isAuthed(request);
+  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+  const claims = parseToken(token);
+  if (!claims || claims.role !== 'owner') {
+    return json({ error: 'Owner access required' }, 403);
   }
   return null;
 }
@@ -236,12 +248,208 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) return json(user);
   } catch {}
 
   // Fallback to token claims
   return json({ id: claims.sub, email: claims.email, name: claims.name, role: claims.role });
+};
+
+// ── Change Password ──
+const handleChangePassword: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const { currentPassword, newPassword } = await request.json() as { currentPassword?: string; newPassword?: string };
+  if (!currentPassword || !newPassword) return json({ error: 'Current and new password required' }, 400);
+  if (newPassword.length < 6) return json({ error: 'New password must be at least 6 characters' }, 400);
+
+  const user = await env.DB.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  const currentHash = await hashPassword(currentPassword);
+  if (currentHash !== user.password_hash) return json({ error: 'Current password is incorrect' }, 403);
+
+  const newHash = await hashPassword(newPassword);
+  await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, claims.sub).run();
+
+  return json({ ok: true, message: 'Password changed successfully' });
+};
+
+// ── Update Profile (name/email) ──
+const handleUpdateProfile: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const { name, email } = await request.json() as { name?: string; email?: string };
+
+  if (email && email !== claims.email) {
+    const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(email, claims.sub).first();
+    if (existing) return json({ error: 'Email already in use' }, 409);
+  }
+
+  const updates: string[] = [];
+  const binds: any[] = [];
+  if (name !== undefined) { updates.push('name = ?'); binds.push(name); }
+  if (email !== undefined) { updates.push('email = ?'); binds.push(email); }
+
+  if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  binds.push(claims.sub);
+  await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+
+  const updatedUser = await env.DB.prepare('SELECT id, email, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+
+  // Issue fresh token with updated claims
+  const newToken = await createToken(env.JWT_SECRET, {
+    sub: updatedUser!.id as string,
+    email: updatedUser!.email as string,
+    role: updatedUser!.role as string,
+    name: updatedUser!.name as string,
+  });
+
+  return json({ token: newToken, user: updatedUser });
+};
+
+// ── Request Admin Role ──
+const handleRequestAdmin: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  if (claims.role === 'admin' || claims.role === 'owner') {
+    return json({ error: 'You already have admin access' }, 400);
+  }
+
+  const user = await env.DB.prepare('SELECT id, admin_request_status FROM users WHERE id = ?').bind(claims.sub).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+  if (user.admin_request_status === 'pending') return json({ error: 'Admin request already pending' }, 400);
+
+  await env.DB.prepare(
+    "UPDATE users SET admin_request_status = 'pending', admin_requested_at = datetime('now') WHERE id = ?"
+  ).bind(claims.sub).run();
+
+  return json({ ok: true, message: 'Admin access requested. An administrator will review your request.' });
+};
+
+// ── List All Users (admin/owner) ──
+const handleListUsers: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const users = await env.DB.prepare(
+    'SELECT id, email, name, role, admin_request_status, admin_requested_at, created_at FROM users ORDER BY created_at DESC'
+  ).all();
+
+  return json(users.results);
+};
+
+// ── Approve/Deny Admin Request (owner only) ──
+const handleUpdateUserRole: Handler = async (request, env, params) => {
+  const authErr = await requireOwner(request, env);
+  if (authErr) return authErr;
+
+  const userId = params.id;
+  const { role, admin_request_status } = await request.json() as { role?: string; admin_request_status?: string };
+
+  const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  // Prevent changing owner role
+  if (user.role === 'owner') return json({ error: 'Cannot modify owner account' }, 403);
+
+  const updates: string[] = [];
+  const binds: any[] = [];
+
+  if (role && ['user', 'admin'].includes(role)) {
+    updates.push('role = ?');
+    binds.push(role);
+  }
+  if (admin_request_status && ['none', 'approved', 'denied'].includes(admin_request_status)) {
+    updates.push('admin_request_status = ?');
+    binds.push(admin_request_status);
+  }
+
+  if (updates.length === 0) return json({ error: 'No valid updates' }, 400);
+
+  binds.push(userId);
+  await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+
+  const updated = await env.DB.prepare(
+    'SELECT id, email, name, role, admin_request_status, admin_requested_at, created_at FROM users WHERE id = ?'
+  ).bind(userId).first();
+
+  return json(updated);
+};
+
+// ── Delete User (owner only) ──
+const handleDeleteUser: Handler = async (request, env, params) => {
+  const authErr = await requireOwner(request, env);
+  if (authErr) return authErr;
+
+  const userId = params.id;
+  const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+  if (user.role === 'owner') return json({ error: 'Cannot delete owner account' }, 403);
+
+  await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+  return json({ ok: true });
+};
+
+// ── Generate Password Reset Token (admin/owner) ──
+const handleCreateResetToken: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const { userId } = await request.json() as { userId?: string };
+  if (!userId) return json({ error: 'userId required' }, 400);
+
+  const user = await env.DB.prepare('SELECT id, email, name FROM users WHERE id = ?').bind(userId).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  // Generate a random reset token
+  const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+
+  // Expires in 24 hours
+  await env.DB.prepare(
+    "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+24 hours'))"
+  ).bind(id, userId, resetToken).run();
+
+  return json({ token: resetToken, user: { id: user.id, email: user.email, name: user.name } });
+};
+
+// ── Reset Password with Token (public) ──
+const handleResetPassword: Handler = async (request, env) => {
+  const { token, newPassword } = await request.json() as { token?: string; newPassword?: string };
+  if (!token || !newPassword) return json({ error: 'Token and new password required' }, 400);
+  if (newPassword.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+
+  const resetRecord = await env.DB.prepare(
+    "SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > datetime('now')"
+  ).bind(token).first();
+
+  if (!resetRecord) return json({ error: 'Invalid or expired reset token' }, 400);
+
+  const newHash = await hashPassword(newPassword);
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, resetRecord.user_id),
+    env.DB.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').bind(resetRecord.id),
+  ]);
+
+  return json({ ok: true, message: 'Password has been reset successfully. You can now sign in.' });
 };
 
 const handleGetProducts: Handler = async (request, env) => {
@@ -2134,6 +2342,16 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],
   ['GET', '/api/auth/me', handleGetMe],
+  ['PUT', '/api/auth/change-password', handleChangePassword],
+  ['PUT', '/api/auth/profile', handleUpdateProfile],
+  ['POST', '/api/auth/request-admin', handleRequestAdmin],
+  ['POST', '/api/auth/reset-password', handleResetPassword],
+
+  // User Management (admin/owner)
+  ['GET', '/api/admin/users', handleListUsers],
+  ['PUT', '/api/admin/users/:id/role', handleUpdateUserRole],
+  ['DELETE', '/api/admin/users/:id', handleDeleteUser],
+  ['POST', '/api/admin/reset-token', handleCreateResetToken],
 
   // Products
   ['GET', '/api/products/public', handleGetPublicProducts],
