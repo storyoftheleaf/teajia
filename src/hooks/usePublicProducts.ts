@@ -28,6 +28,7 @@ export const usePublicProducts = () => {
         canReorder: !!p.can_reorder,
         isFeatured: !!p.is_featured,
         isOneOfAKind: !p.can_reorder,
+        isCurated: !!p.is_curated,
         lore: p.lore || '',
         showWisdom: p.show_wisdom == null ? true : !!p.show_wisdom,
         processingNotes: p.processing_notes || '',

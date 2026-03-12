@@ -188,6 +188,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     canReorder: false,
     isPublic: true,
     isFeatured: false,
+    isCurated: false,
     recheckStock: false,
     lore: '',
     tastingNotes: '', // We'll store as comma separated string in form
@@ -235,6 +236,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         canReorder: initialData.canReorder || false,
         isPublic: initialData.isPublic === undefined ? true : initialData.isPublic,
         isFeatured: initialData.isFeatured || false,
+        isCurated: initialData.isCurated || false,
         recheckStock: initialData.recheckStock || false,
         lore: initialData.lore || '',
         tastingNotes: initialData.tastingNotes ? initialData.tastingNotes.join(', ') : '',
@@ -270,6 +272,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         canReorder: false,
         isPublic: true,
         isFeatured: false,
+        isCurated: false,
         recheckStock: false,
         lore: '',
         tastingNotes: '',
@@ -436,6 +439,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             can_reorder: formData.canReorder,
             is_public: formData.isPublic,
             is_featured: formData.isFeatured,
+            is_curated: formData.isCurated,
             lore: formData.lore,
             tasting_notes: formData.tastingNotes.split(',').map(n => n.trim()).filter(n => n),
             is_custom_wisdom: formData.isCustomWisdom,
@@ -523,6 +527,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isFeatured ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
                     <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="hidden" />
                     <Star size={12} /> Featured
+                </label>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isCurated ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
+                    <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="hidden" />
+                    <Star size={12} /> Curated
                 </label>
             </div>
 

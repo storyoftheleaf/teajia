@@ -14,10 +14,15 @@ import type { InventoryItem } from '../types';
  * Shows hero image, tea info, description, tasting notes, pricing, and related teas.
  */
 
-function getStockStatus(stockG: number, isOneOfAKind?: boolean) {
+/** Converts a string to Title Case */
+function toTitleCase(str: string): string {
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function getStockStatus(stockG: number, isOneOfAKind?: boolean, isCurated?: boolean) {
   if (stockG <= 0) return { label: 'Sold Out', color: '#c0392b', level: 'out' as const };
-  if (isOneOfAKind) return { label: 'Limited Edition', color: '#c87533', level: 'limited' as const };
-  if (stockG < 50) return { label: `Only ${stockG}g left`, color: '#c87533', level: 'low' as const };
+  if (isCurated) return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
+  if (isOneOfAKind) return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
   if (stockG < 100) return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
   return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
 }
@@ -67,12 +72,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
   const total = pricePerGram * grams;
-  const stockStatus = getStockStatus(item.stock_g, item.isOneOfAKind);
+  const stockStatus = getStockStatus(item.stock_g, item.isOneOfAKind, item.isCurated);
   const isSoldOut = stockStatus.level === 'out';
   const isFavorited = favoriteTeas.includes(item.id);
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
-  const story = [item.lore || item.description, item.terroir, item.processingNotes].filter(Boolean).join('\n\n');
+  const mainStory = item.lore || item.description || '';
+  const terroir = item.terroir || '';
+  const processing = item.processingNotes || '';
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -170,12 +177,21 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             )}
           </div>
 
-          {/* Tea images — 1-3 adaptive layout */}
+          {/* Tea images — 1-3 adaptive layout, or placeholder */}
           {(() => {
             const imgs = [item.image, ...(item.additionalImages || [])].filter(Boolean).slice(0, 3);
-            if (imgs.length === 0) return null;
             return (
               <div className="mb-5">
+                {imgs.length === 0 && (
+                  <div className="flex justify-center">
+                    <div
+                      className="w-[70%] rounded overflow-hidden flex items-center justify-center"
+                      style={{ aspectRatio: '3/2', background: 'var(--tea-accent-sub)' }}
+                    >
+                      <TeaPlaceholder type={item.type} style={{ width: '50%', height: '50%', opacity: 0.5 }} />
+                    </div>
+                  </div>
+                )}
                 {imgs.length === 1 && (
                   <div className="flex justify-center">
                     <div
@@ -239,7 +255,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     key={tag}
                     className="text-xs px-3 py-1.5 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border"
                   >
-                    {tag}
+                    {toTitleCase(tag)}
                   </span>
                 ))}
               </div>
@@ -255,7 +271,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     key={i}
                     className="font-serif text-xs italic px-2.5 py-1 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border tracking-wide"
                   >
-                    {tag}
+                    {toTitleCase(tag)}
                   </span>
                 ))}
               </div>
@@ -270,10 +286,22 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           )}
 
           {/* Story / Lore / Description */}
-          {story && (
+          {mainStory && (
             <p className="text-sm text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
-              {story}
+              {mainStory}
             </p>
+          )}
+          {terroir && (
+            <div className="mb-5">
+              <h3 className="text-[10px] uppercase tracking-[0.12em] text-tea-gold mb-1.5">Terroir</h3>
+              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{terroir}</p>
+            </div>
+          )}
+          {processing && (
+            <div className="mb-5">
+              <h3 className="text-[10px] uppercase tracking-[0.12em] text-tea-gold mb-1.5">Processing</h3>
+              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{processing}</p>
+            </div>
           )}
 
           {/* Divider */}

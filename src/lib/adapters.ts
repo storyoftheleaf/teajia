@@ -44,6 +44,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     experience: p.experience,
     isFeatured: p.isFeatured,
     isOneOfAKind: p.isOneOfAKind,
+    isCurated: p.isCurated,
     material: p.material,
     capacityMl: p.capacityMl,
     subcategory: p.teawareCategory ? categoryToSubcategory(p.teawareCategory) : undefined,

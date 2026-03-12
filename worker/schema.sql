@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS products (
     can_reorder INTEGER DEFAULT 0,
     is_public INTEGER DEFAULT 1,
     is_featured INTEGER DEFAULT 0,
+    is_curated INTEGER DEFAULT 0,
     lore TEXT,
     is_custom_wisdom INTEGER DEFAULT 0,
     show_wisdom INTEGER DEFAULT 1,

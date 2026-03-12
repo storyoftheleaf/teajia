@@ -227,6 +227,7 @@ export interface InventoryItem {
   capacityMl?: number;
   isFeatured?: boolean;
   isOneOfAKind?: boolean;
+  isCurated?: boolean;
   magazineUrl?: string;
 }
 
@@ -253,6 +254,7 @@ export interface PublicProduct {
   canReorder: boolean;
   isFeatured?: boolean;
   isOneOfAKind: boolean;
+  isCurated?: boolean;
   lore?: string;
   showWisdom?: boolean;
   processingNotes?: string;

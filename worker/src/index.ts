@@ -484,7 +484,7 @@ const PUBLIC_FIELDS = [
   'id', 'type', 'given_name', 'chinese_name', 'product_name', 'year',
   'origin_country', 'origin_region', 'retail_price_per_gram_usd',
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
-  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured',
+  'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
 ] as const;
 
@@ -496,7 +496,7 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
       `SELECT id, type, given_name, chinese_name, product_name, year,
               origin_country, origin_region, stock_grams, description,
               tasting_notes, image_url, additional_images, status,
-              is_personal, can_reorder, is_featured, lore, show_wisdom,
+              is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
               processing_notes, terroir, mood, experience,
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd
@@ -572,7 +572,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -618,7 +618,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (body.quantity_purchased == null) body.quantity_purchased = body.stock_grams || 0;
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
-    for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
+    for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
       if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
     }
     // Apply cached vendor_id
@@ -647,7 +647,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_custom_wisdom', 'show_wisdom']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
