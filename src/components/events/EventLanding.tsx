@@ -42,7 +42,7 @@ const EventLanding: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-dim/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
         </div>
       </div>
     );
@@ -120,7 +120,7 @@ const EventLanding: React.FC = () => {
 
           {/* Date & Time */}
           <div className="mb-5">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">{formattedDay}</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-2">{formattedDay}</p>
             <p className="font-serif text-xl text-tea-text">{formattedDate}</p>
             <p className="font-serif text-lg text-tea-gold mt-1">{formattedTime}</p>
           </div>
@@ -138,7 +138,7 @@ const EventLanding: React.FC = () => {
 
           {/* Social proof */}
           {(event.confirmedCount ?? 0) > 0 && !isCompleted && (
-            <div className="flex items-center justify-center gap-2 text-tea-text-dim mb-6">
+            <div className="flex items-center justify-center gap-2 text-tea-text-sec mb-6">
               <Users className="w-3.5 h-3.5" />
               <span className="text-xs">
                 {event.confirmedCount} {event.confirmedCount === 1 ? 'seat' : 'seats'} confirmed
@@ -162,7 +162,7 @@ const EventLanding: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowFindRSVP(true)}
-                className="flex items-center justify-center gap-2 mx-auto text-xs text-tea-text-dim hover:text-tea-gold transition-colors py-2"
+                className="flex items-center justify-center gap-2 mx-auto text-xs text-tea-text-sec hover:text-tea-gold transition-colors py-2"
               >
                 <Search className="w-3.5 h-3.5" />
                 Already registered? Find my RSVP
@@ -194,7 +194,7 @@ const EventLanding: React.FC = () => {
                 Session Guidelines
               </h3>
               <ChevronDown
-                className={`w-5 h-5 text-tea-text-dim transition-transform duration-300 ${
+                className={`w-5 h-5 text-tea-text-sec transition-transform duration-300 ${
                   guidelinesExpanded ? 'rotate-180' : ''
                 }`}
               />
@@ -233,7 +233,7 @@ const EventLanding: React.FC = () => {
                 <MapPin className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm text-tea-text">{event.locationName}</p>
-                  <p className="text-xs text-tea-text-dim mt-1">{event.addressText}</p>
+                  <p className="text-xs text-tea-text-sec mt-1">{event.addressText}</p>
                   {event.mapLink && (
                     <a
                       href={event.mapLink}
@@ -252,7 +252,7 @@ const EventLanding: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-6 pb-12">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim/50">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/50">
             Hosted by Teajia
           </p>
         </div>

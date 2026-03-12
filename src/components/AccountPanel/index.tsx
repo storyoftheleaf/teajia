@@ -245,9 +245,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           {/* Mobile drag handle */}
           <div className="md:hidden flex flex-col items-center py-3 gap-1 bg-tea-surface/50">
             <div className={`h-1 rounded-full transition-all duration-150 ${
-              isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-dim/20 w-12'
+              isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/20 w-12'
             }`} />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim/40">Swipe to close</span>
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec/40">Swipe to close</span>
           </div>
 
           <div className="flex items-center justify-center p-6 border-b border-[var(--tea-border)] bg-tea-surface/50 relative">
@@ -263,9 +263,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               className="absolute left-6 min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5"
             >
               {panelView !== 'main' ? (
-                <Icons.Back className="w-6 h-6 text-tea-text-dim hover:text-tea-text transition-colors" />
+                <Icons.Back className="w-6 h-6 text-tea-text-sec hover:text-tea-text transition-colors" />
               ) : (
-                <Icons.Close className="w-6 h-6 text-tea-text-dim hover:text-tea-text transition-colors" />
+                <Icons.Close className="w-6 h-6 text-tea-text-sec hover:text-tea-text transition-colors" />
               )}
             </button>
             <h2 className="text-lg font-serif text-tea-text  tracking-wide">{headerTitle}</h2>
@@ -299,17 +299,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     <Icons.LogIn className="w-7 h-7 text-tea-gold" />
                   </div>
                   <h3 className="font-serif text-xl text-tea-text ">Welcome Back</h3>
-                  <p className="text-sm text-tea-text-dim mt-1 font-serif italic">Sign in to your Teajia account</p>
+                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Sign in to your Teajia account</p>
                 </div>
 
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-dim mb-2">Email</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
                       style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
                       placeholder="you@example.com"
                       required
@@ -317,7 +317,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-dim mb-2">Password</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Password</label>
                     <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
@@ -358,7 +358,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 </form>
 
                 <div className="mt-8 text-center">
-                  <p className="text-sm text-tea-text-dim">
+                  <p className="text-sm text-tea-text-sec">
                     Don't have an account?{' '}
                     <button
                       onClick={() => { resetForm(); setPanelView('signup'); }}
@@ -379,17 +379,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     <SealIcon className="w-7 h-7 text-tea-gold" />
                   </div>
                   <h3 className="font-serif text-xl text-tea-text ">Join Teajia</h3>
-                  <p className="text-sm text-tea-text-dim mt-1 font-serif italic">Create your account to get started</p>
+                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Create your account to get started</p>
                 </div>
 
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-dim mb-2">Name</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
                       style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
                       placeholder="Your name"
                       required
@@ -397,25 +397,25 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-dim mb-2">Email</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
                       style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
                       placeholder="you@example.com"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-dim mb-2">Password</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Password</label>
                     <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim/50 font-sans text-sm"
+                        className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 pr-12 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
                         style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
                         placeholder="Min 6 characters"
                         required
@@ -452,7 +452,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 </form>
 
                 <div className="mt-8 text-center">
-                  <p className="text-sm text-tea-text-dim">
+                  <p className="text-sm text-tea-text-sec">
                     Already have an account?{' '}
                     <button
                       onClick={() => { resetForm(); setPanelView('signin'); }}
@@ -475,7 +475,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               <div className="animate-[fadeIn_0.3s_ease-out]">
                 <button
                   onClick={() => setPanelView('main')}
-                  className="flex items-center gap-2 text-tea-text-dim hover:text-tea-text transition-colors mb-6"
+                  className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
                 >
                   <Icons.Back className="w-4 h-4" />
                   <span className="text-xs uppercase tracking-[0.15em]">Back</span>
@@ -487,7 +487,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       <Icons.Leaf className="w-7 h-7 text-tea-gold/40" />
                     </div>
                     <h3 className="font-serif text-lg text-tea-text  mb-2">No Saved Stories</h3>
-                    <p className="text-sm text-tea-text-dim text-center max-w-[260px] leading-relaxed">
+                    <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
                       Tap the leaf icon while reading to save stories for later.
                     </p>
                   </div>
@@ -521,7 +521,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               <div className="animate-[fadeIn_0.3s_ease-out]">
                 <button
                   onClick={() => setPanelView('main')}
-                  className="flex items-center gap-2 text-tea-text-dim hover:text-tea-text transition-colors mb-6"
+                  className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
                 >
                   <Icons.Back className="w-4 h-4" />
                   <span className="text-xs uppercase tracking-[0.15em]">Back</span>
@@ -533,7 +533,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       <Icons.BookOpen className="w-7 h-7 text-tea-gold/40" />
                     </div>
                     <h3 className="font-serif text-lg text-tea-text  mb-2">No Reading History</h3>
-                    <p className="text-sm text-tea-text-dim text-center max-w-[260px] leading-relaxed">
+                    <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
                       Your reading progress will appear here as you explore articles.
                     </p>
                   </div>
@@ -550,12 +550,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           i < readingHistory.length - 1 ? 'border-b border-[var(--tea-accent-sub)]' : ''
                         }`}
                       >
-                        <Icons.BookOpen className="w-4 h-4 text-tea-text-dim shrink-0" />
+                        <Icons.BookOpen className="w-4 h-4 text-tea-text-sec shrink-0" />
                         <div className="flex-1 min-w-0">
                           <span className="font-serif text-sm text-tea-text  group-hover:text-tea-gold transition-colors truncate block">
                             Story #{entry.storyId}
                           </span>
-                          <span className="text-[10px] text-tea-text-dim">
+                          <span className="text-[10px] text-tea-text-sec">
                             Page {entry.page + 1}
                           </span>
                         </div>
@@ -581,7 +581,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     <h3 className="font-serif text-xl text-tea-text ">
                       {auth.user.name || 'Tea Enthusiast'}
                     </h3>
-                    <span className="text-[11px] text-tea-text-dim mt-0.5">{auth.user.email}</span>
+                    <span className="text-[11px] text-tea-text-sec mt-0.5">{auth.user.email}</span>
                     {auth.isAdmin && (
                       <span className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-tea-gold bg-tea-gold/10 border border-tea-gold/20">
                         <Icons.Shield className="w-3 h-3" />
@@ -595,7 +595,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       <Icons.User className="w-8 h-8 text-tea-text/30" />
                     </div>
                     <h3 className="font-serif text-xl text-tea-text ">Tea Enthusiast</h3>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-1">Guest</span>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mt-1">Guest</span>
                   </div>
                 )}
 
@@ -615,7 +615,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     >
                       Create Account
                     </button>
-                    <p className="text-center text-[11px] text-tea-text-dim pt-1">
+                    <p className="text-center text-[11px] text-tea-text-sec pt-1">
                       Sign in to track orders, save favorites, and more
                     </p>
                   </div>
@@ -629,7 +629,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Admin Navigation — only for admins */}
                 {auth.isAuthenticated && auth.isAdmin && (
                   <div>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Administration</span>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Administration</span>
                     <div className="border border-tea-border overflow-hidden rounded-md">
                       {[
                         { path: '/admin/inventory', label: 'Inventory', desc: 'Manage products & stock', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
@@ -648,7 +648,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           <div className="text-tea-gold">{item.icon}</div>
                           <div className="flex flex-col items-start flex-1">
                             <span className="text-sm font-serif text-tea-text ">{item.label}</span>
-                            <span className="text-[10px] text-tea-text-dim">{item.desc}</span>
+                            <span className="text-[10px] text-tea-text-sec">{item.desc}</span>
                           </div>
                           <Icons.ChevronRight className="w-4 h-4 text-tea-gold/30 group-hover:text-tea-gold/60 transition-colors" />
                         </button>
@@ -660,33 +660,33 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Activity Stats — 3 columns now */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
-                    <Icons.Bag className="w-5 h-5 text-tea-text-dim" />
+                    <Icons.Bag className="w-5 h-5 text-tea-text-sec" />
                     <span className="font-sans text-2xl font-light text-tea-text">{cartCount}</span>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Cart</span>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Cart</span>
                   </div>
                   <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
-                    <Icons.Heart className="w-5 h-5 text-tea-text-dim" />
+                    <Icons.Heart className="w-5 h-5 text-tea-text-sec" />
                     <span className="font-sans text-2xl font-light text-tea-text">{favoriteTeas.length}</span>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Favorites</span>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Favorites</span>
                   </div>
                   <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
-                    <Icons.BookOpen className="w-5 h-5 text-tea-text-dim" />
+                    <Icons.BookOpen className="w-5 h-5 text-tea-text-sec" />
                     <span className="font-sans text-2xl font-light text-tea-text">{progressCount}</span>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Read</span>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Read</span>
                   </div>
                 </div>
 
                 {/* My Collection — shareable favorites */}
                 <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Your Tea Collection</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Your Tea Collection</span>
                   <button
                     onClick={() => setPanelView('collection')}
                     className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border hover:bg-tea-surface transition-colors group"
                   >
-                    <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
+                    <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
                     <div className="flex flex-col items-start flex-1">
                       <span className="font-serif text-sm text-tea-text ">My Favorites</span>
-                      <span className="text-[10px] text-tea-text-dim">
+                      <span className="text-[10px] text-tea-text-sec">
                         {favoriteTeas.length === 0 ? 'No teas saved yet' : `${favoriteTeas.length} ${favoriteTeas.length === 1 ? 'tea' : 'teas'} — shareable`}
                       </span>
                     </div>
@@ -701,16 +701,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 {/* Reading & Stories */}
                 <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Reading</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Reading</span>
                   <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     <button
                       onClick={() => setPanelView('saved-stories')}
                       className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
                     >
-                      <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
+                      <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
                         <span className="font-serif text-sm text-tea-text ">Saved Stories</span>
-                        <span className="text-[10px] text-tea-text-dim">
+                        <span className="text-[10px] text-tea-text-sec">
                           {savedStoryCount === 0 ? 'None saved' : `${savedStoryCount} saved`}
                         </span>
                       </div>
@@ -720,10 +720,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       onClick={() => setPanelView('reading-history')}
                       className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-surface/50 transition-colors group"
                     >
-                      <Icons.BookOpen className={`w-5 h-5 ${progressCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'} group-hover:text-tea-gold transition-colors`} />
+                      <Icons.BookOpen className={`w-5 h-5 ${progressCount > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
                       <div className="flex flex-col items-start flex-1">
                         <span className="font-serif text-sm text-tea-text ">Reading History</span>
-                        <span className="text-[10px] text-tea-text-dim">
+                        <span className="text-[10px] text-tea-text-sec">
                           {progressCount === 0 ? 'No articles read' : `${progressCount} ${progressCount === 1 ? 'article' : 'articles'}`}
                         </span>
                       </div>
@@ -734,7 +734,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 {/* Preferences: Theme + Currency */}
                 <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Preferences</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Preferences</span>
                   <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     {/* Theme Toggle */}
                     <button
@@ -770,7 +770,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                             className={`px-2.5 py-1.5 text-[11px] uppercase tracking-wider border transition-colors ${
                               currency === opt.code
                                 ? 'bg-tea-gold text-tea-bg border-tea-gold'
-                                : 'border-[var(--tea-border)] text-tea-text-dim hover:border-tea-gold/30'
+                                : 'border-[var(--tea-border)] text-tea-text-sec hover:border-tea-gold/30'
                             }`}
                           >
                             {opt.symbol} {opt.code}
@@ -783,13 +783,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 {/* Quick Actions */}
                 <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-4">Quick Actions</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Quick Actions</span>
                   <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
                     <button
                       onClick={handleOpenCart}
                       className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
                     >
-                      <Icons.Bag className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
+                      <Icons.Bag className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Open Cart</span>
                       {cartCount > 0 && (
                         <span className="text-xs font-mono text-tea-gold">{cartCount}</span>
@@ -801,7 +801,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       href="mailto:hello@teajia.com"
                       className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
                     >
-                      <Icons.Mail className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
+                      <Icons.Mail className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">Contact Us</span>
                       <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 ml-auto" />
                     </a>
@@ -812,7 +812,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       rel="noopener noreferrer"
                       className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-surface/50 transition-colors group"
                     >
-                      <Icons.Instagram className="w-5 h-5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
+                      <Icons.Instagram className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
                       <span className="text-sm font-serif text-tea-text ">@teajia.journal</span>
                       <Icons.ExternalLink className="w-4 h-4 text-tea-text/20 ml-auto" />
                     </a>
@@ -824,7 +824,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div>
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text-dim hover:text-red-500 border border-[var(--tea-border)] hover:border-red-500/20 transition-colors rounded-md"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text-sec hover:text-red-500 border border-[var(--tea-border)] hover:border-red-500/20 transition-colors rounded-md"
                     >
                       <Icons.LogOut className="w-4 h-4" />
                       <span className="text-xs uppercase tracking-[0.2em] font-medium">Sign Out</span>
@@ -840,7 +840,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         {/* Footer */}
         <div className="p-6 border-t border-[var(--tea-border)] bg-tea-surface/50 flex flex-col items-center gap-2">
           <LogoEmblem size={28} color="var(--tea-gold)" className="opacity-60" />
-          <span className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim">Teajia</span>
+          <span className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec">Teajia</span>
         </div>
       </div>
     </>

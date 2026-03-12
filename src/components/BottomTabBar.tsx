@@ -123,14 +123,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                   size={48}
                   color={isDark
                     ? (activeSection === 'HOME' ? 'var(--tea-border)' : 'var(--tea-accent-sub)')
-                    : (activeSection === 'HOME' ? 'var(--tea-text-dim)' : 'var(--tea-accent-sub)')
+                    : (activeSection === 'HOME' ? 'var(--tea-text-sec)' : 'var(--tea-accent-sub)')
                   }
                   className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
                 />
               </div>
               <LogoText
                 size="sm"
-                color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-dim)'}
+                color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
                 className={`relative z-10 transition-all duration-300 scale-[1.08] ${themeFlash ? 'opacity-60' : ''}`}
               />
             </button>

@@ -54,12 +54,12 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   const colors = {
     bg: 'var(--tea-bg)',
     title: 'var(--tea-text)',
-    subtitle: 'var(--tea-text-dim)',
+    subtitle: 'var(--tea-text-sec)',
     body: 'var(--tea-text-sec)',
     bodyHighlight: 'var(--tea-text)',
     note: 'var(--tea-text-sec)',
     accent: 'var(--tea-gold)',
-    muted: 'var(--tea-text-dim)',
+    muted: 'var(--tea-text-sec)',
     success: '#5A6E5A',
   };
   const accent = colors.accent;

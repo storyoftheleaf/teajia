@@ -196,11 +196,11 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               <ChevronLeft size={18} />
             </button>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-xs text-tea-text-dim tracking-wide">
+              <span className="text-xs text-tea-text-sec tracking-wide">
                 {currentIndex + 1} of {items.length}
               </span>
               {showSwipeHint && (
-                <span className="text-xs text-tea-text-dim animate-pulse transition-opacity duration-500">
+                <span className="text-xs text-tea-text-sec animate-pulse transition-opacity duration-500">
                   ← swipe →
                 </span>
               )}

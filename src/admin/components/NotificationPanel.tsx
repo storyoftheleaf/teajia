@@ -94,7 +94,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
     <div>
       {/* Header Actions */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4 text-xs text-tea-text-dim">
+        <div className="flex items-center gap-4 text-xs text-tea-text-sec">
           <span>{notifications.length} total</span>
           <span className="text-amber-400">{pendingCount} pending</span>
           <span className="text-green-400">{sentCount} sent</span>
@@ -120,7 +120,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
 
       {/* Notifications List */}
       {notifications.length === 0 ? (
-        <div className="text-center py-8 text-tea-text-dim text-sm">
+        <div className="text-center py-8 text-tea-text-sec text-sm">
           <Bell className="mx-auto mb-2" size={20} />
           <p>No notifications yet</p>
           <p className="text-xs mt-1">Generate check-in reminders for all confirmed attendees</p>
@@ -140,11 +140,11 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                         {notif.status}
                       </span>
                     </div>
-                    <pre className="text-xs text-tea-text-dim whitespace-pre-wrap font-sans leading-relaxed mt-1 max-h-24 overflow-y-auto">
+                    <pre className="text-xs text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed mt-1 max-h-24 overflow-y-auto">
                       {notif.messageTemplate}
                     </pre>
                     {notif.sentAt && (
-                      <span className="text-[10px] text-tea-text-dim mt-1 block">
+                      <span className="text-[10px] text-tea-text-sec mt-1 block">
                         Sent: {new Date(notif.sentAt).toLocaleString()}
                       </span>
                     )}
@@ -153,7 +153,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex flex-col gap-1 shrink-0">
                     <button
                       onClick={() => copyMessage(notif)}
-                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/30 transition-colors"
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
                     >
                       {copiedId === notif.id ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
                       {copiedId === notif.id ? 'Copied' : 'Copy'}
@@ -164,7 +164,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                       className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded border transition-colors ${
                         notif.status === 'sent'
                           ? 'border-green-500/30 text-green-400 hover:bg-green-500/10'
-                          : 'border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/30'
+                          : 'border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
                       }`}
                     >
                       {loadingId === notif.id ? (

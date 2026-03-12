@@ -22,7 +22,7 @@ const TeawareCard: React.FC<{
       hidden: { opacity: 0, y: 20 },
       visible: { opacity: 1, y: 0 }
     }}
-    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-dim/50 transition-all duration-500 flex flex-col rounded-lg shadow-2xl"
+    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-sec/50 transition-all duration-500 flex flex-col rounded-lg shadow-2xl"
   >
     <div className="aspect-[4/3] overflow-hidden relative bg-tea-bg/50 flex items-center justify-center">
       {product.imageUrl ? (
@@ -41,22 +41,22 @@ const TeawareCard: React.FC<{
         <h3 className="font-serif text-xl text-tea-text tracking-wide flex items-center gap-2">
             {product.givenName || product.productName}
             {isAdmin && !product.isPublic && (
-                <EyeOff size={16} className="text-tea-text-dim/70" />
+                <EyeOff size={16} className="text-tea-text-sec/70" />
             )}
             {product.showWisdom && product.lore && (
                 <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
                     {product.isCustomWisdom ? (
                         <Pencil size={12} className="text-tea-accent" />
                     ) : (
-                        <Sparkles size={12} className="text-tea-text-dim" />
+                        <Sparkles size={12} className="text-tea-text-sec" />
                     )}
                 </span>
             )}
         </h3>
-        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
+        <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
       </div>
       <div className="mt-6 pt-6 border-t border-tea-border flex justify-between items-end">
-        <p className="text-sm text-tea-text-dim line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
+        <p className="text-sm text-tea-text-sec line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
         <p className="font-mono text-lg text-tea-text whitespace-nowrap">{formatCurrency(product.pricePerGramUSD, currency, rates)}</p>
       </div>
     </div>
@@ -114,15 +114,15 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
     <th
-      className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-${align} truncate`}
+      className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
       onClick={() => handleSort(colKey)}
     >
       <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
         {label}
         <div className="flex-shrink-0 relative z-0 flex items-center">
           {sortConfig.key === colKey ? (
-            sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-dim" /> : <ArrowDown size={10} className="ml-1 text-tea-text-dim" />
-          ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-dim/50 ml-1 transition-opacity" />}
+            sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />
+          ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
         </div>
       </div>
     </th>
@@ -131,7 +131,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
   const ROW_HEIGHT = 36;
 
   if (loading) {
-    return <div className="p-12 text-center text-tea-text-dim font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading teaware...</div>;
+    return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading teaware...</div>;
   }
 
   return (
@@ -145,7 +145,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
             <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
               Equipment
             </h2>
-            <span className="text-tea-text-dim text-xs tracking-wide">
+            <span className="text-tea-text-sec text-xs tracking-wide">
               — {sorted.length} items
             </span>
           </div>
@@ -153,13 +153,13 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
           <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
             <div className="relative w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
               <input
                 type="text"
                 placeholder="Search teaware..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-dim font-serif placeholder-tea-text-dim/50 transition-colors"
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
               />
             </div>
 
@@ -167,14 +167,14 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
             <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
               <button
                 onClick={() => setViewMode('database')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'database' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-dim hover:text-tea-text'}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'database' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
                 title="Database View"
               >
                 <LayoutList size={14} />
               </button>
               <button
                 onClick={() => setViewMode('product')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'product' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-dim hover:text-tea-text'}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'product' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
                 title="Product View"
               >
                 <LayoutGrid size={14} />
@@ -183,7 +183,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
             <div className="w-px h-4 bg-tea-border mx-1" />
 
-            <button onClick={() => onAdd(products[0])} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-dim hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
+            <button onClick={() => onAdd(products[0])} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
               <Plus size={14} /> New
             </button>
           </div>
@@ -194,7 +194,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
 
         {sorted.length === 0 ? (
-          <div className="text-center py-16 text-tea-text-dim font-serif italic">
+          <div className="text-center py-16 text-tea-text-sec font-serif italic">
             No active teaware items found.
           </div>
         ) : viewMode === 'product' ? (
@@ -228,9 +228,9 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
-                      {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim/40" />}
+                      {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-tea-text-dim/70 mt-0.5">
+                    <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
                       {product.teawareCategory && <span className="capitalize">{product.teawareCategory}</span>}
                       {product.material && (
                         <>
@@ -244,7 +244,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                     <div className="text-xs text-tea-text/80 tabular-nums">
                       {product.quantityUnits ?? '-'} units
                     </div>
-                    <div className="text-[10px] text-tea-text-dim/60 tabular-nums">
+                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
                       {product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}
                     </div>
                   </div>
@@ -292,12 +292,12 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                             {product.productName}
                             {product.lore && (
                               <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                                {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-text-dim" />}
+                                {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-text-sec" />}
                               </span>
                             )}
                           </span>
                           {product.givenName && (
-                            <span className="text-[10px] text-tea-text-dim font-sans mt-0.5 truncate block">
+                            <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
                               {product.givenName}
                             </span>
                           )}
@@ -306,27 +306,27 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
                       {/* Category */}
                       <td className="px-4 align-middle overflow-hidden">
-                        <span className="text-xs text-tea-text-dim font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>
+                        <span className="text-xs text-tea-text-sec font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>
                       </td>
 
                       {/* Material */}
                       <td className="px-4 align-middle overflow-hidden">
-                        <span className="text-xs text-tea-text-dim font-sans truncate block">{product.material || '-'}</span>
+                        <span className="text-xs text-tea-text-sec font-sans truncate block">{product.material || '-'}</span>
                       </td>
 
                       {/* Capacity */}
                       <td className="px-4 align-middle overflow-hidden text-right">
-                        <span className="num text-xs text-tea-text-dim">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>
+                        <span className="num text-xs text-tea-text-sec">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>
                       </td>
 
                       {/* Units */}
                       <td className="px-4 align-middle overflow-hidden text-right">
-                        <span className="num text-xs text-tea-text-dim">{product.quantityUnits ?? '-'}</span>
+                        <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>
                       </td>
 
                       {/* Cost */}
                       <td className="px-4 align-middle overflow-hidden text-right">
-                        <span className="num text-xs text-tea-text-dim">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>
+                        <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>
                       </td>
 
                       {/* Retail */}
@@ -337,8 +337,8 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                       {/* Actions */}
                       <td className="px-4 align-middle text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => onAdd(product)} className="text-tea-text-dim hover:text-tea-text p-1 transition-colors" title="Add to Invoice"><Plus size={14} /></button>
-                          <button onClick={() => setEditingProduct(product)} className="text-tea-text-dim hover:text-tea-text p-1 transition-colors"><Pencil size={14} /></button>
+                          <button onClick={() => onAdd(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Add to Invoice"><Plus size={14} /></button>
+                          <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={14} /></button>
                         </div>
                       </td>
                     </tr>
@@ -347,7 +347,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
               </table>
 
               {sorted.length === 0 && (
-                <div className="text-center py-16 text-tea-text-dim font-serif italic">
+                <div className="text-center py-16 text-tea-text-sec font-serif italic">
                   No items found.
                 </div>
               )}

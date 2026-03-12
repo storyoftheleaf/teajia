@@ -89,7 +89,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                 <button
                   onClick={goPrev}
                   disabled={activeStep === 0}
-                  className="p-2 text-tea-text-dim hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-dim transition-colors"
+                  className="p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
                   aria-label="Previous step"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -104,7 +104,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                       className={`w-2 h-2 rounded-full transition-all duration-300 ${
                         idx === activeStep
                           ? 'bg-tea-gold w-5'
-                          : 'bg-tea-text-dim/30 hover:bg-tea-text-dim/50'
+                          : 'bg-tea-text-sec/30 hover:bg-tea-text-sec/50'
                       }`}
                       aria-label={`Go to step ${idx + 1}`}
                     />
@@ -114,7 +114,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                 <button
                   onClick={goNext}
                   disabled={activeStep === steps.length - 1}
-                  className="p-2 text-tea-text-dim hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-dim transition-colors"
+                  className="p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
                   aria-label="Next step"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -132,7 +132,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <Car className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">Parking</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1">Parking</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.parking_notes}</p>
               </div>
             </div>
@@ -141,7 +141,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <Train className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">Transit</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1">Transit</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.transit_notes}</p>
               </div>
             </div>
@@ -150,7 +150,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <DoorOpen className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">On Arrival</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1">On Arrival</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.arrival_notes}</p>
               </div>
             </div>
@@ -166,7 +166,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
           rel="noopener noreferrer"
           className="inline-flex items-center gap-3 mt-6 px-6 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
         >
-          <Navigation className="w-4 h-4 text-tea-text-dim group-hover:text-tea-gold transition-colors duration-300" />
+          <Navigation className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors duration-300" />
           <span className="text-xs uppercase tracking-[0.2em] font-medium">
             Open in Maps
           </span>

@@ -39,7 +39,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim">Tea Ledger</h4>
+            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec">Tea Ledger</h4>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {[...teaMenu!].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0)).map((item) => (
@@ -73,7 +73,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <MessageCircle className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim">Guests Said</h4>
+            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec">Guests Said</h4>
           </div>
           <div className="bg-tea-surface border border-tea-border rounded-md p-5">
             <div className="space-y-3">
@@ -92,7 +92,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <Music className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim">Session Playlist</h4>
+            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec">Session Playlist</h4>
           </div>
           {playlistUrl!.includes('spotify.com') ? (
             <div className="rounded-md overflow-hidden border border-tea-border">
@@ -126,9 +126,9 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
             >
-              <Music className="w-4 h-4 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
+              <Music className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
               <span className="text-sm">Listen to the session playlist</span>
-              <ExternalLink className="w-3 h-3 text-tea-text-dim ml-auto" />
+              <ExternalLink className="w-3 h-3 text-tea-text-sec ml-auto" />
             </a>
           )}
         </div>
@@ -139,7 +139,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <Image className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim">Gallery</h4>
+            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec">Gallery</h4>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {galleryImages!.map((url, idx) => (

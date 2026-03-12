@@ -68,7 +68,7 @@ const GuestManagement: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-40 bg-tea-text-dim/10 rounded-sm mx-auto" />
+          <div className="h-3 w-40 bg-tea-text-sec/10 rounded-sm mx-auto" />
         </div>
       </div>
     );
@@ -137,7 +137,7 @@ const GuestManagement: React.FC = () => {
         <div className="max-w-xl mx-auto px-6 py-10">
           {/* Completed header */}
           <div className="text-center mb-10">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-4">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">
               {formatEventDate(event.eventDate)}
             </p>
             <h1 className="font-serif text-3xl text-tea-text mb-2">{event.title}</h1>
@@ -164,7 +164,7 @@ const GuestManagement: React.FC = () => {
 
           {/* Footer */}
           <div className="text-center pt-10 pb-12">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim/50">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/50">
               Thank you for attending
             </p>
           </div>
@@ -268,17 +268,17 @@ const GuestManagement: React.FC = () => {
           {/* Waitlist card - muted */}
           <div className="p-6 bg-tea-surface border border-tea-border rounded-md mb-8">
             <div className="text-center">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-3">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">
                 Your Status
               </p>
               <h2 className="font-serif text-xl text-tea-text-sec mb-2">
                 Awaiting Your Seat
               </h2>
-              <p className="text-sm text-tea-text-dim mb-1">
+              <p className="text-sm text-tea-text-sec mb-1">
                 You're on the waitlist. We'll notify you if a spot opens up.
               </p>
               {(event.waitlistCount ?? 0) > 1 && (
-                <p className="text-xs text-tea-text-dim/60 mt-2">
+                <p className="text-xs text-tea-text-sec/60 mt-2">
                   Others are waiting too
                 </p>
               )}
@@ -290,7 +290,7 @@ const GuestManagement: React.FC = () => {
             <p className="text-sm text-tea-text-sec">{formatEventDate(event.eventDate)}</p>
             <p className="text-sm text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
             {event.locationName && (
-              <p className="text-sm text-tea-text-dim mt-1">{event.locationName}</p>
+              <p className="text-sm text-tea-text-sec mt-1">{event.locationName}</p>
             )}
           </div>
 
@@ -298,7 +298,7 @@ const GuestManagement: React.FC = () => {
           <div className="text-center">
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="text-xs text-tea-text-dim hover:text-red-400 transition-colors uppercase tracking-[0.15em]"
+              className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em]"
             >
               Cancel my waitlist spot
             </button>
@@ -344,7 +344,7 @@ const GuestManagement: React.FC = () => {
             <p className="text-sm text-tea-text-sec mt-3">
               {attendee.fullName}
               {attendee.plusOne && attendee.plusOneName && (
-                <span className="text-tea-text-dim"> + {attendee.plusOneName}</span>
+                <span className="text-tea-text-sec"> + {attendee.plusOneName}</span>
               )}
             </p>
 
@@ -353,7 +353,7 @@ const GuestManagement: React.FC = () => {
             <p className="font-serif text-base text-tea-text">{formatEventDate(event.eventDate)}</p>
             <p className="font-serif text-base text-tea-gold mt-1">{formatTime(event.eventDate)}</p>
             {event.locationName && (
-              <p className="text-sm text-tea-text-dim mt-2">{event.locationName}</p>
+              <p className="text-sm text-tea-text-sec mt-2">{event.locationName}</p>
             )}
           </div>
         </div>
@@ -375,7 +375,7 @@ const GuestManagement: React.FC = () => {
             <div className="flex items-center justify-between mb-1">
               <div>
                 <p className="text-sm text-tea-text font-medium">Plus One</p>
-                <p className="text-xs text-tea-text-dim mt-0.5">
+                <p className="text-xs text-tea-text-sec mt-0.5">
                   {attendee.plusOne ? 'A second seat is reserved' : 'Bring a guest'}
                 </p>
               </div>
@@ -384,7 +384,7 @@ const GuestManagement: React.FC = () => {
                 onClick={handleTogglePlusOne}
                 disabled={updatePlusOne.isPending}
                 className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                  attendee.plusOne ? 'bg-tea-gold' : 'bg-tea-text-dim/20'
+                  attendee.plusOne ? 'bg-tea-gold' : 'bg-tea-text-sec/20'
                 }`}
                 aria-label="Toggle plus one"
               >
@@ -403,7 +403,7 @@ const GuestManagement: React.FC = () => {
                   value={plusOneName}
                   onChange={(e) => setPlusOneName(e.target.value)}
                   placeholder="Guest's name"
-                  className="flex-1 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="flex-1 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
                 {plusOneName !== (attendee.plusOneName || '') && (
                   <button
@@ -451,7 +451,7 @@ const GuestManagement: React.FC = () => {
                     )}
                     <p className="text-sm text-tea-text font-medium">{item.title}</p>
                     {item.description && (
-                      <p className="text-xs text-tea-text-dim mt-1">{item.description}</p>
+                      <p className="text-xs text-tea-text-sec mt-1">{item.description}</p>
                     )}
                   </div>
                 </div>
@@ -482,7 +482,7 @@ const GuestManagement: React.FC = () => {
                 Session Guidelines
               </h3>
               <ChevronDown
-                className={`w-5 h-5 text-tea-text-dim transition-transform duration-300 ${
+                className={`w-5 h-5 text-tea-text-sec transition-transform duration-300 ${
                   guidelinesExpanded ? 'rotate-180' : ''
                 }`}
               />
@@ -506,7 +506,7 @@ const GuestManagement: React.FC = () => {
         <div className="text-center pt-6 pb-12 border-t border-tea-border">
           <button
             onClick={() => setShowCancelConfirm(true)}
-            className="text-xs text-tea-text-dim hover:text-red-400 transition-colors uppercase tracking-[0.15em] py-3"
+            className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em] py-3"
           >
             Cancel my reservation
           </button>

@@ -59,7 +59,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       <div className="animate-[fadeIn_0.3s_ease-out]">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-tea-text-dim hover:text-tea-text transition-colors mb-6"
+          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
           <span className="text-xs uppercase tracking-[0.15em]">Back</span>
@@ -70,7 +70,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
             <Icons.Heart className="w-7 h-7 text-tea-gold/40" />
           </div>
           <h3 className="font-serif text-lg text-tea-text  mb-2">No Favorites Yet</h3>
-          <p className="text-sm text-tea-text-dim text-center max-w-[260px] leading-relaxed">
+          <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
             Tap the heart icon on any tea in the shop to start building your collection.
           </p>
         </div>
@@ -82,7 +82,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     <div className="animate-[fadeIn_0.3s_ease-out]">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-tea-text-dim hover:text-tea-text transition-colors mb-4"
+        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <Icons.Back className="w-4 h-4" />
         <span className="text-xs uppercase tracking-[0.15em]">Back</span>
@@ -92,7 +92,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-serif text-lg text-tea-text ">My Collection</h3>
-          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
             {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'}
           </span>
         </div>
@@ -119,7 +119,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         onClick={handleCopyLink}
         className="w-full flex items-center gap-3 px-3 py-2.5 mb-4 bg-tea-elevated/30 border border-tea-border hover:bg-tea-elevated/50 transition-colors group"
       >
-        <Icons.Link className="w-3.5 h-3.5 text-tea-text-dim group-hover:text-tea-gold transition-colors" />
+        <Icons.Link className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
         <span className="text-[11px] text-tea-text/60 /50 truncate flex-1 text-left">
           {copied ? 'Link copied to clipboard!' : 'Copy shareable link'}
         </span>

@@ -22,10 +22,10 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'bg-tea-text-dim/10 text-tea-text-dim',
+  draft: 'bg-tea-text-sec/10 text-tea-text-sec',
   active: 'bg-tea-gold/15 text-tea-gold',
   closed: 'bg-tea-text-sec/10 text-tea-text-sec',
-  archived: 'bg-tea-text-dim/10 text-tea-text-dim line-through',
+  archived: 'bg-tea-text-sec/10 text-tea-text-sec line-through',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -53,7 +53,7 @@ export const EventDetail: React.FC = () => {
   if (isLoading || !event) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-tea-text-dim" size={24} />
+        <Loader2 className="animate-spin text-tea-text-sec" size={24} />
       </div>
     );
   }
@@ -96,7 +96,7 @@ export const EventDetail: React.FC = () => {
       {/* Back button */}
       <button
         onClick={() => navigate('/admin/events')}
-        className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors mb-4"
+        className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <ArrowLeft size={14} /> Back to Events
       </button>
@@ -114,7 +114,7 @@ export const EventDetail: React.FC = () => {
             {event.subtitle && (
               <p className="text-sm text-tea-text-sec mb-2">{event.subtitle}</p>
             )}
-            <div className="flex items-center gap-4 text-xs text-tea-text-dim">
+            <div className="flex items-center gap-4 text-xs text-tea-text-sec">
               <span className="flex items-center gap-1">
                 <Clock size={12} />
                 {formatEventDate(event.eventDate)}
@@ -146,7 +146,7 @@ export const EventDetail: React.FC = () => {
               />
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs text-tea-text-dim">
+          <div className="flex items-center gap-3 text-xs text-tea-text-sec">
             <span className="flex items-center gap-1">
               <Users size={11} />
               {confirmedCount}/{event.totalCapacity} confirmed
@@ -196,7 +196,7 @@ export const EventDetail: React.FC = () => {
             <button
               onClick={handleCloseRsvp}
               disabled={closingRsvp}
-              className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/30 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
             >
               {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
               Close RSVP
@@ -214,7 +214,7 @@ export const EventDetail: React.FC = () => {
             className={`px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px ${
               activeTab === tab.key
                 ? 'border-tea-gold text-tea-gold'
-                : 'border-transparent text-tea-text-dim hover:text-tea-text-sec'
+                : 'border-transparent text-tea-text-sec hover:text-tea-text-sec'
             }`}
           >
             {tab.label}

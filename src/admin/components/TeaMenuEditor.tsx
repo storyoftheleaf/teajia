@@ -139,7 +139,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
     <div>
       {/* Menu Items */}
       {sortedItems.length === 0 ? (
-        <div className="text-center py-8 text-tea-text-dim text-sm">
+        <div className="text-center py-8 text-tea-text-sec text-sm">
           <Leaf className="mx-auto mb-2" size={20} />
           No teas on the menu yet
         </div>
@@ -152,14 +152,14 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
                 <button
                   onClick={() => handleMove(idx, -1)}
                   disabled={idx === 0}
-                  className="text-tea-text-dim hover:text-tea-text disabled:opacity-20 transition-colors"
+                  className="text-tea-text-sec hover:text-tea-text disabled:opacity-20 transition-colors"
                 >
                   <ArrowUp size={12} />
                 </button>
                 <button
                   onClick={() => handleMove(idx, 1)}
                   disabled={idx === sortedItems.length - 1}
-                  className="text-tea-text-dim hover:text-tea-text disabled:opacity-20 transition-colors"
+                  className="text-tea-text-sec hover:text-tea-text disabled:opacity-20 transition-colors"
                 >
                   <ArrowDown size={12} />
                 </button>
@@ -174,13 +174,13 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
               <div className="flex-1 min-w-0">
                 <div className="text-sm text-tea-text font-medium">{item.customName || item.productName || ''}</div>
                 {(item.customDescription) && (
-                  <p className="text-xs text-tea-text-dim mt-0.5">{item.customDescription}</p>
+                  <p className="text-xs text-tea-text-sec mt-0.5">{item.customDescription}</p>
                 )}
                 {!item.customDescription && (
                   <input
                     type="text"
                     placeholder="Add description..."
-                    className="w-full border-b border-transparent hover:border-tea-border focus:border-tea-gold bg-transparent outline-none text-xs text-tea-text-dim py-1 mt-0.5 transition-colors"
+                    className="w-full border-b border-transparent hover:border-tea-border focus:border-tea-gold bg-transparent outline-none text-xs text-tea-text-sec py-1 mt-0.5 transition-colors"
                     onBlur={(e) => {
                       if (e.target.value) handleUpdateDescription(item, e.target.value);
                     }}
@@ -194,7 +194,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
                 {/* Reveal date */}
                 <div className="mt-2 flex items-center gap-2">
-                  <label className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">Reveal</label>
+                  <label className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec">Reveal</label>
                   <input
                     type="datetime-local"
                     value={item.revealDate ? item.revealDate.slice(0, 16) : ''}
@@ -208,7 +208,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
               <button
                 onClick={() => handleRemove(item.id)}
                 disabled={loadingAction === item.id}
-                className="text-tea-text-dim hover:text-tea-text p-1 transition-colors shrink-0"
+                className="text-tea-text-sec hover:text-tea-text p-1 transition-colors shrink-0"
               >
                 {loadingAction === item.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
               </button>
@@ -238,17 +238,17 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
         <div className="mt-3 bg-tea-bg border border-tea-border rounded-md p-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 flex-1">
-              <Search size={14} className="text-tea-text-dim shrink-0" />
+              <Search size={14} className="text-tea-text-sec shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-1 placeholder:text-tea-text-dim/50"
+                className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-1 placeholder:text-tea-text-sec/50"
                 placeholder="Search inventory..."
                 autoFocus
               />
             </div>
-            <button onClick={() => setShowPicker(false)} className="text-tea-text-dim hover:text-tea-text p-1 ml-2">
+            <button onClick={() => setShowPicker(false)} className="text-tea-text-sec hover:text-tea-text p-1 ml-2">
               <X size={14} />
             </button>
           </div>
@@ -260,18 +260,18 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
                 disabled={loadingAction === 'add'}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-tea-elevated/50 transition-colors text-left"
               >
-                <Leaf size={12} className="text-tea-text-dim shrink-0" />
+                <Leaf size={12} className="text-tea-text-sec shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm text-tea-text">{product.productName}</span>
                   {product.givenName && (
-                    <span className="text-xs text-tea-text-dim ml-2">{product.givenName}</span>
+                    <span className="text-xs text-tea-text-sec ml-2">{product.givenName}</span>
                   )}
                 </div>
-                <span className="text-[10px] text-tea-text-dim">{product.type}</span>
+                <span className="text-[10px] text-tea-text-sec">{product.type}</span>
               </button>
             ))}
             {teaProducts.length === 0 && (
-              <div className="text-center py-4 text-tea-text-dim text-xs">No matching products</div>
+              <div className="text-center py-4 text-tea-text-sec text-xs">No matching products</div>
             )}
           </div>
         </div>
@@ -281,8 +281,8 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
       {showCustom && (
         <div className="mt-3 bg-tea-bg border border-tea-border rounded-md p-3 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Custom Tea</span>
-            <button onClick={() => setShowCustom(false)} className="text-tea-text-dim hover:text-tea-text p-1">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Custom Tea</span>
+            <button onClick={() => setShowCustom(false)} className="text-tea-text-sec hover:text-tea-text p-1">
               <X size={14} />
             </button>
           </div>
@@ -290,7 +290,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
             type="text"
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
-            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50"
+            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
             placeholder="Tea name"
             autoFocus
           />
@@ -298,7 +298,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
             type="text"
             value={customDescription}
             onChange={(e) => setCustomDescription(e.target.value)}
-            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50"
+            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
             placeholder="Description (optional)"
           />
           <button

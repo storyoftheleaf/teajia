@@ -31,13 +31,13 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           <h3 className="font-serif text-tea-text text-lg leading-none mb-1">{item.name}</h3>
           <button
             onClick={() => onRemove(item.id)}
-            className="text-tea-text-dim hover:text-red-500 p-2 -mr-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="text-tea-text-sec hover:text-red-500 p-2 -mr-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label={`Remove ${item.name} from cart`}
           >
             <Icons.Close className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] uppercase tracking-wider text-tea-text-dim mb-3">{item.variant}</p>
+        <p className="text-[10px] uppercase tracking-wider text-tea-text-sec mb-3">{item.variant}</p>
         <div className="flex items-center justify-between gap-3 bg-tea-gold/20 px-2 py-1.5 rounded-lg">
           <div className="flex items-center gap-2">
             <button
@@ -62,7 +62,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                 }}
                 className="w-12 bg-transparent num text-xs text-tea-text border-b border-tea-gold/20 focus:outline-none focus:border-tea-gold text-center"
               />
-              {item.category === 'tea' && <span className="num text-xs text-tea-text-dim">g</span>}
+              {item.category === 'tea' && <span className="num text-xs text-tea-text-sec">g</span>}
             </div>
             <button
               onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + step))}

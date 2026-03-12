@@ -425,7 +425,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
           aria-valuemax={pages.length}
           aria-label="Reading progress"
         >
-          <div className="w-full h-[3px] bg-tea-text-dim/15 rounded-full relative">
+          <div className="w-full h-[3px] bg-tea-text-sec/15 rounded-full relative">
             <div
               className="absolute inset-y-0 left-0 bg-tea-text-sec/60 rounded-full transition-all duration-300 ease-out"
               style={{ width: `${progress * 100}%` }}
@@ -436,7 +436,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             />
           </div>
         </div>
-        <span className="text-xs font-mono text-tea-text-dim/50 tabular-nums w-4">{pages.length}</span>
+        <span className="text-xs font-mono text-tea-text-sec/50 tabular-nums w-4">{pages.length}</span>
       </div>
     );
   };

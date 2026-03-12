@@ -56,22 +56,22 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
            {label}
            <div className="flex-shrink-0 relative z-0 flex items-center">
              {sortConfig.key === colKey ? (
-               sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-dim" /> : <ArrowDown size={10} className="ml-1 text-tea-text-dim" />
-             ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-dim/50 ml-1 transition-opacity" />}
+               sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />
+             ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
            </div>
         </div>
       </th>
   );
 
   if (isLoading) {
-    return <div className="p-12 text-center text-tea-text-dim font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading collection...</div>;
+    return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading collection...</div>;
   }
 
   return (
@@ -85,18 +85,18 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                 <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
                     Private Collection
                 </h2>
-                <span className="text-tea-text-dim text-xs tracking-wide">
+                <span className="text-tea-text-sec text-xs tracking-wide">
                     — {sortedProducts.length} items
                 </span>
             </div>
             <div className="relative w-48 ml-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
                 <input
                 type="text"
                 placeholder="Search collection..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-dim font-serif placeholder-tea-text-dim/50 transition-colors"
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
                 />
             </div>
         </div>
@@ -104,7 +104,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
         {sortedProducts.length === 0 ? (
-            <div className="text-center py-16 text-tea-text-dim font-serif italic">
+            <div className="text-center py-16 text-tea-text-sec font-serif italic">
                 <AlertCircle size={32} className="inline opacity-30 mb-2" /><br />
                 Your collection is empty.<br />
                 <span className="text-xs font-sans not-italic">Mark items as "Personal Collection" in the product editor.</span>
@@ -127,7 +127,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                       <div className="flex items-center gap-1.5">
                         <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-tea-text-dim/70 mt-0.5">
+                      <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
                         <span>{product.type}</span>
                         {product.vendor && (
                           <>
@@ -139,7 +139,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                     </div>
                     <div className="flex-shrink-0 text-right">
                       <div className="text-xs text-tea-text/80 tabular-nums">{product.stockGrams}g</div>
-                      <div className="text-[10px] text-tea-text-dim/60 tabular-nums">{formatCurrency(estValue, 'USD', rates)}</div>
+                      <div className="text-[10px] text-tea-text-sec/60 tabular-nums">{formatCurrency(estValue, 'USD', rates)}</div>
                     </div>
                   </button>
                 );
@@ -167,7 +167,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                             <SortHeader colKey="vendor" label="Source" />
                             <SortHeader colKey="stockGrams" label="Stock" align="right" />
                             <SortHeader colKey="costAmount" label="Batch Cost" align="right" />
-                            <th className="px-4 py-2 border-b border-tea-border text-right text-[10px] uppercase tracking-wider font-serif text-tea-text-dim">Asset Value</th>
+                            <th className="px-4 py-2 border-b border-tea-border text-right text-[10px] uppercase tracking-wider font-serif text-tea-text-sec">Asset Value</th>
                             <th className="px-4 py-2 border-b border-tea-border"></th>
                         </tr>
                     </thead>
@@ -192,34 +192,34 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                                         {product.isCustomWisdom ? (
                                                             <Pencil size={10} className="text-tea-accent" />
                                                         ) : (
-                                                            <Sparkles size={10} className="text-tea-text-dim" />
+                                                            <Sparkles size={10} className="text-tea-text-sec" />
                                                         )}
                                                     </span>
                                                 )}
                                             </span>
                                             {product.givenName && (
-                                                <span className="text-[10px] text-tea-text-dim font-sans mt-0.5 truncate block">
+                                                <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
                                                     {product.givenName}
                                                 </span>
                                             )}
                                         </div>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden">
-                                        <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-dim truncate">
+                                        <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
                                             <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
                                         </span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden">
-                                        <span className="text-xs text-tea-text-dim font-serif italic">{product.year || 'N.V.'}</span>
+                                        <span className="text-xs text-tea-text-sec font-serif italic">{product.year || 'N.V.'}</span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden">
-                                        <span className="text-xs text-tea-text-dim truncate block">{product.vendor || 'Unknown'}</span>
+                                        <span className="text-xs text-tea-text-sec truncate block">{product.vendor || 'Unknown'}</span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">
                                         <span className="num text-xs text-tea-text">{product.stockGrams}g</span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">
-                                        <span className="num text-xs text-tea-text-dim">
+                                        <span className="num text-xs text-tea-text-sec">
                                             {product.costAmount > 0
                                                 ? `${product.costAmount} ${product.costCurrency}`
                                                 : '-'}
@@ -231,7 +231,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                     <td className="px-4 align-middle text-right">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingProduct(product); }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-tea-text-dim hover:text-tea-text p-1"
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-tea-text-sec hover:text-tea-text p-1"
                                         >
                                             <Pencil size={14} />
                                         </button>
