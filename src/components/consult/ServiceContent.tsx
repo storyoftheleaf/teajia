@@ -352,7 +352,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-3">
           What You Walk Away With
         </p>
-        <div className="border-l border-tea-gold/20 pl-4">
+        <div className="border-l border-tea-border pl-4">
           <ul className="space-y-2">
             {WALKAWAY.map(item => (
               <li key={item} className="text-sm text-tea-text-sec">

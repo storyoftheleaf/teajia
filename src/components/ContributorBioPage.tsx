@@ -19,7 +19,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
     <div className="fixed inset-0 bg-tea-text/50 z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out] overflow-y-auto">
       <div className="bg-tea-surface  rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8 animate-[slideUp_0.4s_ease-out]">
         {/* Header with Close Button */}
-        <div className="sticky top-0 bg-tea-surface  border-b border-tea-gold/[0.08] p-6 flex items-start justify-between">
+        <div className="sticky top-0 bg-tea-surface  border-b border-tea-border p-6 flex items-start justify-between">
           <h2 className="text-2xl font-serif text-tea-text pr-4">{contributor.name}</h2>
           <button
             onClick={onClose}
@@ -70,7 +70,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                 {authoredArticles.map((article: any) => (
                   <div
                     key={article.id}
-                    className="p-4 border border-tea-gold/[0.08] rounded-[1px] hover:bg-tea-gold/50 cursor-pointer transition-colors"
+                    className="p-4 border border-tea-border rounded-[1px] hover:bg-tea-gold/50 cursor-pointer transition-colors"
                   >
                     <h4 className="font-serif text-tea-text mb-1">{article.title}</h4>
                     <p className="text-xs text-tea-text/60">

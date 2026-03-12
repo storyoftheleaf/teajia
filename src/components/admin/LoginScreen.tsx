@@ -46,7 +46,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
           Enter
         </button>
 
-        <div className="border-t border-tea-gold/15 mt-6 pt-6">
+        <div className="border-t border-tea-border mt-6 pt-6">
           <p className="text-tea-text/60 text-xs mb-3">Development Mode</p>
           <p className="text-tea-text/50 text-xs italic">
             Authentication is currently disabled
