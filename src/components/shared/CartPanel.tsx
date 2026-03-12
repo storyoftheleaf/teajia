@@ -96,7 +96,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
       >
         {isAdmin && props.mode === 'admin' ? (
           <Suspense fallback={
-            <div className="flex-1 flex items-center justify-center text-tea-text-dim">
+            <div className="flex-1 flex items-center justify-center text-tea-text-sec">
               <div className="animate-pulse text-sm">Loading...</div>
             </div>
           }>
@@ -123,7 +123,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
                   <h2 className="text-lg font-serif text-tea-text tracking-wide">Your Selection</h2>
                 </div>
                 <button onClick={onClose} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Close cart">
-                  <Icons.Close className="w-6 h-6 text-tea-text-dim hover:text-tea-text" />
+                  <Icons.Close className="w-6 h-6 text-tea-text-sec hover:text-tea-text" />
                 </button>
               </div>
             </div>

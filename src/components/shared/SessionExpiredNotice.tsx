@@ -51,7 +51,7 @@ export const SessionExpiredNotice = () => {
       <span>Session expired. Please sign in again.</span>
       <button
         onClick={() => setVisible(false)}
-        className="ml-2 text-tea-text-dim hover:text-tea-text transition-colors"
+        className="ml-2 text-tea-text-sec hover:text-tea-text transition-colors"
         aria-label="Dismiss"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

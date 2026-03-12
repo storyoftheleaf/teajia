@@ -79,7 +79,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
   }, [products, rates, isLoading]);
 
   if (isLoading || !metrics) {
-    return <div className="p-12 text-center text-tea-text-dim flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Analyzing financial data...</div>;
+    return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Analyzing financial data...</div>;
   }
 
   // Colors
@@ -91,7 +91,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
       <div className="flex justify-between items-end border-b border-tea-border pb-6">
           <div>
             <h2 className="text-4xl md:text-5xl font-serif text-tea-text tracking-tight">Financial Intelligence</h2>
-            <p className="text-tea-text-dim text-sm mt-2 font-light tracking-wide">Real-time valuation based on current exchange rates.</p>
+            <p className="text-tea-text-sec text-sm mt-2 font-light tracking-wide">Real-time valuation based on current exchange rates.</p>
           </div>
       </div>
       
@@ -101,24 +101,24 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <DollarSign size={80} strokeWidth={1} />
           </div>
-          <p className="text-tea-text-dim text-xs uppercase tracking-[0.2em] mb-4 font-bold">Total Asset Cost</p>
+          <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mb-4 font-bold">Total Asset Cost</p>
           <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
-          <p className="text-xs text-tea-text-dim/70 mt-4 num">Capital deployed in inventory</p>
+          <p className="text-xs text-tea-text-sec/70 mt-4 num">Capital deployed in inventory</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200">
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <PieIcon size={80} strokeWidth={1} />
           </div>
-          <p className="text-tea-text-dim text-xs uppercase tracking-[0.2em] mb-4 font-bold">Retail Valuation</p>
+          <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mb-4 font-bold">Retail Valuation</p>
           <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
-          <p className="text-xs text-tea-text-dim/70 mt-4 num">Potential revenue at current prices</p>
+          <p className="text-xs text-tea-text-sec/70 mt-4 num">Potential revenue at current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200">
-          <p className="text-tea-text-dim text-xs uppercase tracking-[0.2em] mb-4 font-bold">Unrealized P&L</p>
+          <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mb-4 font-bold">Unrealized P&L</p>
           <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
-          <p className="text-xs text-tea-text-dim/70 mt-4 num">Projected Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
+          <p className="text-xs text-tea-text-sec/70 mt-4 num">Projected Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg h-64 md:h-96">
           <div className="flex justify-between items-center mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Capital Exposure by Currency</h4>
-            <div className="text-xs text-tea-text-dim uppercase tracking-wider">Base: USD Equivalent</div>
+            <div className="text-xs text-tea-text-sec uppercase tracking-wider">Base: USD Equivalent</div>
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -154,7 +154,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                 verticalAlign="bottom" 
                 height={36} 
                 iconType="circle"
-                formatter={(value, entry: any) => <span className="text-tea-text-dim text-xs ml-1">{value}</span>}
+                formatter={(value, entry: any) => <span className="text-tea-text-sec text-xs ml-1">{value}</span>}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -165,7 +165,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="flex justify-between items-center mb-6">
             <div>
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
-              <div className="text-xs text-tea-text-dim uppercase tracking-wider">Base: 1 USD</div>
+              <div className="text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
             </div>
             <div className="text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-gold/20">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse"></span>
@@ -176,7 +176,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
             {rates.filter(r => r.currency !== 'USD' && r.currency !== 'UNK').map(rate => (
               <div key={rate.currency} className="flex justify-between items-center p-3 bg-tea-bg/50 border border-tea-border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-xs font-bold text-tea-text-dim">
+                  <div className="w-8 h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-xs font-bold text-tea-text-sec">
                     {rate.currency}
                   </div>
                   <span className="text-sm text-tea-text font-medium">
@@ -189,7 +189,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                 </div>
                 <div className="text-right">
                   <div className="num text-tea-text">{fmtNum(rate.rateToUSD)}</div>
-                  <div className="text-xs text-tea-text-dim">per USD</div>
+                  <div className="text-xs text-tea-text-sec">per USD</div>
                 </div>
               </div>
             ))}
@@ -200,7 +200,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg h-64 md:h-96">
           <div className="flex justify-between items-center mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Asset Value by Terroir</h4>
-            <MapPin className="w-4 h-4 text-tea-text-dim" />
+            <MapPin className="w-4 h-4 text-tea-text-sec" />
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={metrics.regionValue} layout="vertical" margin={{ top: 5, right: 20, left: 30, bottom: 5 }}>

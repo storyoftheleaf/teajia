@@ -169,7 +169,7 @@ export const GridZoomViewer: React.FC<GridZoomViewerProps> = ({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Icons.User className="w-7 h-7 text-tea-text-dim" />
+                        <Icons.User className="w-7 h-7 text-tea-text-sec" />
                       </div>
                     )}
                   </div>

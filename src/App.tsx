@@ -360,7 +360,7 @@ const AppContent = () => {
   if (location.pathname.startsWith('/admin')) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-tea-text-dim font-sans text-sm">Loading admin...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-tea-text-sec font-sans text-sm">Loading admin...</div>}>
           <Routes>
             <Route path="/admin/*" element={<AdminApp />} />
           </Routes>
@@ -471,7 +471,7 @@ const AppContent = () => {
                   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
                     <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
                     <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
-                    <p className="text-sm text-tea-text-dim mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
+                    <p className="text-sm text-tea-text-sec mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
                     <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors">Return Home</button>
                   </div>
                 } />
@@ -562,13 +562,13 @@ const AppContent = () => {
       {showContact && (
         <div className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
             <div className="bg-tea-surface max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-text-dim hover:text-tea-gold transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
+                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
                 <h2 className="text-2xl font-serif text-tea-text mb-8 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '150ms' }}>Contact Us</h2>
 
                 <div className="space-y-6 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '200ms' }}>
                     <div className="flex flex-col items-center">
                         <Icons.Mail className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
-                        <span className="text-sm uppercase tracking-widest text-tea-text-dim mb-1">General Inquiries</span>
+                        <span className="text-sm uppercase tracking-widest text-tea-text-sec mb-1">General Inquiries</span>
                         <a href="mailto:hello@teajia.com" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">hello@teajia.com</a>
                     </div>
 
@@ -576,7 +576,7 @@ const AppContent = () => {
 
                     <div className="flex flex-col items-center">
                         <Icons.Instagram className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
-                        <span className="text-sm uppercase tracking-widest text-tea-text-dim mb-1">Follow Us</span>
+                        <span className="text-sm uppercase tracking-widest text-tea-text-sec mb-1">Follow Us</span>
                         <a href="#" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@teajia.journal</a>
                     </div>
                 </div>

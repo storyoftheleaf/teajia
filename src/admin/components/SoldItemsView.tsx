@@ -5,6 +5,8 @@ import { Product } from '../types';
 import { useActivityLogs } from '../hooks/useAdminData';
 import { fmtNum } from '../../utils/formatNumber';
 
+const ROW_HEIGHT = 36;
+
 export const RecordsView = ({ products }: { products: Product[] }) => {
   const [activeTab, setActiveTab] = useState<'archive' | 'logs'>('archive');
   const soldOutProducts = products.filter(p => p.status === 'Sold Out');
@@ -22,7 +24,7 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
         'Retail (USD)': p.pricePerGramUSD,
         'Last Stock': p.stockGrams,
     })));
-    
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -35,126 +37,211 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      
-      {/* Header & Tabs */}
-      <div className="flex flex-col md:flex-row justify-between items-end border-b border-tea-border pb-0 gap-4">
-        <div className="pb-6">
-          <h2 className="text-2xl font-serif text-tea-text">System Records</h2>
-          <p className="text-tea-text-dim text-sm mt-1">Archived inventory and system activity logs.</p>
-        </div>
-        
-        <div className="flex gap-1">
-             <button 
-                onClick={() => setActiveTab('archive')}
-                className={`px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] border-t border-l border-r rounded-t-lg transition-colors duration-200 ${activeTab === 'archive' ? 'bg-tea-surface border-tea-border text-tea-text' : 'border-transparent text-tea-text-dim hover:text-tea-text'}`}
-             >
-                <div className="flex items-center gap-2">
-                    <Archive size={14} /> Archive
-                </div>
-             </button>
-             <button 
-                onClick={() => setActiveTab('logs')}
-                className={`px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] border-t border-l border-r rounded-t-lg transition-colors duration-200 ${activeTab === 'logs' ? 'bg-tea-surface border-tea-border text-tea-text' : 'border-transparent text-tea-text-dim hover:text-tea-text'}`}
-             >
-                <div className="flex items-center gap-2">
-                    <ScrollText size={14} /> Logbook
-                </div>
-             </button>
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
+
+      {/* Header */}
+      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
+        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <Archive size={16} className="text-tea-accent" />
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+              System Records
+            </h2>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 ml-4">
+            <button
+              onClick={() => setActiveTab('archive')}
+              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+            >
+              <Archive size={12} /> Archive
+            </button>
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+            >
+              <ScrollText size={12} /> Logbook
+            </button>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            {activeTab === 'archive' && (
+              <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                <Download size={14} /> Export CSV
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="min-h-[400px]">
-          
-          {/* TAB: ARCHIVE */}
-          {activeTab === 'archive' && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex justify-end">
-                    <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="bg-tea-accent text-tea-bg px-4 py-2 text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-accent/90 transition-colors flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-tea-accent/10">
-                        <Download size={14} /> Export CSV
-                    </button>
+      {/* Content */}
+      <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
+
+        {/* TAB: ARCHIVE */}
+        {activeTab === 'archive' && (
+          <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+            <table className="w-full table-fixed border-collapse">
+              <colgroup>
+                <col className="w-[30%]" />
+                <col className="w-[12%]" />
+                <col className="w-[15%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+              </colgroup>
+              <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                <tr>
+                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Type</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Vendor</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Cost</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Retail</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {soldOutProducts.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-16 text-tea-text-sec font-serif italic">No items in the archive.</td></tr>
+                ) : (
+                  soldOutProducts.map(product => (
+                    <tr key={product.id} className="transition-colors border-b border-tea-border group hover:bg-tea-bg/50" style={{ height: ROW_HEIGHT }}>
+                      <td className="px-4 align-middle overflow-hidden">
+                        <div className="flex flex-col justify-center h-full">
+                          <span className="text-sm font-serif text-tea-text tracking-wide truncate">{product.givenName || product.productName}</span>
+                          {product.givenName && (
+                            <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">{product.productName}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 align-middle overflow-hidden">
+                        <span className="text-xs text-tea-text-sec truncate block">{product.type}</span>
+                      </td>
+                      <td className="px-4 align-middle overflow-hidden">
+                        <span className="text-xs text-tea-text-sec truncate block">{product.vendor || '—'}</span>
+                      </td>
+                      <td className="px-4 align-middle overflow-hidden text-right">
+                        <span className="num text-xs text-tea-text-sec">{product.costPerGramUSD != null ? `$${fmtNum(product.costPerGramUSD)}` : '-'}</span>
+                      </td>
+                      <td className="px-4 align-middle overflow-hidden text-right">
+                        <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}</span>
+                      </td>
+                      <td className="px-4 align-middle text-center">
+                        <span className="text-[10px] uppercase font-bold tracking-wider bg-tea-bg text-tea-text-sec border border-tea-border px-2 py-1 rounded-sm">Sold Out</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* TAB: ARCHIVE — Mobile */}
+        {activeTab === 'archive' && (
+          <div className="md:hidden pb-24">
+            {soldOutProducts.length === 0 ? (
+              <div className="text-center py-16 text-tea-text-sec font-serif italic">No items in the archive.</div>
+            ) : (
+              soldOutProducts.map((product, idx) => (
+                <div
+                  key={product.id}
+                  className={`px-4 py-2.5 flex items-center gap-3 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-tea-text text-sm font-serif truncate">{product.givenName || product.productName}</div>
+                    <div className="text-[10px] text-tea-text-sec/70 mt-0.5">{product.type} · {product.vendor || '—'}</div>
                   </div>
-                  
-                  <div className="overflow-x-auto border border-tea-border rounded-xl bg-tea-surface">
-                    <table className="w-full text-left text-sm">
-                    <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
-                        <tr>
-                        <th className="py-3 px-4">Product</th>
-                        <th className="py-3 px-4">Type</th>
-                        <th className="py-3 px-4">Vendor</th>
-                        <th className="py-3 px-4text-right">Cost</th>
-                        <th className="py-3 px-4text-right">Retail</th>
-                        <th className="py-3 px-4text-center">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-tea-border">
-                        {soldOutProducts.length === 0 ? (
-                        <tr><td colSpan={6} className="p-12 text-center text-tea-text-dim font-serif italic">No items in the archive.</td></tr>
-                        ) : (
-                        soldOutProducts.map(product => (
-                            <tr key={product.id} className="hover:bg-tea-bg/50 transition-colors duration-200">
-                            <td className="py-3 px-4">
-                                <div className="text-tea-text">{product.givenName}</div>
-                                <div className="text-tea-text-dim text-xs">{product.productName}</div>
-                            </td>
-                            <td className="py-3 px-4text-tea-text-dim">{product.type}</td>
-                            <td className="py-3 px-4text-tea-text-dim">{product.vendor || '—'}</td>
-                            <td className="py-3 px-4text-right text-tea-text-dim num">{product.costPerGramUSD != null ? `$${fmtNum(product.costPerGramUSD)}` : '-'}</td>
-                            <td className="py-3 px-4text-right text-tea-text num">{product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}</td>
-                            <td className="py-3 px-4text-center"><span className="text-[10px] uppercase font-bold tracking-wider bg-tea-bg text-tea-text-dim border border-tea-border px-2 py-1 rounded-sm">Sold Out</span></td>
-                            </tr>
-                        ))
-                        )}
-                    </tbody>
-                    </table>
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-xs text-tea-text/80 tabular-nums">${fmtNum(product.pricePerGramUSD)}</div>
+                    <div className="text-[10px] text-tea-text-sec/60">Sold Out</div>
+                  </div>
                 </div>
-              </div>
-          )}
+              ))
+            )}
+          </div>
+        )}
 
-          {/* TAB: LOGBOOK */}
-          {activeTab === 'logs' && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                  {logsLoading ? (
-                      <div className="p-12 text-center text-tea-text-dim flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Fetching logs...</div>
-                  ) : (
-                    <div className="overflow-hidden border border-tea-border rounded-xl bg-tea-surface">
-                        <table className="w-full text-left text-sm">
-                        <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
-                            <tr>
-                            <th className="py-3 px-4">Timestamp</th>
-                            <th className="py-3 px-4">User</th>
-                            <th className="py-3 px-4">Action</th>
-                            <th className="py-3 px-4">Details</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-tea-border">
-                            {!logs || logs.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="p-12 text-center text-tea-text-dim">
-                                        <div className="flex flex-col items-center gap-2">
-                                        <AlertCircle size={24} />
-                                        <span className="font-serif italic">No activity recorded yet.</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                logs.map((log: any) => (
-                                <tr key={log.id} className="hover:bg-tea-bg/50 transition-colors duration-200">
-                                    <td className="py-3 px-4text-tea-text-dim font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
-                                    <td className="py-3 px-4text-tea-text">{log.user_email || 'System'}</td>
-                                    <td className="py-3 px-4text-tea-accent font-mono text-xs uppercase">{log.action}</td>
-                                    <td className="py-3 px-4text-tea-text-dim">{log.details}</td>
-                                </tr>
-                                ))
-                            )}
-                        </tbody>
-                        </table>
+        {/* TAB: LOGBOOK */}
+        {activeTab === 'logs' && (
+          <>
+            {logsLoading ? (
+              <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Fetching logs...</div>
+            ) : (
+              <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+                <table className="w-full table-fixed border-collapse">
+                  <colgroup>
+                    <col className="w-[20%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[50%]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                    <tr>
+                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">User</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Action</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!logs || logs.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="text-center py-16 text-tea-text-sec">
+                          <AlertCircle size={24} className="inline opacity-30 mb-2" /><br />
+                          <span className="font-serif italic">No activity recorded yet.</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      logs.map((log: any) => (
+                        <tr key={log.id} className="transition-colors border-b border-tea-border group hover:bg-tea-bg/50" style={{ height: ROW_HEIGHT }}>
+                          <td className="px-4 align-middle overflow-hidden">
+                            <span className="text-xs text-tea-text-sec font-mono">{new Date(log.created_at).toLocaleString()}</span>
+                          </td>
+                          <td className="px-4 align-middle overflow-hidden">
+                            <span className="text-xs text-tea-text">{log.user_email || 'System'}</span>
+                          </td>
+                          <td className="px-4 align-middle overflow-hidden">
+                            <span className="text-xs text-tea-accent font-mono uppercase">{log.action}</span>
+                          </td>
+                          <td className="px-4 align-middle overflow-hidden">
+                            <span className="text-xs text-tea-text-sec truncate block">{log.details}</span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Logs — Mobile */}
+            {!logsLoading && (
+              <div className="md:hidden pb-24">
+                {!logs || logs.length === 0 ? (
+                  <div className="text-center py-16 text-tea-text-sec font-serif italic">No activity recorded yet.</div>
+                ) : (
+                  logs.map((log: any, idx: number) => (
+                    <div
+                      key={log.id}
+                      className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                    >
+                      <div className="flex items-center gap-2 text-[10px] text-tea-text-sec/70">
+                        <span className="font-mono">{new Date(log.created_at).toLocaleString()}</span>
+                        <span className="opacity-40">·</span>
+                        <span>{log.user_email || 'System'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-tea-accent font-mono uppercase">{log.action}</span>
+                        <span className="text-xs text-tea-text-sec truncate">{log.details}</span>
+                      </div>
                     </div>
-                  )}
+                  ))
+                )}
               </div>
-          )}
-
+            )}
+          </>
+        )}
       </div>
     </div>
   );

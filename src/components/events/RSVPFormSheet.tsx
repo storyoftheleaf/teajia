@@ -118,7 +118,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="w-10 h-1 bg-tea-text-dim/20 rounded-full" />
+          <div className="w-10 h-1 bg-tea-text-sec/20 rounded-full" />
         </div>
 
         {/* Header */}
@@ -126,7 +126,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
           <h2 className="font-serif text-xl text-tea-text">Reserve Your Seat</h2>
           <button
             onClick={onClose}
-            className="p-2 text-tea-text-dim hover:text-tea-gold transition-colors"
+            className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -152,7 +152,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Full Name */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-2">
+                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
                   Full Name <span className="text-tea-gold">*</span>
                 </label>
                 <input
@@ -161,13 +161,13 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   onChange={(e) => updateField('fullName', e.target.value)}
                   placeholder="Your name"
                   required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-2">
+                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
                   WhatsApp / Phone <span className="text-tea-gold">*</span>
                 </label>
                 <input
@@ -176,21 +176,21 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   onChange={(e) => updateField('phoneNumber', e.target.value)}
                   placeholder="+62 812 3456 7890"
                   required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-2">
-                  Email <span className="text-tea-text-dim">(for calendar invite)</span>
+                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                  Email <span className="text-tea-text-sec">(for calendar invite)</span>
                 </label>
                 <input
                   type="email"
                   value={formData.email || ''}
                   onChange={(e) => updateField('email', e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
@@ -199,13 +199,13 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-tea-text font-medium">Bringing a +1?</p>
-                    <p className="text-xs text-tea-text-dim mt-0.5">Reserve a second seat</p>
+                    <p className="text-xs text-tea-text-sec mt-0.5">Reserve a second seat</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => updateField('plusOne', !formData.plusOne)}
                     className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                      formData.plusOne ? 'bg-tea-gold' : 'bg-tea-text-dim/20'
+                      formData.plusOne ? 'bg-tea-gold' : 'bg-tea-text-sec/20'
                     }`}
                     aria-label="Toggle plus one"
                   >
@@ -223,7 +223,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                       value={formData.plusOneName || ''}
                       onChange={(e) => updateField('plusOneName', e.target.value)}
                       placeholder="Guest's name"
-                      className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                      className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                     />
                   </div>
                 )}
@@ -231,7 +231,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
 
               {/* Tea Preference */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-3">
+                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-3">
                   Tea Preference
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -260,15 +260,15 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
 
               {/* Bringing tea? */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-2">
-                  Bringing tea to share? <span className="text-tea-text-dim">(optional)</span>
+                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                  Bringing tea to share? <span className="text-tea-text-sec">(optional)</span>
                 </label>
                 <input
                   type="text"
                   value={formData.bringingTea || ''}
                   onChange={(e) => updateField('bringingTea', e.target.value)}
                   placeholder="e.g. 2005 Aged Oolong from Nantou"
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
@@ -288,21 +288,21 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 </button>
                 <div>
                   <p className="text-sm text-tea-text">I'm okay with photos being shared</p>
-                  <p className="text-xs text-tea-text-dim mt-0.5">Photos may be posted on social media or our website</p>
+                  <p className="text-xs text-tea-text-sec mt-0.5">Photos may be posted on social media or our website</p>
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-2">
-                  Notes <span className="text-tea-text-dim">(optional)</span>
+                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                  Notes <span className="text-tea-text-sec">(optional)</span>
                 </label>
                 <textarea
                   value={formData.notes || ''}
                   onChange={(e) => updateField('notes', e.target.value)}
                   placeholder="Anything we should know? Dietary restrictions, allergies..."
                   rows={3}
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
                 />
               </div>
 

@@ -256,7 +256,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Icons.User className="w-4 h-4 text-tea-text-dim" />
+                    <Icons.User className="w-4 h-4 text-tea-text-sec" />
                   </div>
                 )}
               </div>
@@ -390,7 +390,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Icons.User className="w-8 h-8 text-tea-text-dim" />
+                      <Icons.User className="w-8 h-8 text-tea-text-sec" />
                     </div>
                   )}
                 </div>
@@ -519,7 +519,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
             <img
               src={story.gallery[selectedImageIndex].url}
               alt={story.gallery[selectedImageIndex].caption || story.title}
-              className="max-w-full max-h-full object-contain shadow-2xl ring-1 ring-tea-text-dim/10"
+              className="max-w-full max-h-full object-contain shadow-2xl ring-1 ring-tea-text-sec/10"
             />
           </div>
 

@@ -11,8 +11,8 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
 
   if (!data) {
     return (
-      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-dim ${className}`}>
-        <span className="w-2 h-2 rounded-full bg-tea-text-dim/30 animate-pulse" />
+      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec ${className}`}>
+        <span className="w-2 h-2 rounded-full bg-tea-text-sec/30 animate-pulse" />
         Checking availability...
       </span>
     );
@@ -20,8 +20,8 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
 
   if (data.isFull) {
     return (
-      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-dim bg-tea-surface border border-tea-border rounded-sm ${className}`}>
-        <span className="w-2 h-2 rounded-full bg-tea-text-dim/40" />
+      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec bg-tea-surface border border-tea-border rounded-sm ${className}`}>
+        <span className="w-2 h-2 rounded-full bg-tea-text-sec/40" />
         Registration closed
       </span>
     );

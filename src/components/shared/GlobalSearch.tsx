@@ -210,7 +210,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-border">
-          <Icons.Search className="w-5 h-5 text-tea-text-dim shrink-0" />
+          <Icons.Search className="w-5 h-5 text-tea-text-sec shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -218,11 +218,11 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search teas, articles, and more..."
-            className="flex-1 bg-transparent text-tea-text placeholder:text-tea-text-dim text-sm outline-none font-sans"
+            className="flex-1 bg-transparent text-tea-text placeholder:text-tea-text-sec text-sm outline-none font-sans"
             autoComplete="off"
             spellCheck={false}
           />
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] text-tea-text-dim border border-tea-border rounded font-mono">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] text-tea-text-sec border border-tea-border rounded font-mono">
             ESC
           </kbd>
         </div>
@@ -231,13 +231,13 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         <div className="max-h-[50vh] overflow-y-auto">
           {query.trim() === '' && (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm text-tea-text-dim">Start typing to search teas, articles, and more</p>
+              <p className="text-sm text-tea-text-sec">Start typing to search teas, articles, and more</p>
             </div>
           )}
 
           {query.trim() !== '' && results.length === 0 && (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm text-tea-text-dim">
+              <p className="text-sm text-tea-text-sec">
                 No results found for &lsquo;{query}&rsquo;
               </p>
             </div>
@@ -246,7 +246,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           {groupedResults.map(group => (
             <div key={group.label}>
               <div className="px-4 pt-3 pb-1">
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-sans">
+                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-sans">
                   {group.label}
                 </span>
               </div>
@@ -273,9 +273,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
                     ) : (
                       <div className="w-9 h-9 rounded bg-tea-surface border border-tea-border flex items-center justify-center shrink-0">
                         {item.type === 'product' ? (
-                          <Icons.Bag className="w-4 h-4 text-tea-text-dim" />
+                          <Icons.Bag className="w-4 h-4 text-tea-text-sec" />
                         ) : (
-                          <Icons.Book className="w-4 h-4 text-tea-text-dim" />
+                          <Icons.Book className="w-4 h-4 text-tea-text-sec" />
                         )}
                       </div>
                     )}
@@ -283,7 +283,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
                     {/* Text */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-tea-text truncate">{item.title}</p>
-                      <p className="text-xs text-tea-text-dim truncate">{item.subtitle}</p>
+                      <p className="text-xs text-tea-text-sec truncate">{item.subtitle}</p>
                     </div>
 
                     {/* Category badge */}
@@ -301,7 +301,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
 
         {/* Footer hint */}
         {results.length > 0 && (
-          <div className="px-4 py-2 border-t border-tea-border flex items-center gap-4 text-[10px] text-tea-text-dim font-sans">
+          <div className="px-4 py-2 border-t border-tea-border flex items-center gap-4 text-[10px] text-tea-text-sec font-sans">
             <span className="flex items-center gap-1">
               <kbd className="px-1 py-0.5 border border-tea-border rounded font-mono">↑↓</kbd> navigate
             </span>

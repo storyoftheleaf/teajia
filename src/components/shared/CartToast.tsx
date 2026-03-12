@@ -53,7 +53,7 @@ export const CartToast: React.FC<CartToastProps> = ({
 
         {/* Item info */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-tea-text-dim uppercase tracking-widest mb-0.5">Added to cart</p>
+          <p className="text-xs text-tea-text-sec uppercase tracking-widest mb-0.5">Added to cart</p>
           <p className="text-sm font-serif text-tea-text truncate">{itemName}</p>
         </div>
 
@@ -75,7 +75,7 @@ export const CartToast: React.FC<CartToastProps> = ({
             e.stopPropagation();
             onDismiss();
           }}
-          className="shrink-0 p-1 text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+          className="shrink-0 p-1 text-tea-text-sec hover:text-tea-text transition-colors duration-200"
           aria-label="Dismiss"
         >
           <Icons.Close className="w-3.5 h-3.5" />

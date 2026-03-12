@@ -44,10 +44,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, compareItems } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
@@ -291,14 +291,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                            <div className="flex items-center gap-1.5">
                               <span className="card-grid-badge">{item.type}</span>
                               {item.origin && (
-                                 <span className="text-[10px] text-tea-text-dim italic">{item.origin}</span>
+                                 <span className="text-[10px] text-tea-text-sec italic">{item.origin}</span>
                               )}
                            </div>
                         }
                         priceDisplay={
                            <span className="card-grid-price">
                               <span className="num">{fmtPrice(gridPrice25)}</span>
-                              <span className="text-tea-text-dim text-[10px] ml-1">/ 25g</span>
+                              <span className="text-tea-text-sec text-[10px] ml-1">/ 25g</span>
                            </span>
                         }
                         sliderComponent={
@@ -336,12 +336,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
                         <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
-                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-dim">{group.type}</span>
+                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-sec">{group.type}</span>
                         </div>
                     )}
 
                     {group.items.map((item) => {
                         const isTeajiaFav = !!item.isFeatured;
+                        const isFavorite = userFavorites.has(item.id);
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
                         const price25g = Math.round(pricePerGram * 25 * 100) / 100;
 
@@ -370,7 +371,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
                                         <div className="text-[13px] mt-1 truncate flex items-center gap-2">
-                                             <span className="text-[10px] uppercase tracking-wider text-tea-text-dim">{item.type}</span>
+                                             <span className="text-[10px] uppercase tracking-wider text-tea-text-sec">{item.type}</span>
                                              {item.origin && (
                                                  <><span className="text-tea-text/20">·</span>
                                                  <span className="font-body italic text-tea-text/40">{item.origin}</span></>
@@ -382,8 +383,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                     </div>
 
-                                    {/* Right: price + admin controls + chevron */}
+                                    {/* Right: heart + price + admin controls + chevron */}
                                     <div className="flex items-center gap-2 shrink-0">
+                                        {/* Favorite/heart toggle */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
+                                            className={`-my-1 p-1.5 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                                        >
+                                            <Icons.Heart filled={isFavorite} className="w-4 h-4" />
+                                        </button>
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
                                             const ap = adminProductMap.get(item.id)!;
@@ -407,7 +416,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         )}
                                         <div className="text-right">
                                             <span className="num text-sm text-tea-gold">{fmtPrice(price25g)}</span>
-                                            <span className="text-[10px] text-tea-text-dim ml-1">/ 25g</span>
+                                            <span className="text-[10px] text-tea-text-sec ml-1">/ 25g</span>
                                         </div>
                                         <Icons.Next className="w-4 h-4 text-tea-text/20 shrink-0" />
                                     </div>

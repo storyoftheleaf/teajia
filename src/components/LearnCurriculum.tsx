@@ -154,7 +154,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                 onClick={() => setSelectedPath(path.id)}
               >
                 <div className="p-6 flex flex-col items-center text-center gap-3">
-                  <div className="text-tea-text-dim">{getPathIcon(path.icon)}</div>
+                  <div className="text-tea-text-sec">{getPathIcon(path.icon)}</div>
                   <h3 className="font-serif text-base text-tea-text">{path.title}</h3>
                   <p className="text-xs text-tea-text/50 leading-relaxed">{path.description}</p>
                   <div className="text-[11px] uppercase tracking-wider text-tea-text/40 mt-2">
@@ -179,7 +179,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
           </button>
           {selectedPathData && (
             <div className="mt-4 flex items-center gap-3">
-              <div className="text-tea-text-dim">{getPathIcon(selectedPathData.icon)}</div>
+              <div className="text-tea-text-sec">{getPathIcon(selectedPathData.icon)}</div>
               <div>
                 <h2 className="font-serif text-2xl text-tea-text">{selectedPathData.title}</h2>
                 <p className="text-sm text-tea-text/60 mt-1">{selectedPathData.description}</p>

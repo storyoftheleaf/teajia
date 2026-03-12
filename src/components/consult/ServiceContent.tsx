@@ -44,7 +44,7 @@ const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) 
 
 const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-[0.15em]
+    className="text-tea-text-sec hover:text-tea-gold text-xs uppercase tracking-[0.15em]
                font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
@@ -138,7 +138,7 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
             >
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-[1px] bg-tea-gold/12 group-hover:bg-tea-gold/20 transition-colors" />
-                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-dim
+                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-sec
                                  group-hover:text-tea-gold transition-colors select-none whitespace-nowrap">
                   {expanded ? 'Less' : 'Details'}
                   {expanded
@@ -230,7 +230,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         }
       >
         {/* Pillars */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-3">
           What's Involved
         </p>
         <div className="flex flex-wrap gap-2 mb-8">
@@ -246,7 +246,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <div className="relative px-5 py-6 md:px-6 md:py-7 mb-8 overflow-hidden" style={alcovePanelStyle}>
           <div style={SURFACE_TREATMENTS.grainTexture.panel} />
           <div style={SURFACE_TREATMENTS.ambientGlow} />
-          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-5">
+          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-5">
             The Process
           </p>
           {/* Mobile */}
@@ -256,7 +256,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
                 <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">{step}</span>
                 <div>
                   <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
-                  <p className="text-[11px] text-tea-text-dim mt-0.5">{desc}</p>
+                  <p className="text-[11px] text-tea-text-sec mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -267,7 +267,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
               <div key={step}>
                 <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center mb-2">{step}</span>
                 <h4 className="font-serif text-sm font-medium text-tea-text">{title}</h4>
-                <p className="text-[11px] text-tea-text-dim mt-1 leading-relaxed">{desc}</p>
+                <p className="text-[11px] text-tea-text-sec mt-1 leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -334,7 +334,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         <div className="relative max-w-[640px] mb-8 overflow-hidden" style={alcovePanelStyle}>
           <div style={SURFACE_TREATMENTS.grainTexture.panel} />
           <div style={SURFACE_TREATMENTS.ambientGlow} />
-          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-dim px-5 pt-5 pb-2">
+          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-sec px-5 pt-5 pb-2">
             Offerings
           </p>
           {OFFERINGS.map(({ name, price, desc }) => (
@@ -342,14 +342,14 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
               style={{ borderBottom: '1px solid var(--tea-border)' }}>
               <div>
                 <h4 className="font-serif text-base text-tea-text">{name}</h4>
-                <p className="text-xs text-tea-text-dim mt-1">{desc}</p>
+                <p className="text-xs text-tea-text-sec mt-1">{desc}</p>
               </div>
               <span className="font-mono text-xs text-tea-gold num whitespace-nowrap ml-4 mt-1">{price}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-dim mb-3">
+        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-3">
           What You Walk Away With
         </p>
         <div className="border-l border-tea-border pl-4">
@@ -495,7 +495,7 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
         <div className="border-l-2 border-tea-gold/30 pl-4">
           <p className="text-sm text-tea-gold/80">From $500 for a half-day.</p>
-          <p className="text-xs text-tea-text-dim mt-1">
+          <p className="text-xs text-tea-text-sec mt-1">
             Full-day and multi-day experiences quoted based on scope.
           </p>
         </div>

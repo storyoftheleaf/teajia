@@ -383,32 +383,32 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface rounded-t-xl">
           <div>
             <h3 className="text-2xl font-serif text-tea-text">Import Inventory</h3>
-            <p className="text-tea-text-dim text-sm mt-1">
+            <p className="text-tea-text-sec text-sm mt-1">
               {stage === 'upload' && "Select your CSV file."}
               {stage === 'staging' && "Review data before importing."}
               {stage === 'uploading' && `Importing ${uploadProgress} of ${totalRecords} records...`}
             </p>
           </div>
-          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors"><X size={24} /></button>}
+          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors"><X size={24} /></button>}
         </div>
 
         <div className="flex-1 overflow-hidden p-6 relative">
           {stage === 'upload' && (
             <div className="h-full flex flex-col items-center justify-center gap-6">
-              <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-dim transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
-                <Upload size={48} className="text-tea-text-dim mb-4" />
+              <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
+                <Upload size={48} className="text-tea-text-sec mb-4" />
                 <label className="cursor-pointer bg-tea-accent text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-accent/90 transition-colors">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
-                <p className="mt-4 text-tea-text-dim text-sm text-center font-serif italic">
+                <p className="mt-4 text-tea-text-sec text-sm text-center font-serif italic">
                     Required: Product Name, Type<br/>
                     Optional: Stock, Cost, Year, Vendor
                 </p>
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                 <button onClick={handleDownloadTemplate} className="text-tea-text-dim hover:text-tea-text flex items-center gap-2 text-xs uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors">
+                 <button onClick={handleDownloadTemplate} className="text-tea-text-sec hover:text-tea-text flex items-center gap-2 text-xs uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors">
                     <Download size={14} /> Download Template
                  </button>
               </div>
@@ -420,13 +420,13 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                   <div className="flex justify-between items-center mb-4 text-sm">
                  <div className="flex gap-4">
                     <span className="flex items-center gap-2 text-tea-text"><CheckCircle size={14} /> {validationSummary.valid} Active</span>
-                    <span className="flex items-center gap-2 text-tea-text-dim"><FileQuestion size={14} /> {validationSummary.drafts} Drafts (Missing Info)</span>
+                    <span className="flex items-center gap-2 text-tea-text-sec"><FileQuestion size={14} /> {validationSummary.drafts} Drafts (Missing Info)</span>
                  </div>
               </div>
 
               <div className="flex-1 overflow-auto border border-tea-border rounded-xl bg-tea-surface">
                 <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-tea-bg text-tea-text-dim font-serif uppercase tracking-[0.2em] text-[10px] sticky top-0 z-10">
+                  <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-[10px] sticky top-0 z-10">
                     <tr>
                       <th className="p-3 border-b border-tea-border">State</th>
                       <th className="p-3 border-b border-tea-border">Type</th>
@@ -452,31 +452,31 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                                     <AlertTriangle size={14} className="text-tea-accent" />
                                 </div>
                             ) : row.status === 'Draft' ? (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text-dim/10 text-tea-text-dim border border-tea-text-dim/20 text-[10px] font-mono">DRAFT</span>
+                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text-sec/10 text-tea-text-sec border border-tea-text-sec/20 text-[10px] font-mono">DRAFT</span>
                             ) : (
                                 <span className="px-1.5 py-0.5 rounded-sm bg-tea-text/10 text-tea-text border border-tea-text/20 text-[10px] font-mono">ACTIVE</span>
                             )}
                         </td>
-                        <td className={`p-2 text-tea-text-dim ${isMissingOrUnknown(row.type) ? 'bg-tea-accent/10' : ''}`}>{row.type}</td>
+                        <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-accent/10' : ''}`}>{row.type}</td>
                         <td className="p-2 text-tea-text">{row.givenName}</td>
                         <td className="p-2 text-tea-text font-serif">{row.productName}</td>
-                        <td className="p-2 text-tea-text-dim font-serif italic">{row.year}</td>
+                        <td className="p-2 text-tea-text-sec font-serif italic">{row.year}</td>
                         
-                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.grams) ? 'text-tea-text-dim italic' : 'text-tea-text'}`}>{row.grams}</td>
-                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.stockAmount) ? 'text-tea-text-dim italic' : 'text-tea-text'}`}>{row.stockAmount}</td>
-                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.costAmount) ? 'text-tea-text-dim italic' : 'text-tea-text'}`}>{row.costAmount}</td>
-                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.currency) ? 'text-tea-text-dim italic' : 'text-tea-text'}`}>{row.currency}</td>
+                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.grams) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.grams}</td>
+                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.stockAmount) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.stockAmount}</td>
+                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.costAmount) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.costAmount}</td>
+                        <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.currency) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.currency}</td>
                         
-                        <td className="p-2 text-tea-text-dim">{row.vendor}</td>
+                        <td className="p-2 text-tea-text-sec">{row.vendor}</td>
                         
                         <td className="p-2 text-center">
-                            {row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-dim/50">-</span>}
+                            {row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
                         </td>
                         <td className="p-2 text-center">
-                             {row.isPersonal ? <span className="text-tea-accent font-serif italic">Yes</span> : <span className="text-tea-text-dim/50">-</span>}
+                             {row.isPersonal ? <span className="text-tea-accent font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
                         </td>
                         
-                        <td className="p-2 text-center"><button onClick={() => deleteRow(row.id)} className="text-tea-text-dim hover:text-tea-accent transition-colors"><Trash2 size={14} /></button></td>
+                        <td className="p-2 text-center"><button onClick={() => deleteRow(row.id)} className="text-tea-text-sec hover:text-tea-accent transition-colors"><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -495,16 +495,16 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                     style={{ width: `${totalRecords > 0 ? (uploadProgress / totalRecords) * 100 : 0}%` }}
                  ></div>
               </div>
-              <p className="text-xs text-tea-text-dim mt-4 font-mono">{uploadProgress} / {totalRecords}</p>
+              <p className="text-xs text-tea-text-sec mt-4 font-mono">{uploadProgress} / {totalRecords}</p>
             </div>
           )}
         </div>
 
         {stage === 'staging' && (
           <div className="p-6 border-t border-tea-border bg-tea-surface flex justify-between items-center rounded-b-xl">
-            <button onClick={() => setStage('upload')} className="text-tea-text-dim hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
+            <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
             <div className="flex gap-3">
-              <button onClick={onClose} className="px-6 py-3 text-tea-text-dim hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
+              <button onClick={onClose} className="px-6 py-3 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
               <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-accent text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-accent/90 disabled:opacity-50 transition-colors">
                   Import All ({stagingData.length})
               </button>

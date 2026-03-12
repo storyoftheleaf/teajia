@@ -104,7 +104,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Icons.User className="w-8 h-8 text-tea-text-dim" />
+                      <Icons.User className="w-8 h-8 text-tea-text-sec" />
                     </div>
                   )}
                 </div>

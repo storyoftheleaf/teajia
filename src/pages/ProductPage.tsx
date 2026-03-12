@@ -50,7 +50,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
         <h1 className="text-4xl font-serif text-tea-gold mb-4">Not Found</h1>
-        <p className="text-sm text-tea-text-dim mb-8 max-w-md">
+        <p className="text-sm text-tea-text-sec mb-8 max-w-md">
           This product could not be found. It may have been removed or the link may be incorrect.
         </p>
         <Link
@@ -88,7 +88,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       <div className="mb-6">
         <button
           onClick={() => navigate('/shop')}
-          className="inline-flex items-center gap-2 text-tea-text-dim hover:text-tea-gold transition-colors text-sm"
+          className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-gold transition-colors text-sm"
         >
           <Icons.Back className="w-4 h-4" />
           <span className="uppercase tracking-[0.12em] text-xs">Back to Shop</span>
@@ -137,18 +137,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         <div className="md:w-1/2 flex flex-col">
           {/* Tea type badge + origin */}
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim bg-tea-accent-sub px-2.5 py-1 rounded-sm border border-tea-border">
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm border border-tea-border">
               {item.type}
             </span>
             {item.origin && (
-              <span className="text-[12px] italic text-tea-text-dim">
+              <span className="text-[12px] italic text-tea-text-sec">
                 {item.origin}
               </span>
             )}
             {item.year && (
               <>
-                <span className="text-tea-text-dim/40">·</span>
-                <span className="text-[12px] font-mono text-tea-text-dim">{item.year}</span>
+                <span className="text-tea-text-sec/40">·</span>
+                <span className="text-[12px] font-mono text-tea-text-sec">{item.year}</span>
               </>
             )}
           </div>
@@ -158,10 +158,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             {item.variant || item.name}
           </h1>
           {item.variant && item.variant !== item.name && (
-            <p className="font-serif text-lg italic text-tea-text-dim mb-1">{item.name}</p>
+            <p className="font-serif text-lg italic text-tea-text-sec mb-1">{item.name}</p>
           )}
           {item.chineseName && (
-            <p className="text-2xl text-tea-text-dim/30 mb-4" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>
+            <p className="text-2xl text-tea-text-sec/30 mb-4" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>
               {item.chineseName}
             </p>
           )}
@@ -178,12 +178,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Experience / Mood */}
           {item.mood && (
-            <p className="text-sm italic text-tea-text-dim mb-2">
+            <p className="text-sm italic text-tea-text-sec mb-2">
               {item.mood}
             </p>
           )}
           {item.experience && (
-            <p className="text-sm italic text-tea-text-dim mb-5">
+            <p className="text-sm italic text-tea-text-sec mb-5">
               {item.experience}
             </p>
           )}
@@ -191,7 +191,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* Tasting notes */}
           {item.tags && item.tags.length > 0 && (
             <div className="mb-6">
-              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2 block">
+              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-2 block">
                 Tasting Notes
               </span>
               <div className="flex flex-wrap gap-2">
@@ -254,7 +254,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <div className="flex items-baseline justify-between mb-1 px-0.5">
                 <span className="font-mono text-sm text-tea-text">{fmtPrice(total)}</span>
                 <span className="font-mono text-xs text-tea-text-sec">
-                  {grams}<span className="text-[9px] text-tea-text-dim ml-0.5">g</span>
+                  {grams}<span className="text-[9px] text-tea-text-sec ml-0.5">g</span>
                 </span>
               </div>
               <HapticSlider
@@ -276,7 +276,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-sm transition-all ${
                 isFavorited
                   ? 'border-tea-gold text-tea-gold'
-                  : 'border-tea-border text-tea-text-dim hover:border-tea-gold/30 hover:text-tea-text-sec'
+                  : 'border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text-sec'
               }`}
             >
               <Icons.Heart filled={isFavorited} className="w-4 h-4" />
@@ -290,7 +290,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               disabled={isSoldOut}
               className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-sm text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] ${
                 isSoldOut
-                  ? 'bg-tea-accent-sub text-tea-text-dim border border-tea-border cursor-not-allowed opacity-60'
+                  ? 'bg-tea-accent-sub text-tea-text-sec border border-tea-border cursor-not-allowed opacity-60'
                   : added
                     ? 'bg-tea-green text-white border border-tea-green'
                     : 'bg-tea-gold text-white hover:bg-tea-gold-lt border border-tea-gold'
@@ -312,7 +312,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       {relatedTeas.length > 0 && (
         <div className="mt-16 mb-8">
           <div className="border-t border-tea-border pt-8 mb-6">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
               More {item.type} Teas
             </span>
           </div>
@@ -341,7 +341,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                     <h4 className="font-serif text-sm text-tea-text leading-snug group-hover:text-tea-gold transition-colors truncate">
                       {related.name}
                     </h4>
-                    <p className="font-mono text-[11px] text-tea-text-dim mt-1">
+                    <p className="font-mono text-[11px] text-tea-text-sec mt-1">
                       {fmtPricePerGram(parseFloat(related.price_per_gram || '0'))}
                     </p>
                   </div>
@@ -358,7 +358,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-lg p-3 flex items-center gap-3 shadow-lg">
             <div className="flex-1 min-w-0">
               <p className="font-serif text-sm text-tea-text truncate">{item.name}</p>
-              <p className="font-mono text-xs text-tea-text-dim">{grams}g · {fmtPrice(total)}</p>
+              <p className="font-mono text-xs text-tea-text-sec">{grams}g · {fmtPrice(total)}</p>
             </div>
             <button
               onClick={handleAdd}

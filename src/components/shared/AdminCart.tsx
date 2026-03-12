@@ -209,7 +209,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       <div className="flex flex-col h-full bg-tea-bg overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-tea-border bg-tea-surface/50">
           <h2 className="text-xl font-serif text-tea-text tracking-wide">Order Submitted</h2>
-          <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border">
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border">
             <X size={18} />
           </button>
         </div>
@@ -224,7 +224,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               <Clock size={32} />
             </div>
             <h2 className="text-2xl font-serif text-tea-text mb-2 print:text-black">Order Submitted</h2>
-            <p className="text-tea-text-dim mb-6 text-xs print:text-gray-600 print:mb-4">
+            <p className="text-tea-text-sec mb-6 text-xs print:text-gray-600 print:mb-4">
               Invoice #{lastInvoice.invoice_number} • {new Date().toLocaleDateString()}
             </p>
             <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
@@ -241,11 +241,11 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   <div key={item.productId} className="flex justify-between items-start text-sm border-b border-tea-border pb-2 mb-2 print:border-tea-border">
                     <div>
                       <div className="text-tea-text font-medium print:text-black">{item.product.givenName}</div>
-                      <div className="text-tea-text-dim text-xs print:text-gray-500">{item.product.productName}</div>
+                      <div className="text-tea-text-sec text-xs print:text-gray-500">{item.product.productName}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-tea-text print:text-black">{formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}</div>
-                      <div className="text-tea-text-dim text-xs print:text-gray-500">
+                      <div className="text-tea-text-sec text-xs print:text-gray-500">
                         {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} × {formatCurrency(item.priceAtSale, displayCurrency, rates)}
                       </div>
                     </div>
@@ -254,12 +254,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               </div>
               <div className="pt-2">
                 <div className="flex justify-between text-sm mb-2 print:text-black">
-                  <span className="text-tea-text-dim print:text-gray-600">Subtotal</span>
+                  <span className="text-tea-text-sec print:text-gray-600">Subtotal</span>
                   <span className="text-tea-text font-medium print:text-black">{formatCurrency(subtotalUSD, displayCurrency, rates)}</span>
                 </div>
                 {shippingCostUSD > 0 && (
                   <div className="flex justify-between text-sm mb-2 print:text-black">
-                    <span className="text-tea-text-dim print:text-gray-600">Shipping</span>
+                    <span className="text-tea-text-sec print:text-gray-600">Shipping</span>
                     <span className="text-tea-text font-medium print:text-black">{formatCurrency(shippingCostUSD, displayCurrency, rates)}</span>
                   </div>
                 )}
@@ -276,7 +276,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   <Share2 size={16} /> Share on WhatsApp
                 </a>
               ) : (
-                <div className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-bg text-tea-text-dim border border-tea-border cursor-not-allowed">
+                <div className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-bg text-tea-text-sec border border-tea-border cursor-not-allowed">
                   <Share2 size={16} /> Share on WhatsApp
                 </div>
               )}
@@ -304,17 +304,17 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface/50">
         <div>
           <h2 className="text-xl font-serif text-tea-text tracking-wide">Registry Manifest</h2>
-          <p className="text-[10px] text-tea-text-dim uppercase tracking-widest mt-0.5">Pending Items</p>
+          <p className="text-[10px] text-tea-text-sec uppercase tracking-widest mt-0.5">Pending Items</p>
         </div>
         <div className="flex items-center gap-3">
           {!isEmpty && (
             <button onClick={onClearCart}
-              className="text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1 hover:bg-tea-surface rounded">
+              className="text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1 hover:bg-tea-surface rounded">
               <Trash2 size={12} /> Clear
             </button>
           )}
           <button onClick={onClose}
-            className="text-tea-text-dim hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border">
+            className="text-tea-text-sec hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border">
             <X size={18} />
           </button>
         </div>
@@ -342,17 +342,17 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         )}
 
         {isEmpty ? (
-          <div className="h-full flex flex-col items-center justify-center text-tea-text-dim space-y-4 min-h-[300px]">
+          <div className="h-full flex flex-col items-center justify-center text-tea-text-sec space-y-4 min-h-[300px]">
             <Package size={40} strokeWidth={1} className="opacity-50" />
             <div className="text-center">
               <p className="font-serif italic text-base mb-1">Registry Empty</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim/70">Select items from catalog</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70">Select items from catalog</p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             {cart.map((item, idx) => (
-              <div key={item.productId} className="group bg-tea-surface border border-tea-border rounded-xl p-3 hover:border-tea-text-dim/50 transition-colors flex gap-3">
+              <div key={item.productId} className="group bg-tea-surface border border-tea-border rounded-xl p-3 hover:border-tea-text-sec/50 transition-colors flex gap-3">
                 <div className="w-12 h-12 bg-tea-bg rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-tea-border">
                   {item.product.imageUrl ? (
                     <img src={item.product.imageUrl} className="w-full h-full object-cover opacity-70" alt="" />
@@ -365,11 +365,11 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
                     <h4 className="text-sm font-serif text-tea-text truncate pr-2">{item.product.givenName}</h4>
-                    <button onClick={() => removeItem(idx)} className="text-tea-text-dim hover:text-tea-gold p-0.5 transition-colors">
+                    <button onClick={() => removeItem(idx)} className="text-tea-text-sec hover:text-tea-gold p-0.5 transition-colors">
                       <Trash2 size={12} />
                     </button>
                   </div>
-                  <p className="text-[10px] text-tea-text-dim truncate mb-2 font-serif italic">{item.product.productName}</p>
+                  <p className="text-[10px] text-tea-text-sec truncate mb-2 font-serif italic">{item.product.productName}</p>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 bg-tea-bg rounded-lg border border-tea-border px-1.5 py-0.5">
                       <input
@@ -378,7 +378,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                         onChange={(e) => updateQuantity(idx, Number(e.target.value))}
                         className="w-8 bg-transparent text-center text-xs outline-none num text-tea-text"
                       />
-                      <span className="text-[9px] text-tea-text-dim border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
+                      <span className="text-[9px] text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
                         {item.product.type === 'Teaware' ? 'u' : 'g'}
                       </span>
                     </div>
@@ -397,7 +397,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       <div className="bg-tea-surface border-t border-tea-border p-6 space-y-5 z-20" style={{ boxShadow: '0 -10px 40px var(--tea-accent-sub)' }}>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="text-[9px] text-tea-text-dim uppercase block mb-1">Currency</label>
+            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Currency</label>
             <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
               <select
                 value={displayCurrency}
@@ -409,7 +409,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </div>
           </div>
           <div className="flex-1">
-            <label className="text-[9px] text-tea-text-dim uppercase block mb-1">Shipping (USD)</label>
+            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Shipping (USD)</label>
             <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
               <input
                 type="number"
@@ -430,8 +430,8 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               onChange={(e) => handleCustomerSearch(e.target.value)}
               onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none transition-colors placeholder-tea-text-dim/50 ${
-                validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-dim'
+              className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none transition-colors placeholder-tea-text-sec/50 ${
+                validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
               }`}
               placeholder="Client Name *"
             />
@@ -450,15 +450,15 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   >
                     <div>
                       <span className="text-tea-text">{c.name}</span>
-                      {c.company && <span className="text-tea-text-dim text-xs ml-2">{c.company}</span>}
+                      {c.company && <span className="text-tea-text-sec text-xs ml-2">{c.company}</span>}
                     </div>
                     {c.tags?.length > 0 && (
-                      <span className="text-[9px] text-tea-text-dim uppercase">{c.tags[0]}</span>
+                      <span className="text-[9px] text-tea-text-sec uppercase">{c.tags[0]}</span>
                     )}
                   </button>
                 ))}
                 {customerSuggestions.length === 0 && customerName.trim() && (
-                  <div className="px-3 py-2 text-xs text-tea-text-dim">
+                  <div className="px-3 py-2 text-xs text-tea-text-sec">
                     <span className="italic">New contact — will be saved automatically</span>
                     <span className="block mt-1 text-tea-accent/70">Tip: Add full details in Customers & Sources after checkout</span>
                   </div>
@@ -470,13 +470,13 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             type="text"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
-            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim placeholder-tea-text-dim/50"
+            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec placeholder-tea-text-sec/50"
             placeholder="WhatsApp (Optional)"
           />
         </div>
         <div>
           <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border/50">
-            <span className="text-xs uppercase tracking-[0.2em] text-tea-text-dim">Total</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
             <span className="text-xl font-serif text-tea-gold">
               {formatCurrency(totalUSD, displayCurrency, rates)}
             </span>
@@ -486,7 +486,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             disabled={isProcessing || isEmpty}
             className={`w-full py-4 text-xs font-bold uppercase tracking-[0.2em] rounded-lg flex items-center justify-center gap-2 transition-all ${
               isEmpty
-                ? 'bg-tea-bg text-tea-text-dim cursor-not-allowed border border-tea-border'
+                ? 'bg-tea-bg text-tea-text-sec cursor-not-allowed border border-tea-border'
                 : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'
             }`}
           >

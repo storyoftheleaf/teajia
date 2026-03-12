@@ -62,7 +62,7 @@ const CalendarDownload: React.FC<CalendarDownloadProps> = ({ event, className = 
       onClick={handleDownload}
       className={`inline-flex items-center gap-3 px-6 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group ${className}`}
     >
-      <Calendar className="w-4 h-4 text-tea-text-dim group-hover:text-tea-gold transition-colors duration-300" />
+      <Calendar className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors duration-300" />
       <span className="text-xs uppercase tracking-[0.2em] font-medium">
         Add to Calendar
       </span>

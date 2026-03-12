@@ -59,7 +59,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
             ))}
           </div>
         ) : (
-          <span className="text-sm text-tea-text-dim">{'\u2014'}</span>
+          <span className="text-sm text-tea-text-sec">{'\u2014'}</span>
         ),
     },
     {
@@ -95,20 +95,20 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
               <h2 className="text-sm uppercase tracking-[0.15em] text-tea-text font-medium">
                 Compare
               </h2>
-              <span className="text-xs text-tea-text-dim">
+              <span className="text-xs text-tea-text-sec">
                 {items.length} {items.length === 1 ? 'tea' : 'teas'}
               </span>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={clearCompare}
-                className="text-xs uppercase tracking-wider text-tea-text-dim hover:text-tea-gold transition-colors"
+                className="text-xs uppercase tracking-wider text-tea-text-sec hover:text-tea-gold transition-colors"
               >
                 Clear All
               </button>
               <button
                 onClick={onClose}
-                className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors"
+                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -130,7 +130,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                       <div className="relative bg-tea-surface border border-tea-border rounded-md p-4">
                         <button
                           onClick={() => removeCompareItem(item.id)}
-                          className="absolute top-2 right-2 p-1 text-tea-text-dim hover:text-tea-gold transition-colors"
+                          className="absolute top-2 right-2 p-1 text-tea-text-sec hover:text-tea-gold transition-colors"
                           aria-label={`Remove ${item.name} from comparison`}
                         >
                           <X className="w-3.5 h-3.5" />
@@ -148,7 +148,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                           {item.name}
                         </h3>
                         {item.chineseName && (
-                          <p className="text-sm text-tea-text-dim mt-0.5">{item.chineseName}</p>
+                          <p className="text-sm text-tea-text-sec mt-0.5">{item.chineseName}</p>
                         )}
                         <p className="text-xs text-tea-text-sec italic mt-1">{item.variant}</p>
                       </div>
@@ -160,7 +160,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                 {rows.map((row) => (
                   <tr key={row.label} className="border-t border-tea-border">
                     <td className="p-3 align-top">
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">
+                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
                         {row.label}
                       </span>
                     </td>
@@ -196,13 +196,13 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-serif text-lg text-tea-text leading-tight">{item.name}</h3>
                     {item.chineseName && (
-                      <p className="text-sm text-tea-text-dim mt-0.5">{item.chineseName}</p>
+                      <p className="text-sm text-tea-text-sec mt-0.5">{item.chineseName}</p>
                     )}
                     <p className="text-xs text-tea-text-sec italic mt-0.5">{item.variant}</p>
                   </div>
                   <button
                     onClick={() => removeCompareItem(item.id)}
-                    className="p-1 text-tea-text-dim hover:text-tea-gold transition-colors shrink-0"
+                    className="p-1 text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
                     aria-label={`Remove ${item.name}`}
                   >
                     <X className="w-4 h-4" />
@@ -213,7 +213,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                 <div className="divide-y divide-tea-border">
                   {rows.map((row) => (
                     <div key={row.label} className="px-4 py-2.5 flex items-start gap-3">
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim w-20 shrink-0 pt-0.5">
+                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec w-20 shrink-0 pt-0.5">
                         {row.label}
                       </span>
                       <div className="flex-1">{row.render(item)}</div>
