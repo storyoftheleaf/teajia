@@ -448,6 +448,9 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
   }
 
+  // Track when this product was last modified
+  body.updated_at = new Date().toISOString();
+
   const cols = Object.keys(body);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ?`)

@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS products (
     additional_images TEXT DEFAULT '[]', -- JSON array of extra image URLs
     quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
     vendor_id TEXT,                -- FK to customers table (vendor contact)
-    created_at TEXT DEFAULT (datetime('now'))
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
+    last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
 
 -- 1b. Customers Table

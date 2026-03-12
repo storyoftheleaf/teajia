@@ -151,7 +151,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
       complete: (results: any) => {
         const rows = results.data.map((row: any, index: number) => {
           
