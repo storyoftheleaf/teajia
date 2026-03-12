@@ -14,6 +14,7 @@ import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useRates } from '../admin/hooks/useAdminData';
+import { ToastProvider } from '../admin/components/Toast';
 import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
 
@@ -35,10 +36,10 @@ interface ShopProps {
 }
 
 const TABS = [
-  { id: 'collection', label: 'Collection', icon: <Icons.Seal className="w-4 h-4" /> },
   { id: 'tea', label: 'Tea', icon: <Icons.Leaf className="w-4 h-4" /> },
   { id: 'teaware', label: 'Teaware', icon: <Icons.Teapot className="w-4 h-4" /> },
   { id: 'sets', label: 'Sets', icon: <Icons.Box className="w-4 h-4" /> },
+  { id: 'collection', label: 'Collection', icon: <Icons.Seal className="w-4 h-4" /> },
 ];
 
 export const Shop: React.FC<ShopProps> = ({
@@ -53,7 +54,7 @@ export const Shop: React.FC<ShopProps> = ({
   error,
   onRetry,
 }) => {
-  const [activeTab, setActiveTab] = useState<ShopTab>('collection');
+  const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
 
   // Admin overlay state
@@ -234,15 +235,17 @@ export const Shop: React.FC<ShopProps> = ({
 
       {/* Admin: Edit/Create Product Modal */}
       {(editingProduct || showCreateModal) && (
-        <Suspense fallback={null}>
-          <AddProductModal
-            isOpen={true}
-            onClose={() => { setEditingProduct(null); setShowCreateModal(false); }}
-            onSuccess={() => { setEditingProduct(null); setShowCreateModal(false); refetchProducts(); }}
-            initialData={editingProduct}
-            rates={rates}
-          />
-        </Suspense>
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <AddProductModal
+              isOpen={true}
+              onClose={() => { setEditingProduct(null); setShowCreateModal(false); }}
+              onSuccess={() => { setEditingProduct(null); setShowCreateModal(false); refetchProducts(); }}
+              initialData={editingProduct}
+              rates={rates}
+            />
+          </Suspense>
+        </ToastProvider>
       )}
     </div>
   );
