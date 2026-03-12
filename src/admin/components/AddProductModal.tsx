@@ -815,26 +815,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <textarea
                                 name="lore" value={formData.lore}
                                 onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={4}
-                                className={`${wisdomInputStyle} resize-vertical`}
+                                rows={8}
+                                className={`${wisdomInputStyle} resize-y min-h-[120px] max-h-[400px] font-serif leading-relaxed`}
                                 placeholder="Legend says these bushes were draped in imperial red robes..."
                             />
+                            {formData.lore && (
+                                <div className="text-[9px] text-tea-text-dim/40 text-right mt-0.5">{formData.lore.length} chars</div>
+                            )}
                         </div>
 
-                        {/* Experience — generous textarea */}
-                        <div>
-                            <label className={labelStyle}>Experience Description</label>
-                            <textarea
-                                name="experience" value={formData.experience}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={3}
-                                className={`${wisdomInputStyle} resize-vertical`}
-                                placeholder="A deeply centering tea. The heavy roast anchors the body..."
-                            />
-                        </div>
-
-                        {/* Mood + Terroir + Processing on one row */}
-                        <div className="grid grid-cols-3 gap-4">
+                        {/* Mood + Terroir on one row */}
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className={labelStyle}>Mood</label>
                                 <input
@@ -845,30 +836,48 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             </div>
                             <div>
                                 <label className={labelStyle}>Terroir</label>
-                                <input
-                                    name="terroir" type="text" value={formData.terroir}
+                                <textarea
+                                    name="terroir" value={formData.terroir}
                                     onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                    className={wisdomInputStyle} placeholder="High-altitude granite soils..."
-                                />
-                            </div>
-                            <div>
-                                <label className={labelStyle}>Processing / Craft</label>
-                                <input
-                                    name="processingNotes" type="text" value={formData.processingNotes}
-                                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                    className={wisdomInputStyle} placeholder="Heavy charcoal roast..."
+                                    rows={3}
+                                    className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
+                                    placeholder="High-altitude granite soils..."
                                 />
                             </div>
                         </div>
 
-                        {/* Tasting Notes — generous textarea */}
+                        {/* Experience */}
+                        <div>
+                            <label className={labelStyle}>Experience Description</label>
+                            <textarea
+                                name="experience" value={formData.experience}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={5}
+                                className={`${wisdomInputStyle} resize-y min-h-[80px] max-h-[300px] font-serif leading-relaxed`}
+                                placeholder="A deeply centering tea. The heavy roast anchors the body..."
+                            />
+                        </div>
+
+                        {/* Processing Notes */}
+                        <div>
+                            <label className={labelStyle}>Processing / Craft Notes</label>
+                            <textarea
+                                name="processingNotes" value={formData.processingNotes}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={3}
+                                className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
+                                placeholder="Heavy charcoal roast over pine wood."
+                            />
+                        </div>
+
+                        {/* Tasting Notes */}
                         <div>
                             <label className={labelStyle}>Tasting Notes (Comma separated)</label>
                             <textarea
                                 name="tastingNotes" value={formData.tastingNotes}
                                 onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
                                 rows={2}
-                                className={`${wisdomInputStyle} resize-vertical`}
+                                className={`${wisdomInputStyle} resize-y min-h-[40px] max-h-[150px]`}
                                 placeholder="Pine resin, dried longan, campfire"
                             />
                         </div>
