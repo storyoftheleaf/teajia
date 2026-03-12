@@ -81,30 +81,30 @@ export const OrdersView = () => {
     o.invoice_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (isLoading) return <div className="p-12 text-center text-tea-text-dim flex justify-center"><Loader2 className="animate-spin" /></div>;
+  if (isLoading) return <div className="p-12 text-center text-tea-text-sec flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-tea-border pb-6">
          <div>
             <h2 className="text-2xl font-serif text-tea-text">Order Management</h2>
-            <p className="text-tea-text-dim text-sm mt-1">Fulfill pending orders and track history.</p>
+            <p className="text-tea-text-sec text-sm mt-1">Fulfill pending orders and track history.</p>
          </div>
          <div className="relative w-full md:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={16} />
             <input 
               type="text" 
               placeholder="Search orders..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors duration-200"
+              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors duration-200"
             />
          </div>
       </div>
 
       <div className="hidden md:block overflow-x-auto border border-tea-border rounded-xl bg-tea-surface">
         <table className="w-full text-left text-sm">
-           <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
+           <thead className="bg-tea-bg text-tea-text-sec font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
              <tr>
                <th className="py-3 px-4">Date</th>
                <th className="py-3 px-4">Invoice #</th>
@@ -116,7 +116,7 @@ export const OrdersView = () => {
            </thead>
            <tbody className="divide-y divide-tea-border">
              {filteredOrders.length === 0 ? (
-                 <tr><td colSpan={6} className="p-8 text-center text-tea-text-dim">No orders found.</td></tr>
+                 <tr><td colSpan={6} className="p-8 text-center text-tea-text-sec">No orders found.</td></tr>
              ) : (
                  filteredOrders.map((order: any) => {
                     const isPending = order.status === 'Pending';
@@ -125,7 +125,7 @@ export const OrdersView = () => {
 
                     return (
                      <tr key={order.id} className="hover:bg-tea-bg/50 group transition-colors duration-200">
-                       <td className="py-3 px-4text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</td>
+                       <td className="py-3 px-4text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</td>
                        <td className="py-3 px-4num text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors duration-200" onClick={() => handleView(order)}>{order.invoice_number}</td>
                        <td className="py-3 px-4">
                          <button
@@ -133,7 +133,7 @@ export const OrdersView = () => {
                            className="text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust"
                            title="View customer profile"
                          >
-                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-dim" />
+                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-sec" />
                            {order.customer_name}
                          </button>
                        </td>
@@ -142,7 +142,7 @@ export const OrdersView = () => {
                        </td>
                        <td className="py-3 px-4text-center">
                          <span className={`text-xs px-2 py-1 rounded border font-medium uppercase tracking-wider ${
-                            isVoid ? 'border-tea-text-dim/50 text-tea-text-dim bg-tea-text-dim/10' :
+                            isVoid ? 'border-tea-text-sec/50 text-tea-text-sec bg-tea-text-sec/10' :
                             isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
                             'border-tea-text/50 text-tea-text bg-tea-text/10'
                          }`}>
@@ -162,7 +162,7 @@ export const OrdersView = () => {
                          
                          <button
                              onClick={() => handleView(order)}
-                             className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors duration-200"
+                             className="p-2.5 text-tea-text-sec hover:text-tea-text transition-colors duration-200"
                              title="View Details"
                          >
                             <Eye size={16} />
@@ -171,7 +171,7 @@ export const OrdersView = () => {
                          {!isVoid && (
                              <button
                                 onClick={() => handleVoid(order.id, order.invoice_number)}
-                                className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200"
+                                className="p-2.5 text-tea-text-sec hover:text-tea-text-sec/80 transition-colors duration-200"
                                 title="Void Order"
                              >
                                 <XCircle size={16} />
@@ -179,7 +179,7 @@ export const OrdersView = () => {
                          )}
                          <button
                              onClick={() => handleDelete(order.id, order.invoice_number)}
-                             className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200"
+                             className="p-2.5 text-tea-text-sec hover:text-tea-text-sec/80 transition-colors duration-200"
                              title="Delete Record"
                          >
                             <Trash2 size={16} />
@@ -196,7 +196,7 @@ export const OrdersView = () => {
       {/* MOBILE CARD VIEW */}
       <div className="md:hidden space-y-3">
         {filteredOrders.length === 0 ? (
-          <div className="p-8 text-center text-tea-text-dim border border-tea-border rounded-xl bg-tea-surface">No orders found.</div>
+          <div className="p-8 text-center text-tea-text-sec border border-tea-border rounded-xl bg-tea-surface">No orders found.</div>
         ) : (
           filteredOrders.map((order: any) => {
             const isPending = order.status === 'Pending';
@@ -206,14 +206,14 @@ export const OrdersView = () => {
             return (
               <div key={order.id} className="border border-tea-border rounded-xl bg-tea-surface p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</span>
+                  <span className="text-xs text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
                   <span className="text-sm text-tea-text num cursor-pointer hover:text-tea-accent transition-colors duration-200" onClick={() => handleView(order)}>{order.invoice_number}</span>
                 </div>
                 <div className="text-tea-text font-medium">{order.customer_name}</div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-tea-text num">{order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}</span>
                   <span className={`text-xs px-2 py-1 rounded border font-medium uppercase tracking-wider ${
-                    isVoid ? 'border-tea-text-dim/50 text-tea-text-dim bg-tea-text-dim/10' :
+                    isVoid ? 'border-tea-text-sec/50 text-tea-text-sec bg-tea-text-sec/10' :
                     isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
                     'border-tea-text/50 text-tea-text bg-tea-text/10'
                   }`}>
@@ -231,15 +231,15 @@ export const OrdersView = () => {
                     </button>
                   )}
                   <div className="flex-1" />
-                  <button onClick={() => handleView(order)} className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors duration-200" title="View Details">
+                  <button onClick={() => handleView(order)} className="p-2.5 text-tea-text-sec hover:text-tea-text transition-colors duration-200" title="View Details">
                     <Eye size={16} />
                   </button>
                   {!isVoid && (
-                    <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200" title="Void Order">
+                    <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-2.5 text-tea-text-sec hover:text-tea-text-sec/80 transition-colors duration-200" title="Void Order">
                       <XCircle size={16} />
                     </button>
                   )}
-                  <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200" title="Delete Record">
+                  <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-2.5 text-tea-text-sec hover:text-tea-text-sec/80 transition-colors duration-200" title="Delete Record">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -253,7 +253,7 @@ export const OrdersView = () => {
         <div className="text-center pt-4">
           <button
             onClick={() => setPageSize(prev => prev + 50)}
-            className="text-xs text-tea-text-dim hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors duration-200"
+            className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors duration-200"
           >
             Load More
           </button>
@@ -264,18 +264,18 @@ export const OrdersView = () => {
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative">
-                <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-text-dim hover:text-tea-text transition-colors duration-200">
+                <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors duration-200">
                     <X size={24} />
                 </button>
                 
                 <div className="mb-8">
                     <h3 className="text-2xl font-serif text-tea-text mb-1">Invoice Details</h3>
-                    <p className="text-tea-text-dim text-sm num">{viewingInvoice.invoice_number}</p>
+                    <p className="text-tea-text-sec text-sm num">{viewingInvoice.invoice_number}</p>
                 </div>
 
                 <div className="space-y-4 mb-8">
                     <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-dim">Customer</span>
+                        <span className="text-tea-text-sec">Customer</span>
                         <button
                           onClick={() => { setViewingInvoice(null); navigate(`/admin/customers?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
                           className="text-tea-text font-medium hover:text-tea-accent transition-colors duration-200"
@@ -284,31 +284,31 @@ export const OrdersView = () => {
                         </button>
                     </div>
                     <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-dim">Date</span>
+                        <span className="text-tea-text-sec">Date</span>
                         <span className="text-tea-text font-medium">{new Date(viewingInvoice.created_at).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-dim">Status</span>
-                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-dim' : viewingInvoice.status === 'Pending' ? 'text-tea-accent' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
+                        <span className="text-tea-text-sec">Status</span>
+                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-accent' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
                     </div>
                     <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-dim">Inventory Deducted</span>
+                        <span className="text-tea-text-sec">Inventory Deducted</span>
                         <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-accent'}`}>{viewingInvoice.inventory_deducted ? 'Yes' : 'No'}</span>
                     </div>
                 </div>
 
                 <div className="bg-tea-surface border border-tea-border rounded-xl p-6 mb-8">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-dim mb-4">Items</h4>
+                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Items</h4>
                     <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar pr-2">
                         {viewingInvoice.items?.map((item: any, i: number) => (
                             <div key={i} className="flex justify-between text-sm items-center">
                                 <div>
                                     <div className="text-tea-text font-medium">{item.products?.given_name || 'Unknown Item'}</div>
-                                    <div className="text-[10px] text-tea-text-dim">{item.products?.product_name}</div>
+                                    <div className="text-[10px] text-tea-text-sec">{item.products?.product_name}</div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-tea-text num">{item.quantity}g/u</div>
-                                    <div className="text-tea-text-dim text-xs num">@ {item.price_at_sale} USD</div>
+                                    <div className="text-tea-text-sec text-xs num">@ {item.price_at_sale} USD</div>
                                 </div>
                             </div>
                         ))}
@@ -316,7 +316,7 @@ export const OrdersView = () => {
                 </div>
 
                 <div className="flex justify-between items-end text-lg font-bold text-tea-text border-t border-tea-border pt-6">
-                    <span className="text-sm font-normal text-tea-text-dim">Total (Shipping included)</span>
+                    <span className="text-sm font-normal text-tea-text-sec">Total (Shipping included)</span>
                     <span className="font-serif text-2xl text-tea-accent">
                       ${((viewingInvoice.items || []).reduce((sum: number, item: any) => sum + (item.quantity * item.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2)} USD
                     </span>

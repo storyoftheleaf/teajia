@@ -19,7 +19,7 @@ const TeawareCard: React.FC<TeawareCardProps> = ({ product, currency, rates, onA
       hidden: { opacity: 0, y: 20 },
       visible: { opacity: 1, y: 0 }
     }}
-    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-dim/50 transition-all duration-500 flex flex-col rounded-lg shadow-2xl"
+    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-sec/50 transition-all duration-500 flex flex-col rounded-lg shadow-2xl"
   >
     <div className="aspect-[4/3] overflow-hidden relative bg-tea-bg/50 flex items-center justify-center">
       {product.imageUrl ? (
@@ -38,22 +38,22 @@ const TeawareCard: React.FC<TeawareCardProps> = ({ product, currency, rates, onA
         <h3 className="font-serif text-xl text-tea-text tracking-wide flex items-center gap-2">
             {product.givenName}
             {isAdmin && !product.isPublic && (
-                <EyeOff size={16} className="text-tea-text-dim/70" />
+                <EyeOff size={16} className="text-tea-text-sec/70" />
             )}
             {product.showWisdom && product.lore && (
                 <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
                     {product.isCustomWisdom ? (
                         <Pencil size={12} className="text-tea-accent" />
                     ) : (
-                        <Sparkles size={12} className="text-tea-text-dim" />
+                        <Sparkles size={12} className="text-tea-text-sec" />
                     )}
                 </span>
             )}
         </h3>
-        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
+        <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
       </div>
       <div className="mt-6 pt-6 border-t border-tea-border flex justify-between items-end">
-        <p className="text-sm text-tea-text-dim line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
+        <p className="text-sm text-tea-text-sec line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
         <p className="font-mono text-lg text-tea-text whitespace-nowrap">{formatCurrency(product.pricePerGramUSD, currency, rates)}</p>
       </div>
     </div>
@@ -69,18 +69,18 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
   });
 
   if (loading) {
-    return <div className="p-12 text-center text-tea-text-dim flex justify-center items-center h-full"><Loader2 className="animate-spin mr-2" /> Loading teaware...</div>;
+    return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center h-full"><Loader2 className="animate-spin mr-2" /> Loading teaware...</div>;
   }
 
   return (
     <div className="space-y-8 p-4 md:p-6 max-w-7xl mx-auto pb-24">
       <div className="border-b border-tea-border pb-8">
         <h2 className="text-4xl md:text-5xl font-serif text-tea-text mb-2 tracking-tight">Teaware Collection</h2>
-        <p className="text-tea-text-dim max-w-lg font-light tracking-wide">Handcrafted vessels and implements.</p>
+        <p className="text-tea-text-sec max-w-lg font-light tracking-wide">Handcrafted vessels and implements.</p>
       </div>
       
       {teaware.length === 0 ? (
-          <div className="text-center py-24 text-tea-text-dim border border-tea-border rounded-lg bg-tea-surface/50">
+          <div className="text-center py-24 text-tea-text-sec border border-tea-border rounded-lg bg-tea-surface/50">
               <p className="font-serif italic text-lg">No active teaware items found.</p>
           </div>
       ) : (

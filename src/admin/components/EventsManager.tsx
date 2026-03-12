@@ -9,10 +9,10 @@ import { EventForm } from './EventForm';
 import { TeaEvent, EventStatus } from '../../types/events';
 
 const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'bg-tea-text-dim/10 text-tea-text-dim',
+  draft: 'bg-tea-text-sec/10 text-tea-text-sec',
   active: 'bg-tea-gold/15 text-tea-gold',
   closed: 'bg-tea-text-sec/10 text-tea-text-sec',
-  archived: 'bg-tea-text-dim/10 text-tea-text-dim line-through',
+  archived: 'bg-tea-text-sec/10 text-tea-text-sec line-through',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -47,7 +47,7 @@ export const EventsManager: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-tea-text-dim" size={24} />
+        <Loader2 className="animate-spin text-tea-text-sec" size={24} />
       </div>
     );
   }
@@ -58,7 +58,7 @@ export const EventsManager: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-serif text-tea-text tracking-wide">Events</h1>
-          <p className="text-xs text-tea-text-dim mt-1 tracking-wide">{events.length} event{events.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-tea-text-sec mt-1 tracking-wide">{events.length} event{events.length !== 1 ? 's' : ''}</p>
         </div>
         <button
           onClick={() => setIsFormOpen(true)}
@@ -72,7 +72,7 @@ export const EventsManager: React.FC = () => {
       {/* Event List */}
       {events.length === 0 ? (
         <div className="bg-tea-surface border border-tea-border rounded-md p-12 text-center">
-          <Calendar className="mx-auto mb-4 text-tea-text-dim" size={32} />
+          <Calendar className="mx-auto mb-4 text-tea-text-sec" size={32} />
           <p className="text-tea-text-sec text-sm mb-4">No events yet</p>
           <button
             onClick={() => setIsFormOpen(true)}
@@ -111,7 +111,7 @@ export const EventsManager: React.FC = () => {
                       <p className="text-xs text-tea-text-sec truncate mb-1">{event.subtitle}</p>
                     )}
 
-                    <div className="flex items-center gap-4 text-[11px] text-tea-text-dim mt-2">
+                    <div className="flex items-center gap-4 text-[11px] text-tea-text-sec mt-2">
                       <span className="flex items-center gap-1">
                         <Clock size={11} />
                         {formatEventDate(event.eventDate)}
@@ -131,7 +131,7 @@ export const EventsManager: React.FC = () => {
                           />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-[10px] text-tea-text-dim">
+                      <div className="flex items-center gap-3 text-[10px] text-tea-text-sec">
                         <span className="flex items-center gap-1">
                           <Users size={10} />
                           {confirmed}/{event.totalCapacity}
@@ -146,7 +146,7 @@ export const EventsManager: React.FC = () => {
                   {/* Duplicate button */}
                   <button
                     onClick={(e) => handleDuplicate(e, event)}
-                    className="p-2 text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated rounded transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated rounded transition-colors opacity-0 group-hover:opacity-100"
                     title="Duplicate event"
                   >
                     <Copy size={14} />

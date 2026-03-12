@@ -52,13 +52,13 @@ const Field = ({
   className?: string;
 }) => (
   <div className={className}>
-    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim block mb-1.5">{label}</label>
+    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
 
-const inputClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50 [color-scheme:dark]';
-const textareaClass = 'w-full border border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text p-2 rounded-md placeholder:text-tea-text-dim/50 resize-y min-h-[80px]';
+const inputClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50 [color-scheme:dark]';
+const textareaClass = 'w-full border border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text p-2 rounded-md placeholder:text-tea-text-sec/50 resize-y min-h-[80px]';
 const selectClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 appearance-none cursor-pointer [color-scheme:dark]';
 
 export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialData, onSuccess }) => {
@@ -319,7 +319,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
             <h2 className="text-lg font-serif text-tea-text">{isEdit ? 'Edit Event' : 'Create Event'}</h2>
-            <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors">
+            <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -419,7 +419,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
                       </select>
-                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                     </div>
                   </Field>
                 </div>
@@ -445,7 +445,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      className="w-full h-40 border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-2 text-tea-text-dim hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors"
+                      className="w-full h-40 border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-2 text-tea-text-sec hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors"
                     >
                       {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                       <span className="text-xs">{uploading ? 'Uploading...' : 'Upload flyer'}</span>
@@ -457,7 +457,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                 {/* Location Section with Saved Location Picker */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Location</label>
+                    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Location</label>
                     {form.locationName?.trim() && form.addressText?.trim() && !selectedLocationId && (
                       <button
                         type="button"
@@ -472,7 +472,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                   {/* Saved locations dropdown */}
                   {savedLocations.length > 0 && (
                     <div className="relative">
-                      <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim" />
+                      <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
                       <select
                         value={selectedLocationId}
                         onChange={(e) => handleSelectLocation(e.target.value)}
@@ -483,7 +483,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                           <option key={loc.id} value={loc.id}>{loc.name}</option>
                         ))}
                       </select>
-                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                     </div>
                   )}
 
@@ -506,7 +506,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                         <button
                           type="button"
                           onClick={() => setShowSaveLocation(false)}
-                          className="text-xs text-tea-text-dim hover:text-tea-text px-3 py-1.5 transition-colors"
+                          className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
                         >
                           Cancel
                         </button>
@@ -558,7 +558,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                 onClick={() => setVenueOpen(!venueOpen)}
                 className="w-full flex items-center justify-between px-4 py-3 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
               >
-                <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim font-medium">Venue Guide</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Venue Guide</span>
                 {venueOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
 
@@ -566,7 +566,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                 <div className="px-4 pb-4 space-y-4 border-t border-tea-border pt-4">
                   {venueGuide.steps.map((step, idx) => (
                     <div key={idx} className="flex gap-3 items-start">
-                      <span className="text-[10px] text-tea-text-dim mt-2 w-4 shrink-0">{idx + 1}.</span>
+                      <span className="text-[10px] text-tea-text-sec mt-2 w-4 shrink-0">{idx + 1}.</span>
                       <div className="flex-1 space-y-2">
                         <input
                           type="text"
@@ -592,7 +592,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                             type="button"
                             onClick={() => venueStepFileRefs.current[idx]?.click()}
                             disabled={venueStepUploading === idx}
-                            className="w-full h-16 border border-dashed border-tea-border rounded-md flex items-center justify-center gap-2 text-tea-text-dim hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors text-xs"
+                            className="w-full h-16 border border-dashed border-tea-border rounded-md flex items-center justify-center gap-2 text-tea-text-sec hover:border-tea-gold/50 hover:text-tea-text-sec transition-colors text-xs"
                           >
                             {venueStepUploading === idx ? (
                               <Loader2 size={14} className="animate-spin" />
@@ -610,7 +610,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                           className="hidden"
                         />
                       </div>
-                      <button type="button" onClick={() => removeVenueStep(idx)} className="text-tea-text-dim hover:text-tea-text p-1 mt-1">
+                      <button type="button" onClick={() => removeVenueStep(idx)} className="text-tea-text-sec hover:text-tea-text p-1 mt-1">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -664,7 +664,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                 onClick={() => setFlowOpen(!flowOpen)}
                 className="w-full flex items-center justify-between px-4 py-3 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
               >
-                <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim font-medium">Session Flow</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Session Flow</span>
                 {flowOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
 
@@ -673,10 +673,10 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                   {sessionFlow.map((item, idx) => (
                     <div key={idx} className="flex gap-3 items-start bg-tea-bg/30 rounded-md p-3">
                       <div className="flex flex-col gap-1 shrink-0 mt-1">
-                        <button type="button" onClick={() => moveFlowItem(idx, -1)} disabled={idx === 0} className="text-tea-text-dim hover:text-tea-text disabled:opacity-20 transition-colors">
+                        <button type="button" onClick={() => moveFlowItem(idx, -1)} disabled={idx === 0} className="text-tea-text-sec hover:text-tea-text disabled:opacity-20 transition-colors">
                           <ArrowUp size={12} />
                         </button>
-                        <button type="button" onClick={() => moveFlowItem(idx, 1)} disabled={idx === sessionFlow.length - 1} className="text-tea-text-dim hover:text-tea-text disabled:opacity-20 transition-colors">
+                        <button type="button" onClick={() => moveFlowItem(idx, 1)} disabled={idx === sessionFlow.length - 1} className="text-tea-text-sec hover:text-tea-text disabled:opacity-20 transition-colors">
                           <ArrowDown size={12} />
                         </button>
                       </div>
@@ -705,9 +705,9 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
                           min={0}
                           title="Minutes"
                         />
-                        <span className="text-[9px] text-tea-text-dim block text-center">min</span>
+                        <span className="text-[9px] text-tea-text-sec block text-center">min</span>
                       </div>
-                      <button type="button" onClick={() => removeFlowItem(idx)} className="text-tea-text-dim hover:text-tea-text p-1 mt-1">
+                      <button type="button" onClick={() => removeFlowItem(idx)} className="text-tea-text-sec hover:text-tea-text p-1 mt-1">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -729,7 +729,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-tea-text-dim hover:text-tea-text transition-colors"
+                className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 Cancel
               </button>

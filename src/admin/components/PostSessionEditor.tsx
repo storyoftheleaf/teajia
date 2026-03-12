@@ -110,7 +110,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
       <Leaf
         key={i}
         size={10}
-        className={i < rating ? 'text-tea-gold' : 'text-tea-text-dim/30'}
+        className={i < rating ? 'text-tea-gold' : 'text-tea-text-sec/30'}
         fill={i < rating ? 'currentColor' : 'none'}
       />
     ));
@@ -120,7 +120,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     <div className="space-y-6">
       {/* Tea Ledger */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim block mb-2 flex items-center gap-1.5">
+        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <FileText size={10} /> Tea Ledger (JSON)
         </label>
         <textarea
@@ -134,14 +134,14 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Playlist URL */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim block mb-2 flex items-center gap-1.5">
+        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <Music size={10} /> Playlist URL
         </label>
         <input
           type="text"
           value={playlistUrl}
           onChange={(e) => setPlaylistUrl(e.target.value)}
-          className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim/50"
+          className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
           placeholder="https://open.spotify.com/playlist/..."
         />
         {embedUrl && (
@@ -160,7 +160,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Gallery */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim block mb-2 flex items-center gap-1.5">
+        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <ImageIcon size={10} /> Gallery
         </label>
 
@@ -175,7 +175,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
                 >
                   <X size={10} />
                 </button>
-                <div className="absolute bottom-1 left-1 bg-tea-bg/60 text-tea-text-dim text-[9px] px-1 rounded">
+                <div className="absolute bottom-1 left-1 bg-tea-bg/60 text-tea-text-sec text-[9px] px-1 rounded">
                   {idx + 1}
                 </div>
               </div>
@@ -203,11 +203,11 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Session Notes */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim block mb-2">Session Notes</label>
+        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2">Session Notes</label>
         <textarea
           value={sessionNotes}
           onChange={(e) => setSessionNotes(e.target.value)}
-          className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-dim/50"
+          className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
           placeholder="Notes about the session, observations, highlights..."
         />
       </div>
@@ -227,17 +227,17 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
       {/* Tasting Notes (read-only) */}
       {tastingNotes.length > 0 && (
         <div className="pt-4 border-t border-tea-border">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-3 flex items-center gap-1.5">
+          <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3 flex items-center gap-1.5">
             <Leaf size={10} /> Submitted Tasting Notes
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-tea-border">
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium py-2 px-2">Guest</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium py-2 px-2">Tea</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium py-2 px-2">Rating</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium py-2 px-2">Impression</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Guest</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Tea</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Rating</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Impression</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,7 +250,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
                         {renderLeaves(note.rating)}
                       </div>
                     </td>
-                    <td className="py-2 px-2 text-tea-text-dim text-xs max-w-[200px] truncate" title={note.impression}>
+                    <td className="py-2 px-2 text-tea-text-sec text-xs max-w-[200px] truncate" title={note.impression}>
                       {note.impression || '—'}
                     </td>
                   </tr>

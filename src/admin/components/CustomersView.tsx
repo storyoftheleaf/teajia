@@ -14,7 +14,7 @@ const TAG_COLORS: Record<CustomerTag, string> = {
   friend: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
   vendor: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
   vip: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-  inactive: 'bg-tea-text-dim/10 text-tea-text-dim border-tea-text-dim/30',
+  inactive: 'bg-tea-text-sec/10 text-tea-text-sec border-tea-text-sec/30',
 };
 
 interface CustomerFormData {
@@ -79,13 +79,13 @@ const CustomerModal = ({
 
   const Field = ({ label, name, type = 'text', placeholder }: { label: string; name: keyof CustomerFormData; type?: string; placeholder?: string }) => (
     <div>
-      <label className="block text-xs text-tea-text-dim mb-1 uppercase tracking-wider">{label}</label>
+      <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">{label}</label>
       <input
         type={type}
         value={form[name] as string}
         onChange={e => setForm(prev => ({ ...prev, [name]: e.target.value }))}
         placeholder={placeholder}
-        className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+        className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
       />
     </div>
   );
@@ -95,7 +95,7 @@ const CustomerModal = ({
       <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <h3 className="text-xl font-serif text-tea-text">{isEditing ? 'Edit Customer' : 'Add Customer'}</h3>
-          <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors"><X size={20} /></button>
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors"><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -107,7 +107,7 @@ const CustomerModal = ({
           </div>
 
           <div className="h-px bg-tea-border my-2" />
-          <h4 className="text-xs text-tea-text-dim uppercase tracking-wider">Contact</h4>
+          <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Contact</h4>
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Email" name="email" type="email" placeholder="email@example.com" />
@@ -117,7 +117,7 @@ const CustomerModal = ({
           <Field label="WhatsApp" name="whatsapp" placeholder="WhatsApp number" />
 
           <div className="h-px bg-tea-border my-2" />
-          <h4 className="text-xs text-tea-text-dim uppercase tracking-wider">Location</h4>
+          <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Location</h4>
 
           <Field label="Address" name="address" placeholder="Street address" />
           <div className="grid grid-cols-2 gap-4">
@@ -128,7 +128,7 @@ const CustomerModal = ({
           <div className="h-px bg-tea-border my-2" />
 
           <div>
-            <label className="block text-xs text-tea-text-dim mb-2 uppercase tracking-wider">Tags</label>
+            <label className="block text-xs text-tea-text-sec mb-2 uppercase tracking-wider">Tags</label>
             <div className="flex flex-wrap gap-2">
               {TAG_OPTIONS.map(tag => (
                 <button
@@ -138,7 +138,7 @@ const CustomerModal = ({
                   className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                     form.tags.includes(tag)
                       ? TAG_COLORS[tag]
-                      : 'border-tea-border text-tea-text-dim hover:border-tea-text-dim'
+                      : 'border-tea-border text-tea-text-sec hover:border-tea-text-sec'
                   }`}
                 >
                   {tag}
@@ -148,11 +148,11 @@ const CustomerModal = ({
           </div>
 
           <div>
-            <label className="block text-xs text-tea-text-dim mb-1 uppercase tracking-wider">Preferred Currency</label>
+            <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">Preferred Currency</label>
             <select
               value={form.preferred_currency}
               onChange={e => setForm(prev => ({ ...prev, preferred_currency: e.target.value }))}
-              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
             >
               {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -161,13 +161,13 @@ const CustomerModal = ({
           </div>
 
           <div>
-            <label className="block text-xs text-tea-text-dim mb-1 uppercase tracking-wider">Notes</label>
+            <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">Notes</label>
             <textarea
               value={form.notes}
               onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Private notes about this customer..."
               rows={3}
-              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors resize-none"
+              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors resize-none"
             />
           </div>
 
@@ -237,9 +237,9 @@ const CustomerDetail = ({
     if (!value) return null;
     return (
       <div className="flex items-start gap-3 text-sm">
-        <span className="text-tea-text-dim mt-0.5 flex-shrink-0">{icon}</span>
+        <span className="text-tea-text-sec mt-0.5 flex-shrink-0">{icon}</span>
         <div>
-          <div className="text-tea-text-dim text-xs">{label}</div>
+          <div className="text-tea-text-sec text-xs">{label}</div>
           <div className="text-tea-text">{value}</div>
         </div>
       </div>
@@ -252,16 +252,16 @@ const CustomerDetail = ({
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <div>
             <h3 className="text-2xl font-serif text-tea-text">{customer.name}</h3>
-            {customer.company && <p className="text-tea-text-dim text-sm">{customer.company}</p>}
+            {customer.company && <p className="text-tea-text-sec text-sm">{customer.company}</p>}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={onEdit} className="p-2 text-tea-text-dim hover:text-tea-text transition-colors" title="Edit">
+            <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" title="Edit">
               <Edit3 size={16} />
             </button>
-            <button onClick={onDelete} className="p-2 text-tea-text-dim hover:text-red-400 transition-colors" title="Delete">
+            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-red-400 transition-colors" title="Delete">
               <Trash2 size={16} />
             </button>
-            <button onClick={onClose} className="p-2 text-tea-text-dim hover:text-tea-text transition-colors">
+            <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -283,17 +283,17 @@ const CustomerDetail = ({
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-2xl font-serif text-tea-accent">{customer.orderCount || 0}</div>
-              <div className="text-[10px] text-tea-text-dim uppercase tracking-wider mt-1">Orders</div>
+              <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
             </div>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-2xl font-serif text-tea-accent">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
-              <div className="text-[10px] text-tea-text-dim uppercase tracking-wider mt-1">Total Spent</div>
+              <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-sm font-serif text-tea-text">
                 {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '—'}
               </div>
-              <div className="text-[10px] text-tea-text-dim uppercase tracking-wider mt-1">Last Order</div>
+              <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Last Order</div>
             </div>
           </div>
 
@@ -304,17 +304,17 @@ const CustomerDetail = ({
                 onClick={() => setShowSupplied(!showSupplied)}
                 className="w-full flex justify-between items-center"
               >
-                <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-dim flex items-center gap-2">
+                <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
                   <Leaf size={12} /> Teas Supplied
                   {!loadingSupplied && <span className="text-tea-accent">({suppliedProducts.length})</span>}
                 </h4>
-                {showSupplied ? <ChevronUp size={14} className="text-tea-text-dim" /> : <ChevronDown size={14} className="text-tea-text-dim" />}
+                {showSupplied ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
               </button>
 
               {showSupplied && (
                 <div className="mt-4">
                   {loadingSupplied ? (
-                    <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-dim" size={16} /></div>
+                    <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
                   ) : (
                     <>
                       {suppliedProducts.length > 0 && (
@@ -325,7 +325,7 @@ const CustomerDetail = ({
                                 <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                               ) : (
                                 <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
-                                  <Leaf size={14} className="text-tea-text-dim" />
+                                  <Leaf size={14} className="text-tea-text-sec" />
                                 </div>
                               )}
                               <button
@@ -336,7 +336,7 @@ const CustomerDetail = ({
                                 <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
                                   {p.given_name || p.product_name}
                                 </div>
-                                <div className="text-xs text-tea-text-dim flex items-center gap-2">
+                                <div className="text-xs text-tea-text-sec flex items-center gap-2">
                                   <span className="uppercase">{p.type}</span>
                                   {p.origin_region && <span>· {p.origin_region}</span>}
                                   {p.stock_grams != null && <span>· {p.stock_grams}g in stock</span>}
@@ -348,7 +348,7 @@ const CustomerDetail = ({
                                   refreshSupplied();
                                   showToast('Product unlinked', 'info');
                                 }}
-                                className="text-tea-text-dim hover:text-red-400 transition-colors p-1"
+                                className="text-tea-text-sec hover:text-red-400 transition-colors p-1"
                                 title="Unlink from this vendor"
                               >
                                 <X size={14} />
@@ -362,7 +362,7 @@ const CustomerDetail = ({
                       <div className="relative">
                         <button
                           onClick={() => setShowLinkDropdown(!showLinkDropdown)}
-                          className="flex items-center gap-2 text-xs text-tea-text-dim hover:text-tea-accent transition-colors"
+                          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-accent transition-colors"
                         >
                           <Plus size={12} /> Link a tea to this vendor
                         </button>
@@ -403,7 +403,7 @@ const CustomerDetail = ({
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-tea-surface transition-colors flex items-center gap-2"
                                 >
                                   <span className="text-tea-text">{p.givenName || p.productName}</span>
-                                  <span className="text-[10px] text-tea-text-dim uppercase">{p.type}</span>
+                                  <span className="text-[10px] text-tea-text-sec uppercase">{p.type}</span>
                                 </button>
                               ))}
                           </div>
@@ -418,20 +418,20 @@ const CustomerDetail = ({
 
           {/* Contact Info */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-4">
-            <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-dim">Contact Information</h4>
+            <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Contact Information</h4>
             <InfoRow icon={<Mail size={14} />} label="Email" value={customer.email} />
             <InfoRow icon={<Phone size={14} />} label="Phone" value={customer.phone} />
             <InfoRow icon={<MessageCircle size={14} />} label="WhatsApp" value={customer.whatsapp} />
             <InfoRow icon={<MapPin size={14} />} label="Location" value={[customer.address, customer.city, customer.country].filter(Boolean).join(', ') || undefined} />
             {!customer.email && !customer.phone && !customer.whatsapp && (
-              <p className="text-tea-text-dim text-sm italic">No contact information on file.</p>
+              <p className="text-tea-text-sec text-sm italic">No contact information on file.</p>
             )}
           </div>
 
           {/* Notes */}
           {customer.notes && (
             <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-dim mb-3">Notes</h4>
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-3">Notes</h4>
               <p className="text-sm text-tea-text whitespace-pre-wrap leading-relaxed">{customer.notes}</p>
             </div>
           )}
@@ -442,18 +442,18 @@ const CustomerDetail = ({
               onClick={() => setShowTeas(!showTeas)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-dim flex items-center gap-2">
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
                 <Leaf size={12} /> Teas Purchased
               </h4>
-              {showTeas ? <ChevronUp size={14} className="text-tea-text-dim" /> : <ChevronDown size={14} className="text-tea-text-dim" />}
+              {showTeas ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
             </button>
 
             {showTeas && (
               <div className="mt-4 space-y-3">
                 {loadingTeas ? (
-                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-dim" size={16} /></div>
+                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
                 ) : teas.length === 0 ? (
-                  <p className="text-tea-text-dim text-sm italic">No tea purchases yet.</p>
+                  <p className="text-tea-text-sec text-sm italic">No tea purchases yet.</p>
                 ) : (
                   teas.map((tea: any) => (
                     <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
@@ -461,7 +461,7 @@ const CustomerDetail = ({
                         <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
-                          <Leaf size={14} className="text-tea-text-dim" />
+                          <Leaf size={14} className="text-tea-text-sec" />
                         </div>
                       )}
                       <button
@@ -472,14 +472,14 @@ const CustomerDetail = ({
                         <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
                           {tea.given_name || tea.product_name}
                         </div>
-                        <div className="text-xs text-tea-text-dim flex items-center gap-2">
+                        <div className="text-xs text-tea-text-sec flex items-center gap-2">
                           <span className="uppercase">{tea.type}</span>
                           {tea.origin_region && <span>· {tea.origin_region}</span>}
                         </div>
                       </button>
                       <div className="text-right flex-shrink-0">
                         <div className="text-sm text-tea-text">{tea.total_quantity}g</div>
-                        <div className="text-[10px] text-tea-text-dim">
+                        <div className="text-[10px] text-tea-text-sec">
                           {tea.order_count} order{tea.order_count !== 1 ? 's' : ''}
                         </div>
                       </div>
@@ -496,16 +496,16 @@ const CustomerDetail = ({
               onClick={() => setShowOrders(!showOrders)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-dim">Order History</h4>
-              {showOrders ? <ChevronUp size={14} className="text-tea-text-dim" /> : <ChevronDown size={14} className="text-tea-text-dim" />}
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Order History</h4>
+              {showOrders ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
             </button>
 
             {showOrders && (
               <div className="mt-4 space-y-2">
                 {loadingOrders ? (
-                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-dim" size={16} /></div>
+                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
                 ) : orders.length === 0 ? (
-                  <p className="text-tea-text-dim text-sm italic">No orders yet.</p>
+                  <p className="text-tea-text-sec text-sm italic">No orders yet.</p>
                 ) : (
                   orders.map((order: any) => (
                     <div key={order.id} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
@@ -518,10 +518,10 @@ const CustomerDetail = ({
                           {order.invoice_number}
                           <ExternalLink size={10} className="opacity-0 group-hover:opacity-100" />
                         </button>
-                        <span className="text-tea-text-dim text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
+                        <span className="text-tea-text-sec text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded border font-medium uppercase tracking-wider ${
-                        order.status === 'Void' ? 'border-tea-text-dim/50 text-tea-text-dim' :
+                        order.status === 'Void' ? 'border-tea-text-sec/50 text-tea-text-sec' :
                         order.status === 'Pending' ? 'border-tea-accent/50 text-tea-accent' :
                         'border-tea-text/50 text-tea-text'
                       }`}>
@@ -535,7 +535,7 @@ const CustomerDetail = ({
           </div>
 
           {/* Meta */}
-          <div className="text-xs text-tea-text-dim/50 space-y-1">
+          <div className="text-xs text-tea-text-sec/50 space-y-1">
             {customer.source && <p>Source: {customer.source}</p>}
             <p>Added: {new Date(customer.createdAt).toLocaleDateString()}</p>
             <p>Currency: {customer.preferredCurrency}</p>
@@ -641,7 +641,7 @@ export const CustomersView = () => {
     source: c.source || '',
   });
 
-  if (isLoading) return <div className="p-12 text-center text-tea-text-dim flex justify-center"><Loader2 className="animate-spin" /></div>;
+  if (isLoading) return <div className="p-12 text-center text-tea-text-sec flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
@@ -649,25 +649,25 @@ export const CustomersView = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-tea-border pb-6">
         <div>
           <h2 className="text-2xl font-serif text-tea-text">Customers & Sources</h2>
-          <p className="text-tea-text-dim text-sm mt-1">
+          <p className="text-tea-text-sec text-sm mt-1">
             {customers.length} contact{customers.length !== 1 ? 's' : ''} on file
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={16} />
             <input
               type="text"
               placeholder="Search contacts..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
             />
           </div>
           <select
             value={filterTag}
             onChange={e => setFilterTag(e.target.value as CustomerTag | '')}
-            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
           >
             <option value="">All Tags</option>
             {TAG_OPTIONS.map(tag => <option key={tag} value={tag}>{tag}</option>)}
@@ -675,7 +675,7 @@ export const CustomersView = () => {
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as any)}
-            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors"
+            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
           >
             <option value="name">Sort: Name</option>
             <option value="recent">Sort: Recent</option>
@@ -693,7 +693,7 @@ export const CustomersView = () => {
 
       {/* Customer Cards Grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-tea-text-dim">
+        <div className="text-center py-16 text-tea-text-sec">
           <p className="font-serif text-lg mb-2">No customers found</p>
           {search && !filterTag ? (
             <div className="space-y-3">
@@ -718,17 +718,17 @@ export const CustomersView = () => {
             <div
               key={customer.id}
               onClick={() => setViewingCustomer(customer)}
-              className="bg-tea-surface border border-tea-border rounded-xl p-5 cursor-pointer hover:border-tea-text-dim/50 hover:bg-tea-surface/80 transition-all group"
+              className="bg-tea-surface border border-tea-border rounded-xl p-5 cursor-pointer hover:border-tea-text-sec/50 hover:bg-tea-surface/80 transition-all group"
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="text-tea-text font-medium group-hover:text-tea-accent transition-colors">{customer.name}</h3>
-                  {customer.company && <p className="text-tea-text-dim text-xs">{customer.company}</p>}
+                  {customer.company && <p className="text-tea-text-sec text-xs">{customer.company}</p>}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={e => { e.stopPropagation(); openEdit(customer); }}
-                    className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors opacity-0 group-hover:opacity-100"
                   >
                     <Edit3 size={14} />
                   </button>
@@ -747,7 +747,7 @@ export const CustomersView = () => {
               )}
 
               {/* Contact icons */}
-              <div className="flex items-center gap-3 text-tea-text-dim mb-3">
+              <div className="flex items-center gap-3 text-tea-text-sec mb-3">
                 {customer.email && <Mail size={12} />}
                 {customer.phone && <Phone size={12} />}
                 {customer.whatsapp && <MessageCircle size={12} />}
@@ -759,7 +759,7 @@ export const CustomersView = () => {
               </div>
 
               {/* Stats row */}
-              <div className="flex justify-between items-center text-xs text-tea-text-dim border-t border-tea-border pt-3 mt-auto">
+              <div className="flex justify-between items-center text-xs text-tea-text-sec border-t border-tea-border pt-3 mt-auto">
                 <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
                 <span className="font-medium text-tea-text">${(customer.totalSpentUSD || 0).toFixed(0)} spent</span>
               </div>

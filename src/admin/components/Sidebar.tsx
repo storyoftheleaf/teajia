@@ -33,12 +33,12 @@ const NavButton: React.FC<{
       <div className={`transition-colors duration-200 shrink-0 ${
         isActive
           ? 'text-tea-gold scale-110'
-          : 'text-tea-text-dim group-hover:text-tea-text'
+          : 'text-tea-text-sec group-hover:text-tea-text'
       }`}>
         {item.icon}
       </div>
       <span className={`text-sm font-semibold transition-colors duration-200 ${
-        isActive ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text'
+        isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}>
         {item.label}
       </span>
@@ -224,7 +224,7 @@ export const Sidebar = ({
         >
           <div className="relative shrink-0">
             <Icons.Bag
-              className="transition-colors duration-200 text-tea-text-dim w-5 h-5 group-hover:text-tea-text"
+              className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text"
               strokeWidth={2}
             />
             {cartItemCount > 0 && (
@@ -233,7 +233,7 @@ export const Sidebar = ({
               </div>
             )}
           </div>
-          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-dim group-hover:text-tea-text">
+          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text">
             Cart
           </span>
         </button>
@@ -244,11 +244,11 @@ export const Sidebar = ({
           aria-label={isLoggedIn ? 'Sign out' : 'Sign in'}
         >
           {isLoggedIn ? (
-            <LogOut className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
+            <LogOut className="text-tea-text-sec w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
           ) : (
-            <User className="text-tea-text-dim w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
+            <User className="text-tea-text-sec w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
           )}
-          <span className="text-sm font-semibold text-tea-text-dim group-hover:text-tea-text transition-colors duration-200">
+          <span className="text-sm font-semibold text-tea-text-sec group-hover:text-tea-text transition-colors duration-200">
             {isLoggedIn ? 'Sign Out' : 'Sign In'}
           </span>
         </button>
@@ -260,11 +260,11 @@ export const Sidebar = ({
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? (
-            <Sun className="transition-colors duration-200 text-tea-text-dim w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
+            <Sun className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
           ) : (
-            <Moon className="transition-colors duration-200 text-tea-text-dim w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
+            <Moon className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
           )}
-          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-dim group-hover:text-tea-text">
+          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text">
             {theme === 'dark' ? 'Light' : 'Dark'}
           </span>
         </button>

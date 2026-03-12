@@ -41,13 +41,13 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
       <div className="flex flex-col md:flex-row justify-between items-end border-b border-tea-border pb-0 gap-4">
         <div className="pb-6">
           <h2 className="text-2xl font-serif text-tea-text">System Records</h2>
-          <p className="text-tea-text-dim text-sm mt-1">Archived inventory and system activity logs.</p>
+          <p className="text-tea-text-sec text-sm mt-1">Archived inventory and system activity logs.</p>
         </div>
         
         <div className="flex gap-1">
              <button 
                 onClick={() => setActiveTab('archive')}
-                className={`px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] border-t border-l border-r rounded-t-lg transition-colors duration-200 ${activeTab === 'archive' ? 'bg-tea-surface border-tea-border text-tea-text' : 'border-transparent text-tea-text-dim hover:text-tea-text'}`}
+                className={`px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] border-t border-l border-r rounded-t-lg transition-colors duration-200 ${activeTab === 'archive' ? 'bg-tea-surface border-tea-border text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}
              >
                 <div className="flex items-center gap-2">
                     <Archive size={14} /> Archive
@@ -55,7 +55,7 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
              </button>
              <button 
                 onClick={() => setActiveTab('logs')}
-                className={`px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] border-t border-l border-r rounded-t-lg transition-colors duration-200 ${activeTab === 'logs' ? 'bg-tea-surface border-tea-border text-tea-text' : 'border-transparent text-tea-text-dim hover:text-tea-text'}`}
+                className={`px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] border-t border-l border-r rounded-t-lg transition-colors duration-200 ${activeTab === 'logs' ? 'bg-tea-surface border-tea-border text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'}`}
              >
                 <div className="flex items-center gap-2">
                     <ScrollText size={14} /> Logbook
@@ -78,7 +78,7 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                   
                   <div className="overflow-x-auto border border-tea-border rounded-xl bg-tea-surface">
                     <table className="w-full text-left text-sm">
-                    <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
+                    <thead className="bg-tea-bg text-tea-text-sec font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
                         <tr>
                         <th className="py-3 px-4">Product</th>
                         <th className="py-3 px-4">Type</th>
@@ -90,19 +90,19 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                     </thead>
                     <tbody className="divide-y divide-tea-border">
                         {soldOutProducts.length === 0 ? (
-                        <tr><td colSpan={6} className="p-12 text-center text-tea-text-dim font-serif italic">No items in the archive.</td></tr>
+                        <tr><td colSpan={6} className="p-12 text-center text-tea-text-sec font-serif italic">No items in the archive.</td></tr>
                         ) : (
                         soldOutProducts.map(product => (
                             <tr key={product.id} className="hover:bg-tea-bg/50 transition-colors duration-200">
                             <td className="py-3 px-4">
                                 <div className="text-tea-text">{product.givenName}</div>
-                                <div className="text-tea-text-dim text-xs">{product.productName}</div>
+                                <div className="text-tea-text-sec text-xs">{product.productName}</div>
                             </td>
-                            <td className="py-3 px-4text-tea-text-dim">{product.type}</td>
-                            <td className="py-3 px-4text-tea-text-dim">{product.vendor || '—'}</td>
-                            <td className="py-3 px-4text-right text-tea-text-dim num">{product.costPerGramUSD != null ? `$${fmtNum(product.costPerGramUSD)}` : '-'}</td>
+                            <td className="py-3 px-4text-tea-text-sec">{product.type}</td>
+                            <td className="py-3 px-4text-tea-text-sec">{product.vendor || '—'}</td>
+                            <td className="py-3 px-4text-right text-tea-text-sec num">{product.costPerGramUSD != null ? `$${fmtNum(product.costPerGramUSD)}` : '-'}</td>
                             <td className="py-3 px-4text-right text-tea-text num">{product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}</td>
-                            <td className="py-3 px-4text-center"><span className="text-[10px] uppercase font-bold tracking-wider bg-tea-bg text-tea-text-dim border border-tea-border px-2 py-1 rounded-sm">Sold Out</span></td>
+                            <td className="py-3 px-4text-center"><span className="text-[10px] uppercase font-bold tracking-wider bg-tea-bg text-tea-text-sec border border-tea-border px-2 py-1 rounded-sm">Sold Out</span></td>
                             </tr>
                         ))
                         )}
@@ -116,11 +116,11 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
           {activeTab === 'logs' && (
               <div className="space-y-4 animate-in fade-in duration-300">
                   {logsLoading ? (
-                      <div className="p-12 text-center text-tea-text-dim flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Fetching logs...</div>
+                      <div className="p-12 text-center text-tea-text-sec flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Fetching logs...</div>
                   ) : (
                     <div className="overflow-hidden border border-tea-border rounded-xl bg-tea-surface">
                         <table className="w-full text-left text-sm">
-                        <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
+                        <thead className="bg-tea-bg text-tea-text-sec font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
                             <tr>
                             <th className="py-3 px-4">Timestamp</th>
                             <th className="py-3 px-4">User</th>
@@ -131,7 +131,7 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                         <tbody className="divide-y divide-tea-border">
                             {!logs || logs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="p-12 text-center text-tea-text-dim">
+                                    <td colSpan={4} className="p-12 text-center text-tea-text-sec">
                                         <div className="flex flex-col items-center gap-2">
                                         <AlertCircle size={24} />
                                         <span className="font-serif italic">No activity recorded yet.</span>
@@ -141,10 +141,10 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                             ) : (
                                 logs.map((log: any) => (
                                 <tr key={log.id} className="hover:bg-tea-bg/50 transition-colors duration-200">
-                                    <td className="py-3 px-4text-tea-text-dim font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
+                                    <td className="py-3 px-4text-tea-text-sec font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
                                     <td className="py-3 px-4text-tea-text">{log.user_email || 'System'}</td>
                                     <td className="py-3 px-4text-tea-accent font-mono text-xs uppercase">{log.action}</td>
-                                    <td className="py-3 px-4text-tea-text-dim">{log.details}</td>
+                                    <td className="py-3 px-4text-tea-text-sec">{log.details}</td>
                                 </tr>
                                 ))
                             )}

@@ -109,7 +109,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onPrev && (
         <button
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="hidden md:flex absolute left-4 md:left-12 z-modal p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
+          className="hidden md:flex absolute left-4 md:left-12 z-modal p-3 text-tea-text-sec hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
         >
           <ChevronLeft size={32} />
         </button>
@@ -163,7 +163,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             >
               <ChevronLeft size={18} />
             </button>
-            <span className="text-xs text-tea-text-dim tracking-wide">
+            <span className="text-xs text-tea-text-sec tracking-wide">
               ← swipe →
             </span>
             <button
@@ -182,7 +182,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       {onNext && (
         <button
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="hidden md:flex absolute right-4 md:right-12 z-modal p-3 text-tea-text-dim hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
+          className="hidden md:flex absolute right-4 md:right-12 z-modal p-3 text-tea-text-sec hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
         >
           <ChevronRight size={32} />
         </button>

@@ -31,7 +31,7 @@ export const SettingsView: React.FC = () => {
             <Settings2 className="w-6 h-6 text-tea-gold" />
             System Settings
           </h2>
-          <p className="text-tea-text-dim text-sm mt-2">
+          <p className="text-tea-text-sec text-sm mt-2">
             Configure application behavior and AI generation parameters.
           </p>
         </div>
@@ -41,13 +41,13 @@ export const SettingsView: React.FC = () => {
           <div className="flex items-center justify-between border-b border-tea-border pb-4">
             <div>
               <h3 className="text-lg font-serif text-tea-text">AI Wisdom Generator</h3>
-              <p className="text-tea-text-dim text-xs mt-1">Customize the prompt used when generating tea lore and tasting notes.</p>
+              <p className="text-tea-text-sec text-xs mt-1">Customize the prompt used when generating tea lore and tasting notes.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-tea-text-dim mb-2">Prompt Template</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-tea-text-sec mb-2">Prompt Template</label>
               <textarea
                 value={localPrompt}
                 onChange={(e) => setLocalPrompt(e.target.value)}
@@ -55,7 +55,7 @@ export const SettingsView: React.FC = () => {
                 className="w-full bg-tea-bg border border-tea-border rounded-lg p-4 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors font-mono leading-relaxed resize-y"
                 placeholder="Enter your AI prompt template here..."
               />
-              <p className="text-xs text-tea-text-dim mt-2">
+              <p className="text-xs text-tea-text-sec mt-2">
                 Available variables: <code className="bg-tea-bg px-1 py-0.5 rounded text-tea-accent">{"{{productName}}"}</code>, <code className="bg-tea-bg px-1 py-0.5 rounded text-tea-accent">{"{{type}}"}</code>. The AI must return a JSON object with keys: <code className="text-tea-text">lore, tastingNotes, chineseName, originRegion, processingNotes, terroir, mood, experience</code>.
               </p>
             </div>
@@ -63,7 +63,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-tea-border">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-tea-text-dim hover:text-tea-text transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
                 Reset Default

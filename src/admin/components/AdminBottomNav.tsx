@@ -86,7 +86,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 aria-current={active && tab.path ? 'page' : undefined}
                 aria-label={tab.label}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] py-2 transition-colors duration-200 relative focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
-                  active ? 'text-tea-accent' : 'text-tea-text-dim'
+                  active ? 'text-tea-accent' : 'text-tea-text-sec'
                 }`}
               >
                 <div className="relative">
@@ -138,7 +138,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 <span className="text-sm font-medium text-tea-text">More</span>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="p-1.5 rounded-lg text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/50 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+                  className="p-1.5 rounded-lg text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
                   aria-label="Close menu"
                 >
                   <X size={18} />
@@ -160,7 +160,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                       className={`w-full flex items-center gap-4 py-4 px-6 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
                         active
                           ? 'text-tea-accent bg-tea-accent/5'
-                          : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/50'
+                          : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
                       }`}
                     >
                       <Icon size={20} strokeWidth={1.8} />

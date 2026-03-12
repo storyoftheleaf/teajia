@@ -164,7 +164,7 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border focus:border-tea-accent focus:border-solid focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/50 leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border focus:border-tea-accent focus:border-solid focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-sec/50 leading-none ${className}`}
         />
     );
 };
@@ -663,7 +663,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       const showBadge = inventorySortConfig.length > 1 && sortEntry;
       return (
         <th
-          className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-${align} truncate`}
+          className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
           onClick={() => handleSort(colKey)}
         >
           <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -671,10 +671,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
              <div className="flex-shrink-0 relative z-0 flex items-center">
               {sortEntry ? (
                 <span className="flex items-center">
-                  {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-dim" /> : <ArrowDown size={10} className="ml-1 text-tea-text-dim" />}
+                  {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />}
                   {showBadge && <span className="ml-0.5 text-[8px] text-tea-accent font-bold">{sortIndex + 1}</span>}
                 </span>
-              ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-dim/50 ml-1 transition-opacity" />}
+              ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
              </div>
           </div>
         </th>
@@ -794,18 +794,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {product.productName}
                     {product.lore && (
                       <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                        {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-text-dim" />}
+                        {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-text-sec" />}
                       </span>
                     )}
                   </span>
                   {product.givenName && (
-                    <span className="text-[10px] text-tea-text-dim font-sans mt-0.5 truncate block">
+                    <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
                       {product.givenName}
                       {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
                     </span>
                   )}
                   {!product.givenName && product.form && (
-                    <span className="text-[10px] text-tea-text-dim/50 font-sans mt-0.5 truncate block">{product.form}</span>
+                    <span className="text-[10px] text-tea-text-sec/50 font-sans mt-0.5 truncate block">{product.form}</span>
                   )}
                 </>
               )}
@@ -816,7 +816,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const dotColor = getThemeColor(product.type);
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-dim truncate">
+            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
               <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
             </span>
           </td>
@@ -826,16 +826,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.year || ''} onSave={(val) => handleProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-text-dim tabular-nums" />
-            ) : <span className="text-xs text-tea-text-dim font-sans tabular-nums">{product.year || '-'}</span>}
+              <GhostInput id={ghostId} value={product.year || ''} onSave={(val) => handleProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-text-sec tabular-nums" />
+            ) : <span className="text-xs text-tea-text-sec font-sans tabular-nums">{product.year || '-'}</span>}
           </td>
         );
       case 'originRegion':
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.originRegion} onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-text-dim truncate" />
-            ) : <span className="text-xs text-tea-text-dim font-sans truncate block">{product.originRegion}</span>}
+              <GhostInput id={ghostId} value={product.originRegion} onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-text-sec truncate" />
+            ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.originRegion}</span>}
           </td>
         );
       case 'stockGrams': {
@@ -845,10 +845,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {isEditMode ? (
               <div className="flex items-center justify-end gap-1">
                 <GhostInput id={ghostId} value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className="num text-xs" />
-                <button title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-text-dim' : 'text-tea-border hover:text-amber-400'}`}>&#9888;</button>
+                <button title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-text-sec' : 'text-tea-border hover:text-amber-400'}`}>&#9888;</button>
               </div>
             ) : (
-              <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-text-dim'}`}>
+              <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-text-sec'}`}>
                 {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">&#9888;</span>}
                 {product.stockGrams}g
               </span>
@@ -861,7 +861,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
             {isEditMode ? (
               <GhostInput id={ghostId} value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text-dim">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
+            ) : <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
           </td>
         );
       case 'pricePerGramUSD':
@@ -876,16 +876,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.material || ''} onSave={(val) => handleProductUpdate(product.id, 'material', val)} className="font-sans text-xs text-tea-text-dim truncate" />
-            ) : <span className="text-xs text-tea-text-dim font-sans truncate block">{product.material || '-'}</span>}
+              <GhostInput id={ghostId} value={product.material || ''} onSave={(val) => handleProductUpdate(product.id, 'material', val)} className="font-sans text-xs text-tea-text-sec truncate" />
+            ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.material || '-'}</span>}
           </td>
         );
       case 'teawareCategory':
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.teawareCategory || ''} onSave={(val) => handleProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-xs text-tea-text-dim truncate" />
-            ) : <span className="text-xs text-tea-text-dim font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>}
+              <GhostInput id={ghostId} value={product.teawareCategory || ''} onSave={(val) => handleProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-xs text-tea-text-sec truncate" />
+            ) : <span className="text-xs text-tea-text-sec font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>}
           </td>
         );
       case 'capacityMl':
@@ -893,7 +893,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
             {isEditMode ? (
               <GhostInput id={ghostId} value={product.capacityMl || ''} onSave={(val) => handleProductUpdate(product.id, 'capacityMl', val)} type="number" align="right" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text-dim">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>}
+            ) : <span className="num text-xs text-tea-text-sec">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>}
           </td>
         );
       case 'quantityUnits':
@@ -901,11 +901,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
             {isEditMode ? (
               <GhostInput id={ghostId} value={product.quantityUnits || ''} onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text-dim">{product.quantityUnits ?? '-'}</span>}
+            ) : <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>}
           </td>
         );
       default:
-        return <td className="px-4 align-middle text-xs text-tea-text-dim">-</td>;
+        return <td className="px-4 align-middle text-xs text-tea-text-sec">-</td>;
     }
   };
 
@@ -918,7 +918,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   if (isLoading) {
-    return <div className="p-12 text-center text-tea-text-dim font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading inventory...</div>;
+    return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading inventory...</div>;
   }
 
   if (isError) {
@@ -928,7 +928,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <AlertTriangle className="text-red-400" size={32} />
         </div>
         <h2 className="text-lg font-serif text-tea-text mb-2">Failed to load inventory</h2>
-        <p className="text-tea-text-dim text-sm mb-6 max-w-md">
+        <p className="text-tea-text-sec text-sm mb-6 max-w-md">
           {error?.message || 'Could not connect to the server. Please check your connection and try again.'}
         </p>
         <button
@@ -954,7 +954,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               inventoryCategory === 'tea'
                 ? 'bg-tea-bg text-tea-text shadow-sm'
-                : 'text-tea-text-dim hover:text-tea-text'
+                : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
             Tea
@@ -964,7 +964,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               inventoryCategory === 'teaware'
                 ? 'bg-tea-bg text-tea-text shadow-sm'
-                : 'text-tea-text-dim hover:text-tea-text'
+                : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
             Teaware
@@ -984,14 +984,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
                 ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent/30'
-                : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-surface border border-transparent'
+                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
             }`}
           >
             {view.name}
             {!view.id.startsWith('default-') && (
               <span
                 onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                className="ml-1 text-tea-text-dim/40 hover:text-tea-accent transition-colors"
+                className="ml-1 text-tea-text-sec/40 hover:text-tea-accent transition-colors"
               >
                 <XIcon size={10} />
               </span>
@@ -1020,12 +1020,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               placeholder="View name..."
               className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
             />
-            <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-dim/40 hover:text-tea-text-dim"><XIcon size={10} /></button>
+            <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
           </div>
         ) : (
           <button
             onClick={() => setShowSaveViewPrompt(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] text-tea-text-dim/50 hover:text-tea-text-dim uppercase tracking-[0.15em] transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-[10px] text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
           >
             <Save size={10} /> Save View
           </button>
@@ -1036,11 +1036,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
-                <Settings size={16} className={isEditMode ? "text-tea-text-dim" : "text-tea-accent"} />
+                <Settings size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
                 <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
                     {isEditMode ? 'Editing' : 'Inventory'}
                 </h2>
-                <span className="text-tea-text-dim text-xs tracking-wide">
+                <span className="text-tea-text-sec text-xs tracking-wide">
                     {isEditMode ? '— click cells to edit' : `— ${processedProducts.length} items`}
                 </span>
             </div>
@@ -1048,13 +1048,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="flex items-center gap-4 ml-auto">
                 {/* Search */}
                 <div className="relative w-48">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
                     <input 
                         type="text" 
                         placeholder="Search master list..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-dim font-serif placeholder-tea-text-dim/50 transition-colors"
+                        className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
                     />
                 </div>
 
@@ -1067,7 +1067,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
                             isEditMode 
                             ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-accent/90' 
-                            : 'text-tea-text-dim border-transparent hover:border-tea-border hover:text-tea-text'
+                            : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
                         }`}
                     >
                         {isEditMode ? <Check size={14} /> : <Pencil size={14} />}
@@ -1076,7 +1076,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <div className="w-px h-4 bg-tea-border mx-1"></div>
 
-                    <button onClick={onAddClick} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-dim hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
+                    <button onClick={onAddClick} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
                         <Plus size={14} /> New
                     </button>
 
@@ -1084,7 +1084,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                        className={`p-1.5 rounded-lg transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`p-1.5 rounded-lg transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Show/Hide Columns"
                       >
                         <Columns size={15} />
@@ -1093,7 +1093,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
                           <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
-                            <div className="px-3 pb-1.5 text-[9px] text-tea-text-dim/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                            <div className="px-3 pb-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                             {activeColumnDefs.map(col => (
                               <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                 <input
@@ -1118,7 +1118,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           const el = document.getElementById('groupby-dropdown');
                           if (el) el.classList.toggle('hidden');
                         }}
-                        className={`flex items-center gap-1 p-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`flex items-center gap-1 p-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Group By"
                       >
                         <Layers size={15} />
@@ -1131,7 +1131,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               setInventoryGroupBy(opt.value || null);
                               document.getElementById('groupby-dropdown')?.classList.add('hidden');
                             }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-text-dim'}`}
+                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                           >
                             {opt.label}
                           </button>
@@ -1141,7 +1141,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <button
                         onClick={() => setShowOptions(!showOptions)}
-                        className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                        className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
                     >
                         <MoreHorizontal size={16} />
                     </button>
@@ -1153,13 +1153,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
                             <button 
                                 onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}
-                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-accent' : 'text-tea-text-dim'}`}
+                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                             >
                                 <AlertTriangle size={14} /> Low Stock Alerts
                             </button>
                             <button
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
-                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-dim'}`}
+                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                             >
                                 <Sparkles size={14} />
                                 Pending AI Approval
@@ -1167,16 +1167,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
                                 )}
                             </button>
-                            <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-dim hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <FileSpreadsheet size={14} /> Import CSV
                             </button>
-                            <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-dim hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Download size={14} /> Export CSV
                             </button>
                             <button 
                                 onClick={() => { handleBulkEnrich(); setShowOptions(false); }} 
                                 disabled={isEnriching}
-                                className="px-4 py-2 text-left text-xs text-tea-text-dim hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
+                                className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                             >
                                 {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                 Enrich Missing Wisdom
@@ -1198,7 +1198,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="px-6 py-2 bg-tea-surface/80 border-b border-tea-border flex items-center gap-4">
           <Loader2 size={13} className="animate-spin text-tea-accent flex-shrink-0" />
           <div className="flex-1">
-            <div className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] mb-1.5">
+            <div className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] mb-1.5">
               Generating &lsquo;{enrichProgress.currentName}&rsquo; — {enrichProgress.current} of {enrichProgress.total}
             </div>
             <div className="h-0.5 bg-tea-border rounded-full overflow-hidden">
@@ -1223,7 +1223,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="max-w-3xl mx-auto py-6 px-4 space-y-4">
             {/* Feed header */}
             <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur py-3 flex items-center justify-between border-b border-tea-border pb-4">
-              <span className="text-tea-text-dim text-[10px] uppercase tracking-[0.2em]">
+              <span className="text-tea-text-sec text-[10px] uppercase tracking-[0.2em]">
                 {processedProducts.length} pending review
               </span>
               <div className="flex items-center gap-2">
@@ -1235,7 +1235,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </button>
                 <button
                   onClick={handleDiscardAll}
-                  className="text-[10px] text-tea-text-dim/60 hover:text-tea-accent uppercase tracking-[0.2em] transition-colors px-2 py-1.5"
+                  className="text-[10px] text-tea-text-sec/60 hover:text-tea-accent uppercase tracking-[0.2em] transition-colors px-2 py-1.5"
                 >
                   Discard All
                 </button>
@@ -1257,9 +1257,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="px-5 py-3 bg-tea-bg/50 border-b border-tea-border flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-serif text-tea-text text-sm truncate">{product.productName}</span>
-                      {product.chineseName && <span className="text-tea-text-dim text-xs font-serif flex-shrink-0">{product.chineseName}</span>}
+                      {product.chineseName && <span className="text-tea-text-sec text-xs font-serif flex-shrink-0">{product.chineseName}</span>}
                     </div>
-                    <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] flex-shrink-0">
+                    <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] flex-shrink-0">
                       {product.type}{product.originRegion ? ` · ${product.originRegion}` : ''}{product.year ? ` · ${product.year}` : ''}
                     </span>
                   </div>
@@ -1268,14 +1268,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {/* Story preview */}
                     {storyPreview && (
                       <div className="bg-tea-bg/60 border border-tea-border rounded-lg p-4">
-                        <div className="text-[10px] text-tea-text-dim/60 uppercase tracking-[0.2em] mb-2">Story Preview</div>
+                        <div className="text-[10px] text-tea-text-sec/60 uppercase tracking-[0.2em] mb-2">Story Preview</div>
                         <p className="text-tea-text/70 text-xs font-serif italic leading-relaxed">{storyPreview}</p>
                       </div>
                     )}
 
                     {/* Lore */}
                     <div>
-                      <label className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] block mb-1">Lore</label>
+                      <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] block mb-1">Lore</label>
                       <textarea
                         value={draft.lore || ''}
                         onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], lore: e.target.value } }))}
@@ -1287,19 +1287,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {/* Grid fields */}
                     <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                       <div>
-                        <label className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] block mb-1">Terroir</label>
+                        <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] block mb-1">Terroir</label>
                         <input value={draft.terroir || ''} onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], terroir: e.target.value } }))} className={fieldClass} />
                       </div>
                       <div>
-                        <label className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] block mb-1">Processing</label>
+                        <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] block mb-1">Processing</label>
                         <input value={draft.processingNotes || ''} onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], processingNotes: e.target.value } }))} className={fieldClass} />
                       </div>
                       <div>
-                        <label className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] block mb-1">Mood</label>
+                        <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] block mb-1">Mood</label>
                         <input value={draft.mood || ''} onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], mood: e.target.value } }))} className={fieldClass} />
                       </div>
                       <div>
-                        <label className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] block mb-1">Tasting Notes</label>
+                        <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] block mb-1">Tasting Notes</label>
                         <input
                           value={Array.isArray(draft.tastingNotes) ? draft.tastingNotes.join(', ') : (draft.tastingNotes || '')}
                           onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], tastingNotes: e.target.value.split(',').map((n: string) => n.trim()).filter(Boolean) } }))}
@@ -1311,7 +1311,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     {/* Experience */}
                     <div>
-                      <label className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] block mb-1">Experience</label>
+                      <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] block mb-1">Experience</label>
                       <textarea
                         value={draft.experience || ''}
                         onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], experience: e.target.value } }))}
@@ -1326,7 +1326,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button
                       onClick={() => handleRegenerateOne(product)}
                       disabled={!!regeneratingId}
-                      className="flex items-center gap-1.5 text-[10px] text-tea-text-dim hover:text-tea-text uppercase tracking-[0.2em] transition-colors disabled:opacity-40"
+                      className="flex items-center gap-1.5 text-[10px] text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] transition-colors disabled:opacity-40"
                     >
                       {isRegenerating ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
                       Regenerate
@@ -1334,7 +1334,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleDiscardOne(product.id)}
-                        className="text-[10px] text-tea-text-dim/50 hover:text-tea-accent uppercase tracking-[0.2em] transition-colors"
+                        className="text-[10px] text-tea-text-sec/50 hover:text-tea-accent uppercase tracking-[0.2em] transition-colors"
                       >
                         Discard
                       </button>
@@ -1353,7 +1353,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             })}
 
             {processedProducts.length === 0 && (
-              <div className="text-center py-16 text-tea-text-dim font-serif italic">
+              <div className="text-center py-16 text-tea-text-sec font-serif italic">
                 All caught up — no pending wisdom to review.
               </div>
             )}
@@ -1382,14 +1382,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <div className="flex items-center gap-1.5">
                                 <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
                                 {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
-                                {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim/40" />}
+                                {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
                                 {product.lore && (
                                     product.isCustomWisdom
                                         ? <Pencil size={9} className="flex-shrink-0 text-tea-accent/60" />
-                                        : <Sparkles size={9} className="flex-shrink-0 text-tea-text-dim/40" />
+                                        : <Sparkles size={9} className="flex-shrink-0 text-tea-text-sec/40" />
                                 )}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-tea-text-dim/70 mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
                                 <span>{product.type}</span>
                                 {product.originRegion && (
                                     <>
@@ -1413,16 +1413,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <div className="text-xs text-tea-text/80 tabular-nums">
                                   {product.quantityUnits ?? '-'} units
                                 </div>
-                                <div className="text-[10px] text-tea-text-dim/60 tabular-nums">
+                                <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
                                   {product.material || product.teawareCategory || '-'}
                                 </div>
                               </>
                             ) : (
                               <>
-                                <div className={`text-xs tabular-nums ${isOutOfStock ? 'text-tea-text-dim/40' : isLowStock ? 'text-amber-500/80' : 'text-tea-text/80'}`}>
+                                <div className={`text-xs tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : isLowStock ? 'text-amber-500/80' : 'text-tea-text/80'}`}>
                                     {product.stockGrams}g
                                 </div>
-                                <div className="text-[10px] text-tea-text-dim/60 tabular-nums">
+                                <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
                                     ${fmtNum(product.pricePerGramUSD)}/g
                                 </div>
                               </>
@@ -1430,7 +1430,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
 
                         {/* Expand indicator */}
-                        <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-dim/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-sec/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
 
                     {/* Expanded detail panel */}
@@ -1442,58 +1442,58 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <>
                                   {product.teawareCategory && (
                                     <div>
-                                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Category</div>
+                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Category</div>
                                       <div className="text-sm text-tea-text capitalize">{product.teawareCategory}</div>
                                     </div>
                                   )}
                                   {product.material && (
                                     <div>
-                                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Material</div>
+                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Material</div>
                                       <div className="text-sm text-tea-text">{product.material}</div>
                                     </div>
                                   )}
                                   {product.capacityMl && (
                                     <div>
-                                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Capacity</div>
+                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Capacity</div>
                                       <div className="text-sm text-tea-text tabular-nums">{product.capacityMl}ml</div>
                                     </div>
                                   )}
                                   <div>
-                                    <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Units</div>
+                                    <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Units</div>
                                     <div className="text-sm text-tea-text tabular-nums">{product.quantityUnits ?? '-'}</div>
                                   </div>
                                   <div>
-                                    <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Cost</div>
+                                    <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Cost</div>
                                     <div className="text-sm text-tea-text tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
                                   </div>
                                   <div>
-                                    <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Status</div>
+                                    <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Status</div>
                                     <div className="text-sm text-tea-text">{product.status}</div>
                                   </div>
                                 </>
                               ) : (
                                 <>
                                   <div>
-                                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Stock</div>
-                                      <div className={`text-sm tabular-nums ${isOutOfStock ? 'text-tea-text-dim/40' : 'text-tea-text'}`}>{product.stockGrams}g</div>
+                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Stock</div>
+                                      <div className={`text-sm tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : 'text-tea-text'}`}>{product.stockGrams}g</div>
                                   </div>
                                   <div>
-                                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Retail</div>
+                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Retail</div>
                                       <div className="text-sm text-tea-text tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
                                   </div>
                                   <div>
-                                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Status</div>
+                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Status</div>
                                       <div className="text-sm text-tea-text">{product.status}</div>
                                   </div>
                                   {product.originRegion && (
                                       <div className="col-span-2">
-                                          <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Origin</div>
+                                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Origin</div>
                                           <div className="text-sm text-tea-text">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
                                       </div>
                                   )}
                                   {product.vendor && (
                                       <div>
-                                          <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-wider">Vendor</div>
+                                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Vendor</div>
                                           <div className="text-sm text-tea-text truncate">{product.vendor}</div>
                                       </div>
                                   )}
@@ -1503,7 +1503,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                             {/* Description / Lore */}
                             {(product.lore || product.description) && (
-                                <p className="text-xs text-tea-text-dim/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
+                                <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
                                     {product.showWisdom && product.lore ? product.lore : product.description}
                                 </p>
                             )}
@@ -1512,7 +1512,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             {product.tastingNotes && product.tastingNotes.length > 0 && product.showWisdom && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                     {product.tastingNotes.map(note => (
-                                        <span key={note} className="text-[10px] text-tea-text-dim/60 bg-tea-bg/60 px-2 py-0.5 rounded-full">{note}</span>
+                                        <span key={note} className="text-[10px] text-tea-text-sec/60 bg-tea-bg/60 px-2 py-0.5 rounded-full">{note}</span>
                                     ))}
                                 </div>
                             )}
@@ -1521,7 +1521,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
                                 <button
                                     onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                    className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-dim/50 hover:text-tea-text-dim'}`}
+                                    className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec/50 hover:text-tea-text-sec'}`}
                                 >
                                     <Star size={15} className={product.isFeatured ? "fill-tea-accent" : ""} />
                                 </button>
@@ -1536,18 +1536,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 )}
                                 <button
                                     onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                                    className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-text-dim/50 hover:text-tea-text-dim' : 'text-tea-text-dim/30'}`}
+                                    className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-text-sec/50 hover:text-tea-text-sec' : 'text-tea-text-sec/30'}`}
                                 >
                                     {product.isPublic ? <Eye size={15} /> : <EyeOff size={15} />}
                                 </button>
-                                <button onClick={() => setQrProduct(product)} className="p-1.5 rounded-md text-tea-text-dim/50 hover:text-tea-text-dim transition-colors">
+                                <button onClick={() => setQrProduct(product)} className="p-1.5 rounded-md text-tea-text-sec/50 hover:text-tea-text-sec transition-colors">
                                     <QrCode size={15} />
                                 </button>
 
                                 <div className="ml-auto">
                                     <button
                                         onClick={() => setEditingProduct(product)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                                     >
                                         <Pencil size={12} /> Edit
                                     </button>
@@ -1559,7 +1559,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             )})}
 
             {processedProducts.length === 0 && (
-              <div className="text-center py-16 text-tea-text-dim font-serif italic">
+              <div className="text-center py-16 text-tea-text-sec font-serif italic">
                 No items found.
               </div>
             )}
@@ -1582,7 +1582,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <tr>
                     {isEditMode && (
                       <th className="px-2 py-2 border-b border-tea-border">
-                        <button onClick={toggleSelectAll} className="text-tea-text-dim hover:text-tea-text">
+                        <button onClick={toggleSelectAll} className="text-tea-text-sec hover:text-tea-text">
                           {selectedIds.size === processedProducts.length ? <CheckSquare size={14} /> : <Square size={14} />}
                         </button>
                       </th>
@@ -1610,11 +1610,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       })}
                       className="w-full flex items-center gap-3 px-5 py-2 bg-tea-bg/70 border-b border-tea-border hover:bg-tea-bg transition-colors text-left"
                     >
-                      {isCollapsed ? <ChevronRight size={14} className="text-tea-text-dim" /> : <ChevronDown size={14} className="text-tea-text-dim" />}
+                      {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
                       <span className="text-sm font-serif text-tea-text">{groupKey}</span>
-                      <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.15em]">{items.length} items</span>
-                      <span className="text-[10px] text-tea-text-dim tabular-nums ml-auto">{totalStock}g total</span>
-                      <span className="text-[10px] text-tea-text-dim tabular-nums">${fmtNum(totalRetail)} value</span>
+                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em]">{items.length} items</span>
+                      <span className="text-[10px] text-tea-text-sec tabular-nums ml-auto">{totalStock}g total</span>
+                      <span className="text-[10px] text-tea-text-sec tabular-nums">${fmtNum(totalRetail)} value</span>
                     </button>
                     {!isCollapsed && (
                       <table className="w-full table-fixed border-collapse">
@@ -1635,7 +1635,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               >
                                 {isEditMode && (
                                   <td className="px-2 align-middle" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => toggleSelectId(product.id)} className="text-tea-text-dim hover:text-tea-text">
+                                    <button onClick={() => toggleSelectId(product.id)} className="text-tea-text-sec hover:text-tea-text">
                                       {selectedIds.has(product.id) ? <CheckSquare size={14} className="text-tea-accent" /> : <Square size={14} />}
                                     </button>
                                   </td>
@@ -1645,9 +1645,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                     {!isEditMode && (
                                       <>
-                                        <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text'} p-1 transition-colors`}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
-                                        <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-text-dim hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                        <button onClick={() => setEditingProduct(product)} className="text-tea-text-dim hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
+                                        <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                        <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
+                                        <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
                                       </>
                                     )}
                                   </div>
@@ -1675,7 +1675,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <tr>
                         {isEditMode && (
                           <th className="px-2 py-2 border-b border-tea-border">
-                            <button onClick={toggleSelectAll} className="text-tea-text-dim hover:text-tea-text">
+                            <button onClick={toggleSelectAll} className="text-tea-text-sec hover:text-tea-text">
                               {selectedIds.size === processedProducts.length ? <CheckSquare size={14} /> : <Square size={14} />}
                             </button>
                           </th>
@@ -1701,7 +1701,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             >
                                 {isEditMode && (
                                   <td className="px-2 align-middle" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => toggleSelectId(product.id)} className="text-tea-text-dim hover:text-tea-text">
+                                    <button onClick={() => toggleSelectId(product.id)} className="text-tea-text-sec hover:text-tea-text">
                                       {selectedIds.has(product.id) ? <CheckSquare size={14} className="text-tea-accent" /> : <Square size={14} />}
                                     </button>
                                   </td>
@@ -1717,10 +1717,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                                 {(!product.showWisdom && product.lore) && (
                                                     <button onClick={() => handleProductUpdate(product.id, 'showWisdom', true)} className="text-tea-accent hover:text-tea-accent/80 p-1 transition-colors" title="Approve AI Wisdom"><Check size={14}/></button>
                                                 )}
-                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-dim hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
-                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-dim hover:text-tea-text' : 'text-tea-text-dim/50 hover:text-tea-text-dim'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                                <button onClick={() => setQrProduct(product)} className="text-tea-text-dim hover:text-tea-text p-1 transition-colors"><QrCode size={14}/></button>
-                                                <button onClick={() => setEditingProduct(product)} className="text-tea-text-dim hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
+                                                <button onClick={() => setQrProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><QrCode size={14}/></button>
+                                                <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
                                             </>
                                         )}
                                     </div>
@@ -1755,7 +1755,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         {isResetting ? <Loader2 className="animate-spin" size={32} /> : <AlertOctagon size={32} />}
                     </div>
                     <h3 className="text-xl font-serif text-tea-text">Danger Zone</h3>
-                    <p className="text-tea-text-dim text-sm">
+                    <p className="text-tea-text-sec text-sm">
                         Confirm full database wipe? This is irreversible.
                     </p>
                     <div className="w-full pt-4">
@@ -1769,7 +1769,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         />
                     </div>
                     <div className="flex gap-3 w-full pt-4">
-                        <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 text-tea-text-dim hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]" disabled={isResetting}>Cancel</button>
+                        <button onClick={() => setShowResetConfirm(false)} className="flex-1 py-3 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]" disabled={isResetting}>Cancel</button>
                         <button 
                             onClick={handleResetDatabase} 
                             disabled={resetInput !== 'delete' || isResetting}
@@ -1794,16 +1794,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                          </div>
                          <h3 className="text-lg font-serif text-tea-text">Permission Error</h3>
                     </div>
-                    <button onClick={() => setShowMaintenanceModal(false)} className="text-tea-text-dim hover:text-tea-text transition-colors">
+                    <button onClick={() => setShowMaintenanceModal(false)} className="text-tea-text-sec hover:text-tea-text transition-colors">
                         <XIcon size={20} />
                     </button>
                 </div>
                 <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                    <p className="text-tea-text-dim mb-4 text-sm font-serif italic">
+                    <p className="text-tea-text-sec mb-4 text-sm font-serif italic">
                         The archives are locked. Supabase requires administrative SQL execution to bypass integrity checks.
                     </p>
                     <div className="relative group mt-6">
-                        <pre className="bg-tea-surface border border-tea-border p-4 rounded-xl text-[10px] font-mono text-tea-text-dim overflow-x-auto whitespace-pre-wrap">
+                        <pre className="bg-tea-surface border border-tea-border p-4 rounded-xl text-[10px] font-mono text-tea-text-sec overflow-x-auto whitespace-pre-wrap">
                             {MAINTENANCE_SQL}
                         </pre>
                         <button 
@@ -1811,7 +1811,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 navigator.clipboard.writeText(MAINTENANCE_SQL);
                                 showToast("SQL copied to clipboard", 'info');
                             }}
-                            className="absolute top-2 right-2 border border-tea-border bg-tea-surface text-tea-text-dim p-2 rounded-lg hover:text-tea-text hover:border-tea-text-dim flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] transition-colors"
+                            className="absolute top-2 right-2 border border-tea-border bg-tea-surface text-tea-text-sec p-2 rounded-lg hover:text-tea-text hover:border-tea-text-sec flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] transition-colors"
                         >
                             <Copy size={12} /> Copy
                         </button>
@@ -1847,7 +1847,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-serif text-tea-text truncate">{panelProduct.productName}</h3>
-                  <span className="text-[10px] text-tea-text-dim">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
+                  <span className="text-[10px] text-tea-text-sec">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -1855,7 +1855,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       const idx = processedProducts.findIndex(p => p.id === panelProduct.id);
                       if (idx > 0) setPanelProduct(processedProducts[idx - 1]);
                     }}
-                    className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"
+                    className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                     title="Previous"
                   ><ChevronUp size={16} /></button>
                   <button
@@ -1863,10 +1863,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       const idx = processedProducts.findIndex(p => p.id === panelProduct.id);
                       if (idx < processedProducts.length - 1) setPanelProduct(processedProducts[idx + 1]);
                     }}
-                    className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"
+                    className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                     title="Next"
                   ><ChevronDown size={16} /></button>
-                  <button onClick={() => setPanelProduct(null)} className="p-1 text-tea-text-dim hover:text-tea-text transition-colors ml-1"><XIcon size={16} /></button>
+                  <button onClick={() => setPanelProduct(null)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors ml-1"><XIcon size={16} /></button>
                 </div>
               </div>
 
@@ -1899,7 +1899,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   { label: 'Status', field: 'status' as const, value: panelProduct.status },
                 ]).map(item => (
                   <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                    <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.15em] flex-shrink-0 w-20">{item.label}</span>
+                    <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] flex-shrink-0 w-20">{item.label}</span>
                     {item.editable ? (
                       <GhostInput
                         value={item.value}
@@ -1920,7 +1920,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {/* Lore */}
                 {panelProduct.lore && (
                   <div className="mt-4">
-                    <div className="text-[10px] text-tea-text-dim/60 uppercase tracking-[0.2em] mb-1.5">Lore</div>
+                    <div className="text-[10px] text-tea-text-sec/60 uppercase tracking-[0.2em] mb-1.5">Lore</div>
                     <p className="text-xs text-tea-text/70 font-serif italic leading-relaxed whitespace-pre-line">{panelProduct.lore}</p>
                   </div>
                 )}
@@ -1928,10 +1928,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {/* Tasting Notes */}
                 {panelProduct.tastingNotes && panelProduct.tastingNotes.length > 0 && (
                   <div>
-                    <div className="text-[10px] text-tea-text-dim/60 uppercase tracking-[0.2em] mb-1.5">Tasting Notes</div>
+                    <div className="text-[10px] text-tea-text-sec/60 uppercase tracking-[0.2em] mb-1.5">Tasting Notes</div>
                     <div className="flex flex-wrap gap-1.5">
                       {panelProduct.tastingNotes.map(note => (
-                        <span key={note} className="text-[10px] text-tea-text-dim bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border">{note}</span>
+                        <span key={note} className="text-[10px] text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border">{note}</span>
                       ))}
                     </div>
                   </div>
@@ -1942,17 +1942,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="px-5 py-3 border-t border-tea-border flex items-center gap-2 flex-wrap bg-tea-surface/30">
                 <button
                   onClick={() => { handleProductUpdate(panelProduct.id, 'isFeatured', !panelProduct.isFeatured); setPanelProduct(prev => prev ? { ...prev, isFeatured: !prev.isFeatured } : null); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isFeatured ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim'}`}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isFeatured ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec'}`}
                 ><Star size={11} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} /> Featured</button>
                 <button
                   onClick={() => { handleProductUpdate(panelProduct.id, 'isPublic', !panelProduct.isPublic); setPanelProduct(prev => prev ? { ...prev, isPublic: !prev.isPublic } : null); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isPublic ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim'}`}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isPublic ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec'}`}
                 >{panelProduct.isPublic ? <Eye size={11} /> : <EyeOff size={11} />} Public</button>
                 <button
                   onClick={() => { handleProductUpdate(panelProduct.id, 'recheckStock', !panelProduct.recheckStock); setPanelProduct(prev => prev ? { ...prev, recheckStock: !prev.recheckStock } : null); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.recheckStock ? 'text-amber-400 border-amber-400/30 bg-amber-400/10' : 'text-tea-text-dim border-tea-border hover:border-tea-text-dim'}`}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.recheckStock ? 'text-amber-400 border-amber-400/30 bg-amber-400/10' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec'}`}
                 ><RefreshCw size={11} /> Recheck</button>
-                <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] text-tea-text-dim uppercase tracking-[0.15em] rounded-md border border-tea-border hover:border-tea-text-dim transition-colors">
+                <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] text-tea-text-sec uppercase tracking-[0.15em] rounded-md border border-tea-border hover:border-tea-text-sec transition-colors">
                   <QrCode size={11} /> QR
                 </button>
                 <button
@@ -2014,7 +2014,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="text-[10px] text-tea-text-dim hover:text-tea-text uppercase tracking-[0.15em] transition-colors"
+              className="text-[10px] text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em] transition-colors"
             >Cancel</button>
           </motion.div>
         )}

@@ -16,7 +16,7 @@ type FilterTab = 'all' | 'confirmed' | 'waitlist' | 'cancelled';
 const STATUS_CHIPS: Record<AttendeeStatus, string> = {
   confirmed: 'bg-green-500/10 text-green-400 border-green-500/30',
   waitlist: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  cancelled: 'bg-tea-text-dim/10 text-tea-text-dim border-tea-text-dim/30',
+  cancelled: 'bg-tea-text-sec/10 text-tea-text-sec border-tea-text-sec/30',
 };
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
@@ -89,7 +89,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
   return (
     <div>
       {/* Count Header */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-tea-text-dim">
+      <div className="flex items-center gap-4 mb-4 text-xs text-tea-text-sec">
         <span className="text-green-400">{counts.confirmed} confirmed</span>
         <span className="text-amber-400">{counts.waitlist} waitlisted</span>
         <span>{counts.cancelled} cancelled</span>
@@ -104,7 +104,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
             className={`px-3 py-2 text-xs transition-colors border-b-2 -mb-px ${
               filter === tab.key
                 ? 'border-tea-gold text-tea-gold'
-                : 'border-transparent text-tea-text-dim hover:text-tea-text-sec'
+                : 'border-transparent text-tea-text-sec hover:text-tea-text-sec'
             }`}
           >
             {tab.label}
@@ -114,7 +114,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="text-center py-8 text-tea-text-dim text-sm">No attendees in this category</div>
+        <div className="text-center py-8 text-tea-text-sec text-sm">No attendees in this category</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -133,7 +133,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                 ].map((col, i) => (
                   <th
                     key={i}
-                    className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium py-2 px-2"
+                    className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2"
                   >
                     {col.field ? (
                       <button
@@ -158,7 +158,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     {attendee.phoneNumber ? (
                       <span className="flex items-center gap-1"><Phone size={10} /> {attendee.phoneNumber}</span>
                     ) : (
-                      <span className="text-tea-text-dim">—</span>
+                      <span className="text-tea-text-sec">—</span>
                     )}
                   </td>
                   <td className="py-2.5 px-2">
@@ -172,14 +172,14 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                         <Star size={10} fill="currentColor" /> Golden
                       </span>
                     ) : (
-                      <span className="text-tea-text-dim text-xs">—</span>
+                      <span className="text-tea-text-sec text-xs">—</span>
                     )}
                   </td>
                   <td className="py-2.5 px-2 text-tea-text-sec text-xs">
                     {attendee.plusOne ? (
                       <span className="flex items-center gap-1"><UserPlus size={10} /> Yes</span>
                     ) : (
-                      <span className="text-tea-text-dim">—</span>
+                      <span className="text-tea-text-sec">—</span>
                     )}
                   </td>
                   <td className="py-2.5 px-2">
@@ -188,10 +188,10 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                         <Leaf size={9} /> {attendee.teaPreference}
                       </span>
                     ) : (
-                      <span className="text-tea-text-dim text-xs">—</span>
+                      <span className="text-tea-text-sec text-xs">—</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-2 text-tea-text-dim text-xs max-w-[120px] truncate" title={attendee.notes}>
+                  <td className="py-2.5 px-2 text-tea-text-sec text-xs max-w-[120px] truncate" title={attendee.notes}>
                     {attendee.notes || '—'}
                   </td>
                   <td className="py-2.5 px-2">
@@ -201,7 +201,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                       className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                         attendee.attended
                           ? 'bg-tea-gold border-tea-gold text-tea-bg'
-                          : 'border-tea-border text-tea-text-dim hover:border-tea-gold/50'
+                          : 'border-tea-border text-tea-text-sec hover:border-tea-gold/50'
                       }`}
                     >
                       {loadingId === attendee.id ? (
@@ -226,7 +226,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                         <button
                           onClick={() => updateStatus(attendee, 'cancelled')}
                           disabled={loadingId === attendee.id}
-                          className="text-[10px] px-2 py-1 rounded bg-tea-text-dim/10 text-tea-text-dim hover:bg-tea-text-dim/20 transition-colors"
+                          className="text-[10px] px-2 py-1 rounded bg-tea-text-sec/10 text-tea-text-sec hover:bg-tea-text-sec/20 transition-colors"
                         >
                           Cancel
                         </button>

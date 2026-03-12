@@ -77,20 +77,20 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
       <th 
-        className={`py-3 px-4 cursor-pointer hover:text-tea-text transition-colors group select-none text-${align} border-b border-tea-border text-[10px] uppercase tracking-[0.2em] text-tea-text-dim`} 
+        className={`py-3 px-4 cursor-pointer hover:text-tea-text transition-colors group select-none text-${align} border-b border-tea-border text-[10px] uppercase tracking-[0.2em] text-tea-text-sec`} 
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
            {label}
            {sortConfig?.key === colKey ? (
-               sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-dim" /> : <ArrowDown size={10} className="ml-1 text-tea-text-dim" />
+               sortConfig.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />
            ) : <ArrowUpDown size={10} className="ml-1 text-tea-border opacity-0 group-hover:opacity-100" />}
         </div>
       </th>
   );
 
   if (isLoading) {
-    return <div className="p-12 text-center text-tea-text-dim flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Loading collection...</div>;
+    return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Loading collection...</div>;
   }
 
   return (
@@ -103,16 +103,16 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                 <h2 className="text-2xl font-serif text-tea-text flex items-center gap-3">
                     <UserCheck size={20} className="text-tea-accent" /> Private Collection
                 </h2>
-                <p className="text-tea-text-dim text-xs uppercase tracking-[0.2em] mt-1">Personal Holding • Not Listed in Catalog</p>
+                <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mt-1">Personal Holding • Not Listed in Catalog</p>
             </div>
             <div className="relative w-full md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
                 <input 
                 type="text" 
                 placeholder="Search collection..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-dim font-serif placeholder-tea-text-dim/50 transition-colors"
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
                 />
             </div>
         </div>
@@ -120,7 +120,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
       <div className="p-4 md:px-12 max-w-7xl mx-auto mt-6">
         {sortedProducts.length === 0 ? (
-            <div className="py-24 text-center text-tea-text-dim border border-tea-border rounded-xl bg-tea-surface">
+            <div className="py-24 text-center text-tea-text-sec border border-tea-border rounded-xl bg-tea-surface">
                 <div className="flex flex-col items-center gap-4">
                     <AlertCircle size={32} opacity={0.3} />
                     <span className="font-serif italic">Your collection is empty.</span>
@@ -131,7 +131,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
             <div className="rounded-xl border border-tea-border bg-tea-surface overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-tea-bg text-tea-text-dim font-serif uppercase tracking-[0.2em] text-xs border-b border-tea-border">
+                        <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-xs border-b border-tea-border">
                             <tr>
                                 <SortHeader colKey="productName" label="Product" />
                                 <SortHeader colKey="type" label="Cat." />
@@ -139,7 +139,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                 <SortHeader colKey="vendor" label="Source" />
                                 <SortHeader colKey="stockGrams" label="Stock" align="right" />
                                 <SortHeader colKey="costAmount" label="Batch Cost" align="right" />
-                                <th className="py-3 px-4 text-right cursor-pointer group select-none text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">
+                                <th className="py-3 px-4 text-right cursor-pointer group select-none text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">
                                     <div className="flex items-center justify-end gap-1">Asset Value</div>
                                 </th>
                                 <th className="py-3 px-4 w-10"></th>
@@ -166,28 +166,28 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                                         {product.isCustomWisdom ? (
                                                             <Pencil size={10} className="text-tea-accent" />
                                                         ) : (
-                                                            <Sparkles size={10} className="text-tea-text-dim" />
+                                                            <Sparkles size={10} className="text-tea-text-sec" />
                                                         )}
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-tea-text-dim font-sans mt-0.5">
+                                            <div className="text-[10px] text-tea-text-sec font-sans mt-0.5">
                                                 <span>{product.givenName}</span>
                                             </div>
                                         </td>
                                         <td className="py-2 px-4">
-                                            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-dim">
+                                            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec">
                                                 <span style={{ color: dotColor, fontSize: '10px' }}>●</span> {product.type}
                                             </span>
                                         </td>
-                                        <td className="py-2 px-4 text-tea-text-dim text-xs font-serif italic">{product.year || 'N.V.'}</td>
-                                        <td className="py-2 px-4 text-tea-text-dim text-xs">{product.vendor || 'Unknown'}</td>
+                                        <td className="py-2 px-4 text-tea-text-sec text-xs font-serif italic">{product.year || 'N.V.'}</td>
+                                        <td className="py-2 px-4 text-tea-text-sec text-xs">{product.vendor || 'Unknown'}</td>
                                         
                                         <td className="py-2 px-4 text-right font-mono text-xs text-tea-text">
                                             {product.stockGrams}g
                                         </td>
                                         
-                                        <td className="py-2 px-4 text-right font-mono text-xs text-tea-text-dim">
+                                        <td className="py-2 px-4 text-right font-mono text-xs text-tea-text-sec">
                                             {product.costAmount > 0 
                                                 ? `${product.costAmount} ${product.costCurrency}` 
                                                 : '-'}
@@ -200,7 +200,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                         <td className="py-2 px-4 text-right">
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); setEditingProduct(product); }}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-tea-text-dim hover:text-tea-text"
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-tea-text-sec hover:text-tea-text"
                                             >
                                                 <Pencil size={14} />
                                             </button>
