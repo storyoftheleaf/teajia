@@ -37,6 +37,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
 
   // Related teas: same type, exclude current, max 4
   const relatedTeas = useMemo(() => {
@@ -71,7 +72,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const isFavorited = favoriteTeas.includes(item.id);
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
-  const story = [item.lore || item.description, item.terroir, item.processingNotes].filter(Boolean).join(' ');
+  const story = [item.lore || item.description, item.terroir, item.processingNotes].filter(Boolean).join('\n\n');
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -135,8 +136,24 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
         {/* Right: Product info */}
         <div className="md:w-1/2 flex flex-col">
-          {/* Tea type badge + origin */}
-          <div className="flex items-center gap-3 mb-3">
+          {/* Product name */}
+          <h1 className="font-serif text-3xl md:text-4xl text-tea-text leading-tight mb-1">
+            {item.variant || item.name}
+          </h1>
+          {/* Given name — always reserves space */}
+          <p className={`font-serif text-lg italic text-tea-text-sec mb-1 min-h-[28px] ${
+            item.variant && item.variant !== item.name ? 'visible' : 'invisible'
+          }`}>
+            {item.variant && item.variant !== item.name ? item.name : '\u00A0'}
+          </p>
+          {item.chineseName && (
+            <p className="text-2xl text-tea-text-sec/30 mb-2" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>
+              {item.chineseName}
+            </p>
+          )}
+
+          {/* Tea type · origin · year */}
+          <div className="flex items-center gap-3 mb-4">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm border border-tea-border">
               {item.type}
             </span>
@@ -153,44 +170,66 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             )}
           </div>
 
-          {/* Product name */}
-          <h1 className="font-serif text-3xl md:text-4xl text-tea-text leading-tight mb-1">
-            {item.variant || item.name}
-          </h1>
-          {item.variant && item.variant !== item.name && (
-            <p className="font-serif text-lg italic text-tea-text-sec mb-1">{item.name}</p>
-          )}
-          {item.chineseName && (
-            <p className="text-2xl text-tea-text-sec/30 mb-4" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>
-              {item.chineseName}
-            </p>
-          )}
-
-          {/* Gold accent line */}
-          <div className="w-12 h-[1px] bg-tea-gold mb-5" />
-
-          {/* Description / Lore */}
-          {story && (
-            <p className="text-sm text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
-              {story}
-            </p>
-          )}
-
-          {/* Experience / Mood */}
-          {item.mood && (
-            <p className="text-sm italic text-tea-text-sec mb-2">
-              {item.mood}
-            </p>
-          )}
-          {item.experience && (
-            <p className="text-sm italic text-tea-text-sec mb-5">
-              {item.experience}
-            </p>
-          )}
+          {/* Tea images — 1-3 adaptive layout */}
+          {(() => {
+            const imgs = [item.image, ...(item.additionalImages || [])].filter(Boolean).slice(0, 3);
+            if (imgs.length === 0) return null;
+            return (
+              <div className="mb-5">
+                {imgs.length === 1 && (
+                  <div className="flex justify-center">
+                    <div
+                      className="w-[70%] rounded overflow-hidden cursor-pointer"
+                      style={{ aspectRatio: '3/2' }}
+                      onClick={() => setExpandedImageUrl(imgs[0])}
+                    >
+                      <img src={imgs[0]} alt="" className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity duration-300" />
+                    </div>
+                  </div>
+                )}
+                {imgs.length === 2 && (
+                  <div className="flex justify-center">
+                    <div className="flex gap-1 w-[80%]">
+                      {imgs.map((img, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 aspect-square rounded overflow-hidden cursor-pointer"
+                          onClick={() => setExpandedImageUrl(img)}
+                        >
+                          <img src={img} alt="" className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity duration-300" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {imgs.length >= 3 && (
+                  <div className="flex justify-center">
+                    <div className="grid gap-1 w-[85%]" style={{ gridTemplateColumns: '1.2fr 1fr', gridTemplateRows: '1fr 1fr', aspectRatio: '3/2' }}>
+                      <div
+                        className="row-span-2 rounded overflow-hidden cursor-pointer"
+                        onClick={() => setExpandedImageUrl(imgs[0])}
+                      >
+                        <img src={imgs[0]} alt="" className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity duration-300" />
+                      </div>
+                      {imgs.slice(1, 3).map((img, i) => (
+                        <div
+                          key={i}
+                          className="rounded overflow-hidden cursor-pointer"
+                          onClick={() => setExpandedImageUrl(img)}
+                        >
+                          <img src={img} alt="" className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity duration-300" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Tasting notes */}
           {item.tags && item.tags.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-4">
               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-2 block">
                 Tasting Notes
               </span>
@@ -205,6 +244,36 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Mood tags */}
+          {item.mood && (
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-1.5 justify-start">
+                {(item.mood.includes(',') ? item.mood.split(',').map(t => t.trim()).filter(Boolean) : [item.mood]).map((tag, i) => (
+                  <span
+                    key={i}
+                    className="font-serif text-xs italic px-2.5 py-1 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border tracking-wide"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Experience — personal description */}
+          {item.experience && (
+            <p className="text-sm italic text-tea-text-sec mb-4 leading-relaxed">
+              {item.experience}
+            </p>
+          )}
+
+          {/* Story / Lore / Description */}
+          {story && (
+            <p className="text-sm text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
+              {story}
+            </p>
           )}
 
           {/* Divider */}
@@ -349,6 +418,30 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Image lightbox */}
+      {expandedImageUrl && (
+        <div
+          onClick={() => setExpandedImageUrl(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer animate-[fadeIn_0.3s_ease-out]"
+          style={{ background: 'var(--tea-bg)' }}
+        >
+          <img
+            src={expandedImageUrl}
+            alt={item.name}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded"
+          />
+          <button
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-tea-accent-sub flex items-center justify-center border-none cursor-pointer"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="var(--tea-text-sec)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
       )}
 

@@ -61,6 +61,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
+  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
@@ -138,13 +139,23 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const teaType = item.type;
   const origin = item.origin;
   const vintage = item.year;
-  const extras = [item.terroir, item.processingNotes].filter(Boolean).join(' ');
-  const story = (item.lore || item.description) + (extras ? ' ' + extras : '');
+  const extras = [item.terroir, item.processingNotes].filter(Boolean).join('\n\n');
+  const story = (item.lore || item.description) + (extras ? '\n\n' + extras : '');
   const notes = item.tags || [];
   const feeling = item.mood || '';
   const feelingDescription = item.experience || '';
   const photoUrl = item.image;
   const magazineUrl = item.magazineUrl;
+
+  // Collect all available images (main + additional), max 3
+  const allImages = [photoUrl, ...(item.additionalImages || [])].filter(Boolean).slice(0, 3);
+
+  // Parse mood into individual tags (comma-separated or single phrase)
+  const moodTags = feeling
+    ? feeling.includes(',')
+      ? feeling.split(',').map(t => t.trim()).filter(Boolean)
+      : [feeling]
+    : [];
 
   // Scroll overflow detection
   useEffect(() => {
@@ -282,15 +293,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               }}>
                 {productName}
               </h1>
-              {givenName && (
-                <p style={{
+              <p style={{
                   fontFamily: "var(--font-display)",
                   fontSize: "18px", fontStyle: "italic", fontWeight: 300,
                   color: alcoveColors.subtitle, margin: "0",
+                  minHeight: "22px",
+                  visibility: givenName ? "visible" : "hidden",
                 }}>
-                  {givenName}
+                  {givenName || '\u00A0'}
                 </p>
-              )}
             </>
         </div>
       </div>
@@ -345,68 +356,118 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </p>
           </div>
 
-          {/* Notes + photo section — notes overlaid on photo */}
-          <div style={{
-            padding: "10px 14px",
-            background: "var(--tea-accent-sub)",
-            position: "relative",
-            overflow: "hidden",
-            flexShrink: 0,
-            maxHeight: "180px",
-            borderBottom: "1px solid var(--tea-border)",
-          }}>
-            {/* Photo or placeholder behind notes */}
-            <div
-              style={{
-                position: "absolute", top: 0, right: 0, bottom: 0, width: "75%",
-                overflow: "hidden", pointerEvents: "none",
-              }}
-            >
-              {photoUrl ? (
-                <img
-                  src={photoUrl}
-                  alt=""
-                  style={{
-                    width: "100%", height: "100%",
-                    objectFit: "cover", objectPosition: "center right",
-                    transform: "scale(1.05)",
-                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                    WebkitMaskComposite: "destination-in",
-                    maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.02) 15%, rgba(0,0,0,0.08) 30%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.5) 70%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                    maskComposite: "intersect",
-                  }}
-                />
-              ) : (
-                <div style={{
-                  width: "100%", height: "100%",
-                  WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                  WebkitMaskComposite: "destination-in",
-                  maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 65%, black 90%), linear-gradient(to bottom, black 85%, transparent 100%)",
-                  maskComposite: "intersect",
-                }}>
-                  <TeaPlaceholder type={teaType} style={{ width: "100%", height: "100%" }} />
-                </div>
-              )}
-            </div>
-
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {feeling && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{
-                      width: `${markerWidths[0]}px`, height: "2px", flexShrink: 0,
-                      background: accent, opacity: markerOpacities[0], borderRadius: "1px",
-                    }} />
-                    <span style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "15px", fontWeight: 300, fontStyle: "italic",
-                      color: alcoveColors.note, opacity: noteOpacities[0],
-                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
-                    }}>
-                      {feeling}
-                    </span>
+          {/* Tea images — 1-3 images with adaptive layout */}
+          {allImages.length > 0 && (
+            <div style={{
+              padding: "12px 14px",
+              borderBottom: "1px solid var(--tea-border)",
+              flexShrink: 0,
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "center",
+              }}>
+                {allImages.length === 1 && (
+                  <div
+                    onClick={() => { setExpandedImageUrl(allImages[0]); setImageExpanded(true); }}
+                    style={{
+                      width: "70%", aspectRatio: "3/2",
+                      borderRadius: "4px", overflow: "hidden",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <img src={allImages[0]} alt="" style={{
+                      width: "100%", height: "100%", objectFit: "cover",
+                      opacity: 0.9, transition: "opacity 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+                    />
                   </div>
                 )}
+                {allImages.length === 2 && (
+                  <div style={{
+                    display: "flex", gap: "4px",
+                    width: "80%",
+                  }}>
+                    {allImages.slice(0, 2).map((img, i) => (
+                      <div
+                        key={i}
+                        onClick={() => { setExpandedImageUrl(img); setImageExpanded(true); }}
+                        style={{
+                          flex: 1, aspectRatio: "1/1",
+                          borderRadius: "4px", overflow: "hidden",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <img src={img} alt="" style={{
+                          width: "100%", height: "100%", objectFit: "cover",
+                          opacity: 0.9, transition: "opacity 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {allImages.length >= 3 && (
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.2fr 1fr",
+                    gridTemplateRows: "1fr 1fr",
+                    gap: "4px",
+                    width: "85%",
+                    aspectRatio: "3/2",
+                  }}>
+                    <div
+                      onClick={() => { setExpandedImageUrl(allImages[0]); setImageExpanded(true); }}
+                      style={{
+                        gridRow: "1 / 3",
+                        borderRadius: "4px", overflow: "hidden",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <img src={allImages[0]} alt="" style={{
+                        width: "100%", height: "100%", objectFit: "cover",
+                        opacity: 0.9, transition: "opacity 0.3s ease",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+                      />
+                    </div>
+                    {allImages.slice(1, 3).map((img, i) => (
+                      <div
+                        key={i}
+                        onClick={() => { setExpandedImageUrl(img); setImageExpanded(true); }}
+                        style={{
+                          borderRadius: "4px", overflow: "hidden",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <img src={img} alt="" style={{
+                          width: "100%", height: "100%", objectFit: "cover",
+                          opacity: 0.9, transition: "opacity 0.3s ease",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tasting notes */}
+          {notes.length > 0 && (
+            <div style={{
+              padding: "10px 14px",
+              borderBottom: "1px solid var(--tea-border)",
+              flexShrink: 0,
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {notes.map((note, i) => (
                   <div key={note} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <div style={{
@@ -420,7 +481,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontSize: "15px", fontWeight: 300, fontStyle: "italic",
                       color: alcoveColors.note,
                       opacity: noteOpacities[i] ?? 0.5,
-                      textShadow: "0 1px 8px rgba(28,27,25,0.9), 0 0 20px rgba(28,27,25,0.6)",
                     }}>
                       {note}
                     </span>
@@ -428,9 +488,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Experience — personal connection */}
+          {/* Mood tags — keyword style row */}
+          {moodTags.length > 0 && (
+            <div style={{
+              padding: "8px 14px",
+              borderBottom: "1px solid var(--tea-border)",
+              flexShrink: 0,
+            }}>
+              <div style={{
+                display: "flex", flexWrap: "wrap", gap: "6px",
+                justifyContent: "center",
+              }}>
+                {moodTags.map((tag, i) => (
+                  <span key={i} style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "12px", fontWeight: 300, fontStyle: "italic",
+                    color: "var(--tea-text-sec)",
+                    padding: "3px 10px",
+                    borderRadius: "2px",
+                    background: "var(--tea-accent-sub)",
+                    border: "1px solid var(--tea-border)",
+                    letterSpacing: "0.02em",
+                  }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Experience — personal description */}
           {feelingDescription && (
             <div style={{
               padding: "12px 16px",
@@ -447,7 +536,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           )}
 
-          {/* Story / Lore — at the very bottom */}
+          {/* Story / Lore */}
           {story && (
             <div style={{
               padding: "12px 16px",
@@ -763,35 +852,26 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       </div>
 
       {/* Fullscreen image overlay */}
-      {imageExpanded && (
+      {imageExpanded && expandedImageUrl && (
         <div
-          onClick={() => setImageExpanded(false)}
+          onClick={() => { setImageExpanded(false); setExpandedImageUrl(null); }}
           style={{
             position: "fixed", inset: 0, zIndex: 9999,
             background: "var(--tea-bg)",
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer",
+            animation: "panelReveal 0.3s ease-out",
           }}
         >
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={item.name}
-              style={{
-                maxWidth: "90vw", maxHeight: "90vh",
-                objectFit: "contain",
-                borderRadius: "4px",
-              }}
-            />
-          ) : (
-            <TeaPlaceholder
-              type={teaType}
-              style={{
-                width: "60vmin", height: "60vmin",
-                maxWidth: "400px", maxHeight: "400px",
-              }}
-            />
-          )}
+          <img
+            src={expandedImageUrl}
+            alt={item.name}
+            style={{
+              maxWidth: "90vw", maxHeight: "90vh",
+              objectFit: "contain",
+              borderRadius: "4px",
+            }}
+          />
           <button
             style={{
               position: "absolute", top: "16px", right: "16px",

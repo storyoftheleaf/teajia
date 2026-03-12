@@ -17,23 +17,64 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
 const PRODUCTS_DIR = path.join(PROJECT_ROOT, "products");
 
-// ── Config ──
-const API_URL = process.env.TEAJIA_API_URL || "https://teajia-api.lightcodes.workers.dev";
-const TOKEN = process.env.TEAJIA_TOKEN || "";
-
-// Token check deferred to import/export commands
-function requireToken() {
-  if (!TOKEN) {
-    console.error("Error: Set TEAJIA_TOKEN environment variable with your admin JWT.");
-    console.error("  export TEAJIA_TOKEN='your-jwt-here'");
-    process.exit(1);
+// ── Config (reads .env.local automatically) ──
+function loadEnv() {
+  const envPath = path.join(PROJECT_ROOT, ".env.local");
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
+      const match = line.match(/^([A-Z_]+)=(.*)$/);
+      if (match && !process.env[match[1]]) {
+        process.env[match[1]] = match[2].trim();
+      }
+    }
   }
 }
+loadEnv();
 
-const headers = {
+const API_URL = process.env.VITE_API_URL || process.env.TEAJIA_API_URL || "https://teajia-api.lightcodes.workers.dev";
+let token = process.env.TEAJIA_TOKEN || "";
+
+let headers = {
   "Content-Type": "application/json",
-  Authorization: `Bearer ${TOKEN}`,
 };
+
+// Auto-login using credentials from .env.local
+async function ensureAuth() {
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    return;
+  }
+
+  const email = process.env.TEAJIA_ADMIN_EMAIL;
+  const password = process.env.TEAJIA_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    console.error("Error: No auth credentials found.");
+    console.error("Add to .env.local:");
+    console.error("  TEAJIA_ADMIN_EMAIL=your-email");
+    console.error("  TEAJIA_ADMIN_PASSWORD=your-password");
+    console.error("");
+    console.error("Or set TEAJIA_TOKEN directly.");
+    process.exit(1);
+  }
+
+  console.log(`Logging in as ${email}...`);
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    console.error(`Login failed: ${res.status} ${await res.text()}`);
+    process.exit(1);
+  }
+
+  const data = await res.json();
+  token = data.token;
+  headers.Authorization = `Bearer ${token}`;
+  console.log("Authenticated ✓\n");
+}
 
 // ── YAML Frontmatter Parser (minimal, no dependencies) ──
 function parseFrontmatter(content) {
@@ -218,6 +259,7 @@ function findMatch(mdProduct, d1Products) {
 
 // ── IMPORT: Markdown → D1 ──
 async function importToD1(fullImport = false) {
+  await ensureAuth();
   const mdProducts = readAllProducts();
   const d1Products = await fetchD1Products();
 
@@ -295,9 +337,6 @@ async function importToD1(fullImport = false) {
       payload.show_wisdom = true;
     }
 
-    // Mark sync timestamp
-    payload.last_synced_at = new Date().toISOString();
-
     if (Object.keys(payload).length === 0) {
       skipped++;
       continue;
@@ -323,6 +362,7 @@ async function importToD1(fullImport = false) {
 
 // ── EXPORT: D1 → Markdown ──
 async function exportFromD1(exportAll = false) {
+  await ensureAuth();
   const d1Products = await fetchD1Products();
   const mdProducts = readAllProducts();
 
@@ -505,13 +545,11 @@ const command = args[0];
 const flags = args.slice(1);
 
 if (command === "import") {
-  requireToken();
   const fullImport = flags.includes("--all");
   console.log(fullImport ? "Full import: all fields from markdown → D1" : "Lore import: prose fields from markdown → D1");
   console.log("─".repeat(50));
   importToD1(fullImport).catch(console.error);
 } else if (command === "export") {
-  requireToken();
   const exportAll = flags.includes("--all");
   console.log(exportAll ? "Full export: all products from D1 → markdown" : "Smart export: changed products from D1 → markdown");
   console.log("─".repeat(50));
