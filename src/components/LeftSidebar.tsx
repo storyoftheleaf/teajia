@@ -36,12 +36,12 @@ const NavButton: React.FC<{
       <div className={`transition-all duration-300 shrink-0 ${
         isActive
           ? 'text-tea-gold scale-110'
-          : 'text-tea-text-dim group-hover:text-tea-text group-hover:scale-105'
+          : 'text-tea-text-sec group-hover:text-tea-text group-hover:scale-105'
       }`}>
         {item.icon}
       </div>
       <span className={`text-sm font-semibold transition-all duration-300 ${
-        isActive ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text'
+        isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}>
         {item.label}
       </span>
@@ -182,9 +182,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 border border-tea-border"
           title="Search (Ctrl+K)"
         >
-          <Icons.Search className="w-4 h-4 text-tea-text-dim group-hover:text-tea-text transition-colors duration-300 shrink-0" strokeWidth={2} />
-          <span className="text-sm text-tea-text-dim group-hover:text-tea-text transition-colors duration-300">Search...</span>
-          <kbd className="ml-auto text-[10px] text-tea-text-dim border border-tea-border rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
+          <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors duration-300 shrink-0" strokeWidth={2} />
+          <span className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors duration-300">Search...</span>
+          <kbd className="ml-auto text-[10px] text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
         </button>
       </div>
 
@@ -253,7 +253,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         >
           <div className="relative shrink-0">
             <Icons.Bag
-              className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105"
+              className="transition-all duration-300 text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105"
               strokeWidth={2}
             />
             {cartItemCount > 0 && (
@@ -262,7 +262,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </div>
             )}
           </div>
-          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-dim group-hover:text-tea-text">
+          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
             Cart
           </span>
         </button>
@@ -275,12 +275,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className={`transition-all duration-300 shrink-0 ${
               activeSection === 'ACCOUNT'
                 ? 'text-tea-gold w-5 h-5 scale-110'
-                : 'text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105'
+                : 'text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105'
             }`}
             strokeWidth={2}
           />
           <span className={`text-sm font-semibold transition-all duration-300 ${
-            activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-dim group-hover:text-tea-text'
+            activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
           }`}>
             Account
           </span>
@@ -293,11 +293,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? (
-            <Icons.Sun className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
+            <Icons.Sun className="transition-all duration-300 text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
           ) : (
-            <Icons.Moon className="transition-all duration-300 text-tea-text-dim w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
+            <Icons.Moon className="transition-all duration-300 text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
           )}
-          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-dim group-hover:text-tea-text">
+          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
             {theme === 'dark' ? 'Light' : 'Dark'}
           </span>
         </button>

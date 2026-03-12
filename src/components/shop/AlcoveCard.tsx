@@ -120,13 +120,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const alcoveColors = {
     bg: 'var(--tea-bg)',
     title: 'var(--tea-text)',
-    subtitle: 'var(--tea-text-dim)',
+    subtitle: 'var(--tea-text-sec)',
     body: 'var(--tea-text-sec)',
     bodyHighlight: 'var(--tea-text)',
     note: 'var(--tea-text-sec)',
     accent: 'var(--tea-gold)',
-    muted: 'var(--tea-text-dim)',
-    mutedDark: 'var(--tea-text-dim)',
+    muted: 'var(--tea-text-sec)',
+    mutedDark: 'var(--tea-text-sec)',
     success: '#5A6E5A',
   };
   const accent = alcoveColors.accent;
@@ -715,7 +715,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   fontSize: "11px", fontWeight: 400,
                   letterSpacing: "0.06em", textTransform: "uppercase",
                   color: isSoldOut
-                    ? 'var(--tea-text-dim)'
+                    ? 'var(--tea-text-sec)'
                     : added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
                   background: isSoldOut
                     ? 'var(--tea-accent-sub)'

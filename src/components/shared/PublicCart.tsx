@@ -225,7 +225,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               </p>
               <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-gold/20" id="inquiry-form">
                 <div>
-                  <label htmlFor="inquiry-name" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">
+                  <label htmlFor="inquiry-name" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Name *
                   </label>
                   <div className="relative">
@@ -253,7 +253,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-contact" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">
+                  <label htmlFor="inquiry-contact" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Contact *
                   </label>
                   <div className="relative">
@@ -281,7 +281,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-location" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">
+                  <label htmlFor="inquiry-location" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Shipping Location *
                   </label>
                   <div className="relative">
@@ -309,7 +309,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-notes" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">
+                  <label htmlFor="inquiry-notes" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Special Requests (Optional)
                   </label>
                   <textarea
@@ -337,26 +337,26 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
             <div className="space-y-6 relative z-[1]">
               <div className="text-center mb-2">
                 <h3 className="font-serif text-lg text-tea-text mb-1">Review Your Inquiry</h3>
-                <p className="text-xs text-tea-text-dim">Please review before sending</p>
+                <p className="text-xs text-tea-text-sec">Please review before sending</p>
               </div>
 
               {/* Customer details summary */}
               <div className="bg-tea-accent-sub border border-tea-border rounded-md p-4 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Name</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Name</span>
                   <span className="text-sm text-tea-text">{details.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Contact</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</span>
                   <span className="text-sm text-tea-text">{details.contact}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Location</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Location</span>
                   <span className="text-sm text-tea-text">{details.location}</span>
                 </div>
                 {details.notes && (
                   <div className="flex justify-between">
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Notes</span>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</span>
                     <span className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</span>
                   </div>
                 )}
@@ -364,12 +364,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {/* Order items summary */}
               <div className="bg-tea-surface border border-tea-border rounded-md p-4 space-y-3">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-2">Items</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-2">Items</p>
                 {cart.map(item => (
                   <div key={item.id} className="flex justify-between items-center text-sm border-b border-tea-border pb-2 last:border-0 last:pb-0">
                     <div>
                       <span className="text-tea-text">{item.name}</span>
-                      <span className="text-tea-text-dim text-xs ml-2">
+                      <span className="text-tea-text-sec text-xs ml-2">
                         {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
                       </span>
                     </div>
@@ -382,7 +382,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
               </div>
 
-              <p className="text-[10px] text-tea-text-dim text-center font-mono">{orderRef}</p>
+              <p className="text-[10px] text-tea-text-sec text-center font-mono">{orderRef}</p>
 
               {/* Persistent success message */}
               {successMessage?.show && (
@@ -424,7 +424,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       : 'border-tea-gold/20 hover:bg-tea-accent-sub text-tea-text'
                   }`}>
                   <span className="text-[10px] uppercase tracking-[0.15em]">Send via Email</span>
-                  {preferredChannel === 'email' && <span className="text-xs ml-1 text-tea-text-dim">Recommended</span>}
+                  {preferredChannel === 'email' && <span className="text-xs ml-1 text-tea-text-sec">Recommended</span>}
                 </button>
                 <button onClick={handleCopy}
                   className="flex items-center justify-center gap-2 py-3 border border-tea-gold/20 hover:bg-tea-accent-sub text-tea-text transition-colors min-h-[44px]">
@@ -432,7 +432,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </button>
               </div>
 
-              <p className="text-center text-xs text-tea-text-dim italic">
+              <p className="text-center text-xs text-tea-text-sec italic">
                 Sending this message will initiate your order request with Teajia.
               </p>
             </div>

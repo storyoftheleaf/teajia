@@ -62,7 +62,7 @@ export const MagazineIcon = ({ className, filled, style, ...props }: { className
       <line x1="12" y1="7" x2="12" y2="17" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
       <line x1="7" y1="9" x2="10" y2="9" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
       <line x1="7" y1="11" x2="10" y2="11" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
-      <circle cx="15.5" cy="10" r="1.1" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} fill={filled ? "var(--tea-text-dim)" : "none"} />
+      <circle cx="15.5" cy="10" r="1.1" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} fill={filled ? "var(--tea-text-sec)" : "none"} />
       <line x1="14.3" y1="12.5" x2="16.7" y2="12.5" stroke={filled ? "var(--tea-text-sec)" : "currentColor"} />
     </g>
   </svg>

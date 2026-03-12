@@ -83,7 +83,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
           onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
           onTouchEnd={() => handleDragEnd()}
         >
-          <div className="w-10 h-1 bg-tea-text-dim/20 rounded-full" />
+          <div className="w-10 h-1 bg-tea-text-sec/20 rounded-full" />
         </div>
 
         {/* Header */}
@@ -91,7 +91,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
           <h2 className="font-serif text-xl text-tea-text">Find My RSVP</h2>
           <button
             onClick={onClose}
-            className="p-2 text-tea-text-dim hover:text-tea-gold transition-colors"
+            className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -106,7 +106,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-2">
+              <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
                 Phone Number
               </label>
               <input
@@ -115,7 +115,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+62 812 3456 7890"
                 autoFocus
-                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
               />
             </div>
 

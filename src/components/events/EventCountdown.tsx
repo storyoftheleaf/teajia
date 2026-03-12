@@ -34,14 +34,14 @@ const CountdownUnit: React.FC<{ value: number; label: string }> = ({ value, labe
     <span className="font-serif text-3xl md:text-4xl text-tea-text tabular-nums leading-none">
       {String(value).padStart(2, '0')}
     </span>
-    <span className="text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mt-2">
+    <span className="text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mt-2">
       {label}
     </span>
   </div>
 );
 
 const Separator: React.FC = () => (
-  <span className="font-serif text-2xl md:text-3xl text-tea-text-dim/40 self-start mt-0.5 mx-1">
+  <span className="font-serif text-2xl md:text-3xl text-tea-text-sec/40 self-start mt-0.5 mx-1">
     :
   </span>
 );
@@ -74,7 +74,7 @@ const EventCountdown: React.FC<EventCountdownProps> = ({ eventDate, className = 
 
   return (
     <div className={`${className}`}>
-      <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim text-center mb-4">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec text-center mb-4">
         {isDayOf ? 'Starting in' : 'Begins in'}
       </p>
       <div className="flex items-center justify-center gap-1">

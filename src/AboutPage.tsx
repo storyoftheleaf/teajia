@@ -65,7 +65,7 @@ export default function AboutPage() {
             <p className="text-sm text-tea-text-sec leading-relaxed mb-4">
               His background in design and visual art shapes everything he creates — from the way tea is presented to the spaces where it is shared. The intersection of craft and aesthetics is central: a tea room, a curated collection, even a simple tasting session are all exercises in attention and intention.
             </p>
-            <p className="text-sm text-tea-text-dim leading-relaxed">
+            <p className="text-sm text-tea-text-sec leading-relaxed">
               Today the practice is based between Bali and the United States, with regular sourcing trips to Taiwan and mainland China. Whether designing a tea room for a hospitality client, curating a private collection, or leading a sourcing journey through origin regions, the approach is always the same: listen first, then create something that lasts.
             </p>
           </div>

@@ -105,7 +105,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 <button onClick={(e) => { e.stopPropagation(); delPage(i); }} className="absolute -top-1 -right-1 w-4 h-4 bg-red-900 text-white rounded-full flex items-center justify-center opacity-0 hover:opacity-100 z-10" aria-label={`Delete page ${i + 1}`}><Icons.Close className="w-3 h-3" /></button>
                             </div>
                         ))}
-                        <button onClick={addPage} className="w-20 h-10 border border-dashed border-tea-gold/10 flex items-center justify-center text-tea-text-dim hover:text-white hover:border-tea-gold/20"><Icons.Plus className="w-4 h-4" /></button>
+                        <button onClick={addPage} className="w-20 h-10 border border-dashed border-tea-gold/10 flex items-center justify-center text-tea-text-sec hover:text-white hover:border-tea-gold/20"><Icons.Plus className="w-4 h-4" /></button>
                     </div>
                 )}
 
@@ -149,7 +149,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                         )}
                         {/* Hint for Media */}
                         {isMedia && (
-                            <div className="absolute bottom-8 text-tea-text-dim text-sm font-serif italic">
+                            <div className="absolute bottom-8 text-tea-text-sec text-sm font-serif italic">
                                 Edit poster image for {currentStory.type}
                             </div>
                         )}
@@ -231,13 +231,13 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                     value={templateSearch}
                                     onChange={(e) => setTemplateSearch(e.target.value)}
                                     placeholder="Search templates..."
-                                    className="w-full bg-tea-surface border border-tea-gold/15 rounded-sm px-4 py-2 text-sm text-white placeholder:text-tea-text-dim outline-none focus:border-tea-gold transition-colors"
+                                    className="w-full bg-tea-surface border border-tea-gold/15 rounded-sm px-4 py-2 text-sm text-white placeholder:text-tea-text-sec outline-none focus:border-tea-gold transition-colors"
                                     autoFocus
                                 />
                                 {templateSearch && (
                                     <button
                                         onClick={() => setTemplateSearch('')}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text"
                                         aria-label="Clear search"
                                     >
                                         <Icons.Close className="w-4 h-4" />
@@ -925,7 +925,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     );
                                 })}
                                 {(inventoryTab === 'TEA' ? teaItems : wareItems).length === 0 && (
-                                    <tr><td colSpan={6} className="p-8 text-center text-tea-text-dim italic">No items found.</td></tr>
+                                    <tr><td colSpan={6} className="p-8 text-center text-tea-text-sec italic">No items found.</td></tr>
                                 )}
                             </tbody>
                         </table>

@@ -96,7 +96,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
       {/* Search Bar — dark, blends with theme */}
       <div className="relative mb-6">
-        <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-dim" />
+        <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec" />
         <input
           type="text"
           placeholder="Search terms..."
@@ -105,13 +105,13 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
             setSearchQuery(e.target.value);
             setActiveLetter(null);
           }}
-          className="w-full pl-11 pr-4 py-3 bg-tea-surface rounded-[1px] text-tea-text text-sm placeholder-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/20 transition-colors"
+          className="w-full pl-11 pr-4 py-3 bg-tea-surface rounded-[1px] text-tea-text text-sm placeholder-tea-text-sec focus:outline-none focus:ring-1 focus:ring-tea-gold/20 transition-colors"
           style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text"
           >
             <Icons.Close className="w-4 h-4" />
           </button>
@@ -149,7 +149,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
               className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-sans transition-all
                 ${!activeLetter
                   ? 'bg-tea-gold/15 text-tea-gold'
-                  : 'text-tea-text-dim hover:text-tea-text-sec'
+                  : 'text-tea-text-sec hover:text-tea-text-sec'
                 }`}
             >
               All
@@ -161,7 +161,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-mono transition-all
                   ${activeLetter === letter
                     ? 'bg-tea-gold/15 text-tea-gold'
-                    : 'text-tea-text-dim hover:text-tea-text-sec'
+                    : 'text-tea-text-sec hover:text-tea-text-sec'
                   }`}
               >
                 {letter}
@@ -215,12 +215,12 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                             )}
                           </div>
                           {term.pronunciation && (
-                            <p className="text-tea-text-dim text-xs font-mono italic mt-0.5">
+                            <p className="text-tea-text-sec text-xs font-mono italic mt-0.5">
                               /{term.pronunciation}/
                             </p>
                           )}
                         </div>
-                        <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-sans flex-shrink-0 mt-1">
+                        <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec font-sans flex-shrink-0 mt-1">
                           {GLOSSARY_CATEGORIES[term.category].label}
                         </span>
                       </div>
@@ -260,7 +260,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                           {/* Cultural Context */}
                           {term.deepDive?.culturalContext && (
                             <div className="pl-3" style={{ boxShadow: 'inset 2px 0 0 var(--tea-border)' }}>
-                              <p className="text-tea-text-dim text-[13px] leading-relaxed italic font-serif">
+                              <p className="text-tea-text-sec text-[13px] leading-relaxed italic font-serif">
                                 {term.deepDive.culturalContext}
                               </p>
                             </div>
@@ -318,7 +318,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Icons.Search className="w-8 h-8 text-tea-text/15 mb-3" />
-            <p className="text-tea-text-dim text-sm">
+            <p className="text-tea-text-sec text-sm">
               No terms found matching your search.
             </p>
             <button
@@ -345,7 +345,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
             View Full Glossary
             <Icons.ChevronRight className="w-3.5 h-3.5" />
           </button>
-          <p className="mt-2 text-tea-text-dim text-[10px] font-mono">
+          <p className="mt-2 text-tea-text-sec text-[10px] font-mono">
             {GLOSSARY_TERMS.length} terms
           </p>
         </div>

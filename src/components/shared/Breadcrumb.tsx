@@ -29,7 +29,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ segments, className = ''
           <React.Fragment key={i}>
             {i > 0 && (
               <Icons.ChevronRight
-                className={`w-3.5 h-3.5 text-tea-text-dim shrink-0 ${
+                className={`w-3.5 h-3.5 text-tea-text-sec shrink-0 ${
                   segments.length > 2 && i < segments.length - 1 ? 'hidden md:block' : ''
                 }`}
                 aria-hidden="true"
@@ -42,7 +42,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ segments, className = ''
             ) : (
               <button
                 onClick={segment.onClick}
-                className={`${mobileHidden} items-center font-serif text-tea-text-dim hover:text-tea-gold transition-colors truncate`}
+                className={`${mobileHidden} items-center font-serif text-tea-text-sec hover:text-tea-gold transition-colors truncate`}
               >
                 {segment.label}
               </button>

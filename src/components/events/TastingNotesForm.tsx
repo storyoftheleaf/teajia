@@ -82,7 +82,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
   return (
     <div className={`${className}`}>
       <h3 className="font-serif text-xl text-tea-text mb-2">Share Your Impressions</h3>
-      <p className="text-xs text-tea-text-dim uppercase tracking-[0.2em] mb-6">
+      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
         Rate the teas you tasted today
       </p>
 
@@ -106,13 +106,13 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                 </div>
                 <h4 className="font-serif text-base text-tea-text">{item.customName || item.productName}</h4>
                 {item.customDescription && (
-                  <p className="text-xs text-tea-text-dim mt-1 line-clamp-2">{item.customDescription}</p>
+                  <p className="text-xs text-tea-text-sec mt-1 line-clamp-2">{item.customDescription}</p>
                 )}
               </div>
 
               {/* Rating: tea leaves */}
               <div className="mb-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
                   Rating
                 </p>
                 <div className="flex gap-1.5">
@@ -128,7 +128,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                         className={`w-6 h-6 transition-colors duration-200 ${
                           level <= note.rating
                             ? 'text-tea-gold'
-                            : 'text-tea-text-dim/20 hover:text-tea-text-dim/40'
+                            : 'text-tea-text-sec/20 hover:text-tea-text-sec/40'
                         }`}
                         filled={level <= note.rating}
                       />
@@ -144,7 +144,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                   value={note.impression}
                   onChange={(e) => updateNote(item.id, 'impression', e.target.value)}
                   placeholder="One-line impression..."
-                  className="w-full px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
@@ -155,7 +155,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs transition-all duration-200 border ${
                   note.isFavorite
                     ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-                    : 'bg-transparent border-tea-border text-tea-text-dim hover:border-tea-gold/20 hover:text-tea-text-sec'
+                    : 'bg-transparent border-tea-border text-tea-text-sec hover:border-tea-gold/20 hover:text-tea-text-sec'
                 }`}
               >
                 <TeaLeafIcon className="w-3.5 h-3.5" filled={note.isFavorite} />

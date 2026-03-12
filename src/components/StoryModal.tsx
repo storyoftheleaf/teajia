@@ -61,7 +61,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                </div>
                <div className="flex items-center space-x-6">
                  <Icons.Play className="w-10 h-10 text-tea-text cursor-pointer hover:text-tea-green transition-colors" />
-                 <div className="w-48 h-1 bg-tea-text-dim/15 rounded-full overflow-hidden">
+                 <div className="w-48 h-1 bg-tea-text-sec/15 rounded-full overflow-hidden">
                    <div className="w-1/3 h-full bg-tea-bg"></div>
                  </div>
                  <span className="text-xs text-tea-text/60 font-mono">08:12 / {story.durationOrTime}</span>

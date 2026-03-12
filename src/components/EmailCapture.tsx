@@ -88,7 +88,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
             placeholder="your@email.com"
             required
             disabled={loading}
-            className="flex-1 px-4 py-3 rounded-sm border border-tea-border bg-transparent text-tea-text placeholder:text-tea-text-dim font-sans text-base focus:outline-none focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/20 transition-colors disabled:opacity-50"
+            className="flex-1 px-4 py-3 rounded-sm border border-tea-border bg-transparent text-tea-text placeholder:text-tea-text-sec font-sans text-base focus:outline-none focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/20 transition-colors disabled:opacity-50"
           />
           <Button type="submit" variant="primary" size="md" disabled={loading}>
             {loading ? 'Subscribing...' : 'Subscribe'}

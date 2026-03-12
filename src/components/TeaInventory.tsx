@@ -291,14 +291,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                            <div className="flex items-center gap-1.5">
                               <span className="card-grid-badge">{item.type}</span>
                               {item.origin && (
-                                 <span className="text-[10px] text-tea-text-dim italic">{item.origin}</span>
+                                 <span className="text-[10px] text-tea-text-sec italic">{item.origin}</span>
                               )}
                            </div>
                         }
                         priceDisplay={
                            <span className="card-grid-price">
                               <span className="num">{fmtPrice(gridPrice25)}</span>
-                              <span className="text-tea-text-dim text-[10px] ml-1">/ 25g</span>
+                              <span className="text-tea-text-sec text-[10px] ml-1">/ 25g</span>
                            </span>
                         }
                         sliderComponent={
@@ -336,7 +336,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     {/* Category label */}
                     {activeType === 'All' && specialFilter === 'None' && (
                         <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
-                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-dim">{group.type}</span>
+                            <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-sec">{group.type}</span>
                         </div>
                     )}
 
@@ -370,7 +370,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {isTeajiaFav && <Icons.Seal className="w-3 h-3 text-tea-gold shrink-0 opacity-80" />}
                                         </div>
                                         <div className="text-[13px] mt-1 truncate flex items-center gap-2">
-                                             <span className="text-[10px] uppercase tracking-wider text-tea-text-dim">{item.type}</span>
+                                             <span className="text-[10px] uppercase tracking-wider text-tea-text-sec">{item.type}</span>
                                              {item.origin && (
                                                  <><span className="text-tea-text/20">·</span>
                                                  <span className="font-body italic text-tea-text/40">{item.origin}</span></>
@@ -407,7 +407,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         )}
                                         <div className="text-right">
                                             <span className="num text-sm text-tea-gold">{fmtPrice(price25g)}</span>
-                                            <span className="text-[10px] text-tea-text-dim ml-1">/ 25g</span>
+                                            <span className="text-[10px] text-tea-text-sec ml-1">/ 25g</span>
                                         </div>
                                         <Icons.Next className="w-4 h-4 text-tea-text/20 shrink-0" />
                                     </div>

@@ -134,7 +134,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               {title}
             </h3>
             {description && (
-              <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.2em] font-sans line-clamp-1">
+              <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] font-sans line-clamp-1">
                 {description}
               </p>
             )}

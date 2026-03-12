@@ -149,7 +149,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
                   <div className="mt-auto flex items-center gap-3">
                     <div>
                       <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 25)}</span>
-                      <span className="text-tea-text-dim text-xs ml-1">/ 25g</span>
+                      <span className="text-tea-text-sec text-xs ml-1">/ 25g</span>
                     </div>
                     <button
                       onClick={(e) => {

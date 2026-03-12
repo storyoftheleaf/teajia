@@ -80,7 +80,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> =
       {children}
     </h3>
     {subtitle && (
-      <p className="mt-2 font-serif font-light italic text-[15px] text-tea-text-dim leading-[1.6]">
+      <p className="mt-2 font-serif font-light italic text-[15px] text-tea-text-sec leading-[1.6]">
         {subtitle}
       </p>
     )}
@@ -185,7 +185,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] max-w-md">
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
-            <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.2em] text-tea-text-dim">
+            <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.2em] text-tea-text-sec">
               Adrian
             </span>
           </div>
@@ -310,7 +310,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 </h3>
 
                 {spotlightTerm.pronunciation && (
-                  <p className="font-mono text-[9px] text-tea-text-dim mb-6 md:mb-8">
+                  <p className="font-mono text-[9px] text-tea-text-sec mb-6 md:mb-8">
                     /{spotlightTerm.pronunciation}/
                   </p>
                 )}
@@ -323,10 +323,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
                   <div className="border-l-2 border-tea-gold/25 pl-4 mb-8 max-w-md">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim font-sans block mb-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-sans block mb-1.5">
                       Try this
                     </span>
-                    <p className="text-[15px] text-tea-text-dim leading-[1.8] font-serif font-light italic">
+                    <p className="text-[15px] text-tea-text-sec leading-[1.8] font-serif font-light italic">
                       {spotlightTerm.deepDive.tryThis[0].description}
                     </p>
                   </div>
@@ -338,7 +338,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     Explore full glossary
                     <Icons.ChevronRight className="w-4 h-4" />
                   </span>
-                  <span className="text-tea-text-dim text-[9px] font-mono">
+                  <span className="text-tea-text-sec text-[9px] font-mono">
                     {counts.glossary} terms
                   </span>
                 </div>
@@ -411,7 +411,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     }`} />
                   </div>
                   <p className={`font-serif font-light italic text-[15px] leading-[1.8] ${
-                    isDone ? 'text-tea-text-dim/50' : 'text-tea-text-dim'
+                    isDone ? 'text-tea-text-sec/50' : 'text-tea-text-sec'
                   }`}>
                     {mod.description}
                   </p>
@@ -455,7 +455,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 <h4 className="font-serif text-[15px] text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors">
                   {tile.label}
                 </h4>
-                <p className="text-[10px] text-tea-text-dim font-sans uppercase tracking-[0.2em] leading-[1.4]">
+                <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.2em] leading-[1.4]">
                   {tile.subtitle}
                 </p>
               </div>
