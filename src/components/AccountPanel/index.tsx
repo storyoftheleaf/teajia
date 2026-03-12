@@ -8,11 +8,12 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
+import { api, setToken } from '../../lib/api';
 import { MyCollection } from './MyCollection';
 import { AdminMiniDashboard } from '../admin-overlay/AdminMiniDashboard';
 import type { Currency } from '../../admin/types';
 
-type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'saved-stories' | 'reading-history';
+type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'saved-stories' | 'reading-history' | 'change-password' | 'edit-profile';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -46,6 +47,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Change password state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  // Edit profile state
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+
+  // Admin request state
+  const [adminRequestLoading, setAdminRequestLoading] = useState(false);
+  const [adminRequestStatus, setAdminRequestStatus] = useState<string | null>(null);
 
   // Swipe to dismiss state
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -123,6 +137,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setFormError('');
     setFormLoading(false);
     setShowPassword(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setEditName('');
+    setEditEmail('');
   };
 
   // Swipe handlers
@@ -188,6 +207,71 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     auth.logout();
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    if (newPassword.length < 6) {
+      setFormError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setFormError('New passwords do not match.');
+      return;
+    }
+    setFormLoading(true);
+    try {
+      await api.auth.changePassword(currentPassword, newPassword);
+      resetForm();
+      setPanelView('main');
+      setFormError('');
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to change password.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleEditProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    setFormLoading(true);
+    try {
+      const updates: { name?: string; email?: string } = {};
+      if (editName && editName !== auth.user?.name) updates.name = editName;
+      if (editEmail && editEmail !== auth.user?.email) updates.email = editEmail;
+      if (Object.keys(updates).length === 0) {
+        setFormError('No changes to save.');
+        setFormLoading(false);
+        return;
+      }
+      const result = await api.auth.updateProfile(updates);
+      if (result.token) setToken(result.token);
+      await auth.checkSession();
+      resetForm();
+      setPanelView('main');
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to update profile.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleRequestAdmin = async () => {
+    setAdminRequestLoading(true);
+    try {
+      await api.auth.requestAdmin();
+      setAdminRequestStatus('pending');
+    } catch (err: any) {
+      if (err.message?.includes('already')) {
+        setAdminRequestStatus('pending');
+      } else {
+        setFormError(err.message || 'Failed to request admin access.');
+      }
+    } finally {
+      setAdminRequestLoading(false);
+    }
+  };
+
   const handleGoToAdmin = (path: string = '/admin/inventory') => {
     onClose();
     window.location.href = path;
@@ -215,6 +299,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       case 'collection': return 'My Collection';
       case 'saved-stories': return 'Saved Stories';
       case 'reading-history': return 'Reading History';
+      case 'change-password': return 'Change Password';
+      case 'edit-profile': return 'Edit Profile';
       default: return 'Account';
     }
   })();
@@ -465,6 +551,134 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               </div>
             )}
 
+            {/* ============ CHANGE PASSWORD ============ */}
+            {panelView === 'change-password' && (
+              <div className="animate-[fadeIn_0.3s_ease-out]">
+                <div className="flex flex-col items-center pt-2 pb-6">
+                  <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
+                    <Icons.Lock className="w-7 h-7 text-tea-gold" />
+                  </div>
+                  <h3 className="font-serif text-xl text-tea-text">Change Password</h3>
+                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Update your account password</p>
+                </div>
+
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Current Password</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      placeholder="Min 6 characters"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      required
+                    />
+                  </div>
+
+                  {formError && (
+                    <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
+                      <Icons.AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={formLoading}
+                    className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+                  >
+                    {formLoading ? (
+                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                    ) : (
+                      'Update Password'
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* ============ EDIT PROFILE ============ */}
+            {panelView === 'edit-profile' && (
+              <div className="animate-[fadeIn_0.3s_ease-out]">
+                <div className="flex flex-col items-center pt-2 pb-6">
+                  <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
+                    <Icons.User className="w-7 h-7 text-tea-gold" />
+                  </div>
+                  <h3 className="font-serif text-xl text-tea-text">Edit Profile</h3>
+                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Update your name or email</p>
+                </div>
+
+                <form onSubmit={handleEditProfile} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      placeholder={auth.user?.name || 'Your name'}
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      placeholder={auth.user?.email || 'you@example.com'}
+                    />
+                  </div>
+
+                  {formError && (
+                    <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
+                      <Icons.AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={formLoading}
+                    className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+                  >
+                    {formLoading ? (
+                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
             {/* ============ MY COLLECTION SUB-VIEW ============ */}
             {panelView === 'collection' && (
               <MyCollection onBack={() => setPanelView('main')} />
@@ -653,6 +867,66 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           <Icons.ChevronRight className="w-4 h-4 text-tea-gold/30 group-hover:text-tea-gold/60 transition-colors" />
                         </button>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Account Settings — for authenticated users */}
+                {auth.isAuthenticated && (
+                  <div>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Account</span>
+                    <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
+                      <button
+                        onClick={() => {
+                          setEditName(auth.user?.name || '');
+                          setEditEmail(auth.user?.email || '');
+                          setPanelView('edit-profile');
+                        }}
+                        className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
+                      >
+                        <Icons.User className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+                        <div className="flex flex-col items-start flex-1">
+                          <span className="font-serif text-sm text-tea-text">Edit Profile</span>
+                          <span className="text-[10px] text-tea-text-sec">Change your name or email</span>
+                        </div>
+                        <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
+                      </button>
+                      <button
+                        onClick={() => { resetForm(); setPanelView('change-password'); }}
+                        className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
+                      >
+                        <Icons.Lock className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+                        <div className="flex flex-col items-start flex-1">
+                          <span className="font-serif text-sm text-tea-text">Change Password</span>
+                          <span className="text-[10px] text-tea-text-sec">Update your login credentials</span>
+                        </div>
+                        <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
+                      </button>
+                      {/* Request Admin — only for non-admin users */}
+                      {!auth.isAdmin && (
+                        <button
+                          onClick={handleRequestAdmin}
+                          disabled={adminRequestLoading || adminRequestStatus === 'pending'}
+                          className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-surface/50 transition-colors group disabled:opacity-60"
+                        >
+                          <Icons.Shield className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+                          <div className="flex flex-col items-start flex-1">
+                            <span className="font-serif text-sm text-tea-text">Request Admin Access</span>
+                            <span className="text-[10px] text-tea-text-sec">
+                              {adminRequestStatus === 'pending'
+                                ? 'Request pending — awaiting approval'
+                                : 'Submit a request to the site owner'}
+                            </span>
+                          </div>
+                          {adminRequestLoading ? (
+                            <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                          ) : adminRequestStatus === 'pending' ? (
+                            <span className="text-[10px] uppercase tracking-wider text-tea-gold">Pending</span>
+                          ) : (
+                            <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
 import { Save, RefreshCw, Settings2 } from 'lucide-react';
+import { getTokenClaims } from '../../lib/api';
+import { UserManagement } from './UserManagement';
 
 export const SettingsView: React.FC = () => {
-  const { aiPromptTemplate, setAiPromptTemplate } = useAppStore();
+  const { aiPromptTemplate, setAiPromptTemplate, isDevAdmin } = useAppStore();
   const { showToast } = useToast();
-  
+
   const [localPrompt, setLocalPrompt] = useState(aiPromptTemplate);
+
+  const claims = getTokenClaims();
+  const currentUserRole = claims?.role || (isDevAdmin ? 'owner' : 'user');
 
   const handleSave = () => {
     setAiPromptTemplate(localPrompt);
@@ -24,7 +29,7 @@ export const SettingsView: React.FC = () => {
   return (
     <div className="h-[calc(100vh-64px)] overflow-auto custom-scrollbar bg-tea-bg p-6">
       <div className="max-w-4xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div>
           <h2 className="text-2xl font-serif text-tea-text flex items-center gap-3">
@@ -32,9 +37,12 @@ export const SettingsView: React.FC = () => {
             System Settings
           </h2>
           <p className="text-tea-text-sec text-sm mt-2">
-            Configure application behavior and AI generation parameters.
+            Configure application behavior, manage users, and adjust AI parameters.
           </p>
         </div>
+
+        {/* User Management Section */}
+        <UserManagement currentUserRole={currentUserRole} />
 
         {/* AI Settings Section */}
         <div className="bg-tea-surface border border-tea-border rounded-xl p-6 space-y-6">

@@ -64,8 +64,8 @@ const AdminContent = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const claims = getTokenClaims();
-  const userRole = claims?.role || (isDevAdmin ? 'admin' : null);
-  const isAdmin = (isAuthenticated && userRole === 'admin') || isDevAdmin;
+  const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
+  const isAdmin = (isAuthenticated && (userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
 
   // Modals
   const [isLoginOpen, setIsLoginOpen] = useState(false);

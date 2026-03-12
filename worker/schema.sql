@@ -111,7 +111,19 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user',  -- 'admin', 'user'
+    role TEXT NOT NULL DEFAULT 'user',  -- 'owner', 'admin', 'user'
+    admin_request_status TEXT NOT NULL DEFAULT 'none',  -- 'none', 'pending', 'approved', 'denied'
+    admin_requested_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 5b. Password Reset Tokens Table
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT UNIQUE NOT NULL,
+    expires_at TEXT NOT NULL,
+    used INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
 );
 

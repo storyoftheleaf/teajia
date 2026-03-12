@@ -89,7 +89,7 @@ export function useAuth(): UseAuthReturn {
   return {
     user,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
+    isAdmin: user?.role === 'admin' || user?.role === 'owner',
     isLoading,
     login,
     signup,
