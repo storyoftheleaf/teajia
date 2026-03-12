@@ -57,7 +57,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
                 </p>
 
                 {/* CTA */}
-                <div className="flex items-center gap-2 text-tea-gold text-sm font-medium pt-2 border-t border-tea-gold/10">
+                <div className="flex items-center gap-2 text-tea-gold text-sm font-medium pt-2 border-t border-tea-border">
                   <span>View Profile</span>
                   <span>→</span>
                 </div>

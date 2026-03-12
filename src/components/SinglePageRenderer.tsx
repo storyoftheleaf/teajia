@@ -74,12 +74,12 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
       style={{ top: safeTop, left: safeLeft }}
       onMouseDown={(e) => e.preventDefault()}
     >
-        <div className="flex gap-1 border-r border-tea-gold/10 pr-2 mr-1">
+        <div className="flex gap-1 border-r border-tea-border pr-2 mr-1">
             <button onClick={() => onFormat('font', 'font-serif')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text" title="Serif"><span className="font-serif text-sm">S</span></button>
             <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text" title="Sans"><span className="font-sans text-sm">S</span></button>
             <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text" title="Mono"><span className="font-mono text-sm">M</span></button>
         </div>
-        <div className="flex gap-1 border-r border-tea-gold/10 pr-2 mr-1">
+        <div className="flex gap-1 border-r border-tea-border pr-2 mr-1">
             <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text font-bold text-sm">B</button>
             <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text italic font-serif text-sm">I</button>
         </div>
@@ -375,7 +375,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} flex flex-col justify-between ${STD_PAD}`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className={`absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none`}></div>
-                        <div className="relative z-20 border-t border-tea-gold/20 pt-6 flex justify-between items-center mt-auto mb-8">
+                        <div className="relative z-20 border-t border-tea-border pt-6 flex justify-between items-center mt-auto mb-8">
                             <div className="w-12 h-12 bg-tea-bg text-black flex items-center justify-center font-bold text-xl">T</div>
                             <span className="text-2xl uppercase tracking-[0.3em] text-tea-text opacity-80">Journal</span>
                         </div>

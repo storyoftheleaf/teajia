@@ -167,7 +167,7 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
       ))}
 
       {/* Cross-pollination CTA */}
-      <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-tea-gold/10">
+      <div className="px-6 md:px-10 py-20 md:py-28 max-w-4xl mx-auto border-t border-tea-border">
         <h3 className="font-serif text-2xl md:text-3xl text-tea-text mb-3">Begin Your Practice</h3>
         <p className="text-tea-text/60 mb-8 max-w-md">
           Explore everyday teas, teaware, and ceremony essentials to support your daily ritual.

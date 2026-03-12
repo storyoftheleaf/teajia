@@ -184,7 +184,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           <div className="fixed inset-0 z-modal flex items-end md:items-center justify-center p-0 md:p-4">
               <div className="absolute inset-0 bg-tea-text/90 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)}></div>
               <div className="relative w-full md:max-w-xl bg-tea-bg rounded-t-xl md:rounded-sm overflow-hidden flex flex-col max-h-[85vh] animate-[slideUp_0.3s_ease-out]">
-                  <div className="px-6 py-3 border-b border-tea-gold/[0.08] flex justify-between items-center bg-tea-surface">
+                  <div className="px-6 py-3 border-b border-tea-border flex justify-between items-center bg-tea-surface">
                       <span className="text-xs uppercase tracking-[0.2em] text-tea-text font-semibold">Refine Collection</span>
                       <button onClick={() => setIsFilterOpen(false)}><Icons.Close className="w-4 h-4 text-tea-text/60" /></button>
                   </div>
@@ -192,18 +192,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                       <div className="mb-6">
                           <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Type</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-text' : 'border-tea-gold/[0.08]'}`}>All</button>
+                              <button onClick={() => setActiveType('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === 'All' ? 'bg-tea-bg text-tea-text' : 'border-tea-border'}`}>All</button>
                               {TEA_TYPES.map(t => (
-                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-text' : 'border-tea-gold/[0.08]'}`}>{t}</button>
+                                  <button key={t} onClick={() => setActiveType(t)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeType === t ? 'bg-tea-bg text-tea-text' : 'border-tea-border'}`}>{t}</button>
                               ))}
                           </div>
                       </div>
                       <div>
                           <h3 className="font-serif italic text-sm text-tea-text/50 mb-2">Feeling</h3>
                           <div className="flex flex-wrap gap-2">
-                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-gold/[0.08]'}`}>All</button>
+                              <button onClick={() => setActiveFeeling('All')} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-border'}`}>All</button>
                               {FEELINGS_LIST.map(f => (
-                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-gold/[0.08]'}`}>{f}</button>
+                                  <button key={f} onClick={() => setActiveFeeling(f)} className={`px-3 py-1 border rounded-sm text-xs uppercase tracking-wider ${activeFeeling === f ? 'bg-tea-gold text-tea-text border-tea-gold' : 'border-tea-border'}`}>{f}</button>
                               ))}
                           </div>
                       </div>
@@ -226,7 +226,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                      ))}
                   </div>
                </div>
-               <div className="border-t border-tea-gold/[0.08] pt-6">
+               <div className="border-t border-tea-border pt-6">
                   <h3 className="font-serif italic text-sm text-tea-text/50 mb-3">Feeling</h3>
                   <div className="flex flex-col gap-1.5">
                      <button onClick={() => setActiveFeeling('All')} className={`text-left px-3 py-1.5 rounded text-xs uppercase tracking-wider transition-colors ${activeFeeling === 'All' ? 'bg-tea-gold text-tea-text font-medium' : 'text-tea-text/60 hover:text-tea-text hover:bg-tea-text/5'}`}>All</button>
