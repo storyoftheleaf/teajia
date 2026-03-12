@@ -33,7 +33,7 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
     </div>
     
     {/* Interaction Column - Bottom */}
-    <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-tea-gold/10 w-12">
+    <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-tea-border w-12">
          {onToggleSave && (
              <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-text/40 hover:text-white'}`} title="Collect">
                <Icons.Leaf filled={isSaved} className="w-5 h-5" />
@@ -171,7 +171,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <div className="flex flex-row h-full max-h-[80vh] w-full max-w-5xl items-center justify-center gap-12">
             
             {/* Player Frame */}
-            <div className="h-full aspect-[9/16] bg-black relative rounded-sm shadow-2xl overflow-hidden border border-tea-gold/[0.06] shrink-0 group">
+            <div className="h-full aspect-[9/16] bg-black relative rounded-sm shadow-2xl overflow-hidden border border-tea-border shrink-0 group">
                {renderPlayer()}
                
                {/* Progress Bar Placeholder (Only in thumb mode) */}
@@ -338,7 +338,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             </div>
             
             {/* Vinyl / Cover Art */}
-            <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-sm overflow-hidden border border-tea-gold/10 mt-[-10vh]">
+            <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-sm overflow-hidden border border-tea-border mt-[-10vh]">
                <img src={story.thumbnailUrl} className="w-full h-full object-cover" alt="cover" />
             </div>
          </div>
@@ -403,8 +403,8 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             
             {/* Art - Left Side */}
             <div className="w-[400px] h-[400px] shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-sm relative group perspective-1000">
-               <div className="absolute inset-0 bg-tea-elevated/5 transform translate-x-4 translate-y-4 rounded-sm border border-tea-gold/[0.06] -z-10"></div>
-               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-gold/10" alt="album art" />
+               <div className="absolute inset-0 bg-tea-elevated/5 transform translate-x-4 translate-y-4 rounded-sm border border-tea-border -z-10"></div>
+               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-border" alt="album art" />
                
                {/* Vinyl shine effect overlay */}
                <div className="absolute inset-0 bg-gradient-to-tr from-tea-gold/5 to-transparent pointer-events-none"></div>
@@ -458,7 +458,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                       <button className="text-tea-text/50 hover:text-tea-text transition-colors"><Icons.Next className="w-6 h-6" /></button>
                   </div>
 
-                  <div className="flex items-center space-x-6 border-l border-tea-gold/10 pl-8">
+                  <div className="flex items-center space-x-6 border-l border-tea-border pl-8">
                       <button onClick={onToggleSave} className={`text-tea-text/40 hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
                           <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                       </button>

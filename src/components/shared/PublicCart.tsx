@@ -223,7 +223,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               <p className="font-serif text-sm text-tea-text/70 italic mb-4">
                 Fill in your details below. Your order inquiry will be generated automatically.
               </p>
-              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-gold/20" id="inquiry-form">
+              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-border" id="inquiry-form">
                 <div>
                   <label htmlFor="inquiry-name" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1">
                     Name *
@@ -239,7 +239,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onBlur={() => handleFieldBlur('name')}
                       aria-invalid={touched.name && !!errors.name}
                       className={`w-full bg-tea-surface border-b p-2 focus:outline-none font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
-                        touched.name && errors.name ? 'border-red-500 focus:border-red-500' : 'border-tea-gold/20 focus:border-tea-gold'
+                        touched.name && errors.name ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="Your full name"
                     />
@@ -267,7 +267,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onBlur={() => handleFieldBlur('contact')}
                       aria-invalid={touched.contact && !!errors.contact}
                       className={`w-full bg-tea-surface border-b p-2 focus:outline-none font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
-                        touched.contact && errors.contact ? 'border-red-500 focus:border-red-500' : 'border-tea-gold/20 focus:border-tea-gold'
+                        touched.contact && errors.contact ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="Phone or email"
                     />
@@ -295,7 +295,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onBlur={() => handleFieldBlur('location')}
                       aria-invalid={touched.location && !!errors.location}
                       className={`w-full bg-tea-surface border-b p-2 focus:outline-none font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
-                        touched.location && errors.location ? 'border-red-500 focus:border-red-500' : 'border-tea-gold/20 focus:border-tea-gold'
+                        touched.location && errors.location ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="City, Country"
                     />
@@ -317,7 +317,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                     name="notes"
                     value={details.notes}
                     onChange={(e) => setDetails(d => ({ ...d, notes: e.target.value }))}
-                    className="w-full bg-tea-surface border-b border-tea-gold/20 p-2 focus:outline-none focus:border-tea-gold font-serif text-base h-20 resize-none placeholder:text-tea-text/20 min-h-[44px]"
+                    className="w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none focus:border-tea-gold font-serif text-base h-20 resize-none placeholder:text-tea-text/20 min-h-[44px]"
                     placeholder="Any special requests..."
                   />
                 </div>
@@ -420,14 +420,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <button onClick={handleEmail}
                   className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all min-h-[44px] ${
                     preferredChannel === 'email'
-                      ? 'border-tea-gold/20 bg-tea-accent-sub text-tea-text shadow-md'
-                      : 'border-tea-gold/20 hover:bg-tea-accent-sub text-tea-text'
+                      ? 'border-tea-border bg-tea-accent-sub text-tea-text shadow-md'
+                      : 'border-tea-border hover:bg-tea-accent-sub text-tea-text'
                   }`}>
                   <span className="text-[10px] uppercase tracking-[0.15em]">Send via Email</span>
                   {preferredChannel === 'email' && <span className="text-xs ml-1 text-tea-text-dim">Recommended</span>}
                 </button>
                 <button onClick={handleCopy}
-                  className="flex items-center justify-center gap-2 py-3 border border-tea-gold/20 hover:bg-tea-accent-sub text-tea-text transition-colors min-h-[44px]">
+                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:bg-tea-accent-sub text-tea-text transition-colors min-h-[44px]">
                   <span className="text-[10px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
                 </button>
               </div>
@@ -441,7 +441,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-tea-gold/20 bg-tea-surface relative z-20">
+      <div className="p-6 border-t border-tea-border bg-tea-surface relative z-20">
         {step === 'CART' && (
           <div className="flex flex-col gap-4">
             {!isEmpty && (

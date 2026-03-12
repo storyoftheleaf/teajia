@@ -303,7 +303,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                     </ul>
 
                     {/* Price & CTA */}
-                    <div className="flex flex-col gap-3 pt-4 border-t border-tea-gold/10">
+                    <div className="flex flex-col gap-3 pt-4 border-t border-tea-border">
                       {offering.price && (
                         <p className="text-sm text-tea-gold font-medium">{offering.price}</p>
                       )}

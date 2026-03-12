@@ -267,7 +267,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         ))}
                       </div>
                       {collection.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-gold/[0.08]">
+                        <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-border">
                           {collection.tags.map(tag => (
                             <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                               {tag}
@@ -363,7 +363,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-gold/[0.08]">
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
                         <div className="w-5 h-5 rounded-full bg-tea-gold/20 flex items-center justify-center">
                           <Icons.User className="w-3 h-3 text-tea-gold" />
                         </div>

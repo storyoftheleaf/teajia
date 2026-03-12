@@ -49,7 +49,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
           <button
             key={project.id}
             onClick={() => handleProjectClick(project)}
-            className="group text-left bg-tea-bg rounded-lg overflow-hidden border border-tea-gold/[0.08] hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg"
+            className="group text-left bg-tea-bg rounded-lg overflow-hidden border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg"
           >
             {/* Image */}
             <div className="aspect-[4/3] relative overflow-hidden">
@@ -102,7 +102,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
       {/* View All / CTA */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
         {!showAll && DESIGN_PROJECTS.filter(p => p.status === 'completed').length > maxProjects && (
-          <button className="px-6 py-2 border border-tea-gold/[0.08] text-tea-text rounded-lg hover:border-tea-gold hover:text-tea-gold transition-colors text-sm">
+          <button className="px-6 py-2 border border-tea-border text-tea-text rounded-lg hover:border-tea-gold hover:text-tea-gold transition-colors text-sm">
             View All Projects
           </button>
         )}
@@ -222,7 +222,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
 
               {/* Placeholder Notice */}
               {selectedProject.isPlaceholder && (
-                <div className="text-center py-4 border-t border-tea-gold/[0.08]">
+                <div className="text-center py-4 border-t border-tea-border">
                   <p className="text-tea-text/50 text-xs">
                     This is a representative project. Contact us to see our full portfolio.
                   </p>

@@ -60,7 +60,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
 
         {/* Slider strip — always visible below card content */}
         {sliderComponent && (
-          <div className="px-1 pt-2 mt-1 border-t border-tea-gold/[0.06]" onClick={(e) => e.stopPropagation()}>
+          <div className="px-1 pt-2 mt-1 border-t border-tea-border" onClick={(e) => e.stopPropagation()}>
             {sliderComponent}
           </div>
         )}

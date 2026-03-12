@@ -385,7 +385,7 @@ export const TeaInspireGallery: React.FC = () => {
               )}
 
               {/* Navigation for Desktop */}
-              <div className="hidden md:flex justify-between mt-8 pt-6 border-t border-tea-gold/10">
+              <div className="hidden md:flex justify-between mt-8 pt-6 border-t border-tea-border">
                 <button
                   onClick={() => navigateImage('prev')}
                   className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"

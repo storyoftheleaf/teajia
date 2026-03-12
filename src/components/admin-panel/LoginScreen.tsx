@@ -35,7 +35,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                         />
                         <button onClick={checkLogin} className="w-full bg-tea-gold text-tea-bg py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-tea-gold-lt transition-colors rounded-sm mb-6">Enter</button>
 
-                        <div className="border-t border-tea-gold/15 pt-6">
+                        <div className="border-t border-tea-border pt-6">
                             <p className="text-tea-text/80 text-xs mb-3">No access key?</p>
                             <p className="text-tea-text/70 text-xs mb-4 italic">Try: <span className="text-tea-text/80 font-mono">admin</span>, <span className="text-tea-text/80 font-mono">tea</span>, or <span className="text-tea-text/80 font-mono">passkey1234</span></p>
                             <button

@@ -238,7 +238,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <div className="bg-tea-bg p-4 rounded-lg border border-tea-border mb-6 text-left print:bg-white print:border-none">
               <div className="space-y-4 mb-4 print:space-y-2">
                 {cart.map(item => (
-                  <div key={item.productId} className="flex justify-between items-start text-sm border-b border-tea-border pb-2 mb-2 print:border-gray-200">
+                  <div key={item.productId} className="flex justify-between items-start text-sm border-b border-tea-border pb-2 mb-2 print:border-tea-border">
                     <div>
                       <div className="text-tea-text font-medium print:text-black">{item.product.givenName}</div>
                       <div className="text-tea-text-dim text-xs print:text-gray-500">{item.product.productName}</div>
@@ -263,7 +263,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                     <span className="text-tea-text font-medium print:text-black">{formatCurrency(shippingCostUSD, displayCurrency, rates)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-bold border-t border-tea-border pt-3 mt-2 print:border-gray-300 print:text-black">
+                <div className="flex justify-between text-lg font-bold border-t border-tea-border pt-3 mt-2 print:border-tea-border print:text-black">
                   <span className="text-tea-text print:text-black">Total</span>
                   <span className="text-tea-gold print:text-black">{formatCurrency(totalUSD, displayCurrency, rates)}</span>
                 </div>

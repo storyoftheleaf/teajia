@@ -31,7 +31,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
   }, [currentIndex]);
 
   return (
-    <div className="border-t border-tea-gold/10 bg-tea-text/50 backdrop-blur-sm">
+    <div className="border-t border-tea-border bg-tea-text/50 backdrop-blur-sm">
       <div ref={thumbnailRef} className="overflow-x-auto hide-scrollbar">
         <div className="flex gap-3 md:gap-4 p-5 md:p-6 justify-start">
           {images.map((img, idx) => (

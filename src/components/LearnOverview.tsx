@@ -394,7 +394,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <button
                 key={mod.id}
                 onClick={() => onNavigateTo('course')}
-                className={`w-full text-left group border-b border-tea-gold/[0.06] last:border-0 ${CTA_FOCUS}`}
+                className={`w-full text-left group border-b border-tea-border last:border-0 ${CTA_FOCUS}`}
               >
                 <div className="py-5 md:py-6">
                   <div className="flex items-baseline justify-between gap-4 mb-2">

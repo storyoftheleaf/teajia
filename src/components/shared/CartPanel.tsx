@@ -117,7 +117,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               <div data-drag-handle className="md:hidden flex justify-center py-3 bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
                 <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-bg/20 w-12'}`} />
               </div>
-              <div className="flex items-center justify-between p-6 border-b border-tea-gold/20 bg-tea-surface">
+              <div className="flex items-center justify-between p-6 border-b border-tea-border bg-tea-surface">
                 <div className="w-[44px]" />
                 <div className="text-center">
                   <h2 className="text-lg font-serif text-tea-text tracking-wide">Your Selection</h2>
