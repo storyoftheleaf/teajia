@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Loader2, Search, XCircle, Trash2, Eye, X, CheckSquare, PackageCheck, Users } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, History } from 'lucide-react';
 import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
+
+const ROW_HEIGHT = 36;
 
 export const OrdersView = () => {
   const navigate = useNavigate();
@@ -35,7 +37,6 @@ export const OrdersView = () => {
 
   const handleFulfill = async (id: string, invoiceNumber: string) => {
     if (!confirm(`Mark ${invoiceNumber} as FILLED?\n\nThis will deduct stock from the inventory.`)) return;
-
     try {
       await api.rpc.fulfillInvoice(id);
       refetch();
@@ -46,18 +47,14 @@ export const OrdersView = () => {
 
   const handleVoid = async (id: string, invoiceNumber: string) => {
     if (!confirm(`Are you sure you want to VOID invoice ${invoiceNumber}? This will attempt to restore inventory (if it was deducted).`)) return;
-
     try {
-      // Check if this invoice had inventory deducted by looking at current orders data
       const invoice = orders.find((o: any) => o.id === id);
-
       if (invoice?.inventory_deducted) {
         const items = await api.invoices.getItems(id);
         for (const item of items) {
           await api.rpc.incrementStock(item.product_id, item.quantity);
         }
       }
-
       await api.invoices.update(id, { status: 'Void', inventory_deducted: 0 });
       refetch();
     } catch (err: any) {
@@ -67,7 +64,6 @@ export const OrdersView = () => {
 
   const handleDelete = async (id: string, invoiceNumber: string) => {
       if (!confirm(`Permanently DELETE invoice ${invoiceNumber}? \n\nUse this only for cleaning up invalid records.`)) return;
-
       try {
         await api.invoices.delete(id);
         refetch();
@@ -76,198 +72,204 @@ export const OrdersView = () => {
       }
   };
 
-  const filteredOrders = orders.filter((o: any) => 
-    o.customer_name?.toLowerCase().includes(search.toLowerCase()) || 
+  const filteredOrders = orders.filter((o: any) =>
+    o.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
     o.invoice_number?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (isLoading) return <div className="p-12 text-center text-tea-text-dim flex justify-center"><Loader2 className="animate-spin" /></div>;
+  if (isLoading) return <div className="p-12 text-center text-tea-text-dim font-serif italic"><Loader2 className="animate-spin inline" /></div>;
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-tea-border pb-6">
-         <div>
-            <h2 className="text-2xl font-serif text-tea-text">Order Management</h2>
-            <p className="text-tea-text-dim text-sm mt-1">Fulfill pending orders and track history.</p>
-         </div>
-         <div className="relative w-full md:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search orders..." 
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
+
+      {/* Header */}
+      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
+        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <History size={16} className="text-tea-accent" />
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+              Orders
+            </h2>
+            <span className="text-tea-text-dim text-xs tracking-wide">
+              — {filteredOrders.length} records
+            </span>
+          </div>
+
+          <div className="relative w-48 ml-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
+            <input
+              type="text"
+              placeholder="Search orders..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-dim transition-colors duration-200"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-dim font-serif placeholder-tea-text-dim/50 transition-colors"
             />
-         </div>
+          </div>
+        </div>
       </div>
 
-      <div className="hidden md:block overflow-x-auto border border-tea-border rounded-xl bg-tea-surface">
-        <table className="w-full text-left text-sm">
-           <thead className="bg-tea-bg text-tea-text-dim font-medium uppercase text-xs tracking-[0.2em] border-b border-tea-border">
-             <tr>
-               <th className="py-3 px-4">Date</th>
-               <th className="py-3 px-4">Invoice #</th>
-               <th className="py-3 px-4">Customer</th>
-               <th className="py-3 px-4text-right">Total</th>
-               <th className="py-3 px-4text-center">Status</th>
-               <th className="py-3 px-4text-center">Actions</th>
-             </tr>
-           </thead>
-           <tbody className="divide-y divide-tea-border">
-             {filteredOrders.length === 0 ? (
-                 <tr><td colSpan={6} className="p-8 text-center text-tea-text-dim">No orders found.</td></tr>
-             ) : (
-                 filteredOrders.map((order: any) => {
+      {/* Content */}
+      <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
+
+        {/* Desktop table */}
+        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[20%]" />
+              <col className="w-[18%]" />
+              <col className="w-[12%]" />
+              <col className="w-[24%]" />
+            </colgroup>
+            <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+              <tr>
+                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-left">Date</th>
+                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-left">Invoice #</th>
+                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-left">Customer</th>
+                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-right">Total</th>
+                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-center">Status</th>
+                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-dim text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOrders.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-16 text-tea-text-dim font-serif italic">No orders found.</td></tr>
+              ) : (
+                  filteredOrders.map((order: any) => {
                     const isPending = order.status === 'Pending';
                     const isVoid = order.status === 'Void';
-                    const isFilled = order.status === 'Filled' || order.status === 'Completed';
 
                     return (
-                     <tr key={order.id} className="hover:bg-tea-bg/50 group transition-colors duration-200">
-                       <td className="py-3 px-4text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</td>
-                       <td className="py-3 px-4num text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors duration-200" onClick={() => handleView(order)}>{order.invoice_number}</td>
-                       <td className="py-3 px-4">
-                         <button
-                           onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(order.customer_name || '')}`)}
-                           className="text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust"
-                           title="View customer profile"
-                         >
-                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-dim" />
-                           {order.customer_name}
-                         </button>
-                       </td>
-                       <td className="py-3 px-4text-right text-tea-text num">
-                           {order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}
-                       </td>
-                       <td className="py-3 px-4text-center">
-                         <span className={`text-xs px-2 py-1 rounded border font-medium uppercase tracking-wider ${
+                      <tr key={order.id} className="transition-colors border-b border-tea-border group hover:bg-tea-bg/50" style={{ height: ROW_HEIGHT }}>
+                        <td className="px-4 align-middle overflow-hidden">
+                          <span className="text-xs text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</span>
+                        </td>
+                        <td className="px-4 align-middle overflow-hidden">
+                          <span className="num text-xs text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                        </td>
+                        <td className="px-4 align-middle overflow-hidden">
+                          <button
+                            onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(order.customer_name || '')}`)}
+                            className="text-xs text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust truncate"
+                            title="View customer profile"
+                          >
+                            <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-dim flex-shrink-0" />
+                            <span className="truncate">{order.customer_name}</span>
+                          </button>
+                        </td>
+                        <td className="px-4 align-middle overflow-hidden text-right">
+                          <span className="num text-xs text-tea-text">{order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}</span>
+                        </td>
+                        <td className="px-4 align-middle text-center">
+                          <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${
                             isVoid ? 'border-tea-text-dim/50 text-tea-text-dim bg-tea-text-dim/10' :
                             isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
                             'border-tea-text/50 text-tea-text bg-tea-text/10'
-                         }`}>
-                           {order.status}
-                         </span>
-                       </td>
-                       <td className="py-3 px-4text-center flex justify-center gap-2">
-                         {isPending && (
-                             <button 
-                                onClick={() => handleFulfill(order.id, order.invoice_number)}
-                                className="px-3 py-1 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors duration-200"
-                                title="Mark as Filled (Deduct Stock)"
-                             >
-                                <PackageCheck size={14} /> FILL
-                             </button>
-                         )}
-                         
-                         <button
-                             onClick={() => handleView(order)}
-                             className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors duration-200"
-                             title="View Details"
-                         >
-                            <Eye size={16} />
-                         </button>
-
-                         {!isVoid && (
-                             <button
-                                onClick={() => handleVoid(order.id, order.invoice_number)}
-                                className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200"
-                                title="Void Order"
-                             >
-                                <XCircle size={16} />
-                             </button>
-                         )}
-                         <button
-                             onClick={() => handleDelete(order.id, order.invoice_number)}
-                             className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200"
-                             title="Delete Record"
-                         >
-                            <Trash2 size={16} />
-                         </button>
-                       </td>
-                     </tr>
+                          }`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-4 align-middle">
+                          <div className="flex justify-center gap-1">
+                            {isPending && (
+                                <button
+                                    onClick={() => handleFulfill(order.id, order.invoice_number)}
+                                    className="px-2 py-0.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded text-[10px] font-bold flex items-center gap-1 hover:bg-tea-accent/20 transition-colors"
+                                    title="Mark as Filled (Deduct Stock)"
+                                >
+                                    <PackageCheck size={12} /> FILL
+                                </button>
+                            )}
+                            <button onClick={() => handleView(order)} className="p-1 text-tea-text-dim hover:text-tea-text transition-colors" title="View Details">
+                               <Eye size={14} />
+                            </button>
+                            {!isVoid && (
+                                <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-1 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors" title="Void Order">
+                                   <XCircle size={14} />
+                                </button>
+                            )}
+                            <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-1 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors" title="Delete Record">
+                               <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     );
-                 })
-             )}
-           </tbody>
-        </table>
-      </div>
+                  })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {/* MOBILE CARD VIEW */}
-      <div className="md:hidden space-y-3">
-        {filteredOrders.length === 0 ? (
-          <div className="p-8 text-center text-tea-text-dim border border-tea-border rounded-xl bg-tea-surface">No orders found.</div>
-        ) : (
-          filteredOrders.map((order: any) => {
-            const isPending = order.status === 'Pending';
-            const isVoid = order.status === 'Void';
-            const isFilled = order.status === 'Filled' || order.status === 'Completed';
+        {/* Mobile list */}
+        <div className="md:hidden pb-24">
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-16 text-tea-text-dim font-serif italic">No orders found.</div>
+          ) : (
+            filteredOrders.map((order: any, idx: number) => {
+              const isPending = order.status === 'Pending';
+              const isVoid = order.status === 'Void';
 
-            return (
-              <div key={order.id} className="border border-tea-border rounded-xl bg-tea-surface p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</span>
-                  <span className="text-sm text-tea-text num cursor-pointer hover:text-tea-accent transition-colors duration-200" onClick={() => handleView(order)}>{order.invoice_number}</span>
+              return (
+                <div
+                  key={order.id}
+                  className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-tea-text-dim">{new Date(order.created_at).toLocaleDateString()}</span>
+                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-accent transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-sm text-tea-text font-serif truncate">{order.customer_name}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${
+                      isVoid ? 'border-tea-text-dim/50 text-tea-text-dim bg-tea-text-dim/10' :
+                      isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
+                      'border-tea-text/50 text-tea-text bg-tea-text/10'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
+                    <span className="text-xs text-tea-text num">{order.display_currency}</span>
+                    <div className="flex-1" />
+                    {isPending && (
+                      <button onClick={() => handleFulfill(order.id, order.invoice_number)} className="px-2 py-0.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded text-[10px] font-bold flex items-center gap-1 hover:bg-tea-accent/20 transition-colors">
+                        <PackageCheck size={12} /> FILL
+                      </button>
+                    )}
+                    <button onClick={() => handleView(order)} className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"><Eye size={14} /></button>
+                    {!isVoid && (
+                      <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-1 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors"><XCircle size={14} /></button>
+                    )}
+                    <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-1 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors"><Trash2 size={14} /></button>
+                  </div>
                 </div>
-                <div className="text-tea-text font-medium">{order.customer_name}</div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-tea-text num">{order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}</span>
-                  <span className={`text-xs px-2 py-1 rounded border font-medium uppercase tracking-wider ${
-                    isVoid ? 'border-tea-text-dim/50 text-tea-text-dim bg-tea-text-dim/10' :
-                    isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
-                    'border-tea-text/50 text-tea-text bg-tea-text/10'
-                  }`}>
-                    {order.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 pt-2 border-t border-tea-border">
-                  {isPending && (
-                    <button
-                      onClick={() => handleFulfill(order.id, order.invoice_number)}
-                      className="px-3 py-1.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded-lg hover:bg-tea-accent/20 text-xs font-bold flex items-center gap-1 transition-colors duration-200"
-                      title="Mark as Filled (Deduct Stock)"
-                    >
-                      <PackageCheck size={14} /> FILL
-                    </button>
-                  )}
-                  <div className="flex-1" />
-                  <button onClick={() => handleView(order)} className="p-2.5 text-tea-text-dim hover:text-tea-text transition-colors duration-200" title="View Details">
-                    <Eye size={16} />
-                  </button>
-                  {!isVoid && (
-                    <button onClick={() => handleVoid(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200" title="Void Order">
-                      <XCircle size={16} />
-                    </button>
-                  )}
-                  <button onClick={() => handleDelete(order.id, order.invoice_number)} className="p-2.5 text-tea-text-dim hover:text-tea-text-dim/80 transition-colors duration-200" title="Delete Record">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          })
+              );
+            })
+          )}
+        </div>
+
+        {orders.length >= pageSize && (
+          <div className="text-center py-4">
+            <button
+              onClick={() => setPageSize(prev => prev + 50)}
+              className="text-xs text-tea-text-dim hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors"
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
-
-      {orders.length >= pageSize && (
-        <div className="text-center pt-4">
-          <button
-            onClick={() => setPageSize(prev => prev + 50)}
-            className="text-xs text-tea-text-dim hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors duration-200"
-          >
-            Load More
-          </button>
-        </div>
-      )}
 
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative">
-                <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-text-dim hover:text-tea-text transition-colors duration-200">
+                <button onClick={() => setViewingInvoice(null)} className="absolute top-6 right-6 text-tea-text-dim hover:text-tea-text transition-colors">
                     <X size={24} />
                 </button>
-                
+
                 <div className="mb-8">
                     <h3 className="text-2xl font-serif text-tea-text mb-1">Invoice Details</h3>
                     <p className="text-tea-text-dim text-sm num">{viewingInvoice.invoice_number}</p>
@@ -278,7 +280,7 @@ export const OrdersView = () => {
                         <span className="text-tea-text-dim">Customer</span>
                         <button
                           onClick={() => { setViewingInvoice(null); navigate(`/admin/customers?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-accent transition-colors duration-200"
+                          className="text-tea-text font-medium hover:text-tea-accent transition-colors"
                         >
                           {viewingInvoice.customer_name}
                         </button>
@@ -321,10 +323,10 @@ export const OrdersView = () => {
                       ${((viewingInvoice.items || []).reduce((sum: number, item: any) => sum + (item.quantity * item.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2)} USD
                     </span>
                 </div>
-                
+
                 {viewingInvoice.status === 'Pending' && (
                      <div className="mt-8 pt-6 border-t border-tea-border">
-                        <button 
+                        <button
                             onClick={() => { handleFulfill(viewingInvoice.id, viewingInvoice.invoice_number); setViewingInvoice(null); }}
                             className="w-full py-4 bg-tea-accent hover:bg-tea-accent/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-accent/10"
                         >
@@ -335,7 +337,6 @@ export const OrdersView = () => {
             </div>
         </div>
       )}
-
     </div>
   );
 };
