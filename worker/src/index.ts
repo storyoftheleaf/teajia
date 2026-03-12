@@ -1934,6 +1934,197 @@ const handlePutUserFavorites: Handler = async (request, env) => {
   return json({ ok: true, count: body.favorites.length });
 };
 
+// ── Teaware Collection ──
+
+const handleGetTeawareCollection: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const category = url.searchParams.get('category');
+
+  let query = 'SELECT * FROM teaware_collection';
+  const binds: string[] = [];
+  if (category) {
+    query += ' WHERE category = ?';
+    binds.push(category);
+  }
+  query += ' ORDER BY category, name';
+
+  const stmt = binds.length > 0
+    ? env.DB.prepare(query).bind(...binds)
+    : env.DB.prepare(query);
+  const result = await stmt.all();
+
+  // Attach photos for each item
+  const items = result.results;
+  if (items.length > 0) {
+    const ids = items.map(i => i.id as string);
+    const placeholders = ids.map(() => '?').join(',');
+    const photos = await env.DB.prepare(
+      `SELECT * FROM teaware_photos WHERE teaware_id IN (${placeholders}) ORDER BY sort_order, created_at`
+    ).bind(...ids).all();
+
+    const photoMap = new Map<string, any[]>();
+    for (const p of photos.results) {
+      const tid = p.teaware_id as string;
+      if (!photoMap.has(tid)) photoMap.set(tid, []);
+      photoMap.get(tid)!.push(p);
+    }
+    for (const item of items) {
+      (item as any).photos = photoMap.get(item.id as string) || [];
+    }
+  }
+
+  return json(items);
+};
+
+const handleGetTeawareItem: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const item = await env.DB.prepare('SELECT * FROM teaware_collection WHERE id = ?').bind(params.id).first();
+  if (!item) return json({ error: 'Not found' }, 404);
+
+  const photos = await env.DB.prepare(
+    'SELECT * FROM teaware_photos WHERE teaware_id = ? ORDER BY sort_order, created_at'
+  ).bind(params.id).all();
+  (item as any).photos = photos.results;
+
+  return json(item);
+};
+
+const handleCreateTeawareItem: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  if (!body.name || !body.category) {
+    return json({ error: 'name and category are required' }, 400);
+  }
+
+  const id = crypto.randomUUID();
+  const cols = ['name', 'chinese_name', 'category', 'material', 'capacity_ml', 'origin',
+    'artist', 'year_acquired', 'purchase_price', 'purchase_currency', 'description',
+    'condition', 'is_favorite', 'notes'];
+  const present = cols.filter(c => body[c] !== undefined);
+  const placeholders = present.map(() => '?').join(', ');
+
+  await env.DB.prepare(
+    `INSERT INTO teaware_collection (id, ${present.join(', ')}) VALUES (?, ${placeholders})`
+  ).bind(id, ...present.map(c => body[c] ?? null)).run();
+
+  return json({ id }, 201);
+};
+
+const handleUpdateTeawareItem: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE teaware_collection SET ${sets}, updated_at = datetime('now') WHERE id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+
+  return json({ success: true });
+};
+
+const handleDeleteTeawareItem: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // CASCADE will delete photos via FK, but D1 may not enforce FK cascades, so do it explicitly
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM teaware_photos WHERE teaware_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM teaware_collection WHERE id = ?').bind(params.id),
+  ]);
+
+  return json({ success: true });
+};
+
+// ── Teaware Photos ──
+
+const handleAddTeawarePhoto: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as { url: string; caption?: string; is_primary?: boolean };
+  if (!body.url) return json({ error: 'url is required' }, 400);
+
+  // Verify the teaware item exists
+  const item = await env.DB.prepare('SELECT id FROM teaware_collection WHERE id = ?').bind(params.id).first();
+  if (!item) return json({ error: 'Teaware item not found' }, 404);
+
+  const id = crypto.randomUUID();
+
+  // If marking as primary, unset other primaries first
+  if (body.is_primary) {
+    await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
+  }
+
+  // Get next sort order
+  const maxOrder = await env.DB.prepare(
+    'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM teaware_photos WHERE teaware_id = ?'
+  ).bind(params.id).first();
+  const sortOrder = ((maxOrder?.max_order as number) || 0) + 1;
+
+  await env.DB.prepare(
+    'INSERT INTO teaware_photos (id, teaware_id, url, caption, is_primary, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(id, params.id, body.url, body.caption || null, body.is_primary ? 1 : 0, sortOrder).run();
+
+  return json({ id }, 201);
+};
+
+const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  await env.DB.prepare('DELETE FROM teaware_photos WHERE id = ? AND teaware_id = ?')
+    .bind(params.photoId, params.id).run();
+
+  return json({ success: true });
+};
+
+const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+
+  // If setting as primary, unset others first
+  if (body.is_primary) {
+    await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
+    body.is_primary = 1;
+  } else if (body.is_primary === false) {
+    body.is_primary = 0;
+  }
+
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE teaware_photos SET ${sets} WHERE id = ? AND teaware_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.photoId, params.id).run();
+
+  return json({ success: true });
+};
+
+const handleGetTeawareCategories: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const result = await env.DB.prepare(
+    'SELECT category, COUNT(*) as count FROM teaware_collection GROUP BY category ORDER BY category'
+  ).all();
+
+  return json(result.results);
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -2035,6 +2226,19 @@ const routes: [string, string, Handler][] = [
   // User Favorites
   ['GET', '/api/user/favorites', handleGetUserFavorites],
   ['PUT', '/api/user/favorites', handlePutUserFavorites],
+
+  // Teaware Collection
+  ['GET', '/api/admin/teaware', handleGetTeawareCollection],
+  ['GET', '/api/admin/teaware/categories', handleGetTeawareCategories],
+  ['GET', '/api/admin/teaware/:id', handleGetTeawareItem],
+  ['POST', '/api/admin/teaware', handleCreateTeawareItem],
+  ['PUT', '/api/admin/teaware/:id', handleUpdateTeawareItem],
+  ['DELETE', '/api/admin/teaware/:id', handleDeleteTeawareItem],
+
+  // Teaware Photos
+  ['POST', '/api/admin/teaware/:id/photos', handleAddTeawarePhoto],
+  ['PUT', '/api/admin/teaware/:id/photos/:photoId', handleUpdateTeawarePhoto],
+  ['DELETE', '/api/admin/teaware/:id/photos/:photoId', handleDeleteTeawarePhoto],
 ];
 
 export default {
