@@ -45,9 +45,26 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+  // Track the view mode the user had before "My Likes" auto-switched to LIST
+  const [viewModeBeforeLiked, setViewModeBeforeLiked] = useState<'GRID' | 'LIST' | null>(null);
+
+  // Handle special filter changes — auto-switch to LIST for "My Likes"
+  const handleSpecialFilterChange = (id: string) => {
+    const newFilter = specialFilter === id ? 'None' : id as typeof specialFilter;
+    if (newFilter === 'Liked') {
+      // Save current view mode and switch to LIST
+      setViewModeBeforeLiked(viewMode);
+      setViewMode('LIST');
+    } else if (specialFilter === 'Liked' && viewModeBeforeLiked !== null) {
+      // Restore previous view mode when leaving "My Likes"
+      setViewMode(viewModeBeforeLiked);
+      setViewModeBeforeLiked(null);
+    }
+    setSpecialFilter(newFilter);
+  };
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, compareItems } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
@@ -160,7 +177,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               { id: 'Liked', label: 'My Likes' }
             ]}
             activeTab={specialFilter}
-            onChange={(id) => setSpecialFilter(prev => prev === id ? 'None' : id as any)}
+            onChange={(id) => handleSpecialFilterChange(id)}
           />
         </PageHeader>
       ) : (
@@ -342,6 +359,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
                     {group.items.map((item) => {
                         const isTeajiaFav = !!item.isFeatured;
+                        const isFavorite = userFavorites.has(item.id);
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
                         const price25g = Math.round(pricePerGram * 25 * 100) / 100;
 
@@ -382,8 +400,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                     </div>
 
-                                    {/* Right: price + admin controls + chevron */}
+                                    {/* Right: heart + price + admin controls + chevron */}
                                     <div className="flex items-center gap-2 shrink-0">
+                                        {/* Favorite/heart toggle */}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
+                                            className={`-my-1 p-1.5 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                                        >
+                                            <Icons.Heart filled={isFavorite} className="w-4 h-4" />
+                                        </button>
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
                                             const ap = adminProductMap.get(item.id)!;
