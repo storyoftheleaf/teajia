@@ -43,7 +43,7 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean)
     return { label: 'Sold Out', color: '#c0392b', level: 'out' as const };
   }
   if (isOneOfAKind) {
-    return { label: 'Limited Edition', color: '#c87533', level: 'limited' as const };
+    return { label: 'Recommended Selection', color: '#c87533', level: 'limited' as const };
   }
   if (stockG < 50) {
     return { label: `Only ${stockG}g left`, color: '#c87533', level: 'low' as const };

@@ -16,7 +16,7 @@ import type { InventoryItem } from '../types';
 
 function getStockStatus(stockG: number, isOneOfAKind?: boolean) {
   if (stockG <= 0) return { label: 'Sold Out', color: '#c0392b', level: 'out' as const };
-  if (isOneOfAKind) return { label: 'Limited Edition', color: '#c87533', level: 'limited' as const };
+  if (isOneOfAKind) return { label: 'Recommended Selection', color: '#c87533', level: 'limited' as const };
   if (stockG < 50) return { label: `Only ${stockG}g left`, color: '#c87533', level: 'low' as const };
   if (stockG < 100) return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
   return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
