@@ -37,7 +37,7 @@ const FILTER_TABS = [
 export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // Sync modal state with URL (?product=ID)
   const { closeWithHistory } = useProductUrl(externalInventory, viewItem, setViewItem);
@@ -128,7 +128,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
       />
 
       {/* --- HEADER (shared PageHeader) --- */}
-      {!hideHeader && (
+      {!hideHeader ? (
         <PageHeader
           title="Teaware"
           rightContent={viewModeToggle}
@@ -139,6 +139,11 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
             onChange={setActiveFilter}
           />
         </PageHeader>
+      ) : (
+        /* Compact toolbar when embedded as a tab (hideHeader) */
+        <div className="flex items-center justify-between px-3 md:px-4 lg:px-6 py-2">
+          {viewModeToggle}
+        </div>
       )}
 
       {/* --- CONTENT --- */}
