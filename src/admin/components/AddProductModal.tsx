@@ -465,11 +465,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
-  // Reusable input styles for the "Ledger" look
-  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-text-dim/60";
+  // Reusable input styles — warm tones only, zero grey
+  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
   const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans";
-  const labelStyle = "block text-xs uppercase tracking-wider text-tea-text-sec mb-1 flex items-center gap-1 font-bold";
-  const wisdomInputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-text-dim/60 transition-colors font-sans";
+  const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
+  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors font-sans";
 
   return (
     <div
@@ -480,54 +480,54 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         onClick={onClose}
     >
       <div
-        className="bg-tea-surface border border-tea-border w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl rounded-lg overflow-hidden relative"
+        className="bg-tea-surface border border-tea-border w-full max-w-7xl max-h-[94vh] flex flex-col shadow-2xl rounded-lg overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* Header */}
-        <div className="px-5 py-3 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
+        <div className="px-6 py-3.5 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-tea-surface border border-tea-border rounded-full">
               <Edit className="text-tea-accent" size={16} />
             </div>
             <div>
               <h2 className="text-lg font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
-              <p className="text-xs md:text-[9px] text-tea-text-dim font-mono uppercase tracking-[0.2em]">Database Access</p>
+              <p className="text-[10px] text-tea-text-sec font-mono uppercase tracking-[0.2em]">Database Access</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
             <X size={20} />
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content — Redesigned: compact data LEFT, content-rich RIGHT */}
         <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
 
-          {/* --- LEFT COLUMN: IDENTITY & DETAILS (7/12) --- */}
-          <div className="lg:col-span-7 p-4 lg:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-tea-border">
+          {/* --- LEFT COLUMN: IDENTITY + COST (5/12) — compact fields --- */}
+          <div className="lg:col-span-5 p-5 lg:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-tea-border">
 
             {/* TOGGLE CHIPS */}
             <div className="flex flex-wrap gap-1.5">
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPersonal ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-dim border-tea-border hover:border-tea-text-dim/50'}`}>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPersonal ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
                     <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="hidden" />
                     <UserCheck size={12} /> Personal
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.canReorder ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-dim border-tea-border hover:border-tea-text-dim/50'}`}>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.canReorder ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
                     <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="hidden" />
                     <RefreshCw size={12} /> Restockable
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPublic ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-dim border-tea-border hover:border-tea-text-dim/50'}`}>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPublic ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
                     <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="hidden" />
                     <Globe size={12} /> Public
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isFeatured ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-dim border-tea-border hover:border-tea-text-dim/50'}`}>
+                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isFeatured ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
                     <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="hidden" />
                     <Star size={12} /> Featured
                 </label>
             </div>
 
             {/* CLASSIFICATION ROW */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                <div>
                   <label className={labelStyle}><Layers size={9} /> Type *</label>
                   <select
@@ -549,6 +549,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     ))}
                   </select>
                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
                <div>
                   <label className={labelStyle}>Year</label>
                   <input name="year" type="number" inputMode="decimal" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
@@ -558,8 +560,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <select
                     name="status" value={formData.status} onChange={handleChange}
                     className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
-                        formData.status === 'Draft' ? 'text-tea-text-dim/80 border-tea-text-dim/30' :
-                        formData.status === 'Sold Out' ? 'text-tea-text-dim/80 border-tea-text-dim/30' :
+                        formData.status === 'Draft' ? 'text-tea-text-sec border-tea-text-sec/30' :
+                        formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-text-sec/30' :
                         'text-tea-accent border-tea-accent/50'
                     }`}
                   >
@@ -576,9 +578,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <label className={labelStyle}><Tag size={9} /> Product Name / Cultivar *</label>
                     <input name="productName" required value={formData.productName} onChange={handleChange} onBlur={handleProductNameBlur} className={inputStyle} placeholder="e.g. Alishan High Mountain" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className={labelStyle}>Given Name (Marketing)</label>
+                        <label className={labelStyle}>Given Name</label>
                         <input name="givenName" value={formData.givenName} onChange={handleChange} className={inputStyle} placeholder="e.g. Mist Walker" />
                     </div>
                     <div>
@@ -604,6 +606,123 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                  </div>
             </div>
 
+            {/* COST CALCULATION */}
+            <div className="pt-2 border-t border-tea-border">
+              <div className="flex items-center gap-2 mb-3">
+                <Calculator size={12} className="text-tea-gold/70" />
+                <span className="text-xs font-serif italic text-tea-text-sec">Cost Calculation</span>
+              </div>
+
+              <div className="bg-tea-bg p-4 rounded-xl border border-tea-border shadow-inner space-y-3 font-mono text-sm">
+
+                 {/* INPUTS */}
+                 <div className="space-y-2.5 border-b border-dashed border-tea-border pb-3">
+                      <div className="flex justify-between items-center">
+                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Batch Cost</label>
+                          <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-gold/40 transition-colors">
+                              <select
+                                  name="costCurrency" value={formData.costCurrency} onChange={handleChange}
+                                  className="bg-transparent appearance-none rounded-none text-xs text-tea-accent font-bold outline-none cursor-pointer uppercase"
+                              >
+                                  <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
+                                  <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
+                                  <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
+                                  <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
+                                  <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                                  <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
+                              </select>
+                              <input
+                                  name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
+                                  className="w-24 bg-transparent text-right text-tea-text outline-none placeholder-tea-text-sec/40 tabular-nums" placeholder="0.00"
+                                  inputMode="decimal"
+                              />
+                          </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Weight (g)</label>
+                          <input
+                              name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
+                              inputMode="decimal"
+                          />
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Ship (USD/kg)</label>
+                          <input
+                              name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="10.00"
+                              inputMode="decimal"
+                          />
+                      </div>
+                 </div>
+
+                 {/* CALCULATED */}
+                 <div className="space-y-1.5">
+                      <div className="flex justify-between text-tea-text-sec text-xs">
+                           <span>Source Cost/g</span>
+                           <span className="num">{calc.costPerGramSource.toFixed(3)} {formData.costCurrency}</span>
+                      </div>
+                      <div className="flex justify-between text-tea-text-sec text-xs">
+                           <span>Exchange Rate</span>
+                           <span className="num">{calc.rateUsed}</span>
+                      </div>
+                      <div className="flex justify-between text-tea-text text-xs pt-1">
+                           <span>True Cost (USD)</span>
+                           <span className="num text-tea-accent font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
+                      </div>
+                 </div>
+
+                 {/* RETAIL OUTPUT */}
+                 <div className="pt-2.5 border-t border-dashed border-tea-border">
+                    <div className="flex justify-between items-center mb-1.5">
+                       <label className="text-xs uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
+                       <span className="text-[9px] text-tea-text-sec num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
+                       <span className="text-base text-tea-text-sec font-serif">$</span>
+                       <input
+                          name="fixedRetailPriceUSD" type="number" inputMode="decimal" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
+                          onFocus={() => {
+                              if (!formData.fixedRetailPriceUSD && calc.suggestedRetailUSD > 0) {
+                                  setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
+                              }
+                          }}
+                          className={`flex-1 bg-transparent text-lg num outline-none text-right ${
+                              formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
+                              ? 'text-tea-accent font-bold' : 'text-tea-text'
+                          }`}
+                          placeholder={calc.suggestedRetailUSD.toFixed(2)}
+                       />
+                    </div>
+                 </div>
+
+                 {/* STOCK */}
+                 <div className="pt-2">
+                      <div className="flex justify-between items-center">
+                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Current Stock</label>
+                          <input
+                              name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
+                              inputMode="decimal"
+                          />
+                      </div>
+                      <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
+                          <div className="relative">
+                              <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-accent border-tea-accent' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                                  {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                          </div>
+                          <span className="text-xs text-tea-text-sec group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                      </label>
+                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* --- RIGHT COLUMN: CONTENT & WISDOM (7/12) — spacious for reading/editing --- */}
+          <div className="lg:col-span-7 p-5 lg:p-6 space-y-5">
+
             {/* PHOTO UPLOAD */}
             <div>
                 <label className={labelStyle}><ImageIcon size={9} /> Photo (Cloudflare R2)</label>
@@ -612,21 +731,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
                         <label
                             htmlFor="img-upload"
-                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:border-tea-text-dim transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:border-tea-gold/30 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
-                            {uploading ? <Loader2 className="animate-spin text-tea-accent" size={16} /> : <Upload className="text-tea-text-dim" size={16} />}
-                            <span className="text-xs text-tea-text-dim font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
+                            {uploading ? <Loader2 className="animate-spin text-tea-accent" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
+                            <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
                         </label>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:border-tea-text-dim/50 transition-colors mt-1">
+                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:border-tea-gold/30 transition-colors mt-1">
                         <div className="w-10 h-10 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0">
                             <ImageThumbnail src={formData.imageUrl} type={formData.type} />
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-xs text-tea-text-dim font-mono truncate">{formData.imageUrl}</p>
+                            <p className="text-xs text-tea-text-sec font-mono truncate">{formData.imageUrl}</p>
                         </div>
-                        <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-dim hover:text-tea-accent hover:bg-tea-bg rounded transition-colors" title="Remove Image">
+                        <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-sec hover:text-tea-accent hover:bg-tea-bg rounded transition-colors" title="Remove Image">
                             <Trash2 size={14} />
                         </button>
                     </div>
@@ -635,157 +754,36 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
             {/* DESCRIPTION */}
             <div>
-                <label className={labelStyle}><FileText size={9} /> Private Admin Notes / Description</label>
+                <label className={labelStyle}><FileText size={9} /> Private Admin Notes</label>
                 <textarea
-                    name="description" value={formData.description} onChange={handleChange} rows={2}
-                    className="w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-text-dim/60 transition-colors resize-none font-sans"
+                    name="description" value={formData.description} onChange={handleChange} rows={3}
+                    className={`${wisdomInputStyle} resize-vertical`}
                     placeholder="Private notes (e.g. Bought from Mr. Chen's son, needs 6 months rest)..."
                 />
             </div>
-          </div>
 
-          {/* --- RIGHT COLUMN: RECEIPT + WISDOM (5/12) --- */}
-          <div className="lg:col-span-5 p-4 lg:p-6 space-y-5">
-
-            {/* COST CALCULATION */}
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator size={12} className="text-tea-text-dim" />
-              <span className="text-xs font-serif italic text-tea-text-dim">Cost Calculation</span>
-            </div>
-
-            <div className="bg-tea-bg p-4 rounded-xl border border-tea-border shadow-inner space-y-4 font-mono text-sm">
-
-               {/* INPUTS */}
-               <div className="space-y-3 border-b border-dashed border-tea-border pb-4">
-                    <div className="flex justify-between items-center">
-                        <label className="text-tea-text-sec uppercase text-xs tracking-[0.2em]">Batch Cost</label>
-                        <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-text-dim transition-colors">
-                            <select
-                                name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                className="bg-transparent appearance-none rounded-none text-xs text-tea-accent font-bold outline-none cursor-pointer uppercase"
-                            >
-                                <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
-                                <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
-                                <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
-                                <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
-                                <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
-                                <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
-                            </select>
-                            <input
-                                name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
-                                className="w-24 md:w-20 bg-transparent text-right text-tea-text outline-none placeholder-tea-text-dim/60 tabular-nums" placeholder="0.00"
-                                inputMode="decimal"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <label className="text-tea-text-sec uppercase text-xs tracking-[0.2em]">Weight (g)</label>
-                        <input
-                            name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
-                            className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-text-dim outline-none placeholder-tea-text-dim/60 transition-colors tabular-nums" placeholder="0"
-                            inputMode="decimal"
-                        />
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <label className="text-tea-text-sec uppercase text-xs tracking-[0.2em]">Ship (USD/kg)</label>
-                        <input
-                            name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
-                            className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-text-dim outline-none placeholder-tea-text-dim/60 transition-colors tabular-nums" placeholder="10.00"
-                            inputMode="decimal"
-                        />
-                    </div>
-               </div>
-
-               {/* CALCULATED */}
-               <div className="space-y-2">
-                    <div className="flex justify-between text-tea-text-sec text-xs">
-                         <span>Source Cost/g</span>
-                         <span className="num">{calc.costPerGramSource.toFixed(3)} {formData.costCurrency}</span>
-                    </div>
-                    <div className="flex justify-between text-tea-text-sec text-xs">
-                         <span>Exchange Rate</span>
-                         <span className="num">{calc.rateUsed}</span>
-                    </div>
-                    <div className="flex justify-between text-tea-text text-xs pt-1">
-                         <span>True Cost (USD)</span>
-                         <span className="num text-tea-accent font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
-                    </div>
-               </div>
-
-               {/* RETAIL OUTPUT */}
-               <div className="pt-3 border-t border-dashed border-tea-border">
-                  <div className="flex justify-between items-center mb-1.5">
-                     <label className="text-xs uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
-                     <span className="text-[9px] text-tea-text-sec num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
-                     <span className="text-base text-tea-text-dim font-serif">$</span>
-                     <input
-                        name="fixedRetailPriceUSD" type="number" inputMode="decimal" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
-                        onFocus={() => {
-                            if (!formData.fixedRetailPriceUSD && calc.suggestedRetailUSD > 0) {
-                                setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
-                            }
-                        }}
-                        className={`flex-1 bg-transparent text-lg num outline-none text-right ${
-                            formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
-                            ? 'text-tea-accent font-bold' : 'text-tea-text'
-                        }`}
-                        placeholder={calc.suggestedRetailUSD.toFixed(2)}
-                     />
-                  </div>
-               </div>
-
-               {/* STOCK */}
-               <div className="pt-2">
-                    <div className="flex justify-between items-center">
-                        <label className="text-tea-text-sec uppercase text-xs tracking-[0.2em]">Current Stock</label>
-                        <input
-                            name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                            className="w-24 md:w-20 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-text-dim outline-none placeholder-tea-text-dim/60 transition-colors tabular-nums" placeholder="0"
-                            inputMode="decimal"
-                        />
-                    </div>
-                    <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
-                        <div className="relative">
-                            <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
-                            <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-accent border-tea-accent' : 'border-tea-border group-hover:border-tea-text-dim'}`}>
-                                {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                            </div>
-                        </div>
-                        <span className="text-xs text-tea-text-dim group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
-                    </label>
-               </div>
-            </div>
-
-            {/* WISDOM & LORE — COLLAPSIBLE */}
-            <div className="border-t border-dashed border-tea-border pt-3">
-                <button
-                    type="button"
-                    onClick={() => setWisdomOpen(!wisdomOpen)}
-                    className="flex items-center justify-between w-full group"
-                >
-                    <div className="flex items-center gap-2">
-                        <ChevronDown size={14} className={`text-tea-text-dim transition-transform duration-200 ${wisdomOpen ? '' : '-rotate-90'}`} />
+            {/* WISDOM & LORE — Always visible, full width for comfortable editing */}
+            <div className="border-t border-tea-border pt-4">
+                <div className="flex items-center justify-between mb-4">
+                    <button
+                        type="button"
+                        onClick={() => setWisdomOpen(!wisdomOpen)}
+                        className="flex items-center gap-2 group"
+                    >
+                        <ChevronDown size={14} className={`text-tea-gold/70 transition-transform duration-200 ${wisdomOpen ? '' : '-rotate-90'}`} />
                         <Star size={12} className="text-tea-accent" />
-                        <span className="text-xs font-serif italic text-tea-text-dim group-hover:text-tea-text transition-colors">Wisdom & Lore</span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-accent transition-colors">Wisdom & Lore</span>
                         {!wisdomOpen && formData.lore && (
-                            <span className="text-[9px] text-tea-accent/60 uppercase tracking-wider">has content</span>
+                            <span className="text-[9px] text-tea-accent/70 uppercase tracking-wider ml-2">has content</span>
                         )}
-                    </div>
-                </button>
-
-                {wisdomOpen && (
-                    <div className="space-y-3 mt-3">
-                        {/* AI + Show Publicly controls */}
-                        <div className="flex items-center justify-between">
+                    </button>
+                    {wisdomOpen && (
+                        <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={handleGenerateWisdom}
                                 disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-xs md:text-[9px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
                             >
                                 {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                 Generate with AI
@@ -796,31 +794,47 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                     <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-accent/30' : 'bg-tea-border'}`}></div>
                                     <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-accent' : ''}`}></div>
                                 </div>
-                                <span className="text-[9px] uppercase tracking-wider text-tea-text-dim group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
+                                <span className="text-[10px] uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
                             </label>
                         </div>
+                    )}
+                </div>
 
-                        {/* Lore */}
+                {wisdomOpen && (
+                    <div className="space-y-4">
+                        {/* Lore — generous textarea */}
                         <div>
-                            <div className="flex justify-between items-center mb-0.5">
+                            <div className="flex justify-between items-center mb-1.5">
                                 <label className={labelStyle}>Lore (History & Terroir)</label>
                                 {formData.isCustomWisdom ? (
-                                    <span className="text-[9px] text-tea-accent uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
+                                    <span className="text-[10px] text-tea-accent uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
                                 ) : formData.lore ? (
-                                    <span className="text-[9px] text-tea-text-dim uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
+                                    <span className="text-[10px] text-tea-text-sec uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
                                 ) : null}
                             </div>
                             <textarea
                                 name="lore" value={formData.lore}
                                 onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={2}
-                                className={`${wisdomInputStyle} resize-none`}
+                                rows={4}
+                                className={`${wisdomInputStyle} resize-vertical`}
                                 placeholder="Legend says these bushes were draped in imperial red robes..."
                             />
                         </div>
 
-                        {/* Mood + Terroir on one row */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Experience — generous textarea */}
+                        <div>
+                            <label className={labelStyle}>Experience Description</label>
+                            <textarea
+                                name="experience" value={formData.experience}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={3}
+                                className={`${wisdomInputStyle} resize-vertical`}
+                                placeholder="A deeply centering tea. The heavy roast anchors the body..."
+                            />
+                        </div>
+
+                        {/* Mood + Terroir + Processing on one row */}
+                        <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className={labelStyle}>Mood</label>
                                 <input
@@ -837,38 +851,24 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                     className={wisdomInputStyle} placeholder="High-altitude granite soils..."
                                 />
                             </div>
+                            <div>
+                                <label className={labelStyle}>Processing / Craft</label>
+                                <input
+                                    name="processingNotes" type="text" value={formData.processingNotes}
+                                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                    className={wisdomInputStyle} placeholder="Heavy charcoal roast..."
+                                />
+                            </div>
                         </div>
 
-                        {/* Experience */}
-                        <div>
-                            <label className={labelStyle}>Experience Description</label>
-                            <textarea
-                                name="experience" value={formData.experience}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={2}
-                                className={`${wisdomInputStyle} resize-none`}
-                                placeholder="A deeply centering tea. The heavy roast anchors the body..."
-                            />
-                        </div>
-
-                        {/* Processing Notes */}
-                        <div>
-                            <label className={labelStyle}>Processing / Craft Notes</label>
-                            <input
-                                name="processingNotes" type="text" value={formData.processingNotes}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                className={wisdomInputStyle} placeholder="Heavy charcoal roast over pine wood."
-                            />
-                        </div>
-
-                        {/* Tasting Notes */}
+                        {/* Tasting Notes — generous textarea */}
                         <div>
                             <label className={labelStyle}>Tasting Notes (Comma separated)</label>
                             <textarea
                                 name="tastingNotes" value={formData.tastingNotes}
                                 onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
                                 rows={2}
-                                className={`${wisdomInputStyle} resize-none`}
+                                className={`${wisdomInputStyle} resize-vertical`}
                                 placeholder="Pine resin, dried longan, campfire"
                             />
                         </div>
@@ -879,8 +879,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         </form>
 
         {/* STICKY FOOTER */}
-        <div className="px-5 py-3 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 text-xs font-medium text-tea-text-dim hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
+        <div className="px-6 py-3.5 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
+            <button type="button" onClick={onClose} className="px-6 py-2.5 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
                 Cancel
             </button>
             <button
