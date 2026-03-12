@@ -44,24 +44,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFeeling, setActiveFeeling] = useState<string>('All');
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
-  // Track the view mode the user had before "My Likes" auto-switched to LIST
-  const [viewModeBeforeLiked, setViewModeBeforeLiked] = useState<'GRID' | 'LIST' | null>(null);
-
-  // Handle special filter changes — auto-switch to LIST for "My Likes"
-  const handleSpecialFilterChange = (id: string) => {
-    const newFilter = specialFilter === id ? 'None' : id as typeof specialFilter;
-    if (newFilter === 'Liked') {
-      // Save current view mode and switch to LIST
-      setViewModeBeforeLiked(viewMode);
-      setViewMode('LIST');
-    } else if (specialFilter === 'Liked' && viewModeBeforeLiked !== null) {
-      // Restore previous view mode when leaving "My Likes"
-      setViewMode(viewModeBeforeLiked);
-      setViewModeBeforeLiked(null);
-    }
-    setSpecialFilter(newFilter);
-  };
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
 
   // User Interaction State — persisted via Zustand store
   const { favoriteTeas, toggleFavoriteTea, compareItems } = useAppStore();
@@ -177,7 +160,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               { id: 'Liked', label: 'My Likes' }
             ]}
             activeTab={specialFilter}
-            onChange={(id) => handleSpecialFilterChange(id)}
+            onChange={(id) => setSpecialFilter(prev => prev === id ? 'None' : id as any)}
           />
         </PageHeader>
       ) : (
