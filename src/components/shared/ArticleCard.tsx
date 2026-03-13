@@ -105,25 +105,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             </>
           )}
 
-          {/* Content-type badge */}
+          {/* Content-type badge — icon only, no reading time */}
           {contentType && (() => {
             const config = contentTypeConfig[contentType];
             const Icon = config.icon;
-            // Build the badge label: prefer estimated reading time from word count, fall back to duration prop
-            let badgeLabel: string | undefined;
-            if (wordCount && contentType === ContentType.Article) {
-              badgeLabel = `${estimateReadingTime(wordCount)} ${config.suffix}`;
-            } else if (duration) {
-              // If duration already looks like "X min", append the suffix
-              const isMinutes = /^\d+\s*min/.test(duration);
-              badgeLabel = isMinutes && config.suffix ? `${duration} ${config.suffix}` : duration;
-            }
             return (
               <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-tea-bg/80 backdrop-blur-sm rounded-full px-2.5 py-1 border border-tea-border">
                 <Icon className="w-3 h-3 text-tea-gold" strokeWidth={2} />
-                {badgeLabel && (
-                  <span className="text-[9px] text-tea-text-sec font-sans tracking-wide">{badgeLabel}</span>
-                )}
               </div>
             );
           })()}

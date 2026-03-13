@@ -44,13 +44,7 @@ const TeawareCard: React.FC<{
                 <EyeOff size={16} className="text-tea-text-sec/70" />
             )}
             {product.showWisdom && product.lore && (
-                <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                    {product.isCustomWisdom ? (
-                        <Pencil size={12} className="text-tea-accent" />
-                    ) : (
-                        <Sparkles size={12} className="text-tea-text-sec" />
-                    )}
-                </span>
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${product.isCustomWisdom ? 'bg-tea-gold' : 'bg-tea-text-sec/30'}`} title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"} />
             )}
         </h3>
         <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
@@ -338,7 +332,6 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                       <td className="px-4 align-middle text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => onAdd(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Add to Invoice"><Plus size={14} /></button>
-                          <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={14} /></button>
                         </div>
                       </td>
                     </tr>

@@ -126,7 +126,6 @@ export const Sidebar = ({
     { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar className="w-5 h-5" strokeWidth={2} /> },
     { id: 'orders', path: '/admin/orders', label: 'Orders', icon: <History className="w-5 h-5" strokeWidth={2} /> },
     { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
   ];
 
   const handleNav = () => {
@@ -135,7 +134,7 @@ export const Sidebar = ({
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 w-56 text-tea-text transform transition-transform duration-300 ease-in-out ${
+      className={`fixed inset-y-0 left-0 z-50 w-48 text-tea-text transform transition-transform duration-300 ease-in-out ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       } md:relative md:translate-x-0 flex flex-col overflow-y-auto no-scrollbar`}
       style={{

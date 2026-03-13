@@ -298,9 +298,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         shippingSourcePerKg,
         parseFloat(formData.quantityPurchased) || 0,
         formData.costCurrency,
-        rates
+        rates,
+        formData.type === 'Teaware'
     );
-  }, [formData.costAmount, formData.shippingRateUSD, formData.quantityPurchased, formData.costCurrency, rates, currentRate]);
+  }, [formData.costAmount, formData.shippingRateUSD, formData.quantityPurchased, formData.costCurrency, formData.type, rates, currentRate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -480,11 +481,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         role="dialog"
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
-        className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+        className="fixed inset-0 z-modal flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
     >
       <div
-        className="bg-tea-surface border border-tea-border w-full max-w-7xl max-h-[94vh] flex flex-col shadow-2xl rounded-lg overflow-hidden relative"
+        className="bg-tea-surface border-x border-tea-border w-full flex flex-col overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
 

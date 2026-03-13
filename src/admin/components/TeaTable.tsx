@@ -323,13 +323,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                                     <EyeOff className="w-3 h-3 text-tea-text-sec/70 flex-shrink-0" />
                                                 )}
                                                 {product.showWisdom && product.lore && (
-                                                    <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                                                        {product.isCustomWisdom ? (
-                                                            <Pencil className="w-3 h-3 text-tea-gold flex-shrink-0" />
-                                                        ) : (
-                                                            <Sparkles className="w-3 h-3 text-tea-text-sec flex-shrink-0" />
-                                                        )}
-                                                    </span>
+                                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${product.isCustomWisdom ? 'bg-tea-gold' : 'bg-tea-text-sec/30'}`} title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"} />
                                                 )}
                                             </span>
                                             {product.givenName && (

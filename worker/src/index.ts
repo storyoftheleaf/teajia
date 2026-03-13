@@ -154,23 +154,31 @@ function matchRoute(method: string, path: string, routes: [string, string, Handl
 // ── Product pricing calculation (mirrors the Postgres view) ──
 function addPricingFields(product: any, rates: Map<string, number>): any {
   const rate = rates.get(product.cost_currency) || 1;
-  const qtyPurchased = product.quantity_purchased || 0;
-  let costPerGramUSD = 0;
-  let retailPricePerGramUSD = 0;
+  const isTeaware = product.type === 'Teaware';
 
-  if (qtyPurchased > 0) {
-    const costPerGram = product.cost_amount / qtyPurchased;
-    const shippingPerGram = (product.shipping_rate_per_kg || 0) / 1000;
-    costPerGramUSD = (costPerGram + shippingPerGram) / (rate || 1);
+  // For teaware, use quantity_units as the divisor (per-unit pricing)
+  // For tea, use quantity_purchased (per-gram pricing)
+  const qty = isTeaware
+    ? (product.quantity_units || product.quantity_purchased || 0)
+    : (product.quantity_purchased || 0);
+
+  let costPerUnitUSD = 0;
+  let retailPricePerUnitUSD = 0;
+
+  if (qty > 0) {
+    const costPerUnit = product.cost_amount / qty;
+    // Shipping per gram only applies to tea, not teaware
+    const shippingPerUnit = isTeaware ? 0 : (product.shipping_rate_per_kg || 0) / 1000;
+    costPerUnitUSD = (costPerUnit + shippingPerUnit) / (rate || 1);
   }
 
   if (product.fixed_retail_price_usd != null) {
-    retailPricePerGramUSD = product.fixed_retail_price_usd;
-  } else if (qtyPurchased > 0) {
-    retailPricePerGramUSD = costPerGramUSD * 3.0;
+    retailPricePerUnitUSD = product.fixed_retail_price_usd;
+  } else if (qty > 0) {
+    retailPricePerUnitUSD = costPerUnitUSD * 3.0;
   }
 
-  return { ...product, cost_per_gram_usd: costPerGramUSD, retail_price_per_gram_usd: retailPricePerGramUSD };
+  return { ...product, cost_per_gram_usd: costPerUnitUSD, retail_price_per_gram_usd: retailPricePerUnitUSD };
 }
 
 // ── Route Handlers ──
@@ -486,6 +494,7 @@ const PUBLIC_FIELDS = [
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
+  'material', 'capacity_ml', 'teaware_category', 'quantity_units',
 ] as const;
 
 const handleGetPublicProducts: Handler = async (_request, env) => {
@@ -499,7 +508,8 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
               is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
               processing_notes, terroir, mood, experience,
               cost_amount, cost_currency, quantity_purchased,
-              shipping_rate_per_kg, fixed_retail_price_usd
+              shipping_rate_per_kg, fixed_retail_price_usd,
+              material, capacity_ml, teaware_category, quantity_units
        FROM products
        WHERE is_public = 1 AND status = 'Active'
        ORDER BY created_at DESC`
@@ -566,8 +576,12 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (authErr) return authErr;
 
   const body = await request.json() as Record<string, any>;
-  // Set quantity_purchased = stock_grams if not provided (mirrors Postgres trigger)
-  if (body.quantity_purchased == null) body.quantity_purchased = body.stock_grams || 0;
+  // Set quantity_purchased: use quantity_units for teaware, stock_grams for tea
+  if (body.quantity_purchased == null) {
+    body.quantity_purchased = body.type === 'Teaware'
+      ? (body.quantity_units || 1)
+      : (body.stock_grams || 0);
+  }
   // Convert tasting_notes array to JSON string
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
@@ -615,7 +629,11 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (v !== null && v !== undefined && v !== '') body[k] = v;
     }
 
-    if (body.quantity_purchased == null) body.quantity_purchased = body.stock_grams || 0;
+    if (body.quantity_purchased == null) {
+      body.quantity_purchased = body.type === 'Teaware'
+        ? (body.quantity_units || 1)
+        : (body.stock_grams || 0);
+    }
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {

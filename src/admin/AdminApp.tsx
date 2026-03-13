@@ -92,6 +92,11 @@ const AdminContent = () => {
     }
   }, [isLoggedIn, isAdmin, navigate, location.pathname]);
 
+  // Close registry drawer when navigating to a different route
+  useEffect(() => {
+    setIsCartOpen(false);
+  }, [location.pathname]);
+
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
     return (

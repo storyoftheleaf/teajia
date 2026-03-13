@@ -76,36 +76,34 @@ export let ratesAreFallback = false;
 export const calculatePricing = (
   costAmount: number,
   shippingRatePerKg: number,
-  grams: number,
+  quantity: number, // grams for tea, units for teaware
   currency: Currency,
-  rates: ExchangeRate[]
+  rates: ExchangeRate[],
+  isTeaware = false
 ) => {
   const safeRates = rates && rates.length > 0 ? rates : FALLBACK_RATES;
-  
+
   // 1. Get Rate (Units of Currency per 1 USD)
   const rateObj = safeRates.find(r => r.currency === currency);
   const rateToUSD = rateObj ? rateObj.rateToUSD : 1;
 
   // 2. Calculate Total Cost in Source Currency
-  // Shipping is per KG, so convert grams to KG
-  const batchWeightKg = grams > 0 ? grams / 1000 : 0;
-  const totalShipping = shippingRatePerKg * batchWeightKg;
+  // For tea: shipping is per KG, convert grams to KG. For teaware: no per-kg shipping.
+  const totalShipping = isTeaware ? 0 : (shippingRatePerKg * (quantity > 0 ? quantity / 1000 : 0));
   const totalBatchCostSource = costAmount + totalShipping;
 
-  // 3. Cost Per Gram (Source Currency)
-  const costPerGramSource = grams > 0 ? totalBatchCostSource / grams : 0;
+  // 3. Cost Per Unit (Source Currency) — per gram for tea, per unit for teaware
+  const costPerUnitSource = quantity > 0 ? totalBatchCostSource / quantity : 0;
 
   // 4. Convert to USD
-  // CRITICAL FIX: Ensure we DIVIDE by the rate (e.g., 32 NT / 32 = 1 USD).
-  // Some legacy systems might have multiplied. Division is correct for "Units per USD".
-  const trueCostUSD = (rateToUSD && rateToUSD > 0) ? costPerGramSource / rateToUSD : 0;
+  const trueCostUSD = (rateToUSD && rateToUSD > 0) ? costPerUnitSource / rateToUSD : 0;
 
   // 5. Suggested Retail (3x Markup)
   const suggestedRetailUSD = trueCostUSD * 3;
 
   return {
     totalShipping,
-    costPerGramSource,
+    costPerGramSource: costPerUnitSource,
     trueCostUSD,
     suggestedRetailUSD,
     rateUsed: rateToUSD
@@ -113,31 +111,37 @@ export const calculatePricing = (
 };
 
 /** Convert an admin Product to the public InventoryItem shape for AlcoveCard */
-export const productToInventoryItem = (product: Product): InventoryItem => ({
-  id: product.id,
-  category: product.type === 'Teaware' ? 'ware' : 'tea',
-  type: product.type,
-  name: product.givenName,
-  variant: product.productName,
-  year: product.year ? String(product.year) : '',
-  origin: product.originRegion || product.originCountry || '',
-  stock_g: product.stockGrams,
-  cost_price: String(product.costAmount),
-  cost_currency: undefined,
-  price_per_gram: String(product.pricePerGramUSD),
-  description: product.description,
-  tags: product.tastingNotes || [],
-  image: product.imageUrl,
-  chineseName: product.chineseName,
-  lore: product.lore,
-  showWisdom: product.showWisdom,
-  terroir: product.terroir,
-  processingNotes: product.processingNotes,
-  mood: product.mood,
-  experience: product.experience,
-  additionalImages: product.additionalImages,
-  material: product.material,
-  capacityMl: product.capacityMl,
-  isFeatured: product.isFeatured,
-  magazineUrl: undefined,
-});
+export const productToInventoryItem = (product: Product): InventoryItem => {
+  const isTeaware = product.type === 'Teaware';
+  return {
+    id: product.id,
+    category: isTeaware ? 'ware' : 'tea',
+    type: product.type,
+    name: product.givenName,
+    variant: product.productName,
+    year: product.year ? String(product.year) : '',
+    origin: product.originRegion || product.originCountry || '',
+    stock_g: isTeaware ? (product.quantityUnits || 0) : product.stockGrams,
+    cost_price: String(product.costAmount),
+    cost_currency: undefined,
+    // For tea: price_per_gram is per-gram. For teaware: price_50g is per-unit price.
+    price_per_gram: isTeaware ? undefined : String(product.pricePerGramUSD),
+    price_50g: isTeaware ? String(product.pricePerGramUSD) : undefined,
+    description: product.description,
+    tags: product.tastingNotes || [],
+    image: product.imageUrl,
+    chineseName: product.chineseName,
+    lore: product.lore,
+    showWisdom: product.showWisdom,
+    terroir: product.terroir,
+    processingNotes: product.processingNotes,
+    mood: product.mood,
+    experience: product.experience,
+    additionalImages: product.additionalImages,
+    material: product.material,
+    capacityMl: product.capacityMl,
+    isFeatured: product.isFeatured,
+    quantityUnits: product.quantityUnits,
+    magazineUrl: undefined,
+  };
+};

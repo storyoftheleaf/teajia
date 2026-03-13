@@ -266,39 +266,39 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {chineseCharacters}
           </div>
         )}
-        {/* Admin edit button */}
-        {isAdmin && onEdit && (
-          <button
-            onClick={() => onEdit(item)}
-            style={{
-              position: "absolute", right: chineseCharacters ? "auto" : "14px",
-              left: chineseCharacters ? "14px" : "auto",
-              top: "14px", zIndex: 10,
-              width: "32px", height: "32px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "var(--tea-surface)", border: "1px solid var(--tea-border)",
-              borderRadius: "50%", cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--tea-elevated)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--tea-surface)"; }}
-            title="Edit Product"
-          >
-            <Pencil size={14} style={{ color: "var(--tea-text-sec)" }} />
-          </button>
-        )}
         <div style={{
           padding: "24px 20px 8px",
           position: "relative",
         }}>
             <>
-              <h1 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-                margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
-              }}>
-                {productName}
-              </h1>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                <h1 style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
+                  margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+                  flex: 1, minWidth: 0,
+                }}>
+                  {productName}
+                </h1>
+                {isAdmin && onEdit && (
+                  <button
+                    onClick={() => onEdit(item)}
+                    style={{
+                      width: "28px", height: "28px", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "var(--tea-surface)", border: "1px solid var(--tea-border)",
+                      borderRadius: "50%", cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      marginTop: "2px",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--tea-elevated)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--tea-surface)"; }}
+                    title="Edit Product"
+                  >
+                    <Pencil size={12} style={{ color: "var(--tea-text-sec)" }} />
+                  </button>
+                )}
+              </div>
               <p style={{
                   fontFamily: "var(--font-display)",
                   fontSize: "18px", fontStyle: "italic", fontWeight: 300,
@@ -474,61 +474,52 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           </div>
 
-          {/* Tasting notes — horizontal flow */}
+          {/* Tasting notes — inline dot-separated */}
           {notes.length > 0 && (
             <div style={{
               padding: "10px 14px",
-              borderBottom: "1px solid var(--tea-border)",
+              borderBottom: (moodTags.length > 0 || feelingDescription || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
               flexShrink: 0,
+              textAlign: "center",
             }}>
-              <div style={{
-                display: "flex", flexWrap: "wrap", gap: "6px",
-                justifyContent: "center",
+              <p style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "13px", fontWeight: 300, fontStyle: "italic",
+                color: "var(--tea-text-sec)",
+                margin: 0, lineHeight: 1.6,
               }}>
-                {notes.map((note) => (
-                  <span key={note} style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "12px", fontWeight: 300, fontStyle: "italic",
-                    color: "var(--tea-text-sec)",
-                    padding: "3px 10px",
-                    borderRadius: "2px",
-                    background: "var(--tea-accent-sub)",
-                    border: "1px solid var(--tea-border)",
-                    letterSpacing: "0.02em",
-                  }}>
-                    {toTitleCase(note)}
+                {notes.map((note, i) => (
+                  <span key={note}>
+                    <span>{toTitleCase(note)}</span>
+                    {i < notes.length - 1 && <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>}
                   </span>
                 ))}
-              </div>
+              </p>
             </div>
           )}
 
-          {/* Mood tags — keyword style row */}
+          {/* Mood tags — inline dot-separated, slightly distinct */}
           {moodTags.length > 0 && (
             <div style={{
               padding: "8px 14px",
-              borderBottom: "1px solid var(--tea-border)",
+              borderBottom: (feelingDescription || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
               flexShrink: 0,
+              textAlign: "center",
             }}>
-              <div style={{
-                display: "flex", flexWrap: "wrap", gap: "6px",
-                justifyContent: "center",
+              <p style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "13px", fontWeight: 300, fontStyle: "italic",
+                color: "var(--tea-gold)",
+                margin: 0, lineHeight: 1.6,
+                opacity: 0.8,
               }}>
                 {moodTags.map((tag, i) => (
-                  <span key={i} style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "12px", fontWeight: 300, fontStyle: "italic",
-                    color: "var(--tea-text-sec)",
-                    padding: "3px 10px",
-                    borderRadius: "2px",
-                    background: "var(--tea-accent-sub)",
-                    border: "1px solid var(--tea-border)",
-                    letterSpacing: "0.02em",
-                  }}>
-                    {toTitleCase(tag)}
+                  <span key={i}>
+                    <span>{toTitleCase(tag)}</span>
+                    {i < moodTags.length - 1 && <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>}
                   </span>
                 ))}
-              </div>
+              </p>
             </div>
           )}
 
