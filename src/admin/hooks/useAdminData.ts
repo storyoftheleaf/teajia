@@ -50,6 +50,7 @@ export const useProducts = () => {
         mood: p.mood || '',
         experience: p.experience || '',
         recheckStock: !!p.recheck_stock,
+        stockVerifiedAt: p.stock_verified_at || null,
       })) as Product[];
     }
   });

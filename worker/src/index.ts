@@ -817,6 +817,15 @@ const handleIncrementStock: Handler = async (request, env) => {
   return json({ success: true });
 };
 
+// ── RPC: Reset Stock Verification ──
+const handleResetStockVerification: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  await env.DB.prepare('UPDATE products SET stock_verified_at = NULL').run();
+  return json({ success: true });
+};
+
 // ── RPC: Truncate All Data ──
 const handleTruncateAll: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
@@ -2407,6 +2416,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
   ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
+  ['POST', '/api/rpc/reset-stock-verification', handleResetStockVerification],
 
   // Activity Logs
   ['GET', '/api/activity-logs', handleGetActivityLogs],

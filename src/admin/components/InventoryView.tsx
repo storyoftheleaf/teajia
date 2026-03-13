@@ -28,6 +28,7 @@ const TEA_COLUMN_DEFS = [
   { key: 'year', label: 'Year', defaultWidth: 'w-[7%]' },
   { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
   { key: 'stockGrams', label: 'Stock', defaultWidth: 'w-[10%]' },
+  { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[10%]' },
   { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[10%]' },
 ] as const;
@@ -38,6 +39,7 @@ const TEAWARE_COLUMN_DEFS = [
   { key: 'material', label: 'Material', defaultWidth: 'w-[14%]' },
   { key: 'capacityMl', label: 'Capacity', defaultWidth: 'w-[10%]' },
   { key: 'quantityUnits', label: 'Units', defaultWidth: 'w-[8%]' },
+  { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[10%]' },
   { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[8%]' },
 ] as const;
@@ -74,6 +76,14 @@ const DEFAULT_TEA_VIEWS = [
     columns: ['productName', 'type', 'stockGrams', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'Unpublished',
+    groupBy: null,
+  },
+  {
+    id: 'default-stock-check',
+    name: 'Stock Check',
+    columns: ['productName', 'type', 'stockGrams', 'verified'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Unverified',
     groupBy: null,
   },
 ];
@@ -317,6 +327,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
     } else if (filterType === 'Pending') {
       result = result.filter(p => p.lore && !p.showWisdom);
+    } else if (filterType === 'Unverified') {
+      result = result.filter(p => !p.stockVerifiedAt);
     } else if (filterType === 'Unpublished') {
       result = result.filter(p => !p.isPublic);
     } else if (filterType !== 'All') {
@@ -363,6 +375,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [processedProducts, inventoryGroupBy]);
 
   const pendingCount = useMemo(() => localProducts.filter(p => p.lore && !p.showWisdom).length, [localProducts]);
+
+  // Stock verification stats (scoped to current category)
+  const verificationStats = useMemo(() => {
+    const categoryProducts = inventoryCategory === 'teaware'
+      ? localProducts.filter(p => p.type === 'Teaware')
+      : localProducts.filter(p => p.type !== 'Teaware');
+    const active = categoryProducts.filter(p => p.status === 'Active');
+    const verified = active.filter(p => !!p.stockVerifiedAt).length;
+    return { total: active.length, verified, remaining: active.length - verified };
+  }, [localProducts, inventoryCategory]);
 
   // Initialize review drafts when switching to Pending filter or when pending products change
   useEffect(() => {
@@ -450,6 +472,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'isPublic') dbPayload = { is_public: value };
     else if (field === 'showWisdom') dbPayload = { show_wisdom: value };
     else if (field === 'recheckStock') dbPayload = { recheck_stock: value ? 1 : 0 };
+    else if (field === 'stockVerifiedAt') dbPayload = { stock_verified_at: value };
     else if (field === 'material') dbPayload = { material: value };
     else if (field === 'capacityMl') dbPayload = { capacity_ml: Number(value) };
     else if (field === 'teawareCategory') dbPayload = { teaware_category: value };
@@ -946,6 +969,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             ) : <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>}
           </td>
         );
+      case 'verified': {
+        const isVerified = !!product.stockVerifiedAt;
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle text-center ${focusRing}`}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+              }}
+              title={isVerified ? `Verified ${new Date(product.stockVerifiedAt!).toLocaleDateString()}` : 'Mark as verified'}
+              className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300' : 'bg-tea-surface text-tea-border hover:text-tea-text-sec hover:bg-tea-bg'}`}
+            >
+              {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-sm border border-current" />}
+            </button>
+          </td>
+        );
+      }
       default:
         return <td className="px-4 align-middle text-xs text-tea-text-sec">-</td>;
     }
@@ -1200,6 +1240,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <AlertTriangle size={14} /> Low Stock Alerts
                             </button>
                             <button
+                                onClick={() => { setFilterType(filterType === 'Unverified' ? 'All' : 'Unverified'); setShowOptions(false); }}
+                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                            >
+                                <CheckSquare size={14} /> Stock Verification
+                            </button>
+                            <button
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
                                 className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                             >
@@ -1259,6 +1305,50 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
         onScroll={(e) => filterType !== 'Pending' && setScrollTop(e.currentTarget.scrollTop)}
       >
+
+        {/* STOCK VERIFICATION BANNER */}
+        {filterType === 'Unverified' && (
+          <div className="max-w-7xl mx-auto px-4 md:px-0 pt-4 pb-2">
+            <div className="flex items-center gap-4 bg-tea-surface border border-tea-border rounded-xl px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <CheckSquare size={14} className="text-emerald-400" />
+                  <span className="text-xs font-medium text-tea-text">Stock Verification</span>
+                  <span className="text-[10px] text-tea-text-sec">
+                    {verificationStats.verified}/{verificationStats.total} checked
+                  </span>
+                  {verificationStats.remaining === 0 && verificationStats.total > 0 && (
+                    <span className="text-[10px] text-emerald-400 font-medium ml-1">All done!</span>
+                  )}
+                </div>
+                <div className="w-full bg-tea-bg rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500 ease-out bg-emerald-500/70"
+                    style={{ width: `${verificationStats.total > 0 ? (verificationStats.verified / verificationStats.total) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+              {verificationStats.verified > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Reset all ${verificationStats.verified} verification checkmarks? This lets you start a fresh inventory check.`)) return;
+                    try {
+                      await api.rpc.resetStockVerification();
+                      setLocalProducts(prev => prev.map(p => ({ ...p, stockVerifiedAt: null })));
+                      onRefresh();
+                      showToast('Verification reset — ready for a new stock check', 'success');
+                    } catch (err: any) {
+                      showToast(`Reset failed: ${err.message}`, 'error');
+                    }
+                  }}
+                  className="flex-shrink-0 text-[10px] text-tea-text-sec hover:text-amber-400 transition-colors px-2 py-1 rounded border border-tea-border hover:border-amber-400/30"
+                >
+                  Reset All
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* REVIEW FEED (Pending AI Approval mode) */}
         {filterType === 'Pending' && (
@@ -1465,6 +1555,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               </>
                             )}
                         </div>
+
+                        {/* Verification checkmark (mobile) */}
+                        {filterType === 'Unverified' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isVerified = !!product.stockVerifiedAt;
+                              handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+                            }}
+                            className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-border'}`}
+                          >
+                            {product.stockVerifiedAt ? <Check size={14} strokeWidth={3} /> : <Square size={14} />}
+                          </button>
+                        )}
 
                         {/* Expand indicator */}
                         <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-sec/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
