@@ -2006,6 +2006,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <div className="px-5 py-3 border-b border-tea-border">
                   <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-3">Stock & Pricing</div>
 
+                  {/* Currency summary strip (tea only) */}
+                  {inventoryCategory !== 'teaware' && (
+                    <div className="flex items-center gap-3 mb-3 px-2 py-1.5 rounded-md bg-tea-surface/40 border border-tea-border/50">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] text-tea-text-sec/50 uppercase tracking-[0.15em]">Bought in</span>
+                        <span className="text-[10px] text-tea-accent font-bold uppercase">{panelProduct.costCurrency || 'USD'}</span>
+                      </div>
+                      <span className="text-tea-border">→</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] text-tea-text-sec/50 uppercase tracking-[0.15em]">Selling in</span>
+                        <span className="text-[10px] text-tea-gold font-bold uppercase">USD</span>
+                      </div>
+                    </div>
+                  )}
+
                   {inventoryCategory === 'teaware' ? (
                     <div className="space-y-0">
                       {[
@@ -2124,7 +2139,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                         {/* Retail override */}
                         <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-gold uppercase tracking-[0.12em] flex-shrink-0 w-24 font-medium">Retail ($/g)</span>
+                          <span className="text-[10px] text-tea-gold uppercase tracking-[0.12em] flex-shrink-0 w-24 font-medium">Retail <span className="text-[8px] text-tea-gold/60">USD/g</span></span>
                           <GhostInput
                             value={panelProduct.pricePerGramUSD}
                             onSave={(val) => {
@@ -2139,7 +2154,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                         {/* Fixed Retail Override */}
                         <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Fixed Price</span>
+                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Fixed <span className="text-[8px] text-tea-text-sec/50">USD</span></span>
                           <GhostInput
                             value={panelProduct.fixedRetailPriceUSD ?? ''}
                             placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '—'}
