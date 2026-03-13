@@ -23,9 +23,9 @@ const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's res
 type InventoryCategory = 'tea' | 'teaware';
 
 const TEA_COLUMN_DEFS = [
-  { key: 'productName', label: 'Product', defaultWidth: 'w-[30%]', alwaysVisible: true },
+  { key: 'productName', label: 'Product', defaultWidth: 'w-[28%]', alwaysVisible: true },
   { key: 'type', label: 'Type', defaultWidth: 'w-[10%]' },
-  { key: 'year', label: 'Year', defaultWidth: 'w-[8%]' },
+  { key: 'year', label: 'Year', defaultWidth: 'w-[7%]' },
   { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
   { key: 'stockGrams', label: 'Stock', defaultWidth: 'w-[10%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[10%]' },
@@ -33,13 +33,13 @@ const TEA_COLUMN_DEFS = [
 ] as const;
 
 const TEAWARE_COLUMN_DEFS = [
-  { key: 'productName', label: 'Product', defaultWidth: 'w-[30%]', alwaysVisible: true },
+  { key: 'productName', label: 'Product', defaultWidth: 'w-[28%]', alwaysVisible: true },
   { key: 'teawareCategory', label: 'Category', defaultWidth: 'w-[12%]' },
   { key: 'material', label: 'Material', defaultWidth: 'w-[14%]' },
   { key: 'capacityMl', label: 'Capacity', defaultWidth: 'w-[10%]' },
   { key: 'quantityUnits', label: 'Units', defaultWidth: 'w-[8%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[10%]' },
-  { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[10%]' },
+  { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[8%]' },
 ] as const;
 
 
@@ -790,13 +790,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 />
               ) : (
                 <>
-                  <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
+                  <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate">
                     {product.productName}
-                    {product.lore && (
-                      <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                        {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-text-sec" />}
-                      </span>
-                    )}
                   </span>
                   {product.givenName && (
                     <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
@@ -1383,11 +1378,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
                                 {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
                                 {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
-                                {product.lore && (
-                                    product.isCustomWisdom
-                                        ? <Pencil size={9} className="flex-shrink-0 text-tea-accent/60" />
-                                        : <Sparkles size={9} className="flex-shrink-0 text-tea-text-sec/40" />
-                                )}
                             </div>
                             <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
                                 <span>{product.type}</span>
@@ -1576,7 +1566,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <colgroup>
                   {isEditMode && <col className="w-[32px]" />}
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                  <col className="w-[7%]" />
+                  <col className="w-[10%]" />
                 </colgroup>
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                   <tr>
@@ -1590,7 +1580,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD','capacityMl','quantityUnits'].includes(col.key) ? 'right' : 'left'} />
                     ))}
-                    <th className="px-4 py-2 border-b border-tea-border"></th>
+                    <th className="px-2 py-2 border-b border-tea-border"></th>
                   </tr>
                 </thead>
               </table>
@@ -1621,7 +1611,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <colgroup>
                           {isEditMode && <col className="w-[32px]" />}
                           {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                          <col className="w-[7%]" />
+                          <col className="w-[10%]" />
                         </colgroup>
                         <tbody>
                           {items.map((product, rowIdx) => {
@@ -1641,13 +1631,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   </td>
                                 )}
                                 {visibleCols.map((col, colIdx) => renderCell(product, col.key, globalIdx, colIdx))}
-                                <td className="px-4 align-middle text-right">
-                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 align-middle text-right">
+                                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                     {!isEditMode && (
                                       <>
-                                        <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
-                                        <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                        <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
+                                        <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                        <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
+                                        <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={13}/></button>
                                       </>
                                     )}
                                   </div>
@@ -1668,7 +1658,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <colgroup>
                     {isEditMode && <col className="w-[32px]" />}
                     {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                    <col className="w-[7%]" />
+                    <col className="w-[10%]" />
                 </colgroup>
 
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
@@ -1683,7 +1673,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         {visibleCols.map(col => (
                           <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD','capacityMl','quantityUnits'].includes(col.key) ? 'right' : 'left'} />
                         ))}
-                        <th className="px-4 py-2 border-b border-tea-border"></th>
+                        <th className="px-2 py-2 border-b border-tea-border"></th>
                     </tr>
                 </thead>
 
@@ -1710,17 +1700,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 {visibleCols.map((col, colIdx) => renderCell(product, col.key, globalIdx, colIdx))}
 
                                 {/* Actions */}
-                                <td className="px-4 align-middle text-right">
-                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                <td className="px-2 align-middle text-right">
+                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                         {!isEditMode && (
                                             <>
-                                                {(!product.showWisdom && product.lore) && (
-                                                    <button onClick={() => handleProductUpdate(product.id, 'showWisdom', true)} className="text-tea-accent hover:text-tea-accent/80 p-1 transition-colors" title="Approve AI Wisdom"><Check size={14}/></button>
-                                                )}
-                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
-                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={14}/> : <EyeOff size={14}/>}</button>
-                                                <button onClick={() => setQrProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><QrCode size={14}/></button>
-                                                <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={14}/></button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
+                                                <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Edit"><Pencil size={13}/></button>
                                             </>
                                         )}
                                     </div>
