@@ -20,6 +20,7 @@ export interface Product {
   stockGrams: number;
   lowStockThreshold: number;
   recheckStock?: boolean; // Flag to revisit stock count when unknown
+  stockVerifiedAt?: string | null; // ISO timestamp of last physical stock verification
   description: string;
   tastingNotes: string[];
   imageUrl: string;

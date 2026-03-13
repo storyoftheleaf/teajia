@@ -379,6 +379,13 @@ export const api = {
       });
       return handleResponse(res);
     },
+    resetStockVerification: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/reset-stock-verification`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
   },
 
   activityLogs: {
