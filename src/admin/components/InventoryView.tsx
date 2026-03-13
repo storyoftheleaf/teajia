@@ -474,6 +474,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'isCurated') dbPayload = { is_curated: value ? 1 : 0 };
     else if (field === 'isCustomWisdom') dbPayload = { is_custom_wisdom: value ? 1 : 0 };
     else if (field === 'fixedRetailPriceUSD') dbPayload = { fixed_retail_price_usd: value ? Number(value) : null };
+    else if (field === 'shippingRatePerKg') dbPayload = { shipping_rate_per_kg: Number(value) };
+    else if (field === 'quantityPurchased') dbPayload = { quantity_purchased: Number(value) };
+    else if (field === 'lowStockThreshold') dbPayload = { low_stock_threshold: Number(value) };
+    else if (field === 'costCurrency') dbPayload = { cost_currency: value };
     else return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
@@ -2036,31 +2040,70 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     );
                     return (
                       <div className="space-y-0">
-                        {/* Editable fields */}
-                        {[
-                          { label: 'Batch Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const, suffix: panelProduct.costCurrency || 'USD' },
-                          { label: 'Weight (g)', field: 'stockGrams' as const, value: panelProduct.stockGrams, type: 'number' as const },
-                        ].map(item => (
-                          <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">{item.label}</span>
-                            <div className="flex items-center gap-1.5 flex-1 justify-end">
-                              <GhostInput
-                                value={item.value}
-                                onSave={(val) => {
-                                  handleProductUpdate(panelProduct.id, item.field, val);
-                                  setPanelProduct(prev => prev ? { ...prev, [item.field]: Number(val) } : null);
-                                }}
-                                type={item.type}
-                                align="right"
-                                className="text-xs text-tea-text tabular-nums flex-1"
-                              />
-                              {item.suffix && <span className="text-[9px] text-tea-text-sec uppercase">{item.suffix}</span>}
-                            </div>
+                        {/* Cost Inputs */}
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Batch Cost</span>
+                          <div className="flex items-center gap-1.5 flex-1 justify-end">
+                            <select
+                              value={panelProduct.costCurrency || 'USD'}
+                              onChange={(e) => {
+                                const newCurrency = e.target.value;
+                                handleProductUpdate(panelProduct.id, 'costCurrency', newCurrency);
+                                setPanelProduct(prev => prev ? { ...prev, costCurrency: newCurrency as any } : null);
+                              }}
+                              className="bg-transparent text-[9px] text-tea-accent font-bold uppercase outline-none cursor-pointer appearance-none border-none"
+                            >
+                              <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
+                              <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
+                              <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
+                              <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
+                              <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                              <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
+                              <option value="HKD" className="bg-tea-surface text-tea-text">HKD</option>
+                            </select>
+                            <GhostInput
+                              value={panelProduct.costAmount}
+                              onSave={(val) => {
+                                handleProductUpdate(panelProduct.id, 'costAmount', val);
+                                setPanelProduct(prev => prev ? { ...prev, costAmount: Number(val) } : null);
+                              }}
+                              type="number"
+                              align="right"
+                              className="text-xs text-tea-text tabular-nums flex-1"
+                            />
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Batch Wt (g)</span>
+                          <GhostInput
+                            value={panelProduct.quantityPurchased || 0}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'quantityPurchased', val);
+                              setPanelProduct(prev => prev ? { ...prev, quantityPurchased: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Ship (USD/kg)</span>
+                          <GhostInput
+                            value={panelProduct.shippingRatePerKg || 0}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'shippingRatePerKg', val);
+                              setPanelProduct(prev => prev ? { ...prev, shippingRatePerKg: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
 
                         {/* Calculated values (read-only) */}
-                        <div className="py-2 space-y-1">
+                        <div className="py-2 space-y-1 border-b border-dashed border-tea-border">
                           <div className="flex justify-between text-[10px]">
                             <span className="text-tea-text-sec/60">Source Cost/g</span>
                             <span className="text-tea-text-sec tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
@@ -2080,7 +2123,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
 
                         {/* Retail override */}
-                        <div className="flex items-center justify-between gap-4 py-1.5 border-t border-tea-border">
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
                           <span className="text-[10px] text-tea-gold uppercase tracking-[0.12em] flex-shrink-0 w-24 font-medium">Retail ($/g)</span>
                           <GhostInput
                             value={panelProduct.pricePerGramUSD}
@@ -2092,6 +2135,57 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             align="right"
                             className="text-xs text-tea-text tabular-nums flex-1"
                           />
+                        </div>
+
+                        {/* Fixed Retail Override */}
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Fixed Price</span>
+                          <GhostInput
+                            value={panelProduct.fixedRetailPriceUSD ?? ''}
+                            placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '—'}
+                            onSave={(val) => {
+                              const numVal = val === '' || val === null ? null : Number(val);
+                              handleProductUpdate(panelProduct.id, 'fixedRetailPriceUSD', numVal);
+                              setPanelProduct(prev => prev ? { ...prev, fixedRetailPriceUSD: numVal } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className={`text-xs tabular-nums flex-1 ${
+                              panelProduct.fixedRetailPriceUSD && panelProduct.fixedRetailPriceUSD < calc.trueCostUSD
+                                ? 'text-red-400 font-bold' : 'text-tea-text'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Stock section */}
+                        <div className="pt-2 space-y-0">
+                          <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Stock</div>
+                          <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Current (g)</span>
+                            <GhostInput
+                              value={panelProduct.stockGrams}
+                              onSave={(val) => {
+                                handleProductUpdate(panelProduct.id, 'stockGrams', val);
+                                setPanelProduct(prev => prev ? { ...prev, stockGrams: Number(val) } : null);
+                              }}
+                              type="number"
+                              align="right"
+                              className="text-xs text-tea-text tabular-nums flex-1"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Low Alert</span>
+                            <GhostInput
+                              value={panelProduct.lowStockThreshold || 0}
+                              onSave={(val) => {
+                                handleProductUpdate(panelProduct.id, 'lowStockThreshold', val);
+                                setPanelProduct(prev => prev ? { ...prev, lowStockThreshold: Number(val) } : null);
+                              }}
+                              type="number"
+                              align="right"
+                              className="text-xs text-tea-text tabular-nums flex-1"
+                            />
+                          </div>
                         </div>
                       </div>
                     );
