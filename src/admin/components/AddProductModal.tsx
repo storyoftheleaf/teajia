@@ -481,7 +481,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         role="dialog"
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
-        className="fixed inset-0 z-modal flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
+        className="fixed inset-0 z-priority flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
     >
       <div

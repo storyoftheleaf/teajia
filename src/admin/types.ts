@@ -34,6 +34,7 @@ export interface Product {
   canReorder: boolean; // Restockable flag
   isPublic: boolean; // Publicly visible flag
   isFeatured?: boolean; // Suggested/Featured flag
+  isCurated?: boolean; // Curated selection flag
   lore?: string; // AI or handcrafted history/story
   isCustomWisdom?: boolean; // True if manually edited
   showWisdom?: boolean; // Toggle to display on public card

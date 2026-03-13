@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -10,7 +10,6 @@ import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
-import { AddProductModal } from './AddProductModal';
 import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
@@ -118,6 +117,34 @@ interface InventoryViewProps {
 
 // --- GHOST INPUT COMPONENT ---
 // Invisible input that looks like text until focused
+const GhostTextarea = ({
+    value,
+    onSave,
+    className = '',
+    placeholder = '',
+    rows = 3,
+}: {
+    value: string,
+    onSave: (val: string) => void,
+    className?: string,
+    placeholder?: string,
+    rows?: number,
+}) => {
+    const [localValue, setLocalValue] = useState(value);
+    useEffect(() => { setLocalValue(value); }, [value]);
+    const handleBlur = () => { if (localValue !== value) onSave(localValue); };
+    return (
+        <textarea
+            value={localValue || ''}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            rows={rows}
+            className={`w-full bg-transparent border border-tea-border/50 focus:border-tea-accent focus:bg-tea-surface/50 rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed placeholder-tea-text-sec/50 ${className}`}
+        />
+    );
+};
+
 const GhostInput = ({
     value,
     onSave,
@@ -248,7 +275,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [containerHeight, setContainerHeight] = useState(600);
 
   // Modals
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -427,6 +453,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'capacityMl') dbPayload = { capacity_ml: Number(value) };
     else if (field === 'teawareCategory') dbPayload = { teaware_category: value };
     else if (field === 'quantityUnits') dbPayload = { quantity_units: Number(value) };
+    else if (field === 'experience') dbPayload = { experience: value };
+    else if (field === 'description') dbPayload = { description: value };
+    else if (field === 'mood') dbPayload = { mood: value };
+    else if (field === 'tastingNotes') dbPayload = { tasting_notes: JSON.stringify(value) };
+    else if (field === 'lore') dbPayload = { lore: value };
+    else if (field === 'givenName') dbPayload = { given_name: value };
+    else if (field === 'chineseName') dbPayload = { chinese_name: value };
+    else if (field === 'form') dbPayload = { form: value };
+    else if (field === 'originCountry') dbPayload = { origin_country: value };
+    else if (field === 'vendor') dbPayload = { vendor: value };
+    else if (field === 'type') dbPayload = { type: value };
+    else if (field === 'status') dbPayload = { status: value };
+    else if (field === 'imageUrl') dbPayload = { image_url: value };
+    else if (field === 'processingNotes') dbPayload = { processing_notes: value };
+    else if (field === 'terroir') dbPayload = { terroir: value };
+    else if (field === 'isPersonal') dbPayload = { is_personal: value ? 1 : 0 };
+    else if (field === 'canReorder') dbPayload = { can_reorder: value ? 1 : 0 };
+    else if (field === 'isCurated') dbPayload = { is_curated: value ? 1 : 0 };
+    else if (field === 'isCustomWisdom') dbPayload = { is_custom_wisdom: value ? 1 : 0 };
+    else if (field === 'fixedRetailPriceUSD') dbPayload = { fixed_retail_price_usd: value ? Number(value) : null };
     else return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
@@ -1536,7 +1582,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                                 <div className="ml-auto">
                                     <button
-                                        onClick={() => setEditingProduct(product)}
+                                        onClick={() => setPanelProduct(product)}
                                         className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                                     >
                                         <Pencil size={12} /> Edit
@@ -1637,7 +1683,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                       <>
                                         <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
                                         <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
-                                        <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={13}/></button>
+                                        <button onClick={() => setPanelProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={13}/></button>
                                       </>
                                     )}
                                   </div>
@@ -1706,7 +1752,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             <>
                                                 <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
                                                 <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
-                                                <button onClick={() => setEditingProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Edit"><Pencil size={13}/></button>
+                                                <button onClick={() => setPanelProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Edit"><Pencil size={13}/></button>
                                             </>
                                         )}
                                     </div>
@@ -1724,13 +1770,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- MODALS --- */}
       <QrCodeModal isOpen={!!qrProduct} onClose={() => setQrProduct(null)} product={qrProduct} />
-      <AddProductModal 
-        isOpen={!!editingProduct} 
-        onClose={() => setEditingProduct(null)} 
-        initialData={editingProduct}
-        onSuccess={() => { setEditingProduct(null); onRefresh(); }}
-        rates={rates} 
-      />
       
       {/* RESET CONFIRMATION */}
       {showResetConfirm && (
@@ -1856,95 +1895,282 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
               </div>
 
-              {/* Panel Content */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+              {/* Panel Content — scrollable */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {/* Image */}
                 {panelProduct.imageUrl && (
-                  <div className="rounded-lg overflow-hidden border border-tea-border">
+                  <div className="border-b border-tea-border">
                     <img src={panelProduct.imageUrl} alt={panelProduct.productName} className="w-full h-40 object-cover" />
                   </div>
                 )}
 
-                {/* Fields */}
-                {(inventoryCategory === 'teaware' ? [
-                  { label: 'Category', field: 'teawareCategory' as const, value: panelProduct.teawareCategory || '', editable: true },
-                  { label: 'Material', field: 'material' as const, value: panelProduct.material || '', editable: true },
-                  { label: 'Capacity', field: 'capacityMl' as const, value: panelProduct.capacityMl || '', editable: true, type: 'number' as const },
-                  { label: 'Units', field: 'quantityUnits' as const, value: panelProduct.quantityUnits || '', editable: true, type: 'number' as const },
-                  { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, editable: true, type: 'number' as const },
-                  { label: 'Retail', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, editable: true, type: 'number' as const },
-                  { label: 'Status', field: 'status' as const, value: panelProduct.status },
-                ] : [
-                  { label: 'Type', field: 'type' as const, value: panelProduct.type },
-                  { label: 'Year', field: 'year' as const, value: panelProduct.year || '', editable: true, type: 'number' as const },
-                  { label: 'Origin', field: 'originRegion' as const, value: panelProduct.originRegion, editable: true },
-                  { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '' },
-                  { label: 'Stock (g)', field: 'stockGrams' as const, value: panelProduct.stockGrams, editable: true, type: 'number' as const },
-                  { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, editable: true, type: 'number' as const },
-                  { label: 'Retail ($/g)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, editable: true, type: 'number' as const },
-                  { label: 'Status', field: 'status' as const, value: panelProduct.status },
-                ]).map(item => (
-                  <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                    <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] flex-shrink-0 w-20">{item.label}</span>
-                    {item.editable ? (
+                {/* Toggle pills */}
+                <div className="px-5 py-3 flex items-center gap-1.5 flex-wrap border-b border-tea-border">
+                  {([
+                    { field: 'isFeatured' as const, label: 'Featured', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} />, active: panelProduct.isFeatured },
+                    { field: 'isPublic' as const, label: 'Public', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
+                    { field: 'isCurated' as const, label: 'Curated', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
+                    { field: 'isPersonal' as const, label: 'Personal', icon: <User size={10} />, active: panelProduct.isPersonal },
+                    { field: 'canReorder' as const, label: 'Reorder', icon: <RefreshCw size={10} />, active: panelProduct.canReorder },
+                    { field: 'recheckStock' as const, label: 'Recheck', icon: <RefreshCw size={10} />, active: panelProduct.recheckStock, activeColor: 'amber' },
+                  ] as const).map(toggle => (
+                    <button
+                      key={toggle.field}
+                      onClick={() => {
+                        const newVal = !toggle.active;
+                        handleProductUpdate(panelProduct.id, toggle.field, newVal);
+                        setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
+                      }}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${
+                        toggle.active
+                          ? toggle.activeColor === 'amber'
+                            ? 'text-amber-400 border-amber-400/30 bg-amber-400/10'
+                            : 'text-tea-accent border-tea-accent/30 bg-tea-accent/10'
+                          : 'text-tea-text-sec/50 border-tea-border hover:border-tea-text-sec/50'
+                      }`}
+                    >
+                      {toggle.icon} {toggle.label}
+                    </button>
+                  ))}
+                  <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2 py-0.5 text-[9px] text-tea-text-sec/50 uppercase tracking-[0.12em] rounded-md border border-tea-border hover:border-tea-text-sec/50 transition-colors ml-auto">
+                    <QrCode size={10} /> QR
+                  </button>
+                </div>
+
+                {/* ── Identity ── */}
+                <div className="px-5 py-3 space-y-0 border-b border-tea-border">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Identity</div>
+                  {([
+                    { label: 'Name', field: 'productName' as const, value: panelProduct.productName, editable: true },
+                    { label: 'Given Name', field: 'givenName' as const, value: panelProduct.givenName || '', editable: true },
+                    { label: 'Chinese', field: 'chineseName' as const, value: panelProduct.chineseName || '', editable: true },
+                    ...(inventoryCategory === 'teaware' ? [
+                      { label: 'Category', field: 'teawareCategory' as const, value: panelProduct.teawareCategory || '', editable: true },
+                      { label: 'Material', field: 'material' as const, value: panelProduct.material || '', editable: true },
+                    ] : [
+                      { label: 'Type', field: 'type' as const, value: panelProduct.type, editable: true },
+                      { label: 'Form', field: 'form' as const, value: panelProduct.form || '', editable: true },
+                    ]),
+                    { label: 'Year', field: 'year' as const, value: panelProduct.year || '', editable: true, type: 'number' as const },
+                    { label: 'Status', field: 'status' as const, value: panelProduct.status, editable: true },
+                  ]).map(item => (
+                    <div key={item.field} className="flex items-center justify-between gap-4 py-1 border-b border-tea-border/30 last:border-0">
+                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                      {item.editable ? (
+                        <GhostInput
+                          value={item.value}
+                          onSave={(val) => {
+                            handleProductUpdate(panelProduct.id, item.field, val);
+                            setPanelProduct(prev => prev ? { ...prev, [item.field]: item.type === 'number' ? Number(val) : val } : null);
+                          }}
+                          type={item.type || 'text'}
+                          align="right"
+                          className="text-xs text-tea-text flex-1"
+                        />
+                      ) : (
+                        <span className="text-xs text-tea-text">{String(item.value || '-')}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Origin & Source ── */}
+                <div className="px-5 py-3 space-y-0 border-b border-tea-border">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Origin & Source</div>
+                  {[
+                    { label: 'Country', field: 'originCountry' as const, value: panelProduct.originCountry || '', editable: true },
+                    { label: 'Region', field: 'originRegion' as const, value: panelProduct.originRegion || '', editable: true },
+                    { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '', editable: true },
+                  ].map(item => (
+                    <div key={item.field} className="flex items-center justify-between gap-4 py-1 border-b border-tea-border/30 last:border-0">
+                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
                       <GhostInput
                         value={item.value}
                         onSave={(val) => {
                           handleProductUpdate(panelProduct.id, item.field, val);
-                          setPanelProduct(prev => prev ? { ...prev, [item.field]: item.type === 'number' ? Number(val) : val } : null);
+                          setPanelProduct(prev => prev ? { ...prev, [item.field]: String(val) } : null);
                         }}
-                        type={item.type || 'text'}
                         align="right"
                         className="text-xs text-tea-text flex-1"
                       />
-                    ) : (
-                      <span className="text-xs text-tea-text">{String(item.value || '-')}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Stock & Pricing ── */}
+                <div className="px-5 py-3 space-y-0 border-b border-tea-border">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Stock & Pricing</div>
+                  {(inventoryCategory === 'teaware' ? [
+                    { label: 'Units', field: 'quantityUnits' as const, value: panelProduct.quantityUnits || '', type: 'number' as const },
+                    { label: 'Capacity (ml)', field: 'capacityMl' as const, value: panelProduct.capacityMl || '', type: 'number' as const },
+                    { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
+                    { label: 'Retail ($)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
+                  ] : [
+                    { label: 'Stock (g)', field: 'stockGrams' as const, value: panelProduct.stockGrams, type: 'number' as const },
+                    { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
+                    { label: 'Retail ($/g)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
+                  ]).map(item => (
+                    <div key={item.field} className="flex items-center justify-between gap-4 py-1 border-b border-tea-border/30 last:border-0">
+                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                      <GhostInput
+                        value={item.value}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, item.field, val);
+                          setPanelProduct(prev => prev ? { ...prev, [item.field]: Number(val) } : null);
+                        }}
+                        type={item.type}
+                        align="right"
+                        className="text-xs text-tea-text tabular-nums flex-1"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Image URL ── */}
+                <div className="px-5 py-3 border-b border-tea-border">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Image</div>
+                  <GhostInput
+                    value={panelProduct.imageUrl || ''}
+                    placeholder="Image URL..."
+                    onSave={(val) => {
+                      handleProductUpdate(panelProduct.id, 'imageUrl', val);
+                      setPanelProduct(prev => prev ? { ...prev, imageUrl: String(val) } : null);
+                    }}
+                    className="text-xs text-tea-text/70"
+                  />
+                </div>
+
+                {/* ── Description ── */}
+                <div className="px-5 py-3 border-b border-tea-border">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Description</div>
+                  <GhostTextarea
+                    value={panelProduct.description || ''}
+                    placeholder="Product description..."
+                    rows={2}
+                    onSave={(val) => {
+                      handleProductUpdate(panelProduct.id, 'description', val);
+                      setPanelProduct(prev => prev ? { ...prev, description: val } : null);
+                    }}
+                    className="text-tea-text/80"
+                  />
+                </div>
+
+                {/* ── Wisdom & Sensory ── */}
+                <div className="px-5 py-3 border-b border-tea-border space-y-3">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em]">Wisdom & Sensory</div>
+
+                  <div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Experience</div>
+                    <GhostTextarea
+                      value={panelProduct.experience || ''}
+                      placeholder="The experience of this tea..."
+                      rows={2}
+                      onSave={(val) => {
+                        handleProductUpdate(panelProduct.id, 'experience', val);
+                        setPanelProduct(prev => prev ? { ...prev, experience: val } : null);
+                      }}
+                      className="text-tea-text/80 font-serif"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Mood</div>
+                    <GhostInput
+                      value={panelProduct.mood || ''}
+                      placeholder="e.g. Grounding & Meditative"
+                      onSave={(val) => {
+                        handleProductUpdate(panelProduct.id, 'mood', val);
+                        setPanelProduct(prev => prev ? { ...prev, mood: String(val) } : null);
+                      }}
+                      className="text-xs text-tea-text/80"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Tasting Notes</div>
+                    <GhostInput
+                      value={(panelProduct.tastingNotes || []).join(', ')}
+                      placeholder="e.g. earthy sweetness, smooth wood, light cooling"
+                      onSave={(val) => {
+                        const notes = String(val).split(',').map((s: string) => s.trim()).filter(Boolean);
+                        handleProductUpdate(panelProduct.id, 'tastingNotes', notes);
+                        setPanelProduct(prev => prev ? { ...prev, tastingNotes: notes } : null);
+                      }}
+                      className="text-xs text-tea-text/80"
+                    />
+                    {panelProduct.tastingNotes && panelProduct.tastingNotes.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {panelProduct.tastingNotes.map(note => (
+                          <span key={note} className="text-[10px] text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border">{note}</span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                ))}
 
-                {/* Lore */}
-                {panelProduct.lore && (
-                  <div className="mt-4">
-                    <div className="text-[10px] text-tea-text-sec/60 uppercase tracking-[0.2em] mb-1.5">Lore</div>
-                    <p className="text-xs text-tea-text/70 font-serif italic leading-relaxed whitespace-pre-line">{panelProduct.lore}</p>
-                  </div>
-                )}
-
-                {/* Tasting Notes */}
-                {panelProduct.tastingNotes && panelProduct.tastingNotes.length > 0 && (
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/60 uppercase tracking-[0.2em] mb-1.5">Tasting Notes</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {panelProduct.tastingNotes.map(note => (
-                        <span key={note} className="text-[10px] text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border">{note}</span>
-                      ))}
-                    </div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Terroir</div>
+                    <GhostTextarea
+                      value={panelProduct.terroir || ''}
+                      placeholder="Soil, altitude, climate..."
+                      rows={2}
+                      onSave={(val) => {
+                        handleProductUpdate(panelProduct.id, 'terroir', val);
+                        setPanelProduct(prev => prev ? { ...prev, terroir: val } : null);
+                      }}
+                      className="text-tea-text/70 font-serif"
+                    />
                   </div>
-                )}
-              </div>
 
-              {/* Panel Quick Actions */}
-              <div className="px-5 py-3 border-t border-tea-border flex items-center gap-2 flex-wrap bg-tea-surface/30">
-                <button
-                  onClick={() => { handleProductUpdate(panelProduct.id, 'isFeatured', !panelProduct.isFeatured); setPanelProduct(prev => prev ? { ...prev, isFeatured: !prev.isFeatured } : null); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isFeatured ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec'}`}
-                ><Star size={11} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} /> Featured</button>
-                <button
-                  onClick={() => { handleProductUpdate(panelProduct.id, 'isPublic', !panelProduct.isPublic); setPanelProduct(prev => prev ? { ...prev, isPublic: !prev.isPublic } : null); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.isPublic ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec'}`}
-                >{panelProduct.isPublic ? <Eye size={11} /> : <EyeOff size={11} />} Public</button>
-                <button
-                  onClick={() => { handleProductUpdate(panelProduct.id, 'recheckStock', !panelProduct.recheckStock); setPanelProduct(prev => prev ? { ...prev, recheckStock: !prev.recheckStock } : null); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md border transition-colors ${panelProduct.recheckStock ? 'text-amber-400 border-amber-400/30 bg-amber-400/10' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec'}`}
-                ><RefreshCw size={11} /> Recheck</button>
-                <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2.5 py-1 text-[10px] text-tea-text-sec uppercase tracking-[0.15em] rounded-md border border-tea-border hover:border-tea-text-sec transition-colors">
-                  <QrCode size={11} /> QR
-                </button>
-                <button
-                  onClick={() => { setEditingProduct(panelProduct); }}
-                  className="ml-auto flex items-center gap-1 px-3 py-1 text-[10px] uppercase tracking-[0.15em] bg-tea-accent/10 border border-tea-accent/30 text-tea-accent rounded-md hover:bg-tea-accent/20 transition-colors"
-                ><Pencil size={11} /> Edit Full</button>
+                  <div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Processing Notes</div>
+                    <GhostTextarea
+                      value={panelProduct.processingNotes || ''}
+                      placeholder="Craft, processing method..."
+                      rows={2}
+                      onSave={(val) => {
+                        handleProductUpdate(panelProduct.id, 'processingNotes', val);
+                        setPanelProduct(prev => prev ? { ...prev, processingNotes: val } : null);
+                      }}
+                      className="text-tea-text/70"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Lore / History</div>
+                    <GhostTextarea
+                      value={panelProduct.lore || ''}
+                      placeholder="History, story, or lore..."
+                      rows={3}
+                      onSave={(val) => {
+                        handleProductUpdate(panelProduct.id, 'lore', val);
+                        setPanelProduct(prev => prev ? { ...prev, lore: val } : null);
+                      }}
+                      className="text-tea-text/70 font-serif italic"
+                    />
+                  </div>
+
+                  {/* Wisdom toggle */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      onClick={() => {
+                        handleProductUpdate(panelProduct.id, 'showWisdom', !panelProduct.showWisdom);
+                        setPanelProduct(prev => prev ? { ...prev, showWisdom: !prev.showWisdom } : null);
+                      }}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.showWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec/50 border-tea-border'}`}
+                    >
+                      <Sparkles size={10} /> Show Wisdom
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleProductUpdate(panelProduct.id, 'isCustomWisdom', !panelProduct.isCustomWisdom);
+                        setPanelProduct(prev => prev ? { ...prev, isCustomWisdom: !prev.isCustomWisdom } : null);
+                      }}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.isCustomWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec/50 border-tea-border'}`}
+                    >
+                      <Pencil size={10} /> Custom
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
             {/* Mobile backdrop */}
