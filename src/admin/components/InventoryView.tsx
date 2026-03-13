@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
 import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
+import { calculatePricing } from '../utils';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
 import { useRates } from '../hooks/useAdminData';
@@ -1954,7 +1955,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     { label: 'Year', field: 'year' as const, value: panelProduct.year || '', editable: true, type: 'number' as const },
                     { label: 'Status', field: 'status' as const, value: panelProduct.status, editable: true },
                   ]).map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-4 py-1 border-b border-tea-border/30 last:border-0">
+                    <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border last:border-0">
                       <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
                       {item.editable ? (
                         <GhostInput
@@ -1982,7 +1983,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     { label: 'Region', field: 'originRegion' as const, value: panelProduct.originRegion || '', editable: true },
                     { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '', editable: true },
                   ].map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-4 py-1 border-b border-tea-border/30 last:border-0">
+                    <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border last:border-0">
                       <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
                       <GhostInput
                         value={item.value}
@@ -1997,33 +1998,104 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   ))}
                 </div>
 
-                {/* ── Stock & Pricing ── */}
-                <div className="px-5 py-3 space-y-0 border-b border-tea-border">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Stock & Pricing</div>
-                  {(inventoryCategory === 'teaware' ? [
-                    { label: 'Units', field: 'quantityUnits' as const, value: panelProduct.quantityUnits || '', type: 'number' as const },
-                    { label: 'Capacity (ml)', field: 'capacityMl' as const, value: panelProduct.capacityMl || '', type: 'number' as const },
-                    { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
-                    { label: 'Retail ($)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
-                  ] : [
-                    { label: 'Stock (g)', field: 'stockGrams' as const, value: panelProduct.stockGrams, type: 'number' as const },
-                    { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
-                    { label: 'Retail ($/g)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
-                  ]).map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-4 py-1 border-b border-tea-border/30 last:border-0">
-                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
-                      <GhostInput
-                        value={item.value}
-                        onSave={(val) => {
-                          handleProductUpdate(panelProduct.id, item.field, val);
-                          setPanelProduct(prev => prev ? { ...prev, [item.field]: Number(val) } : null);
-                        }}
-                        type={item.type}
-                        align="right"
-                        className="text-xs text-tea-text tabular-nums flex-1"
-                      />
+                {/* ── Stock & Pricing (with calculator) ── */}
+                <div className="px-5 py-3 border-b border-tea-border">
+                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-3">Stock & Pricing</div>
+
+                  {inventoryCategory === 'teaware' ? (
+                    <div className="space-y-0">
+                      {[
+                        { label: 'Units', field: 'quantityUnits' as const, value: panelProduct.quantityUnits || '', type: 'number' as const },
+                        { label: 'Capacity (ml)', field: 'capacityMl' as const, value: panelProduct.capacityMl || '', type: 'number' as const },
+                        { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
+                        { label: 'Retail ($)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
+                      ].map(item => (
+                        <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border last:border-0">
+                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                          <GhostInput
+                            value={item.value}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, item.field, val);
+                              setPanelProduct(prev => prev ? { ...prev, [item.field]: Number(val) } : null);
+                            }}
+                            type={item.type}
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (() => {
+                    const calc = calculatePricing(
+                      panelProduct.costAmount || 0,
+                      panelProduct.shippingRatePerKg || 0,
+                      panelProduct.quantityPurchased || 0,
+                      panelProduct.costCurrency || 'USD',
+                      rates,
+                      false
+                    );
+                    return (
+                      <div className="space-y-0">
+                        {/* Editable fields */}
+                        {[
+                          { label: 'Batch Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const, suffix: panelProduct.costCurrency || 'USD' },
+                          { label: 'Weight (g)', field: 'stockGrams' as const, value: panelProduct.stockGrams, type: 'number' as const },
+                        ].map(item => (
+                          <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
+                            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">{item.label}</span>
+                            <div className="flex items-center gap-1.5 flex-1 justify-end">
+                              <GhostInput
+                                value={item.value}
+                                onSave={(val) => {
+                                  handleProductUpdate(panelProduct.id, item.field, val);
+                                  setPanelProduct(prev => prev ? { ...prev, [item.field]: Number(val) } : null);
+                                }}
+                                type={item.type}
+                                align="right"
+                                className="text-xs text-tea-text tabular-nums flex-1"
+                              />
+                              {item.suffix && <span className="text-[9px] text-tea-text-sec uppercase">{item.suffix}</span>}
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Calculated values (read-only) */}
+                        <div className="py-2 space-y-1">
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-tea-text-sec/60">Source Cost/g</span>
+                            <span className="text-tea-text-sec tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-tea-text-sec/60">Exchange Rate</span>
+                            <span className="text-tea-text-sec tabular-nums">{calc.rateUsed}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-tea-text-sec/60">True Cost (USD)</span>
+                            <span className="text-tea-gold tabular-nums font-medium">${calc.trueCostUSD.toFixed(3)}/g</span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-tea-text-sec/60">3x Markup</span>
+                            <span className="text-tea-text-sec tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
+                          </div>
+                        </div>
+
+                        {/* Retail override */}
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-t border-tea-border">
+                          <span className="text-[10px] text-tea-gold uppercase tracking-[0.12em] flex-shrink-0 w-24 font-medium">Retail ($/g)</span>
+                          <GhostInput
+                            value={panelProduct.pricePerGramUSD}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'pricePerGramUSD', val);
+                              setPanelProduct(prev => prev ? { ...prev, pricePerGramUSD: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* ── Image URL ── */}
@@ -2046,7 +2118,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <GhostTextarea
                     value={panelProduct.description || ''}
                     placeholder="Product description..."
-                    rows={2}
+                    rows={4}
                     onSave={(val) => {
                       handleProductUpdate(panelProduct.id, 'description', val);
                       setPanelProduct(prev => prev ? { ...prev, description: val } : null);
@@ -2056,15 +2128,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
 
                 {/* ── Wisdom & Sensory ── */}
-                <div className="px-5 py-3 border-b border-tea-border space-y-3">
+                <div className="px-5 py-3 border-b border-tea-border space-y-4">
                   <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em]">Wisdom & Sensory</div>
 
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Experience</div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Experience</div>
                     <GhostTextarea
                       value={panelProduct.experience || ''}
                       placeholder="The experience of this tea..."
-                      rows={2}
+                      rows={4}
                       onSave={(val) => {
                         handleProductUpdate(panelProduct.id, 'experience', val);
                         setPanelProduct(prev => prev ? { ...prev, experience: val } : null);
@@ -2074,7 +2146,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Mood</div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Mood</div>
                     <GhostInput
                       value={panelProduct.mood || ''}
                       placeholder="e.g. Grounding & Meditative"
@@ -2087,7 +2159,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Tasting Notes</div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Tasting Notes</div>
                     <GhostInput
                       value={(panelProduct.tastingNotes || []).join(', ')}
                       placeholder="e.g. earthy sweetness, smooth wood, light cooling"
@@ -2108,11 +2180,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Terroir</div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Terroir</div>
                     <GhostTextarea
                       value={panelProduct.terroir || ''}
                       placeholder="Soil, altitude, climate..."
-                      rows={2}
+                      rows={4}
                       onSave={(val) => {
                         handleProductUpdate(panelProduct.id, 'terroir', val);
                         setPanelProduct(prev => prev ? { ...prev, terroir: val } : null);
@@ -2122,11 +2194,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Processing Notes</div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Processing Notes</div>
                     <GhostTextarea
                       value={panelProduct.processingNotes || ''}
                       placeholder="Craft, processing method..."
-                      rows={2}
+                      rows={4}
                       onSave={(val) => {
                         handleProductUpdate(panelProduct.id, 'processingNotes', val);
                         setPanelProduct(prev => prev ? { ...prev, processingNotes: val } : null);
@@ -2136,11 +2208,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1">Lore / History</div>
+                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Lore / History</div>
                     <GhostTextarea
                       value={panelProduct.lore || ''}
                       placeholder="History, story, or lore..."
-                      rows={3}
+                      rows={5}
                       onSave={(val) => {
                         handleProductUpdate(panelProduct.id, 'lore', val);
                         setPanelProduct(prev => prev ? { ...prev, lore: val } : null);
@@ -2149,7 +2221,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     />
                   </div>
 
-                  {/* Wisdom toggle */}
+                  {/* Wisdom toggles */}
                   <div className="flex items-center gap-3 pt-1">
                     <button
                       onClick={() => {
