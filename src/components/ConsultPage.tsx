@@ -193,7 +193,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
             Twenty years of practice across Taiwan, China, and Bali — distilled into services for those
             who take tea seriously.
           </p>
-          <div className="w-12 h-[1px] bg-tea-gold mt-6 mb-8 md:mb-10" />
+          <div className="w-12 h-px bg-tea-gold/30 mt-6 mb-8 md:mb-10" />
         </div>
 
         {/* Service Directory */}
@@ -355,10 +355,11 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
   const projects = consultProjects.filter(p => p.featured).slice(0, 3);
 
   return (
-    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 border-t border-tea-border ${reveal.className}`} style={reveal.style}>
+    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 ${reveal.className}`} style={reveal.style}>
+      <div className="divider-warm mb-10" />
       <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-2">Portfolio</p>
       <h3 className="font-serif text-2xl md:text-3xl font-normal text-tea-text">Projects</h3>
-      <div className="w-12 h-[1px] bg-tea-gold mt-3 mb-8" />
+      <div className="w-12 h-[1px] bg-tea-gold/30 mt-3 mb-8" />
 
       {/* Mobile carousel */}
       <div className="md:hidden mb-8">
@@ -426,17 +427,20 @@ const SingleTestimonial: React.FC = () => {
   });
 
   return (
-    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 text-center border-t border-tea-border ${reveal.className}`} style={reveal.style}>
-      <div className="relative max-w-[640px] mx-auto">
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 font-serif text-6xl text-tea-gold/20 select-none pointer-events-none">
-          &ldquo;
-        </span>
-        <p className="font-serif text-lg md:text-xl italic text-tea-text leading-relaxed">
-          {testimonial.quote}
-        </p>
-        <div className="mt-4">
-          <p className="text-xs uppercase tracking-wider text-tea-text/50">{testimonial.name}</p>
-          <p className="text-xs text-tea-text/40">{testimonial.title}</p>
+    <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 ${reveal.className}`} style={reveal.style}>
+      <div className="divider-warm mb-10" />
+      <div className="inset-panel p-8 md:p-12 text-center">
+        <div className="relative max-w-[640px] mx-auto">
+          <span className="font-serif text-5xl text-tea-gold/20 select-none pointer-events-none leading-none block mb-2">
+            &ldquo;
+          </span>
+          <p className="font-serif text-lg md:text-xl italic text-tea-text leading-relaxed">
+            {testimonial.quote}
+          </p>
+          <div className="mt-6">
+            <p className="text-xs uppercase tracking-wider text-tea-text/50">{testimonial.name}</p>
+            <p className="text-xs text-tea-text/40 mt-0.5">{testimonial.title}</p>
+          </div>
         </div>
       </div>
     </section>
@@ -455,15 +459,17 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => {
   const reveal = useSectionReveal();
   return (
     <section ref={reveal.ref}
-      className={`border-t border-tea-border mt-12 md:mt-16 pt-12 md:pt-16 pb-24 md:pb-32 text-center ${reveal.className}`}
+      className={`mt-12 md:mt-16 pb-24 md:pb-32 ${reveal.className}`}
       style={reveal.style}>
-      <h3 className="font-serif text-2xl md:text-3xl font-light text-tea-text">
-        Every project begins with a conversation.
-      </h3>
-      <div className="w-12 h-[1px] bg-tea-gold mx-auto mt-4 mb-8" />
-      <Button onClick={onOpenInquiry} variant="primary" size="lg" icon={<Icons.ChevronRight className="w-3.5 h-3.5" />} className="mx-auto uppercase tracking-[0.15em] text-xs">
-        Start a Conversation
-      </Button>
+      <div className="inset-panel p-8 md:p-12 text-center">
+        <h3 className="font-serif text-2xl md:text-3xl font-light text-tea-text">
+          Every project begins with a conversation.
+        </h3>
+        <div className="w-12 h-[1px] bg-tea-gold mx-auto mt-4 mb-8" />
+        <Button onClick={onOpenInquiry} variant="primary" size="lg" icon={<Icons.ChevronRight className="w-3.5 h-3.5" />} className="mx-auto uppercase tracking-[0.15em] text-xs">
+          Start a Conversation
+        </Button>
+      </div>
     </section>
   );
 };

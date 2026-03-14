@@ -179,11 +179,11 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="w-8 h-[1px] bg-tea-gold/30 mb-3" />
         <div className="flex flex-wrap items-center gap-2 text-xs text-tea-text/35 font-sans">
           <span>Magazine</span>
-          <span className="w-1 h-1 rounded-full bg-tea-text/20/20" />
+          <span className="w-1 h-1 rounded-full bg-tea-text/20" />
           <span>Courses</span>
-          <span className="w-1 h-1 rounded-full bg-tea-text/20/20" />
+          <span className="w-1 h-1 rounded-full bg-tea-text/20" />
           <span>Shop</span>
-          <span className="w-1 h-1 rounded-full bg-tea-text/20/20" />
+          <span className="w-1 h-1 rounded-full bg-tea-text/20" />
           <span>Space Design</span>
         </div>
       </section>
@@ -241,7 +241,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {pullQuote && (
         <section
           ref={quoteReveal.ref}
-          className={`${SECTION_GAP} border-l-2 border-tea-gold/60 pl-6 md:pl-8 py-6 md:py-8 bg-tea-gold/[0.03] ${quoteReveal.className}`}
+          className={`${SECTION_GAP} border-l-2 border-tea-gold/60 pl-6 md:pl-8 py-6 md:py-8 bg-tea-gold/5 ${quoteReveal.className}`}
           style={quoteReveal.style}
         >
           <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3" style={{ fontFamily: "var(--font-display)" }}>
@@ -314,7 +314,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           <div className="flex gap-5 md:gap-8 items-start relative inset-panel p-4 md:p-6">
-            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 var(--tea-accent-sub)' }}>
+            <CardContainer variant="dark" className="w-32 md:w-48 lg:w-56 flex-shrink-0 overflow-hidden" style={{ boxShadow: '0 4px 16px var(--tea-border), inset 0 1px 0 var(--tea-accent-sub)' }}>
               <div className="aspect-square overflow-hidden">
                 <img
                   src={curatedTea.image}
@@ -347,7 +347,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               {isAdmin && productMap.has(curatedTea.id) && (() => {
                 const ap = productMap.get(curatedTea.id)!;
                 return (
-                  <div className="flex items-center gap-3 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-tea-border">
                     <button
                       onClick={() => updateProduct(curatedTea.id, { is_featured: !ap.isFeatured })}
                       className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest transition-colors ${ap.isFeatured ? 'text-tea-gold' : 'text-tea-text/30 hover:text-tea-text/60'}`}
@@ -380,28 +380,28 @@ export const HomePage: React.FC<HomePageProps> = ({
           ============================================ */}
       <section
         ref={consultReveal.ref}
-        className={`${SECTION_GAP} py-6 md:py-10 ${consultReveal.className}`}
+        className={`${SECTION_GAP} ${consultReveal.className}`}
         style={consultReveal.style}
       >
-        <div className="divider-warm mb-6 md:mb-10" />
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-2">
-              Design &amp; Curation
-            </p>
-            <p className="text-lg md:text-xl text-tea-text" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>
-              We design tea spaces — from a quiet corner to a full room
-            </p>
+        <div className="inset-panel p-6 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-2">
+                Design &amp; Curation
+              </p>
+              <p className="text-lg md:text-xl text-tea-text" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>
+                We design tea spaces — from a quiet corner to a full room
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateToSection('OFFERINGS')}
+              className="text-tea-gold-dark hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
+            >
+              Learn more
+              <Icons.ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <button
-            onClick={() => onNavigateToSection('OFFERINGS')}
-            className="text-tea-gold-dark hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 flex-shrink-0"
-          >
-            Learn more
-            <Icons.ChevronRight className="w-3.5 h-3.5" />
-          </button>
         </div>
-        <div className="divider-warm mt-6 md:mt-10" />
       </section>
 
       {/* ============================================
@@ -412,10 +412,12 @@ export const HomePage: React.FC<HomePageProps> = ({
         className={`${SECTION_GAP} ${connectReveal.className}`}
         style={connectReveal.style}
       >
-        <EmailCapture
-          heading="Get the next story first"
-          subtitle="New writing, seasonal teas, and course updates — delivered when there's something worth sharing."
-        />
+        <div className="inset-panel p-6 md:p-10">
+          <EmailCapture
+            heading="Get the next story first"
+            subtitle="New writing, seasonal teas, and course updates — delivered when there's something worth sharing."
+          />
+        </div>
       </section>
 
     </div>
