@@ -209,7 +209,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       <div className="flex flex-col h-full bg-tea-bg overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-tea-border bg-tea-surface/50">
           <h2 className="text-xl font-serif text-tea-text tracking-wide">Order Submitted</h2>
-          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border">
+          <button onClick={onClose} className="nav-control p-1.5">
             <X size={18} />
           </button>
         </div>
@@ -314,7 +314,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </button>
           )}
           <button onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text bg-tea-surface hover:bg-tea-surface/80 rounded-full p-1.5 transition-colors border border-tea-border">
+            className="nav-control p-1.5">
             <X size={18} />
           </button>
         </div>

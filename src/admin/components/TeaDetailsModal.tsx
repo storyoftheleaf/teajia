@@ -110,7 +110,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         <button
           onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
           disabled={!onPrev}
-          className={`hidden md:flex absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-modal p-3 text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border ${!onPrev ? 'opacity-20 cursor-default' : 'hover:text-tea-text-sec'}`}
+          className={`hidden md:flex absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg`}
         >
           <ChevronLeft size={32} />
         </button>
@@ -141,7 +141,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
           />
           {/* Close button */}
           <button
-            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
+            className="absolute top-2 right-2 z-10 nav-control nav-control-close"
             onClick={onClose}
             aria-label="Close"
           >
@@ -159,7 +159,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             <button
               onClick={() => onPrev?.()}
               disabled={!onPrev}
-              className={`w-8 h-8 flex items-center justify-center rounded-full bg-tea-surface/60 border border-tea-border transition-all ${!onPrev ? 'opacity-30 cursor-default' : 'hover:bg-tea-surface/80 text-tea-text-sec'}`}
+              className="nav-control nav-control-sm"
               aria-label="Previous tea"
             >
               <ChevronLeft size={18} />
@@ -170,7 +170,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             <button
               onClick={() => onNext?.()}
               disabled={!onNext}
-              className={`w-8 h-8 flex items-center justify-center rounded-full bg-tea-surface/60 border border-tea-border transition-all ${!onNext ? 'opacity-30 cursor-default' : 'hover:bg-tea-surface/80 text-tea-text-sec'}`}
+              className="nav-control nav-control-sm"
               aria-label="Next tea"
             >
               <ChevronRight size={18} />
@@ -184,7 +184,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         <button
           onClick={(e) => { e.stopPropagation(); onNext?.(); }}
           disabled={!onNext}
-          className={`hidden md:flex absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-modal p-3 text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border ${!onNext ? 'opacity-20 cursor-default' : 'hover:text-tea-text-sec'}`}
+          className={`hidden md:flex absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg`}
         >
           <ChevronRight size={32} />
         </button>
