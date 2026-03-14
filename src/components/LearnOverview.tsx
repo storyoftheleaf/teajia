@@ -204,13 +204,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         <div>
           {[
             { id: 'course' as LearnView, label: 'Go Deeper', sub: 'Structured lessons from leaf to cup', icon: <Icons.BookOpen className="w-5 h-5" />, iconColor: 'text-tea-gold/50' },
-            { id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-amber-600/40' },
+            { id: 'glossary' as LearnView, label: 'Glossary', sub: 'The language of tea, demystified', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
-            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-amber-500/35' },
-            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-amber-700/40' },
+            { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
+            { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & articles', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
-            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-amber-600/35' },
-            { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" />, iconColor: 'text-amber-500/40' },
+            { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
+            { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
           ].map(tile => (
             <button
               key={tile.id}
@@ -293,7 +293,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <div className="relative overflow-hidden">
               {/* Atmospheric gradient — subtle warmth from bottom-left */}
               <div className="absolute inset-0 pointer-events-none" style={{
-                backgroundImage: `radial-gradient(ellipse at 0% 100%, rgba(201,148,58,0.06) 0%, transparent 60%)`
+                backgroundImage: `radial-gradient(ellipse at 0% 100%, var(--tea-accent-sub) 0%, transparent 60%)`
               }} />
 
               <div className="relative p-7 md:p-10 lg:p-12">
@@ -558,30 +558,31 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         className={`${closingReveal.className}`}
         style={closingReveal.style}
       >
-        {/* Thin gold rule to close the content */}
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-tea-gold/20 to-transparent mb-10" />
+        <div className="divider-warm mb-10" />
 
-        <div className="text-center max-w-sm mx-auto pb-10">
-          <p className="font-serif text-[17px] text-tea-text/40 leading-[1.85] mb-5">
-            This archive grows with every session, every conversation, every cup.
-          </p>
-          {onNavigateToConsult ? (
-            <button
-              onClick={onNavigateToConsult}
-              className={`inline-flex items-center gap-1.5 text-tea-gold text-[13px] font-sans tracking-[0.08em] hover:gap-2.5 transition-all ${CTA_FOCUS}`}
-            >
-              Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            <span className="text-tea-gold/50 text-[13px] font-sans">reach out</span>
-          )}
+        <div className="inset-panel p-8 md:p-12">
+          <div className="text-center max-w-sm mx-auto">
+            <p className="font-serif text-[17px] text-tea-text/40 leading-[1.85] mb-5">
+              This archive grows with every session, every conversation, every cup.
+            </p>
+            {onNavigateToConsult ? (
+              <button
+                onClick={onNavigateToConsult}
+                className={`inline-flex items-center gap-1.5 text-tea-gold text-[13px] font-sans tracking-[0.08em] hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+              >
+                Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <span className="text-tea-gold/50 text-[13px] font-sans">reach out</span>
+            )}
 
-          <div className="mt-8 flex items-center justify-center gap-2.5">
-            <div className="w-6 h-px bg-tea-gold/15" />
-            <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/15">
-              Teajia
-            </span>
-            <div className="w-6 h-px bg-tea-gold/15" />
+            <div className="mt-8 flex items-center justify-center gap-2.5">
+              <div className="w-6 h-px bg-tea-gold/15" />
+              <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/15">
+                Teajia
+              </span>
+              <div className="w-6 h-px bg-tea-gold/15" />
+            </div>
           </div>
         </div>
       </section>
