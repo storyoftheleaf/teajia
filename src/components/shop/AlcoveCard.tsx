@@ -140,11 +140,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   // Derive display values from InventoryItem
   const productName = item.variant || item.name;
   const givenName = item.variant !== item.name ? item.name : '';
-  const chineseCharacters = item.chineseName || '';
+  // Strip numbers and latin characters — only show actual CJK characters
+  const chineseCharacters = (item.chineseName || '').replace(/[0-9A-Za-z\s]/g, '');
   const teaType = item.type;
   const origin = item.origin;
   const vintage = item.year;
-  const mainStory = item.lore || item.description || '';
+  const mainStory = item.lore || '';
+  const introduction = item.description || '';
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
   const notes = item.tags || [];
@@ -272,37 +274,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           position: "relative",
         }}>
             <>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-                <h1 style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-                  margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
-                  flex: 1, minWidth: 0,
-                }}>
-                  {productName}
-                </h1>
-                {isAdmin && onEdit && (
-                  <button
-                    onClick={() => onEdit(item)}
-                    style={{
-                      width: "28px", height: "28px", flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "var(--tea-surface)", border: "1px solid var(--tea-border)",
-                      borderRadius: "50%", cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      marginTop: "2px",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--tea-elevated)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--tea-surface)"; }}
-                    title="Edit Product"
-                  >
-                    <Pencil size={12} style={{ color: "var(--tea-text-sec)" }} />
-                  </button>
-                )}
-              </div>
+              <h1 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
+                margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+              }}>
+                {productName}
+              </h1>
               <p style={{
                   fontFamily: "var(--font-display)",
                   fontSize: "18px", fontStyle: "italic", fontWeight: 300,
+                  lineHeight: 1.3,
                   color: alcoveColors.subtitle, margin: "0",
                   minHeight: "22px",
                   visibility: givenName ? "visible" : "hidden",
@@ -310,17 +292,38 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   {givenName || '\u00A0'}
                 </p>
               {/* Tea type · origin · year — pinned in identity zone */}
-              <p style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "10px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-gold)",
-                margin: "6px 0 0 0", lineHeight: 1,
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                margin: "6px 0 0 0",
               }}>
-                {teaType}
-                {origin && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>{origin}</>}
-                {vintage && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>{vintage}</>}
-              </p>
+                <p style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "10px", fontWeight: 400,
+                  textTransform: "uppercase", letterSpacing: "0.12em",
+                  color: "var(--tea-gold)",
+                  margin: 0, lineHeight: 1,
+                }}>
+                  {teaType}
+                  {origin && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>{origin}</>}
+                  {vintage && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>{vintage}</>}
+                </p>
+                {isAdmin && onEdit && (
+                  <button
+                    onClick={() => onEdit(item)}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      padding: "2px 4px",
+                      display: "flex", alignItems: "center", gap: "4px",
+                      opacity: 0.5, transition: "opacity 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.5"; }}
+                    title="Edit Product"
+                  >
+                    <Pencil size={11} style={{ color: "var(--tea-text-sec)" }} />
+                  </button>
+                )}
+              </div>
             </>
         </div>
       </div>
@@ -333,39 +336,49 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         minHeight: 0,
       }}>
 
-        {/* === VISUAL ZONE — images, no panel treatment === */}
+        {/* === VISUAL ZONE — compact image strip, click to expand fullscreen === */}
+        {allImages.length > 0 && (
         <div style={{
           animation: "panelReveal 0.5s ease-out",
+          padding: "10px 10px 0",
+          flexShrink: 0,
         }}>
-          {/* Tea images — full-width, bleeds to edges */}
-          <div style={{
-            padding: "10px 10px 0",
-            flexShrink: 0,
-          }}>
+          {allImages.length === 1 ? (
+            /* Single image: wide banner, max 160px tall */
+            <div
+              onClick={() => { setExpandedImageUrl(allImages[0]); setImageExpanded(true); }}
+              style={{
+                width: "100%", height: "160px",
+                borderRadius: "4px", overflow: "hidden",
+                cursor: "pointer",
+              }}
+            >
+              <img src={allImages[0]} alt="" style={{
+                width: "100%", height: "100%", objectFit: "cover",
+                opacity: 0.9, transition: "opacity 0.3s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+              />
+            </div>
+          ) : (
+            /* 2-3 images: row of square thumbnails, ~100px tall */
             <div style={{
-              display: "flex",
+              display: "flex", gap: "4px",
               justifyContent: "center",
             }}>
-              {allImages.length === 0 && (
-                <div style={{
-                  width: "100%", aspectRatio: "3/2",
-                  borderRadius: "4px", overflow: "hidden",
-                  background: "var(--tea-accent-sub)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <TeaPlaceholder type={teaType} style={{ width: "60%", height: "60%", opacity: 0.5 }} />
-                </div>
-              )}
-              {allImages.length === 1 && (
+              {allImages.map((img, i) => (
                 <div
-                  onClick={() => { setExpandedImageUrl(allImages[0]); setImageExpanded(true); }}
+                  key={i}
+                  onClick={() => { setExpandedImageUrl(img); setImageExpanded(true); }}
                   style={{
-                    width: "100%", aspectRatio: "3/2",
+                    width: "100px", height: "100px",
                     borderRadius: "4px", overflow: "hidden",
                     cursor: "pointer",
+                    flexShrink: 0,
                   }}
                 >
-                  <img src={allImages[0]} alt="" style={{
+                  <img src={img} alt="" style={{
                     width: "100%", height: "100%", objectFit: "cover",
                     opacity: 0.9, transition: "opacity 0.3s ease",
                   }}
@@ -373,81 +386,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
                   />
                 </div>
-              )}
-              {allImages.length === 2 && (
-                <div style={{
-                  display: "flex", gap: "4px",
-                  width: "100%",
-                }}>
-                  {allImages.slice(0, 2).map((img, i) => (
-                    <div
-                      key={i}
-                      onClick={() => { setExpandedImageUrl(img); setImageExpanded(true); }}
-                      style={{
-                        flex: 1, aspectRatio: "1/1",
-                        borderRadius: "4px", overflow: "hidden",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <img src={img} alt="" style={{
-                        width: "100%", height: "100%", objectFit: "cover",
-                        opacity: 0.9, transition: "opacity 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {allImages.length >= 3 && (
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.2fr 1fr",
-                  gridTemplateRows: "1fr 1fr",
-                  gap: "4px",
-                  width: "100%",
-                  aspectRatio: "3/2",
-                }}>
-                  <div
-                    onClick={() => { setExpandedImageUrl(allImages[0]); setImageExpanded(true); }}
-                    style={{
-                      gridRow: "1 / 3",
-                      borderRadius: "4px", overflow: "hidden",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <img src={allImages[0]} alt="" style={{
-                      width: "100%", height: "100%", objectFit: "cover",
-                      opacity: 0.9, transition: "opacity 0.3s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                    />
-                  </div>
-                  {allImages.slice(1, 3).map((img, i) => (
-                    <div
-                      key={i}
-                      onClick={() => { setExpandedImageUrl(img); setImageExpanded(true); }}
-                      style={{
-                        borderRadius: "4px", overflow: "hidden",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <img src={img} alt="" style={{
-                        width: "100%", height: "100%", objectFit: "cover",
-                        opacity: 0.9, transition: "opacity 0.3s ease",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
-          </div>
+          )}
         </div>
+        )}
 
         {/* === SENSORY ZONE — experience + notes + mood in inset panel === */}
         {(feelingDescription || notes.length > 0 || moodTags.length > 0) && (
@@ -476,7 +419,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           {feelingDescription && (
             <div style={{
               padding: "16px 16px",
-              borderBottom: (notes.length > 0 || moodTags.length > 0 || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
+              borderBottom: (notes.length > 0 || moodTags.length > 0 || introduction || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
             }}>
               <h3 style={{
                 fontFamily: "var(--font-display)",
@@ -490,8 +433,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               <p style={{
                 fontFamily: "var(--font-body)",
                 fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-                lineHeight: 1.6,
+                lineHeight: 1.7,
                 color: alcoveColors.subtitle, margin: 0,
+                whiteSpace: "pre-line",
               }}>
                 {feelingDescription}
               </p>
@@ -502,7 +446,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           {notes.length > 0 && (
             <div style={{
               padding: "8px 14px",
-              borderBottom: (moodTags.length > 0 || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
+              borderBottom: (moodTags.length > 0 || introduction || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
               flexShrink: 0,
             }}>
               <h3 style={{
@@ -562,12 +506,24 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         )}
 
         {/* === KNOWLEDGE ZONE — story, terroir, processing (open layout with gold labels) === */}
-        {(mainStory || terroir || processing) && (
+        {(introduction || mainStory || terroir || processing) && (
           <div style={{
             padding: "16px 16px 12px",
             margin: "6px 4px 0",
             position: "relative",
           }}>
+              {introduction && (
+                <p style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "15px", fontWeight: 300, fontStyle: "italic",
+                  lineHeight: 1.7,
+                  color: alcoveColors.subtitle, margin: 0,
+                  marginBottom: mainStory ? "16px" : 0,
+                  whiteSpace: "pre-line",
+                }}>
+                  {introduction}
+                </p>
+              )}
               {mainStory && (
                 magazineUrl ? (
                   <a
@@ -580,7 +536,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   >
                     <p style={{
                       fontFamily: "var(--font-body)",
-                      fontSize: "16px", fontWeight: 300, lineHeight: 1.75,
+                      fontSize: "16px", fontWeight: 300, lineHeight: 1.7,
                       color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
                       margin: 0, transition: "color 0.2s ease",
                       whiteSpace: "pre-line",
@@ -600,7 +556,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 ) : (
                   <p style={{
                     fontFamily: "var(--font-body)",
-                    fontSize: "16px", fontWeight: 300, lineHeight: 1.75,
+                    fontSize: "16px", fontWeight: 300, lineHeight: 1.7,
                     color: alcoveColors.body, margin: 0,
                     whiteSpace: "pre-line",
                   }}>
@@ -637,7 +593,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   </h3>
                   <p style={{
                     fontFamily: "var(--font-body)",
-                    fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
+                    fontSize: "15px", fontWeight: 300, lineHeight: 1.7,
                     color: alcoveColors.body, margin: 0,
                     whiteSpace: "pre-line",
                   }}>
@@ -665,7 +621,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   </h3>
                   <p style={{
                     fontFamily: "var(--font-body)",
-                    fontSize: "15px", fontWeight: 300, lineHeight: 1.65,
+                    fontSize: "15px", fontWeight: 300, lineHeight: 1.7,
                     color: alcoveColors.body, margin: 0,
                     whiteSpace: "pre-line",
                   }}>

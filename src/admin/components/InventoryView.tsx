@@ -173,7 +173,8 @@ const GhostInput = ({
     align = 'left',
     className = '',
     placeholder = '',
-    inputMode
+    inputMode,
+    id
 }: {
     value: string | number,
     onSave: (val: any) => void,
@@ -181,7 +182,8 @@ const GhostInput = ({
     align?: 'left' | 'right',
     className?: string,
     placeholder?: string,
-    inputMode?: string
+    inputMode?: string,
+    id?: string
 }) => {
     const [localValue, setLocalValue] = useState(value);
     
@@ -204,7 +206,8 @@ const GhostInput = ({
     };
 
     return (
-        <input 
+        <input
+            id={id}
             type={type}
             value={localValue || ''}
             onChange={(e) => setLocalValue(e.target.value)}
@@ -686,6 +689,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'quantityPurchased') dbPayload = { quantity_purchased: Number(value) };
     else if (field === 'lowStockThreshold') dbPayload = { low_stock_threshold: Number(value) };
     else if (field === 'costCurrency') dbPayload = { cost_currency: value };
+    else if (field === 'additionalImages') dbPayload = { additional_images: JSON.stringify(value || []) };
     else return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
@@ -2150,23 +2154,47 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- FEATURE 5: RECORD PANEL (Side Panel) --- */}
       <AnimatePresence>
-        {panelProduct && (
+        {panelProduct && (() => {
+          const statusColors: Record<string, string> = { Active: 'var(--tea-gold)', Draft: 'var(--tea-text-dim)', Archived: 'var(--tea-text-sec)', 'Sold Out': '#ef4444' };
+          const statusColor = statusColors[panelProduct.status] || 'var(--tea-text-sec)';
+          const allTastingNotes = [...new Set(products.flatMap(p => p.tastingNotes || []))].sort();
+          const allMoods = [...new Set(products.map(p => p.mood).filter(Boolean) as string[])].sort();
+          const togglePill = (toggle: { field: keyof Product, active: boolean, activeColor?: string }) =>
+            toggle.active
+              ? toggle.activeColor === 'amber'
+                ? 'text-amber-400 border-amber-400/30 bg-amber-400/10'
+                : 'text-tea-accent border-tea-accent/30 bg-tea-accent/10'
+              : 'text-tea-text-dim border-transparent hover:border-tea-border';
+
+          return (
           <>
-            {/* Mobile: full overlay */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg border-l border-tea-border flex flex-col"
-              style={{ boxShadow: '-12px 0 40px -8px rgba(0,0,0,0.35)' }}
+              className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg flex flex-col"
+              style={{ boxShadow: '-12px 0 40px -8px rgba(0,0,0,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
             >
               {/* Panel Header */}
-              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border bg-tea-surface/50">
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border bg-tea-surface/30">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-serif text-tea-text truncate">{panelProduct.productName}</h3>
-                  <span className="text-[10px] text-tea-text-sec">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif text-tea-text truncate">{panelProduct.productName}</h3>
+                    <select
+                      value={panelProduct.status}
+                      onChange={e => {
+                        handleProductUpdate(panelProduct.id, 'status', e.target.value);
+                        setPanelProduct(prev => prev ? { ...prev, status: e.target.value as any } : null);
+                      }}
+                      className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md border bg-transparent appearance-none cursor-pointer outline-none flex-shrink-0"
+                      style={{ borderColor: statusColor, color: statusColor }}
+                    >
+                      {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <span className="text-[10px] text-tea-text-dim">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -2191,66 +2219,72 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
               {/* Panel Content — scrollable */}
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {/* Image */}
-                {panelProduct.imageUrl && (
-                  <div className="border-b border-tea-border">
-                    <img src={panelProduct.imageUrl} alt={panelProduct.productName} className="w-full h-40 object-cover" />
-                  </div>
-                )}
 
-                {/* Toggle pills */}
-                <div className="px-5 py-3 flex items-center gap-1.5 flex-wrap border-b border-tea-border">
-                  {([
-                    { field: 'isFeatured' as const, label: 'Featured', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} />, active: panelProduct.isFeatured },
-                    { field: 'isPublic' as const, label: 'Public', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
-                    { field: 'isCurated' as const, label: 'Curated', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
-                    { field: 'isPersonal' as const, label: 'Personal', icon: <User size={10} />, active: panelProduct.isPersonal },
-                    { field: 'canReorder' as const, label: 'Reorder', icon: <RefreshCw size={10} />, active: panelProduct.canReorder },
-                    { field: 'recheckStock' as const, label: 'Recheck', icon: <RefreshCw size={10} />, active: panelProduct.recheckStock, activeColor: 'amber' },
-                  ] as const).map(toggle => (
-                    <button
-                      key={toggle.field}
-                      onClick={() => {
-                        const newVal = !toggle.active;
-                        handleProductUpdate(panelProduct.id, toggle.field, newVal);
-                        setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
-                      }}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${
-                        toggle.active
-                          ? toggle.activeColor === 'amber'
-                            ? 'text-amber-400 border-amber-400/30 bg-amber-400/10'
-                            : 'text-tea-accent border-tea-accent/30 bg-tea-accent/10'
-                          : 'text-tea-text-sec/50 border-tea-border hover:border-tea-text-sec/50'
-                      }`}
-                    >
-                      {toggle.icon} {toggle.label}
+                {/* Toggle pills — grouped by purpose */}
+                <div className="px-5 py-2.5 flex flex-col gap-y-1" style={{ boxShadow: 'inset 0 -1px 0 var(--tea-accent-sub)' }}>
+                  {/* Row 1: Visibility */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {([
+                      { field: 'isFeatured' as const, label: 'Featured', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} />, active: panelProduct.isFeatured },
+                      { field: 'isPublic' as const, label: 'Public', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
+                      { field: 'isCurated' as const, label: 'Curated', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
+                      { field: 'isPersonal' as const, label: 'Personal', icon: <User size={10} />, active: panelProduct.isPersonal },
+                    ] as const).map(toggle => (
+                      <button
+                        key={toggle.field}
+                        onClick={() => {
+                          const newVal = !toggle.active;
+                          handleProductUpdate(panelProduct.id, toggle.field, newVal);
+                          setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
+                        }}
+                        className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${togglePill(toggle)}`}
+                      >
+                        {toggle.icon} {toggle.label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Row 2: Operations */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {([
+                      { field: 'canReorder' as const, label: 'Reorder', icon: <RefreshCw size={10} />, active: panelProduct.canReorder },
+                      { field: 'recheckStock' as const, label: 'Recheck', icon: <RefreshCw size={10} />, active: panelProduct.recheckStock, activeColor: 'amber' as const },
+                    ] as const).map(toggle => (
+                      <button
+                        key={toggle.field}
+                        onClick={() => {
+                          const newVal = !toggle.active;
+                          handleProductUpdate(panelProduct.id, toggle.field, newVal);
+                          setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
+                        }}
+                        className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${togglePill(toggle)}`}
+                      >
+                        {toggle.icon} {toggle.label}
+                      </button>
+                    ))}
+                    <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2 py-0.5 text-[9px] text-tea-text-dim uppercase tracking-[0.12em] rounded-md border border-transparent hover:border-tea-border transition-colors ml-auto">
+                      <QrCode size={10} /> QR
                     </button>
-                  ))}
-                  <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2 py-0.5 text-[9px] text-tea-text-sec/50 uppercase tracking-[0.12em] rounded-md border border-tea-border hover:border-tea-text-sec/50 transition-colors ml-auto">
-                    <QrCode size={10} /> QR
-                  </button>
+                  </div>
                 </div>
 
                 {/* ── Identity ── */}
-                <div className="px-5 py-3 space-y-0 border-b border-tea-border">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Identity</div>
-                  {([
-                    { label: 'Name', field: 'productName' as const, value: panelProduct.productName, editable: true },
-                    { label: 'Given Name', field: 'givenName' as const, value: panelProduct.givenName || '', editable: true },
-                    { label: 'Chinese', field: 'chineseName' as const, value: panelProduct.chineseName || '', editable: true },
-                    ...(inventoryCategory === 'teaware' ? [
-                      { label: 'Category', field: 'teawareCategory' as const, value: panelProduct.teawareCategory || '', editable: true },
-                      { label: 'Material', field: 'material' as const, value: panelProduct.material || '', editable: true },
-                    ] : [
-                      { label: 'Type', field: 'type' as const, value: panelProduct.type, editable: true },
-                      { label: 'Form', field: 'form' as const, value: panelProduct.form || '', editable: true },
-                    ]),
-                    { label: 'Year', field: 'year' as const, value: panelProduct.year || '', editable: true, type: 'number' as const },
-                    { label: 'Status', field: 'status' as const, value: panelProduct.status, editable: true },
-                  ]).map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border last:border-0">
-                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
-                      {item.editable ? (
+                <CollapsibleSection title="Identity" defaultOpen={false}>
+                  <div className="space-y-0">
+                    {([
+                      { label: 'Name', field: 'productName' as const, value: panelProduct.productName },
+                      { label: 'Given Name', field: 'givenName' as const, value: panelProduct.givenName || '' },
+                      { label: 'Chinese', field: 'chineseName' as const, value: panelProduct.chineseName || '' },
+                      ...(inventoryCategory === 'teaware' ? [
+                        { label: 'Category', field: 'teawareCategory' as const, value: panelProduct.teawareCategory || '' },
+                        { label: 'Material', field: 'material' as const, value: panelProduct.material || '' },
+                      ] : [
+                        { label: 'Type', field: 'type' as const, value: panelProduct.type },
+                        { label: 'Form', field: 'form' as const, value: panelProduct.form || '' },
+                      ]),
+                      { label: 'Year', field: 'year' as const, value: panelProduct.year || '', type: 'number' as const },
+                    ]).map(item => (
+                      <div key={item.field} className="flex items-center justify-between gap-4 py-1.5">
+                        <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
                         <GhostInput
                           value={item.value}
                           onSave={(val) => {
@@ -2259,42 +2293,39 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           }}
                           type={item.type || 'text'}
                           align="right"
-                          className="text-xs text-tea-text flex-1"
+                          className="text-xs text-tea-text-sec flex-1"
                         />
-                      ) : (
-                        <span className="text-xs text-tea-text">{String(item.value || '-')}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleSection>
 
                 {/* ── Origin & Source ── */}
-                <div className="px-5 py-3 space-y-0 border-b border-tea-border">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Origin & Source</div>
-                  {[
-                    { label: 'Country', field: 'originCountry' as const, value: panelProduct.originCountry || '', editable: true },
-                    { label: 'Region', field: 'originRegion' as const, value: panelProduct.originRegion || '', editable: true },
-                    { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '', editable: true },
-                  ].map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border last:border-0">
-                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
-                      <GhostInput
-                        value={item.value}
-                        onSave={(val) => {
-                          handleProductUpdate(panelProduct.id, item.field, val);
-                          setPanelProduct(prev => prev ? { ...prev, [item.field]: String(val) } : null);
-                        }}
-                        align="right"
-                        className="text-xs text-tea-text flex-1"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <CollapsibleSection title="Origin & Source" defaultOpen={false}>
+                  <div className="space-y-0">
+                    {[
+                      { label: 'Country', field: 'originCountry' as const, value: panelProduct.originCountry || '' },
+                      { label: 'Region', field: 'originRegion' as const, value: panelProduct.originRegion || '' },
+                      { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '' },
+                    ].map(item => (
+                      <div key={item.field} className="flex items-center justify-between gap-4 py-1.5">
+                        <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                        <GhostInput
+                          value={item.value}
+                          onSave={(val) => {
+                            handleProductUpdate(panelProduct.id, item.field, val);
+                            setPanelProduct(prev => prev ? { ...prev, [item.field]: String(val) } : null);
+                          }}
+                          align="right"
+                          className="text-xs text-tea-text-sec flex-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleSection>
 
-                {/* ── Stock & Pricing (with calculator) ── */}
-                <div className="px-5 py-3 border-b border-tea-border">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-3">Stock & Pricing</div>
-
+                {/* ── Stock & Pricing ── */}
+                <CollapsibleSection title="Stock & Pricing" defaultOpen={true}>
                   {/* Currency summary strip (tea only) */}
                   {inventoryCategory !== 'teaware' && (
                     <div className="flex items-center gap-3 mb-3 px-2 py-1.5 rounded-md bg-tea-surface/40 border border-tea-border/50">
@@ -2309,7 +2340,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
                   )}
-
                   {inventoryCategory === 'teaware' ? (
                     <div className="space-y-0">
                       {[
@@ -2318,8 +2348,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
                         { label: 'Retail ($)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
                       ].map(item => (
-                        <div key={item.field} className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border last:border-0">
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                        <div key={item.field} className="flex items-center justify-between gap-4 py-1.5">
+                          <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
                           <GhostInput
                             value={item.value}
                             onSave={(val) => {
@@ -2328,7 +2358,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             }}
                             type={item.type}
                             align="right"
-                            className="text-xs text-tea-text tabular-nums flex-1"
+                            className="text-xs text-tea-text-sec tabular-nums flex-1"
                           />
                         </div>
                       ))}
@@ -2409,20 +2439,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         {/* Calculated values (read-only) */}
                         <div className="py-2 space-y-1 border-b border-dashed border-tea-border">
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-sec/60">Source Cost/g</span>
-                            <span className="text-tea-text-sec tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
+                            <span className="text-tea-text-dim">Source Cost/g</span>
+                            <span className="text-tea-text-dim tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
                           </div>
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-sec/60">Exchange Rate</span>
-                            <span className="text-tea-text-sec tabular-nums">{calc.rateUsed}</span>
+                            <span className="text-tea-text-dim">Exchange Rate</span>
+                            <span className="text-tea-text-dim tabular-nums">{calc.rateUsed}</span>
                           </div>
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-sec/60">True Cost (USD)</span>
+                            <span className="text-tea-text-dim">True Cost (USD)</span>
                             <span className="text-tea-gold tabular-nums font-medium">${calc.trueCostUSD.toFixed(3)}/g</span>
                           </div>
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-sec/60">3x Markup</span>
-                            <span className="text-tea-text-sec tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
+                            <span className="text-tea-text-dim">3x Markup</span>
+                            <span className="text-tea-text-dim tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
                           </div>
                         </div>
 
@@ -2437,7 +2467,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             }}
                             type="number"
                             align="right"
-                            className="text-xs text-tea-text tabular-nums flex-1"
+                            className="text-xs text-tea-text-sec tabular-nums flex-1"
                           />
                         </div>
 
@@ -2494,139 +2524,130 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     );
                   })()}
-                </div>
+                </CollapsibleSection>
 
-                {/* ── Image URL ── */}
-                <div className="px-5 py-3 border-b border-tea-border">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Image</div>
-                  <GhostInput
-                    value={panelProduct.imageUrl || ''}
-                    placeholder="Image URL..."
-                    onSave={(val) => {
-                      handleProductUpdate(panelProduct.id, 'imageUrl', val);
-                      setPanelProduct(prev => prev ? { ...prev, imageUrl: String(val) } : null);
+                {/* ── Images ── */}
+                <CollapsibleSection title="Images" defaultOpen={true}>
+                  <ImageManager
+                    product={panelProduct}
+                    onUpdate={(field, value) => {
+                      handleProductUpdate(panelProduct.id, field, value);
+                      setPanelProduct(prev => prev ? { ...prev, [field]: value } : null);
                     }}
-                    className="text-xs text-tea-text/70"
                   />
-                </div>
+                </CollapsibleSection>
 
-                {/* ── Description ── */}
-                <div className="px-5 py-3 border-b border-tea-border">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Description</div>
+                {/* ── My Introduction ── */}
+                <CollapsibleSection title="My Introduction" defaultOpen={true}>
                   <GhostTextarea
                     value={panelProduct.description || ''}
-                    placeholder="Product description..."
+                    placeholder="Your personal introduction to this tea..."
                     rows={4}
                     onSave={(val) => {
                       handleProductUpdate(panelProduct.id, 'description', val);
                       setPanelProduct(prev => prev ? { ...prev, description: val } : null);
                     }}
-                    className="text-tea-text/80"
+                    className="text-tea-text-sec"
                   />
-                </div>
+                </CollapsibleSection>
 
-                {/* ── Wisdom & Sensory ── */}
-                <div className="px-5 py-3 border-b border-tea-border space-y-4">
-                  <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em]">Wisdom & Sensory</div>
+                {/* ── Experience ── */}
+                <CollapsibleSection title="Experience" defaultOpen={true}>
+                  <GhostTextarea
+                    value={panelProduct.experience || ''}
+                    placeholder="The experience of this tea..."
+                    rows={4}
+                    onSave={(val) => {
+                      handleProductUpdate(panelProduct.id, 'experience', val);
+                      setPanelProduct(prev => prev ? { ...prev, experience: val } : null);
+                    }}
+                    className="text-tea-text-sec font-serif"
+                  />
+                </CollapsibleSection>
 
-                  <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Experience</div>
-                    <GhostTextarea
-                      value={panelProduct.experience || ''}
-                      placeholder="The experience of this tea..."
-                      rows={4}
-                      onSave={(val) => {
-                        handleProductUpdate(panelProduct.id, 'experience', val);
-                        setPanelProduct(prev => prev ? { ...prev, experience: val } : null);
-                      }}
-                      className="text-tea-text/80 font-serif"
-                    />
+                {/* ── Mood & Tasting Notes ── */}
+                <CollapsibleSection title="Mood & Tasting Notes" defaultOpen={true}>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] mb-1.5">Mood</div>
+                      <TagInput
+                        suggestions={allMoods}
+                        value={panelProduct.mood || ''}
+                        multiple={false}
+                        placeholder="e.g. Grounding & Meditative"
+                        onSave={(val: string) => {
+                          handleProductUpdate(panelProduct.id, 'mood', val);
+                          setPanelProduct(prev => prev ? { ...prev, mood: val } : null);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] mb-1.5">Tasting Notes</div>
+                      <TagInput
+                        suggestions={allTastingNotes}
+                        value={panelProduct.tastingNotes || []}
+                        multiple={true}
+                        placeholder="Type to add notes..."
+                        onSave={(val: string[]) => {
+                          handleProductUpdate(panelProduct.id, 'tastingNotes', val);
+                          setPanelProduct(prev => prev ? { ...prev, tastingNotes: val } : null);
+                        }}
+                      />
+                    </div>
                   </div>
+                </CollapsibleSection>
 
-                  <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Mood</div>
-                    <GhostInput
-                      value={panelProduct.mood || ''}
-                      placeholder="e.g. Grounding & Meditative"
-                      onSave={(val) => {
-                        handleProductUpdate(panelProduct.id, 'mood', val);
-                        setPanelProduct(prev => prev ? { ...prev, mood: String(val) } : null);
-                      }}
-                      className="text-xs text-tea-text/80"
-                    />
-                  </div>
+                {/* ── Terroir ── */}
+                <CollapsibleSection title="Terroir" defaultOpen={false}>
+                  <GhostTextarea
+                    value={panelProduct.terroir || ''}
+                    placeholder="Soil, altitude, climate..."
+                    rows={4}
+                    onSave={(val) => {
+                      handleProductUpdate(panelProduct.id, 'terroir', val);
+                      setPanelProduct(prev => prev ? { ...prev, terroir: val } : null);
+                    }}
+                    className="text-tea-text-sec font-serif"
+                  />
+                </CollapsibleSection>
 
-                  <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Tasting Notes</div>
-                    <GhostInput
-                      value={(panelProduct.tastingNotes || []).join(', ')}
-                      placeholder="e.g. earthy sweetness, smooth wood, light cooling"
-                      onSave={(val) => {
-                        const notes = String(val).split(',').map((s: string) => s.trim()).filter(Boolean);
-                        handleProductUpdate(panelProduct.id, 'tastingNotes', notes);
-                        setPanelProduct(prev => prev ? { ...prev, tastingNotes: notes } : null);
-                      }}
-                      className="text-xs text-tea-text/80"
-                    />
-                    {panelProduct.tastingNotes && panelProduct.tastingNotes.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {panelProduct.tastingNotes.map(note => (
-                          <span key={note} className="text-[10px] text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded-full border border-tea-border">{note}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                {/* ── Processing Notes ── */}
+                <CollapsibleSection title="Processing Notes" defaultOpen={false}>
+                  <GhostTextarea
+                    value={panelProduct.processingNotes || ''}
+                    placeholder="Craft, processing method..."
+                    rows={4}
+                    onSave={(val) => {
+                      handleProductUpdate(panelProduct.id, 'processingNotes', val);
+                      setPanelProduct(prev => prev ? { ...prev, processingNotes: val } : null);
+                    }}
+                    className="text-tea-text-sec"
+                  />
+                </CollapsibleSection>
 
-                  <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Terroir</div>
-                    <GhostTextarea
-                      value={panelProduct.terroir || ''}
-                      placeholder="Soil, altitude, climate..."
-                      rows={4}
-                      onSave={(val) => {
-                        handleProductUpdate(panelProduct.id, 'terroir', val);
-                        setPanelProduct(prev => prev ? { ...prev, terroir: val } : null);
-                      }}
-                      className="text-tea-text/70 font-serif"
-                    />
-                  </div>
+                {/* ── Lore / History ── */}
+                <CollapsibleSection title="Lore / History" defaultOpen={false}>
+                  <GhostTextarea
+                    value={panelProduct.lore || ''}
+                    placeholder="History, story, or lore..."
+                    rows={5}
+                    onSave={(val) => {
+                      handleProductUpdate(panelProduct.id, 'lore', val);
+                      setPanelProduct(prev => prev ? { ...prev, lore: val } : null);
+                    }}
+                    className="text-tea-text-sec font-serif italic"
+                  />
+                </CollapsibleSection>
 
-                  <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Processing Notes</div>
-                    <GhostTextarea
-                      value={panelProduct.processingNotes || ''}
-                      placeholder="Craft, processing method..."
-                      rows={4}
-                      onSave={(val) => {
-                        handleProductUpdate(panelProduct.id, 'processingNotes', val);
-                        setPanelProduct(prev => prev ? { ...prev, processingNotes: val } : null);
-                      }}
-                      className="text-tea-text/70"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="text-[10px] text-tea-text-sec/50 uppercase tracking-[0.12em] mb-1.5">Lore / History</div>
-                    <GhostTextarea
-                      value={panelProduct.lore || ''}
-                      placeholder="History, story, or lore..."
-                      rows={5}
-                      onSave={(val) => {
-                        handleProductUpdate(panelProduct.id, 'lore', val);
-                        setPanelProduct(prev => prev ? { ...prev, lore: val } : null);
-                      }}
-                      className="text-tea-text/70 font-serif italic"
-                    />
-                  </div>
-
-                  {/* Wisdom toggles */}
-                  <div className="flex items-center gap-3 pt-1">
+                {/* ── Wisdom Display Toggles ── */}
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() => {
                         handleProductUpdate(panelProduct.id, 'showWisdom', !panelProduct.showWisdom);
                         setPanelProduct(prev => prev ? { ...prev, showWisdom: !prev.showWisdom } : null);
                       }}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.showWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec/50 border-tea-border'}`}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.showWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-transparent hover:border-tea-border'}`}
                     >
                       <Sparkles size={10} /> Show Wisdom
                     </button>
@@ -2635,7 +2656,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         handleProductUpdate(panelProduct.id, 'isCustomWisdom', !panelProduct.isCustomWisdom);
                         setPanelProduct(prev => prev ? { ...prev, isCustomWisdom: !prev.isCustomWisdom } : null);
                       }}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.isCustomWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-sec/50 border-tea-border'}`}
+                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.isCustomWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-transparent hover:border-tea-border'}`}
                     >
                       <Pencil size={10} /> Custom
                     </button>
@@ -2646,7 +2667,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             {/* Mobile backdrop */}
             <div className="fixed inset-0 z-40 bg-tea-text/50 md:hidden" onClick={() => setPanelProduct(null)} />
           </>
-        )}
+          );
+        })()}
       </AnimatePresence>
 
       {/* --- FEATURE 7: BULK EDIT FLOATING TOOLBAR --- */}

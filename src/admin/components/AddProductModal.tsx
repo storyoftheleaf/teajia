@@ -381,21 +381,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      const data = await api.uploadImage(fileName, file.type);
-      if (!data?.uploadUrl) throw new Error("No upload URL returned.");
-
-      const uploadRes = await fetch(data.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type }
-      });
-
-      if (!uploadRes.ok) throw new Error("Failed to upload to Cloudflare storage.");
-
-      setFormData(prev => ({ ...prev, imageUrl: data.publicUrl }));
+      const url = await api.uploadImage(file);
+      setFormData(prev => ({ ...prev, imageUrl: url }));
 
     } catch (err: any) {
       console.error("Upload Error:", err);

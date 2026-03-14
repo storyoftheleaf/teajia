@@ -406,13 +406,19 @@ export const api = {
     return handleResponse(res);
   },
 
-  uploadImage: async (filename: string, filetype: string) => {
+  uploadImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('adminToken');
     const res = await fetchWithTimeout(`${API_URL}/api/upload-image`, {
       method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ filename, filetype }),
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
     });
-    return handleResponse(res);
+    const data = await handleResponse(res);
+    return data.url;
   },
 
   events: {

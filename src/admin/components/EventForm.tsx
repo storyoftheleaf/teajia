@@ -135,9 +135,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
     if (!file) return;
     setUploading(true);
     try {
-      const { uploadUrl, publicUrl } = await api.uploadImage(file.name, file.type);
-      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-      updateField('flyerImageUrl', publicUrl);
+      const url = await api.uploadImage(file);
+      updateField('flyerImageUrl', url);
       showToast('Image uploaded', 'success');
     } catch (err: any) {
       showToast(err.message || 'Upload failed', 'error');
@@ -217,9 +216,8 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
     if (!file) return;
     setVenueStepUploading(idx);
     try {
-      const { uploadUrl, publicUrl } = await api.uploadImage(file.name, file.type);
-      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-      updateVenueStep(idx, 'image_url', publicUrl);
+      const url = await api.uploadImage(file);
+      updateVenueStep(idx, 'image_url', url);
       showToast('Photo uploaded', 'success');
     } catch (err: any) {
       showToast(err.message || 'Upload failed', 'error');

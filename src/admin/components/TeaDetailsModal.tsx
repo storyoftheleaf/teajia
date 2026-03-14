@@ -105,11 +105,12 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         }
       `}</style>
 
-      {/* Desktop prev arrow */}
-      {onPrev && (
+      {/* Desktop prev arrow — always visible, disabled at boundary */}
+      {hasNavigation && (
         <button
-          onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="hidden md:flex absolute left-4 md:left-12 z-modal p-3 text-tea-text-sec hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
+          onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
+          disabled={!onPrev}
+          className={`hidden md:flex absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-modal p-3 text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border ${!onPrev ? 'opacity-20 cursor-default' : 'hover:text-tea-text-sec'}`}
         >
           <ChevronLeft size={32} />
         </button>
@@ -138,9 +139,9 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             onEdit={isAdmin && onEdit ? () => handleEdit() : undefined}
             formatPrice={adminFormatPrice}
           />
-          {/* Close button */}
+          {/* Close button — top-left to avoid Chinese characters in top-right */}
           <button
-            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
+            className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
             onClick={onClose}
             aria-label="Close"
           >
@@ -178,11 +179,12 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         )}
       </div>
 
-      {/* Desktop next arrow */}
-      {onNext && (
+      {/* Desktop next arrow — always visible, disabled at boundary */}
+      {hasNavigation && (
         <button
-          onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="hidden md:flex absolute right-4 md:right-12 z-modal p-3 text-tea-text-sec hover:text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border"
+          onClick={(e) => { e.stopPropagation(); onNext?.(); }}
+          disabled={!onNext}
+          className={`hidden md:flex absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-modal p-3 text-tea-text-sec bg-tea-surface/50 hover:bg-tea-surface rounded-full transition-all border border-tea-border ${!onNext ? 'opacity-20 cursor-default' : 'hover:text-tea-text-sec'}`}
         >
           <ChevronRight size={32} />
         </button>

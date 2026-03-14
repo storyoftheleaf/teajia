@@ -77,7 +77,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const isFavorited = favoriteTeas.includes(item.id);
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
-  const mainStory = item.lore || item.description || '';
+  const mainStory = item.lore || '';
+  const introduction = item.description || '';
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
 
@@ -144,7 +145,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         {/* Right: Product info */}
         <div className="md:w-1/2 flex flex-col">
           {/* Product name */}
-          <h1 className="font-serif text-3xl md:text-4xl text-tea-text leading-tight mb-1">
+          <h1 className="font-serif text-3xl md:text-4xl text-tea-text leading-snug mb-1">
             {item.variant || item.name}
           </h1>
           {/* Given name — always reserves space */}
@@ -280,12 +281,19 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Experience — personal description */}
           {item.experience && (
-            <p className="text-sm italic text-tea-text-sec mb-4 leading-relaxed">
+            <p className="text-sm italic text-tea-text-sec mb-4 leading-relaxed whitespace-pre-line">
               {item.experience}
             </p>
           )}
 
-          {/* Story / Lore / Description */}
+          {/* Introduction — Adrian's personal curator note */}
+          {introduction && (
+            <p className="text-sm italic text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
+              {introduction}
+            </p>
+          )}
+
+          {/* Lore — historical/cultural story */}
           {mainStory && (
             <p className="text-sm text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
               {mainStory}

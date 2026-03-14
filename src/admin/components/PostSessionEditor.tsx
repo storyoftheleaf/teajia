@@ -70,9 +70,8 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     setUploading(true);
     try {
       for (const file of files) {
-        const { uploadUrl, publicUrl } = await api.uploadImage(file.name, file.type);
-        await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-        setGallery(prev => [...prev, publicUrl]);
+        const url = await api.uploadImage(file);
+        setGallery(prev => [...prev, url]);
       }
       showToast(`${files.length} image${files.length > 1 ? 's' : ''} uploaded`, 'success');
     } catch (err: any) {

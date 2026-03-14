@@ -1201,19 +1201,35 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   return json(result.results);
 };
 
-// ── Image Upload (presigned URL for R2) ──
+// ── Image Upload (R2) ──
 const handleUploadImage: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
+  const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  // This endpoint generates presigned URLs for Cloudflare R2
-  // For now, return the expected shape. The actual R2 signing
-  // requires R2 secrets which should be added to wrangler.toml
-  const { filename, filetype } = await request.json() as { filename: string; filetype: string };
+  if (!env.MEDIA_BUCKET) {
+    return json({ error: 'R2 media bucket not configured' }, 503);
+  }
 
-  // TODO: Add R2 bucket binding and presigned URL generation
-  // For now, pass through to indicate the endpoint exists
-  return json({ error: 'R2 upload not yet configured. Add R2 binding to wrangler.toml' }, 501);
+  const contentType = request.headers.get('Content-Type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+
+  if (!file) return json({ error: 'No file provided' }, 400);
+
+  const ext = file.name.split('.').pop() || 'jpg';
+  const key = `products/${crypto.randomUUID()}.${ext}`;
+
+  await env.MEDIA_BUCKET.put(key, file.stream(), {
+    httpMetadata: { contentType: file.type },
+  });
+
+  const publicUrl = `https://media.teajia.co/${key}`;
+
+  return json({ url: publicUrl, key }, 201);
 };
 
 // ── Waitlist Cascade Helper ──
