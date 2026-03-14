@@ -23,7 +23,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   if (!isOpen || !product) return null;
 
   const currentQty = Number(quantity);
-  const totalUSD = currentQty * product.pricePerGramUSD;
+  const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
+  const totalUSD = currentQty * sellingPrice;
 
   const teaPresets = [
     { label: '25g', value: 25 },
@@ -61,7 +62,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           </div>
           <div className="flex justify-between items-center text-sm border-b border-tea-border pb-4">
             <span className="text-tea-text-sec">Price per unit:</span>
-            <span className="text-tea-text num">{formatCurrency(product.pricePerGramUSD, currency, rates)}</span>
+            <span className="text-tea-text num">{formatCurrency(sellingPrice, currency, rates)}</span>
           </div>
           <div className="flex justify-between items-center pt-2">
             <span className="text-tea-text font-medium text-sm">Total Price:</span>

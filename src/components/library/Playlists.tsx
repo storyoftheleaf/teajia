@@ -5,10 +5,10 @@ import { PLAYLISTS } from '../../data/playlists';
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const PLATFORM_COLORS: Record<string, string> = {
-  spotify: 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border border-green-400/30',
-  'apple-music': 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-400/30',
-  youtube: 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-400/30',
-  soundcloud: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30',
+  spotify: 'badge-format badge-format-green',
+  'apple-music': 'badge-format badge-format-pink',
+  youtube: 'badge-format badge-format-red',
+  soundcloud: 'badge-format badge-format-orange',
 };
 
 interface PlaylistsProps {

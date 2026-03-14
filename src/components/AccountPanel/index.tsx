@@ -10,10 +10,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
 import { api, setToken } from '../../lib/api';
 import { MyCollection } from './MyCollection';
+import { TastingJournal } from './TastingJournal';
 import { AdminMiniDashboard } from '../admin-overlay/AdminMiniDashboard';
 import type { Currency } from '../../admin/types';
 
-type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'saved-stories' | 'reading-history' | 'change-password' | 'edit-profile';
+type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'tasting-journal' | 'saved-stories' | 'reading-history' | 'change-password' | 'edit-profile';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -32,7 +33,7 @@ const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
 export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory }) => {
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
-  const { favoriteTeas, currency, setCurrency, publicCart } = useAppStore();
+  const { favoriteTeas, currency, setCurrency, publicCart, tastingJournal } = useAppStore();
   useScrollLock(true);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -297,6 +298,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       case 'signin': return 'Sign In';
       case 'signup': return 'Create Account';
       case 'collection': return 'My Collection';
+      case 'tasting-journal': return 'Tasting Journal';
       case 'saved-stories': return 'Saved Stories';
       case 'reading-history': return 'Reading History';
       case 'change-password': return 'Change Password';
@@ -684,6 +686,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               <MyCollection onBack={() => setPanelView('main')} />
             )}
 
+            {/* ============ TASTING JOURNAL SUB-VIEW ============ */}
+            {panelView === 'tasting-journal' && (
+              <TastingJournal onBack={() => setPanelView('main')} />
+            )}
+
             {/* ============ SAVED STORIES SUB-VIEW ============ */}
             {panelView === 'saved-stories' && (
               <div className="animate-[fadeIn_0.3s_ease-out]">
@@ -970,6 +977,20 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       )}
                       <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 group-hover:text-tea-text/40 transition-colors" />
                     </div>
+                  </button>
+
+                  <button
+                    onClick={() => setPanelView('tasting-journal')}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border border-t-0 hover:bg-tea-surface transition-colors group"
+                  >
+                    <Icons.Sparkles className={`w-5 h-5 ${tastingJournal.length > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
+                    <div className="flex flex-col items-start flex-1">
+                      <span className="font-serif text-sm text-tea-text">Tasting Journal</span>
+                      <span className="text-[10px] text-tea-text-sec">
+                        {tastingJournal.length === 0 ? 'Record your tastings' : `${tastingJournal.length} ${tastingJournal.length === 1 ? 'tasting' : 'tastings'}`}
+                      </span>
+                    </div>
+                    <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 group-hover:text-tea-text/40 transition-colors" />
                   </button>
                 </div>
 

@@ -5,8 +5,7 @@ import Fuse from 'fuse.js';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
-import { AddProductModal } from './AddProductModal';
-import { useRates } from '../hooks/useAdminData';
+import { TeaDetailsModal } from './TeaDetailsModal';
 import { fmtNum } from '../../utils/formatNumber';
 
 // --- Card view component (product view) ---
@@ -43,8 +42,8 @@ const TeawareCard: React.FC<{
             {isAdmin && !product.isPublic && (
                 <EyeOff size={16} className="text-tea-text-sec/70" />
             )}
-            {product.showWisdom && product.lore && (
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${product.isCustomWisdom ? 'bg-tea-gold' : 'bg-tea-text-sec/30'}`} title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"} />
+            {product.lore && (
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${product.isCustomWisdom ? 'bg-tea-gold' : 'bg-tea-text-sec/30'}`} title={product.isCustomWisdom ? "Edited lore" : "AI generated lore"} />
             )}
         </h3>
         <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
@@ -58,13 +57,11 @@ const TeawareCard: React.FC<{
 );
 
 // --- Main Component ---
-export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAdmin }: { products: Product[], currency: Currency, rates: ExchangeRate[], onAdd: (p: Product) => void, loading: boolean, isAdmin: boolean }) => {
+export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAdmin, onEdit }: { products: Product[], currency: Currency, rates: ExchangeRate[], onAdd: (p: Product) => void, loading: boolean, isAdmin: boolean, onEdit?: (product: Product) => void }) => {
   const [viewMode, setViewMode] = useState<'database' | 'product'>('database');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Product; direction: 'asc' | 'desc' }>({ key: 'teawareCategory', direction: 'asc' });
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
-  const { data: ratesData = [] } = useRates();
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Filter for Active Teaware items
   const teaware = useMemo(() => products.filter(p => {
@@ -217,7 +214,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                 <button
                   key={product.id}
                   className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} ${!product.isPublic ? 'opacity-70' : ''}`}
-                  onClick={() => setEditingProduct(product)}
+                  onClick={() => setSelectedProduct(product)}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -277,7 +274,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                       key={product.id}
                       className={`transition-colors border-b border-tea-border group hover:bg-tea-bg/50 cursor-pointer ${!product.isPublic ? 'opacity-70' : ''}`}
                       style={{ height: ROW_HEIGHT }}
-                      onClick={() => setEditingProduct(product)}
+                      onClick={() => setSelectedProduct(product)}
                     >
                       {/* Product Name */}
                       <td className="px-4 align-middle overflow-hidden">
@@ -349,13 +346,24 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
         )}
       </div>
 
-      {/* Edit Modal */}
-      <AddProductModal
-        isOpen={!!editingProduct}
-        onClose={() => setEditingProduct(null)}
-        initialData={editingProduct}
-        onSuccess={() => setEditingProduct(null)}
-        rates={ratesData}
+      {/* Detail Modal */}
+      <TeaDetailsModal
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        product={selectedProduct}
+        onAdd={onAdd}
+        currency={currency}
+        rates={rates}
+        onNext={selectedProduct ? (() => {
+          const idx = sorted.findIndex(p => p.id === selectedProduct.id);
+          if (idx < sorted.length - 1) setSelectedProduct(sorted[idx + 1]);
+        }) : undefined}
+        onPrev={selectedProduct ? (() => {
+          const idx = sorted.findIndex(p => p.id === selectedProduct.id);
+          if (idx > 0) setSelectedProduct(sorted[idx - 1]);
+        }) : undefined}
+        isAdmin={isAdmin}
+        onEdit={onEdit}
       />
     </div>
   );

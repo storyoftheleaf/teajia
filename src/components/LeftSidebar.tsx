@@ -5,7 +5,7 @@ import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, Users, History, Calendar } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, Users, History, Calendar, Store } from 'lucide-react';
 
 function getCurrentSeason(): { name: string; icon: string } {
   const month = new Date().getMonth();
@@ -136,6 +136,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   const adminItems: NavItem[] = [
     { id: 'inventory', label: 'Master Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory' },
+    { id: 'sources', label: 'Sources', icon: <Store size={20} strokeWidth={2} />, path: '/admin/sources' },
     { id: 'customers', label: 'Customers', icon: <Users size={20} strokeWidth={2} />, path: '/admin/customers' },
     { id: 'events', label: 'Events', icon: <Calendar size={20} strokeWidth={2} />, path: '/admin/events' },
     { id: 'orders', label: 'Orders', icon: <History size={20} strokeWidth={2} />, path: '/admin/orders' },

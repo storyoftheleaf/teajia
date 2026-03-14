@@ -65,6 +65,32 @@ function parseToken(token: string): Record<string, any> | null {
   }
 }
 
+// ── Audit & Ledger Helpers ──
+function getUserEmail(request: Request): string | null {
+  const token = isAuthed(request);
+  if (!token) return null;
+  const claims = parseToken(token);
+  return claims?.email || null;
+}
+
+function buildActivityLog(
+  env: Env, action: string, details: string,
+  userEmail?: string | null, entityType?: string | null, entityId?: string | null
+) {
+  return env.DB.prepare(
+    'INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), action, details, userEmail || null, entityType || null, entityId || null);
+}
+
+function buildStockLedgerEntry(
+  env: Env, productId: string, delta: number, balanceAfter: number, reason: string,
+  userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null
+) {
+  return env.DB.prepare(
+    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null);
+}
+
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
@@ -172,9 +198,7 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
     costPerUnitUSD = (costPerUnit + shippingPerUnit) / (rate || 1);
   }
 
-  if (product.fixed_retail_price_usd != null) {
-    retailPricePerUnitUSD = product.fixed_retail_price_usd;
-  } else if (qty > 0) {
+  if (qty > 0) {
     retailPricePerUnitUSD = costPerUnitUSD * 3.0;
   }
 
@@ -851,19 +875,29 @@ const handleGetCustomers: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  // Join with invoices to get order stats
-  const result = await env.DB.prepare(`
-    SELECT c.*,
-      COUNT(i.id) as order_count,
-      COALESCE(SUM(
-        (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
-      ), 0) as total_spent_usd,
-      MAX(i.created_at) as last_order_date
-    FROM customers c
-    LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
-    GROUP BY c.id
-    ORDER BY c.created_at DESC
-  `).all();
+  // Join with invoices to get order stats (fallback if customer_id column missing)
+  let result;
+  try {
+    result = await env.DB.prepare(`
+      SELECT c.*,
+        COUNT(i.id) as order_count,
+        COALESCE(SUM(
+          (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
+        ), 0) as total_spent_usd,
+        MAX(i.created_at) as last_order_date
+      FROM customers c
+      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `).all();
+  } catch {
+    // Fallback: customer_id column may not exist yet
+    result = await env.DB.prepare(`
+      SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date
+      FROM customers c
+      ORDER BY c.created_at DESC
+    `).all();
+  }
 
   return json(result.results);
 };
@@ -876,11 +910,15 @@ const handleGetCustomer: Handler = async (request, env, params) => {
   if (!customer) return json({ error: 'Customer not found' }, 404);
 
   // Get their orders
-  const orders = await env.DB.prepare(
-    'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
-  ).bind(params.id).all();
+  let orders: any[] = [];
+  try {
+    const result = await env.DB.prepare(
+      'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
+    ).bind(params.id).all();
+    orders = result.results;
+  } catch { /* customer_id column may not exist yet */ }
 
-  return json({ ...customer, orders: orders.results });
+  return json({ ...customer, orders });
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
@@ -934,10 +972,10 @@ const handleDeleteCustomer: Handler = async (request, env, params) => {
   if (authErr) return authErr;
 
   // Unlink invoices (set customer_id to null) rather than cascade delete
-  await env.DB.batch([
-    env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id),
-    env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id),
-  ]);
+  try {
+    await env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id).run();
+  } catch { /* customer_id column may not exist yet */ }
+  await env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id).run();
   return json({ success: true });
 };
 
@@ -945,11 +983,14 @@ const handleGetCustomerOrders: Handler = async (request, env, params) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  const orders = await env.DB.prepare(
-    'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
-  ).bind(params.id).all();
-
-  return json(orders.results);
+  try {
+    const orders = await env.DB.prepare(
+      'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
+    ).bind(params.id).all();
+    return json(orders.results);
+  } catch {
+    return json([]);
+  }
 };
 
 const handleGetCustomerTeas: Handler = async (request, env, params) => {
@@ -957,23 +998,26 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
   if (authErr) return authErr;
 
   // Get all teas this customer has purchased, with quantities and dates
-  const result = await env.DB.prepare(`
-    SELECT
-      p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
-      p.origin_country, p.origin_region,
-      SUM(ili.quantity) as total_quantity,
-      COUNT(DISTINCT i.id) as order_count,
-      MIN(i.created_at) as first_purchased,
-      MAX(i.created_at) as last_purchased
-    FROM invoice_line_items ili
-    JOIN invoices i ON i.id = ili.invoice_id
-    JOIN products p ON p.id = ili.product_id
-    WHERE i.customer_id = ? AND i.status != 'Void'
-    GROUP BY p.id
-    ORDER BY last_purchased DESC
-  `).bind(params.id).all();
-
-  return json(result.results);
+  try {
+    const result = await env.DB.prepare(`
+      SELECT
+        p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
+        p.origin_country, p.origin_region,
+        SUM(ili.quantity) as total_quantity,
+        COUNT(DISTINCT i.id) as order_count,
+        MIN(i.created_at) as first_purchased,
+        MAX(i.created_at) as last_purchased
+      FROM invoice_line_items ili
+      JOIN invoices i ON i.id = ili.invoice_id
+      JOIN products p ON p.id = ili.product_id
+      WHERE i.customer_id = ? AND i.status != 'Void'
+      GROUP BY p.id
+      ORDER BY last_purchased DESC
+    `).bind(params.id).all();
+    return json(result.results);
+  } catch {
+    return json([]);
+  }
 };
 
 const handleGetVendorProducts: Handler = async (request, env, params) => {

@@ -8,6 +8,17 @@ export interface TastingData {
   brewing?: string[];
 }
 
+export interface CustomerTasting {
+  id: string;
+  teaId: string;
+  teaName: string;
+  teaType: string;
+  teaImage?: string;
+  tasting: TastingData;
+  personalNote?: string;
+  createdAt: string;
+}
+
 export enum ContentType {
   Reel = 'Reel',
   Film = 'Film',

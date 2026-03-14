@@ -520,10 +520,10 @@ const CustomerDetail = ({
                         </button>
                         <span className="text-tea-text-sec text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded border font-medium uppercase tracking-wider ${
-                        order.status === 'Void' ? 'border-tea-text-sec/50 text-tea-text-sec' :
-                        order.status === 'Pending' ? 'border-tea-accent/50 text-tea-accent' :
-                        'border-tea-text/50 text-tea-text'
+                      <span className={`badge-status ${
+                        order.status === 'Void' ? 'badge-status-muted' :
+                        order.status === 'Pending' ? 'badge-status-gold' :
+                        'badge-status-default'
                       }`}>
                         {order.status}
                       </span>
@@ -560,8 +560,18 @@ export const CustomersView = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
 
+  // Exclude vendor-only customers (they appear in Sources view)
+  const nonVendorCustomers = useMemo(() => {
+    return customers.filter(c => {
+      // Keep customers that have tags other than just 'vendor', or no vendor tag at all
+      const hasNonVendorTag = c.tags.some((t: string) => t !== 'vendor');
+      const isVendorOnly = c.tags.length === 1 && c.tags[0] === 'vendor';
+      return !isVendorOnly;
+    });
+  }, [customers]);
+
   const filtered = useMemo(() => {
-    let list = customers;
+    let list = nonVendorCustomers;
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(c =>
@@ -589,7 +599,7 @@ export const CustomersView = () => {
       }
     });
     return list;
-  }, [customers, search, filterTag, sortBy]);
+  }, [nonVendorCustomers, search, filterTag, sortBy]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -650,7 +660,7 @@ export const CustomersView = () => {
         <div>
           <h2 className="text-2xl font-serif text-tea-text">Customers & Sources</h2>
           <p className="text-tea-text-sec text-sm mt-1">
-            {customers.length} contact{customers.length !== 1 ? 's' : ''} on file
+            {nonVendorCustomers.length} contact{nonVendorCustomers.length !== 1 ? 's' : ''} on file
           </p>
         </div>
         <div className="flex items-center gap-3">

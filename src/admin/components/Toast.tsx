@@ -35,10 +35,10 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             key={t.id}
             className={`pointer-events-auto min-w-[240px] p-4 rounded-xl shadow-2xl flex items-center gap-3 border animate-in slide-in-from-right-full duration-300 fade-in ${
               t.type === 'success'
-                ? 'bg-tea-surface border-tea-text/30 text-tea-text'
+                ? 'bg-tea-surface border-tea-accent-sub text-tea-text'
                 : t.type === 'error'
-                ? 'bg-tea-surface border-tea-accent/30 text-tea-accent'
-                : 'bg-tea-surface border-tea-border text-tea-text'
+                ? 'bg-tea-surface border-tea-accent-sub text-tea-accent'
+                : 'bg-tea-surface border-tea-accent-sub text-tea-text'
             }`}
           >
             {t.type === 'success' && <CheckCircle size={16} />}

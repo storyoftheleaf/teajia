@@ -24,7 +24,7 @@ export interface TastingTermInfo {
 }
 
 // Map group labels to lucide icons
-const GROUP_ICON_MAP: Record<string, LucideIcon> = {
+export const GROUP_ICON_MAP: Record<string, LucideIcon> = {
   'Floral': Flower2,
   'Sweet': Cookie,
   'Fruity': Cherry,
@@ -88,9 +88,24 @@ export function resolveTermLabel(id: string): string {
   return TERM_MAP.get(id)?.label ?? id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-/** Resolve a term ID to its lucide icon component */
+/** Resolve a term ID to its lucide icon component.
+ *  Falls back to fuzzy matching — if "light-honey" isn't in the map,
+ *  it checks whether any known term ID is a suffix of the input. */
 export function resolveTermIcon(id: string): LucideIcon {
-  return TERM_MAP.get(id)?.icon ?? Droplets;
+  const exact = TERM_MAP.get(id);
+  if (exact) return exact.icon;
+
+  // Fuzzy: check if any known term is contained in the compound ID
+  // Prefer longest match to avoid false positives (e.g. "floral-earth" → "earth" not "art")
+  let bestMatch: TastingTermInfo | undefined;
+  let bestLen = 0;
+  for (const [termId, info] of TERM_MAP) {
+    if (id.includes(termId) && termId.length > bestLen) {
+      bestMatch = info;
+      bestLen = termId.length;
+    }
+  }
+  return bestMatch?.icon ?? Droplets;
 }
 
 /** Liquor color hex values for swatches */

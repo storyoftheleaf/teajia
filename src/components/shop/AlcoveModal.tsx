@@ -11,6 +11,7 @@ interface AlcoveModalProps {
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
   onItemChange?: (item: InventoryItem) => void;
   onTermClick?: (termId: string, categoryId: string) => void;
+  onTaste?: (item: InventoryItem) => void;
 }
 
 export const AlcoveModal: React.FC<AlcoveModalProps> = ({
@@ -20,6 +21,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   onAddToCart,
   onItemChange,
   onTermClick,
+  onTaste,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const isOpen = !!item;
@@ -222,6 +224,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               onAddToCart={handleAddToCart}
               onClose={onClose}
               onTermClick={onTermClick}
+              onTaste={onTaste}
             />
             {/* Close button */}
             <button

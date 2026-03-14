@@ -17,6 +17,8 @@ import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 import { useProductUrl } from '../hooks/useProductUrl';
 import { CompareView } from './shop/CompareView';
+import { TastingSession } from './tasting/TastingSession';
+import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../admin/types';
 
 // Use shared type alias for backward compatibility in this component if needed,
@@ -91,6 +93,17 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Image Modal State
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
 
+  // Tasting Session State
+  const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
+  const handleTaste = useCallback((item: TeaItem) => {
+    setViewItem(null); // close AlcoveModal
+    setTastingItem(item);
+  }, []);
+  const handleOrderFromTasting = useCallback((item: TeaItem) => {
+    setTastingItem(null);
+    setViewItem(item); // open AlcoveModal for ordering
+  }, []);
+
   // Sync modal state with URL (?product=ID) for shareability and back-button support
   const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
 
@@ -111,13 +124,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       // 3. Tasting term filter (cross-reference)
       let matchTasting = true;
       if (tastingFilter) {
-        const catKey = tastingFilter.categoryId as TastingCategoryId;
-        const tasting = item.tasting;
-        if (tasting && tasting[catKey]) {
-          matchTasting = tasting[catKey]!.includes(tastingFilter.termId);
+        if (tastingFilter.categoryId === 'mood') {
+          // Mood filter: match against comma-separated mood field
+          const itemMoods = (item.mood || '').split(',').map(m => m.trim().toLowerCase()).filter(Boolean);
+          matchTasting = itemMoods.includes(tastingFilter.termId);
         } else {
-          // Fallback: check legacy tags
-          matchTasting = item.tags.some(t => t.toLowerCase() === resolveTermLabel(tastingFilter.termId).toLowerCase());
+          const catKey = tastingFilter.categoryId as TastingCategoryId;
+          const tasting = item.tasting;
+          if (tasting && tasting[catKey]) {
+            matchTasting = tasting[catKey]!.includes(tastingFilter.termId);
+          } else {
+            // Fallback: check legacy tags
+            matchTasting = item.tags.some(t => t.toLowerCase() === resolveTermLabel(tastingFilter.termId).toLowerCase());
+          }
         }
       }
 
@@ -184,7 +203,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           closeWithHistory();
         }}
         onTermClick={handleTermClick}
+        onTaste={handleTaste}
       />
+
+      {/* Tasting Session Modal */}
+      <AnimatePresence>
+        {tastingItem && (
+          <TastingSession
+            item={tastingItem}
+            onClose={() => setTastingItem(null)}
+            onOrderTea={handleOrderFromTasting}
+          />
+        )}
+      </AnimatePresence>
 
       {!hideHeader ? (
         <PageHeader

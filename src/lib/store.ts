@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
-import { CartItem as PublicCartItem } from '../types';
+import { CartItem as PublicCartItem, CustomerTasting } from '../types';
 
 interface InventoryViewConfig {
   id: string;
@@ -57,6 +57,12 @@ interface AppState {
   toggleCompare: (id: string) => void;
   clearCompare: () => void;
   removeCompareItem: (id: string) => void;
+
+  // Tasting Journal (customer)
+  tastingJournal: CustomerTasting[];
+  addTasting: (tasting: CustomerTasting) => void;
+  removeTasting: (id: string) => void;
+  updateTasting: (id: string, updates: Partial<CustomerTasting>) => void;
 
   // Inventory view management
   inventoryColumns: string[];
@@ -202,6 +208,23 @@ export const useAppStore = create<AppState>()(
           compareItems: state.compareItems.filter((cid) => cid !== id),
         })),
 
+      // Tasting Journal
+      tastingJournal: [],
+      addTasting: (tasting) =>
+        set((state) => ({
+          tastingJournal: [tasting, ...state.tastingJournal].slice(0, 100),
+        })),
+      removeTasting: (id) =>
+        set((state) => ({
+          tastingJournal: state.tastingJournal.filter((t) => t.id !== id),
+        })),
+      updateTasting: (id, updates) =>
+        set((state) => ({
+          tastingJournal: state.tastingJournal.map((t) =>
+            t.id === id ? { ...t, ...updates } : t
+          ),
+        })),
+
       // Inventory view management
       inventoryColumns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
       savedViews: [],
@@ -239,6 +262,7 @@ export const useAppStore = create<AppState>()(
         currency: state.currency,
         aiPromptTemplate: state.aiPromptTemplate,
         favoriteTeas: state.favoriteTeas,
+        tastingJournal: state.tastingJournal,
         compareItems: state.compareItems,
         inventoryColumns: state.inventoryColumns,
         savedViews: state.savedViews,

@@ -77,11 +77,11 @@ const MODULE_TO_LIBRARY: Record<string, string[]> = {
 const GETTING_STARTED = ['a1', 'br1', 'p1'];
 
 const TYPE_COLORS: Record<string, string> = {
-  glossary: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30 dark:border-blue-400/40',
-  playlist: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-400/30 dark:border-purple-400/40',
-  guide: 'bg-tea-green/10 dark:bg-green-500/20 text-tea-green dark:text-green-300 border border-tea-green/30 dark:border-green-400/40',
-  reference: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30 dark:border-orange-400/40',
-  article: 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-400/30 dark:border-pink-400/40',
+  glossary: 'badge-format badge-format-blue',
+  playlist: 'badge-format badge-format-purple',
+  guide: 'badge-format badge-format-tea-green',
+  reference: 'badge-format badge-format-orange',
+  article: 'badge-format badge-format-pink',
 };
 
 // Reference icons for each item in the 2x2 grid

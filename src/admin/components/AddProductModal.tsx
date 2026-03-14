@@ -5,7 +5,7 @@ import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
-import { TastingPicker } from './TastingPicker';
+import { TastingFlow } from '../../components/tasting/TastingFlow';
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
@@ -51,7 +51,7 @@ const VendorPicker = ({
   onChange: (name: string) => void;
   className?: string;
 }) => {
-  const { data: customers = [] } = useCustomers();
+  const { data: customers = [], refetch: refetchCustomers } = useCustomers();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -92,6 +92,34 @@ const VendorPicker = ({
 
   const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
 
+  // Auto-create vendor customer if new, or add vendor tag if existing
+  const handleSelectVendor = async (name: string) => {
+    onChange(name);
+    setOpen(false);
+    if (!name) return;
+
+    const existing = customers.find(
+      c => c.name.toLowerCase() === name.toLowerCase()
+    );
+    if (!existing) {
+      try {
+        await api.customers.create({ name, tags: ['vendor'] });
+        refetchCustomers();
+      } catch (err) {
+        console.error('Failed to create vendor customer:', err);
+      }
+    } else if (!existing.tags?.includes('vendor')) {
+      try {
+        await api.customers.update(existing.id, {
+          tags: [...(existing.tags || []), 'vendor'],
+        });
+        refetchCustomers();
+      } catch (err) {
+        console.error('Failed to add vendor tag:', err);
+      }
+    }
+  };
+
   return (
     <div ref={wrapperRef} className="relative">
       <input
@@ -103,34 +131,25 @@ const VendorPicker = ({
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => {
-          // Commit the typed value on blur
-          setTimeout(() => onChange(query.trim()), 150);
+          setTimeout(() => handleSelectVendor(query.trim()), 150);
         }}
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            onChange(query.trim());
-            setOpen(false);
+            handleSelectVendor(query.trim());
           }
         }}
         className={className}
         placeholder="Type or pick a source..."
       />
-      {isNew && query.trim() && (
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] uppercase tracking-wider text-tea-accent/70 font-bold">
-          + new
-        </span>
-      )}
+
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
           {isNew && query.trim() && (
             <button
               type="button"
               onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                onChange(query.trim());
-                setOpen(false);
-              }}
+              onClick={() => handleSelectVendor(query.trim())}
               className="w-full text-left px-3 py-2 text-sm text-tea-accent hover:bg-tea-bg transition-colors border-b border-tea-border"
             >
               + Add "{query.trim()}" as new source
@@ -143,8 +162,7 @@ const VendorPicker = ({
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setQuery(v);
-                onChange(v);
-                setOpen(false);
+                handleSelectVendor(v);
               }}
               className={`w-full text-left px-3 py-2 text-sm hover:bg-tea-bg transition-colors ${
                 v === value ? 'text-tea-accent font-medium' : 'text-tea-text'
@@ -161,6 +179,7 @@ const VendorPicker = ({
 
 export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onSuccess, initialData, rates = [] }) => {
   const { showToast } = useToast();
+  const { data: customers = [] } = useCustomers();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -446,10 +465,38 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             recheck_stock: formData.recheckStock ? 1 : 0,
         };
 
+        let productId: string | undefined;
+
         if (isEditMode && initialData) {
             await api.products.update(initialData.id, payload);
+            productId = initialData.id;
         } else {
-            await api.products.create(payload);
+            const created = await api.products.create(payload);
+            productId = created?.id;
+        }
+
+        // Link product to vendor customer
+        if (productId && formData.vendor) {
+            // Re-fetch customers to get any newly created vendor
+            let vendorCustomer = customers.find(
+              c => c.name.toLowerCase() === formData.vendor.toLowerCase()
+            );
+            if (!vendorCustomer) {
+              try {
+                const fresh = await api.customers.list();
+                vendorCustomer = fresh?.find(
+                  (c: any) => c.name?.toLowerCase() === formData.vendor.toLowerCase()
+                );
+              } catch { /* ignore */ }
+            }
+            if (vendorCustomer?.id) {
+              try {
+                await api.customers.linkProduct(vendorCustomer.id, productId);
+              } catch (err) {
+                // Link may already exist
+                console.debug('Link product to vendor:', err);
+              }
+            }
         }
 
         onSuccess();
@@ -507,23 +554,23 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
             {/* TOGGLE CHIPS */}
             <div className="flex flex-wrap gap-1.5">
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPersonal ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
+                <label className={`pill cursor-pointer select-none font-bold ${formData.isPersonal ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="hidden" />
                     <UserCheck size={12} /> Personal
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.canReorder ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
+                <label className={`pill cursor-pointer select-none font-bold ${formData.canReorder ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="hidden" />
                     <RefreshCw size={12} /> Restockable
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isPublic ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
+                <label className={`pill cursor-pointer select-none font-bold ${formData.isPublic ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="hidden" />
                     <Globe size={12} /> Public
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isFeatured ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
+                <label className={`pill cursor-pointer select-none font-bold ${formData.isFeatured ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="hidden" />
                     <Star size={12} /> Featured
                 </label>
-                <label className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border cursor-pointer select-none transition-all text-[9px] uppercase tracking-[0.15em] font-bold ${formData.isCurated ? 'bg-tea-accent/10 text-tea-accent border-tea-accent/30' : 'bg-tea-bg text-tea-text-sec border-tea-border hover:border-tea-gold/30'}`}>
+                <label className={`pill cursor-pointer select-none font-bold ${formData.isCurated ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="hidden" />
                     <Star size={12} /> Curated
                 </label>
@@ -565,7 +612,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
                         formData.status === 'Draft' ? 'text-tea-text-sec border-tea-text-sec/30' :
                         formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-text-sec/30' :
-                        'text-tea-accent border-tea-accent/50'
+                        'text-tea-accent border-tea-accent-sub'
                     }`}
                   >
                     <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
@@ -734,14 +781,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
                         <label
                             htmlFor="img-upload"
-                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:border-tea-gold/30 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:bg-tea-accent/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             {uploading ? <Loader2 className="animate-spin text-tea-accent" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
                             <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
                         </label>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:border-tea-gold/30 transition-colors mt-1">
+                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:bg-tea-accent/5 transition-colors mt-1">
                         <div className="w-10 h-10 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0">
                             <ImageThumbnail src={formData.imageUrl} type={formData.type} />
                         </div>
@@ -830,7 +877,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         {/* Tasting Taxonomy Picker */}
                         <div>
                             <label className={labelStyle}>Tasting Notes</label>
-                            <TastingPicker value={tastingData} onChange={setTastingData} />
+                            <TastingFlow mode="admin" value={tastingData} onChange={setTastingData} />
                         </div>
 
                         {/* Terroir */}
@@ -842,6 +889,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 rows={3}
                                 className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
                                 placeholder="High-altitude granite soils..."
+                            />
+                        </div>
+
+                        {/* Mood Tags */}
+                        <div>
+                            <label className={labelStyle}>Mood Tags <span className="text-tea-text-dim text-xs font-normal">(comma-separated)</span></label>
+                            <input
+                                type="text"
+                                name="mood" value={formData.mood}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                className={wisdomInputStyle}
+                                placeholder="calm, meditative, grounding"
                             />
                         </div>
 

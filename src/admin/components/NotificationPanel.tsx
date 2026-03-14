@@ -13,9 +13,9 @@ interface NotificationPanelProps {
 }
 
 const STATUS_STYLES: Record<NotificationStatus, { icon: React.ReactNode; className: string }> = {
-  pending: { icon: <Clock size={10} />, className: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
-  sent: { icon: <CheckCircle size={10} />, className: 'bg-green-500/10 text-green-400 border-green-500/30' },
-  failed: { icon: <AlertCircle size={10} />, className: 'bg-red-500/10 text-red-400 border-red-500/30' },
+  pending: { icon: <Clock size={10} />, className: 'bg-amber-500/10 text-amber-400' },
+  sent: { icon: <CheckCircle size={10} />, className: 'bg-green-500/10 text-green-400' },
+  failed: { icon: <AlertCircle size={10} />, className: 'bg-red-500/10 text-red-400' },
 };
 
 function formatEventTime(dateStr: string): string {

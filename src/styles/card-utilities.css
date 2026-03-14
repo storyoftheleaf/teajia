@@ -522,3 +522,326 @@
   opacity: 0;
   animation: revealUp 0.5s ease-out forwards;
 }
+
+/* ============================================
+   Pills, Badges & Tags — Global Style System
+   Single source of truth for all interactive
+   pill/chip/badge/tag elements across the site.
+
+   RULE: No visible border outlines. Differentiation
+   comes from background tint + text color only.
+   ============================================ */
+
+/* --- Toggle Pill (on/off switches) --- */
+/* Use on: sidebar toggle buttons, filter chips, boolean flags */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+  color: var(--tea-text-dim);
+}
+
+.pill:hover {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.05);
+}
+
+.pill-active {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.18);
+  color: var(--tea-gold);
+  font-weight: 700;
+}
+
+.pill-active:hover {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.24);
+}
+
+/* Amber variant (warnings, stock alerts) */
+.pill-active-amber {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.pill-active-amber:hover {
+  background: rgba(251, 191, 36, 0.24);
+}
+
+/* --- Status Badge (read-only labels) --- */
+/* Use on: order status, attendee status, notification status */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-status-gold {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.10);
+  color: var(--tea-gold);
+}
+
+.badge-status-muted {
+  background: rgba(var(--tea-text-sec-rgb, 181, 168, 146), 0.10);
+  color: var(--tea-text-sec);
+}
+
+.badge-status-default {
+  background: rgba(var(--tea-text-rgb, 237, 228, 212), 0.10);
+  color: var(--tea-text);
+}
+
+.badge-status-green {
+  background: rgba(34, 197, 94, 0.10);
+  color: #4ade80;
+}
+
+.badge-status-red {
+  background: rgba(239, 68, 68, 0.10);
+  color: #f87171;
+}
+
+.badge-status-amber {
+  background: rgba(251, 191, 36, 0.10);
+  color: #fbbf24;
+}
+
+/* --- Tag/Chip (selected item display) --- */
+/* Use on: tasting notes, current profile tags, filter tags */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  border: none;
+  font-size: 11px;
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.12);
+  color: var(--tea-gold);
+}
+
+/* Selectable tag in a grid (tasting picker) */
+.tag-selectable {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+  color: var(--tea-text-sec);
+}
+
+.tag-selectable-active {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.15);
+  color: var(--tea-gold);
+}
+
+.tag-selectable:hover:not(.tag-selectable-active) {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.05);
+}
+
+/* --- Format Badge (media types: book, podcast, article, etc.) --- */
+/* Use on: reading/listening library format tags */
+.badge-format {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge-format-amber {
+  background: rgba(251, 191, 36, 0.10);
+  color: #b45309;
+}
+.dark .badge-format-amber,
+:root:not(.light) .badge-format-amber {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+}
+
+.badge-format-violet {
+  background: rgba(139, 92, 246, 0.10);
+  color: #6d28d9;
+}
+.dark .badge-format-violet,
+:root:not(.light) .badge-format-violet {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+}
+
+.badge-format-pink {
+  background: rgba(236, 72, 153, 0.10);
+  color: #be185d;
+}
+.dark .badge-format-pink,
+:root:not(.light) .badge-format-pink {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f9a8d4;
+}
+
+.badge-format-blue {
+  background: rgba(59, 130, 246, 0.10);
+  color: #1d4ed8;
+}
+.dark .badge-format-blue,
+:root:not(.light) .badge-format-blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+}
+
+.badge-format-purple {
+  background: rgba(168, 85, 247, 0.10);
+  color: #7e22ce;
+}
+.dark .badge-format-purple,
+:root:not(.light) .badge-format-purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+}
+
+.badge-format-teal {
+  background: rgba(20, 184, 166, 0.10);
+  color: #0f766e;
+}
+.dark .badge-format-teal,
+:root:not(.light) .badge-format-teal {
+  background: rgba(20, 184, 166, 0.15);
+  color: #5eead4;
+}
+
+.badge-format-green {
+  background: rgba(34, 197, 94, 0.10);
+  color: #15803d;
+}
+.dark .badge-format-green,
+:root:not(.light) .badge-format-green {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+
+.badge-format-red {
+  background: rgba(239, 68, 68, 0.10);
+  color: #b91c1c;
+}
+.dark .badge-format-red,
+:root:not(.light) .badge-format-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.badge-format-orange {
+  background: rgba(249, 115, 22, 0.10);
+  color: #c2410c;
+}
+.dark .badge-format-orange,
+:root:not(.light) .badge-format-orange {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fdba74;
+}
+
+.badge-format-tea-green {
+  background: rgba(90, 110, 90, 0.10);
+  color: #5A6E5A;
+}
+.dark .badge-format-tea-green,
+:root:not(.light) .badge-format-tea-green {
+  background: rgba(90, 110, 90, 0.15);
+  color: #86efac;
+}
+
+/* --- Role Badge (user roles: owner, admin, user) --- */
+.badge-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: none;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-role-owner {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.15);
+  color: var(--tea-gold);
+}
+
+.badge-role-admin {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.10);
+  color: var(--tea-gold);
+}
+
+.badge-role-user {
+  background: var(--tea-surface);
+  color: var(--tea-text-sec);
+}
+
+/* --- Action Pill (small action buttons: FILL, etc.) --- */
+.pill-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.10);
+  color: var(--tea-gold);
+}
+
+.pill-action:hover {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.20);
+}
+
+/* Light mode adjustments */
+.light .pill:hover {
+  background: rgba(142, 109, 46, 0.05);
+}
+
+.light .pill-active {
+  background: rgba(142, 109, 46, 0.08);
+  color: var(--tea-gold);
+}
+
+.light .tag {
+  background: rgba(142, 109, 46, 0.08);
+}
+
+.light .tag-selectable-active {
+  background: rgba(142, 109, 46, 0.10);
+}
+
+.light .badge-status-gold {
+  background: rgba(142, 109, 46, 0.08);
+}
+
+.light .badge-status-default {
+  background: rgba(24, 19, 14, 0.08);
+  color: var(--tea-text);
+}

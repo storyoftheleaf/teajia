@@ -119,11 +119,11 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
   const roleBadge = (role: string) => {
     switch (role) {
       case 'owner':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider bg-tea-gold/20 text-tea-gold border border-tea-gold/30 rounded-full"><ShieldCheck className="w-3 h-3" />Owner</span>;
+        return <span className="badge-role badge-role-owner"><ShieldCheck className="w-3 h-3" />Owner</span>;
       case 'admin':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider bg-tea-accent/10 text-tea-accent border border-tea-accent/20 rounded-full"><Shield className="w-3 h-3" />Admin</span>;
+        return <span className="badge-role badge-role-admin"><Shield className="w-3 h-3" />Admin</span>;
       default:
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider bg-tea-surface text-tea-text-sec border border-tea-border rounded-full">User</span>;
+        return <span className="badge-role badge-role-user">User</span>;
     }
   };
 

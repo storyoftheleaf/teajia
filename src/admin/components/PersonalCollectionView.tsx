@@ -187,8 +187,8 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                         <div className="flex flex-col justify-center h-full">
                                             <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
                                                 {product.productName || '—'}
-                                                {product.showWisdom && product.lore && (
-                                                    <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
+                                                {product.lore && (
+                                                    <span title={product.isCustomWisdom ? "Edited lore" : "AI generated lore"}>
                                                         {product.isCustomWisdom ? (
                                                             <Pencil size={10} className="text-tea-accent" />
                                                         ) : (

@@ -1,10 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { Icons, SealIcon } from '../Icons';
+import { AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../lib/store';
 import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
 import { fmtPricePerGram } from '../../utils/formatNumber';
+import { TastingSession } from '../tasting/TastingSession';
 
 interface MyCollectionProps {
   onBack: () => void;
@@ -16,6 +18,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
   const { inventory } = useInventory();
   const [copied, setCopied] = useState(false);
   const [shareView, setShareView] = useState(false);
+  const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
 
   const favoriteItems = useMemo(() => {
     return favoriteTeas
@@ -126,6 +129,17 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         <Icons.Copy className="w-3.5 h-3.5 text-tea-text/30" />
       </button>
 
+      {/* Tasting Session Modal */}
+      <AnimatePresence>
+        {tastingItem && (
+          <TastingSession
+            item={tastingItem}
+            onClose={() => setTastingItem(null)}
+            onOrderTea={(item) => { setTastingItem(null); onViewItem?.(item); }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Tea list */}
       <div className="border border-tea-border  overflow-hidden">
         {favoriteItems.map((item, i) => (
@@ -159,11 +173,18 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
               </div>
             </div>
 
-            {/* Price + Remove */}
+            {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
               <span className="num text-xs text-tea-text/50">
                 {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
               </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setTastingItem(item); }}
+                className="p-1 text-tea-text/30 hover:text-tea-gold transition-colors"
+                title="Record tasting"
+              >
+                <Icons.Sparkles className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={() => toggleFavoriteTea(item.id)}
                 className="p-1 text-tea-gold hover:text-red-500 transition-colors"

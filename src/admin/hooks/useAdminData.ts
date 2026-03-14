@@ -51,6 +51,7 @@ export const useProducts = () => {
         experience: p.experience || '',
         recheckStock: !!p.recheck_stock,
         stockVerifiedAt: p.stock_verified_at || null,
+        tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
       })) as Product[];
     }
   });

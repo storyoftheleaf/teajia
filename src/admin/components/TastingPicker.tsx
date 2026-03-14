@@ -148,23 +148,8 @@ export const TastingPicker: React.FC<TastingPickerProps> = ({ value, onChange })
                             key={term.id}
                             type="button"
                             onClick={() => toggleTerm(catId, term.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '5px 8px',
-                              borderRadius: '4px',
-                              border: isSelected
-                                ? '1px solid var(--tea-gold)'
-                                : '1px solid transparent',
-                              background: isSelected ? 'rgba(var(--tea-gold-rgb, 180, 155, 80), 0.12)' : 'transparent',
-                              color: isSelected ? 'var(--tea-gold)' : 'var(--tea-text-sec)',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontFamily: 'var(--font-body)',
-                              textAlign: 'left',
-                              transition: 'all 0.15s',
-                            }}
+                            className={`tag-selectable ${isSelected ? 'tag-selectable-active' : ''}`}
+                            style={{ fontFamily: 'var(--font-body)', textAlign: 'left' }}
                           >
                             {Icon && <Icon size={12} style={{ flexShrink: 0, opacity: isSelected ? 1 : 0.5 }} />}
                             {term.label}

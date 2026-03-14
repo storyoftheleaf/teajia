@@ -30,12 +30,12 @@ export const FORMAT_ICONS: Record<MediaFormat, string> = {
 };
 
 export const FORMAT_COLORS: Record<MediaFormat, string> = {
-  book: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400/30',
-  podcast: 'bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-400/30',
-  article: 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-400/30',
-  video: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30',
-  playlist: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-400/30',
-  documentary: 'bg-teal-500/10 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-400/30',
+  book: 'badge-format badge-format-amber',
+  podcast: 'badge-format badge-format-violet',
+  article: 'badge-format badge-format-pink',
+  video: 'badge-format badge-format-blue',
+  playlist: 'badge-format badge-format-purple',
+  documentary: 'badge-format badge-format-teal',
 };
 
 export const CURATED_LISTS: CuratedList[] = [

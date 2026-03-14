@@ -3,6 +3,8 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency, productToInventoryItem } from '../utils';
 import { AlcoveCard } from '../../components/shop/AlcoveCard';
+import { TastingEditorModal } from './TastingEditorModal';
+import type { InventoryItem } from '../../types';
 
 interface TeaDetailsModalProps {
   product: Product | null;
@@ -20,6 +22,7 @@ interface TeaDetailsModalProps {
 export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   product, isOpen, onClose, currency, rates, onNext, onPrev, isAdmin, onEdit
 }) => {
+  const [tastingProduct, setTastingProduct] = useState<Product | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
@@ -71,6 +74,10 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
     // The AlcoveCard handles its own add-to-cart UI state,
     // but we still call the parent's onAdd if needed
   };
+
+  const handleTaste = isAdmin && product ? (_item: InventoryItem) => {
+    setTastingProduct(product);
+  } : undefined;
 
   const handleEdit = () => {
     if (onEdit && product) {
@@ -138,6 +145,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             isAdmin={isAdmin}
             onEdit={isAdmin && onEdit ? () => handleEdit() : undefined}
             formatPrice={adminFormatPrice}
+            onTaste={handleTaste}
           />
           {/* Close button */}
           <button
@@ -188,6 +196,14 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         >
           <ChevronRight size={32} />
         </button>
+      )}
+
+      {/* Tasting Editor Modal (admin only) */}
+      {tastingProduct && (
+        <TastingEditorModal
+          product={tastingProduct}
+          onClose={() => setTastingProduct(null)}
+        />
       )}
     </div>
   );

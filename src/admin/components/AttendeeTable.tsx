@@ -14,9 +14,9 @@ type SortField = 'name' | 'status' | 'createdAt';
 type FilterTab = 'all' | 'confirmed' | 'waitlist' | 'cancelled';
 
 const STATUS_CHIPS: Record<AttendeeStatus, string> = {
-  confirmed: 'bg-green-500/10 text-green-400 border-green-500/30',
-  waitlist: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  cancelled: 'bg-tea-text-sec/10 text-tea-text-sec border-tea-text-sec/30',
+  confirmed: 'bg-green-500/10 text-green-400',
+  waitlist: 'bg-amber-500/10 text-amber-400',
+  cancelled: 'bg-tea-text-sec/10 text-tea-text-sec',
 };
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [

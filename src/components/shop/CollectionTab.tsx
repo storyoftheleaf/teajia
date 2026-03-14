@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { AlcoveModal } from './AlcoveModal';
 import { TeaPlaceholder } from './TeaPlaceholder';
+import { TastingSession } from '../tasting/TastingSession';
 import { Icons } from '../Icons';
 import { useProductUrl } from '../../hooks/useProductUrl';
 import type { InventoryItem } from '../../types';
@@ -13,7 +15,18 @@ interface CollectionTabProps {
 
 export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart }) => {
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
+  const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
   const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
+
+  const handleTaste = useCallback((item: InventoryItem) => {
+    setViewItem(null);
+    setTastingItem(item);
+  }, []);
+
+  const handleOrderFromTasting = useCallback((item: InventoryItem) => {
+    setTastingItem(null);
+    setViewItem(item);
+  }, []);
 
   const featuredItems = useMemo(
     () => inventory.filter(item => item.isFeatured),
@@ -44,7 +57,18 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
           onAddToCart(item, qty, total);
           closeWithHistory();
         }}
+        onTaste={handleTaste}
       />
+
+      <AnimatePresence>
+        {tastingItem && (
+          <TastingSession
+            item={tastingItem}
+            onClose={() => setTastingItem(null)}
+            onOrderTea={handleOrderFromTasting}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Intro */}
       <div className="mb-8">

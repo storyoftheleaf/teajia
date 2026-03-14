@@ -125,8 +125,9 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     cost_price: String(product.costAmount),
     cost_currency: undefined,
     // For tea: price_per_gram is per-gram. For teaware: price_50g is per-unit price.
-    price_per_gram: isTeaware ? undefined : String(product.pricePerGramUSD),
-    price_50g: isTeaware ? String(product.pricePerGramUSD) : undefined,
+    // Use fixed retail price (locked override) if set, otherwise formula-based retail
+    price_per_gram: isTeaware ? undefined : String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD),
+    price_50g: isTeaware ? String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) : undefined,
     description: product.description,
     tags: product.tastingNotes || [],
     image: product.imageUrl,

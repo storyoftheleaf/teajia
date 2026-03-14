@@ -11,11 +11,19 @@ import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
-import { useRates } from '../hooks/useAdminData';
+import { useRates, useCustomers } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
 import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
+import { TastingEditorModal } from './TastingEditorModal';
+import {
+  flattenTastingNotes,
+  resolveTermLabel,
+  resolveTermIcon,
+  LIQUOR_COLORS,
+  TERM_MAP,
+} from '../../data/tastingTaxonomy';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
@@ -27,10 +35,11 @@ const TEA_COLUMN_DEFS = [
   { key: 'type', label: 'Type', defaultWidth: 'w-[10%]' },
   { key: 'year', label: 'Year', defaultWidth: 'w-[7%]' },
   { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
-  { key: 'stockGrams', label: 'Stock', defaultWidth: 'w-[10%]' },
+  { key: 'stockGrams', label: 'Stock', defaultWidth: 'w-[8%]' },
   { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
-  { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[10%]' },
-  { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[10%]' },
+  { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[9%]' },
+  { key: 'costPerGramUSD', label: 'Cost/g', defaultWidth: 'w-[8%]' },
+  { key: 'pricePerGramUSD', label: 'Retail/g', defaultWidth: 'w-[8%]' },
 ] as const;
 
 const TEAWARE_COLUMN_DEFS = [
@@ -150,7 +159,7 @@ const GhostTextarea = ({
         const el = textareaRef.current;
         if (el) {
             el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 300) + 'px';
+            el.style.height = el.scrollHeight + 'px';
         }
     }, [localValue]);
     return (
@@ -161,7 +170,7 @@ const GhostTextarea = ({
             onBlur={handleBlur}
             placeholder={placeholder}
             rows={rows}
-            className={`w-full bg-transparent border border-transparent focus:border-tea-border focus:bg-tea-surface/30 rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-sec/50 min-h-[80px] max-h-[300px] overflow-y-auto ${className}`}
+            className={`w-full bg-transparent border border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${className}`}
         />
     );
 };
@@ -215,23 +224,168 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border focus:border-tea-border focus:border-solid focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-sec/50 leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${className}`}
         />
     );
 };
 
+// --- GHOST SELECT ---
+const GhostSelect = ({ value, onSave, options, className = '' }: {
+    value: string, onSave: (val: string) => void, options: string[], className?: string
+}) => (
+    <div className="relative flex-1">
+        <select
+            value={value}
+            onChange={(e) => onSave(e.target.value)}
+            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-none py-0 px-0 pr-4 outline-none transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
+        >
+            {options.map(opt => (
+                <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
+            ))}
+        </select>
+        <ChevronRight size={10} className="absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-tea-text-sec pointer-events-none" />
+    </div>
+);
+
+// --- VENDOR PICKER (inline, uses useCustomers) ---
+const VendorPicker = ({ value, onChange, productId, className }: {
+    value: string, onChange: (name: string) => void, productId?: string, className?: string
+}) => {
+    const { data: customers = [], refetch: refetchCustomers } = useCustomers();
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState(value);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const vendors = useMemo(() => {
+        return customers
+            .filter(c => c.tags?.includes('vendor'))
+            .map(c => c.name)
+            .sort((a, b) => a.localeCompare(b));
+    }, [customers]);
+
+    const allOptions = useMemo(() => {
+        const set = new Set(vendors);
+        if (value && !set.has(value)) set.add(value);
+        return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }, [vendors, value]);
+
+    const filtered = useMemo(() => {
+        if (!query) return allOptions;
+        const q = query.toLowerCase();
+        return allOptions.filter(v => v.toLowerCase().includes(q));
+    }, [allOptions, query]);
+
+    useEffect(() => { setQuery(value); }, [value]);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
+
+    // Auto-create vendor customer and link the product
+    const handleSelectVendor = async (name: string) => {
+        onChange(name);
+        setOpen(false);
+        if (!name) return;
+
+        // Find existing customer by name (with or without vendor tag)
+        let vendorCustomer = customers.find(
+            c => c.name.toLowerCase() === name.toLowerCase()
+        );
+
+        if (!vendorCustomer) {
+            // Create new customer with vendor tag
+            try {
+                const created = await api.customers.create({
+                    name,
+                    tags: ['vendor'],
+                });
+                refetchCustomers();
+                // Link the product to the new vendor
+                if (productId && created?.id) {
+                    await api.customers.linkProduct(created.id, productId);
+                }
+                return;
+            } catch (err) {
+                console.error('Failed to create vendor customer:', err);
+                return;
+            }
+        }
+
+        // Existing customer — ensure they have the vendor tag
+        if (!vendorCustomer.tags?.includes('vendor')) {
+            try {
+                await api.customers.update(vendorCustomer.id, {
+                    tags: [...(vendorCustomer.tags || []), 'vendor'],
+                });
+                refetchCustomers();
+            } catch (err) {
+                console.error('Failed to add vendor tag:', err);
+            }
+        }
+
+        // Link the product to the vendor
+        if (productId && vendorCustomer.id) {
+            try {
+                await api.customers.linkProduct(vendorCustomer.id, productId);
+            } catch (err) {
+                // Link may already exist — that's fine
+            }
+        }
+    };
+
+    return (
+        <div ref={wrapperRef} className="relative flex-1">
+            <input
+                type="text"
+                value={query}
+                onChange={e => { setQuery(e.target.value); setOpen(true); }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => { setTimeout(() => handleSelectVendor(query.trim()), 150); }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSelectVendor(query.trim()); } }}
+                className={className}
+                placeholder="Type or pick a source..."
+            />
+
+            {open && (filtered.length > 0 || (query.trim() && isNew)) && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {isNew && query.trim() && (
+                        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => handleSelectVendor(query.trim())}
+                            className="w-full text-left px-3 py-2 text-xs text-tea-accent hover:bg-tea-bg transition-colors border-b border-tea-accent-sub">
+                            + Add "{query.trim()}" as new source
+                        </button>
+                    )}
+                    {filtered.map(v => (
+                        <button key={v} type="button" onMouseDown={e => e.preventDefault()} onClick={() => { setQuery(v); handleSelectVendor(v); }}
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-tea-bg transition-colors ${v === value ? 'text-tea-accent font-medium' : 'text-tea-text'}`}>
+                            {v}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // --- COLLAPSIBLE SECTION ---
-const CollapsibleSection = ({ title, defaultOpen = true, children, noDivider = false }: {
-    title: string, defaultOpen?: boolean, children: React.ReactNode, noDivider?: boolean
+const CollapsibleSection = ({ title, defaultOpen = true, children }: {
+    title: string, defaultOpen?: boolean, children: React.ReactNode
 }) => {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div style={!noDivider && open ? { boxShadow: 'inset 0 -1px 0 var(--tea-accent-sub)' } : undefined}>
-            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-3 group">
-                <span className="text-[9px] text-tea-gold/40 uppercase tracking-[0.2em]">{title}</span>
-                <ChevronRight size={12} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        <div className="mx-3 mb-2 rounded-lg bg-tea-surface">
+            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
+                <span className="text-[12px] text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
+                <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
             </button>
-            {open && <div className="px-5 pb-4">{children}</div>}
+            {open && <div className="px-4 pb-4">{children}</div>}
         </div>
     );
 };
@@ -285,10 +439,10 @@ const TagInput = ({ suggestions, value, onSave, multiple = true, placeholder = '
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
-                className="w-full bg-transparent border-b border-transparent focus:border-tea-border focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-xs text-tea-text-sec placeholder-tea-text-sec/50 leading-none"
+                className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
             />
             {showDropdown && input && filtered.length > 0 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-md shadow-lg max-h-32 overflow-y-auto">
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-md shadow-lg max-h-32 overflow-y-auto">
                     {filtered.map(s => (
                         <button key={s} onMouseDown={() => addTag(s)} className="w-full text-left px-3 py-1.5 text-xs text-tea-text-sec hover:bg-tea-elevated transition-colors">
                             {s}
@@ -299,7 +453,7 @@ const TagInput = ({ suggestions, value, onSave, multiple = true, placeholder = '
             {multiple && tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                     {tags.map(tag => (
-                        <span key={tag} className="text-[10px] text-tea-text-dim bg-tea-surface/50 px-2 py-0.5 rounded-full flex items-center gap-1 group">
+                        <span key={tag} className="text-[10px] text-tea-text-sec bg-tea-surface/50 px-2 py-0.5 rounded-full flex items-center gap-1 group">
                             {tag}
                             <button onClick={() => removeTag(tag)} className="opacity-0 group-hover:opacity-100 transition-opacity"><XIcon size={8} /></button>
                         </span>
@@ -380,7 +534,7 @@ const ImageManager = ({ product, onUpdate }: {
                                 input.click();
                             }}
                             disabled={uploadingSlot !== null}
-                            className="w-16 h-16 rounded-md border border-dashed border-tea-border hover:border-tea-text-dim transition-colors flex items-center justify-center cursor-pointer"
+                            className="w-16 h-16 rounded-md border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex items-center justify-center cursor-pointer"
                         >
                             {uploadingSlot === i ? (
                                 <Loader2 size={14} className="text-tea-text-dim animate-spin" />
@@ -458,6 +612,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+  const [panelDirty, setPanelDirty] = useState(false);
+  useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
+
+  // Tasting Editor Modal
+  const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
 
   // Feature 6: Keyboard Navigation
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: number } | null>(null);
@@ -603,16 +762,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const BUFFER_ROWS = 5;
 
   useEffect(() => {
-      if (scrollContainerRef.current) {
-          setContainerHeight(scrollContainerRef.current.clientHeight);
-      }
-      const handleResize = () => {
-          if (scrollContainerRef.current) {
-              setContainerHeight(scrollContainerRef.current.clientHeight);
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      setContainerHeight(el.clientHeight);
+      const ro = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+              setContainerHeight(entry.contentRect.height);
           }
-      };
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
   }, []);
 
   const totalRows = processedProducts.length;
@@ -647,6 +806,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const handleProductUpdate = async (id: string, field: keyof Product, value: any) => {
     // 1. Optimistic Update
     setLocalProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setPanelDirty(true);
 
     // 2. Map to DB Column
     let dbPayload: any = {};
@@ -692,7 +852,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'additionalImages') dbPayload = { additional_images: JSON.stringify(value || []) };
     else return; // Unsupported field for quick edit
 
-    // 3. Fire & Forget (with Error Revert)
+    // 3. Recalculate retail display when cost-related fields change (optimistic UI update)
+    const pricingFields: (keyof Product)[] = ['costAmount', 'quantityPurchased', 'shippingRatePerKg', 'costCurrency'];
+    if (pricingFields.includes(field)) {
+      const product = localProducts.find(p => p.id === id);
+      if (product) {
+        const updated = { ...product, [field]: value };
+        const isTeaware = updated.type === 'Teaware';
+        const calc = calculatePricing(
+          updated.costAmount || 0,
+          updated.shippingRatePerKg || 0,
+          updated.quantityPurchased || 0,
+          updated.costCurrency || 'USD',
+          rates,
+          isTeaware
+        );
+        if (calc.suggestedRetailUSD > 0) {
+          const newRetail = parseFloat(calc.suggestedRetailUSD.toFixed(4));
+          // Update the formula-based retail in local state (no fixed price change)
+          setLocalProducts(prev => prev.map(p => p.id === id ? { ...p, pricePerGramUSD: newRetail } : p));
+        }
+      }
+    }
+
+    // 4. Fire & Forget (with Error Revert)
     try {
       await api.products.update(id, dbPayload);
     } catch (err: any) {
@@ -1099,14 +1282,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       case 'stockGrams': {
         const isLow = product.stockGrams <= product.lowStockThreshold;
         return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <div className="flex items-center justify-end gap-1">
-                <GhostInput id={ghostId} value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className="num text-xs" />
+              <div className="flex items-center gap-1">
+                <GhostInput id={ghostId} value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" className="num text-xs" />
                 <button title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-text-sec' : 'text-tea-border hover:text-amber-400'}`}>&#9888;</button>
               </div>
             ) : (
-              <span className={`num text-xs flex items-center justify-end gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-text-sec'}`}>
+              <span className={`num text-xs flex items-center gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-text-sec'}`}>
                 {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">&#9888;</span>}
                 {product.stockGrams}g
               </span>
@@ -1116,20 +1299,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       }
       case 'costAmount':
         return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className="num text-xs" />
+              <GhostInput id={ghostId} value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" className="num text-xs" />
             ) : <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
           </td>
         );
-      case 'pricePerGramUSD':
+      case 'costPerGramUSD':
         return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} value={product.pricePerGramUSD?.toFixed(2)} onSave={(val) => handleProductUpdate(product.id, 'pricePerGramUSD', val)} type="number" align="right" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? fmtNum(product.pricePerGramUSD) : '-'}</span>}
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
+            <span className="num text-xs text-tea-text-sec">{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '-'}</span>
           </td>
         );
+      case 'pricePerGramUSD': {
+        const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
+        return (
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
+            {isEditMode ? (
+              <GhostInput id={ghostId} value={sellingPrice?.toFixed(2)} onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" className="num text-xs" />
+            ) : <span className={`num text-xs ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}>{sellingPrice != null ? fmtNum(sellingPrice) : '-'}</span>}
+          </td>
+        );
+      }
       case 'material':
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
@@ -1148,17 +1339,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         );
       case 'capacityMl':
         return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.capacityMl || ''} onSave={(val) => handleProductUpdate(product.id, 'capacityMl', val)} type="number" align="right" className="num text-xs" />
+              <GhostInput id={ghostId} value={product.capacityMl || ''} onSave={(val) => handleProductUpdate(product.id, 'capacityMl', val)} type="number" className="num text-xs" />
             ) : <span className="num text-xs text-tea-text-sec">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>}
           </td>
         );
       case 'quantityUnits':
         return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden text-right ${focusRing}`}>
+          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.quantityUnits || ''} onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className="num text-xs" />
+              <GhostInput id={ghostId} value={product.quantityUnits || ''} onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)} type="number" className="num text-xs" />
             ) : <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>}
           </td>
         );
@@ -1258,7 +1449,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             }}
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
-                ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent/30'
+                ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent-sub'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
             }`}
           >
@@ -1534,7 +1725,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       showToast(`Reset failed: ${err.message}`, 'error');
                     }
                   }}
-                  className="flex-shrink-0 text-[10px] text-tea-text-sec hover:text-amber-400 transition-colors px-2 py-1 rounded border border-tea-border hover:border-amber-400/30"
+                  className="flex-shrink-0 text-[10px] text-tea-text-sec hover:text-amber-400 transition-colors px-2 py-1 rounded border border-tea-border hover:bg-amber-400/5"
                 >
                   Reset All
                 </button>
@@ -1666,7 +1857,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => handleApproveOne(product)}
                         disabled={isApproving}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-tea-accent/10 border border-tea-accent/30 text-tea-accent text-[10px] uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/20 transition-colors disabled:opacity-40"
+                        className="flex items-center gap-1.5 px-3 py-1 bg-tea-accent/10 border border-tea-accent-sub text-tea-accent text-[10px] uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/20 transition-colors disabled:opacity-40"
                       >
                         {isApproving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                         Approve
@@ -1838,12 +2029,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             {/* Description / Lore */}
                             {(product.lore || product.description) && (
                                 <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
-                                    {product.showWisdom && product.lore ? product.lore : product.description}
+                                    {product.lore || product.description}
                                 </p>
                             )}
 
                             {/* Tasting notes */}
-                            {product.tastingNotes && product.tastingNotes.length > 0 && product.showWisdom && (
+                            {product.tastingNotes && product.tastingNotes.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mb-2">
                                     {product.tastingNotes.map(note => (
                                         <span key={note} className="text-[10px] text-tea-text-sec/60 bg-tea-bg/60 px-2 py-0.5 rounded-full">{note}</span>
@@ -1859,15 +2050,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 >
                                     <Star size={15} className={product.isFeatured ? "fill-tea-accent" : ""} />
                                 </button>
-                                {(!product.showWisdom && product.lore) && (
-                                    <button
-                                        onClick={() => handleProductUpdate(product.id, 'showWisdom', true)}
-                                        className="p-1.5 rounded-md text-tea-accent/70 hover:text-tea-accent transition-colors"
-                                        title="Approve AI Wisdom"
-                                    >
-                                        <Check size={15} />
-                                    </button>
-                                )}
                                 <button
                                     onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
                                     className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-text-sec/50 hover:text-tea-text-sec' : 'text-tea-text-sec/30'}`}
@@ -1922,7 +2104,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </th>
                     )}
                     {visibleCols.map(col => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD','capacityMl','quantityUnits'].includes(col.key) ? 'right' : 'left'} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
                     ))}
                     <th className="px-2 py-2 border-b border-tea-border"></th>
                   </tr>
@@ -1933,7 +2115,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {Object.entries(groupedProducts).map(([groupKey, items]) => {
                 const isCollapsed = collapsedGroups.has(groupKey);
                 const totalStock = items.reduce((sum, p) => sum + (p.stockGrams || 0), 0);
-                const totalRetail = items.reduce((sum, p) => sum + (p.pricePerGramUSD || 0) * (p.stockGrams || 0), 0);
+                const totalRetail = items.reduce((sum, p) => sum + ((p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * (p.stockGrams || 0), 0);
                 return (
                   <div key={groupKey}>
                     <button
@@ -2015,7 +2197,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </th>
                         )}
                         {visibleCols.map(col => (
-                          <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align={['stockGrams','costAmount','pricePerGramUSD','capacityMl','quantityUnits'].includes(col.key) ? 'right' : 'left'} />
+                          <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
                         ))}
                         <th className="px-2 py-2 border-b border-tea-border"></th>
                     </tr>
@@ -2048,8 +2230,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                         {!isEditMode && (
                                             <>
-                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove from Featured" : "Mark as Featured"}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
-                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Hide from Glossary" : "Show in Glossary"}>{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove star" : "Star this tea"}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
+                                                <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Remove from shop" : "Add to shop"}>{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
                                                 <button onClick={() => setPanelProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Edit"><Pencil size={13}/></button>
                                             </>
                                         )}
@@ -2072,9 +2254,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* RESET CONFIRMATION */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/95 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-accent/30 rounded-xl max-w-sm w-full p-8 relative shadow-2xl">
+            <div className="bg-tea-bg border border-tea-accent-sub rounded-xl max-w-sm w-full p-8 relative shadow-2xl">
                 <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="p-4 rounded-full border border-tea-accent/30 text-tea-accent bg-tea-accent/10">
+                    <div className="p-4 rounded-full border border-tea-accent-sub text-tea-accent bg-tea-accent/10">
                         {isResetting ? <Loader2 className="animate-spin" size={32} /> : <AlertOctagon size={32} />}
                     </div>
                     <h3 className="text-xl font-serif text-tea-text">Danger Zone</h3>
@@ -2084,7 +2266,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="w-full pt-4">
                         <input 
                             type="text" 
-                            className="w-full bg-tea-surface border border-tea-accent/30 rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
+                            className="w-full bg-tea-surface border border-tea-accent-sub rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
                             value={resetInput}
                             onChange={(e) => setResetInput(e.target.value)}
                             placeholder='Type "delete" to confirm'
@@ -2096,7 +2278,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <button 
                             onClick={handleResetDatabase} 
                             disabled={resetInput !== 'delete' || isResetting}
-                            className="flex-1 py-3 bg-tea-accent/20 border border-tea-accent/50 text-tea-accent text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                            className="flex-1 py-3 bg-tea-accent/20 border border-tea-accent-sub text-tea-accent text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                         >
                             {isResetting ? 'Deleting...' : 'Confirm Wipe'}
                         </button>
@@ -2112,7 +2294,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="bg-tea-bg border border-tea-border w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface">
                     <div className="flex items-center gap-3">
-                         <div className="p-2 border border-tea-accent/30 text-tea-accent rounded-lg bg-tea-accent/10">
+                         <div className="p-2 border border-tea-accent-sub text-tea-accent rounded-lg bg-tea-accent/10">
                             <AlertTriangle size={16} />
                          </div>
                          <h3 className="text-lg font-serif text-tea-text">Permission Error</h3>
@@ -2159,13 +2341,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           const statusColor = statusColors[panelProduct.status] || 'var(--tea-text-sec)';
           const allTastingNotes = [...new Set(products.flatMap(p => p.tastingNotes || []))].sort();
           const allMoods = [...new Set(products.map(p => p.mood).filter(Boolean) as string[])].sort();
-          const togglePill = (toggle: { field: keyof Product, active: boolean, activeColor?: string }) =>
-            toggle.active
-              ? toggle.activeColor === 'amber'
-                ? 'text-amber-400 border-amber-400/30 bg-amber-400/10'
-                : 'text-tea-accent border-tea-accent/30 bg-tea-accent/10'
-              : 'text-tea-text-dim border-transparent hover:border-tea-border';
-
           return (
           <>
             <motion.div
@@ -2177,7 +2352,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               style={{ boxShadow: '-12px 0 40px -8px rgba(0,0,0,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
             >
               {/* Panel Header */}
-              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border bg-tea-surface/30">
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-accent-sub bg-tea-surface/30">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -2220,83 +2395,118 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {/* Panel Content — scrollable */}
               <div className="flex-1 overflow-y-auto custom-scrollbar">
 
-                {/* Toggle pills — grouped by purpose */}
-                <div className="px-5 py-2.5 flex flex-col gap-y-1" style={{ boxShadow: 'inset 0 -1px 0 var(--tea-accent-sub)' }}>
-                  {/* Row 1: Visibility */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {([
-                      { field: 'isFeatured' as const, label: 'Featured', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} />, active: panelProduct.isFeatured },
-                      { field: 'isPublic' as const, label: 'Public', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
-                      { field: 'isCurated' as const, label: 'Curated', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
-                      { field: 'isPersonal' as const, label: 'Personal', icon: <User size={10} />, active: panelProduct.isPersonal },
-                    ] as const).map(toggle => (
-                      <button
-                        key={toggle.field}
-                        onClick={() => {
-                          const newVal = !toggle.active;
-                          handleProductUpdate(panelProduct.id, toggle.field, newVal);
-                          setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
-                        }}
-                        className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${togglePill(toggle)}`}
-                      >
-                        {toggle.icon} {toggle.label}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Row 2: Operations */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {([
-                      { field: 'canReorder' as const, label: 'Reorder', icon: <RefreshCw size={10} />, active: panelProduct.canReorder },
-                      { field: 'recheckStock' as const, label: 'Recheck', icon: <RefreshCw size={10} />, active: panelProduct.recheckStock, activeColor: 'amber' as const },
-                    ] as const).map(toggle => (
-                      <button
-                        key={toggle.field}
-                        onClick={() => {
-                          const newVal = !toggle.active;
-                          handleProductUpdate(panelProduct.id, toggle.field, newVal);
-                          setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
-                        }}
-                        className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${togglePill(toggle)}`}
-                      >
-                        {toggle.icon} {toggle.label}
-                      </button>
-                    ))}
-                    <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 px-2 py-0.5 text-[9px] text-tea-text-dim uppercase tracking-[0.12em] rounded-md border border-transparent hover:border-tea-border transition-colors ml-auto">
-                      <QrCode size={10} /> QR
-                    </button>
-                  </div>
-                </div>
-
                 {/* ── Identity ── */}
-                <CollapsibleSection title="Identity" defaultOpen={false}>
+                <CollapsibleSection title="Identity" defaultOpen={true}>
                   <div className="space-y-0">
                     {([
                       { label: 'Name', field: 'productName' as const, value: panelProduct.productName },
                       { label: 'Given Name', field: 'givenName' as const, value: panelProduct.givenName || '' },
                       { label: 'Chinese', field: 'chineseName' as const, value: panelProduct.chineseName || '' },
-                      ...(inventoryCategory === 'teaware' ? [
-                        { label: 'Category', field: 'teawareCategory' as const, value: panelProduct.teawareCategory || '' },
-                        { label: 'Material', field: 'material' as const, value: panelProduct.material || '' },
-                      ] : [
-                        { label: 'Type', field: 'type' as const, value: panelProduct.type },
-                        { label: 'Form', field: 'form' as const, value: panelProduct.form || '' },
-                      ]),
-                      { label: 'Year', field: 'year' as const, value: panelProduct.year || '', type: 'number' as const },
                     ]).map(item => (
                       <div key={item.field} className="flex items-center justify-between gap-4 py-1.5">
-                        <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">{item.label}</span>
                         <GhostInput
                           value={item.value}
                           onSave={(val) => {
                             handleProductUpdate(panelProduct.id, item.field, val);
-                            setPanelProduct(prev => prev ? { ...prev, [item.field]: item.type === 'number' ? Number(val) : val } : null);
+                            setPanelProduct(prev => prev ? { ...prev, [item.field]: val } : null);
                           }}
-                          type={item.type || 'text'}
                           align="right"
-                          className="text-xs text-tea-text-sec flex-1"
+                          className="text-xs text-tea-text flex-1"
                         />
                       </div>
                     ))}
+                    {inventoryCategory === 'teaware' ? (
+                      <>
+                        <div className="flex items-center justify-between gap-4 py-1.5">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Category</span>
+                          <GhostInput
+                            value={panelProduct.teawareCategory || ''}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'teawareCategory', val);
+                              setPanelProduct(prev => prev ? { ...prev, teawareCategory: val as any } : null);
+                            }}
+                            align="right"
+                            className="text-xs text-tea-text flex-1"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-4 py-1.5">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Material</span>
+                          <GhostInput
+                            value={panelProduct.material || ''}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'material', val);
+                              setPanelProduct(prev => prev ? { ...prev, material: String(val) } : null);
+                            }}
+                            align="right"
+                            className="text-xs text-tea-text flex-1"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between gap-4 py-1.5">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Type</span>
+                          <GhostSelect
+                            value={panelProduct.type}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'type', val);
+                              setPanelProduct(prev => prev ? { ...prev, type: val as any } : null);
+                            }}
+                            options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Misc']}
+                            className="text-xs text-tea-text"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-4 py-1.5">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Form</span>
+                          <GhostSelect
+                            value={panelProduct.form || ''}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'form', val);
+                              setPanelProduct(prev => prev ? { ...prev, form: val as any } : null);
+                            }}
+                            options={['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']}
+                            className="text-xs text-tea-text"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-center justify-between gap-4 py-1.5">
+                      <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Year</span>
+                      <GhostInput
+                        value={panelProduct.year || ''}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, 'year', val);
+                          setPanelProduct(prev => prev ? { ...prev, year: Number(val) } : null);
+                        }}
+                        type="number"
+                        align="right"
+                        className="text-xs text-tea-text flex-1"
+                      />
+                    </div>
+                    {/* Visibility & QR */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-2 mt-1 border-t border-tea-accent-sub">
+                      {([
+                        { field: 'isPublic' as const, label: 'In Shop', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
+                        { field: 'isFeatured' as const, label: 'Starred', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} />, active: panelProduct.isFeatured },
+                        { field: 'isCurated' as const, label: 'Top Pick', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
+                      ] as const).map(toggle => (
+                        <button
+                          key={toggle.field}
+                          onClick={() => {
+                            const newVal = !toggle.active;
+                            handleProductUpdate(panelProduct.id, toggle.field, newVal);
+                            setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
+                          }}
+                          className={`pill ${toggle.active ? 'pill-active' : ''}`}
+                        >
+                          {toggle.icon} {toggle.label}
+                        </button>
+                      ))}
+                      <button onClick={() => setQrProduct(panelProduct)} className="pill ml-auto">
+                        <QrCode size={10} /> QR
+                      </button>
+                    </div>
                   </div>
                 </CollapsibleSection>
 
@@ -2306,10 +2516,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {[
                       { label: 'Country', field: 'originCountry' as const, value: panelProduct.originCountry || '' },
                       { label: 'Region', field: 'originRegion' as const, value: panelProduct.originRegion || '' },
-                      { label: 'Vendor', field: 'vendor' as const, value: panelProduct.vendor || '' },
                     ].map(item => (
                       <div key={item.field} className="flex items-center justify-between gap-4 py-1.5">
-                        <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">{item.label}</span>
                         <GhostInput
                           value={item.value}
                           onSave={(val) => {
@@ -2317,25 +2526,49 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             setPanelProduct(prev => prev ? { ...prev, [item.field]: String(val) } : null);
                           }}
                           align="right"
-                          className="text-xs text-tea-text-sec flex-1"
+                          className="text-xs text-tea-text flex-1"
                         />
                       </div>
                     ))}
+                    <div className="flex items-center justify-between gap-4 py-1.5">
+                      <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Vendor</span>
+                      <VendorPicker
+                        value={panelProduct.vendor || ''}
+                        productId={panelProduct.id}
+                        onChange={(val) => {
+                          handleProductUpdate(panelProduct.id, 'vendor', val);
+                          setPanelProduct(prev => prev ? { ...prev, vendor: val } : null);
+                        }}
+                        className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                      />
+                    </div>
+                    {/* Restockable toggle */}
+                    <div className="flex items-center pt-2 mt-1 border-t border-tea-accent-sub">
+                      <button
+                        onClick={() => {
+                          const newVal = !panelProduct.canReorder;
+                          handleProductUpdate(panelProduct.id, 'canReorder', newVal);
+                          setPanelProduct(prev => prev ? { ...prev, canReorder: newVal } : null);
+                        }}
+                        className={`pill ${panelProduct.canReorder ? 'pill-active' : ''}`}
+                      >
+                        <RefreshCw size={10} /> Restockable
+                      </button>
+                    </div>
                   </div>
                 </CollapsibleSection>
 
-                {/* ── Stock & Pricing ── */}
-                <CollapsibleSection title="Stock & Pricing" defaultOpen={true}>
-                  {/* Currency summary strip (tea only) */}
+                {/* ── Pricing ── */}
+                <CollapsibleSection title="Pricing" defaultOpen={true}>
                   {inventoryCategory !== 'teaware' && (
-                    <div className="flex items-center gap-3 mb-3 px-2 py-1.5 rounded-md bg-tea-surface/40 border border-tea-border/50">
+                    <div className="flex items-center gap-3 mb-3 px-2 py-1.5 rounded-md bg-tea-surface/40 border border-tea-accent-sub">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] text-tea-text-sec/50 uppercase tracking-[0.15em]">Bought in</span>
+                        <span className="text-[9px] text-tea-text-sec uppercase tracking-[0.15em]">Bought in</span>
                         <span className="text-[10px] text-tea-accent font-bold uppercase">{panelProduct.costCurrency || 'USD'}</span>
                       </div>
-                      <span className="text-tea-border">→</span>
+                      <span className="text-tea-text-dim">→</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] text-tea-text-sec/50 uppercase tracking-[0.15em]">Selling in</span>
+                        <span className="text-[9px] text-tea-text-sec uppercase tracking-[0.15em]">Selling in</span>
                         <span className="text-[10px] text-tea-gold font-bold uppercase">USD</span>
                       </div>
                     </div>
@@ -2343,13 +2576,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   {inventoryCategory === 'teaware' ? (
                     <div className="space-y-0">
                       {[
-                        { label: 'Units', field: 'quantityUnits' as const, value: panelProduct.quantityUnits || '', type: 'number' as const },
-                        { label: 'Capacity (ml)', field: 'capacityMl' as const, value: panelProduct.capacityMl || '', type: 'number' as const },
                         { label: 'Cost', field: 'costAmount' as const, value: panelProduct.costAmount, type: 'number' as const },
                         { label: 'Retail ($)', field: 'pricePerGramUSD' as const, value: panelProduct.pricePerGramUSD, type: 'number' as const },
                       ].map(item => (
                         <div key={item.field} className="flex items-center justify-between gap-4 py-1.5">
-                          <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] flex-shrink-0 w-20">{item.label}</span>
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">{item.label}</span>
                           <GhostInput
                             value={item.value}
                             onSave={(val) => {
@@ -2358,7 +2589,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             }}
                             type={item.type}
                             align="right"
-                            className="text-xs text-tea-text-sec tabular-nums flex-1"
+                            className="text-xs text-tea-text tabular-nums flex-1"
                           />
                         </div>
                       ))}
@@ -2374,9 +2605,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     );
                     return (
                       <div className="space-y-0">
-                        {/* Cost Inputs */}
-                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Batch Cost</span>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Batch Cost</span>
                           <div className="flex items-center gap-1.5 flex-1 justify-end">
                             <select
                               value={panelProduct.costCurrency || 'USD'}
@@ -2408,8 +2638,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Batch Wt (g)</span>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Batch Wt (g)</span>
                           <GhostInput
                             value={panelProduct.quantityPurchased || 0}
                             onSave={(val) => {
@@ -2422,8 +2652,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Ship (USD/kg)</span>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Ship (USD/kg)</span>
                           <GhostInput
                             value={panelProduct.shippingRatePerKg || 0}
                             onSave={(val) => {
@@ -2436,44 +2666,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           />
                         </div>
 
-                        {/* Calculated values (read-only) */}
-                        <div className="py-2 space-y-1 border-b border-dashed border-tea-border">
+                        <div className="py-2 space-y-1 border-b border-dashed border-tea-accent-sub">
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-dim">Source Cost/g</span>
-                            <span className="text-tea-text-dim tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
+                            <span className="text-tea-text-sec">Source Cost/g</span>
+                            <span className="text-tea-text-sec tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
                           </div>
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-dim">Exchange Rate</span>
-                            <span className="text-tea-text-dim tabular-nums">{calc.rateUsed}</span>
+                            <span className="text-tea-text-sec">Exchange Rate</span>
+                            <span className="text-tea-text-sec tabular-nums">{calc.rateUsed}</span>
                           </div>
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-dim">True Cost (USD)</span>
+                            <span className="text-tea-text-sec">True Cost (USD)</span>
                             <span className="text-tea-gold tabular-nums font-medium">${calc.trueCostUSD.toFixed(3)}/g</span>
                           </div>
                           <div className="flex justify-between text-[10px]">
-                            <span className="text-tea-text-dim">3x Markup</span>
-                            <span className="text-tea-text-dim tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
+                            <span className="text-tea-text-sec">3x Markup</span>
+                            <span className="text-tea-text-sec tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
                           </div>
                         </div>
 
-                        {/* Retail override */}
-                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-gold uppercase tracking-[0.12em] flex-shrink-0 w-24 font-medium">Retail <span className="text-[8px] text-tea-gold/60">USD/g</span></span>
-                          <GhostInput
-                            value={panelProduct.pricePerGramUSD}
-                            onSave={(val) => {
-                              handleProductUpdate(panelProduct.id, 'pricePerGramUSD', val);
-                              setPanelProduct(prev => prev ? { ...prev, pricePerGramUSD: Number(val) } : null);
-                            }}
-                            type="number"
-                            align="right"
-                            className="text-xs text-tea-text-sec tabular-nums flex-1"
-                          />
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[10px] text-tea-gold uppercase tracking-[0.12em] flex-shrink-0 w-24 font-medium">Retail <span className="text-[8px] text-tea-gold">USD/g</span></span>
+                          <span className="text-xs text-tea-text tabular-nums flex-1 text-right">${calc.suggestedRetailUSD.toFixed(2)}</span>
                         </div>
 
-                        {/* Fixed Retail Override */}
-                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Fixed <span className="text-[8px] text-tea-text-sec/50">USD</span></span>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Fixed <span className="text-[8px] text-tea-text-sec">USD</span></span>
                           <GhostInput
                             value={panelProduct.fixedRetailPriceUSD ?? ''}
                             placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '—'}
@@ -2490,40 +2708,97 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             }`}
                           />
                         </div>
-
-                        {/* Stock section */}
-                        <div className="pt-2 space-y-0">
-                          <div className="text-[9px] text-tea-text-sec/40 uppercase tracking-[0.2em] mb-2">Stock</div>
-                          <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Current (g)</span>
-                            <GhostInput
-                              value={panelProduct.stockGrams}
-                              onSave={(val) => {
-                                handleProductUpdate(panelProduct.id, 'stockGrams', val);
-                                setPanelProduct(prev => prev ? { ...prev, stockGrams: Number(val) } : null);
-                              }}
-                              type="number"
-                              align="right"
-                              className="text-xs text-tea-text tabular-nums flex-1"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-border">
-                            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] flex-shrink-0 w-24">Low Alert</span>
-                            <GhostInput
-                              value={panelProduct.lowStockThreshold || 0}
-                              onSave={(val) => {
-                                handleProductUpdate(panelProduct.id, 'lowStockThreshold', val);
-                                setPanelProduct(prev => prev ? { ...prev, lowStockThreshold: Number(val) } : null);
-                              }}
-                              type="number"
-                              align="right"
-                              className="text-xs text-tea-text tabular-nums flex-1"
-                            />
-                          </div>
-                        </div>
                       </div>
                     );
                   })()}
+                </CollapsibleSection>
+
+                {/* ── Stock ── */}
+                <CollapsibleSection title="Stock" defaultOpen={true}>
+                  <div className="space-y-0">
+                    {inventoryCategory === 'teaware' ? (
+                      <>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Units</span>
+                          <GhostInput
+                            value={panelProduct.quantityUnits || ''}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'quantityUnits', val);
+                              setPanelProduct(prev => prev ? { ...prev, quantityUnits: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Capacity (ml)</span>
+                          <GhostInput
+                            value={panelProduct.capacityMl || ''}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'capacityMl', val);
+                              setPanelProduct(prev => prev ? { ...prev, capacityMl: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Current (g)</span>
+                          <GhostInput
+                            value={panelProduct.stockGrams}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'stockGrams', val);
+                              setPanelProduct(prev => prev ? { ...prev, stockGrams: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Low Alert</span>
+                          <GhostInput
+                            value={panelProduct.lowStockThreshold || 0}
+                            onSave={(val) => {
+                              handleProductUpdate(panelProduct.id, 'lowStockThreshold', val);
+                              setPanelProduct(prev => prev ? { ...prev, lowStockThreshold: Number(val) } : null);
+                            }}
+                            type="number"
+                            align="right"
+                            className="text-xs text-tea-text tabular-nums flex-1"
+                          />
+                        </div>
+                      </>
+                    )}
+                    {/* Mine & Recount toggles */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-2 mt-1 border-t border-tea-accent-sub">
+                      <button
+                        onClick={() => {
+                          const newVal = !panelProduct.isPersonal;
+                          handleProductUpdate(panelProduct.id, 'isPersonal', newVal);
+                          setPanelProduct(prev => prev ? { ...prev, isPersonal: newVal } : null);
+                        }}
+                        className={`pill ${panelProduct.isPersonal ? 'pill-active' : ''}`}
+                      >
+                        <User size={10} /> Mine
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newVal = !panelProduct.recheckStock;
+                          handleProductUpdate(panelProduct.id, 'recheckStock', newVal);
+                          setPanelProduct(prev => prev ? { ...prev, recheckStock: newVal } : null);
+                        }}
+                        className={`pill ${panelProduct.recheckStock ? 'pill-active-amber' : ''}`}
+                      >
+                        <RefreshCw size={10} /> Recount
+                      </button>
+                    </div>
+                  </div>
                 </CollapsibleSection>
 
                 {/* ── Images ── */}
@@ -2547,7 +2822,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       handleProductUpdate(panelProduct.id, 'description', val);
                       setPanelProduct(prev => prev ? { ...prev, description: val } : null);
                     }}
-                    className="text-tea-text-sec"
+                    className="text-tea-text font-serif"
                   />
                 </CollapsibleSection>
 
@@ -2561,107 +2836,143 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       handleProductUpdate(panelProduct.id, 'experience', val);
                       setPanelProduct(prev => prev ? { ...prev, experience: val } : null);
                     }}
-                    className="text-tea-text-sec font-serif"
+                    className="text-tea-text font-serif"
                   />
                 </CollapsibleSection>
 
-                {/* ── Mood & Tasting Notes ── */}
-                <CollapsibleSection title="Mood & Tasting Notes" defaultOpen={true}>
+                {/* ── Mood & Tasting Profile ── */}
+                <CollapsibleSection title="Mood & Tasting Profile" defaultOpen={true}>
+                  <div className="space-y-3">
+                    {/* Mood display (auto-synced from feeling terms) */}
+                    {panelProduct.mood && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.1em] shrink-0">Mood</span>
+                        <span className="text-xs text-tea-gold italic font-serif">{panelProduct.mood}</span>
+                      </div>
+                    )}
+
+                    {/* Tasting notes preview pills */}
+                    {(() => {
+                      const notes = panelProduct.tasting ? flattenTastingNotes(panelProduct.tasting) : [];
+                      if (notes.length === 0) return (
+                        <p className="text-[11px] text-tea-text-dim italic">No tasting profile yet</p>
+                      );
+                      return (
+                        <div className="flex flex-wrap gap-1.5">
+                          {notes.slice(0, 8).map(termId => {
+                            const Icon = resolveTermIcon(termId);
+                            const termInfo = TERM_MAP.get(termId);
+                            const isColor = termInfo?.categoryId === 'liquor-color';
+                            const hex = isColor ? LIQUOR_COLORS[termId] : null;
+                            return (
+                              <span
+                                key={termId}
+                                className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold"
+                              >
+                                {hex ? (
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: hex, border: '1px solid var(--tea-border)' }} />
+                                ) : (
+                                  <Icon size={10} />
+                                )}
+                                {resolveTermLabel(termId)}
+                              </span>
+                            );
+                          })}
+                          {notes.length > 8 && (
+                            <span className="text-[10px] px-1.5 py-0.5 text-tea-text-dim">+{notes.length - 8} more</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Edit Tasting Profile button */}
+                    <button
+                      onClick={() => setTastingEditorProduct(panelProduct)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mt-1 rounded-lg text-xs font-medium uppercase tracking-[0.1em] border border-tea-gold/30 text-tea-gold hover:bg-tea-gold/10 transition-colors active:scale-[0.98]"
+                    >
+                      <Sparkles size={13} />
+                      {panelProduct.tasting && flattenTastingNotes(panelProduct.tasting).length > 0
+                        ? 'Edit Tasting Profile'
+                        : 'Add Tasting Profile'}
+                    </button>
+                  </div>
+                </CollapsibleSection>
+
+                {/* ── Background & Notes ── */}
+                <CollapsibleSection title="Background & Notes" defaultOpen={false}>
                   <div className="space-y-4">
                     <div>
-                      <div className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] mb-1.5">Mood</div>
-                      <TagInput
-                        suggestions={allMoods}
-                        value={panelProduct.mood || ''}
-                        multiple={false}
-                        placeholder="e.g. Grounding & Meditative"
-                        onSave={(val: string) => {
-                          handleProductUpdate(panelProduct.id, 'mood', val);
-                          setPanelProduct(prev => prev ? { ...prev, mood: val } : null);
+                      <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] mb-1.5">Terroir</div>
+                      <GhostTextarea
+                        value={panelProduct.terroir || ''}
+                        placeholder="Soil, altitude, climate..."
+                        rows={3}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, 'terroir', val);
+                          setPanelProduct(prev => prev ? { ...prev, terroir: val } : null);
                         }}
+                        className="text-tea-text font-serif"
                       />
                     </div>
                     <div>
-                      <div className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] mb-1.5">Tasting Notes</div>
-                      <TagInput
-                        suggestions={allTastingNotes}
-                        value={panelProduct.tastingNotes || []}
-                        multiple={true}
-                        placeholder="Type to add notes..."
-                        onSave={(val: string[]) => {
-                          handleProductUpdate(panelProduct.id, 'tastingNotes', val);
-                          setPanelProduct(prev => prev ? { ...prev, tastingNotes: val } : null);
+                      <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] mb-1.5">Processing</div>
+                      <GhostTextarea
+                        value={panelProduct.processingNotes || ''}
+                        placeholder="Craft, processing method..."
+                        rows={3}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, 'processingNotes', val);
+                          setPanelProduct(prev => prev ? { ...prev, processingNotes: val } : null);
                         }}
+                        className="text-tea-text font-serif"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em]">Lore & History</div>
+                        {panelProduct.isCustomWisdom && (
+                          <span className="flex items-center gap-0.5 text-[9px] text-tea-text-dim italic">
+                            <Pencil size={8} /> edited
+                          </span>
+                        )}
+                      </div>
+                      <GhostTextarea
+                        value={panelProduct.lore || ''}
+                        placeholder="History, story, or lore..."
+                        rows={3}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, 'lore', val);
+                          if (!panelProduct.isCustomWisdom) {
+                            handleProductUpdate(panelProduct.id, 'isCustomWisdom', true);
+                          }
+                          setPanelProduct(prev => prev ? { ...prev, lore: val, isCustomWisdom: true } : null);
+                        }}
+                        className="text-tea-text font-serif"
                       />
                     </div>
                   </div>
                 </CollapsibleSection>
 
-                {/* ── Terroir ── */}
-                <CollapsibleSection title="Terroir" defaultOpen={false}>
-                  <GhostTextarea
-                    value={panelProduct.terroir || ''}
-                    placeholder="Soil, altitude, climate..."
-                    rows={4}
-                    onSave={(val) => {
-                      handleProductUpdate(panelProduct.id, 'terroir', val);
-                      setPanelProduct(prev => prev ? { ...prev, terroir: val } : null);
-                    }}
-                    className="text-tea-text-sec font-serif"
-                  />
-                </CollapsibleSection>
 
-                {/* ── Processing Notes ── */}
-                <CollapsibleSection title="Processing Notes" defaultOpen={false}>
-                  <GhostTextarea
-                    value={panelProduct.processingNotes || ''}
-                    placeholder="Craft, processing method..."
-                    rows={4}
-                    onSave={(val) => {
-                      handleProductUpdate(panelProduct.id, 'processingNotes', val);
-                      setPanelProduct(prev => prev ? { ...prev, processingNotes: val } : null);
-                    }}
-                    className="text-tea-text-sec"
-                  />
-                </CollapsibleSection>
-
-                {/* ── Lore / History ── */}
-                <CollapsibleSection title="Lore / History" defaultOpen={false}>
-                  <GhostTextarea
-                    value={panelProduct.lore || ''}
-                    placeholder="History, story, or lore..."
-                    rows={5}
-                    onSave={(val) => {
-                      handleProductUpdate(panelProduct.id, 'lore', val);
-                      setPanelProduct(prev => prev ? { ...prev, lore: val } : null);
-                    }}
-                    className="text-tea-text-sec font-serif italic"
-                  />
-                </CollapsibleSection>
-
-                {/* ── Wisdom Display Toggles ── */}
-                <div className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        handleProductUpdate(panelProduct.id, 'showWisdom', !panelProduct.showWisdom);
-                        setPanelProduct(prev => prev ? { ...prev, showWisdom: !prev.showWisdom } : null);
-                      }}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.showWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-transparent hover:border-tea-border'}`}
+                {/* ── Save Confirmation Bar ── */}
+                <AnimatePresence>
+                  {panelDirty && (
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: 20, opacity: 0 }}
+                      className="sticky bottom-0 px-5 py-3 bg-tea-bg border-t border-tea-accent-sub flex items-center justify-between"
                     >
-                      <Sparkles size={10} /> Show Wisdom
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleProductUpdate(panelProduct.id, 'isCustomWisdom', !panelProduct.isCustomWisdom);
-                        setPanelProduct(prev => prev ? { ...prev, isCustomWisdom: !prev.isCustomWisdom } : null);
-                      }}
-                      className={`flex items-center gap-1 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] rounded-md border transition-colors ${panelProduct.isCustomWisdom ? 'text-tea-accent border-tea-accent/30 bg-tea-accent/10' : 'text-tea-text-dim border-transparent hover:border-tea-border'}`}
-                    >
-                      <Pencil size={10} /> Custom
-                    </button>
-                  </div>
-                </div>
+                      <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em]">Changes saved</span>
+                      <button
+                        onClick={() => setPanelDirty(false)}
+                        className="text-[10px] text-tea-gold uppercase tracking-[0.12em] font-medium px-3 py-1 border border-tea-gold/30 rounded-md hover:bg-tea-gold/10 transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
             {/* Mobile backdrop */}
@@ -2723,6 +3034,34 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Tasting Editor Modal */}
+      {tastingEditorProduct && (
+        <TastingEditorModal
+          product={tastingEditorProduct}
+          onClose={() => setTastingEditorProduct(null)}
+          onSaved={(product, tastingData, derivedMood) => {
+            // Update the panel product if it's the same one
+            setPanelProduct(prev => {
+              if (!prev || prev.id !== product.id) return prev;
+              return {
+                ...prev,
+                tasting: tastingData,
+                mood: derivedMood || prev.mood,
+                tastingNotes: tastingData.flavor?.map(id => resolveTermLabel(id)) || prev.tastingNotes,
+              };
+            });
+            // Update local products for optimistic UI
+            setLocalProducts(prev =>
+              prev.map(p =>
+                p.id === product.id
+                  ? { ...p, tasting: tastingData, mood: derivedMood || p.mood }
+                  : p
+              )
+            );
+          }}
+        />
+      )}
 
     </div>
   );

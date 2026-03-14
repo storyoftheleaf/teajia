@@ -25,6 +25,8 @@ import { AdminBottomNav } from './components/AdminBottomNav';
 import { DashboardView } from './components/DashboardView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
+import { TastingNotesView } from './components/TastingNotesView';
+import { SourcesView } from './components/SourcesView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -104,7 +106,7 @@ const AdminContent = () => {
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-accent/50"></div>
             <div className="mb-6 flex justify-center">
-              <div className="p-4 bg-tea-accent/10 rounded-full border border-tea-accent/20">
+              <div className="p-4 bg-tea-accent/10 rounded-full border border-tea-accent-sub">
                 <AlertTriangle className="text-tea-accent" size={32} />
               </div>
             </div>
@@ -207,7 +209,8 @@ const AdminContent = () => {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />
               <Route path="catalog" element={<PageTransition><TeaTable products={products} currency={currency} rates={rates} onAdd={openAddModal} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} isLoading={loading} isError={productsError} error={productsErrorObj} onRefresh={refetchProducts} /></PageTransition>} />
-              <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} /></PageTransition>} />
+              <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} /></PageTransition>} />
+              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
 
               <Route path="inventory" element={
                 <ProtectedRoute isAdmin={isAdmin}>
@@ -226,6 +229,7 @@ const AdminContent = () => {
               } />
               <Route path="personal" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
               <Route path="customers" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
+              <Route path="sources" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><SourcesView /></PageTransition></ProtectedRoute>} />
               <Route path="orders" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
               <Route path="records" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
@@ -243,7 +247,7 @@ const AdminContent = () => {
             <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in duration-300">
                 <button
                     onClick={() => setIsCartOpen(true)}
-                    className="bg-tea-accent text-tea-bg px-6 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-4 border border-tea-accent/20"
+                    className="bg-tea-accent text-tea-bg px-6 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-4 border border-tea-accent-sub"
                 >
                     <div className="flex items-center gap-2 font-bold text-sm">
                         <span className="bg-tea-bg text-tea-accent w-5 h-5 rounded-full flex items-center justify-center text-[10px]">{cart.length}</span>

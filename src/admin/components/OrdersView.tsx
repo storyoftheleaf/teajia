@@ -162,10 +162,10 @@ export const OrdersView = () => {
                           <span className="num text-xs text-tea-text">{order.display_currency} {order.shipping_cost_usd != null ? `(+$${Number(order.shipping_cost_usd).toFixed(0)} ship)` : ''}</span>
                         </td>
                         <td className="px-4 align-middle text-center">
-                          <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${
-                            isVoid ? 'border-tea-text-sec/50 text-tea-text-sec bg-tea-text-sec/10' :
-                            isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
-                            'border-tea-text/50 text-tea-text bg-tea-text/10'
+                          <span className={`badge-status ${
+                            isVoid ? 'badge-status-muted' :
+                            isPending ? 'badge-status-gold' :
+                            'badge-status-default'
                           }`}>
                             {order.status}
                           </span>
@@ -175,7 +175,7 @@ export const OrdersView = () => {
                             {isPending && (
                                 <button
                                     onClick={() => handleFulfill(order.id, order.invoice_number)}
-                                    className="px-2 py-0.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded text-[10px] font-bold flex items-center gap-1 hover:bg-tea-accent/20 transition-colors"
+                                    className="pill-action"
                                     title="Mark as Filled (Deduct Stock)"
                                 >
                                     <PackageCheck size={12} /> FILL
@@ -222,10 +222,10 @@ export const OrdersView = () => {
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-sm text-tea-text font-serif truncate">{order.customer_name}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${
-                      isVoid ? 'border-tea-text-sec/50 text-tea-text-sec bg-tea-text-sec/10' :
-                      isPending ? 'border-tea-accent/50 text-tea-accent bg-tea-accent/10' :
-                      'border-tea-text/50 text-tea-text bg-tea-text/10'
+                    <span className={`badge-status ${
+                      isVoid ? 'badge-status-muted' :
+                      isPending ? 'badge-status-gold' :
+                      'badge-status-default'
                     }`}>
                       {order.status}
                     </span>
@@ -234,7 +234,7 @@ export const OrdersView = () => {
                     <span className="text-xs text-tea-text num">{order.display_currency}</span>
                     <div className="flex-1" />
                     {isPending && (
-                      <button onClick={() => handleFulfill(order.id, order.invoice_number)} className="px-2 py-0.5 bg-tea-accent/10 text-tea-accent border border-tea-accent/30 rounded text-[10px] font-bold flex items-center gap-1 hover:bg-tea-accent/20 transition-colors">
+                      <button onClick={() => handleFulfill(order.id, order.invoice_number)} className="pill-action">
                         <PackageCheck size={12} /> FILL
                       </button>
                     )}

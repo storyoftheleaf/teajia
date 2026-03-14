@@ -11,6 +11,30 @@
 
 **Quick rule:** If your color class doesn't start with `tea-text`, `tea-surface`, `tea-bg`, `tea-elevated`, `tea-gold`, `tea-gold-lt`, `tea-border`, `tea-accent-sub`, `tea-text-sec`, or `tea-text-dim` — you're probably using the wrong token.
 
+## MANDATORY: Centralized Component Styles
+
+**All reusable UI element styles live in `src/styles/card-utilities.css`.** This is the single source of truth. When you need to style a pill, badge, tag, card, or any recurring UI pattern — use the CSS classes defined there. **NEVER** inline border/background/color styles for these elements in individual components.
+
+### Available CSS classes (defined in card-utilities.css):
+
+| Class | Use for |
+|---|---|
+| `.pill` / `.pill-active` | Toggle buttons, filter chips, boolean flags |
+| `.pill-active-amber` | Amber-colored active pill (warnings, alerts) |
+| `.badge-status` + variant | Order/attendee/notification status labels |
+| `.badge-role` + variant | User role badges (owner, admin, user) |
+| `.badge-format` + variant | Media type badges (book, podcast, article, etc.) |
+| `.tag` | Selected item display (tasting notes, profile tags) |
+| `.tag-selectable` / `.tag-selectable-active` | Clickable tags in grids (tasting picker) |
+| `.pill-action` | Small action buttons (FILL, etc.) |
+| `.card-grid-item` | Product cards in grid layout |
+| `.nav-control` | Circular nav/close buttons |
+| `.inset-panel` | Recessed panels with warm texture |
+
+### The No-Border Rule
+
+**NEVER add visible `border` to pills, badges, or tags.** Differentiation comes from background tint + text color only. No `border-tea-accent/30`, no `border-amber-400/30`, no `border-white`, no `border-black`. If you find yourself writing a border on a pill or badge, use a CSS class from card-utilities.css instead.
+
 ## Project Overview
 
 This is the unified Teajia application combining two previously separate repos:

@@ -43,7 +43,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         const costPerGramUSD = costPerGramRaw / rateToUSD;
         
         const itemTotalCostUSD = costPerGramUSD * p.stockGrams;
-        const itemTotalRetailUSD = p.pricePerGramUSD * p.stockGrams;
+        const itemTotalRetailUSD = (p.fixedRetailPriceUSD ?? p.pricePerGramUSD) * p.stockGrams;
 
         totalCostUSD += itemTotalCostUSD;
         totalRetailUSD += itemTotalRetailUSD;
