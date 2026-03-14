@@ -142,16 +142,26 @@ const GhostTextarea = ({
     rows?: number,
 }) => {
     const [localValue, setLocalValue] = useState(value);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => { setLocalValue(value); }, [value]);
     const handleBlur = () => { if (localValue !== value) onSave(localValue); };
+    // Auto-expand to fit content
+    useEffect(() => {
+        const el = textareaRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 300) + 'px';
+        }
+    }, [localValue]);
     return (
         <textarea
+            ref={textareaRef}
             value={localValue || ''}
             onChange={(e) => setLocalValue(e.target.value)}
             onBlur={handleBlur}
             placeholder={placeholder}
             rows={rows}
-            className={`w-full bg-transparent border border-tea-border/50 focus:border-tea-accent focus:bg-tea-surface/50 rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed placeholder-tea-text-sec/50 ${className}`}
+            className={`w-full bg-transparent border border-transparent focus:border-tea-border focus:bg-tea-surface/30 rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-sec/50 min-h-[80px] max-h-[300px] overflow-y-auto ${className}`}
         />
     );
 };
@@ -202,8 +212,183 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border focus:border-tea-accent focus:border-solid focus:bg-tea-surface/50 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-sec/50 leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-border focus:border-tea-border focus:border-solid focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-sec/50 leading-none ${className}`}
         />
+    );
+};
+
+// --- COLLAPSIBLE SECTION ---
+const CollapsibleSection = ({ title, defaultOpen = true, children, noDivider = false }: {
+    title: string, defaultOpen?: boolean, children: React.ReactNode, noDivider?: boolean
+}) => {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div style={!noDivider && open ? { boxShadow: 'inset 0 -1px 0 var(--tea-accent-sub)' } : undefined}>
+            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-3 group">
+                <span className="text-[9px] text-tea-gold/40 uppercase tracking-[0.2em]">{title}</span>
+                <ChevronRight size={12} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+            </button>
+            {open && <div className="px-5 pb-4">{children}</div>}
+        </div>
+    );
+};
+
+// --- TAG INPUT COMPONENT ---
+const TagInput = ({ suggestions, value, onSave, multiple = true, placeholder = '' }: {
+    suggestions: string[], value: string[] | string, onSave: (val: any) => void,
+    multiple?: boolean, placeholder?: string
+}) => {
+    const [input, setInput] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const tags = multiple ? (Array.isArray(value) ? value : []) : [];
+    const singleValue = !multiple ? (typeof value === 'string' ? value : '') : '';
+    const filtered = suggestions.filter(s =>
+        s.toLowerCase().includes(input.toLowerCase()) &&
+        (multiple ? !tags.includes(s) : true)
+    ).slice(0, 8);
+
+    const addTag = (tag: string) => {
+        if (multiple) {
+            const newTags = [...tags, tag];
+            onSave(newTags);
+        } else {
+            onSave(tag);
+        }
+        setInput('');
+        setShowDropdown(false);
+    };
+
+    const removeTag = (tag: string) => {
+        if (multiple) {
+            onSave(tags.filter(t => t !== tag));
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && input.trim()) {
+            e.preventDefault();
+            addTag(input.trim());
+        }
+    };
+
+    return (
+        <div className="relative">
+            <input
+                ref={inputRef}
+                value={multiple ? input : (input || singleValue)}
+                onChange={e => { setInput(e.target.value); setShowDropdown(true); if (!multiple) onSave(e.target.value); }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                className="w-full bg-transparent border-b border-transparent focus:border-tea-border focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-xs text-tea-text-sec placeholder-tea-text-sec/50 leading-none"
+            />
+            {showDropdown && input && filtered.length > 0 && (
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-md shadow-lg max-h-32 overflow-y-auto">
+                    {filtered.map(s => (
+                        <button key={s} onMouseDown={() => addTag(s)} className="w-full text-left px-3 py-1.5 text-xs text-tea-text-sec hover:bg-tea-elevated transition-colors">
+                            {s}
+                        </button>
+                    ))}
+                </div>
+            )}
+            {multiple && tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                    {tags.map(tag => (
+                        <span key={tag} className="text-[10px] text-tea-text-dim bg-tea-surface/50 px-2 py-0.5 rounded-full flex items-center gap-1 group">
+                            {tag}
+                            <button onClick={() => removeTag(tag)} className="opacity-0 group-hover:opacity-100 transition-opacity"><XIcon size={8} /></button>
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- IMAGE MANAGER ---
+const ImageManager = ({ product, onUpdate }: {
+    product: Product, onUpdate: (field: keyof Product, value: any) => void
+}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+    const { showToast } = useToast();
+
+    const images = [
+        product.imageUrl || '',
+        ...(product.additionalImages || [])
+    ].slice(0, 3);
+    // Pad to 3 slots
+    while (images.length < 3) images.push('');
+
+    const handleUpload = async (file: File, slotIndex: number) => {
+        setUploadingSlot(slotIndex);
+        try {
+            const url = await api.uploadImage(file);
+            if (slotIndex === 0) {
+                onUpdate('imageUrl', url);
+            } else {
+                const additional = [...(product.additionalImages || [])];
+                additional[slotIndex - 1] = url;
+                onUpdate('additionalImages' as keyof Product, additional);
+            }
+        } catch (err: any) {
+            showToast(`Upload failed: ${err.message}`, 'error');
+        } finally {
+            setUploadingSlot(null);
+        }
+    };
+
+    const handleRemove = (slotIndex: number) => {
+        if (slotIndex === 0) {
+            onUpdate('imageUrl', '');
+        } else {
+            const additional = [...(product.additionalImages || [])];
+            additional.splice(slotIndex - 1, 1);
+            onUpdate('additionalImages' as keyof Product, additional);
+        }
+    };
+
+    return (
+        <div className="flex gap-2">
+            {images.map((img, i) => (
+                <div key={i}>
+                    {img ? (
+                        <div className="w-16 h-16 rounded-md overflow-hidden relative group">
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <button
+                                onClick={() => handleRemove(i)}
+                                className="absolute inset-0 bg-tea-bg/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                                <XIcon size={14} className="text-tea-text-sec" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                input.onchange = (e: any) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleUpload(file, i);
+                                };
+                                input.click();
+                            }}
+                            disabled={uploadingSlot !== null}
+                            className="w-16 h-16 rounded-md border border-dashed border-tea-border hover:border-tea-text-dim transition-colors flex items-center justify-center cursor-pointer"
+                        >
+                            {uploadingSlot === i ? (
+                                <Loader2 size={14} className="text-tea-text-dim animate-spin" />
+                            ) : (
+                                <Plus size={14} className="text-tea-text-dim" />
+                            )}
+                        </button>
+                    )}
+                </div>
+            ))}
+        </div>
     );
 };
 
