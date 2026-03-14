@@ -168,7 +168,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
             onClose={onClose}
           />
           <button
-            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
+            className="absolute top-2 right-2 z-10 nav-control nav-control-close"
             onClick={onClose}
             aria-label="Close"
           >
@@ -186,7 +186,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
             <button
               onClick={() => goPrev()}
               disabled={isFirst}
-              className={`w-8 h-8 flex items-center justify-center rounded-full bg-tea-surface/60 border border-tea-border transition-all ${isFirst ? 'opacity-30 cursor-default' : 'hover:bg-tea-surface/80 text-tea-text-sec'}`}
+              className="nav-control nav-control-sm"
               aria-label="Previous item"
             >
               <ChevronLeft size={18} />
@@ -204,7 +204,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
             <button
               onClick={() => goNext()}
               disabled={isLast}
-              className={`w-8 h-8 flex items-center justify-center rounded-full bg-tea-surface/60 border border-tea-border transition-all ${isLast ? 'opacity-30 cursor-default' : 'hover:bg-tea-surface/80 text-tea-text-sec'}`}
+              className="nav-control nav-control-sm"
               aria-label="Next item"
             >
               <ChevronRight size={18} />
