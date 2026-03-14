@@ -257,14 +257,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       }}>
         {chineseCharacters && (
           <div style={{
-            position: "absolute", right: "14px", top: "14px",
+            position: "absolute", right: "14px", top: "10px",
             fontFamily: "'Ma Shan Zheng', cursive",
-            fontSize: "42px", fontWeight: 400, lineHeight: 1,
+            fontSize: "56px", fontWeight: 400, lineHeight: 1,
             color: "var(--tea-text-dim)",
             letterSpacing: "0.05em",
             userSelect: "none", pointerEvents: "none",
             whiteSpace: "nowrap",
-            opacity: 0.6,
+            opacity: 0.75,
           }}>
             {chineseCharacters}
           </div>
@@ -293,35 +293,45 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </p>
               {/* Tea type · origin · year — pinned in identity zone */}
               <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                margin: "6px 0 0 0",
+                display: "flex", alignItems: "center",
+                margin: "8px 0 0 0",
               }}>
-                <p style={{
+                <span style={{
                   fontFamily: "var(--font-sans)",
-                  fontSize: "10px", fontWeight: 400,
-                  textTransform: "uppercase", letterSpacing: "0.12em",
+                  fontSize: "11px", fontWeight: 500,
+                  textTransform: "uppercase", letterSpacing: "0.10em",
                   color: "var(--tea-gold)",
-                  margin: 0, lineHeight: 1,
+                  lineHeight: 1,
                 }}>
                   {teaType}
-                  {origin && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>{origin}</>}
-                  {vintage && <><span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>{vintage}</>}
-                </p>
-                {isAdmin && onEdit && (
-                  <button
-                    onClick={() => onEdit(item)}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      padding: "2px 4px",
-                      display: "flex", alignItems: "center", gap: "4px",
-                      opacity: 0.5, transition: "opacity 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.5"; }}
-                    title="Edit Product"
-                  >
-                    <Pencil size={11} style={{ color: "var(--tea-text-sec)" }} />
-                  </button>
+                </span>
+                {origin && (
+                  <>
+                    <span style={{ margin: "0 8px", fontSize: "6px", color: "var(--tea-gold)", opacity: 0.35, lineHeight: 1 }}>●</span>
+                    <span style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "11px", fontWeight: 400,
+                      textTransform: "uppercase", letterSpacing: "0.10em",
+                      color: "var(--tea-gold)", opacity: 0.8,
+                      lineHeight: 1,
+                    }}>
+                      {origin}
+                    </span>
+                  </>
+                )}
+                {vintage && (
+                  <>
+                    <span style={{ margin: "0 8px", fontSize: "6px", color: "var(--tea-gold)", opacity: 0.35, lineHeight: 1 }}>●</span>
+                    <span style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "11px", fontWeight: 400,
+                      textTransform: "uppercase", letterSpacing: "0.10em",
+                      color: "var(--tea-gold)", opacity: 0.8,
+                      lineHeight: 1,
+                    }}>
+                      {vintage}
+                    </span>
+                  </>
                 )}
               </div>
             </>
@@ -415,38 +425,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             background: "radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)",
           }} />
 
-          {/* Experience — personal description (before tags for narrative flow) */}
-          {feelingDescription && (
-            <div style={{
-              padding: "16px 16px",
-              borderBottom: (notes.length > 0 || moodTags.length > 0 || introduction || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
-            }}>
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "11px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-gold)",
-                margin: "0 0 8px 0",
-              }}>
-                Experience
-              </h3>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "14px", fontWeight: 300, fontStyle: "italic",
-                lineHeight: 1.7,
-                color: alcoveColors.subtitle, margin: 0,
-                whiteSpace: "pre-line",
-              }}>
-                {feelingDescription}
-              </p>
-            </div>
-          )}
-
-          {/* Tasting notes — pill tags */}
+          {/* Flavor — pill tags (quick-scan first) */}
           {notes.length > 0 && (
             <div style={{
-              padding: "8px 14px",
-              borderBottom: (moodTags.length > 0 || introduction || mainStory || terroir || processing) ? "1px solid var(--tea-border)" : "none",
+              padding: "12px 14px",
               flexShrink: 0,
             }}>
               <h3 style={{
@@ -456,7 +438,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 color: "var(--tea-gold)",
                 margin: "0 0 6px 0", textAlign: "center",
               }}>
-                Tasting Notes
+                Flavor
               </h3>
               <div style={{
                 display: "flex", flexWrap: "wrap", gap: "6px",
@@ -480,7 +462,49 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           )}
 
-          {/* Mood — inline text, visually distinct from tasting notes */}
+          {/* Gradient divider between Flavor and Experience */}
+          {notes.length > 0 && feelingDescription && (
+            <div style={{
+              height: "1px", margin: "0 16px",
+              background: "linear-gradient(90deg, transparent, var(--tea-border) 30%, var(--tea-border) 70%, transparent)",
+            }} />
+          )}
+
+          {/* Experience — personal description */}
+          {feelingDescription && (
+            <div style={{
+              padding: "12px 16px",
+            }}>
+              <h3 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "11px", fontWeight: 400,
+                textTransform: "uppercase", letterSpacing: "0.12em",
+                color: "var(--tea-gold)",
+                margin: "0 0 8px 0",
+              }}>
+                Experience
+              </h3>
+              <p style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "14px", fontWeight: 300, fontStyle: "italic",
+                lineHeight: 1.7,
+                color: alcoveColors.subtitle, margin: 0,
+                whiteSpace: "pre-line",
+              }}>
+                {feelingDescription}
+              </p>
+            </div>
+          )}
+
+          {/* Divider before mood */}
+          {(notes.length > 0 || feelingDescription) && moodTags.length > 0 && (
+            <div style={{
+              height: "1px", margin: "0 16px",
+              background: "linear-gradient(90deg, transparent, var(--tea-border) 30%, var(--tea-border) 70%, transparent)",
+            }} />
+          )}
+
+          {/* Mood — inline text */}
           {moodTags.length > 0 && (
             <div style={{
               padding: "8px 14px",
@@ -544,9 +568,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       <span style={{
                         float: "left",
                         fontFamily: "var(--font-display)",
-                        fontSize: "2.5em", fontWeight: 700, lineHeight: 0.85,
+                        fontSize: "2.4em", fontWeight: 700, lineHeight: 0.82,
                         color: "var(--tea-gold)",
-                        marginRight: "6px", marginTop: "4px",
+                        marginRight: "8px", marginTop: "2px", paddingTop: "4px",
                       }}>
                         {mainStory.charAt(0)}
                       </span>
@@ -756,6 +780,31 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     color: shareCopied ? alcoveColors.success : alcoveColors.subtitle,
                   }}>{shareCopied ? 'Copied' : 'Share'}</span>
                 </button>
+                {isAdmin && onEdit && (
+                  <>
+                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+                    <button
+                      onClick={() => onEdit(item)}
+                      onMouseEnter={() => setHovered("edit")}
+                      onMouseLeave={() => setHovered(null)}
+                      aria-label="Edit Product"
+                      style={{
+                        background: "none", border: "none", padding: "0",
+                        cursor: "pointer", transition: "all 0.2s ease",
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        opacity: hovered === "edit" ? 0.9 : 0.7,
+                      }}
+                    >
+                      <Pencil size={14} style={{ color: alcoveColors.muted }} />
+                      <span style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "10px", fontWeight: 400,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                        color: alcoveColors.subtitle,
+                      }}>Edit</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <button

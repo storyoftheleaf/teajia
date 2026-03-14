@@ -139,9 +139,9 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             onEdit={isAdmin && onEdit ? () => handleEdit() : undefined}
             formatPrice={adminFormatPrice}
           />
-          {/* Close button — top-left to avoid Chinese characters in top-right */}
+          {/* Close button */}
           <button
-            className="absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
+            className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-tea-text/30 hover:bg-tea-text/50 transition-colors"
             onClick={onClose}
             aria-label="Close"
           >
