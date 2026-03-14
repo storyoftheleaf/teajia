@@ -1,4 +1,13 @@
 
+export interface TastingData {
+  flavor?: string[];
+  body?: string[];
+  finish?: string[];
+  feeling?: string[];
+  'liquor-color'?: string[];
+  brewing?: string[];
+}
+
 export enum ContentType {
   Reel = 'Reel',
   Film = 'Film',
@@ -229,6 +238,7 @@ export interface InventoryItem {
   isOneOfAKind?: boolean;
   isCurated?: boolean;
   magazineUrl?: string;
+  tasting?: TastingData;
 }
 
 // Public-safe product type (no cost/vendor fields)
@@ -266,6 +276,7 @@ export interface PublicProduct {
   capacityMl?: number;
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number;
+  tasting?: TastingData;
 }
 
 export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;

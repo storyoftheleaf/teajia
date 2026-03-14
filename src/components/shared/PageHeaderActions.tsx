@@ -9,7 +9,7 @@ interface PageHeaderActionsProps {
   showReset?: boolean;
   showFilter?: boolean;
   activeType?: string;
-  activeFeeling?: string;
+  activeFeeling?: string | null;
   itemCount?: number;
   showItemCount?: boolean;
 }
@@ -64,7 +64,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       )}
 
       {/* Reset Button */}
-      {showReset && (activeType !== 'All' || activeFeeling !== 'All') && (
+      {showReset && (activeType !== 'All' || !!activeFeeling) && (
         <button
           onClick={onReset}
           className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
@@ -81,7 +81,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
         >
           <Icons.Filter className="w-3.5 h-3.5 group-hover:text-tea-gold transition-colors" />
           <span className="text-xs uppercase tracking-[0.2em] font-medium">Filter</span>
-          {(activeType !== 'All' || activeFeeling !== 'All') && (
+          {(activeType !== 'All' || !!activeFeeling) && (
             <div className="w-1 h-1 rounded-full bg-tea-gold"></div>
           )}
         </button>

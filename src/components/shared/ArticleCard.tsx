@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { FileText, Play, Headphones, Camera } from 'lucide-react';
 import { Icons } from '../Icons';
 import { CardContainer } from './CardContainer';
-import { ContentType } from '../../types';
 
 interface ArticleCardProps {
   title: string;
@@ -11,23 +9,6 @@ interface ArticleCardProps {
   aspectRatio?: 'portrait' | 'square';
   onClick?: () => void;
   className?: string;
-  contentType?: ContentType;
-  duration?: string;
-  wordCount?: number;
-}
-
-const contentTypeConfig: Record<ContentType, { icon: React.ElementType; suffix: string }> = {
-  [ContentType.Article]: { icon: FileText, suffix: 'read' },
-  [ContentType.Reel]: { icon: Play, suffix: 'watch' },
-  [ContentType.Film]: { icon: Play, suffix: 'watch' },
-  [ContentType.Audio]: { icon: Headphones, suffix: 'listen' },
-  [ContentType.PhotoEssay]: { icon: Camera, suffix: '' },
-};
-
-/** Estimate reading time from word count at 200 words/min */
-function estimateReadingTime(wordCount: number): string {
-  const minutes = Math.max(1, Math.round(wordCount / 200));
-  return `${minutes} min`;
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({
@@ -37,9 +18,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   aspectRatio = 'portrait',
   onClick,
   className = '',
-  contentType,
-  duration,
-  wordCount,
 }) => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -105,16 +83,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             </>
           )}
 
-          {/* Content-type badge — icon only, no reading time */}
-          {contentType && (() => {
-            const config = contentTypeConfig[contentType];
-            const Icon = config.icon;
-            return (
-              <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-tea-bg/80 backdrop-blur-sm rounded-full px-2.5 py-1 border border-tea-border">
-                <Icon className="w-3 h-3 text-tea-gold" strokeWidth={2} />
-              </div>
-            );
-          })()}
 
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">

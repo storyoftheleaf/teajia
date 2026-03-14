@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
+import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
+import { TastingPicker } from './TastingPicker';
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
@@ -165,6 +167,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   const { aiPromptTemplate } = useAppStore();
 
+  const [tastingData, setTastingData] = useState<TastingData>({});
+
   const [formData, setFormData] = useState({
     type: 'Dark',
     form: '',
@@ -247,7 +251,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         mood: initialData.mood || '',
         experience: initialData.experience || '',
       });
-      setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes));
+      setTastingData(initialData.tasting || {});
+      setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes || initialData.tasting));
     } else if (isOpen && !initialData) {
       setFormData({
         type: 'Dark',
@@ -283,6 +288,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         mood: '',
         experience: '',
       });
+      setTastingData({});
       setWisdomOpen(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,6 +436,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             is_curated: formData.isCurated,
             lore: formData.lore,
             tasting_notes: formData.tastingNotes.split(',').map(n => n.trim()).filter(n => n),
+            tasting: Object.keys(tastingData).length > 0 ? tastingData : undefined,
             is_custom_wisdom: formData.isCustomWisdom,
             show_wisdom: formData.showWisdom,
             processing_notes: formData.processingNotes,
@@ -820,26 +827,22 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             )}
                         </div>
 
-                        {/* Mood + Terroir on one row */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelStyle}>Mood</label>
-                                <input
-                                    name="mood" type="text" value={formData.mood}
-                                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                    className={wisdomInputStyle} placeholder="Grounding & Meditative"
-                                />
-                            </div>
-                            <div>
-                                <label className={labelStyle}>Terroir</label>
-                                <textarea
-                                    name="terroir" value={formData.terroir}
-                                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                    rows={3}
-                                    className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
-                                    placeholder="High-altitude granite soils..."
-                                />
-                            </div>
+                        {/* Tasting Taxonomy Picker */}
+                        <div>
+                            <label className={labelStyle}>Tasting Notes</label>
+                            <TastingPicker value={tastingData} onChange={setTastingData} />
+                        </div>
+
+                        {/* Terroir */}
+                        <div>
+                            <label className={labelStyle}>Terroir</label>
+                            <textarea
+                                name="terroir" value={formData.terroir}
+                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                                rows={3}
+                                className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
+                                placeholder="High-altitude granite soils..."
+                            />
                         </div>
 
                         {/* Experience */}
@@ -866,9 +869,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             />
                         </div>
 
-                        {/* Tasting Notes */}
+                        {/* Legacy Tasting Notes (comma-separated, kept for backward compat) */}
                         <div>
-                            <label className={labelStyle}>Tasting Notes (Comma separated)</label>
+                            <label className={labelStyle}>Legacy Tasting Notes (Comma separated)</label>
                             <textarea
                                 name="tastingNotes" value={formData.tastingNotes}
                                 onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}

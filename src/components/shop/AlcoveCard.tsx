@@ -4,6 +4,14 @@ import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { fmtNum } from '../../utils/formatNumber';
 import { TeaPlaceholder } from './TeaPlaceholder';
+import {
+  flattenTastingNotes,
+  getBrewingNotes,
+  resolveTermLabel,
+  resolveTermIcon,
+  LIQUOR_COLORS,
+  TERM_MAP,
+} from '../../data/tastingTaxonomy';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -13,6 +21,8 @@ interface AlcoveCardProps {
   isAdmin?: boolean;
   /** Called when admin clicks edit */
   onEdit?: (item: InventoryItem) => void;
+  /** Called when user clicks a tasting note for cross-reference filtering */
+  onTermClick?: (termId: string, categoryId: string) => void;
   /** Custom price formatter (admin uses formatCurrency with rates) */
   formatPrice?: (pricePerGram: number, grams: number) => string;
 }
@@ -59,7 +69,7 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean,
   return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick }) => {
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
@@ -250,34 +260,39 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         backgroundSize: "120px",
       }} />
 
+      {/* Vertical calligraphy watermark — top-right, flowing down like a hanging scroll */}
+      {chineseCharacters && (
+        <div style={{
+          position: "absolute", right: "16px", bottom: "90px",
+          writingMode: "vertical-rl",
+          fontFamily: "'Ma Shan Zheng', cursive",
+          fontSize: "92px", fontWeight: 400, lineHeight: 1,
+          color: "var(--tea-text-dim)",
+          letterSpacing: "0.18em",
+          userSelect: "none", pointerEvents: "none",
+          whiteSpace: "nowrap",
+          opacity: 0.09,
+          zIndex: 4,
+        }}>
+          {chineseCharacters}
+        </div>
+      )}
+
       {/* === PINNED TOP: Identity === */}
       <div style={{
         position: "relative", zIndex: 1, flexShrink: 0,
         transition: "all 0.3s ease",
       }}>
-        {chineseCharacters && (
-          <div style={{
-            position: "absolute", right: "14px", top: "10px",
-            fontFamily: "'Ma Shan Zheng', cursive",
-            fontSize: "56px", fontWeight: 400, lineHeight: 1,
-            color: "var(--tea-text-dim)",
-            letterSpacing: "0.05em",
-            userSelect: "none", pointerEvents: "none",
-            whiteSpace: "nowrap",
-            opacity: 0.75,
-          }}>
-            {chineseCharacters}
-          </div>
-        )}
         <div style={{
-          padding: "24px 20px 8px",
+          padding: "16px 20px 0",
           position: "relative",
         }}>
             <>
               <h1 style={{
                 fontFamily: "var(--font-display)",
-                fontSize: "30px", fontWeight: 300, color: alcoveColors.title,
-                margin: "0 0 6px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+                fontSize: "28px", fontWeight: 300, color: alcoveColors.title,
+                margin: "0 0 4px 0", lineHeight: 1.0, letterSpacing: "-0.01em",
+                textAlign: "center",
               }}>
                 {productName}
               </h1>
@@ -285,54 +300,30 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   fontFamily: "var(--font-display)",
                   fontSize: "18px", fontStyle: "italic", fontWeight: 300,
                   lineHeight: 1.3,
-                  color: alcoveColors.subtitle, margin: "0",
+                  color: alcoveColors.subtitle, margin: "0 0 5px 0",
                   minHeight: "22px",
                   visibility: givenName ? "visible" : "hidden",
+                  textAlign: "center",
                 }}>
                   {givenName || '\u00A0'}
                 </p>
-              {/* Tea type · origin · year — pinned in identity zone */}
+              {/* Tea type · origin · year — descriptive bar */}
               <div style={{
-                display: "flex", alignItems: "center",
-                margin: "8px 0 0 0",
+                padding: "3px 0 2px",
+                borderTop: "1px solid var(--tea-border)",
+                borderBottom: "1px solid var(--tea-border)",
+                margin: "0 -20px 0",
               }}>
-                <span style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "11px", fontWeight: 500,
-                  textTransform: "uppercase", letterSpacing: "0.10em",
-                  color: "var(--tea-gold)",
-                  lineHeight: 1,
+                <p style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "13px", fontWeight: 300, fontStyle: "italic",
+                  color: alcoveColors.subtitle, margin: 0,
+                  textAlign: "center",
                 }}>
                   {teaType}
-                </span>
-                {origin && (
-                  <>
-                    <span style={{ margin: "0 8px", fontSize: "6px", color: "var(--tea-gold)", opacity: 0.35, lineHeight: 1 }}>●</span>
-                    <span style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "11px", fontWeight: 400,
-                      textTransform: "uppercase", letterSpacing: "0.10em",
-                      color: "var(--tea-gold)", opacity: 0.8,
-                      lineHeight: 1,
-                    }}>
-                      {origin}
-                    </span>
-                  </>
-                )}
-                {vintage && (
-                  <>
-                    <span style={{ margin: "0 8px", fontSize: "6px", color: "var(--tea-gold)", opacity: 0.35, lineHeight: 1 }}>●</span>
-                    <span style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "11px", fontWeight: 400,
-                      textTransform: "uppercase", letterSpacing: "0.10em",
-                      color: "var(--tea-gold)", opacity: 0.8,
-                      lineHeight: 1,
-                    }}>
-                      {vintage}
-                    </span>
-                  </>
-                )}
+                  {origin && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{origin}</>}
+                  {vintage && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{vintage}</>}
+                </p>
               </div>
             </>
         </div>
@@ -402,8 +393,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         </div>
         )}
 
-        {/* === SENSORY ZONE — experience + notes + mood in inset panel === */}
-        {(feelingDescription || notes.length > 0 || moodTags.length > 0) && (
+        {/* === SENSORY ZONE — tasting notes with icons, experience, brewing === */}
+        {(() => {
+          const tasting = item.tasting;
+          const hasTasting = tasting && Object.values(tasting).some(arr => arr && arr.length > 0);
+          const sensoryNotes = hasTasting ? flattenTastingNotes(tasting) : [];
+          const brewingNotes = hasTasting ? getBrewingNotes(tasting) : [];
+          // Fallback to legacy data if no structured tasting
+          const legacyNotes = !hasTasting ? notes : [];
+          const legacyMood = !hasTasting ? moodTags : [];
+          const hasAnySensory = sensoryNotes.length > 0 || legacyNotes.length > 0 || legacyMood.length > 0 || feelingDescription;
+
+          if (!hasAnySensory) return null;
+
+          return (
         <div style={{
           position: "relative",
           margin: "6px 4px 0",
@@ -425,45 +428,109 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             background: "radial-gradient(ellipse 80% 30% at 70% 0%, var(--tea-accent-sub), transparent)",
           }} />
 
-          {/* Flavor — pill tags (quick-scan first) */}
-          {notes.length > 0 && (
+          {/* Structured tasting notes — each note with its icon */}
+          {sensoryNotes.length > 0 && (
             <div style={{
               padding: "12px 14px",
-              flexShrink: 0,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px 12px",
+              justifyContent: "center",
+              position: "relative",
             }}>
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "11px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-gold)",
-                margin: "0 0 6px 0", textAlign: "center",
-              }}>
-                Flavor
-              </h3>
-              <div style={{
-                display: "flex", flexWrap: "wrap", gap: "6px",
-                justifyContent: "center",
-              }}>
-                {notes.map((note) => (
-                  <span key={note} style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "12px", fontWeight: 300, fontStyle: "italic",
-                    color: "var(--tea-text-sec)",
-                    padding: "3px 10px",
-                    borderRadius: "2px",
-                    background: "var(--tea-accent-sub)",
-                    border: "1px solid var(--tea-border)",
-                    letterSpacing: "0.02em",
-                  }}>
-                    {toTitleCase(note)}
+              {sensoryNotes.map((termId) => {
+                const Icon = resolveTermIcon(termId);
+                const label = resolveTermLabel(termId);
+                const termInfo = TERM_MAP.get(termId);
+                const isLiquorColor = termInfo?.categoryId === 'liquor-color';
+                const swatchColor = isLiquorColor ? LIQUOR_COLORS[termId] : null;
+
+                return (
+                  <span
+                    key={termId}
+                    onClick={onTermClick ? () => onTermClick(termId, termInfo?.categoryId || 'flavor') : undefined}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "12px",
+                      fontWeight: 300,
+                      fontStyle: "italic",
+                      color: "var(--tea-text-sec)",
+                      cursor: onTermClick ? "pointer" : "default",
+                      padding: "2px 0",
+                      transition: "color 0.15s",
+                    }}
+                    onMouseEnter={onTermClick ? (e) => {
+                      e.currentTarget.style.color = "var(--tea-gold)";
+                      const label = e.currentTarget.querySelector('.term-label') as HTMLElement;
+                      if (label) label.style.textDecoration = "underline";
+                    } : undefined}
+                    onMouseLeave={onTermClick ? (e) => {
+                      e.currentTarget.style.color = "var(--tea-text-sec)";
+                      const label = e.currentTarget.querySelector('.term-label') as HTMLElement;
+                      if (label) label.style.textDecoration = "none";
+                    } : undefined}
+                  >
+                    {swatchColor ? (
+                      <span style={{
+                        width: "10px", height: "10px", borderRadius: "50%",
+                        background: swatchColor,
+                        border: "1px solid var(--tea-border)",
+                        flexShrink: 0,
+                      }} />
+                    ) : (
+                      <Icon size={12} style={{ opacity: 0.6, flexShrink: 0 }} />
+                    )}
+                    <span className="term-label">{label}</span>
                   </span>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
 
-          {/* Gradient divider between Flavor and Experience */}
-          {notes.length > 0 && feelingDescription && (
+          {/* Legacy fallback — plain text notes (no icons) for un-migrated teas */}
+          {legacyNotes.length > 0 && (
+            <div style={{
+              padding: "12px 14px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px",
+              justifyContent: "center",
+            }}>
+              {legacyNotes.map((note) => (
+                <span key={note} style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "12px", fontWeight: 300, fontStyle: "italic",
+                  color: "var(--tea-text-sec)",
+                }}>
+                  {toTitleCase(note)}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Legacy mood fallback */}
+          {legacyMood.length > 0 && (
+            <div style={{ padding: "4px 14px 8px", textAlign: "center" }}>
+              <p style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "12px", fontWeight: 300, fontStyle: "italic",
+                color: "var(--tea-text-dim)", margin: 0,
+              }}>
+                {legacyMood.map((tag, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>}
+                    {toTitleCase(tag)}
+                  </React.Fragment>
+                ))}
+              </p>
+            </div>
+          )}
+
+          {/* Gradient divider before Experience */}
+          {(sensoryNotes.length > 0 || legacyNotes.length > 0 || legacyMood.length > 0) && feelingDescription && (
             <div style={{
               height: "1px", margin: "0 16px",
               background: "linear-gradient(90deg, transparent, var(--tea-border) 30%, var(--tea-border) 70%, transparent)",
@@ -472,9 +539,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
           {/* Experience — personal description */}
           {feelingDescription && (
-            <div style={{
-              padding: "12px 16px",
-            }}>
+            <div style={{ padding: "12px 16px" }}>
               <h3 style={{
                 fontFamily: "var(--font-display)",
                 fontSize: "11px", fontWeight: 400,
@@ -496,38 +561,48 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           )}
 
-          {/* Divider before mood */}
-          {(notes.length > 0 || feelingDescription) && moodTags.length > 0 && (
-            <div style={{
-              height: "1px", margin: "0 16px",
-              background: "linear-gradient(90deg, transparent, var(--tea-border) 30%, var(--tea-border) 70%, transparent)",
-            }} />
-          )}
-
-          {/* Mood — inline text */}
-          {moodTags.length > 0 && (
-            <div style={{
-              padding: "8px 14px",
-              flexShrink: 0,
-              textAlign: "center",
-            }}>
-              <p style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "13px", fontWeight: 300, fontStyle: "italic",
-                color: "var(--tea-text-dim)",
-                margin: 0, lineHeight: 1.5,
+          {/* Brewing notes — gentle suggestion at bottom */}
+          {brewingNotes.length > 0 && (
+            <>
+              <div style={{
+                height: "1px", margin: "0 16px",
+                background: "linear-gradient(90deg, transparent, var(--tea-border) 30%, var(--tea-border) 70%, transparent)",
+              }} />
+              <div style={{
+                padding: "8px 14px",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px 10px",
+                justifyContent: "center",
               }}>
-                {moodTags.map((tag, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>}
-                    {toTitleCase(tag)}
-                  </React.Fragment>
-                ))}
-              </p>
-            </div>
+                {brewingNotes.map((termId) => {
+                  const Icon = resolveTermIcon(termId);
+                  const label = resolveTermLabel(termId);
+                  return (
+                    <span
+                      key={termId}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontFamily: "var(--font-body)",
+                        fontSize: "11px",
+                        fontWeight: 300,
+                        fontStyle: "italic",
+                        color: "var(--tea-text-dim)",
+                      }}
+                    >
+                      <Icon size={10} style={{ opacity: 0.5 }} />
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
-        )}
+          );
+        })()}
 
         {/* === KNOWLEDGE ZONE — story, terroir, processing (open layout with gold labels) === */}
         {(introduction || mainStory || terroir || processing) && (
@@ -729,7 +804,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               </div>
             )}
 
-            {/* Row 2: Save/Share + Add button */}
+            {/* Row 2: Save/Share(/Edit) + Add button */}
             <div style={{ display: "flex", gap: "4px" }}>
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
@@ -796,12 +871,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       }}
                     >
                       <Pencil size={14} style={{ color: alcoveColors.muted }} />
-                      <span style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "10px", fontWeight: 400,
-                        letterSpacing: "0.08em", textTransform: "uppercase",
-                        color: alcoveColors.subtitle,
-                      }}>Edit</span>
                     </button>
                   </>
                 )}

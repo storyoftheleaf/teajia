@@ -482,6 +482,9 @@ const handleGetProducts: Handler = async (request, env) => {
     if (typeof p.additional_images === 'string') {
       try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
     }
+    if (typeof p.tasting === 'string') {
+      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
+    }
     return addPricingFields(p, rates);
   });
   return json(products);
@@ -494,7 +497,7 @@ const PUBLIC_FIELDS = [
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
-  'material', 'capacity_ml', 'teaware_category', 'quantity_units',
+  'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting',
 ] as const;
 
 const handleGetPublicProducts: Handler = async (_request, env) => {
@@ -509,7 +512,7 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
               processing_notes, terroir, mood, experience,
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd,
-              material, capacity_ml, teaware_category, quantity_units
+              material, capacity_ml, teaware_category, quantity_units, tasting
        FROM products
        WHERE is_public = 1 AND status = 'Active'
        ORDER BY created_at DESC`
@@ -526,6 +529,9 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
     }
     if (typeof p.additional_images === 'string') {
       try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
+    }
+    if (typeof p.tasting === 'string') {
+      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
     const withPricing = addPricingFields(p, rates);
     // Strip sensitive fields — only return whitelisted public fields
@@ -585,6 +591,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Convert tasting_notes array to JSON string
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
@@ -636,6 +643,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+    if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
     for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
       if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
     }
@@ -665,6 +673,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
@@ -1190,6 +1199,133 @@ const handleGenerateWisdom: Handler = async (request, env) => {
   if (!toolUse) return json({ error: 'No structured output from Claude' }, 500);
 
   return json(toolUse.input);
+};
+
+// ── Migrate Tasting Data (AI-assisted) ──
+const TASTING_TAXONOMY_TERMS = `Flavor: floral, orchid, jasmine, osmanthus, rose, honeysuckle, honey, caramel, brown-sugar, vanilla, stone-fruit, peach, apricot, lychee, dried-fruit, citrus, plum, chestnut, almond, toasted-rice, roasted-grain, charcoal, toasted, cocoa, dark-chocolate, baked, camphor, sandalwood, cedar, pine, woody, earthy, mushroom, leather, smoky, mineral, stony, iron, slate, fresh-grass, herbaceous, seaweed, vegetal, bitter, astringent, savory, umami, medicinal, aged, hay
+Body: light, medium, full, silky, smooth, crisp, oily, dry
+Finish: finish-short, finish-medium, finish-long, lingering, hui-gan, sweet-return, finish-clean, finish-dry, finish-cooling, finish-warming, throat-opening, throat-depth, coating, expanding
+Feeling: calming, grounding, settling, contemplative, energizing, uplifting, clearing, focusing, feeling-warming, feeling-cooling, softening, nourishing, expansive, opening
+Liquor color: pale-gold, gold, amber, honey-color, copper, orange, reddish-brown, deep-brown, dark-chestnut, ink
+Brewing: high-temp, medium-temp, low-temp, short-steeps, patient-steeps, flash-steeps, many-infusions, few-infusions, gaiwan, yixing, porcelain, glass, opens-slowly, peaks-mid-session`;
+
+const handleMigrateTasting: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  if (!env.ANTHROPIC_API_KEY) {
+    return json({ error: 'ANTHROPIC_API_KEY not configured' }, 503);
+  }
+
+  // Fetch all products that have legacy tasting data but no structured tasting
+  const result = await env.DB.prepare(
+    `SELECT id, given_name, product_name, type, tasting_notes, mood, experience, description, terroir, processing_notes, tasting
+     FROM products WHERE tasting IS NULL OR tasting = '{}' OR tasting = ''`
+  ).all();
+
+  const products = result.results;
+  if (!products.length) {
+    return json({ message: 'No products need migration', migrated: 0 });
+  }
+
+  const migrated: string[] = [];
+  const errors: string[] = [];
+
+  // Process in batches of 5 to avoid rate limits
+  for (let i = 0; i < products.length; i += 5) {
+    const batch = products.slice(i, i + 5);
+    const promises = batch.map(async (p) => {
+      const name = `${p.given_name || ''} ${p.product_name || ''}`.trim();
+      const tastingNotes = typeof p.tasting_notes === 'string'
+        ? (() => { try { return JSON.parse(p.tasting_notes as string); } catch { return []; } })()
+        : (p.tasting_notes || []);
+
+      if (!tastingNotes.length && !p.mood && !p.experience) {
+        return; // Nothing to migrate
+      }
+
+      const prompt = `Map this tea's existing free-text data to structured taxonomy term IDs.
+
+Tea: ${name} (${p.type})
+Existing tasting notes: ${(tastingNotes as string[]).join(', ')}
+Mood: ${p.mood || 'none'}
+Experience: ${p.experience || 'none'}
+Description: ${(p.description as string || '').slice(0, 200)}
+Terroir: ${p.terroir || 'none'}
+Processing: ${p.processing_notes || 'none'}
+
+Available taxonomy term IDs:
+${TASTING_TAXONOMY_TERMS}
+
+Return arrays of matching term IDs for each category. Only include terms that are clearly supported by the data. Leave categories empty if no data supports them.`;
+
+      try {
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': env.ANTHROPIC_API_KEY!,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 512,
+            messages: [{ role: 'user', content: prompt }],
+            tools: [{
+              name: 'map_tasting_data',
+              description: 'Map free-text tea data to structured taxonomy term IDs.',
+              input_schema: {
+                type: 'object',
+                properties: {
+                  flavor: { type: 'array', items: { type: 'string' } },
+                  body: { type: 'array', items: { type: 'string' } },
+                  finish: { type: 'array', items: { type: 'string' } },
+                  feeling: { type: 'array', items: { type: 'string' } },
+                  'liquor-color': { type: 'array', items: { type: 'string' } },
+                  brewing: { type: 'array', items: { type: 'string' } },
+                },
+                additionalProperties: false,
+              },
+            }],
+            tool_choice: { type: 'tool', name: 'map_tasting_data' },
+          }),
+        });
+
+        if (!claudeRes.ok) {
+          errors.push(`${p.id}: Claude API ${claudeRes.status}`);
+          return;
+        }
+
+        const claudeData = await claudeRes.json() as any;
+        const toolUse = claudeData.content?.find((b: any) => b.type === 'tool_use');
+        if (!toolUse?.input) {
+          errors.push(`${p.id}: No structured output`);
+          return;
+        }
+
+        // Clean: remove empty arrays
+        const tasting: Record<string, string[]> = {};
+        for (const [key, val] of Object.entries(toolUse.input)) {
+          if (Array.isArray(val) && val.length > 0) {
+            tasting[key] = val as string[];
+          }
+        }
+
+        if (Object.keys(tasting).length > 0) {
+          await env.DB.prepare('UPDATE products SET tasting = ? WHERE id = ?')
+            .bind(JSON.stringify(tasting), p.id)
+            .run();
+          migrated.push(p.id as string);
+        }
+      } catch (err: any) {
+        errors.push(`${p.id}: ${err.message}`);
+      }
+    });
+
+    await Promise.all(promises);
+  }
+
+  return json({ migrated: migrated.length, errors, total: products.length });
 };
 
 // ── Activity Logs ──
@@ -2439,6 +2575,7 @@ const routes: [string, string, Handler][] = [
 
   // AI
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
+  ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 
   // Events — Public
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],

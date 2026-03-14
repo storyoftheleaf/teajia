@@ -1,7 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Icons } from './Icons';
+import { X } from 'lucide-react';
 import { AlcoveModal } from './shop/AlcoveModal';
+import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { CardImage } from './shared/CardImage';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { CardGridItem } from './shared/CardGridItem';
@@ -33,28 +35,64 @@ interface TeaInventoryProps {
   onAdminEdit?: (itemId: string) => void;
 }
 
-const TEA_TYPES = ['Green', 'White', 'Yellow', 'Oolong', 'Black', 'Dark', 'Herbal'];
-const FEELINGS_LIST = ['Ancient', 'Balanced', 'Energetic', 'Grounding', 'Meditative', 'Romantic', 'Soft', 'Strong', 'Vibrant', 'Wild'];
+// Preferred display order for tea types — any types not listed here appear at the end
+const TYPE_ORDER = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Black', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower'];
+
+// Extract feeling terms from the canonical tasting taxonomy
+const FEELING_TERMS = (() => {
+  const cat = TASTING_TAXONOMY.categories.find(c => c.id === 'feeling');
+  if (!cat) return [];
+  return cat.groups.flatMap(g => g.terms.map(t => ({ id: t.id, label: t.label })));
+})();
 
 // Sale items imported from data/curatedCollections
 
 export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
-  const [activeFeeling, setActiveFeeling] = useState<string>('All');
+  const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('LIST');
+
+  // Derive tea types from actual inventory (ordered by TYPE_ORDER, then alphabetically)
+  const teaTypes = useMemo(() => {
+    const types = new Set(inventory.map(item => item.type));
+    const ordered = TYPE_ORDER.filter(t => types.has(t));
+    const remaining = [...types].filter(t => !TYPE_ORDER.includes(t)).sort();
+    return [...ordered, ...remaining];
+  }, [inventory]);
+
+  // Derive which feeling terms are actually present in the inventory
+  const availableFeelings = useMemo(() => {
+    const present = new Set<string>();
+    for (const item of inventory) {
+      if (item.tasting?.feeling) {
+        for (const f of item.tasting.feeling) present.add(f);
+      }
+    }
+    return FEELING_TERMS.filter(t => present.has(t.id));
+  }, [inventory]);
 
   // User Interaction State — persisted via Zustand store
   const { favoriteTeas, toggleFavoriteTea, compareItems } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
+  // Tasting term filter (cross-reference from AlcoveCard)
+  const [tastingFilter, setTastingFilter] = useState<{ termId: string; categoryId: string } | null>(null);
+
+  const handleTermClick = useCallback((termId: string, categoryId: string) => {
+    setTastingFilter({ termId, categoryId });
+    setViewItem(null); // close the modal
+  }, []);
+
+  const clearTastingFilter = useCallback(() => setTastingFilter(null), []);
+
   // Image Modal State
   const [viewItem, setViewItem] = useState<TeaItem | null>(null);
 
   // Sync modal state with URL (?product=ID) for shareability and back-button support
-  const { closeWithHistory } = useProductUrl(inventory, viewItem, setViewItem);
+  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
 
 
   // Filter Logic
@@ -62,7 +100,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     return inventory.filter(item => {
       // 1. Basic Filter (Type/Feeling)
       const matchType = activeType === 'All' || item.type === activeType;
-      const matchFeeling = activeFeeling === 'All' || item.tags.includes(activeFeeling);
+      const matchFeeling = !activeFeeling || (item.tasting?.feeling?.includes(activeFeeling) ?? false);
       
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
@@ -70,9 +108,22 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       if (specialFilter === 'Sale') matchSpecial = SALE_ITEM_IDS.includes(item.id);
       if (specialFilter === 'Liked') matchSpecial = userFavorites.has(item.id);
 
-      return matchType && matchFeeling && matchSpecial;
+      // 3. Tasting term filter (cross-reference)
+      let matchTasting = true;
+      if (tastingFilter) {
+        const catKey = tastingFilter.categoryId as TastingCategoryId;
+        const tasting = item.tasting;
+        if (tasting && tasting[catKey]) {
+          matchTasting = tasting[catKey]!.includes(tastingFilter.termId);
+        } else {
+          // Fallback: check legacy tags
+          matchTasting = item.tags.some(t => t.toLowerCase() === resolveTermLabel(tastingFilter.termId).toLowerCase());
+        }
+      }
+
+      return matchType && matchFeeling && matchSpecial && matchTasting;
     });
-  }, [inventory, activeType, activeFeeling, specialFilter, userFavorites]);
+  }, [inventory, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
@@ -86,7 +137,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     });
 
     // Return groups in specific order, or just the active one if filtered
-    const typesToShow = activeType === 'All' ? TEA_TYPES : [activeType];
+    const typesToShow = activeType === 'All' ? teaTypes : [activeType];
 
     return typesToShow
         .filter(type => groups[type] && groups[type].length > 0)
@@ -102,7 +153,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                 return priceA - priceB;
             })
         }));
-  }, [filteredInventory, activeType]);
+  }, [filteredInventory, activeType, teaTypes]);
 
   // Add-to-cart confirmation feedback
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
@@ -114,8 +165,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   const clearFilters = () => {
     setActiveType('All');
-    setActiveFeeling('All');
+    setActiveFeeling(null);
     setSpecialFilter('None');
+    setTastingFilter(null);
   };
 
   return (
@@ -126,11 +178,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         item={viewItem}
         items={filteredInventory}
         onClose={closeWithHistory}
-        onItemChange={(item) => setViewItem(item)}
+        onItemChange={navigateWithinModal}
         onAddToCart={(item, quantity, total) => {
           if (onAddToCart) onAddToCart(item, quantity, total);
           closeWithHistory();
         }}
+        onTermClick={handleTermClick}
       />
 
       {!hideHeader ? (
@@ -144,7 +197,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               onReset={clearFilters}
-              showReset={(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None')}
+              showReset={(activeType !== 'All' || !!activeFeeling || specialFilter !== 'None' || !!tastingFilter)}
               activeType={activeType}
               activeFeeling={activeFeeling}
             />
@@ -167,7 +220,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             onReset={clearFilters}
-            showReset={(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None')}
+            showReset={(activeType !== 'All' || !!activeFeeling || specialFilter !== 'None' || !!tastingFilter)}
             activeType={activeType}
             activeFeeling={activeFeeling}
           />
@@ -176,6 +229,27 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
       <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4">
+
+         {/* Active tasting filter indicator */}
+         {tastingFilter && (() => {
+           const Icon = resolveTermIcon(tastingFilter.termId);
+           return (
+             <div className="mb-3 flex items-center gap-2">
+               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Showing teas with</span>
+               <span className="inline-flex items-center gap-1.5 text-sm text-tea-gold italic">
+                 <Icon size={12} />
+                 {resolveTermLabel(tastingFilter.termId)}
+               </span>
+               <button
+                 onClick={clearTastingFilter}
+                 className="ml-1 p-0.5 text-tea-text-dim hover:text-tea-text transition-colors"
+                 aria-label="Clear filter"
+               >
+                 <X size={12} />
+               </button>
+             </div>
+           );
+         })()}
 
          {/* Inline filter chips */}
          <div className="mb-4 space-y-3">
@@ -192,7 +266,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                >
                   All
                </button>
-               {TEA_TYPES.map(t => (
+               {teaTypes.map(t => (
                   <button
                      key={t}
                      onClick={() => setActiveType(prev => prev === t ? 'All' : t)}
@@ -207,30 +281,32 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                ))}
             </div>
 
-            {/* Feeling chips — horizontally scrollable */}
+            {/* Feeling chips — horizontally scrollable, derived from taxonomy + inventory */}
+            {availableFeelings.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Mood</span>
-               {FEELINGS_LIST.map(f => (
+               {availableFeelings.map(f => (
                   <button
-                     key={f}
-                     onClick={() => setActiveFeeling(prev => prev === f ? 'All' : f)}
+                     key={f.id}
+                     onClick={() => setActiveFeeling(prev => prev === f.id ? null : f.id)}
                      className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] tracking-wider transition-all ${
-                        activeFeeling === f
+                        activeFeeling === f.id
                            ? 'bg-tea-gold text-tea-bg font-medium border border-tea-gold'
                            : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
                      }`}
                   >
-                     {f}
+                     {f.label}
                   </button>
                ))}
             </div>
+            )}
 
             {/* Active filters summary + count */}
             <div className="flex items-center justify-between">
                <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50">
                   {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
                </p>
-               {(activeType !== 'All' || activeFeeling !== 'All' || specialFilter !== 'None') && (
+               {(activeType !== 'All' || !!activeFeeling || specialFilter !== 'None') && (
                   <button
                      onClick={clearFilters}
                      className="text-[11px] text-tea-gold hover:text-tea-gold/80 transition-colors uppercase tracking-wider flex items-center gap-1.5"

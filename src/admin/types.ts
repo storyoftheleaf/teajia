@@ -4,6 +4,8 @@ export type TeaForm = 'Loose Leaf' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball
 
 export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'UNK';
 
+import type { TastingData } from '../types';
+
 export interface Product {
   id: string;
   type: ProductType;
@@ -49,6 +51,7 @@ export interface Product {
   capacityMl?: number; // Vessel capacity in ml
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number; // Unit count (used instead of stockGrams for teaware)
+  tasting?: TastingData;
 }
 
 export interface InvoiceItem {

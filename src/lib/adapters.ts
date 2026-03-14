@@ -48,5 +48,6 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     material: p.material,
     capacityMl: p.capacityMl,
     subcategory: p.teawareCategory ? categoryToSubcategory(p.teawareCategory) : undefined,
+    tasting: p.tasting,
   };
 }

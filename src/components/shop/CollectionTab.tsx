@@ -13,7 +13,7 @@ interface CollectionTabProps {
 
 export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddToCart }) => {
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
-  const { closeWithHistory } = useProductUrl(inventory, viewItem, setViewItem);
+  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
 
   const featuredItems = useMemo(
     () => inventory.filter(item => item.isFeatured),
@@ -39,7 +39,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
         item={viewItem}
         items={featuredItems}
         onClose={closeWithHistory}
-        onItemChange={(item) => setViewItem(item)}
+        onItemChange={navigateWithinModal}
         onAddToCart={(item, qty, total) => {
           onAddToCart(item, qty, total);
           closeWithHistory();

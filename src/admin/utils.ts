@@ -143,5 +143,6 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     isFeatured: product.isFeatured,
     quantityUnits: product.quantityUnits,
     magazineUrl: undefined,
+    tasting: product.tasting,
   };
 };

@@ -35,6 +35,7 @@ export const usePublicProducts = () => {
         terroir: p.terroir || '',
         mood: p.mood || '',
         experience: p.experience || '',
+        tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
       }));
     },
     staleTime: 1000 * 60 * 5,

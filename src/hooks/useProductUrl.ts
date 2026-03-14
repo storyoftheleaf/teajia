@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { InventoryItem } from '../types';
 
@@ -20,6 +20,7 @@ export function useProductUrl(
 ) {
   const [searchParams] = useSearchParams();
   const productParam = searchParams.get('product');
+  const isModalNavRef = useRef(false);
 
   // On mount / param change: if ?product=ID is in the URL and no modal is open, open it
   useEffect(() => {
@@ -33,14 +34,21 @@ export function useProductUrl(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productParam, inventory]);
 
-  // When viewItem changes (user clicks a product), push URL state
+  // When viewItem changes, update URL state.
   useEffect(() => {
     if (viewItem) {
       const currentParam = new URLSearchParams(window.location.search).get('product');
       if (currentParam !== viewItem.id) {
         const url = new URL(window.location.href);
         url.searchParams.set('product', viewItem.id);
-        window.history.pushState({ productModal: viewItem.id }, '', url.toString());
+        if (isModalNavRef.current) {
+          // Navigating within modal (arrows/swipe) — replace so back closes
+          window.history.replaceState({ productModal: viewItem.id }, '', url.toString());
+        } else {
+          // Opening a card fresh — push so back button can close
+          window.history.pushState({ productModal: viewItem.id }, '', url.toString());
+        }
+        isModalNavRef.current = false;
       }
     }
     // We intentionally only track viewItem here
@@ -80,5 +88,11 @@ export function useProductUrl(
     }
   }, [setViewItem]);
 
-  return { closeWithHistory };
+  // Navigate within modal — replaces history instead of pushing
+  const navigateWithinModal = useCallback((item: InventoryItem) => {
+    isModalNavRef.current = true;
+    setViewItem(item);
+  }, [setViewItem]);
+
+  return { closeWithHistory, navigateWithinModal };
 }
