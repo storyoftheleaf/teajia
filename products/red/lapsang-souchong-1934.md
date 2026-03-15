@@ -1,38 +1,39 @@
 ---
 productName: "Lapsang Souchong"
-chineseName: "正山小种"
+chineseName: "正山小種"
 type: Red
 form: Loose Leaf
 year: 1934
 origin: "Wuyi Mountains, Fujian, China"
-grams: 100
+grams: 300
 stock: 50
-cost: "4650 NT"
+cost: "12000 NT"
 vendor: "Master Bo"
 personal: true
 tastingNotes:
-  - "longan"
-  - "light pine"
-  - "sweet potato"
-  - "clean sweetness"
+  - "dried longan"
+  - "aged wood"
+  - "dark honey"
+  - "trace pine"
+  - "smooth mineral"
 ---
 
-A modern Lapsang Souchong.
+A 1934 Zhengshan Xiaozhong, ninety-plus years old.
 
-Alongside the century-old examples in the collection, this contemporary version provides a reference point for what fresh Zhengshan Xiaozhong tastes like before decades of aging transform it. Modern production in Tongmu has shifted toward lighter smoke and greater emphasis on the tea's natural fruit character.
+Produced in the final years before the Second Sino-Japanese War reshaped everything — trade routes, production, daily life. This tea survived all of it. Fourteen years younger than the 1920 version, the difference is subtle but present: a touch more structure, slightly less dissolution into pure sweetness.
 
 ## Terroir
 
-Tongmu village, Wuyi Mountains, Fujian. The same origin as the aged versions in the collection. Comparing modern production with century-old examples reveals what a century of change in processing and aging produce.
+Tongmu village, Wuyi Mountains, Fujian. Pre-war Tongmu production was still centered on the same old-growth bushes and pine-fired methods that had defined Zhengshan Xiaozhong since its origin. The rocky, mineral-rich soil of the Wuyi mountains gives the base material its backbone.
 
 ## Processing
 
-Contemporary Tongmu village processing. Modern Lapsang Souchong uses less aggressive smoking than historical versions, allowing the cultivar's natural sweetness and fruit character to come forward. The pine smoke is a backdrop rather than the main event.
+Traditional Republican-era Tongmu processing. Pine-smoked, hand-rolled, and dried over wood fire. Nine decades have integrated the smoke completely. The processing signature has become indistinguishable from the aging signature.
 
 ## Mood
 
-fresh origin
+quiet endurance
 
 ## Experience
 
-Clean, sweet, and gently smoky. The longan note is bright and the pine is present but restrained. A good example of where Lapsang Souchong is today, and a useful reference alongside the ancient examples in the collection.
+Slightly more present than the 1920 — the structure has not fully yielded to age. Dark honey and dried fruit dominate, with a woody depth that lingers. The pine smoke exists only as a ghost, a warmth in the throat that you might attribute to the tea itself rather than its processing.

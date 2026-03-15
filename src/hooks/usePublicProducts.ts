@@ -18,7 +18,7 @@ export const usePublicProducts = () => {
         originRegion: p.origin_region || '',
         pricePerGramUSD: Number(p.retail_price_per_gram_usd) || 0,
         fixedRetailPriceUSD: p.fixed_retail_price_usd != null ? Number(p.fixed_retail_price_usd) : null,
-        stockGrams: p.stock_grams || 0,
+        stockGrams: Number(p.stock_grams) || 0,
         description: p.description || '',
         tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],
         imageUrl: p.image_url || '',

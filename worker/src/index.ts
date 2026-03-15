@@ -202,7 +202,12 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
     retailPricePerUnitUSD = costPerUnitUSD * 3.0;
   }
 
-  return { ...product, cost_per_gram_usd: costPerUnitUSD, retail_price_per_gram_usd: retailPricePerUnitUSD };
+  return {
+    ...product,
+    stock_grams: Math.round(product.stock_grams || 0),
+    cost_per_gram_usd: Math.round(costPerUnitUSD * 100) / 100,
+    retail_price_per_gram_usd: Math.round(retailPricePerUnitUSD * 100) / 100,
+  };
 }
 
 // ── Route Handlers ──

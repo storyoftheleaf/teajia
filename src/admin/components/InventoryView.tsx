@@ -863,7 +863,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const isTeaware = updated.type === 'Teaware';
         const calc = calculatePricing(
           updated.costAmount || 0,
-          updated.shippingRatePerKg || 0,
+          updated.shippingRatePerKg || 13,
           updated.quantityPurchased || 0,
           updated.costCurrency || 'USD',
           rates,
@@ -2603,7 +2603,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   ) : (() => {
                     const calc = calculatePricing(
                       panelProduct.costAmount || 0,
-                      panelProduct.shippingRatePerKg || 0,
+                      panelProduct.shippingRatePerKg || 13,
                       panelProduct.quantityPurchased || 0,
                       panelProduct.costCurrency || 'USD',
                       rates,
@@ -2661,7 +2661,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <div className="flex items-center justify-between gap-4 py-1.5 border-b border-tea-accent-sub">
                           <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.1em] flex-shrink-0 w-24">Ship (USD/kg)</span>
                           <GhostInput
-                            value={panelProduct.shippingRatePerKg || 0}
+                            value={panelProduct.shippingRatePerKg || 13}
                             onSave={(val) => {
                               handleProductUpdate(panelProduct.id, 'shippingRatePerKg', val);
                               setPanelProduct(prev => prev ? { ...prev, shippingRatePerKg: Number(val) } : null);

@@ -1,13 +1,13 @@
 ---
 productName: "Guangxi Liupao 1970"
-chineseName: "广西六堡茶"
+chineseName: "六堡茶"
 type: Dark
 form: Loose Leaf
 year: 1970
 origin: "Guangxi, China"
-grams: 100
+grams: 300
 stock: 200
-cost: "2570 NT"
+cost: "8000 NT"
 vendor: "Master Bo"
 personal: true
 tastingNotes:

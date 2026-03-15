@@ -200,7 +200,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     stockGrams: '',
     quantityPurchased: '', 
     costAmount: '', // BASE Cost (Source Currency)
-    shippingRateUSD: '10', // INPUT IS ALWAYS USD NOW
+    shippingRateUSD: '13', // INPUT IS ALWAYS USD NOW — $13/kg default
     costCurrency: 'USD' as Currency,
     vendor: '',
     description: '',
@@ -234,7 +234,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (isOpen && initialData) {
       // Calculate USD shipping from stored Source Currency value
       const rate = rates.find(r => r.currency === initialData.costCurrency)?.rateToUSD || 1;
-      const shipUSD = initialData.shippingRatePerKg ? (initialData.shippingRatePerKg / rate) : 10;
+      const shipUSD = initialData.shippingRatePerKg ? (initialData.shippingRatePerKg / rate) : 13;
 
       setFormData({
         type: initialData.type,
@@ -285,7 +285,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         stockGrams: '',
         quantityPurchased: '',
         costAmount: '',
-        shippingRateUSD: '10', // Explicit Default $10 USD
+        shippingRateUSD: '13', // Explicit Default $13 USD per kg
         costCurrency: 'USD',
         vendor: '',
         description: '',
