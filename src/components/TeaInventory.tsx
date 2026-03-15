@@ -490,9 +490,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             const ap = adminProductMap.get(item.id)!;
                                             const stockColor = ap.stockGrams < 50 ? 'bg-red-400' : ap.stockGrams < (ap.lowStockThreshold || 100) ? 'bg-amber-400' : 'bg-emerald-400';
                                             return (
-                                                <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams}g in stock`}>
+                                                <span className="hidden md:flex items-center gap-1.5" title={`${Math.round(ap.stockGrams)}g in stock`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
-                                                    <span className="text-[10px] num text-tea-text/40">{ap.stockGrams}g</span>
+                                                    <span className="text-[10px] num text-tea-text/40">{Math.round(ap.stockGrams)}g</span>
                                                 </span>
                                             );
                                         })()}

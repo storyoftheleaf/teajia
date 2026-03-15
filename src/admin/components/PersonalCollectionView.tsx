@@ -138,7 +138,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                       </div>
                     </div>
                     <div className="flex-shrink-0 text-right">
-                      <div className="text-xs text-tea-text/80 tabular-nums">{product.stockGrams}g</div>
+                      <div className="text-xs text-tea-text/80 tabular-nums">{Math.round(product.stockGrams)}g</div>
                       <div className="text-[10px] text-tea-text-sec/60 tabular-nums">{formatCurrency(estValue, 'USD', rates)}</div>
                     </div>
                   </button>
@@ -216,7 +216,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                         <span className="text-xs text-tea-text-sec truncate block">{product.vendor || 'Unknown'}</span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">
-                                        <span className="num text-xs text-tea-text">{product.stockGrams}g</span>
+                                        <span className="num text-xs text-tea-text">{Math.round(product.stockGrams)}g</span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">
                                         <span className="num text-xs text-tea-text-sec">

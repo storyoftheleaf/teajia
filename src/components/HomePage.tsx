@@ -365,7 +365,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       {ap.isPublic ? 'Public' : 'Hidden'}
                     </button>
                     <span className="text-[10px] font-mono text-tea-text/25 ml-auto">
-                      {ap.stockGrams}g
+                      {Math.round(ap.stockGrams)}g
                     </span>
                   </div>
                 );

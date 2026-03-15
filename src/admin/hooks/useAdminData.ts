@@ -126,16 +126,26 @@ export const useCustomers = () => {
   });
 };
 
-// Fetch Activity Logs
-export const useActivityLogs = () => {
+// Fetch Activity Logs (with pagination & filtering)
+export const useActivityLogs = (params?: { limit?: number; offset?: number; action?: string; search?: string; entity_id?: string }) => {
   return useQuery({
-    queryKey: ['activity_logs'],
+    queryKey: ['activity_logs', params],
     queryFn: async () => {
       try {
-        return await api.activityLogs.list();
+        return await api.activityLogs.list(params);
       } catch {
-        return [];
+        return { logs: [], total: 0 };
       }
+    }
+  });
+};
+
+// Fetch Stock Ledger — global or per-product
+export const useStockLedger = (productId: string | null | undefined, limit = 50, offset = 0) => {
+  return useQuery({
+    queryKey: ['stock_ledger', productId ?? 'all', limit, offset],
+    queryFn: async () => {
+      return await api.stockLedger.list(productId || undefined, limit, offset);
     }
   });
 };

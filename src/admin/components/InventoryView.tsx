@@ -17,6 +17,7 @@ import { useAppStore } from '../store';
 import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
 import { TastingEditorModal } from './TastingEditorModal';
+import { StockLedgerPanel } from './StockLedgerPanel';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -639,6 +640,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [resetInput, setResetInput] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [stockHistoryProduct, setStockHistoryProduct] = useState<{ id: string; name: string } | null>(null);
 
   const { data: rates = [] } = useRates();
 
@@ -1289,10 +1291,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <button title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-text-sec' : 'text-tea-border hover:text-amber-400'}`}>&#9888;</button>
               </div>
             ) : (
-              <span className={`num text-xs flex items-center gap-1 ${isLow ? 'text-tea-accent font-bold' : 'text-tea-text-sec'}`}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setStockHistoryProduct({ id: product.id, name: product.givenName || product.productName }); }}
+                className={`num text-xs flex items-center gap-1 hover:text-tea-accent transition-colors ${isLow ? 'text-tea-accent font-bold' : 'text-tea-text-sec'}`}
+                title="View stock history"
+              >
                 {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">&#9888;</span>}
-                {product.stockGrams}g
-              </span>
+                {Math.round(product.stockGrams)}g
+              </button>
             )}
           </td>
         );
@@ -1887,7 +1893,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <div key={product.id}>
                     {/* Compact row */}
                     <button
-                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''}`}
+                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${product.isPersonal ? 'bg-amber-950/20' : ''}`}
                         onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
                     >
                         {/* Type dot */}
@@ -1931,7 +1937,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             ) : (
                               <>
                                 <div className={`text-xs tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : isLowStock ? 'text-amber-500/80' : 'text-tea-text/80'}`}>
-                                    {product.stockGrams}g
+                                    {Math.round(product.stockGrams)}g
                                 </div>
                                 <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
                                     ${fmtNum(product.pricePerGramUSD)}/g
@@ -2000,7 +2006,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <>
                                   <div>
                                       <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Stock</div>
-                                      <div className={`text-sm tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : 'text-tea-text'}`}>{product.stockGrams}g</div>
+                                      <div className={`text-sm tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : 'text-tea-text'}`}>{Math.round(product.stockGrams)}g</div>
                                   </div>
                                   <div>
                                       <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Retail</div>
@@ -2114,7 +2120,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {/* Grouped sections */}
               {Object.entries(groupedProducts).map(([groupKey, items]) => {
                 const isCollapsed = collapsedGroups.has(groupKey);
-                const totalStock = items.reduce((sum, p) => sum + (p.stockGrams || 0), 0);
+                const totalStock = Math.round(items.reduce((sum, p) => sum + (p.stockGrams || 0), 0));
                 const totalRetail = items.reduce((sum, p) => sum + ((p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * (p.stockGrams || 0), 0);
                 return (
                   <div key={groupKey}>
@@ -2145,7 +2151,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             return (
                               <tr
                                 key={product.id}
-                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''}`}
+                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${product.isPersonal ? 'bg-amber-950/20' : ''}`}
                                 style={{ height: ROW_HEIGHT }}
                                 onClick={() => !isEditMode && setPanelProduct(product)}
                               >
@@ -2211,7 +2217,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         return (
                             <tr
                                 key={product.id}
-                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${panelProduct?.id === product.id ? 'bg-tea-accent/5' : ''}`}
+                                className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${panelProduct?.id === product.id ? 'bg-tea-accent/5' : product.isPersonal ? 'bg-amber-950/20' : ''}`}
                                 style={{ height: ROW_HEIGHT }}
                                 onClick={() => !isEditMode && setPanelProduct(product)}
                             >
@@ -2801,6 +2807,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   </div>
                 </CollapsibleSection>
 
+                {/* ── Stock History ── */}
+                <CollapsibleSection title="Stock History" defaultOpen={false}>
+                  <StockLedgerPanel
+                    productId={panelProduct.id}
+                    productName={panelProduct.givenName || panelProduct.productName}
+                  />
+                </CollapsibleSection>
+
                 {/* ── Images ── */}
                 <CollapsibleSection title="Images" defaultOpen={true}>
                   <ImageManager
@@ -3061,6 +3075,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             );
           }}
         />
+      )}
+
+      {/* Floating Stock History Panel (from table click) */}
+      {stockHistoryProduct && !panelProduct && (
+        <div className="fixed bottom-4 right-4 z-40 w-96 max-h-[50vh] overflow-y-auto custom-scrollbar shadow-2xl rounded-xl">
+          <StockLedgerPanel
+            productId={stockHistoryProduct.id}
+            productName={stockHistoryProduct.name}
+            onClose={() => setStockHistoryProduct(null)}
+          />
+        </div>
       )}
 
     </div>

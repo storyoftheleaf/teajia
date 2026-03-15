@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, Users, Sun, Moon, Calendar, Sparkles, Store } from 'lucide-react';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, Users, Sun, Moon, Calendar, Sparkles, Store, LayoutDashboard } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -122,6 +122,7 @@ export const Sidebar = ({
   ];
 
   const adminItems: NavItem[] = [
+    { id: 'dashboard', path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" strokeWidth={2} /> },
     { id: 'inventory', path: '/admin/inventory', label: 'Master Inventory', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
     { id: 'sources', path: '/admin/sources', label: 'Sources', icon: <Store className="w-5 h-5" strokeWidth={2} /> },
     { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users className="w-5 h-5" strokeWidth={2} /> },

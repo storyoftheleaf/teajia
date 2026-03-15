@@ -230,8 +230,10 @@ export const api = {
   },
 
   invoices: {
-    list: async (limit = 50) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/invoices?limit=${limit}`, {
+    list: async (limit = 50, offset = 0, includeDeleted = false) => {
+      const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+      if (includeDeleted) params.set('include_deleted', '1');
+      const res = await fetchWithTimeout(`${API_URL}/api/invoices?${params}`, {
         headers: authHeaders(),
       });
       return handleResponse(res);
@@ -252,6 +254,14 @@ export const api = {
     },
     update: async (id: string, data: Record<string, any>) => {
       const res = await fetchWithTimeout(`${API_URL}/api/invoices/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateItems: async (id: string, data: { lineItems?: { product_id: string; quantity: number; price_at_sale: number }[]; shipping_cost_usd?: number; customer_name?: string; notes?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/invoices/${id}/items`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -347,6 +357,22 @@ export const api = {
       });
       return handleResponse(res);
     },
+    voidInvoice: async (invoiceId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/void-invoice`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      return handleResponse(res);
+    },
+    splitInvoice: async (invoiceId: string, lineItemIds: string[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/split-invoice`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ invoice_id: invoiceId, line_item_ids: lineItemIds }),
+      });
+      return handleResponse(res);
+    },
     incrementStock: async (productId: string, amount: number) => {
       const res = await fetchWithTimeout(`${API_URL}/api/rpc/increment-stock`, {
         method: 'POST',
@@ -389,8 +415,25 @@ export const api = {
   },
 
   activityLogs: {
-    list: async () => {
-      const res = await fetchWithTimeout(`${API_URL}/api/activity-logs`, {
+    list: async (params?: { limit?: number; offset?: number; action?: string; search?: string; entity_id?: string }) => {
+      const qp = new URLSearchParams();
+      if (params?.limit) qp.set('limit', String(params.limit));
+      if (params?.offset) qp.set('offset', String(params.offset));
+      if (params?.action) qp.set('action', params.action);
+      if (params?.search) qp.set('search', params.search);
+      if (params?.entity_id) qp.set('entity_id', params.entity_id);
+      const res = await fetchWithTimeout(`${API_URL}/api/activity-logs?${qp}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  stockLedger: {
+    list: async (productId?: string, limit = 50, offset = 0) => {
+      const qp = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+      if (productId) qp.set('product_id', productId);
+      const res = await fetchWithTimeout(`${API_URL}/api/stock-ledger?${qp}`, {
         headers: authHeaders(),
       });
       return handleResponse(res);

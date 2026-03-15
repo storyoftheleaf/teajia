@@ -1,0 +1,105 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api';
+import { Loader2, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+
+interface StockLedgerPanelProps {
+  productId: string;
+  productName: string;
+  onClose?: () => void;
+}
+
+const REASON_LABELS: Record<string, string> = {
+  FULFILLMENT: 'Sale',
+  VOID: 'Void Restore',
+  MANUAL_ADJUST: 'Manual',
+  IMPORT: 'Import',
+  CREATION: 'Created',
+};
+
+export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
+  productId, productName, onClose,
+}) => {
+  const [offset, setOffset] = useState(0);
+  const limit = 20;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['stock_ledger', productId, limit, offset],
+    enabled: !!productId,
+    queryFn: () => api.stockLedger.list(productId, limit, offset),
+  });
+
+  const entries = data?.entries || [];
+  const total = data?.total || 0;
+  const hasNext = offset + limit < total;
+  const hasPrev = offset > 0;
+
+  return (
+    <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Stock History</h4>
+        {onClose && (
+          <button onClick={onClose} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
+        )}
+      </div>
+      <p className="text-sm text-tea-text font-serif mb-3">{productName}</p>
+
+      {isLoading ? (
+        <div className="py-6 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={16} /></div>
+      ) : entries.length === 0 ? (
+        <div className="py-6 text-center text-tea-text-sec text-xs font-serif italic">No stock movements recorded.</div>
+      ) : (
+        <>
+          <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+            {entries.map((entry: any) => {
+              const isPositive = entry.delta > 0;
+              return (
+                <div key={entry.id} className="flex items-center gap-2 py-1.5 border-b border-tea-border/50 last:border-0">
+                  <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-green-500' : 'text-red-400'}`}>
+                    {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                    <span className="text-xs num font-medium">
+                      {isPositive ? '+' : ''}{entry.delta}g
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-tea-text-sec num w-14 shrink-0">{entry.balance_after}g</span>
+                  <span className="badge-status badge-status-default text-[9px]">
+                    {REASON_LABELS[entry.reason] || entry.reason}
+                  </span>
+                  {entry.source_invoice_number && (
+                    <span className="text-[10px] text-tea-text-sec num truncate">{entry.source_invoice_number}</span>
+                  )}
+                  <span className="text-[10px] text-tea-text-sec/50 ml-auto shrink-0">
+                    {new Date(entry.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {total > limit && (
+            <div className="flex items-center justify-between mt-3 pt-2 border-t border-tea-border">
+              <span className="text-[10px] text-tea-text-sec">{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                  disabled={!hasPrev}
+                  className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setOffset(offset + limit)}
+                  disabled={!hasNext}
+                  className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};

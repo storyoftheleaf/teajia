@@ -694,6 +694,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
+  const userEmail = getUserEmail(request);
   const body = await request.json() as Record<string, any>;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
@@ -707,10 +708,32 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
   }
 
+  // Stock change logging
+  const extraStmts: D1PreparedStatement[] = [];
+  if (body.stock_grams !== undefined) {
+    const current = await env.DB.prepare('SELECT stock_grams, given_name, product_name FROM products WHERE id = ?').bind(params.id).first();
+    if (current) {
+      const oldStock = Number(current.stock_grams) || 0;
+      const newStock = Number(body.stock_grams);
+      const delta = newStock - oldStock;
+      if (delta !== 0) {
+        const name = current.given_name || current.product_name || params.id;
+        extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`));
+        extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id));
+      }
+    }
+  }
+
   const cols = Object.keys(body);
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id);
+
+  if (extraStmts.length > 0) {
+    await env.DB.batch([updateStmt, ...extraStmts]);
+  } else {
+    await updateStmt.run();
+  }
 
   return json({ success: true });
 };
@@ -736,7 +759,20 @@ const handleGetInvoices: Handler = async (request, env) => {
 
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '50');
-  const result = await env.DB.prepare('SELECT * FROM invoices ORDER BY created_at DESC LIMIT ?').bind(limit).all();
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const includeDeleted = url.searchParams.get('include_deleted') === '1';
+
+  const whereClause = includeDeleted ? '' : 'WHERE deleted_at IS NULL';
+  const result = await env.DB.prepare(
+    `SELECT i.*, COALESCE(t.line_total, 0) as computed_total
+     FROM invoices i
+     LEFT JOIN (
+       SELECT invoice_id, SUM(quantity * price_at_sale) as line_total
+       FROM invoice_line_items GROUP BY invoice_id
+     ) t ON t.invoice_id = i.id
+     ${whereClause}
+     ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all();
   return json(result.results);
 };
 
@@ -744,11 +780,12 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
 
+  const userEmail = getUserEmail(request);
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     body.invoice.invoice_number,
@@ -758,7 +795,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
     body.invoice.display_currency,
     body.invoice.shipping_cost_usd || 0,
     body.invoice.status || 'Pending',
-    0
+    0,
+    body.invoice.notes || null
   );
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
@@ -767,7 +805,13 @@ const handleCreateInvoice: Handler = async (request, env) => {
     ).bind(crypto.randomUUID(), id, item.product_id, item.quantity, item.price_at_sale)
   );
 
-  await env.DB.batch([invoiceStmt, ...lineItemStmts]);
+  const logStmt = buildActivityLog(
+    env, 'INVOICE_CREATED',
+    `Invoice ${body.invoice.invoice_number} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+    userEmail, 'invoice', id
+  );
+
+  await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
 
   return json({ id, invoice_number: body.invoice.invoice_number }, 201);
 };
@@ -801,9 +845,14 @@ const handleDeleteInvoice: Handler = async (request, env, params) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
 
+  const userEmail = getUserEmail(request);
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(params.id).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  if (invoice.status !== 'Void') return json({ error: 'Only Void invoices can be deleted' }, 400);
+
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?').bind(params.id),
-    env.DB.prepare('DELETE FROM invoices WHERE id = ?').bind(params.id),
+    env.DB.prepare("UPDATE invoices SET deleted_at = datetime('now') WHERE id = ?").bind(params.id),
+    buildActivityLog(env, 'INVOICE_DELETED', `Invoice ${invoice.invoice_number} soft-deleted`, userEmail, 'invoice', params.id),
   ]);
   return json({ success: true });
 };
@@ -813,6 +862,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
+  const userEmail = getUserEmail(request);
   const { invoice_id } = await request.json() as { invoice_id: string };
 
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
@@ -821,22 +871,62 @@ const handleFulfillInvoice: Handler = async (request, env) => {
 
   const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
 
-  const stockUpdates = items.results.map(item =>
-    env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ?')
-      .bind(item.quantity, item.product_id)
+  // Fetch current stock for all affected products
+  const productIds = items.results.map(i => i.product_id);
+  const products = new Map<string, any>();
+  for (const pid of productIds) {
+    const p = await env.DB.prepare('SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ?').bind(pid).first();
+    if (p) products.set(pid as string, p);
+  }
+
+  const stmts: D1PreparedStatement[] = [];
+
+  // Stock deductions + ledger entries
+  for (const item of items.results) {
+    const product = products.get(item.product_id as string);
+    const currentStock = product ? Number(product.stock_grams) || 0 : 0;
+    const qty = Number(item.quantity) || 0;
+    const newBalance = currentStock - qty;
+
+    stmts.push(
+      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ?').bind(qty, item.product_id)
+    );
+    stmts.push(buildStockLedgerEntry(
+      env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
+      userEmail, invoice_id, invoice.invoice_number as string
+    ));
+
+    // Auto-archive if stock hits zero
+    if (newBalance <= 0 && product && product.status !== 'Sold Out') {
+      stmts.push(
+        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ?").bind(item.product_id)
+      );
+      stmts.push(buildActivityLog(
+        env, 'PRODUCT_SOLD_OUT',
+        `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
+        userEmail, 'product', item.product_id as string
+      ));
+    }
+  }
+
+  // Update invoice status
+  stmts.push(
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id)
   );
 
-  await env.DB.batch([
-    ...stockUpdates,
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id),
-    env.DB.prepare("INSERT INTO activity_logs (id, action, details) VALUES (?, 'FULFILLMENT', ?)")
-      .bind(crypto.randomUUID(), `Order ${invoice.invoice_number} marked as filled. Inventory deducted.`),
-  ]);
+  // Activity log
+  stmts.push(buildActivityLog(
+    env, 'FULFILLMENT',
+    `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`,
+    userEmail, 'invoice', invoice_id
+  ));
+
+  await env.DB.batch(stmts);
 
   return json({ success: true });
 };
 
-// ── RPC: Increment Stock (for void restore) ──
+// ── RPC: Increment Stock (for void restore — legacy, kept for backwards compat) ──
 const handleIncrementStock: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
@@ -845,6 +935,187 @@ const handleIncrementStock: Handler = async (request, env) => {
   await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ?')
     .bind(amount, product_id).run();
   return json({ success: true });
+};
+
+// ── RPC: Void Invoice (atomic server-side) ──
+const handleVoidInvoice: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const userEmail = getUserEmail(request);
+  const { invoice_id } = await request.json() as { invoice_id: string };
+
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  if (invoice.status === 'Void') return json({ error: 'Invoice is already voided' }, 400);
+
+  const stmts: D1PreparedStatement[] = [];
+
+  if (invoice.inventory_deducted) {
+    const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+
+    for (const item of items.results) {
+      const product = await env.DB.prepare('SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ?')
+        .bind(item.product_id).first();
+      const currentStock = product ? Number(product.stock_grams) || 0 : 0;
+      const qty = Number(item.quantity) || 0;
+      const newBalance = currentStock + qty;
+
+      stmts.push(
+        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ?').bind(qty, item.product_id)
+      );
+      stmts.push(buildStockLedgerEntry(
+        env, item.product_id as string, qty, newBalance, 'VOID',
+        userEmail, invoice_id, invoice.invoice_number as string
+      ));
+
+      // If product was Sold Out and now has stock, reactivate
+      if (product && product.status === 'Sold Out' && newBalance > 0) {
+        stmts.push(
+          env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ?").bind(item.product_id)
+        );
+      }
+    }
+  }
+
+  stmts.push(
+    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ?").bind(invoice_id)
+  );
+  stmts.push(buildActivityLog(
+    env, 'INVOICE_VOIDED',
+    `Invoice ${invoice.invoice_number} voided.${invoice.inventory_deducted ? ' Stock restored.' : ''}`,
+    userEmail, 'invoice', invoice_id
+  ));
+
+  await env.DB.batch(stmts);
+  return json({ success: true });
+};
+
+// ── RPC: Split Invoice ──
+const handleSplitInvoice: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const userEmail = getUserEmail(request);
+  const { invoice_id, line_item_ids } = await request.json() as { invoice_id: string; line_item_ids: string[] };
+
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
+
+  const allItems = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+  if (line_item_ids.length === 0 || line_item_ids.length >= allItems.results.length) {
+    return json({ error: 'Must select a proper subset of items to split' }, 400);
+  }
+
+  const newId = crypto.randomUUID();
+  const year = new Date().getFullYear();
+  const newNumber = `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+
+  const stmts: D1PreparedStatement[] = [];
+
+  // Create new invoice with same customer info
+  stmts.push(env.DB.prepare(
+    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
+     VALUES (?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
+  ).bind(newId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+
+  // Move selected line items to new invoice
+  for (const itemId of line_item_ids) {
+    stmts.push(env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ?').bind(newId, itemId));
+  }
+
+  stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
+    `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
+    userEmail, 'invoice', invoice_id));
+  stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
+    `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
+    userEmail, 'invoice', newId));
+
+  await env.DB.batch(stmts);
+  return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
+};
+
+// ── Update Invoice Items (edit pending order) ──
+const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const userEmail = getUserEmail(request);
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(params.id).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+  if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
+
+  const body = await request.json() as {
+    lineItems?: { product_id: string; quantity: number; price_at_sale: number }[];
+    shipping_cost_usd?: number;
+    customer_name?: string;
+    customer_id?: string;
+    display_currency?: string;
+    notes?: string;
+  };
+
+  const stmts: D1PreparedStatement[] = [];
+
+  // Update line items if provided
+  if (body.lineItems) {
+    stmts.push(env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?').bind(params.id));
+    for (const item of body.lineItems) {
+      stmts.push(env.DB.prepare(
+        'INSERT INTO invoice_line_items (id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?)'
+      ).bind(crypto.randomUUID(), params.id, item.product_id, item.quantity, item.price_at_sale));
+    }
+  }
+
+  // Update header fields
+  const updates: string[] = [];
+  const vals: any[] = [];
+  for (const [key, val] of Object.entries(body)) {
+    if (key === 'lineItems') continue;
+    updates.push(`${key} = ?`);
+    vals.push(val ?? null);
+  }
+  if (updates.length > 0) {
+    stmts.push(env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ?`).bind(...vals, params.id));
+  }
+
+  stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
+    `Invoice ${invoice.invoice_number} edited.${body.lineItems ? ` ${body.lineItems.length} line items.` : ''}`,
+    userEmail, 'invoice', params.id));
+
+  await env.DB.batch(stmts);
+  return json({ success: true });
+};
+
+// ── Stock Ledger ──
+const handleGetStockLedger: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const productId = url.searchParams.get('product_id');
+  const limit = parseInt(url.searchParams.get('limit') || '50');
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  if (productId) {
+    const result = await env.DB.prepare(
+      `SELECT sl.*, p.given_name, p.product_name
+       FROM stock_ledger sl
+       LEFT JOIN products p ON sl.product_id = p.id
+       WHERE sl.product_id = ?
+       ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
+    ).bind(productId, limit, offset).all();
+    return json(result.results);
+  }
+
+  // Global stock ledger (all products)
+  const result = await env.DB.prepare(
+    `SELECT sl.*, p.given_name, p.product_name
+     FROM stock_ledger sl
+     LEFT JOIN products p ON sl.product_id = p.id
+     ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all();
+  return json(result.results);
 };
 
 // ── RPC: Reset Stock Verification ──
@@ -1377,8 +1648,31 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
 
-  const result = await env.DB.prepare('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 50').all();
-  return json(result.results);
+  const url = new URL(request.url);
+  const limit = parseInt(url.searchParams.get('limit') || '50');
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const action = url.searchParams.get('action');
+  const search = url.searchParams.get('search');
+  const entityId = url.searchParams.get('entity_id');
+
+  const conditions: string[] = [];
+  const binds: any[] = [];
+
+  if (action) { conditions.push('action = ?'); binds.push(action); }
+  if (search) { conditions.push('details LIKE ?'); binds.push(`%${search}%`); }
+  if (entityId) { conditions.push('entity_id = ?'); binds.push(entityId); }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const result = await env.DB.prepare(
+    `SELECT * FROM activity_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  ).bind(...binds, limit, offset).all();
+
+  // Also return total count for pagination
+  const countResult = await env.DB.prepare(
+    `SELECT COUNT(*) as total FROM activity_logs ${where}`
+  ).bind(...binds).first();
+
+  return json({ logs: result.results, total: countResult?.total || 0 });
 };
 
 // ── Image Upload (R2) ──
@@ -2603,16 +2897,22 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
   ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],
 
+  // Invoices — edit items
+  ['PUT', '/api/invoices/:id/items', handleUpdateInvoiceItems],
+
   // RPC
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
+  ['POST', '/api/rpc/void-invoice', handleVoidInvoice],
+  ['POST', '/api/rpc/split-invoice', handleSplitInvoice],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
   ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
   ['POST', '/api/rpc/reset-stock-verification', handleResetStockVerification],
 
-  // Activity Logs
+  // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
+  ['GET', '/api/stock-ledger', handleGetStockLedger],
 
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],

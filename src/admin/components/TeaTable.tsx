@@ -259,7 +259,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                     </div>
                     <div className="flex-shrink-0 text-right">
                       <div className="text-xs text-tea-text/80 tabular-nums">{formatCurrency(product.pricePerGramUSD, currency, rates)}</div>
-                      {isAdmin && <div className="text-[10px] text-tea-text-sec/60 tabular-nums">{product.stockGrams}g</div>}
+                      {isAdmin && <div className="text-[10px] text-tea-text-sec/60 tabular-nums">{Math.round(product.stockGrams)}g</div>}
                     </div>
                   </button>
                 );
@@ -351,7 +351,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     {isAdmin && (
                                         <td className="px-4 align-middle overflow-hidden text-right">
                                             <span className={`num text-xs ${isLowStock ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>
-                                                {product.stockGrams}g
+                                                {Math.round(product.stockGrams)}g
                                             </span>
                                         </td>
                                     )}

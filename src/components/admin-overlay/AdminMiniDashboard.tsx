@@ -73,7 +73,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
                   {p.givenName || p.productName}
                 </span>
                 <span className="font-mono text-red-600 dark:text-red-400 shrink-0">
-                  {p.stockGrams}g
+                  {Math.round(p.stockGrams)}g
                 </span>
               </div>
             ))}

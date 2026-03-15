@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink } from 'lucide-react';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
@@ -26,6 +27,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   cart, setCart, onClearCart, onSuccess, onClose, rates, showToast,
 }) => {
   // ── State ──────────────────────────────────────────────────────────────
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -289,6 +291,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 className="w-full bg-tea-gold text-tea-bg py-3 rounded-lg font-medium hover:bg-tea-gold/90 transition-colors flex items-center justify-center gap-2 text-sm">
                 <RefreshCcw size={16} /> Start New Sale
               </button>
+              <button
+                onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(lastInvoice.invoice_number)}`); }}
+                className="w-full bg-transparent border border-tea-border text-tea-text-sec py-2.5 rounded-lg font-medium hover:text-tea-text hover:bg-tea-surface transition-colors flex items-center justify-center gap-2 text-xs mt-2"
+              >
+                <ExternalLink size={14} /> View in Orders
+              </button>
             </div>
           </div>
         </div>
@@ -384,6 +392,13 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                     </div>
                     <span className="num text-xs text-tea-text">
                       {formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}
+                    </span>
+                  </div>
+                  {/* Stock availability */}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className={`text-[9px] num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
+                      {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
+                      {item.quantity > item.product.stockGrams && ' — exceeds stock'}
                     </span>
                   </div>
                 </div>
