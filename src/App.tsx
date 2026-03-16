@@ -61,6 +61,9 @@ import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
+import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
+import { BackToTop } from './components/shared/BackToTop';
+import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
 import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
@@ -380,6 +383,9 @@ const AppContent = () => {
       {/* Admin Toolbar — visible only for admin users */}
       {isAdmin && <AdminToolbar collapsed={adminToolbarCollapsed} onCollapsedChange={setAdminToolbarCollapsed} />}
 
+      {/* Scroll Progress Bar */}
+      <ScrollProgressBar />
+
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
@@ -394,6 +400,7 @@ const AppContent = () => {
             <SectionSkeleton variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
           ) : (
             viewState === 'BROWSE' && (
+              <AnimatedRoutes>
               <Routes>
                 <Route path="/" element={
                   <ErrorBoundary>
@@ -478,6 +485,7 @@ const AppContent = () => {
                   </div>
                 } />
               </Routes>
+              </AnimatedRoutes>
             )
           )}
       </main>
@@ -611,6 +619,9 @@ const AppContent = () => {
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>
+
+      {/* Back to Top */}
+      <BackToTop />
 
       {/* Bottom Tab Bar for Mobile */}
       <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} onAccountClick={handleOpenAccount} />
