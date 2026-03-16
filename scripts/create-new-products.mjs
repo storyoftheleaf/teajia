@@ -117,26 +117,24 @@ function parseOrigin(origin) {
 
 // The new files to create
 const NEW_FILES = [
-  "green/yabukita-green-1930.md",
-  "green/yabukita-green-1938.md",
-  "oolong/beipu-large-leaf-oolong-1977.md",
-  "oolong/nantou-roasted-1983.md",
-  "red/assam-yuchi-red-1977.md",
-  "red/shuishalian-yuchi-red-1979.md",
-  "red/shuishalian-yuchi-red-1980.md",
-  "red/shuishalian-yuchi-red-1981.md",
-  "sheng/menghai-raw-loose-1976.md",
-  "sheng/da-xue-shan-wild-2005.md",
-  "sheng/xiaguan-wild-2005.md",
-  "sheng/yiwu-wild-2008.md",
-  "sheng/red-seal-camphor-puerh-1980.md",
-  "sheng/maojian-raw-puerh-1963.md",
-  "sheng/tongqinghao-1980.md",
-  "white/zhenghe-white-2008-master-bo.md",
-  "dark/aged-sour-citrus-tea-1983.md",
-  "dark/aged-liu-bao-1960.md",
-  "dark/aged-liu-an-1985.md",
-  "dark/yaan-kang-brick-1980.md",
+  // Kunming Shop samples
+  "sheng/aged-lao-banzhang-1980s.md",
+  "shou/banzhang-lao-cha-tou-2000.md",
+  "shou/bulang-banpen-tea-heads-2018.md",
+  "shou/banzhang-palace-grade-2003.md",
+  "shou/bulang-high-end-gushu-shou-2013.md",
+  "shou/jingmai-gushu-shou-2009.md",
+  "sheng/kunlu-imperial-tribute-2007.md",
+  "red/aged-sheng-essence-hongcha-1997.md",
+  "shou/lao-banzhang-best-under-heaven-2012.md",
+  "sheng/song-dynasty-tribute-2005.md",
+  "shou/golden-bull-hengfengyuan-2009.md",
+  "sheng/wild-round-tea-classic-2005.md",
+  "shou/yiwu-mahei-gushu-shou-2006.md",
+  "sheng/xinghai-aged-sheng-2005.md",
+  "shou/camphor-shou-2012.md",
+  "red/thousand-year-wild-chu-hongcha-2024.md",
+  "white/yiwu-wild-white-2015.md",
 ];
 
 async function main() {
@@ -178,6 +176,7 @@ async function main() {
       processing_notes: sections.processing_notes || "",
       mood: sections.mood || "",
       experience: sections.experience || "",
+      is_sample: meta.sample === true ? 1 : 0,
       is_custom_wisdom: 1,
       show_wisdom: 1,
     };

@@ -622,7 +622,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -673,7 +673,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-    for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
+    for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample']) {
       if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
     }
     // Apply cached vendor_id
@@ -704,7 +704,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 

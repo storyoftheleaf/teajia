@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -94,6 +94,14 @@ const DEFAULT_TEA_VIEWS = [
     columns: ['productName', 'type', 'stockGrams', 'verified'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'Unverified',
+    groupBy: null,
+  },
+  {
+    id: 'default-samples',
+    name: 'Samples',
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Samples',
     groupBy: null,
   },
 ];
@@ -680,6 +688,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => !p.stockVerifiedAt);
     } else if (filterType === 'Unpublished') {
       result = result.filter(p => !p.isPublic);
+    } else if (filterType === 'Samples') {
+      result = result.filter(p => p.isSample);
     } else if (filterType !== 'All') {
       result = result.filter(p => p.type === filterType);
     }
@@ -845,6 +855,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'isPersonal') dbPayload = { is_personal: value ? 1 : 0 };
     else if (field === 'canReorder') dbPayload = { can_reorder: value ? 1 : 0 };
     else if (field === 'isCurated') dbPayload = { is_curated: value ? 1 : 0 };
+    else if (field === 'isSample') dbPayload = { is_sample: value ? 1 : 0 };
     else if (field === 'isCustomWisdom') dbPayload = { is_custom_wisdom: value ? 1 : 0 };
     else if (field === 'fixedRetailPriceUSD') dbPayload = { fixed_retail_price_usd: value ? Number(value) : null };
     else if (field === 'shippingRatePerKg') dbPayload = { shipping_rate_per_kg: Number(value) };
@@ -2496,6 +2507,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         { field: 'isPublic' as const, label: 'In Shop', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
                         { field: 'isFeatured' as const, label: 'Starred', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-accent" : ""} />, active: panelProduct.isFeatured },
                         { field: 'isCurated' as const, label: 'Top Pick', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
+                        { field: 'isSample' as const, label: 'Sample', icon: <FlaskConical size={10} />, active: panelProduct.isSample },
                       ] as const).map(toggle => (
                         <button
                           key={toggle.field}
