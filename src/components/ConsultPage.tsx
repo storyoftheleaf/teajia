@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { PageHeader } from './shared/PageHeader';
 import { CardContainer } from './shared/CardContainer';
 import { SwipeCarousel } from './shared/SwipeCarousel';
@@ -140,6 +141,14 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
     window.dispatchEvent(new CustomEvent('navigate', { detail: { section } }));
   }, []);
 
+  // Parallax for hero section
+  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress: heroScrollProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const heroParallaxY = useTransform(heroScrollProgress, [0, 1], [0, 30]);
+
   const selectedProject = selectedProjectId
     ? consultProjects.find(p => p.id === selectedProjectId)
     : null;
@@ -184,8 +193,9 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
       <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
 
       <div className="max-w-[1400px] mx-auto">
-        {/* Hero statement */}
-        <div className="pt-8 md:pt-12 lg:pt-16">
+        {/* Hero statement with parallax */}
+        <div ref={heroRef} className="pt-8 md:pt-12 lg:pt-16">
+          <motion.div style={{ y: heroParallaxY }}>
           <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-light text-tea-text leading-snug">
             Tea spaces, sourcing, guidance.
           </h2>
@@ -194,6 +204,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
             who take tea seriously.
           </p>
           <div className="w-12 h-px bg-tea-gold/30 mt-6 mb-8 md:mb-10" />
+          </motion.div>
         </div>
 
         {/* Service Directory */}
@@ -239,8 +250,8 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
           onViewAll={() => navigateTo('projects')}
         />
 
-        {/* Single Testimonial */}
-        <SingleTestimonial />
+        {/* Testimonial Carousel */}
+        <TestimonialCarousel />
 
         {/* Closing CTA */}
         <ClosingCTA onOpenInquiry={() => openInquiry('')} />
@@ -416,31 +427,75 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => (
 );
 
 /* =====================================================
-   SingleTestimonial — random on load, no rotation
+   TestimonialCarousel — auto-crossfade with manual dots
    ===================================================== */
 
-const SingleTestimonial: React.FC = () => {
+const reducedMotionQuery = typeof window !== 'undefined'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
+
+const TestimonialCarousel: React.FC = () => {
   const reveal = useSectionReveal();
-  const [testimonial] = useState(() => {
-    const idx = Math.floor(Math.random() * consultTestimonials.length);
-    return consultTestimonials[idx];
-  });
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-advance every 5s, pause on hover
+  useEffect(() => {
+    if (isPaused || reducedMotionQuery?.matches) return;
+    intervalRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % consultTestimonials.length);
+    }, 5000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isPaused]);
+
+  const testimonial = consultTestimonials[activeIndex];
 
   return (
     <section ref={reveal.ref} className={`mt-12 md:mt-16 pt-12 md:pt-16 ${reveal.className}`} style={reveal.style}>
       <div className="divider-warm mb-10" />
-      <div className="inset-panel p-8 md:p-12 text-center">
-        <div className="relative max-w-[640px] mx-auto">
+      <div
+        className="inset-panel p-8 md:p-12 text-center"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <div className="relative max-w-[640px] mx-auto min-h-[160px]">
           <span className="font-serif text-5xl text-tea-gold/20 select-none pointer-events-none leading-none block mb-2">
             &ldquo;
           </span>
-          <p className="font-serif text-lg md:text-xl italic text-tea-text leading-relaxed">
-            {testimonial.quote}
-          </p>
-          <div className="mt-6">
-            <p className="text-xs uppercase tracking-wider text-tea-text/50">{testimonial.name}</p>
-            <p className="text-xs text-tea-text/40 mt-0.5">{testimonial.title}</p>
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={testimonial.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+            >
+              <p className="font-serif text-lg md:text-xl italic text-tea-text leading-relaxed">
+                {testimonial.quote}
+              </p>
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-wider text-tea-text/50">{testimonial.name}</p>
+                <p className="text-xs text-tea-text/40 mt-0.5">{testimonial.title}</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Pagination dots */}
+        <div className="flex justify-center gap-2 mt-6">
+          {consultTestimonials.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              className={`rounded-full transition-all duration-300 h-1.5 ${
+                i === activeIndex
+                  ? 'w-3 bg-tea-gold'
+                  : 'w-1.5 bg-tea-text-sec/30 hover:bg-tea-text-sec/50'
+              }`}
+              aria-label={`Go to testimonial ${i + 1}`}
+            />
+          ))}
         </div>
       </div>
     </section>

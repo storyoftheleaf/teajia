@@ -64,13 +64,51 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
       </p>
 
       {submitted ? (
-        <div className="animate-[fadeIn_0.3s_ease-out]">
-          <p className="text-tea-green font-sans text-base mb-2">
-            Thank you — you're on the list.
-          </p>
-          <p className="text-tea-text-sec font-sans text-sm">
-            Monthly tea insights, seasonal picks, and first access to rare teas.
-          </p>
+        <div className="animate-[fadeIn_0.3s_ease-out] flex items-start gap-3">
+          <svg
+            className="w-6 h-6 text-tea-gold shrink-0 mt-0.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            style={{
+              strokeDasharray: 30,
+              strokeDashoffset: 30,
+              animation: 'checkmark-draw 0.5s ease-out 0.15s forwards',
+            }}
+          >
+            <polyline points="4 12 10 18 20 6" />
+          </svg>
+          <div>
+            <p
+              className="text-tea-gold font-sans text-base mb-2"
+              style={{
+                animation: 'email-text-in 0.4s ease-out 0.3s both',
+              }}
+            >
+              You're in!
+            </p>
+            <p
+              className="text-tea-text-sec font-sans text-sm"
+              style={{
+                animation: 'email-text-in 0.4s ease-out 0.5s both',
+              }}
+            >
+              Monthly tea insights, seasonal picks, and first access to rare teas.
+            </p>
+          </div>
+          <style>{`
+            @keyframes checkmark-draw {
+              to { stroke-dashoffset: 0; }
+            }
+            @keyframes email-text-in {
+              from { opacity: 0; transform: translateY(6px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
         </div>
       ) : error ? (
         <div className="animate-[fadeIn_0.3s_ease-out]">

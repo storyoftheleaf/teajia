@@ -26,6 +26,10 @@ interface AlcoveCardProps {
   formatPrice?: (pricePerGram: number, grams: number) => string;
   /** Called when user wants to start a tasting session */
   onTaste?: (item: InventoryItem) => void;
+  /** All available items for "You might also like" recommendations */
+  items?: InventoryItem[];
+  /** Called when a recommended item is selected */
+  onItemSelect?: (item: InventoryItem) => void;
 }
 
 /** Converts a string to Title Case */
@@ -70,7 +74,7 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean,
   return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, items, onItemSelect }) => {
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
@@ -632,6 +636,88 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               )}
           </div>
         )}
+
+        {/* === YOU MIGHT ALSO LIKE === */}
+        {(() => {
+          if (!items || items.length <= 1) return null;
+          const related = items
+            .filter(i => i.id !== item.id && i.type === item.type)
+            .slice(0, 4);
+          if (related.length === 0) return null;
+          return (
+            <div style={{
+              marginTop: "28px",
+              padding: "0 20px 16px",
+            }}>
+              <h3 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "10px", fontWeight: 400,
+                textTransform: "uppercase", letterSpacing: "0.12em",
+                color: "var(--tea-gold)",
+                margin: "0 0 10px 0",
+              }}>
+                You might also like
+              </h3>
+              <div style={{
+                display: "flex",
+                gap: "10px",
+                overflowX: "auto",
+                paddingBottom: "4px",
+              }}
+              className="no-scrollbar"
+              >
+                {related.map(rec => (
+                  <button
+                    key={rec.id}
+                    onClick={() => onItemSelect?.(rec)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      flexShrink: 0,
+                      width: "56px",
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: onItemSelect ? "pointer" : "default",
+                    }}
+                  >
+                    <div style={{
+                      width: "40px", height: "40px",
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                      background: "var(--tea-elevated)",
+                      marginBottom: "4px",
+                    }}>
+                      {rec.image ? (
+                        <img src={rec.image} alt={rec.name} style={{
+                          width: "100%", height: "100%", objectFit: "cover",
+                        }} loading="lazy" />
+                      ) : (
+                        <TeaPlaceholder type={rec.type} style={{ width: '100%', height: '100%' }} />
+                      )}
+                    </div>
+                    <span style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: "10px",
+                      fontWeight: 300,
+                      color: "var(--tea-text-sec)",
+                      textAlign: "center",
+                      lineHeight: 1.2,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical" as any,
+                      overflow: "hidden",
+                      width: "100%",
+                    }}>
+                      {rec.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
 

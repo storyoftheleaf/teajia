@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, useSpring, useMotionValue } from 'framer-motion';
 import { Story, Person, LayoutVariant } from '../types';
 import { Icons } from './Icons';
 import { SinglePageRenderer, PageData, videoPlayerRegistry } from './SinglePageRenderer';
@@ -150,6 +151,24 @@ const ScaledPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </div>
         </div>
     );
+};
+
+/** Thin gold progress bar for Reader — uses page index instead of scroll position. */
+const ReaderProgressBar: React.FC<{ currentPage: number; totalPages: number }> = ({ currentPage, totalPages }) => {
+  const progress = totalPages > 1 ? currentPage / (totalPages - 1) : 0;
+  const motionProgress = useMotionValue(progress);
+  const scaleX = useSpring(motionProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
+  useEffect(() => {
+    motionProgress.set(progress);
+  }, [progress, motionProgress]);
+
+  return (
+    <motion.div
+      className="absolute top-0 left-0 right-0 h-[2px] bg-tea-gold/80 origin-left z-[60]"
+      style={{ scaleX }}
+    />
+  );
 };
 
 export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onShare, isSaved, onToggleSave, enableKeyboard = true, watchedStories, recommendations = [], customZIndex }) => {
@@ -482,6 +501,9 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         
         {/* Background Texture for Immersion */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50 pointer-events-none"></div>
+
+        {/* Reading Progress Bar — thin gold bar at top */}
+        <ReaderProgressBar currentPage={currentPageIndex} totalPages={pages.length} />
 
         {/* Navigation Drawer */}
         {showNav && <NavOverlay />}

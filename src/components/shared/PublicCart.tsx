@@ -200,9 +200,34 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {step === 'CART' && (
             <div className="space-y-6 relative z-[1]">
               {isEmpty ? (
-                <div className="text-center py-20 opacity-40">
-                  <Icons.Bag className="w-12 h-12 mx-auto mb-4" />
-                  <p className="font-serif italic">Your ledger is empty.</p>
+                <div className="text-center py-20">
+                  <svg
+                    className="w-16 h-16 mx-auto mb-5 text-tea-text/15"
+                    viewBox="0 0 64 64"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ animation: 'teaCupFloat 3s ease-in-out infinite' }}
+                  >
+                    <path d="M8 24 h36 v4 c0 14 -8 24 -18 24 c-10 0 -18-10 -18-24 v-4z" />
+                    <path d="M44 28 c6 0 10 3 10 8 s-4 8 -10 8" />
+                    <path d="M16 16 c0 -4 2 -8 2 -8" />
+                    <path d="M26 14 c0 -4 2 -8 2 -8" />
+                    <path d="M36 16 c0 -4 2 -8 2 -8" />
+                    <line x1="4" y1="56" x2="48" y2="56" />
+                  </svg>
+                  <p className="font-serif italic text-tea-text/40">Your ledger is empty.</p>
+                  <style>{`
+                    @keyframes teaCupFloat {
+                      0%, 100% { transform: translateY(0px); }
+                      50% { transform: translateY(-6px); }
+                    }
+                    @media (prefers-reduced-motion: reduce) {
+                      [style*="teaCupFloat"] { animation: none !important; }
+                    }
+                  `}</style>
                 </div>
               ) : (
                 cart.map(item => (

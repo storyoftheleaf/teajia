@@ -160,6 +160,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     if (onCardClick) onCardClick(story);
   };
 
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const identityReveal = useSectionReveal();
   const storiesReveal = useSectionReveal();
   const quoteReveal = useSectionReveal();
@@ -185,13 +186,30 @@ export const HomePage: React.FC<HomePageProps> = ({
         />
       </div>
 
+      {/* Seasonal Banner */}
+      {!bannerDismissed && (
+        <div
+          className="inset-panel px-4 py-2 flex items-center justify-between cursor-pointer mt-2"
+          onClick={() => setBannerDismissed(true)}
+          role="status"
+        >
+          <p className="text-[10px] uppercase tracking-[0.15em] text-tea-gold/50 font-sans">
+            {season === 'Spring' && 'New spring harvests arriving'}
+            {season === 'Summer' && 'Cool teas for warm days'}
+            {season === 'Autumn' && 'Roasted teas in season'}
+            {season === 'Winter' && 'Warming brews for cold days'}
+          </p>
+          <span className="text-tea-text/20 text-xs ml-3 shrink-0">&times;</span>
+        </div>
+      )}
+
       {/* ============================================
           Section 1: Identity — educational tea insight
           Rotating on each visit. Teaches, then describes.
           ============================================ */}
       <section
         ref={identityReveal.ref}
-        className={`${SECTION_GAP} pt-4 md:pt-8 lg:pt-0 ${identityReveal.className}`}
+        className={`${SECTION_GAP} pt-4 md:pt-8 lg:pt-0 aurora-bg ${identityReveal.className}`}
         style={identityReveal.style}
       >
         <div className="flex items-center gap-3 mb-4">

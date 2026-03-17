@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { CartItem as PublicCartItem } from '../../types';
 import { Icons } from '../Icons';
@@ -70,26 +71,31 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
   const swipeOpacity = Math.max(0.3, 1 - swipeProgress * 0.7);
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+    <AnimatePresence>
+      {isOpen && (
+      <>
+      {/* Backdrop with blur fade */}
+      <motion.div
+        className="fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm"
         onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
       />
 
-      {/* Panel */}
-      <div
+      {/* Panel — slide in from right */}
+      <motion.div
         ref={focusTrapRef}
         className={`fixed top-0 right-0 h-full w-full z-drawer shadow-2xl flex flex-col ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-bg'
-        } ${isOpen ? '' : 'pointer-events-none'}`}
-        style={{
-          transform: isOpen ? `translateX(${touchOffset}px)` : 'translateX(100%)',
-          opacity: isDragging ? swipeOpacity : 1,
-          transition: isDragging ? 'none' : 'transform 300ms ease-out, opacity 300ms ease-out',
-        }}
+        }`}
+        initial={{ x: '100%' }}
+        animate={{ x: isDragging ? touchOffset : 0, opacity: isDragging ? swipeOpacity : 1 }}
+        exit={{ x: '100%' }}
+        transition={isDragging ? { duration: 0 } : { type: 'spring', damping: 30, stiffness: 300 }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -136,7 +142,9 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             />
           </div>
         ) : null}
-      </div>
-    </>
+      </motion.div>
+      </>
+      )}
+    </AnimatePresence>
   );
 };

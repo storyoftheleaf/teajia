@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Icons } from './Icons';
-import { X } from 'lucide-react';
+import { X, SlidersHorizontal } from 'lucide-react';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { CardImage } from './shared/CardImage';
@@ -76,7 +76,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   }, [inventory]);
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, toggleFavoriteTea, compareItems } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
@@ -91,7 +91,34 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const clearTastingFilter = useCallback(() => setTastingFilter(null), []);
 
   // Image Modal State
-  const [viewItem, setViewItem] = useState<TeaItem | null>(null);
+  const [viewItem, setViewItemRaw] = useState<TeaItem | null>(null);
+  const setViewItem = useCallback((item: TeaItem | null) => {
+    setViewItemRaw(item);
+    if (item) addRecentlyViewed(item.id);
+  }, [addRecentlyViewed]);
+
+  // Filter area ref for FAB scroll-to-filters
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [showFilterFab, setShowFilterFab] = useState(false);
+
+  // IntersectionObserver to detect when filters scroll out of view
+  useEffect(() => {
+    const el = filterRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowFilterFab(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Recently viewed items resolved from inventory
+  const recentlyViewedItems = useMemo(() => {
+    return recentlyViewed
+      .map(id => inventory.find(item => item.id === id))
+      .filter(Boolean) as TeaItem[];
+  }, [recentlyViewed, inventory]);
 
   // Tasting Session State
   const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
@@ -173,6 +200,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             })
         }));
   }, [filteredInventory, activeType, teaTypes]);
+
+  // Heart animation state — tracks items that were just favorited/unfavorited
+  const [heartAnim, setHeartAnim] = useState<Record<string, 'fav' | 'unfav'>>({});
+  const handleFavoriteToggle = useCallback((itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const wasFav = userFavorites.has(itemId);
+    toggleFavoriteTea(itemId);
+    setHeartAnim(prev => ({ ...prev, [itemId]: wasFav ? 'unfav' : 'fav' }));
+    setTimeout(() => setHeartAnim(prev => { const n = { ...prev }; delete n[itemId]; return n; }), 600);
+  }, [userFavorites, toggleFavoriteTea]);
 
   // Add-to-cart confirmation feedback
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
@@ -283,7 +320,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          })()}
 
          {/* Inline filter chips */}
-         <div className="mb-4 space-y-3">
+         <div ref={filterRef} className="mb-4 space-y-3">
             {/* Type chips — horizontally scrollable */}
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Type</span>
@@ -354,7 +391,21 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {filteredInventory.length === 0 ? (
             <div className="text-center py-32">
-               <Icons.Leaf className="w-12 h-12 mx-auto mb-4 text-tea-text/20" />
+               <svg
+                 className="w-16 h-16 mx-auto mb-6 text-tea-text/15"
+                 viewBox="0 0 64 64"
+                 fill="none"
+                 stroke="currentColor"
+                 strokeWidth="1.2"
+                 strokeLinecap="round"
+                 strokeLinejoin="round"
+                 style={{ animation: 'teaLeafFloat 3s ease-in-out infinite' }}
+               >
+                 <path d="M32 56 C32 56 12 44 12 28 C12 16 20 8 32 8 C44 8 52 16 52 28 C52 44 32 56 32 56Z" />
+                 <path d="M32 8 C32 8 28 20 28 32 C28 44 32 56 32 56" />
+                 <path d="M18 22 C24 26 32 28 46 24" />
+                 <path d="M16 34 C22 36 30 38 48 32" />
+               </svg>
                <p className="font-serif italic text-tea-text/60 mb-2">No teas match your filters</p>
                <button
                   onClick={clearFilters}
@@ -362,6 +413,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                >
                   Clear all filters
                </button>
+               <style>{`
+                 @keyframes teaLeafFloat {
+                   0%, 100% { transform: translateY(0px); }
+                   50% { transform: translateY(-8px); }
+                 }
+                 @media (prefers-reduced-motion: reduce) {
+                   .teaLeafFloat { animation: none !important; }
+                 }
+               `}</style>
             </div>
          ) : null}
 
@@ -477,13 +537,42 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
                                     {/* Right: heart + price + admin controls + chevron */}
                                     <div className="flex items-center gap-2 shrink-0">
-                                        {/* Favorite/heart toggle */}
+                                        {/* Favorite/heart toggle with micro-interaction */}
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
-                                            className={`-my-1 p-1.5 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                                            onClick={(e) => handleFavoriteToggle(item.id, e)}
+                                            className={`-my-1 p-1.5 transition-colors relative ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
                                             title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                                         >
-                                            <Icons.Heart filled={isFavorite} className="w-4 h-4" />
+                                            <span
+                                              style={{
+                                                display: 'inline-block',
+                                                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                                transform: heartAnim[item.id] === 'fav' ? 'scale(1.3)' : heartAnim[item.id] === 'unfav' ? 'scale(0.9)' : 'scale(1)',
+                                              }}
+                                            >
+                                              <Icons.Heart filled={isFavorite} className="w-4 h-4" />
+                                            </span>
+                                            {/* Burst dots on favorite */}
+                                            {heartAnim[item.id] === 'fav' && (
+                                              <>
+                                                {[0, 60, 120, 180, 240, 300].map((angle) => {
+                                                  const rad = (angle * Math.PI) / 180;
+                                                  const tx = Math.cos(rad) * 12;
+                                                  const ty = Math.sin(rad) * 12;
+                                                  return (
+                                                    <span
+                                                      key={angle}
+                                                      className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full bg-tea-gold pointer-events-none"
+                                                      style={{
+                                                        animation: 'heart-burst 0.5s ease-out forwards',
+                                                        ['--burst-tx' as any]: `${tx}px`,
+                                                        ['--burst-ty' as any]: `${ty}px`,
+                                                      }}
+                                                    />
+                                                  );
+                                                })}
+                                              </>
+                                            )}
                                         </button>
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
@@ -523,6 +612,46 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       </div>
       </div>
 
+      {/* Recently Viewed */}
+      {recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
+        <div className="mt-10 px-3 md:px-4 lg:px-6">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+            {recentlyViewedItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setViewItem(item)}
+                className="flex flex-col items-center shrink-0 group"
+                style={{ width: '72px' }}
+              >
+                <div className="w-14 h-14 rounded-sm overflow-hidden bg-tea-elevated mb-1.5 group-hover:ring-1 group-hover:ring-tea-gold/30 transition-all">
+                  {item.image ? (
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <TeaPlaceholder type={item.type} style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <span className="text-[10px] text-tea-text-sec text-center leading-tight line-clamp-2 group-hover:text-tea-text transition-colors">
+                  {item.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Filter FAB (mobile only) */}
+      <button
+        onClick={() => filterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        className={`fixed bottom-24 right-4 z-30 w-12 h-12 rounded-full bg-tea-gold text-tea-bg flex items-center justify-center shadow-lg lg:hidden transition-all duration-300 ${
+          showFilterFab ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
+        }`}
+        aria-label="Scroll to filters"
+        style={{ transitionProperty: 'opacity, transform' }}
+      >
+        <SlidersHorizontal size={20} />
+      </button>
+
       {/* Floating Compare Button */}
       {compareItems.length > 0 && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 animate-[fadeIn_0.3s_ease-out]">
@@ -546,6 +675,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           onClose={() => setShowCompare(false)}
         />
       )}
+
+      {/* Heart burst animation keyframes */}
+      <style>{`
+        @keyframes heart-burst {
+          0% { opacity: 1; transform: translate(-50%, -50%) translate(0, 0); }
+          100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--burst-tx, 0), var(--burst-ty, 0)); }
+        }
+      `}</style>
     </div>
   );
 };

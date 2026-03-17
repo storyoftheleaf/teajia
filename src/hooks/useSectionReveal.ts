@@ -46,9 +46,28 @@ function prefersReducedMotion(): boolean {
   return _prefersReducedMotion;
 }
 
+/** Map direction to hidden/visible CSS classes */
+function getClassNames(direction: 'up' | 'left' | 'right' | 'fade', visible: boolean) {
+  if (visible) return 'opacity-100 translate-x-0 translate-y-0';
+
+  switch (direction) {
+    case 'up':
+      return 'opacity-0 translate-y-4';
+    case 'left':
+      return 'opacity-0 -translate-x-4';
+    case 'right':
+      return 'opacity-0 translate-x-4';
+    case 'fade':
+      return 'opacity-0';
+  }
+}
+
 /** Lightweight scroll-reveal hook using a shared IntersectionObserver.
- *  Respects prefers-reduced-motion — instantly visible, no animation. */
-export function useSectionReveal() {
+ *  Respects prefers-reduced-motion — instantly visible, no animation.
+ *
+ *  @param direction - reveal direction: 'up' (default), 'left', 'right', or 'fade'
+ */
+export function useSectionReveal(direction: 'up' | 'left' | 'right' | 'fade' = 'up') {
   const ref = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -76,7 +95,7 @@ export function useSectionReveal() {
 
   return {
     ref,
-    className: visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
+    className: getClassNames(direction, visible),
     style: noMotion ? undefined : { transition: 'opacity 0.6s ease-out, transform 0.6s ease-out' },
   };
 }

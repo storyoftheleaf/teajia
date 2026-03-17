@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { LoadingSpinner } from './LoadingSpinner';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'icon' | 'danger';
@@ -43,9 +44,12 @@ export const Button: React.FC<ButtonProps> = ({
   const widthClass = fullWidth ? 'w-full' : '';
 
   return (
-    <button
+    <motion.button
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       disabled={disabled || loading}
+      whileHover={!disabled ? { y: -1 } : undefined}
+      whileTap={!disabled ? { scale: 0.97 } : undefined}
+      transition={{ duration: 0.15 }}
       {...props}
     >
       {loading ? (
@@ -56,6 +60,6 @@ export const Button: React.FC<ButtonProps> = ({
           {children && <span>{children}</span>}
         </>
       )}
-    </button>
+    </motion.button>
   );
 };

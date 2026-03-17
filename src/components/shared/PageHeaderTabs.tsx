@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, LayoutGroup } from 'framer-motion';
 
 interface Tab {
   id: string;
@@ -21,6 +22,7 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
   className = ''
 }) => {
   return (
+    <LayoutGroup>
     <div className={`w-full px-4 md:px-6 lg:px-10 overflow-x-auto no-scrollbar ${className}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}>
       <div className="flex items-center gap-7 md:gap-10 min-w-max">
         {tabs.map((tab) => (
@@ -30,7 +32,7 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
             className={`text-xs uppercase tracking-[0.25em] transition-all duration-300 relative group py-4 ${
               activeTab === tab.id
                 ? 'text-tea-text opacity-100 font-medium'
-                : 'text-tea-text/60 hover:text-tea-text/90/90'
+                : 'text-tea-text/60 hover:text-tea-text/90'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -41,11 +43,16 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
               )}
             </div>
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-tea-gold transition-all duration-300"></span>
+              <motion.span
+                layoutId="tab-underline"
+                className="absolute bottom-0 left-0 w-full h-[1.5px] bg-tea-gold"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
             )}
           </button>
         ))}
       </div>
     </div>
+    </LayoutGroup>
   );
 };

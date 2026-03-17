@@ -6,7 +6,8 @@ import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, Users, History, Calendar, Store } from 'lucide-react';
+import { useAppStore } from '../lib/store';
+import { Leaf, Coffee, Receipt, Settings, FolderOpen, Users, History, Calendar, Store, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 function getCurrentSeason(): { name: string; icon: string } {
   const month = new Date().getMonth();
@@ -31,7 +32,8 @@ const NavButton: React.FC<{
   isActive: boolean;
   onClick: () => void;
   animationDelay?: number;
-}> = ({ item, isActive, onClick, animationDelay = 0 }) => {
+  collapsed?: boolean;
+}> = ({ item, isActive, onClick, animationDelay = 0, collapsed = false }) => {
   const content = (
     <>
       <div className={`transition-all duration-300 shrink-0 ${
@@ -41,13 +43,20 @@ const NavButton: React.FC<{
       }`}>
         {item.icon}
       </div>
-      <span className={`text-sm font-semibold transition-all duration-300 ${
-        isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-      }`}>
-        {item.label}
-      </span>
-      {item.badge !== undefined && item.badge > 0 && (
+      {!collapsed && (
+        <span className={`text-sm font-semibold transition-all duration-300 ${
+          isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+        }`}>
+          {item.label}
+        </span>
+      )}
+      {!collapsed && item.badge !== undefined && item.badge > 0 && (
         <span className="ml-auto w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center shrink-0 mr-2">
+          {item.badge > 9 ? '9+' : item.badge}
+        </span>
+      )}
+      {collapsed && item.badge !== undefined && item.badge > 0 && (
+        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-tea-gold text-white text-[8px] font-bold rounded-full flex items-center justify-center">
           {item.badge > 9 ? '9+' : item.badge}
         </span>
       )}
@@ -61,7 +70,7 @@ const NavButton: React.FC<{
     </>
   );
 
-  const className = `relative flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
+  const className = `relative flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
     isActive ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
   }`;
 
@@ -125,6 +134,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const season = getCurrentSeason();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { sidebarCollapsed: collapsed, toggleSidebarCollapsed } = useAppStore();
 
   // Cart badge pulse animation
   const [badgeAnimating, setBadgeAnimating] = useState(false);
@@ -164,7 +174,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   return (
     <LayoutGroup>
     <aside
-      className={`hidden lg:flex flex-col w-56 text-tea-text fixed left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-sticky ${topOffset ? 'top-9 h-[calc(100vh-2.25rem)]' : 'top-0 h-screen'}`}
+      className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-56'} text-tea-text fixed left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-sticky ${topOffset ? 'top-9 h-[calc(100vh-2.25rem)]' : 'top-0 h-screen'}`}
       style={{
         background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgba(24,19,14,0.95) 100%)',
         boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgba(0,0,0,0.15)'
@@ -173,14 +183,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       {/* Logo/Brand - Home Button */}
       <button
         onClick={() => onNavigate('HOME')}
-        className={`h-20 flex items-center justify-start px-6 gap-3 animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group ${
+        className={`h-20 flex items-center ${collapsed ? 'justify-center px-2' : 'justify-start px-6 gap-3'} animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group ${
           activeSection === 'HOME' ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
         }`}
         title="Home"
         style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
       >
         <LogoEmblem
-          size={36}
+          size={collapsed ? 28 : 36}
           color={theme === 'dark' ? '#c0b49a' : '#010101'}
           className={`transition-all duration-300 shrink-0 ${
             activeSection === 'HOME'
@@ -188,7 +198,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               : 'opacity-80 group-hover:opacity-100 group-hover:scale-105'
           }`}
         />
-        <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
+        {!collapsed && <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>}
         {activeSection === 'HOME' && (
           <motion.div
             layoutId="sidebar-active-indicator"
@@ -199,21 +209,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       </button>
 
       {/* Search Button */}
-      <div className="px-3 pt-4 pb-1">
+      <div className={collapsed ? 'px-1.5 pt-4 pb-1' : 'px-3 pt-4 pb-1'}>
         <button
           onClick={onSearchClick}
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 border border-tea-border"
+          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-2.5 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 border border-tea-border`}
           title="Search (Ctrl+K)"
         >
           <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors duration-300 shrink-0" strokeWidth={2} />
-          <span className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors duration-300">Search...</span>
-          <kbd className="ml-auto text-[10px] text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
+          {!collapsed && <span className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors duration-300">Search...</span>}
+          {!collapsed && <kbd className="ml-auto text-[10px] text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono">⌘K</kbd>}
         </button>
       </div>
 
       {/* Browse Navigation */}
-      <nav className="flex flex-col py-6 gap-1 px-3">
-        <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Browse</span>
+      <nav className={`flex flex-col py-6 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
+        {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Browse</span>}
         {browseItems.map((item, index) => (
           <NavButton
             key={item.id}
@@ -221,14 +231,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             isActive={activeSection === item.section}
             onClick={() => item.section && onNavigate(item.section)}
             animationDelay={index * 50}
+            collapsed={collapsed}
           />
         ))}
       </nav>
 
       {/* Catalog Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
+        <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+          {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>}
           {catalogItems.map((item, index) => (
             <NavButton
               key={item.id}
@@ -236,6 +247,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               isActive={currentPath === item.path}
               onClick={() => {}}
               animationDelay={(browseItems.length + index) * 50}
+              collapsed={collapsed}
             />
           ))}
         </nav>
@@ -243,8 +255,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
       {/* Admin Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>
+        <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+          {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>}
           {adminItems.map((item, index) => (
             <NavButton
               key={item.id}
@@ -252,6 +264,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               isActive={currentPath === item.path}
               onClick={() => {}}
               animationDelay={(browseItems.length + catalogItems.length + index) * 50}
+              collapsed={collapsed}
             />
           ))}
         </nav>
@@ -261,18 +274,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <div className="flex-1" />
 
       {/* Seasonal indicator */}
-      <div className="flex items-center gap-2 px-6 py-3 text-tea-gold/40">
-        <span className="text-sm">{season.icon}</span>
-        <span className="text-[10px] uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
-      </div>
+      {!collapsed && (
+        <div className="flex items-center gap-2 px-6 py-3 text-tea-gold/40">
+          <span className="text-sm">{season.icon}</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
+        </div>
+      )}
 
       {/* Utility Area */}
-      <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-        <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
+      <div className={`relative py-4 ${collapsed ? 'px-1.5' : 'px-3'}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+        {!collapsed && <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>}
 
         <button
           onClick={onCartClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50`}
+          title="Cart"
         >
           <div className="relative shrink-0">
             <Icons.Bag
@@ -285,14 +301,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </div>
             )}
           </div>
-          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
-            Cart
-          </span>
+          {!collapsed && (
+            <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
+              Cart
+            </span>
+          )}
         </button>
 
         <button
           onClick={onAccountClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50`}
+          title="Account"
         >
           <Icons.User
             className={`transition-all duration-300 shrink-0 ${
@@ -302,16 +321,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             }`}
             strokeWidth={2}
           />
-          <span className={`text-sm font-semibold transition-all duration-300 ${
-            activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-          }`}>
-            Account
-          </span>
+          {!collapsed && (
+            <span className={`text-sm font-semibold transition-all duration-300 ${
+              activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+            }`}>
+              Account
+            </span>
+          )}
         </button>
 
         <button
           onClick={(e) => toggleTheme(e)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50"
+          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50`}
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
@@ -320,9 +341,30 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           ) : (
             <Icons.Moon className="transition-all duration-300 text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
           )}
-          <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </span>
+          {!collapsed && (
+            <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
+              {theme === 'dark' ? 'Light' : 'Dark'}
+            </span>
+          )}
+        </button>
+
+        {/* Collapse/Expand toggle */}
+        <button
+          onClick={toggleSidebarCollapsed}
+          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 mt-1`}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? (
+            <ChevronsRight className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={2} />
+          ) : (
+            <ChevronsLeft className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={2} />
+          )}
+          {!collapsed && (
+            <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
+              Collapse
+            </span>
+          )}
         </button>
       </div>
     </aside>

@@ -173,15 +173,15 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
 
       {/* Pagination dots */}
       {showDots && children.length > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center gap-1.5 mt-4">
           {children.map((_, index) => (
             <button
               key={index}
               onClick={() => scrollToIndex(index)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
+              className={`h-[6px] rounded-full transition-all duration-300 ${
                 index === activeIndex
-                  ? `${dotActive} w-5`
-                  : `${dotInactive} w-1.5`
+                  ? 'bg-tea-gold w-3'
+                  : 'bg-tea-text-sec/30 w-[6px] hover:bg-tea-text-sec/50'
               }`}
               aria-label={`Go to item ${index + 1}`}
             />

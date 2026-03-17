@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAdminOverlay } from '../../hooks/useAdminOverlay';
 import { Icons } from '../Icons';
@@ -35,7 +36,12 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-sticky bg-tea-bg/95 backdrop-blur-md border-b border-tea-border h-9 flex items-center px-3 lg:pl-24 xl:pl-60 shadow-lg">
+    <motion.div
+      className="fixed top-0 left-0 right-0 z-sticky bg-tea-bg/90 backdrop-blur-lg border-b border-tea-border h-9 flex items-center px-3 lg:pl-24 xl:pl-60 shadow-lg"
+      initial={{ y: -36, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+    >
       {/* Stats */}
       <div className="flex items-center gap-4 flex-1 overflow-x-auto no-scrollbar">
         <button
@@ -98,6 +104,6 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           <Icons.Close className="w-3 h-3" />
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };

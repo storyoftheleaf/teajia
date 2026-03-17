@@ -27,6 +27,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [revealClip, setRevealClip] = useState<string | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
+  // Set seasonal gold accent CSS custom property
+  useEffect(() => {
+    const month = new Date().getMonth();
+    let seasonalGold: string;
+    if (month >= 2 && month <= 4) {
+      seasonalGold = '#a0a868'; // Spring — slightly greener
+    } else if (month >= 5 && month <= 7) {
+      seasonalGold = '#c4a04a'; // Summer — warmer
+    } else if (month >= 8 && month <= 10) {
+      seasonalGold = '#b8862e'; // Autumn — deeper amber
+    } else {
+      seasonalGold = '#a09878'; // Winter — cooler
+    }
+    document.documentElement.style.setProperty('--tea-gold-seasonal', seasonalGold);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('teajia_theme', theme);
     if (theme === 'dark') {

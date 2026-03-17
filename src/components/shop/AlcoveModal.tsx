@@ -225,6 +225,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               onClose={onClose}
               onTermClick={onTermClick}
               onTaste={onTaste}
+              items={items}
+              onItemSelect={onItemChange}
             />
             {/* Close button */}
             <button

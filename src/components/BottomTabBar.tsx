@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, LayoutGroup } from 'framer-motion';
 import { Icons } from './Icons';
 import { LogoEmblem, LogoText } from './Logos';
 import { Section } from '../types';
@@ -87,12 +88,20 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {section.label}
         </span>
 
+        {/* Active indicator dot */}
+        {isActive && (
+          <motion.div
+            layoutId="bottom-tab-dot"
+            className="absolute bottom-1 w-1 h-1 rounded-full bg-tea-gold"
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          />
+        )}
       </button>
     );
   };
 
   return (
-    <>
+    <LayoutGroup>
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
         aria-label="Main navigation"
@@ -146,7 +155,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {/* Account button removed — account accessible via sidebar/header */}
         </div>
       </nav>
-
-    </>
+    </LayoutGroup>
   );
 };

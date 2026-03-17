@@ -53,8 +53,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div
-      className={`sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-10 bg-tea-surface/80 backdrop-blur-xl backdrop-saturate-150 transition-all duration-500 ease-out ${className}`}
-      style={{ boxShadow: '0 1px 0 var(--tea-border), 0 2px 8px rgba(0,0,0,0.12)' }}
+      className={`sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-10 backdrop-saturate-150 transition-all duration-500 ease-out ${className}`}
+      style={{
+        backgroundColor: `color-mix(in srgb, var(--tea-surface) ${Math.round(70 + progress * 25)}%, transparent)`,
+        backdropFilter: `blur(${Math.round(12 + progress * 12)}px)`,
+        WebkitBackdropFilter: `blur(${Math.round(12 + progress * 12)}px)`,
+        boxShadow: isAtTop
+          ? '0 1px 0 var(--tea-border)'
+          : '0 1px 0 var(--tea-border), 0 2px 8px rgba(0,0,0,0.12)',
+      }}
     >
       <div className="w-full">
         {/* Back navigation — inside the glass */}

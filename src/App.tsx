@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Reload once on stale chunk hash (happens after a new deployment)
 function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
@@ -69,6 +69,9 @@ import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
 import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 
+// View Transitions API feature detection (#46)
+const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
+
 // Create an inner component to use the context
 const AppContent = () => {
   const { stories } = useStories();
@@ -80,6 +83,7 @@ const AppContent = () => {
     removeFromPublicCart,
     updatePublicCartQuantity,
     setIsPublicCartOpen: setIsCartOpen,
+    sidebarCollapsed,
   } = useAppStore();
   const { isAdmin, isAuthenticated } = useAuth();
   useFavoritesSync(isAuthenticated);
@@ -387,6 +391,20 @@ const AppContent = () => {
       {/* Scroll Progress Bar */}
       <ScrollProgressBar />
 
+      {/* Route-change loading progress bar */}
+      <AnimatePresence>
+        {isSectionTransitioning && (
+          <motion.div
+            className="fixed top-0 left-0 right-0 h-[2px] z-[9999] origin-left"
+            style={{ background: 'linear-gradient(90deg, var(--tea-gold), var(--tea-gold-lt))' }}
+            initial={{ scaleX: 0, opacity: 1 }}
+            animate={{ scaleX: 0.85, opacity: 1 }}
+            exit={{ scaleX: 1, opacity: 0 }}
+            transition={{ scaleX: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.3, delay: 0.1 } }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
@@ -394,7 +412,7 @@ const AppContent = () => {
       <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => setShowGlobalSearch(true)} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col relative lg:ml-56 ${showAdminBar ? 'pt-9' : ''}`}>
+      <div className={`flex-1 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14' : 'lg:ml-56'} transition-[margin] duration-300 ${showAdminBar ? 'pt-9' : ''}`}>
 
       <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-32 md:pb-24 lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
           <AnimatePresence mode="wait">

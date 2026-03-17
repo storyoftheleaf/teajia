@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useNavigate } from 'react-router-dom';
 import { Icons } from '../Icons';
@@ -180,8 +181,6 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
     }
   };
 
-  if (!isOpen) return null;
-
   const typeBadgeColor = (type: string) => {
     switch (type) {
       case 'product': return 'bg-tea-gold/15 text-tea-gold';
@@ -193,20 +192,36 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
   let flatIndex = -1;
 
   return (
-    <div
-      className="fixed inset-0 z-modal flex items-start justify-center pt-[15vh] px-4 animate-[fadeIn_0.15s_ease-out]"
+    <AnimatePresence>
+      {isOpen && (
+    <motion.div
+      className="fixed inset-0 z-modal flex items-start justify-center pt-[15vh] px-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="Search"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" />
+      <motion.div
+        className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm"
+        initial={{ backdropFilter: 'blur(0px)' }}
+        animate={{ backdropFilter: 'blur(8px)' }}
+        exit={{ backdropFilter: 'blur(0px)' }}
+        transition={{ duration: 0.25 }}
+      />
 
       {/* Modal */}
-      <div
-        className="relative w-full max-w-lg bg-tea-elevated border border-tea-border rounded-lg shadow-2xl overflow-hidden animate-[scaleIn_0.2s_ease-out]"
+      <motion.div
+        className="relative w-full max-w-lg bg-tea-elevated border border-tea-border rounded-lg shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
+        initial={{ opacity: 0, y: -24, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -16, scale: 0.97 }}
+        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-border">
@@ -310,7 +325,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
             </span>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

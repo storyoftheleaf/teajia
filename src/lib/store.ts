@@ -52,6 +52,14 @@ interface AppState {
   clearFavoriteTeas: () => void;
   mergeFavorites: (serverFavorites: string[]) => void;
 
+  // Sidebar
+  sidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
+
+  // Recently Viewed
+  recentlyViewed: string[];
+  addRecentlyViewed: (id: string) => void;
+
   // Product Comparison
   compareItems: string[];
   toggleCompare: (id: string) => void;
@@ -192,6 +200,17 @@ export const useAppStore = create<AppState>()(
           favoriteTeas: [...new Set([...state.favoriteTeas, ...serverFavorites])],
         })),
 
+      // Sidebar
+      sidebarCollapsed: false,
+      toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
+      // Recently Viewed
+      recentlyViewed: [],
+      addRecentlyViewed: (id) =>
+        set((state) => ({
+          recentlyViewed: [id, ...state.recentlyViewed.filter((rid) => rid !== id)].slice(0, 10),
+        })),
+
       // Product Comparison
       compareItems: [],
       toggleCompare: (id) =>
@@ -263,6 +282,7 @@ export const useAppStore = create<AppState>()(
         aiPromptTemplate: state.aiPromptTemplate,
         favoriteTeas: state.favoriteTeas,
         tastingJournal: state.tastingJournal,
+        recentlyViewed: state.recentlyViewed,
         compareItems: state.compareItems,
         inventoryColumns: state.inventoryColumns,
         savedViews: state.savedViews,

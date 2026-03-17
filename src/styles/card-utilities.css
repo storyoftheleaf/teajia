@@ -25,7 +25,7 @@
     0 1px 4px rgba(0, 0, 0, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.12),
     inset 0 1px 0 rgba(184, 146, 78, 0.05);
-  border-radius: 1px;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -44,7 +44,8 @@
   box-shadow:
     0 6px 16px rgba(0, 0, 0, 0.35),
     0 2px 6px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(184, 146, 78, 0.08);
+    inset 0 1px 0 rgba(184, 146, 78, 0.08),
+    0 0 20px rgba(184, 146, 78, 0.08);
   transform: translateY(-3px) scale(1.01);
 }
 
@@ -74,7 +75,7 @@
   overflow: hidden;
   background-color: var(--tea-surface);
   position: relative;
-  border-radius: 1px;
+  border-radius: 4px;
   border: none;
   margin-bottom: 0.75rem;
 }
@@ -1034,4 +1035,114 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     inset 0 0 0 1px rgba(142, 109, 46, 0.08),
     0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   Animated Focus Ring (#49)
+   Keyboard-accessible focus indicator with
+   gold pulse on first appearance, then steady.
+   ============================================ */
+
+@keyframes focusRingPulse {
+  0% { box-shadow: 0 0 0 2px rgba(184, 146, 78, 0.6); }
+  50% { box-shadow: 0 0 0 4px rgba(184, 146, 78, 0.3); }
+  100% { box-shadow: 0 0 0 2px rgba(184, 146, 78, 0.5); }
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(184, 146, 78, 0.5);
+  animation: focusRingPulse 0.6s ease-out;
+}
+
+.light *:focus-visible {
+  box-shadow: 0 0 0 2px rgba(142, 109, 46, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *:focus-visible {
+    animation: none;
+  }
+}
+
+/* ============================================
+   Sale/Featured Badge Shimmer (#28)
+   ============================================ */
+
+@keyframes badgeShimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.badge-featured {
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-featured::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(184, 146, 78, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: badgeShimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-featured::after {
+    animation: none;
+    display: none;
+  }
+}
+
+/* ============================================
+   Subtle Animated Aurora on Hero Sections (#37)
+   ============================================ */
+
+@keyframes auroraShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.aurora-bg {
+  position: relative;
+}
+.aurora-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(135deg, rgba(184,146,78,0.04) 0%, transparent 30%, rgba(90,110,90,0.03) 60%, transparent 100%);
+  background-size: 200% 200%;
+  animation: auroraShift 18s ease-in-out infinite;
+  border-radius: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-bg::before { animation: none; }
+}
+
+/* ============================================
+   Animated Leaf Accent (#55)
+   Gentle swaying leaf for decorative use.
+   ============================================ */
+
+@keyframes leafSway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+.leaf-accent {
+  display: inline-block;
+  animation: leafSway 4s ease-in-out infinite;
+  color: rgba(184, 146, 78, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaf-accent { animation: none; }
 }

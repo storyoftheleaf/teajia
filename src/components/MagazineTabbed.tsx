@@ -171,8 +171,23 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
         <>
           {renderArticleCards(displayedArticles)}
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <LoadingSpinner size="md" />
+            <div className="pt-6">
+              <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2 animate-pulse">
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-md aspect-[3/4] w-full">
+                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
+                    </div>
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-4 w-4/5">
+                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
+                    </div>
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-3 w-3/5">
+                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-tea-text-dim text-xs uppercase tracking-[0.12em] mt-4 pb-4">Loading more...</p>
             </div>
           )}
         </>
@@ -184,8 +199,23 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
         <>
           {renderVisualCards(displayedPhotoEssays)}
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <LoadingSpinner size="md" />
+            <div className="pt-6">
+              <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2 animate-pulse">
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-md aspect-square w-full">
+                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
+                    </div>
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-4 w-4/5">
+                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
+                    </div>
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-3 w-3/5">
+                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-tea-text-dim text-xs uppercase tracking-[0.12em] mt-4 pb-4">Loading more...</p>
             </div>
           )}
         </>
