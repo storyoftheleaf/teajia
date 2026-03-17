@@ -112,14 +112,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {section.label}
         </span>
 
-        {/* Active indicator dot */}
-        {isActive && (
-          <motion.div
-            layoutId="bottom-tab-dot"
-            className="absolute bottom-1 w-1 h-1 rounded-full bg-tea-gold"
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          />
-        )}
       </button>
     );
   };
