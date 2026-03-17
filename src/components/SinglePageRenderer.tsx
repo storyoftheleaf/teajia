@@ -541,6 +541,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="max-w-[640px] mx-auto w-full flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Start writing..." tag="p" readOnly={readOnly} />
                         </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DOUBLE_COL:
@@ -554,6 +555,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="columns-2 gap-8 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule" style={{ hyphens: 'auto' }}>
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Double column text..." tag="p" readOnly={readOnly} />
                         </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DROP_CAP:
@@ -563,6 +565,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`float-left text-[120px] font-serif leading-[0.8] mr-4 mt-1 ${theme.seal}`}>{content.charAt(0) || "T"}</span>
                             <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
                         </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
             case LayoutVariant.TEXT_SIDEBAR_RIGHT:
@@ -699,7 +702,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.IMG_CIRCLE_MASK:
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`}>
-                        <div className="w-[70%] aspect-square relative mb-12 shrink-0">
+                        <div className="w-[70%] aspect-square relative mb-12">
                              <div className="absolute inset-0 rounded-full overflow-hidden border-2 border-current/8 shadow-inner bg-tea-text/5">
                                  <SafeImage index={0} className="w-full h-full object-cover scale-105" />
                              </div>
@@ -711,7 +714,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.IMG_ARCH_MASK:
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`}>
-                        <div className="w-[80%] aspect-[3/4] relative mb-10 shrink-0">
+                        <div className="w-[80%] aspect-[3/4] relative mb-10">
                              <div className="absolute inset-0 rounded-t-[2000px] overflow-hidden border-x-2 border-t-2 border-current/8 bg-tea-text/5">
                                  <SafeImage index={0} className="w-full h-full object-cover" />
                              </div>
@@ -817,7 +820,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.RECIPE_CARD:
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`}>
-                         <div className="w-full border-2 border-current/15 p-12 relative">
+                         <div className="w-full border border-current/8 p-12 relative">
                              <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 ${theme.bg} ${CAPTION_CLASS}`}>Brewing Guide</div>
                              <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} leading-[1.6] whitespace-pre-wrap`} placeholder="1. Boil water..." tag="div" readOnly={readOnly} />
                          </div>
@@ -826,9 +829,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.TEXT_INVERTED:
                 return (
-                    <div className={`w-full h-full ${!isDarkText ? 'bg-[#0d0d0d] text-[#f5f0e8]' : 'bg-[#f5f0e8] text-[#0d0d0d]'} ${PAD.text} flex flex-col justify-center items-center text-center overflow-hidden relative`} style={OPENTYPE}>
+                    <div className={`w-full h-full ${!isDarkText ? 'bg-tea-bg text-tea-text' : 'bg-tea-surface text-tea-text'} ${PAD.text} flex flex-col justify-center items-center text-center overflow-hidden relative`} style={OPENTYPE}>
                          {/* Subtle radial gradient */}
-                         <div className="absolute inset-0 bg-radial-gradient pointer-events-none" style={{ background: !isDarkText ? 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)' : 'none' }}></div>
+                         <div className="absolute inset-0 pointer-events-none" style={{ background: !isDarkText ? 'radial-gradient(ellipse at center, var(--tea-accent-sub) 0%, transparent 70%)' : 'none' }}></div>
                          <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} leading-[1.6] relative z-10 max-w-[580px]`} placeholder="Inverted text..." tag="p" readOnly={readOnly} />
                     </div>
                 );
@@ -976,6 +979,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule" style={{ hyphens: 'auto' }}>
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Triple column text..." tag="p" readOnly={readOnly} />
                         </div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
 
@@ -1556,7 +1560,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.POSTCARD_STYLE:
                 return (
-                    <div className={`${paperBase} flex border-4 border-current/5`}>
+                    <div className={`${paperBase} flex border-2 border-current/5`}>
                         <div className="w-1/2 relative"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="w-1/2 p-8 flex flex-col relative">
                             <div className="absolute top-4 right-4 w-16 h-16 border-2 border-current/10 flex items-center justify-center opacity-30">
