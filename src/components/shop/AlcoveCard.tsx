@@ -897,26 +897,26 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 onMouseEnter={() => setHovered("cart")}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  flex: 1, height: "34px", boxSizing: "border-box",
+                  flex: 1, height: "38px", boxSizing: "border-box",
                   fontFamily: "var(--font-sans)",
-                  fontSize: "11px", fontWeight: 400,
-                  letterSpacing: "0.06em", textTransform: "uppercase",
+                  fontSize: "12px", fontWeight: 700,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
                   color: isSoldOut
                     ? 'var(--tea-text-sec)'
-                    : added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.note : alcoveColors.muted),
+                    : added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.bg : alcoveColors.bg),
                   background: isSoldOut
                     ? 'var(--tea-accent-sub)'
                     : added
                       ? alcoveColors.success
                       : hovered === "cart"
-                        ? "var(--tea-accent-sub)"
-                        : "transparent",
+                        ? 'var(--tea-gold-lt, #d4ac66)'
+                        : 'var(--tea-gold, #b8924e)',
                   border: isSoldOut
                     ? '1px solid var(--tea-border)'
                     : added
                       ? `1px solid ${alcoveColors.success}`
-                      : `1px solid var(--tea-border)`,
-                  borderRadius: "3px",
+                      : '1px solid transparent',
+                  borderRadius: "4px",
                   cursor: isSoldOut ? "not-allowed" : "pointer",
                   transition: "all 0.25s ease",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
@@ -927,7 +927,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 {!isSoldOut && (
                   <span style={{
                     fontFamily: "var(--font-mono)",
-                    fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",
+                    fontWeight: 500, fontStyle: "normal", opacity: 0.85, fontSize: "12px",
                   }}>
                     {formatPrice ? total : `$${total}`}
                   </span>

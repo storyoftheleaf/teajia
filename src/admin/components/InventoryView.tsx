@@ -1893,201 +1893,298 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {/* MOBILE CARDS — compact list with expandable detail */}
+        {/* MOBILE CARDS — compact list with expandable detail + swipe-to-edit */}
         <div className={`md:hidden pb-24 ${filterType === 'Pending' ? 'hidden' : ''}`}>
             {processedProducts.map((product, idx) => {
                 const dotColor = getThemeColor(product.type);
                 const isExpanded = expandedCardId === product.id;
                 const isOutOfStock = product.stockGrams === 0;
                 const isLowStock = product.stockGrams > 0 && product.stockGrams <= (product.lowStockThreshold || 10);
+                const stockClass = isOutOfStock ? 'stock-out' : isLowStock ? 'stock-low' : 'stock-ok';
                 return (
-                <div key={product.id}>
-                    {/* Compact row */}
-                    <button
-                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} ${getRowBorderClass(product)} ${!product.isPublic ? 'opacity-70' : ''} ${product.isPersonal ? 'bg-amber-950/20' : ''}`}
-                        onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                <div key={product.id} className="swipe-row-container">
+                    {/* Swipe action tray (behind the row) */}
+                    <div className="swipe-row-actions">
+                        <button
+                            className="swipe-row-action swipe-row-action-edit"
+                            onClick={() => setPanelProduct(product)}
+                            aria-label={`Edit ${product.productName}`}
+                        >
+                            <Pencil size={16} />
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            className="swipe-row-action swipe-row-action-view"
+                            onClick={() => setQrProduct(product)}
+                            aria-label={`QR code for ${product.productName}`}
+                        >
+                            <QrCode size={16} />
+                            <span>QR</span>
+                        </button>
+                    </div>
+
+                    {/* Foreground row with swipe gesture */}
+                    <div
+                        className="swipe-row-content"
+                        onTouchStart={(e) => {
+                            const touch = e.targetTouches[0];
+                            (e.currentTarget as any)._swipeStartX = touch.clientX;
+                            (e.currentTarget as any)._swipeStartY = touch.clientY;
+                            (e.currentTarget as any)._swiping = false;
+                            e.currentTarget.classList.add('swiping');
+                        }}
+                        onTouchMove={(e) => {
+                            const el = e.currentTarget as HTMLElement;
+                            const startX = (el as any)._swipeStartX;
+                            const startY = (el as any)._swipeStartY;
+                            if (startX == null) return;
+                            const dx = e.targetTouches[0].clientX - startX;
+                            const dy = e.targetTouches[0].clientY - startY;
+                            // Only swipe horizontally (not scroll)
+                            if (!(el as any)._swiping && Math.abs(dy) > Math.abs(dx)) return;
+                            if (Math.abs(dx) > 10) (el as any)._swiping = true;
+                            if ((el as any)._swiping) {
+                                const clamped = Math.max(-130, Math.min(0, dx));
+                                el.style.transform = `translateX(${clamped}px)`;
+                            }
+                        }}
+                        onTouchEnd={(e) => {
+                            const el = e.currentTarget as HTMLElement;
+                            el.classList.remove('swiping');
+                            const startX = (el as any)._swipeStartX;
+                            if (startX == null) return;
+                            const rect = el.getBoundingClientRect();
+                            const currentX = parseFloat(el.style.transform?.replace(/[^-\d.]/g, '') || '0');
+                            if (currentX < -50) {
+                                el.style.transform = 'translateX(-130px)';
+                            } else {
+                                el.style.transform = 'translateX(0)';
+                            }
+                            (el as any)._swipeStartX = null;
+                        }}
+                        onClick={(e) => {
+                            const el = e.currentTarget as HTMLElement;
+                            const currentX = parseFloat(el.style.transform?.replace(/[^-\d.]/g, '') || '0');
+                            // If swiped open, snap closed instead of toggling expand
+                            if (currentX < -10) {
+                                el.style.transform = 'translateX(0)';
+                                return;
+                            }
+                        }}
                     >
-                        {/* Type dot */}
-                        <span className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: dotColor }} />
+                        {/* Compact row */}
+                        <button
+                            className={`inv-row-accent w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-surface/60 border-b border-tea-border/50 ${isExpanded ? 'bg-tea-surface/50 expanded' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/15'} ${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/15' : ''}`}
+                            style={{ '--row-type-color': dotColor } as React.CSSProperties}
+                            onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                        >
+                            {/* Type color indicator — larger, rounded square */}
+                            <span
+                                className="flex-shrink-0 w-2.5 h-7 rounded-sm"
+                                style={{ backgroundColor: dotColor, opacity: 0.6 }}
+                            />
 
-                        {/* Name + given name */}
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
-                                {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
-                                {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
+                            {/* Name + metadata */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-tea-text text-[15px] font-sans font-medium truncate leading-tight">{product.productName}</span>
+                                    {product.isFeatured && <Star size={12} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
+                                    {!product.isPublic && <EyeOff size={11} className="flex-shrink-0 text-tea-text-dim" />}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[11px] text-tea-text-sec mt-0.5">
+                                    <span className="font-medium">{product.type}</span>
+                                    {product.originRegion && (
+                                        <>
+                                            <span className="text-tea-text-dim">·</span>
+                                            <span className="truncate text-tea-text-dim">{product.originRegion}</span>
+                                        </>
+                                    )}
+                                    {product.year && (
+                                        <>
+                                            <span className="text-tea-text-dim">·</span>
+                                            <span className="text-tea-text-dim">{product.year}</span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
-                                <span>{product.type}</span>
-                                {product.originRegion && (
-                                    <>
-                                        <span className="opacity-40">·</span>
-                                        <span className="truncate">{product.originRegion}</span>
-                                    </>
-                                )}
-                                {product.year && (
-                                    <>
-                                        <span className="opacity-40">·</span>
-                                        <span>{product.year}</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* Stock + Price */}
-                        <div className="flex-shrink-0 text-right">
-                            {inventoryCategory === 'teaware' ? (
-                              <>
-                                <div className="text-xs text-tea-text/80 tabular-nums">
-                                  {product.quantityUnits ?? '-'} units
-                                </div>
-                                <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
-                                  {product.material || product.teawareCategory || '-'}
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className={`text-xs tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : isLowStock ? 'text-amber-500/80' : 'text-tea-text/80'}`}>
-                                    {Math.round(product.stockGrams)}g
-                                </div>
-                                <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
-                                    ${fmtNum(product.pricePerGramUSD)}/g
-                                </div>
-                              </>
+                            {/* Stock + Price — larger, clearer */}
+                            <div className="flex-shrink-0 text-right min-w-[52px]">
+                                {inventoryCategory === 'teaware' ? (
+                                  <>
+                                    <div className="text-[13px] text-tea-text font-sans font-medium tabular-nums">
+                                      {product.quantityUnits ?? '-'} <span className="text-tea-text-dim text-[11px]">units</span>
+                                    </div>
+                                    <div className="text-[11px] text-tea-text-sec tabular-nums">
+                                      {product.material || product.teawareCategory || '-'}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className={`text-[13px] font-sans font-medium tabular-nums ${stockClass}`}>
+                                        {Math.round(product.stockGrams)}g
+                                    </div>
+                                    <div className="text-[11px] text-tea-text-sec tabular-nums">
+                                        ${fmtNum(product.pricePerGramUSD)}/g
+                                    </div>
+                                  </>
+                                )}
+                            </div>
+
+                            {/* Verification checkmark (mobile) */}
+                            {filterType === 'Unverified' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const isVerified = !!product.stockVerifiedAt;
+                                  handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+                                }}
+                                className={`flex-shrink-0 w-7 h-7 rounded flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-text-dim'}`}
+                              >
+                                {product.stockVerifiedAt ? <Check size={16} strokeWidth={3} /> : <Square size={16} />}
+                              </button>
                             )}
-                        </div>
 
-                        {/* Verification checkmark (mobile) */}
-                        {filterType === 'Unverified' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const isVerified = !!product.stockVerifiedAt;
-                              handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
-                            }}
-                            className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-border'}`}
-                          >
-                            {product.stockVerifiedAt ? <Check size={14} strokeWidth={3} /> : <Square size={14} />}
-                          </button>
-                        )}
+                            {/* Expand indicator — more visible */}
+                            <ChevronDown size={16} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                        </button>
 
-                        {/* Expand indicator */}
-                        <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-sec/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {/* Expanded detail panel */}
-                    {isExpanded && (
-                        <div className="bg-tea-surface/40 px-4 pb-3 pt-1 border-b border-tea-border">
-                            {/* Info grid */}
-                            <div className="grid grid-cols-3 gap-x-4 gap-y-2 py-2">
-                              {inventoryCategory === 'teaware' ? (
-                                <>
-                                  {product.teawareCategory && (
-                                    <div>
-                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Category</div>
-                                      <div className="text-sm text-tea-text capitalize">{product.teawareCategory}</div>
-                                    </div>
-                                  )}
-                                  {product.material && (
-                                    <div>
-                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Material</div>
-                                      <div className="text-sm text-tea-text">{product.material}</div>
-                                    </div>
-                                  )}
-                                  {product.capacityMl && (
-                                    <div>
-                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Capacity</div>
-                                      <div className="text-sm text-tea-text tabular-nums">{product.capacityMl}ml</div>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Units</div>
-                                    <div className="text-sm text-tea-text tabular-nums">{product.quantityUnits ?? '-'}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Cost</div>
-                                    <div className="text-sm text-tea-text tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Status</div>
-                                    <div className="text-sm text-tea-text">{product.status}</div>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div>
-                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Stock</div>
-                                      <div className={`text-sm tabular-nums ${isOutOfStock ? 'text-tea-text-sec/40' : 'text-tea-text'}`}>{Math.round(product.stockGrams)}g</div>
-                                  </div>
-                                  <div>
-                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Retail</div>
-                                      <div className="text-sm text-tea-text tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
-                                  </div>
-                                  <div>
-                                      <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Status</div>
-                                      <div className="text-sm text-tea-text">{product.status}</div>
-                                  </div>
-                                  {product.originRegion && (
-                                      <div className="col-span-2">
-                                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Origin</div>
-                                          <div className="text-sm text-tea-text">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
-                                      </div>
-                                  )}
-                                  {product.vendor && (
+                        {/* Expanded detail panel — warm inset design */}
+                        <AnimatePresence>
+                        {isExpanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                                className="overflow-hidden"
+                            >
+                              <div className="inv-detail-panel px-4 pb-3 pt-2">
+                                {/* Info grid — 2 columns on small, 3 on wider */}
+                                <div className="grid grid-cols-2 gap-x-5 gap-y-3 py-2">
+                                  {inventoryCategory === 'teaware' ? (
+                                    <>
+                                      {product.teawareCategory && (
+                                        <div>
+                                          <div className="inv-detail-label">Category</div>
+                                          <div className="inv-detail-value capitalize">{product.teawareCategory}</div>
+                                        </div>
+                                      )}
+                                      {product.material && (
+                                        <div>
+                                          <div className="inv-detail-label">Material</div>
+                                          <div className="inv-detail-value">{product.material}</div>
+                                        </div>
+                                      )}
+                                      {product.capacityMl && (
+                                        <div>
+                                          <div className="inv-detail-label">Capacity</div>
+                                          <div className="inv-detail-value tabular-nums">{product.capacityMl}ml</div>
+                                        </div>
+                                      )}
                                       <div>
-                                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Vendor</div>
-                                          <div className="text-sm text-tea-text truncate">{product.vendor}</div>
+                                        <div className="inv-detail-label">Units</div>
+                                        <div className="inv-detail-value tabular-nums">{product.quantityUnits ?? '-'}</div>
                                       </div>
+                                      <div>
+                                        <div className="inv-detail-label">Cost</div>
+                                        <div className="inv-detail-value tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="inv-detail-label">Status</div>
+                                        <div className="inv-detail-value">{product.status}</div>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div>
+                                          <div className="inv-detail-label">Stock</div>
+                                          <div className={`inv-detail-value tabular-nums ${stockClass}`}>{Math.round(product.stockGrams)}g</div>
+                                      </div>
+                                      <div>
+                                          <div className="inv-detail-label">Retail</div>
+                                          <div className="inv-detail-value tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
+                                      </div>
+                                      {product.costAmount > 0 && (
+                                        <div>
+                                            <div className="inv-detail-label">Cost</div>
+                                            <div className="inv-detail-value tabular-nums">${product.costAmount.toLocaleString()}</div>
+                                        </div>
+                                      )}
+                                      <div>
+                                          <div className="inv-detail-label">Status</div>
+                                          <div className={`inv-detail-value ${product.status === 'Draft' ? 'text-amber-500' : ''}`}>{product.status}</div>
+                                      </div>
+                                      {product.originRegion && (
+                                          <div className="col-span-2">
+                                              <div className="inv-detail-label">Origin</div>
+                                              <div className="inv-detail-value">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
+                                          </div>
+                                      )}
+                                      {product.vendor && (
+                                          <div>
+                                              <div className="inv-detail-label">Vendor</div>
+                                              <div className="inv-detail-value truncate">{product.vendor}</div>
+                                          </div>
+                                      )}
+                                    </>
                                   )}
-                                </>
-                              )}
-                            </div>
-
-                            {/* Description / Lore */}
-                            {(product.lore || product.description) && (
-                                <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
-                                    {product.lore || product.description}
-                                </p>
-                            )}
-
-                            {/* Tasting notes */}
-                            {product.tastingNotes && product.tastingNotes.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {product.tastingNotes.map(note => (
-                                        <span key={note} className="text-[10px] text-tea-text-sec/60 bg-tea-bg/60 px-2 py-0.5 rounded-full">{note}</span>
-                                    ))}
                                 </div>
-                            )}
 
-                            {/* Action buttons */}
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
-                                <button
-                                    onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                    className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec/50 hover:text-tea-text-sec'}`}
-                                >
-                                    <Star size={15} className={product.isFeatured ? "fill-tea-accent" : ""} />
-                                </button>
-                                <button
-                                    onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                                    className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-text-sec/50 hover:text-tea-text-sec' : 'text-tea-text-sec/30'}`}
-                                >
-                                    {product.isPublic ? <Eye size={15} /> : <EyeOff size={15} />}
-                                </button>
-                                <button onClick={() => setQrProduct(product)} className="p-1.5 rounded-md text-tea-text-sec/50 hover:text-tea-text-sec transition-colors">
-                                    <QrCode size={15} />
-                                </button>
+                                {/* Description / Lore */}
+                                {(product.lore || product.description) && (
+                                    <p className="text-[13px] text-tea-text-sec font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
+                                        {product.lore || product.description}
+                                    </p>
+                                )}
 
-                                <div className="ml-auto">
+                                {/* Tasting notes — better contrast */}
+                                {product.tastingNotes && product.tastingNotes.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {product.tastingNotes.map(note => (
+                                            <span key={note} className="tag text-[11px]">{note}</span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Action bar — larger tap targets, clear edit button */}
+                                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-tea-border">
                                     <button
-                                        onClick={() => setPanelProduct(product)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                                        onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
+                                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-accent bg-tea-accent-sub' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                                        aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
                                     >
-                                        <Pencil size={12} /> Edit
+                                        <Star size={18} className={product.isFeatured ? "fill-tea-accent" : ""} />
                                     </button>
+                                    <button
+                                        onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
+                                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec' : 'text-tea-text-dim'}`}
+                                        aria-label={product.isPublic ? 'Make private' : 'Make public'}
+                                    >
+                                        {product.isPublic ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    </button>
+                                    <button
+                                        onClick={() => setQrProduct(product)}
+                                        className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                                        aria-label="QR Code"
+                                    >
+                                        <QrCode size={18} />
+                                    </button>
+
+                                    <div className="ml-auto">
+                                        <button
+                                            onClick={() => setPanelProduct(product)}
+                                            className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.12em] font-semibold text-tea-gold bg-tea-accent-sub hover:bg-tea-gold/20 rounded-lg transition-colors"
+                                        >
+                                            <Pencil size={14} /> Edit
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                              </div>
+                            </motion.div>
+                        )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             )})}
 
