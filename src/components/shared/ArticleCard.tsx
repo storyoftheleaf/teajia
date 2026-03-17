@@ -8,6 +8,7 @@ interface ArticleCardProps {
   description?: string;
   imageUrl?: string;
   aspectRatio?: 'portrait' | 'square';
+  slug?: string;
   onClick?: () => void;
   className?: string;
 }
@@ -17,12 +18,14 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   description,
   imageUrl,
   aspectRatio = 'portrait',
+  slug,
   onClick,
   className = '',
 }) => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const aspect = aspectRatio === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
   const hasImage = imageUrl && !imageError;
@@ -46,6 +49,22 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
     };
   }, [contextMenu]);
+
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = window.location.origin + (slug ? `/article/${slug}` : window.location.pathname);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: description, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // User cancelled share or clipboard unavailable — do nothing
+    }
+  }, [slug, title, description]);
 
   const handleLongPress = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
@@ -130,6 +149,19 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           )}
 
 
+          {/* Share button — always visible on mobile, hover-reveal on desktop */}
+          <button
+            onClick={handleShare}
+            aria-label={copied ? 'Link copied!' : 'Share article'}
+            className="absolute top-3 right-3 z-20 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full bg-tea-surface/70 text-tea-text-sec hover:text-tea-gold hover:bg-tea-elevated/90 transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 backdrop-blur-sm"
+          >
+            {copied ? (
+              <Icons.Check className="w-4 h-4 text-tea-gold" />
+            ) : (
+              <Icons.Share className="w-4 h-4" />
+            )}
+          </button>
+
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
             <h3 className="font-serif text-[19px] text-tea-text leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
@@ -143,7 +175,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             {/* Desktop hover: expanded description overlay */}
             {description && (
               <div className="hidden lg:block max-h-0 overflow-hidden opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-500 ease-out mt-1">
-                <p className="text-xs text-tea-text-sec/80 font-sans leading-relaxed line-clamp-3 line-clamp-fade">
+                <p className="text-xs text-tea-text-sec/80 font-sans leading-relaxed line-clamp-3">
                   {description}
                 </p>
               </div>
