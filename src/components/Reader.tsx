@@ -93,7 +93,7 @@ const extractInstagramId = (text: string): string | null => {
 //
 // Related: Main content container (line ~423), BottomTabBar.tsx
 //
-const ScaledPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean }> = ({ children, isActive }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
 
@@ -142,13 +142,13 @@ const ScaledPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     height: BASE_HEIGHT,
                     transform: `scale(${scale})`,
                     transformOrigin: 'center center',
-                    filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(24,19,14,0.1)',
                     contain: 'layout style paint',
                     willChange: 'transform',
                     backfaceVisibility: 'hidden',
                     WebkitBackfaceVisibility: 'hidden'
                 }}
-                className="shrink-0 bg-tea-bg"
+                className="shrink-0 bg-tea-bg page-vignette relative"
             >
                 {children}
             </div>
@@ -178,6 +178,15 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showNav, setShowNav] = useState(false);
   const { preloadImages, clearCache } = useImagePreloader();
+
+  // W30: Time-of-Day Theming
+  const hour = new Date().getHours();
+  const timeTheme = hour >= 6 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening';
+  const timeFilter = timeTheme === 'morning'
+    ? 'brightness(1.02) saturate(0.95)'
+    : timeTheme === 'evening'
+      ? 'brightness(0.97) sepia(0.04)'
+      : undefined;
 
   // Horizontal scroll container ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -510,8 +519,54 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
 
   // --- MAIN RENDER ---
   return (
-    <div className={`fixed inset-0 bg-tea-bg flex flex-col items-center justify-center overflow-hidden ${customZIndex || 'z-modal'}`}>
-        
+    <div className={`fixed inset-0 bg-tea-bg flex flex-col items-center justify-center overflow-hidden ${customZIndex || 'z-modal'}`} style={timeFilter ? { filter: timeFilter } : undefined}>
+
+        {/* Injected CSS for web-native effects */}
+        <style>{`
+          @keyframes readerFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes kenBurns {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.06) translate(-1.5%, -1%); }
+          }
+          @keyframes imageReveal {
+            from { clip-path: circle(0% at 50% 50%); }
+            to { clip-path: circle(75% at 50% 50%); }
+          }
+          @keyframes chapterNumberReveal {
+            from { transform: scale(1.5); opacity: 0; }
+            to { transform: scale(1); opacity: 0.03; }
+          }
+          [data-page-active="true"] p,
+          [data-page-active="true"] [data-animate] {
+            animation: readerFadeIn 500ms ease both;
+          }
+          [data-page-active="true"] p:nth-child(1) { animation-delay: 200ms; }
+          [data-page-active="true"] p:nth-child(2) { animation-delay: 400ms; }
+          [data-page-active="true"] p:nth-child(3) { animation-delay: 600ms; }
+          [data-page-active="true"] p:nth-child(4) { animation-delay: 800ms; }
+          [data-page-active="true"] img {
+            animation: kenBurns 14s ease-in-out infinite alternate;
+          }
+          [data-page-active="true"] .reader-image-reveal {
+            animation: imageReveal 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            animation-delay: 100ms;
+          }
+          [data-page-active="true"] .chapter-bg-number {
+            animation: chapterNumberReveal 1200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+          }
+          .page-vignette::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(24,19,14,0.12) 100%);
+            z-index: 1;
+          }
+        `}</style>
+
         {/* Background Texture for Immersion */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50 pointer-events-none"></div>
 
@@ -576,9 +631,19 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                     const isInRange = Math.abs(index - currentPageIndex) <= 3;
 
                     if (isInRange) {
+                        const isActive = index === currentPageIndex;
                         return (
-                            <div key={index} className="w-screen h-full snap-center snap-always shrink-0">
-                                <ScaledPage>
+                            <div
+                                key={index}
+                                className="w-screen h-full snap-center snap-always shrink-0"
+                                data-page-active={isActive ? "true" : "false"}
+                                style={{
+                                    opacity: isActive ? 1 : 0.85,
+                                    transform: isActive ? 'scale(1)' : 'scale(0.97)',
+                                    transition: 'opacity 300ms ease, transform 300ms ease'
+                                }}
+                            >
+                                <ScaledPage isActive={isActive}>
                                     <SinglePageRenderer
                                         page={page}
                                         storyTitle={story.title}

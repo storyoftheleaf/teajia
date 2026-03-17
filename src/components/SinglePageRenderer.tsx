@@ -34,29 +34,32 @@ interface SinglePageRendererProps {
 // --- Typography Scale (800×1067 canvas, ~47% scale on 375px phones) ---
 // Body text-[30px] → ~14px on phone (readable). text-[28px] → ~13px (minimum).
 const TYPE = {
-  display: 'text-[96px]',      // Covers, huge numbers
+  display: 'text-[88px] font-[Vollkorn] leading-[1.0] tracking-tight',      // Covers, huge numbers
   displaySm: 'text-[72px]',    // Secondary display
+  title: 'text-[52px] font-[Vollkorn] leading-[1.0] tracking-tight',        // Article titles
   headline: 'text-[48px]',     // Section titles
+  subtitle: 'text-[38px]',     // Subtitles
   headlineSm: 'text-[36px]',   // Sub-section titles
   subhead: 'text-[28px]',      // Subheads, labels
-  body: 'text-[30px]',         // Standard body (~14px phone)
-  bodyDense: 'text-[28px]',    // Multi-column body (~13px phone)
-  caption: 'text-[24px]',      // Captions, credits (~11px phone)
-  micro: 'text-[20px]',        // Folios, page numbers (~9px phone)
+  bodyLarge: 'text-[28px] leading-[1.65]',  // Intro paragraphs
+  body: 'text-[24px] leading-[1.7]',        // Standard body
+  bodyDense: 'text-[28px] leading-[46px]',  // Multi-column body
+  caption: 'text-[18px] leading-[1.4] tracking-[0.12em]',      // Captions, credits
+  micro: 'text-[16px]',        // Folios, page numbers
 } as const;
 
 // --- Padding Variants ---
 const PAD = {
-  text: 'px-12 py-10',         // Text-heavy pages (maximizes content)
+  text: 'px-16 py-12',         // Text-heavy pages (maximizes content)
   image: 'p-0',                // Full-bleed images
-  spacious: 'p-16',            // Covers, quotes, chapters (breathing room)
+  spacious: 'p-20',            // Covers, quotes, chapters (breathing room)
 } as const;
 
 // --- Shared Typography Classes ---
-const BODY_CLASS = `${TYPE.body} leading-[1.5] text-justify font-serif`;
-const BODY_DENSE_CLASS = `${TYPE.bodyDense} leading-[46px] text-justify font-serif`;
-const CAPTION_CLASS = `${TYPE.caption} uppercase tracking-[0.08em] font-sans opacity-50`;
-const FOLIO_CLASS = `${TYPE.micro} uppercase tracking-[0.12em] font-sans opacity-30`;
+const BODY_CLASS = `${TYPE.body} text-left font-serif`;
+const BODY_DENSE_CLASS = `${TYPE.bodyDense} text-justify font-serif`;
+const CAPTION_CLASS = `${TYPE.caption} uppercase font-sans opacity-50`;
+const FOLIO_CLASS = `text-[14px] uppercase tracking-[0.12em] font-sans opacity-30`;
 const OPENTYPE = { fontFeatureSettings: "'liga' 1, 'kern' 1, 'calt' 1" };
 
 // --- Animation Styles & Rich Text Helpers ---
@@ -534,7 +537,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-16`} style={OPENTYPE}>
                         {/* Folio header */}
-                        <div className={`${FOLIO_CLASS} mb-8 flex justify-between`}>
+                        <div className={`${FOLIO_CLASS} mb-4 flex justify-between`}>
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
@@ -562,7 +565,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-20`} style={OPENTYPE}>
                         <div className="relative max-w-[640px] mx-auto w-full">
-                            <span className={`float-left text-[120px] font-serif leading-[0.8] mr-4 mt-1 ${theme.seal}`}>{content.charAt(0) || "T"}</span>
+                            <span className={`float-left text-[72px] font-[Vollkorn] leading-[0.8] mr-4 mt-1 ${theme.seal}`}>{content.charAt(0) || "T"}</span>
                             <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
@@ -602,7 +605,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center text-center`}>
                         <div className="w-full px-8">
                             <div className="w-16 h-[0.5px] bg-current mx-auto mb-16 opacity-15"></div>
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-serif italic leading-[1.3] hang-punct`} placeholder="Quote goes here..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-[Vollkorn] tracking-wide font-light italic leading-[1.3] hang-punct`} placeholder="Quote goes here..." tag="p" readOnly={readOnly} />
                             <div className="w-16 h-[0.5px] bg-current mx-auto mt-16 opacity-15"></div>
                         </div>
                     </div>
@@ -784,7 +787,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`}>
                         <div className="max-w-[80%] pl-8 border-l-2 border-tea-gold/20">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-serif italic leading-[1.5] opacity-80 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-[Vollkorn] tracking-wide font-light italic leading-[1.5] opacity-80 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -1059,7 +1062,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.TEXT_HIGHLIGHTED:
                 return (
                     <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-16 text-highlight`} style={OPENTYPE}>
-                        <div className={`${FOLIO_CLASS} mb-8 flex justify-between`}>
+                        <div className={`${FOLIO_CLASS} mb-4 flex justify-between`}>
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
@@ -1427,7 +1430,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center text-center ${PAD.spacious} pointer-events-none`}>
                             <div className={readOnly ? '' : 'pointer-events-auto'}>
                                 <div style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
-                                    <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-serif italic text-white leading-[1.3] mb-8 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
+                                    <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-[Vollkorn] tracking-wide font-light italic text-white leading-[1.3] mb-8 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                                 </div>
                             </div>
                             <span className={`${CAPTION_CLASS} text-white/50`}>— Attribution</span>
@@ -1440,7 +1443,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const events = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-16`} style={OPENTYPE}>
-                        <div className={`${FOLIO_CLASS} mb-8`}>{storyTitle || 'Timeline'}</div>
+                        <div className={`${FOLIO_CLASS} mb-4`}>{storyTitle || 'Timeline'}</div>
                         <div className="relative pl-8">
                             {/* Vertical line */}
                             <div className="absolute left-3 top-0 bottom-0 w-[1px] bg-current/10"></div>
@@ -1468,7 +1471,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const items = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-16`} style={OPENTYPE}>
-                        <div className={`${FOLIO_CLASS} mb-8`}>{storyTitle || 'Checklist'}</div>
+                        <div className={`${FOLIO_CLASS} mb-4`}>{storyTitle || 'Checklist'}</div>
                         <div className="space-y-5 max-w-[600px] mx-auto">
                             {items.map((item, i) => {
                                 const isChecked = item.startsWith('[x]');
@@ -1492,7 +1495,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const dataEntries = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-16 flex flex-col`} style={OPENTYPE}>
-                        <div className={`${FOLIO_CLASS} mb-8`}>{storyTitle || 'Data'}</div>
+                        <div className={`${FOLIO_CLASS} mb-4`}>{storyTitle || 'Data'}</div>
                         <div className="flex-1 flex flex-col justify-center space-y-6 max-w-[600px] mx-auto w-full">
                             {dataEntries.map((entry, i) => {
                                 const [label, value] = entry.split(':').map(s => s.trim());
@@ -1518,7 +1521,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const gridItems = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-16`} style={OPENTYPE}>
-                        <div className={`${FOLIO_CLASS} mb-8`}>Index</div>
+                        <div className={`${FOLIO_CLASS} mb-4`}>Index</div>
                         <div className="grid grid-cols-3 gap-4">
                             {gridItems.map((item, i) => (
                                 <div key={i} className={`p-4 ${theme.softBg} text-center`}>
