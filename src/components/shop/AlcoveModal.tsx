@@ -149,7 +149,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/95' : 'bg-black/0 pointer-events-none'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 pointer-events-none'}`}
       onClick={handleBackdropClick}
     >
       {/* Carousel container */}
@@ -228,7 +228,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
             />
             {/* Close button */}
             <button
-              className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center rounded-md border border-tea-border/40 backdrop-blur-sm bg-tea-surface/60 hover:bg-tea-surface hover:border-tea-gold/30 transition-all duration-200"
+              className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center rounded-md glass-panel hover:border-tea-gold/30 transition-all duration-200"
               onClick={onClose}
               aria-label="Close"
             >
@@ -294,7 +294,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         {/* Desktop prev/next arrows */}
         {hasNavigation && !isFirst && (
           <button
-            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all border border-tea-gold/30 bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"
+            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all glass-panel hover:bg-tea-gold/15 text-tea-gold"
             style={{ zIndex: 10 }}
             onClick={(e) => { e.stopPropagation(); goPrev(); }}
             aria-label="Previous tea"
@@ -304,7 +304,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         )}
         {hasNavigation && !isLast && (
           <button
-            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all border border-tea-gold/30 bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"
+            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all glass-panel hover:bg-tea-gold/15 text-tea-gold"
             style={{ zIndex: 10 }}
             onClick={(e) => { e.stopPropagation(); goNext(); }}
             aria-label="Next tea"

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from '../Icons';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
+import { useTheme } from '../../context/ThemeContext';
 
 interface PageHeaderProps {
   children?: React.ReactNode;
@@ -28,6 +29,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   cartItemCount = 0
 }) => {
   const { progress, isAtTop } = useScrollDirection();
+  const { theme, toggleTheme } = useTheme();
+  const [badgeAnimating, setBadgeAnimating] = useState(false);
+  const prevCountRef = React.useRef(cartItemCount);
+
+  // Trigger pulse when cart count increases
+  useEffect(() => {
+    if (cartItemCount > prevCountRef.current) {
+      setBadgeAnimating(true);
+      const t = setTimeout(() => setBadgeAnimating(false), 400);
+      return () => clearTimeout(t);
+    }
+    prevCountRef.current = cartItemCount;
+  }, [cartItemCount]);
 
   // Interpolate between expanded and collapsed states — mobile only (desktop stays expanded)
   const titleSize = isAtTop ? 'text-4xl lg:text-5xl' : 'text-base lg:text-5xl';
@@ -75,7 +89,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                 </div>
               )}
               {hasUtilityButtons && (
-                <div className="flex items-center gap-2.5 lg:hidden">
+                <div className="flex items-center gap-1.5 lg:hidden">
+                  {/* Theme toggle — mobile */}
+                  <button
+                    onClick={(e) => toggleTheme(e)}
+                    className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  >
+                    {theme === 'dark' ? (
+                      <Icons.Sun className="w-5 h-5 text-tea-text/60" />
+                    ) : (
+                      <Icons.Moon className="w-5 h-5 text-tea-text/60" />
+                    )}
+                  </button>
                   {onCartClick && (
                     <button
                       onClick={onCartClick}
@@ -84,7 +110,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text/60" />
                       {cartItemCount > 0 && (
-                        <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                        <div className={`absolute -top-0.5 -right-0.5 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
                           {cartItemCount > 9 ? '9+' : cartItemCount}
                         </div>
                       )}

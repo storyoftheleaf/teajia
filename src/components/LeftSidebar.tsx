@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion, LayoutGroup } from 'framer-motion';
 import { Icons } from './Icons';
 import { LogoEmblem } from './Logos';
 import { Section } from '../types';
@@ -51,7 +52,11 @@ const NavButton: React.FC<{
         </span>
       )}
       {isActive && (
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-tea-gold rounded-l-full"></div>
+        <motion.div
+          layoutId="sidebar-active-indicator"
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-tea-gold rounded-l-full"
+          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+        />
       )}
     </>
   );
@@ -121,6 +126,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const location = useLocation();
   const currentPath = location.pathname;
 
+  // Cart badge pulse animation
+  const [badgeAnimating, setBadgeAnimating] = useState(false);
+  const prevCountRef = useRef(cartItemCount);
+  useEffect(() => {
+    if (cartItemCount > prevCountRef.current) {
+      setBadgeAnimating(true);
+      const t = setTimeout(() => setBadgeAnimating(false), 400);
+      return () => clearTimeout(t);
+    }
+    prevCountRef.current = cartItemCount;
+  }, [cartItemCount]);
+
   const browseItems: NavItem[] = [
     { id: 'MAGAZINE', label: 'Read', icon: <Icons.Magazine className="w-5 h-5" strokeWidth={2} />, section: 'MAGAZINE' as Section },
     { id: 'LEARN', label: 'Learn', icon: <Icons.School className="w-5 h-5" strokeWidth={2} />, section: 'LEARN' as Section },
@@ -145,6 +162,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   ];
 
   return (
+    <LayoutGroup>
     <aside
       className={`hidden lg:flex flex-col w-56 text-tea-text fixed left-0 overflow-y-auto no-scrollbar transition-all duration-300 z-sticky ${topOffset ? 'top-9 h-[calc(100vh-2.25rem)]' : 'top-0 h-screen'}`}
       style={{
@@ -172,7 +190,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         />
         <span className="text-lg text-tea-text tracking-wide" style={{ fontFamily: "var(--font-display)", fontWeight: 300 }}>Teajia</span>
         {activeSection === 'HOME' && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full animate-[slideIn_0.3s_ease-out]"></div>
+          <motion.div
+            layoutId="sidebar-active-indicator"
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full"
+            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+          />
         )}
       </button>
 
@@ -258,7 +280,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               strokeWidth={2}
             />
             {cartItemCount > 0 && (
-              <div className="absolute -top-2 -right-3 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              <div className={`absolute -top-2 -right-3 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
                 {cartItemCount > 9 ? '9+' : cartItemCount}
               </div>
             )}
@@ -304,5 +326,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </button>
       </div>
     </aside>
+    </LayoutGroup>
   );
 };

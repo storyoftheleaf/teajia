@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 
 // Reload once on stale chunk hash (happens after a new deployment)
 function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
@@ -396,8 +397,9 @@ const AppContent = () => {
       <div className={`flex-1 flex flex-col relative lg:ml-56 ${showAdminBar ? 'pt-9' : ''}`}>
 
       <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-32 md:pb-24 lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
+          <AnimatePresence mode="wait">
           {isSectionTransitioning ? (
-            <SectionSkeleton variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
+            <SectionSkeleton key="skeleton" variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
           ) : (
             viewState === 'BROWSE' && (
               <AnimatedRoutes>
@@ -488,6 +490,7 @@ const AppContent = () => {
               </AnimatedRoutes>
             )
           )}
+          </AnimatePresence>
       </main>
 
       {/* Global Footer */}

@@ -6,7 +6,7 @@ interface ShopGridLayoutProps {
 }
 
 export const ShopGridLayout: React.FC<ShopGridLayoutProps> = ({ children, className = '' }) => (
-  <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 md:gap-x-4 lg:gap-x-5 gap-y-4 md:gap-y-5 lg:gap-y-6 animate-[fadeIn_0.5s_ease-out] ${className}`}>
+  <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 md:gap-x-4 lg:gap-x-5 gap-y-4 md:gap-y-5 lg:gap-y-6 stagger-grid ${className}`}>
     {children}
   </div>
 );

@@ -130,7 +130,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   };
 
   const renderArticleCards = (storiesList: Story[]) => (
-    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto stagger-grid">
       {storiesList.map((story) => (
         <ArticleCard
           key={story.id}
@@ -148,7 +148,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   );
 
   const renderVisualCards = (storiesList: Story[]) => (
-    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto stagger-grid">
       {storiesList.map((story) => (
         <ArticleCard
           key={story.id}

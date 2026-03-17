@@ -845,3 +845,193 @@
   background: rgba(24, 19, 14, 0.08);
   color: var(--tea-text);
 }
+
+/* ============================================
+   Staggered Grid Entrance Animations (#2)
+   Apply .stagger-grid to the grid container.
+   Children get staggered fadeIn + slideUp.
+   ============================================ */
+
+@keyframes gridItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-grid > * {
+  opacity: 0;
+  animation: gridItemIn 0.45s ease-out forwards;
+}
+
+.stagger-grid > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-grid > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-grid > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-grid > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-grid > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-grid > *:nth-child(6) { animation-delay: 300ms; }
+.stagger-grid > *:nth-child(7) { animation-delay: 360ms; }
+.stagger-grid > *:nth-child(8) { animation-delay: 420ms; }
+.stagger-grid > *:nth-child(9) { animation-delay: 480ms; }
+.stagger-grid > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-grid > *:nth-child(11) { animation-delay: 600ms; }
+.stagger-grid > *:nth-child(12) { animation-delay: 660ms; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-grid > * {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   Cart Badge Pulse (#6)
+   ============================================ */
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.cart-badge-pulse {
+  animation: badgePulse 0.4s ease-out;
+}
+
+/* ============================================
+   Animated Section Divider (#12)
+   ============================================ */
+
+@keyframes dividerGrow {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.divider-animated {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.25) 20%, rgba(184, 146, 78, 0.4) 50%, rgba(184, 146, 78, 0.25) 80%, transparent);
+  transform-origin: center;
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.divider-animated.revealed {
+  animation: dividerGrow 0.8s ease-out forwards;
+}
+
+.light .divider-animated {
+  background: linear-gradient(90deg, transparent, rgba(142, 109, 46, 0.2) 20%, rgba(142, 109, 46, 0.35) 50%, rgba(142, 109, 46, 0.2) 80%, transparent);
+}
+
+/* Ornament variant — centered dot accent */
+.divider-ornament {
+  position: relative;
+}
+
+.divider-ornament::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(184, 146, 78, 0.4);
+}
+
+.light .divider-ornament::after {
+  background: rgba(142, 109, 46, 0.3);
+}
+
+/* ============================================
+   Image Hover Zoom Enhancement (#13)
+   ============================================ */
+
+.card-grid-image-container {
+  overflow: hidden;
+}
+
+.card-grid-item:hover .card-grid-image {
+  opacity: 1;
+  transform: scale(1.08);
+  filter: brightness(1.05);
+}
+
+/* ============================================
+   Skeleton-to-Content Morphing (#14)
+   ============================================ */
+
+@keyframes skeletonFadeOut {
+  from {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  to {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+@keyframes contentMorphIn {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
+}
+
+.skeleton-exit {
+  animation: skeletonFadeOut 0.3s ease-out forwards;
+}
+
+.content-morph-in {
+  animation: contentMorphIn 0.4s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-exit,
+  .content-morph-in {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* ============================================
+   Glassmorphism Utilities (#11)
+   ============================================ */
+
+.glass-panel {
+  background: rgba(24, 19, 14, 0.75);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(184, 146, 78, 0.08),
+    inset 0 0 0 1px rgba(184, 146, 78, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.light .glass-panel {
+  background: rgba(247, 242, 234, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 0 1px rgba(142, 109, 46, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.15);
+}

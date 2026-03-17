@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../Icons';
 import { ADMIN_Z_INDEX } from '../../constants/admin';
 import type { Toast as ToastType } from '../../hooks/useToast';
@@ -27,8 +28,13 @@ const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   }[type];
 
   return (
-    <div
-      className={`${bgColor} text-white px-4 py-3 rounded-sm shadow-lg flex items-center gap-3 min-w-[280px] max-w-[90vw] md:max-w-md animate-[slideUp_0.3s_ease-out]`}
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 80, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className={`${bgColor} text-white px-4 py-3 rounded-sm shadow-lg flex items-center gap-3 min-w-[280px] max-w-[90vw] md:max-w-md`}
       role="alert"
     >
       <div className="shrink-0">{icon}</div>
@@ -40,7 +46,7 @@ const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       >
         <Icons.Close className="w-4 h-4" />
       </button>
-    </div>
+    </motion.div>
   );
 };
 
@@ -50,16 +56,16 @@ interface ToastContainerProps {
 }
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => {
-  if (toasts.length === 0) return null;
-
   return createPortal(
     <div
       className="fixed bottom-20 md:bottom-6 right-4 md:right-6 flex flex-col gap-2"
       style={{ zIndex: ADMIN_Z_INDEX.TOAST }}
     >
-      {toasts.map(toast => (
-        <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {toasts.map(toast => (
+          <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
+        ))}
+      </AnimatePresence>
     </div>,
     document.body
   );

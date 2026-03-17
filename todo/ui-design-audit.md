@@ -3,20 +3,20 @@
 ## Tier 1: Highest Visual Impact
 
 - [x] 1. Animated Page Transitions — `src/App.tsx`, `src/components/shared/AnimatedRoutes.tsx`
-- [ ] 2. Staggered Grid Entrance Animations — `src/components/TeaInventory.tsx`, `src/components/MagazineTabbed.tsx`, `src/components/HomePage.tsx`
-- [ ] 3. Kinetic Typography on Homepage Hero — `src/components/HomePage.tsx`
+- [x] 2. Staggered Grid Entrance Animations — `src/components/TeaInventory.tsx`, `src/components/MagazineTabbed.tsx`, `src/components/HomePage.tsx`
+- [x] 3. Kinetic Typography on Homepage Hero — `src/components/HomePage.tsx`
 - [x] 4. Scroll Progress Indicator — `src/components/shared/ScrollProgressBar.tsx`
-- [ ] 5. Theme Toggle Visibility on Mobile — `src/components/BottomTabBar.tsx`, `src/components/shared/PageHeader.tsx`
-- [ ] 6. Cart Badge Pulse Animation — `src/components/shared/PageHeader.tsx`, `src/components/LeftSidebar.tsx`, `src/components/BottomTabBar.tsx`
-- [ ] 7. Add-to-Cart Celebration — `src/components/shared/CartFlyAnimation.tsx`, `src/components/shared/CartToast.tsx`
-- [ ] 8. Sidebar Active Indicator Animation — `src/components/LeftSidebar.tsx`
-- [ ] 9. Pull Quote Staged Reveal — `src/components/HomePage.tsx`
-- [ ] 10. Toast Exit Animations — `src/components/shared/Toast.tsx`, `src/components/shared/CartToast.tsx`
-- [ ] 11. Glassmorphism on Product Detail Modal — `src/components/shop/AlcoveModal.tsx`
-- [ ] 12. Animated Section Dividers — `src/components/shared/SectionDivider.tsx`, `src/styles/card-utilities.css`
-- [ ] 13. Image Hover Zoom Detail View — `src/components/shared/CardGridItem.tsx`, `src/styles/card-utilities.css`
-- [ ] 14. Skeleton-to-Content Morphing — `src/components/shared/SectionSkeleton.tsx`, `src/components/TeaInventory.tsx`, `src/components/MagazineTabbed.tsx`
-- [ ] 15. Footer Redesign with Layered Depth — `src/components/shared/Footer.tsx`
+- [x] 5. Theme Toggle Visibility on Mobile — `src/components/BottomTabBar.tsx`, `src/components/shared/PageHeader.tsx`
+- [x] 6. Cart Badge Pulse Animation — `src/components/shared/PageHeader.tsx`, `src/components/LeftSidebar.tsx`, `src/components/BottomTabBar.tsx`
+- [x] 7. Add-to-Cart Celebration — `src/components/shared/CartFlyAnimation.tsx`, `src/components/shared/CartToast.tsx`
+- [x] 8. Sidebar Active Indicator Animation — `src/components/LeftSidebar.tsx`
+- [x] 9. Pull Quote Staged Reveal — `src/components/HomePage.tsx`
+- [x] 10. Toast Exit Animations — `src/components/shared/Toast.tsx`, `src/components/shared/CartToast.tsx`
+- [x] 11. Glassmorphism on Product Detail Modal — `src/components/shop/AlcoveModal.tsx`
+- [x] 12. Animated Section Dividers — `src/components/shared/AnimatedDivider.tsx`, `src/styles/card-utilities.css`
+- [x] 13. Image Hover Zoom Detail View — `src/components/shared/CardGridItem.tsx`, `src/styles/card-utilities.css`
+- [x] 14. Skeleton-to-Content Morphing — `src/components/shared/SectionSkeleton.tsx`, `src/App.tsx`
+- [x] 15. Footer Redesign with Layered Depth — `src/components/shared/Footer.tsx`
 
 ## Tier 2: Strong Improvements
 

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { motion } from 'framer-motion';
 import { useStories } from '../context/StoryContext';
 import { useInventory } from '../context/InventoryContext';
 import { Story } from '../types';
@@ -10,11 +11,43 @@ import { CardContainer } from './shared/CardContainer';
 import { ArticleCard } from './shared/ArticleCard';
 import { PageHeader } from './shared/PageHeader';
 import { EmailCapture } from './EmailCapture';
+import { AnimatedDivider } from './shared/AnimatedDivider';
 
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { SECTION_GAP } from './shared/spacing';
 import { fmtPricePerGram } from '../utils/formatNumber';
+
+/** Split text into words and animate each with stagger */
+const KineticText: React.FC<{ text: string; className?: string; style?: React.CSSProperties }> = ({ text, className, style }) => {
+  const words = text.split(' ');
+  return (
+    <motion.span
+      className={className}
+      style={{ ...style, display: 'inline' }}
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.06 } },
+      }}
+    >
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          className="inline-block"
+          style={{ marginRight: '0.3em' }}
+          variants={{
+            hidden: { opacity: 0, y: 8, filter: 'blur(4px)' },
+            visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] } },
+          }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </motion.span>
+  );
+};
 
 const TEA_INSIGHTS = [
   {
@@ -169,7 +202,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <h2 className="font-serif text-2xl md:text-4xl lg:text-4xl font-light text-tea-text mb-3 md:mb-5 leading-[1.2] max-w-3xl">
-          {currentInsight.insight}
+          <KineticText text={currentInsight.insight} />
         </h2>
 
         <p className="text-sm md:text-base text-tea-text/60 leading-relaxed max-w-2xl mb-5">
@@ -187,6 +220,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           <span>Space Design</span>
         </div>
       </section>
+
+      <AnimatedDivider />
 
       {/* ============================================
           Section 2: Latest Stories
@@ -217,7 +252,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Unified grid — same ArticleCard format as Magazine */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 stagger-grid">
             {latestStories.slice(0, 4).map((story) => (
               <ArticleCard
                 key={story.id}
@@ -245,13 +280,21 @@ export const HomePage: React.FC<HomePageProps> = ({
           style={quoteReveal.style}
         >
           <p className="font-serif text-lg md:text-xl text-tea-text/80 leading-relaxed italic mb-3" style={{ fontFamily: "var(--font-display)" }}>
-            &ldquo;{pullQuote.description}&rdquo;
+            &ldquo;<KineticText text={pullQuote.description || ''} />&rdquo;
           </p>
-          <p className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans">
+          <motion.p
+            className="text-xs uppercase tracking-[0.15em] text-tea-text/40 font-sans"
+            initial={{ opacity: 0, x: -12 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            viewport={{ once: true }}
+          >
             &mdash; From &ldquo;{pullQuote.title}&rdquo;
-          </p>
+          </motion.p>
         </section>
       )}
+
+      <AnimatedDivider ornament />
 
       {/* ============================================
           Section 3: Learn — curiosity hook, compact
@@ -374,6 +417,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </section>
       )}
+
+      <AnimatedDivider />
 
       {/* ============================================
           Section 5: Space Design — single line, not cinematic
