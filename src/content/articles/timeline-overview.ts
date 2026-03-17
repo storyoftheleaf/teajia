@@ -9,7 +9,7 @@ export const timelineOverview: ReadableStory = {
   title: 'Timeline Overview',
   subtitle: 'Five Thousand Years of Tea',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=tl100',
-  durationOrTime: '25 Pages',
+  durationOrTime: '19 Pages',
   origin: 'In-house',
   description: 'A chronological feature using timeline layouts, historical imagery, and era-by-era narrative.',
   tags: ['History', 'Origins', 'China'],

@@ -9,7 +9,7 @@ export const cinematicPhotoSequence: ReadableStory = {
   title: 'Cinematic Photo Sequence',
   subtitle: 'The Slow Pour',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=cine1',
-  durationOrTime: '20 Pages',
+  durationOrTime: '19 Pages',
   origin: 'In-house',
   description: 'A visually driven narrative using full-bleed photography, letterbox framing, and minimal text to create a cinematic experience.',
   tags: ['Culture', 'Ceremony'],

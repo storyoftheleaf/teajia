@@ -9,7 +9,7 @@ export const curatedLinks: ReadableStory = {
   title: 'Curated Links Page',
   subtitle: 'This Week in Tea',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=cl001',
-  durationOrTime: '18 Pages',
+  durationOrTime: '13 Pages',
   origin: 'Curated',
   description: 'An external link roundup template with curator notes, categories, and editorial commentary.',
   tags: ['Culture'],

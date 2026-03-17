@@ -9,7 +9,7 @@ export const minimalWhitespace: ReadableStory = {
   title: 'Minimal White Space',
   subtitle: 'The Art of Less',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=minimal1',
-  durationOrTime: '18 Pages',
+  durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'A study in restraint — maximum white space, minimal text, and careful typography create a meditative reading experience.',
   tags: ['Philosophy', 'Space Design'],
@@ -28,7 +28,8 @@ export const minimalWhitespace: ReadableStory = {
 
     ":::IMG_FULL_BLEED:::Morning light on weathered wood|https://picsum.photos/800/1200?random=minimal3",
 
-    ":::TEXT_SINGLE_COL:::Consider the act of brewing tea through this lens. Every session is unrepeatable. The water temperature varies by a degree or two. The leaves have aged another day since the last brewing. Your own body chemistry — hydration, hunger, mood, the lingering taste of whatever you ate an hour ago — shifts the perception of flavor. The ambient temperature of the room, the humidity in the air, the cup you chose today rather than yesterday — all of these variables converge to create a moment that will never exist again in exactly this configuration. A scientific materialist might see this as noise, as unwanted variation to be controlled and minimized. The wabi-sabi practitioner sees it as the fundamental texture of reality, to be noticed and appreciated rather than eliminated.\n\nThis is why the tea ceremony — in both its Japanese and Chinese forms — places such emphasis on seasonal awareness. The scroll in the alcove changes with the month. The flowers reflect what is blooming now, not what bloomed last week. The charcoal arrangement shifts between summer and winter styles. These are not arbitrary decorative choices. They are acknowledgments that this gathering is happening in a specific moment in time, a moment that carries its own character and will not return.",
+    ":::TEXT_SINGLE_COL:::Consider the act of brewing tea through this lens. Every session is unrepeatable. The water temperature varies by a degree or two. The leaves have aged another day since the last brewing. Your own body chemistry — hydration, hunger, mood, the lingering taste of whatever you ate an hour ago — shifts the perception of flavor. The ambient temperature of the room, the humidity in the air, the cup you chose today rather than yesterday — all of these variables converge to create a moment that will never exist again in exactly this configuration. A scientific materialist might see this as noise, as unwanted variation to be controlled and minimized.",
+    ":::TEXT_SINGLE_COL:::The wabi-sabi practitioner sees it as the fundamental texture of reality, to be noticed and appreciated rather than eliminated.\n\nThis is why the tea ceremony — in both its Japanese and Chinese forms — places such emphasis on seasonal awareness. The scroll in the alcove changes with the month. The flowers reflect what is blooming now, not what bloomed last week. The charcoal arrangement shifts between summer and winter styles. These are not arbitrary decorative choices. They are acknowledgments that this gathering is happening in a specific moment in time, a moment that carries its own character and will not return.",
 
     ":::POEM_HAIKU_MINIMAL:::Autumn cup —\nthe tea cools faster\nthan my words",
 

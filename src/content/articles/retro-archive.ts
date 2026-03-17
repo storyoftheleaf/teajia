@@ -9,7 +9,7 @@ export const retroArchive: ReadableStory = {
   title: 'Retro Archive Template',
   subtitle: 'Tea Culture, 1980',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=retro1',
-  durationOrTime: '20 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A vintage-styled feature using sepia tones, typewriter text, and archival aesthetics to explore tea history.',
   tags: ['History', 'Culture'],

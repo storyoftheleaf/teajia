@@ -9,13 +9,13 @@ export const interviewWithImages: ReadableStory = {
   title: 'Interview with Images',
   subtitle: 'The Tea Farmer',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=iwi001',
-  durationOrTime: '25 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A portrait-driven interview blending environmental photography with intimate Q&A about life in the tea fields.',
   tags: ['Culture', 'Sourcing'],
   category: 'interview',
   content: [
-    ":::IMG_FULL_BLEED_TITLE:::Master Zhou Yu — Life in the Wuyi Mountains|https://picsum.photos/800/1200?random=iwi002",
+    ":::COVER_PHOTO_INSET:::Interview with Images|Master Zhou Yu — Life in the Wuyi Mountains|https://picsum.photos/800/1200?random=iwi002",
 
     ":::TEXT_SINGLE_COL:::We arrived at Zhou Yu's workshop in the Wuyi Mountains on a morning so misty that the famous rock formations were invisible until we were standing beneath them. The workshop sits at the base of a cliff in the Zhengyan — the 'correct rock' zone that produces the most prized Yan Cha. Zhou met us at the gate wearing the same clothes he wears every day: a faded blue cotton jacket, canvas pants stained with charcoal dust, and rubber-soled shoes that grip the steep stone paths between his garden terraces. He is sixty-three years old and has been making tea in this exact location for forty-one years. Before him, his father worked these same gardens for thirty-five years. Before that, his grandfather. The workshop is not picturesque in the way that tea marketing materials might suggest — it is a working facility, cluttered with bamboo trays, charcoal baskets, and the accumulated tools of a craft practiced without interruption for three generations.",
 

@@ -9,7 +9,7 @@ export const poetryCollection: ReadableStory = {
   title: 'Poetry Collection',
   subtitle: 'Whispered Verse',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=poetry1',
-  durationOrTime: '20 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A collection of tea poetry showcasing every poetic layout variant — centered, left-aligned, scattered, visual, and haiku.',
   tags: ['Calligraphy', 'Culture'],

@@ -9,7 +9,7 @@ export const debateDualPerspective: ReadableStory = {
   title: 'Debate / Dual Perspective',
   subtitle: 'East Meets West',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=ddp001',
-  durationOrTime: '24 Pages',
+  durationOrTime: '26 Pages',
   origin: 'In-house',
   description: 'A split-screen dialogue format presenting two contrasting perspectives on tea culture side by side.',
   tags: ['Philosophy', 'Ceremony', 'Culture'],

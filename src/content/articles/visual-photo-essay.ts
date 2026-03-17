@@ -9,7 +9,7 @@ export const visualPhotoEssay: ReadableStory = {
   title: 'Visual Photo Essay',
   subtitle: 'Seasonal Rhythms',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=vpe001',
-  durationOrTime: '20 Pages',
+  durationOrTime: '28 Pages',
   origin: 'In-house',
   description: 'A photo-driven narrative following the four seasons of tea cultivation with transitions between light and dark modes.',
   tags: ['Seasons', 'Culture'],

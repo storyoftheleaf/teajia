@@ -9,7 +9,7 @@ export const technicalAnalysis: ReadableStory = {
   title: 'Technical Analysis',
   subtitle: 'Anatomy of a Cup',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=ta100',
-  durationOrTime: '22 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A technical breakdown using scientific diagram aesthetics, labeled illustrations, and systematic analysis.',
   tags: ['Brewing', 'Tasting', 'Health'],

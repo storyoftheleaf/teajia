@@ -9,7 +9,7 @@ export const travelFeatureVideo: ReadableStory = {
   title: 'Travel Feature with Video',
   subtitle: 'Wuyi Mountains, Fujian',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=tv100',
-  durationOrTime: '20 Pages',
+  durationOrTime: '18 Pages',
   origin: 'In-house',
   description: 'A multi-media travelogue featuring embedded video, atmospheric photography, and reportage from the Wuyi tea mountains.',
   tags: ['Oolong', 'China', 'Fujian', 'Sourcing'],

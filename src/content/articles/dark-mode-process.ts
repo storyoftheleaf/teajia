@@ -9,7 +9,7 @@ export const darkModeProcess: ReadableStory = {
   title: 'Dark Mode Process Feature',
   subtitle: 'The Midnight Kiln',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=dk100',
-  durationOrTime: '22 Pages',
+  durationOrTime: '21 Pages',
   origin: 'In-house',
   description: 'A richly atmospheric article using dark mode to explore the nocturnal world of traditional kiln firing.',
   tags: ['Pottery', 'Teaware', 'Brewing'],

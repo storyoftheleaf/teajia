@@ -9,7 +9,7 @@ export const recipeAndPairing: ReadableStory = {
   title: 'Recipe & Pairing Template',
   subtitle: 'Tea in the Kitchen',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=rc100',
-  durationOrTime: '22 Pages',
+  durationOrTime: '18 Pages',
   origin: 'In-house',
   description: 'A culinary feature combining tea-infused recipes with pairing guides and tasting notes.',
   tags: ['Tasting'],

@@ -9,7 +9,7 @@ export const lifestyleGuide: ReadableStory = {
   title: 'Lifestyle Guide',
   subtitle: 'Creating a Tea Space',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=lg100',
-  durationOrTime: '22 Pages',
+  durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'A lifestyle editorial guiding readers through creating their own tea ritual space at home.',
   tags: ['Space Design', 'Philosophy', 'Seasons'],

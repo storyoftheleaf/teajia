@@ -9,7 +9,7 @@ export const teaFeatureArticle: ReadableStory = {
   title: 'Tea Feature Article',
   subtitle: 'Laoshan Green',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=tfa001',
-  durationOrTime: '22 Pages',
+  durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'A deep-dive feature on a single tea variety with terroir analysis, tasting notes, brewing guide, and sourcing story.',
   tags: ['Green', 'Sourcing', 'China', 'Tasting'],
@@ -38,7 +38,8 @@ export const teaFeatureArticle: ReadableStory = {
 
     ":::QUOTE_BIG:::Where the mountain meets the sea, the leaf finds a voice that belongs to neither land nor water but to the conversation between them.",
 
-    ":::TEXT_SINGLE_COL:::The flavor profile of Laoshan Green unfolds across multiple infusions like a conversation that deepens with each exchange. The first infusion is direct and immediate — roasted chestnut sweetness, a clean vegetal note like blanched spinach, and the first hint of that characteristic mineral undertone. It is a welcoming cup, accessible and pleasant, but it reveals only the surface. By the second infusion, with the leaves now fully hydrated and expanded, the tea begins to show its depth. The vegetal notes shift from spinach to artichoke heart, richer and more complex. The mineral quality intensifies, and a faint salinity appears at the edges of each sip — this is the hai wei, the ocean's signature, not salty in the way of food but saline in the way of sea air, a brightness that lifts and extends every other flavor. The third and fourth infusions are where Laoshan Green truly distinguishes itself. Here the chestnut sweetness and the mineral depth converge, and a new quality emerges: a thick, almost oily mouthfeel that coats the tongue and lingers in the throat. The Chinese term for this is hou yun — throat resonance — and in a great Laoshan Green it can persist for minutes after the last sip.",
+    ":::TEXT_SINGLE_COL:::The flavor profile of Laoshan Green unfolds across multiple infusions like a conversation that deepens with each exchange. The first infusion is direct and immediate — roasted chestnut sweetness, a clean vegetal note like blanched spinach, and the first hint of that characteristic mineral undertone. It is a welcoming cup, accessible and pleasant, but it reveals only the surface. By the second infusion, with the leaves now fully hydrated and expanded, the tea begins to show its depth. The vegetal notes shift from spinach to artichoke heart, richer and more complex.",
+    ":::TEXT_SINGLE_COL:::The mineral quality intensifies, and a faint salinity appears at the edges of each sip — this is the hai wei, the ocean's signature, not salty in the way of food but saline in the way of sea air, a brightness that lifts and extends every other flavor. The third and fourth infusions are where Laoshan Green truly distinguishes itself. Here the chestnut sweetness and the mineral depth converge, and a new quality emerges: a thick, almost oily mouthfeel that coats the tongue and lingers in the throat. The Chinese term for this is hou yun — throat resonance — and in a great Laoshan Green it can persist for minutes after the last sip.",
 
     ":::TASTING_NOTES_GRID:::Aroma: Roasted chestnut, sea breeze, fresh cut grass|Flavor: Sweet corn, artichoke, blanched spinach, mineral salt|Mouthfeel: Medium-full body, oily texture, coating|Finish: Long, saline-sweet, chest-warming|Liquor: Pale gold-green, clear, with slight opalescence|Character: Structured, confident, marine-influenced",
 

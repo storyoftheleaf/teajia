@@ -9,7 +9,7 @@ export const scienceMythDebunking: ReadableStory = {
   title: 'Science Myth-Debunking',
   subtitle: 'Caffeine in Tea',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=sm100',
-  durationOrTime: '20 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A myth-busting science article using data, expert quotes, and clear explanations to challenge common misconceptions.',
   category: 'science',

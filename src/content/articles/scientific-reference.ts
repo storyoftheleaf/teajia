@@ -9,7 +9,7 @@ export const scientificReference: ReadableStory = {
   title: 'Scientific Reference Layout',
   subtitle: 'Camellia Sinensis Atlas',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=sc100',
-  durationOrTime: '23 Pages',
+  durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'A systematic, botanical reference guide showcasing the scientific classification approach.',
   tags: ['Health', 'Teaching'],

@@ -9,7 +9,7 @@ export const scienceReferenceCard: ReadableStory = {
   title: 'Science Reference Card',
   subtitle: 'Water Temperature',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=sr100',
-  durationOrTime: '24 Pages',
+  durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'A practical science reference featuring temperature charts, brewing parameters, and quick-reference data cards.',
   category: 'science',

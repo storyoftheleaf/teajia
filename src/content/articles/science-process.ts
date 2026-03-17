@@ -9,7 +9,7 @@ export const scienceProcess: ReadableStory = {
   title: 'Science Process Article',
   subtitle: 'The Oxidation Spectrum',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=sp100',
-  durationOrTime: '22 Pages',
+  durationOrTime: '19 Pages',
   origin: 'In-house',
   description: 'A scientific deep-dive into tea oxidation, using data visualization and step-by-step process documentation.',
   category: 'science',

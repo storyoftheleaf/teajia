@@ -9,7 +9,7 @@ export const referenceWithToc: ReadableStory = {
   title: 'Reference with TOC',
   subtitle: 'Living Archive',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=rwt001',
-  durationOrTime: '25 Pages',
+  durationOrTime: '24 Pages',
   origin: 'In-house',
   description: 'A curated reference guide with table of contents, index, and organized sections — the encyclopedia format.',
   tags: ['Teaching', 'History'],

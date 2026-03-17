@@ -9,7 +9,7 @@ export const teaFeatureProcess: ReadableStory = {
   title: 'Tea Feature with Process',
   subtitle: 'Oriental Beauty',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=tfp001',
-  durationOrTime: '24 Pages',
+  durationOrTime: '19 Pages',
   origin: 'In-house',
   description: 'A tea feature focusing on the unique processing story, including step-by-step manufacturing and the role of natural phenomena.',
   tags: ['Oolong', 'Taiwan', 'Brewing', 'Tasting'],

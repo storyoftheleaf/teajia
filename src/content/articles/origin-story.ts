@@ -9,7 +9,7 @@ export const originStory: ReadableStory = {
   title: 'Origin Story',
   subtitle: 'The Creation of Teajia',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=os100',
-  durationOrTime: '22 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'The founding story of Teajia magazine, told through personal narrative and behind-the-scenes imagery.',
   tags: ['Philosophy', 'Culture', 'Bali'],

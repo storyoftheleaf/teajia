@@ -9,7 +9,7 @@ export const experimentalArt: ReadableStory = {
   title: 'Experimental Art Layout',
   subtitle: 'Fluid Dynamics',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=ex100',
-  durationOrTime: '20 Pages',
+  durationOrTime: '16 Pages',
   origin: 'Curated',
   description: 'An avant-garde visual essay pushing the boundaries of editorial design with unconventional layouts.',
   tags: ['Culture'],

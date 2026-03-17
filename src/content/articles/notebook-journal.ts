@@ -9,7 +9,7 @@ export const notebookJournal: ReadableStory = {
   title: 'Notebook Journal Layout',
   subtitle: 'Field Notes',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=notebook1',
-  durationOrTime: '22 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A handwritten notebook aesthetic with ruled paper, marginalia, and sketched observations from the tea fields.',
   tags: ['Culture', 'Sourcing', 'Tasting'],

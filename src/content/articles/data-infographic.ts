@@ -9,7 +9,7 @@ export const dataInfographic: ReadableStory = {
   title: 'Data-Driven Infographic',
   subtitle: 'Terroir in Numbers',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=data1',
-  durationOrTime: '19 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A data-rich feature using charts, statistics, and infographic elements to analyze tea terroir scientifically.',
   tags: ['Health', 'Tasting', 'Sourcing'],

@@ -9,7 +9,7 @@ export const travelJournalMaps: ReadableStory = {
   title: 'Travel Journal with Maps',
   subtitle: 'Ancient Tea Routes',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=tj100',
-  durationOrTime: '24 Pages',
+  durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'A travelogue featuring cartographic illustrations, field observations, and cultural anthropology along historic tea trade routes.',
   tags: ['Culture', 'History'],

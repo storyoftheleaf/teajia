@@ -9,7 +9,7 @@ export const darkAtmospheric: ReadableStory = {
   title: 'Dark Atmospheric Meditation',
   subtitle: 'Night Session',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=dark1',
-  durationOrTime: '20 Pages',
+  durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A moody, noir-influenced meditation on evening tea sessions, using dark mode throughout for immersive atmosphere.',
   tags: ['Philosophy', 'Seasons'],

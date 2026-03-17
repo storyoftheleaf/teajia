@@ -9,7 +9,7 @@ export const artistInterview: ReadableStory = {
   title: 'Artist Interview',
   subtitle: 'The Ceramicist',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=ai001',
-  durationOrTime: '24 Pages',
+  durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'An artist profile combining studio photography, creative process documentation, and philosophical dialogue.',
   tags: ['Culture', 'Pottery'],

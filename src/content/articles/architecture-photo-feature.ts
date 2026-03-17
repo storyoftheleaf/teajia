@@ -9,7 +9,7 @@ export const architecturePhotoFeature: ReadableStory = {
   title: 'Architecture Photo Feature',
   subtitle: 'Urban Tea House',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=ar100',
-  durationOrTime: '21 Pages',
+  durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'A photo-heavy feature exploring the intersection of contemporary architecture and traditional tea space design.',
   tags: ['Architecture', 'Space Design'],

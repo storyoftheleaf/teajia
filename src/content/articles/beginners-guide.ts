@@ -9,7 +9,7 @@ export const beginnersGuide: ReadableStory = {
   title: "Beginner's Guide",
   subtitle: 'Your First Cup',
   thumbnailUrl: 'https://picsum.photos/800/1200?random=bg100',
-  durationOrTime: '23 Pages',
+  durationOrTime: '19 Pages',
   origin: 'In-house',
   description: 'A welcoming, accessible guide for newcomers to quality tea, covering the basics with warmth and clarity.',
   tags: ['Brewing', 'Tasting', 'Teaching'],
