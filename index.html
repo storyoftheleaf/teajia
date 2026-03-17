@@ -42,15 +42,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://teajia-api.lightcodes.workers.dev" crossorigin>
-    <!-- Critical fonts: Vollkorn (display headings), Lora (body text), Inter (UI) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap">
-    <!-- Deferred fonts loaded after page interactive -->
+    <!-- Critical fonts: Vollkorn (display), Lora (body), Plus Jakarta Sans (UI), Noto Serif SC (Chinese), IBM Plex Mono (prices) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&display=swap">
+    <!-- Deferred fonts: calligraphy (decorative, not critical path) -->
     <script>
       (function() {
         function loadDeferredFonts() {
           var link = document.createElement('link');
           link.rel = 'stylesheet';
-          link.href = 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap';
+          link.href = 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap';
           document.head.appendChild(link);
         }
         if (document.readyState === 'complete') {

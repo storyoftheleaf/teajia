@@ -4,15 +4,15 @@ import { CartItem, ExchangeRate, Currency } from '../types';
 
 // Register a font that supports nice typography
 Font.register({
-  family: 'Inter',
-  src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.ttf'
+  family: 'Plus Jakarta Sans',
+  src: 'https://fonts.gstatic.com/s/plusjakartasans/v8/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_qU79TR_V.ttf'
 });
 
 const styles = StyleSheet.create({
   page: {
     padding: 50,
     backgroundColor: '#ffffff',
-    fontFamily: 'Inter',
+    fontFamily: 'Plus Jakarta Sans',
     fontSize: 10,
     color: '#1a1a1a'
   },
