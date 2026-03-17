@@ -7,10 +7,8 @@ import {
   Search,
   ShoppingCart,
   MoreHorizontal,
-  UserCheck,
-  History,
-  FolderOpen,
-  Settings,
+  Calendar,
+  Briefcase,
   X,
   ExternalLink,
 } from 'lucide-react';
@@ -31,10 +29,8 @@ const tabs = [
 ] as const;
 
 const moreItems = [
-  { id: 'collection', label: 'Collection', icon: UserCheck, path: '/admin/personal' },
-  { id: 'orders', label: 'Orders', icon: History, path: '/admin/orders' },
-  { id: 'records', label: 'Records & Logs', icon: FolderOpen, path: '/admin/records' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
+  { id: 'business', label: 'Business', icon: Briefcase, path: '/admin/orders' },
+  { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
   { id: 'main-site', label: 'View Main Site', icon: ExternalLink, path: '/' },
 ];
 
@@ -148,7 +144,6 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
               {/* Items */}
               <div className="py-2">
                 {moreItems.map((item) => {
-                  if (!isAdmin && item.id === 'settings') return null;
                   const Icon = item.icon;
                   const active = isActive(item.path);
 
