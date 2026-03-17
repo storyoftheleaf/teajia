@@ -1,6 +1,7 @@
 import { Story } from '../types';
 
 // Articles — Template Showcases
+import { templateShowcase } from './articles/template-showcase';
 import { travelFeatureVideo } from './articles/travel-feature-video';
 import { darkModeProcess } from './articles/dark-mode-process';
 import { scientificReference } from './articles/scientific-reference';
@@ -55,7 +56,8 @@ import { journeyThroughYunnan } from './photo-essays/journey-through-yunnan';
 import { thePottersWeek } from './photo-essays/the-potters-week';
 
 export const STORIES: Story[] = [
-  // --- TEMPLATE SHOWCASES (1-11) ---
+  // --- TEMPLATE SHOWCASES (1-12) ---
+  templateShowcase,
   travelFeatureVideo,
   darkModeProcess,
   scientificReference,

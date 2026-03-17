@@ -545,7 +545,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="max-w-[640px] mx-auto w-full flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Start writing..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
+                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DOUBLE_COL:
@@ -559,7 +559,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="mt-6 columns-2 gap-12 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Double column text..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
+                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DROP_CAP:
@@ -569,12 +569,12 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`float-left text-[72px] font-[Vollkorn] leading-[0.8] mr-4 mt-1 ${theme.seal}`}>{content.charAt(0) || "T"}</span>
                             <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
+                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
                     </div>
                 );
             case LayoutVariant.TEXT_SIDEBAR_RIGHT:
                 return (
-                    <div className={`${paperBase} flex h-full`} style={OPENTYPE}>
+                    <div className={`${paperBase} flex h-full relative overflow-hidden`} style={OPENTYPE}>
                         <div className={`w-2/3 ${PAD.text} pt-20 border-r ${theme.border}`}>
                              <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main text..." tag="p" readOnly={readOnly} />
                         </div>
@@ -582,6 +582,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              <div className="w-10 h-[0.5px] bg-current mx-auto mb-6 opacity-20"></div>
                              <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${TYPE.body} italic opacity-70 leading-[1.5] font-serif`} placeholder="Sidebar note..." tag="p" readOnly={readOnly} />
                         </div>
+                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`} />
                     </div>
                 );
             case LayoutVariant.TEXT_VERTICAL_CJK:
@@ -804,34 +805,101 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     </div>
                 );
 
-            case LayoutVariant.MAP_CARTOGRAPHY:
+            case LayoutVariant.MAP_CARTOGRAPHY: {
+                const locations = content.split('|').filter(Boolean);
+                const gridPositions = [
+                    { top: '15%', left: '20%', coord: '24.5° N, 103.8° E' },
+                    { top: '30%', left: '65%', coord: '32.4° N, 118.2° E' },
+                    { top: '55%', left: '35%', coord: '23.1° N, 113.3° E' },
+                    { top: '70%', left: '72%', coord: '30.3° N, 120.2° E' },
+                    { top: '45%', left: '12%', coord: '25.0° N, 102.7° E' },
+                    { top: '20%', left: '48%', coord: '34.3° N, 108.9° E' },
+                ];
                 return (
                     <div className={`${paperBase} flex flex-col`}>
-                         <div className="flex-1 relative bg-tea-surface text-tea-text p-12 flex items-center justify-center overflow-hidden">
+                         <div className="flex-1 relative bg-tea-surface text-tea-text p-12 overflow-hidden">
                              <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]"></div>
-                             <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                 <path d="M0,50 Q25,40 50,50 T100,50" fill="none" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
-                                 <path d="M20,0 Q30,50 20,100" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                                 <path d="M80,0 Q70,50 80,100" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                             <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                 <path d="M0,50 Q25,40 50,50 T100,50" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="2 2" />
+                                 <path d="M20,0 Q30,50 20,100" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="1 3" />
+                                 <path d="M80,0 Q70,50 80,100" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="1 3" />
+                                 <path d="M0,25 L100,25" fill="none" stroke="currentColor" strokeWidth="0.2" strokeDasharray="1 4" />
+                                 <path d="M0,75 L100,75" fill="none" stroke="currentColor" strokeWidth="0.2" strokeDasharray="1 4" />
+                                 <path d="M50,0 L50,100" fill="none" stroke="currentColor" strokeWidth="0.2" strokeDasharray="1 4" />
                              </svg>
-                             <div className="relative z-10 text-center bg-tea-surface/60 backdrop-blur-sm p-16 border border-tea-border shadow-sm rounded-sm">
-                                 <Icons.Grid className="w-16 h-16 mx-auto mb-6 opacity-50" />
-                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-serif tracking-[0.15em] uppercase font-bold`} placeholder="Location Name" tag="h2" readOnly={readOnly} />
-                                 <p className={`${TYPE.caption} font-mono mt-6 opacity-60`}>32.4° N, 118.2° E</p>
+                             {/* Title */}
+                             <div className="relative z-10 mb-6">
+                                 {isEditable ? (
+                                     <EditableText value={content} onChange={updateContent} className={`${TYPE.headline} font-serif tracking-[0.15em] uppercase font-bold`} placeholder="Location 1|Location 2|..." tag="h2" readOnly={readOnly} />
+                                 ) : (
+                                     <h2 className={`${CAPTION_CLASS} text-center`}>Cartography</h2>
+                                 )}
+                             </div>
+                             {/* Positioned location markers */}
+                             {!isEditable && locations.map((loc, i) => {
+                                 const pos = gridPositions[i % gridPositions.length];
+                                 return (
+                                     <div key={i} className="absolute z-10 flex items-start gap-2" style={{ top: pos.top, left: pos.left }}>
+                                         <div className="flex flex-col items-center">
+                                             <div className="w-3 h-3 rounded-full bg-tea-gold/60 border-2 border-tea-surface shadow-sm"></div>
+                                             <div className="w-[1px] h-4 bg-tea-gold/30"></div>
+                                         </div>
+                                         <div className="-mt-1">
+                                             <span className={`${TYPE.bodyDense} font-serif font-bold opacity-90 block`}>{loc.trim()}</span>
+                                             <span className={`${TYPE.micro} font-mono opacity-40 block`}>{pos.coord}</span>
+                                         </div>
+                                     </div>
+                                 );
+                             })}
+                             {/* Compass rose */}
+                             <div className="absolute bottom-8 right-8 z-10 opacity-20">
+                                 <div className="w-12 h-12 border border-current/30 rounded-full flex items-center justify-center">
+                                     <span className={`${TYPE.micro} font-serif`}>N</span>
+                                 </div>
                              </div>
                          </div>
                     </div>
                 );
+            }
 
-            case LayoutVariant.RECIPE_CARD:
+            case LayoutVariant.RECIPE_CARD: {
+                const recipeLines = content.split('\n').filter(Boolean);
+                const isStep = (line: string) => /^\d+[\.\)]/.test(line.trim());
+                const isSectionHeader = (line: string) => line.trim().endsWith(':') || line.trim().toUpperCase() === line.trim();
+                const hasMeasurement = (line: string) => /\d+\s*(ml|g|oz|°[CF]|min|sec|tsp|tbsp)/i.test(line);
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`}>
                          <div className="w-full border border-current/8 p-12 relative">
-                             <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 ${theme.bg} ${CAPTION_CLASS}`}>Brewing Guide</div>
-                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} leading-[1.6] whitespace-pre-wrap`} placeholder="1. Boil water..." tag="div" readOnly={readOnly} />
+                             <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-6 ${theme.bg} flex items-center gap-2`}>
+                                 <span className="text-[20px]">🍵</span>
+                                 <span className={CAPTION_CLASS}>Brewing Guide</span>
+                             </div>
+                             {isEditable ? (
+                                 <EditableText value={content} onChange={updateContent} className={`${BODY_CLASS} whitespace-pre-wrap`} placeholder="Ingredients:\n5g tea\n200ml water\n\nSteps:\n1. Heat water to 90°C\n2. Steep for 3 min" tag="div" readOnly={readOnly} />
+                             ) : (
+                                 <div className="space-y-2 mt-4">
+                                     {recipeLines.map((line, i) => {
+                                         if (isSectionHeader(line)) {
+                                             return <h3 key={i} className={`${TYPE.bodyLarge} font-serif font-bold mt-6 mb-2 border-b border-current/8 pb-2`}>{line}</h3>;
+                                         }
+                                         if (isStep(line)) {
+                                             const stepNum = line.match(/^(\d+)/)?.[1];
+                                             const stepText = line.replace(/^\d+[\.\)]\s*/, '');
+                                             return (
+                                                 <div key={i} className="flex items-start gap-3 py-1">
+                                                     <span className={`${TYPE.caption} font-mono text-tea-gold/70 font-bold w-8 shrink-0 text-right`}>{stepNum}.</span>
+                                                     <span className={`${BODY_CLASS} ${hasMeasurement(stepText) ? '' : ''}`}>{hasMeasurement(stepText) ? stepText.split(/(\d+\s*(?:ml|g|oz|°[CF]|min|sec|tsp|tbsp))/i).map((part, j) => /\d+\s*(?:ml|g|oz|°[CF]|min|sec|tsp|tbsp)/i.test(part) ? <span key={j} className="font-mono font-bold">{part}</span> : part) : stepText}</span>
+                                                 </div>
+                                             );
+                                         }
+                                         return <p key={i} className={`${BODY_CLASS} opacity-80 py-0.5 ${hasMeasurement(line) ? '' : ''}`}>{hasMeasurement(line) ? line.split(/(\d+\s*(?:ml|g|oz|°[CF]|min|sec|tsp|tbsp))/i).map((part, j) => /\d+\s*(?:ml|g|oz|°[CF]|min|sec|tsp|tbsp)/i.test(part) ? <span key={j} className="font-mono font-bold">{part}</span> : part) : line}</p>;
+                                     })}
+                                 </div>
+                             )}
                          </div>
                     </div>
                 );
+            }
 
             case LayoutVariant.TEXT_INVERTED:
                 return (
@@ -985,13 +1053,13 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Triple column text..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
+                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
                     </div>
                 );
 
             case LayoutVariant.TEXT_SIDEBAR_LEFT:
                 return (
-                    <div className={`${paperBase} flex h-full`} style={OPENTYPE}>
+                    <div className={`${paperBase} flex h-full relative overflow-hidden`} style={OPENTYPE}>
                         <div className={`w-1/3 p-8 ${theme.softBg} flex flex-col justify-center text-center`}>
                              <div className="w-10 h-[0.5px] bg-current mx-auto mb-6 opacity-20"></div>
                              <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${TYPE.body} italic opacity-70 leading-[1.5] font-serif`} placeholder="Sidebar note..." tag="p" readOnly={readOnly} />
@@ -999,6 +1067,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className={`w-2/3 ${PAD.text} pt-20 border-l ${theme.border}`}>
                              <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main text..." tag="p" readOnly={readOnly} />
                         </div>
+                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`} />
                     </div>
                 );
 
@@ -1447,17 +1516,18 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-16`} style={OPENTYPE}>
                         <div className={`${FOLIO_CLASS} mb-4`}>{storyTitle || 'Timeline'}</div>
-                        <div className="relative pl-8">
-                            {/* Vertical line */}
-                            <div className="absolute left-3 top-0 bottom-0 w-[1px] bg-current/10"></div>
-                            <div className="space-y-6">
+                        <div className="relative pl-12">
+                            {/* Gold vertical line */}
+                            <div className="absolute left-4 top-0 bottom-0 w-[2px] bg-tea-gold/40"></div>
+                            <div className="space-y-8">
                                 {events.map((event, i) => {
                                     const [date, ...descParts] = event.split('—').map(s => s.trim());
                                     const desc = descParts.join('—') || date;
                                     return (
-                                        <div key={i} className="relative flex items-start gap-4">
-                                            <div className="absolute -left-5 top-2 w-3 h-3 rounded-full bg-tea-gold/40 border-2 border-tea-bg"></div>
-                                            <div>
+                                        <div key={i} className="relative flex items-start gap-6">
+                                            {/* Gold dot on the line */}
+                                            <div className="absolute -left-[2.15rem] top-2 w-4 h-4 rounded-full bg-tea-gold border-[3px] border-tea-bg shadow-sm"></div>
+                                            <div className="ml-2">
                                                 {descParts.length > 0 && <span className={`${TYPE.caption} font-mono opacity-40 block mb-1`}>{date}</span>}
                                                 <span className={`${TYPE.bodyDense} font-serif opacity-90`}>{descParts.length > 0 ? desc : date}</span>
                                             </div>
@@ -1553,30 +1623,33 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             // --- SPECIAL: Missing implementations ---
             case LayoutVariant.NOTE_PAPER:
                 return (
-                    <div className={`${paperBase} relative bg-tea-surface`} style={{ transform: 'rotate(0.3deg)' }}>
-                        {/* Ruled lines */}
-                        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 45px, rgba(0,0,0,0.04) 45px, rgba(0,0,0,0.04) 46px)', backgroundPosition: '0 32px' }}></div>
+                    <div className={`${paperBase} relative bg-tea-surface`} style={{ transform: 'rotate(1deg)' }}>
+                        {/* Faint horizontal ruled lines */}
+                        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 38px, rgba(0,0,0,0.06) 38px, rgba(0,0,0,0.06) 39px)', backgroundPosition: '0 28px' }}></div>
                         {/* Red margin line */}
                         <div className="absolute top-0 bottom-0 left-[15%] w-[1px] bg-red-300/30 pointer-events-none"></div>
                         <div className="p-10 pl-[18%] pt-16">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-mono leading-[46px] opacity-70 whitespace-pre-wrap`} placeholder="Notes here..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-[Ma_Shan_Zheng] italic leading-[39px] opacity-70 whitespace-pre-wrap`} placeholder="Notes here..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
 
             case LayoutVariant.POSTCARD_STYLE:
                 return (
-                    <div className={`${paperBase} flex border-2 border-current/5`}>
+                    <div className={`${paperBase} flex border border-tea-border/40`}>
                         <div className="w-1/2 relative"><SafeImage index={0} className="w-full h-full" /></div>
-                        <div className="w-1/2 p-8 flex flex-col relative">
-                            <div className="absolute top-4 right-4 w-16 h-16 border-2 border-current/10 flex items-center justify-center opacity-30">
-                                <span className={TYPE.micro}>STAMP</span>
+                        <div className="w-1/2 p-8 flex flex-col relative bg-tea-surface/30">
+                            {/* Stamp area */}
+                            <div className="absolute top-4 right-4 w-18 h-20 border-[3px] border-dashed border-current/15 flex flex-col items-center justify-center opacity-40 p-1">
+                                <div className="w-full h-full border border-current/10 flex items-center justify-center">
+                                    <span className={`${TYPE.micro} font-mono opacity-60`}>STAMP</span>
+                                </div>
                             </div>
-                            <div className={`${CAPTION_CLASS} mb-4 opacity-30`}>AIR MAIL</div>
-                            <div className="flex-1">
-                                <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-serif leading-[1.6] opacity-80`} placeholder="Dear..." tag="p" readOnly={readOnly} />
+                            <div className={`${CAPTION_CLASS} mb-4 opacity-30 tracking-[0.3em]`}>AIR MAIL</div>
+                            <div className="flex-1 mt-4">
+                                <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-serif italic leading-[1.6] opacity-80`} placeholder="Dear..." tag="p" readOnly={readOnly} />
                             </div>
-                            <div className="mt-auto space-y-3">
+                            <div className="mt-auto space-y-4">
                                 {[1,2,3].map(i => <div key={i} className="h-[1px] bg-current/10"></div>)}
                             </div>
                         </div>

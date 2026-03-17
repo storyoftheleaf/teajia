@@ -8,7 +8,7 @@ export const poetryCollection: ReadableStory = {
   status: 'published',
   title: 'Poetry Collection',
   subtitle: 'Whispered Verse',
-  thumbnailUrl: 'https://picsum.photos/800/1200?random=poetry1',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&h=1200&fit=crop',
   durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'A collection of tea poetry showcasing every poetic layout variant — centered, left-aligned, scattered, visual, and haiku.',
@@ -18,21 +18,31 @@ export const poetryCollection: ReadableStory = {
 
     ":::POEM_CENTERED:::THE FIRST CUP\n\nBefore the water finds its voice\nin the iron kettle's throat,\nbefore the leaves uncurl\nlike fists releasing grief,\nthere is a moment\nof pure anticipation —\n\nthe dry leaves in the palm,\ntheir scent a letter\nfrom a mountain\nyou have never climbed\nbut somehow remember.\n\nYou lift them to your nose\nand breathe,\nand for one breath\nyou are not here\nbut there —\n\nwhere fog erases\nthe line between\nthe garden and the sky,\nwhere someone's hands\nare picking still,\nand the morning\nhas no name.",
 
+    ":::IMG_FULL_BLEED:::Morning mist over the tea garden|https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop",
+
     ":::POEM_LEFT_ALIGN:::WATER MEMORY\n\nThe kettle remembers every tea\nit has ever boiled for.\nMineral ghosts layer the interior —\ncalcium from the well in Hangzhou,\niron from the spring near Wuyi,\nchlorine from the city years,\nthe slow silver scaling of ten thousand boils.\n\nI do not descale my kettle.\nThese are not deposits.\nThey are annotations.\nEach ring a year,\neach mineral a place,\neach stain a conversation\nthat ended well or didn't\nbut always ended\nwith the cup empty\nand the heart\na little less so.",
 
-    ":::IMG_FULL_BLEED:::Morning mist over the tea garden|https://picsum.photos/800/1200?random=poetry2",
+    ":::IMG_WITH_CAPTION_BOTTOM:::Steam rising from an iron kettle|https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop",
 
     ":::POEM_HAIKU_MINIMAL:::Spring picking —\nthe basket fills faster\nthan the hours pass",
 
-    ":::TEXT_CENTER_NARROW:::These poems were written over the course of a single year spent traveling through the tea mountains of southern China and Taiwan. They are not translations of classical Chinese tea poetry — though that tradition haunts every line — but attempts to articulate the experience of tea in a contemporary voice. The classical poets wrote of tea as scholars and monks, from positions of retreat and contemplation. These poems are written from the road, the tea table, the factory floor, the predawn kitchen. They seek not the elevated remove of the literati but the intimate proximity of the practitioner — hands wrapped around a warm cup, watching steam dissolve into air that smells of woodsmoke and wet earth.",
+    ":::TEXT_CENTER_NARROW:::These poems were written over the course of a single year spent traveling through the tea mountains of southern China and Taiwan. They are not translations of classical Chinese tea poetry — though that tradition haunts every line — but attempts to articulate the experience of tea in a contemporary voice.",
+
+    ":::TEXT_JUSTIFIED_NARROW:::The classical poets wrote of tea as scholars and monks, from positions of retreat and contemplation. These poems are written from the road, the tea table, the factory floor, the predawn kitchen. They seek not the elevated remove of the literati but the intimate proximity of the practitioner — hands wrapped around a warm cup, watching steam dissolve into air that smells of woodsmoke and wet earth.",
+
+    ":::IMG_FULL_BLEED:::Hands holding a warm cup of tea|https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop",
 
     ":::POEM_SCATTERED:::Autumn leaves fall\n      into the tea\n             or perhaps\n    the tea rises\n          to meet them —\n                who can say\n       where the garden ends\n  and the cup\n            begins?",
 
     ":::POEM_VISUAL:::S T E E P\n\nThe word itself\n   descends —\n      letter\n         by\n            letter\n               into\n                  depth.\n\nSteep: to soak,\nto saturate,\nto immerse\nuntil the boundary\nbetween solvent\nand solute\ndissolves.\n\nWe steep tea.\nTea steeps us.",
 
-    ":::IMG_OVAL_VIGNETTE:::Solitary cup on stone|https://picsum.photos/800/1200?random=poetry3",
+    ":::IMG_OVAL_VIGNETTE:::Solitary cup on stone|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop",
 
-    ":::TEXT_JUSTIFIED_NARROW:::The relationship between tea and poetry is not metaphorical — it is structural. Both operate through compression. A tea leaf is a compressed landscape: soil minerals, rainwater, sunlight, mountain air, microbial communities, the genetic memory of a cultivar shaped over centuries. Brewing is decompression: hot water unlocks what the leaf has stored, releasing it in sequence across multiple steepings, each infusion a stanza revealing new dimensions of the same source material. Poetry works the same way. A few words compressed into lines, carrying far more meaning than their surface syntax suggests, releasing that meaning gradually across repeated readings. The best tea and the best poems share this quality of inexhaustibility — you return to them again and again and find something you missed before.",
+    ":::TEXT_SINGLE_COL:::The relationship between tea and poetry is not metaphorical — it is structural. Both operate through compression. A tea leaf is a compressed landscape: soil minerals, rainwater, sunlight, mountain air, microbial communities, the genetic memory of a cultivar shaped over centuries.",
+
+    ":::TEXT_JUSTIFIED_NARROW:::Brewing is decompression: hot water unlocks what the leaf has stored, releasing it in sequence across multiple steepings, each infusion a stanza revealing new dimensions of the same source material. Poetry works the same way. A few words compressed into lines, carrying far more meaning than their surface syntax suggests, releasing that meaning gradually across repeated readings. The best tea and the best poems share this quality of inexhaustibility — you return to them again and again and find something you missed before.",
+
+    ":::IMG_FULL_BLEED:::Tea leaves close-up in golden light|https://images.unsplash.com/photo-1563911892437-1feda0179e1b?w=800&h=1200&fit=crop",
 
     ":::POEM_CENTERED:::THE TEA MASTER'S HANDS\n\nThey move like water —\nnot rushing water\nbut the slow water\nthat shapes stone\nover centuries.\n\nThe right hand lifts the kettle\nwith the wrist, not the arm.\nThe left hand turns the lid\nwith thumb and ring finger only.\nThe pour begins\nbefore the mind decides to pour.\n\nThirty years of practice\nhave worn a groove\nin the wooden table\nwhere the kettle rests.\nThe groove is not a flaw.\nIt is a signature —\nthe only one he needs.",
 
@@ -40,7 +50,7 @@ export const poetryCollection: ReadableStory = {
 
     ":::DEDICATION_SIMPLE:::For the mountain,\nthe leaf,\nand the long way home.",
 
-    ":::IMG_DUOTONE:::Old tea trees in morning light|https://picsum.photos/800/1200?random=poetry4",
+    ":::IMG_DUOTONE:::Old tea trees in morning light|https://images.unsplash.com/photo-1582793988951-9aed5509eb97?w=800&h=1200&fit=crop",
 
     ":::EPILOGUE_CENTERED:::These poems were composed between spring 2024 and winter 2025 in the tea regions of Fujian, Yunnan, and Taiwan. Some were written at tea tables, others on overnight trains, a few in the margins of tasting notebooks. They owe a debt to Lu Yu, Su Dongpo, and the countless unnamed monks who first understood that tea and verse share the same silence.",
 
