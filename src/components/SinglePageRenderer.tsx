@@ -376,6 +376,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     const isDarkText = textColor === 'dark'; 
     const theme = {
       bg: isDarkText ? 'bg-tea-surface' : 'bg-tea-bg',
+      fadeBg: isDarkText ? 'from-tea-surface' : 'from-tea-bg',
       text: isDarkText ? 'text-tea-bg' : 'text-tea-text',
       subtext: isDarkText ? 'text-tea-bg/60' : 'text-tea-text/60',
       border: isDarkText ? 'border-tea-bg/10' : 'border-tea-gold/10',
@@ -544,7 +545,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="max-w-[640px] mx-auto w-full flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Start writing..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DOUBLE_COL:
@@ -558,7 +559,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="mt-6 columns-2 gap-12 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Double column text..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DROP_CAP:
@@ -568,7 +569,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`float-left text-[72px] font-[Vollkorn] leading-[0.8] mr-4 mt-1 ${theme.seal}`}>{content.charAt(0) || "T"}</span>
                             <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
             case LayoutVariant.TEXT_SIDEBAR_RIGHT:
@@ -984,7 +985,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Triple column text..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10"></div>
                     </div>
                 );
 
