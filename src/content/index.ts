@@ -9,9 +9,9 @@ import { theMastersVoice } from './articles/the-masters-voice';
 import { ancientRoutes } from './articles/ancient-routes';
 import { culinaryLeaf } from './articles/culinary-leaf';
 import { fluidDynamics } from './articles/fluid-dynamics';
-import { archive1980 } from './articles/archive-1980';
-import { minimalistZen } from './articles/minimalist-zen';
-import { dataAndTerroir } from './articles/data-and-terroir';
+import { retroArchive } from './articles/retro-archive';
+import { minimalWhitespace } from './articles/minimal-whitespace';
+import { dataInfographic } from './articles/data-infographic';
 import { teaFeatureArticle } from './articles/tea-feature-article';
 import { teaFeatureProcess } from './articles/tea-feature-process';
 import { interviewWithImages } from './articles/interview-with-images';
@@ -21,12 +21,12 @@ import { theOxidationSpectrum } from './articles/the-oxidation-spectrum';
 import { caffeineInTea } from './articles/caffeine-in-tea';
 import { curatedLinks } from './articles/curated-links';
 import { visualPhotoEssay } from './articles/visual-photo-essay';
-import { theSlowPour } from './articles/the-slow-pour';
-import { fieldNotes } from './articles/field-notes';
+import { cinematicPhotoSequence } from './articles/cinematic-photo-sequence';
+import { notebookJournal } from './articles/notebook-journal';
 import { anatomyOfACup } from './articles/anatomy-of-a-cup';
-import { nightSession } from './articles/night-session';
-import { gridStudy } from './articles/grid-study';
-import { whisperedVerse } from './articles/whispered-verse';
+import { darkAtmospheric } from './articles/dark-atmospheric';
+import { geometricBauhaus } from './articles/geometric-bauhaus';
+import { poetryCollection } from './articles/poetry-collection';
 import { referenceWithToc } from './articles/reference-with-toc';
 import { debateDualPerspective } from './articles/debate-dual-perspective';
 
@@ -69,14 +69,14 @@ export const STORIES: Story[] = [
   // --- TEMPLATE 7: ABSTRACT (Fluid Dynamics) ---
   fluidDynamics,
 
-  // --- TEMPLATE 8: VINTAGE (Archive 1980) ---
-  archive1980,
+  // --- TEMPLATE 8: VINTAGE (Retro Archive) ---
+  retroArchive,
 
-  // --- TEMPLATE 9: MINIMALIST (Zen) ---
-  minimalistZen,
+  // --- TEMPLATE 9: MINIMALIST (White Space) ---
+  minimalWhitespace,
 
-  // --- TEMPLATE 10: DATA (Terroir) ---
-  dataAndTerroir,
+  // --- TEMPLATE 10: DATA (Infographic) ---
+  dataInfographic,
 
   // --- PHOTO ESSAYS ---
 
@@ -135,23 +135,23 @@ export const STORIES: Story[] = [
   // Article 1: Seasonal Rhythms - Continuous narrative flow
   visualPhotoEssay,
 
-  // Article 2: The Slow Pour - Cinematic letterbox
-  theSlowPour,
+  // Article 2: The Slow Pour - Cinematic photo sequence
+  cinematicPhotoSequence,
 
-  // Article 3: Field Notes - Handwritten aesthetic
-  fieldNotes,
+  // Article 3: Field Notes - Notebook journal
+  notebookJournal,
 
   // Article 4: Anatomy of a Cup - Scientific diagram style
   anatomyOfACup,
 
-  // Article 5: Night Session - Moody noir
-  nightSession,
+  // Article 5: Dark Atmospheric - Moody noir meditation
+  darkAtmospheric,
 
-  // Article 6: Grid Study - Modernist layout
-  gridStudy,
+  // Article 6: Geometric Bauhaus - Modernist grid layout
+  geometricBauhaus,
 
-  // Article 7: Whispered Verse - Poetry-forward
-  whisperedVerse,
+  // Article 7: Poetry Collection - Whispered verse
+  poetryCollection,
 
   // Article 8: Living Archive - Curated links & references
   referenceWithToc,
