@@ -1204,3 +1204,140 @@
 .surface-clamp-fade::after {
   background: linear-gradient(to bottom, transparent, var(--tea-surface));
 }
+
+/* ============================================
+   Mobile Inventory — Swipe-to-Edit Row
+   WhatsApp-style swipe gesture revealing actions.
+   ============================================ */
+
+.swipe-row-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* The action tray behind the row */
+.swipe-row-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  z-index: 0;
+}
+
+.swipe-row-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 100%;
+  min-width: 64px;
+  padding: 0 12px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.swipe-row-action-edit {
+  background: rgba(184, 146, 78, 0.25);
+  color: var(--tea-gold);
+}
+
+.swipe-row-action-view {
+  background: rgba(181, 168, 146, 0.15);
+  color: var(--tea-text-sec);
+}
+
+/* The foreground row that slides */
+.swipe-row-content {
+  position: relative;
+  z-index: 1;
+  background: var(--tea-bg);
+  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+}
+
+.swipe-row-content.swiping {
+  transition: none;
+}
+
+/* ============================================
+   Mobile Inventory — Expanded Detail Panel
+   Warm inset panel for product detail on expand.
+   ============================================ */
+
+.inv-detail-panel {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(184, 146, 78, 0.04) 0%, transparent 50%),
+    var(--tea-surface);
+  border-bottom: 1px solid var(--tea-border);
+  box-shadow:
+    inset 0 1px 0 rgba(184, 146, 78, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.inv-detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--tea-text-dim);
+  margin-bottom: 2px;
+}
+
+.inv-detail-value {
+  font-size: 14px;
+  color: var(--tea-text);
+  font-weight: 500;
+}
+
+/* Light mode adjustments */
+.light .inv-detail-panel {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(142, 109, 46, 0.04) 0%, transparent 50%),
+    var(--tea-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(142, 109, 46, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* ============================================
+   Mobile Inventory — Stock Status Indicators
+   ============================================ */
+
+.stock-ok { color: var(--tea-text); }
+.stock-low { color: #d97706; }
+.stock-out { color: var(--tea-text-dim); opacity: 0.5; }
+
+/* ============================================
+   Mobile Inventory — Row Type Accent Strip
+   Subtle left-edge color derived from tea type.
+   ============================================ */
+
+.inv-row-accent {
+  position: relative;
+}
+
+.inv-row-accent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--row-type-color, transparent);
+  opacity: 0.5;
+  transition: opacity 200ms ease;
+}
+
+.inv-row-accent:active::before,
+.inv-row-accent.expanded::before {
+  opacity: 0.8;
+}

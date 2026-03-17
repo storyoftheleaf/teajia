@@ -100,9 +100,9 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     <AnimatePresence>
       {isOpen && (
       <>
-      {/* Backdrop with blur fade */}
+      {/* Backdrop with blur fade — z-[55] to render above bottom nav (z-50) */}
       <motion.div
-        className="fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[55] bg-tea-text/80 backdrop-blur-sm"
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -110,10 +110,10 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         transition={{ duration: 0.3 }}
       />
 
-      {/* Panel — slide in from right */}
+      {/* Panel — slide in from right, z-[55] above bottom nav */}
       <motion.div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full z-drawer shadow-2xl flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full z-[55] shadow-2xl flex flex-col ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-bg'
