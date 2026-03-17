@@ -1,0 +1,50 @@
+import { ContentType } from '../../types';
+import { ReadableStory } from '../../types/read';
+import { PEOPLE } from '../people';
+
+export const technicalAnalysis: ReadableStory = {
+  id: 'template-technical',
+  type: ContentType.Article,
+  status: 'published',
+  title: 'Technical Analysis',
+  subtitle: 'Anatomy of a Cup',
+  thumbnailUrl: 'https://picsum.photos/800/1200?random=ta100',
+  durationOrTime: '22 Pages',
+  origin: 'In-house',
+  description: 'A technical breakdown using scientific diagram aesthetics, labeled illustrations, and systematic analysis.',
+  tags: ['Brewing', 'Tasting', 'Health'],
+  content: [
+    ":::COVER_ABSTRACT:::Anatomy|of a Cup|https://picsum.photos/800/1200?random=ta101",
+
+    ":::TEXT_DROP_CAP:::What is a cup of tea? On the surface, it seems almost insultingly simple — dried leaves steeped in hot water. But this simplicity is deceptive. A single cup of well-brewed tea contains over a thousand distinct chemical compounds, each contributing to an experience that engages every sensory system simultaneously. The color that greets your eye, the aroma that rises with the steam, the taste that unfolds across your palate, the texture that coats your mouth, the warmth that spreads through your chest — all of these are the products of precise chemical reactions between water and leaf. In this technical analysis, we deconstruct a cup of tea into its constituent parts, examining each layer of the experience with the rigor of a laboratory report and the reverence of a tea ceremony. Understanding what is in your cup does not diminish the magic. It deepens it.",
+
+    ":::BOTANICAL_SKETCH:::Cross-section diagram of a tea leaf showing cellular structure, vacuoles, and enzyme compartments|https://picsum.photos/800/600?random=ta102",
+
+    ":::TEXT_DOUBLE_COL:::Layer 1: The Water Matrix|Before a single compound leaves the tea leaf, the water itself sets the stage. Pure H2O is actually a poor tea solvent — it needs dissolved minerals to function optimally. Calcium and magnesium ions act as flavor carriers, binding with certain aromatic compounds and enhancing their perception on the palate. Water with a TDS (total dissolved solids) of 50–150 ppm provides the ideal mineral balance. Below 50 ppm, the tea tastes flat and one-dimensional. Above 200 ppm, minerals compete with tea compounds for dissolution, muting complexity. The pH matters too: slightly acidic water (pH 6.0–6.5) extracts catechins more efficiently, while neutral to slightly alkaline water (pH 7.0–7.5) favors amino acid extraction. This is why the same tea tastes different in different cities — the water supply is an invisible but powerful variable.\n\nLayer 2: The Amino Acid Foundation|L-theanine constitutes 1–3% of the dry weight of tea leaves and is the compound most responsible for tea's unique calming-yet-alert effect. It dissolves readily in water at temperatures as low as 50°C, making it one of the first compounds to enter your cup. L-theanine contributes a distinct umami sweetness — not the sharp sweetness of sugar, but a round, savory fullness that forms the foundation of tea's flavor architecture. Glutamic acid, another amino acid present in smaller quantities, amplifies this umami character. Together, these amino acids create the 'body' of the brew — the sensation of substance and depth that distinguishes great tea from merely acceptable tea.",
+
+    ":::STAT_BIG_NUMBER:::1,000+|Distinct chemical compounds identified in brewed tea",
+
+    ":::DEFINITION_LARGE:::Mouthfeel|The tactile sensation of tea on the palate, independent of taste and aroma. Mouthfeel encompasses viscosity (thickness), astringency (drying sensation), smoothness, and coating quality. It is produced primarily by polyphenols interacting with salivary proteins and mucous membranes. Premium teas typically exhibit a smooth, coating mouthfeel described in Chinese as 'hou yun' (throat resonance).",
+
+    ":::TEXT_SIDEBAR_RIGHT:::The Leaf-to-Water Ratio|This seemingly mundane parameter is actually the second most important variable after temperature. Too little leaf produces a thin, watery brew that fails to develop the compound interactions necessary for complex flavor. Too much leaf overwhelms the water's capacity to dissolve compounds evenly, producing an unbalanced, overly concentrated liquor. The golden ratios differ by brewing method: Western-style brewing typically uses 2–3 grams per 200ml, creating a dilute but balanced single infusion. Gongfu brewing uses 5–8 grams per 100ml, producing a concentrated liquor designed for multiple short infusions. Each approach extracts the same compounds in different proportions, producing genuinely different flavor profiles from identical tea.|https://picsum.photos/600/800?random=ta106",
+
+    ":::IMG_WITH_CAPTION_BOTTOM:::A clear glass gaiwan revealing the color gradient of a first-flush Darjeeling infusion|https://picsum.photos/800/600?random=ta107",
+
+    ":::TEXT_TRIPLE_COL:::The Polyphenol Layer|Polyphenols — particularly catechins in green tea and theaflavins in black tea — are responsible for astringency, bitterness, and much of tea's reputed health benefit. EGCG (epigallocatechin gallate) is the most abundant catechin and the most studied, with documented antioxidant, anti-inflammatory, and neuroprotective properties. In the cup, catechins bind to salivary proteins, creating the characteristic astringent sensation that dries the mouth. This is not a defect — well-balanced astringency provides structure, much as tannins do in wine.\n\nThe Volatile Aroma Layer|Over 600 volatile compounds have been identified in tea, though only 30–40 are present in concentrations high enough to contribute meaningfully to aroma. Linalool (floral, citrusy) is the most common, found in virtually all tea types. Geraniol (rose-like) dominates in heavily oxidized teas. Nerolidol (woody, earthy) characterizes aged puerh. Methyl salicylate (wintergreen) appears in certain Taiwanese oolongs. The aromatic profile of your cup changes as it cools, because different volatiles evaporate at different rates — the first sip at 65°C delivers a different bouquet than the same cup at 45°C.\n\nThe Pigment Layer|The color of tea liquor comes from dissolved pigments that serve as visual indicators of processing and extraction. Chlorophyll produces the bright green of Japanese greens. Theaflavins create the golden-orange of first-flush Darjeeling. Thearubigins generate the deep copper-red of a well-made Yunnan black. Carotenoids contribute yellow-orange tones to white and yellow teas. The color of your cup is not merely aesthetic — it is a diagnostic tool, revealing the tea's processing history and the effectiveness of your brewing technique.",
+
+    ":::TEXT_ASYMMETRIC_LEFT:::The phenomenon known as 'hui gan' (回甘) — literally 'returning sweetness' — is one of the most prized qualities in Chinese tea evaluation. After swallowing a sip of high-quality tea, a sensation of sweetness develops in the throat and the back of the palate, often intensifying over 30–60 seconds. This is not residual sugar. The mechanism is believed to involve the interaction of salivary amylase enzymes with starch residues left on the palate by the tea's polysaccharides, combined with a contrast effect: after the initial bitterness of catechins fades, the remaining amino acids and glycosides are perceived as comparatively sweet. The duration and intensity of hui gan is considered a primary quality indicator in puerh, oolong, and high-mountain green tea evaluation. A tea with strong, lasting hui gan is invariably prized higher than one without, regardless of other flavor qualities.",
+
+    ":::INDEX_GRID:::Compound Quick Reference|L-Theanine: Umami, calm focus|EGCG: Bitter, astringent, antioxidant|Caffeine: Stimulating, slightly bitter|Linalool: Floral aroma|Theaflavins: Brisk, golden color|Thearubigins: Body, red-brown color|Geraniol: Rose-like aroma|Glutamic acid: Umami depth|Polysaccharides: Sweetness, body|Saponins: Foaming, slight bitterness",
+
+    ":::TEXT_SINGLE_COL:::The temperature of the cup as you drink it is itself a variable that transforms the experience. Most tea is brewed between 70°C and 100°C, but the optimal drinking temperature is 55–65°C — the range where the human palate can perceive the full spectrum of flavor compounds without heat interference. Above 65°C, heat receptors on the tongue become dominant, masking subtler taste signals. Below 45°C, many volatile aromatic compounds have evaporated, and the liquid begins to taste 'flat.' The journey of a cup from brew temperature to room temperature is therefore a continuously evolving flavor experience. The first sip, taken while the cup is still slightly too hot, delivers primarily aroma and heat. The middle sips, at optimal temperature, reveal the full complexity of taste, texture, and aftertaste. The final sips, as the cup cools, expose the tea's foundational sweetness and body, stripped of volatile aromatics. Attentive tea drinkers learn to read each temperature stage as a different chapter of the same story.",
+
+    ":::TASTING_NOTES_GRID:::Cup Analysis Framework|Appearance: Color, clarity, viscosity|Aroma (wet leaf): Intensity, character, complexity|Aroma (liquor): Top notes, heart notes, base notes|Taste: Sweetness, bitterness, umami, sourness|Mouthfeel: Body, astringency, smoothness, coating|Aftertaste: Duration, hui gan, throat sensation|Overall: Balance, complexity, memorability",
+
+    ":::RECIPE_CARD:::Diagnostic Brewing Protocol|Use 3g leaf per 150ml to standardize|Water: filtered, 80°C for comparison brewing|Steep exactly 3 minutes — no more, no less|Pour into a white evaluation cup for color assessment|Smell wet leaves immediately after pouring|Taste at 55°C for maximum flavor perception|Note aftertaste duration in seconds|Compare across samples using identical parameters",
+
+    ":::QUOTE_MINIMAL:::Every cup of tea is a chemistry experiment. The question is whether you are the scientist or the bystander.",
+
+    ":::COPYRIGHT_PAGE:::Teajia Technical"
+  ],
+  author: PEOPLE.sarah,
+};
