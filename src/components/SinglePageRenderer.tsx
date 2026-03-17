@@ -218,7 +218,7 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
         <img
           src={src}
           className="w-full h-full object-cover transition-opacity duration-300"
-          style={{opacity: imageLoading ? 0.5 : 1}}
+          style={{opacity: imageLoading ? 0.5 : 1, filter: 'saturate(0.85) contrast(1.05) brightness(1.02)'}}
           alt={`img-${index}`}
           onLoad={() => setImageLoading(false)}
           onError={() => setImageLoading(false)}
@@ -555,7 +555,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
-                        <div className="columns-2 gap-8 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule" style={{ hyphens: 'auto' }}>
+                        <div className="mt-6 columns-2 gap-12 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Double column text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
@@ -615,7 +615,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-center pl-20 relative`}>
                         {/* Massive background number */}
-                        <span className="absolute top-1/2 left-12 -translate-y-1/2 text-[280px] font-serif font-bold opacity-[0.06] leading-none select-none pointer-events-none">{chNum || '01'}</span>
+                        <span className="absolute top-1/2 left-12 -translate-y-1/2 text-[240px] font-serif font-bold opacity-[0.03] leading-none select-none pointer-events-none">{chNum || '01'}</span>
                         <div className="relative z-10">
                             <EditableText value={chNum || ''} onChange={isEditable ? (v) => updateContent(v + '|' + (chTitle2 || '')) : undefined} className={`${TYPE.displaySm} font-serif font-bold mb-4 leading-none`} placeholder="01" tag="h1" readOnly={readOnly} />
                             {chTitle2 && <EditableText value={chTitle2} onChange={isEditable ? (v) => updateContent((chNum || '') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] opacity-50`} placeholder="Title" tag="p" readOnly={readOnly} />}
@@ -652,7 +652,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
                         {/* Thin gallery frame inset */}
-                        <div className="absolute inset-[3px] border border-white/10 z-20 pointer-events-none"></div>
+                        <div className="absolute inset-[3px] border border-tea-border z-20 pointer-events-none"></div>
+                        {/* Gradient overlay for caption readability */}
+                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/30 to-transparent z-[5] pointer-events-none"></div>
                         {/* Minimal caption strip */}
                         <div className="absolute bottom-0 left-0 w-full px-6 py-4 z-10 pointer-events-none">
                             <div className="inline-block bg-black/60 px-4 py-2 backdrop-blur-sm">
@@ -979,7 +981,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
-                        <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule" style={{ hyphens: 'auto' }}>
+                        <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Triple column text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none z-10"></div>
@@ -1200,7 +1202,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             const rotations = ['-rotate-[3deg]', 'rotate-[2deg]', '-rotate-[1deg]'];
                             const positions = ['top-[15%] left-[10%]', 'top-[25%] right-[8%]', 'bottom-[15%] left-[25%]'];
                             return (
-                                <div key={i} className={`absolute ${positions[i]} ${rotations[i]} w-[40%] bg-white p-3 pb-12 shadow-xl`}>
+                                <div key={i} className={`absolute ${positions[i]} ${rotations[i]} w-[40%] bg-tea-surface p-3 pb-12 shadow-xl`}>
                                     <div className="aspect-square overflow-hidden"><SafeImage index={i} className="w-full h-full object-cover" /></div>
                                 </div>
                             );
@@ -1272,7 +1274,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} bg-black relative`}>
                         <div className="absolute inset-0"><SafeImage index={0} className="w-full h-full" /></div>
-                        <div className="absolute inset-0 z-10 pointer-events-none" style={{ boxShadow: 'inset 0 0 150px rgba(0,0,0,0.6)' }}></div>
+                        <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%)' }}></div>
                         <div className="absolute bottom-12 left-0 right-0 text-center z-20 pointer-events-none">
                             <div className={readOnly ? '' : 'pointer-events-auto inline-block'}>
                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/70`} placeholder="Caption..." tag="p" readOnly={readOnly} />
