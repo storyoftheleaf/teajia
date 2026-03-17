@@ -12,23 +12,23 @@ import { fluidDynamics } from './articles/fluid-dynamics';
 import { archive1980 } from './articles/archive-1980';
 import { minimalistZen } from './articles/minimalist-zen';
 import { dataAndTerroir } from './articles/data-and-terroir';
-import { laoshanGreen } from './articles/laoshan-green';
-import { orientalBeauty } from './articles/oriental-beauty';
-import { theTeaFarmer } from './articles/the-tea-farmer';
-import { theCeramicist } from './articles/the-ceramicist';
+import { teaFeatureArticle } from './articles/tea-feature-article';
+import { teaFeatureProcess } from './articles/tea-feature-process';
+import { interviewWithImages } from './articles/interview-with-images';
+import { artistInterview } from './articles/artist-interview';
 import { waterTemperature } from './articles/water-temperature';
 import { theOxidationSpectrum } from './articles/the-oxidation-spectrum';
 import { caffeineInTea } from './articles/caffeine-in-tea';
-import { thisWeekInTea } from './articles/this-week-in-tea';
-import { seasonalRhythms } from './articles/seasonal-rhythms';
+import { curatedLinks } from './articles/curated-links';
+import { visualPhotoEssay } from './articles/visual-photo-essay';
 import { theSlowPour } from './articles/the-slow-pour';
 import { fieldNotes } from './articles/field-notes';
 import { anatomyOfACup } from './articles/anatomy-of-a-cup';
 import { nightSession } from './articles/night-session';
 import { gridStudy } from './articles/grid-study';
 import { whisperedVerse } from './articles/whispered-verse';
-import { livingArchive } from './articles/living-archive';
-import { dualVoices } from './articles/dual-voices';
+import { referenceWithToc } from './articles/reference-with-toc';
+import { debateDualPerspective } from './articles/debate-dual-perspective';
 
 // Start Here Articles
 import { theCreationOfTeajia } from './articles/the-creation-of-teajia';
@@ -103,16 +103,16 @@ export const STORIES: Story[] = [
   // Deep-dive articles highlighting specific teas
   // =====================================================
 
-  laoshanGreen,
-  orientalBeauty,
+  teaFeatureArticle,
+  teaFeatureProcess,
 
   // =====================================================
   // INTERVIEW ARTICLES
   // Voices in Tea series
   // =====================================================
 
-  theTeaFarmer,
-  theCeramicist,
+  interviewWithImages,
+  artistInterview,
 
   // =====================================================
   // SCIENCE ARTICLES
@@ -128,12 +128,12 @@ export const STORIES: Story[] = [
   // External link roundups
   // =====================================================
 
-  thisWeekInTea,
+  curatedLinks,
 
   // --- NEW CONTENT DISPLAY ARTICLES ---
 
   // Article 1: Seasonal Rhythms - Continuous narrative flow
-  seasonalRhythms,
+  visualPhotoEssay,
 
   // Article 2: The Slow Pour - Cinematic letterbox
   theSlowPour,
@@ -154,10 +154,10 @@ export const STORIES: Story[] = [
   whisperedVerse,
 
   // Article 8: Living Archive - Curated links & references
-  livingArchive,
+  referenceWithToc,
 
   // Article 9: Dual Voices - Split-screen dialogue
-  dualVoices,
+  debateDualPerspective,
 
   // =====================================================
   // START HERE ARTICLES
