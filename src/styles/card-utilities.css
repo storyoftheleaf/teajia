@@ -104,7 +104,7 @@
   font-size: 1rem;
   font-family: var(--font-display);
   color: var(--tea-text);
-  line-height: 1.25;
+  line-height: 1.35;
   font-weight: 400;
   letter-spacing: 0.01em;
   transition: color 300ms ease-out;
@@ -1145,4 +1145,62 @@
 
 @media (prefers-reduced-motion: reduce) {
   .leaf-accent { animation: none; }
+}
+
+/* ============================================
+   Typography Utilities
+   ============================================ */
+
+/* Body text: minimum readable size with comfortable line height */
+.body-text {
+  font-size: 1rem; /* 16px minimum */
+  line-height: 1.7;
+  color: var(--tea-text);
+}
+
+/* Secondary/meta text */
+.meta-text {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+  color: var(--tea-text-sec);
+}
+
+/* Label/caption text */
+.label-text {
+  font-size: 0.75rem; /* 12px */
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+}
+
+/* ============================================
+   Truncation Gradient Fade Utilities (#38)
+   NOTE: .line-clamp-fade only works correctly when the
+   parent element has a known, solid background color.
+   The ::after pseudo-element must match that background.
+   Use .line-clamp-fade on --tea-bg surfaces (page background).
+   Use .surface-clamp-fade on --tea-surface surfaces (cards, panels).
+   ============================================ */
+
+/* Truncation with gradient fade — use alongside line-clamp utilities */
+.line-clamp-fade {
+  position: relative;
+  overflow: hidden;
+}
+
+.line-clamp-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.5em;
+  background: linear-gradient(to bottom, transparent, var(--tea-bg));
+  pointer-events: none;
+}
+
+/* Surface variant — the gradient matches the surface background */
+.surface-clamp-fade::after {
+  background: linear-gradient(to bottom, transparent, var(--tea-surface));
 }

@@ -59,7 +59,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     return (
       <button
         key={section.id}
-        onClick={() => onNavigate(section.id)}
+        onClick={() => {
+          if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+          if (section.id === activeSection) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+          onNavigate(section.id);
+        }}
         className={`flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none`}
         style={{ animationDelay: `${index * 50}ms` }}
         title={section.label}

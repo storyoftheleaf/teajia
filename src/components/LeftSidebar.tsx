@@ -289,6 +289,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           onClick={onCartClick}
           className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50`}
           title="Cart"
+          aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'Cart'}
         >
           <div className="relative shrink-0">
             <Icons.Bag
@@ -296,7 +297,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               strokeWidth={2}
             />
             {cartItemCount > 0 && (
-              <div className={`absolute -top-2 -right-3 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
+              <div
+                className={`absolute -top-2 -right-3 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}
+                aria-hidden="true"
+              >
                 {cartItemCount > 9 ? '9+' : cartItemCount}
               </div>
             )}
