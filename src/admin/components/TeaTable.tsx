@@ -365,7 +365,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                     <td className="px-4 align-middle text-right">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onAdd(product); }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-tea-text-sec hover:text-tea-text"
+                                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-sec hover:text-tea-text"
                                             aria-label={`Add ${product.productName} to cart`}
                                         >
                                             <Plus size={14} />

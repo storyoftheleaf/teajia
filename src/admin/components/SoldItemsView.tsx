@@ -363,14 +363,14 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                       <button
                         onClick={() => setLogOffset(Math.max(0, logOffset - PAGE_SIZE))}
                         disabled={logOffset === 0}
-                        className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                        className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
                       >
                         <ChevronLeft size={14} />
                       </button>
                       <button
                         onClick={() => setLogOffset(logOffset + PAGE_SIZE)}
                         disabled={logOffset + PAGE_SIZE >= logsTotal}
-                        className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                        className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
                       >
                         <ChevronRight size={14} />
                       </button>
@@ -408,8 +408,8 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                       <div className="flex items-center justify-between px-4 py-3">
                         <span className="text-[10px] text-tea-text-sec">{logOffset + 1}–{Math.min(logOffset + PAGE_SIZE, logsTotal)} of {logsTotal}</span>
                         <div className="flex gap-1">
-                          <button onClick={() => setLogOffset(Math.max(0, logOffset - PAGE_SIZE))} disabled={logOffset === 0} className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
-                          <button onClick={() => setLogOffset(logOffset + PAGE_SIZE)} disabled={logOffset + PAGE_SIZE >= logsTotal} className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
+                          <button onClick={() => setLogOffset(Math.max(0, logOffset - PAGE_SIZE))} disabled={logOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
+                          <button onClick={() => setLogOffset(logOffset + PAGE_SIZE)} disabled={logOffset + PAGE_SIZE >= logsTotal} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
                         </div>
                       </div>
                     )}
@@ -513,8 +513,8 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                   <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border bg-tea-bg">
                     <span className="text-[10px] text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
                     <div className="flex gap-1">
-                      <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
-                      <button onClick={() => setLedgerOffset(ledgerOffset + PAGE_SIZE)} disabled={ledgerOffset + PAGE_SIZE >= ledgerTotal} className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
+                      <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
+                      <button onClick={() => setLedgerOffset(ledgerOffset + PAGE_SIZE)} disabled={ledgerOffset + PAGE_SIZE >= ledgerTotal} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
                     </div>
                   </div>
                 )}
@@ -555,8 +555,8 @@ export const RecordsView = ({ products }: { products: Product[] }) => {
                       <div className="flex items-center justify-between px-4 py-3">
                         <span className="text-[10px] text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
                         <div className="flex gap-1">
-                          <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
-                          <button onClick={() => setLedgerOffset(ledgerOffset + PAGE_SIZE)} disabled={ledgerOffset + PAGE_SIZE >= ledgerTotal} className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
+                          <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
+                          <button onClick={() => setLedgerOffset(ledgerOffset + PAGE_SIZE)} disabled={ledgerOffset + PAGE_SIZE >= ledgerTotal} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
                         </div>
                       </div>
                     )}

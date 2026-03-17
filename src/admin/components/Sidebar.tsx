@@ -43,7 +43,7 @@ const NavButton: React.FC<{
         {item.label}
       </span>
       {item.badge !== undefined && item.badge > 0 && (
-        <span className="ml-auto w-4 h-4 bg-tea-gold text-tea-bg text-[9px] font-bold rounded-full flex items-center justify-center shrink-0 mr-2">
+        <span className="ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-[9px] font-bold rounded-full flex items-center justify-center shrink-0 mr-2">
           {item.badge > 9 ? '9+' : item.badge}
         </span>
       )}
@@ -230,7 +230,7 @@ export const Sidebar = ({
               strokeWidth={2}
             />
             {cartItemCount > 0 && (
-              <div className="absolute -top-2 -right-3 w-4 h-4 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              <div className="absolute -top-2 -right-3 w-5 h-5 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                 {cartItemCount > 9 ? '9+' : cartItemCount}
               </div>
             )}

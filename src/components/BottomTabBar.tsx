@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import { Icons } from './Icons';
 import { LogoEmblem, LogoText } from './Logos';
 import { Section } from '../types';
@@ -74,7 +74,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label={section.label}
       >
         {/* Icon with relative positioning for badge */}
-        <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-105">
+        <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-visible transition-all duration-300 group-hover:scale-105">
           <IconComponent
             className={`transition-all duration-300 flex-shrink-0 ${
               isActive
@@ -85,7 +85,24 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             {...(isActive ? { fill: 'currentColor' } : {})}
             style={scale !== 1 ? { transform: `scale(${scale})` } : undefined}
           />
-
+          {/* Animated cart badge on Shop tab */}
+          {section.id === 'SHOP' && (
+            <AnimatePresence mode="wait">
+              {cartItemCount > 0 && (
+                <motion.span
+                  key={cartItemCount}
+                  className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-tea-gold text-white text-[10px] font-bold flex items-center justify-center leading-none pointer-events-none"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: [1.3, 1], opacity: 1 }}
+                  exit={{ scale: 0.5, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: 'backOut' }}
+                  aria-label={`${cartItemCount} item${cartItemCount !== 1 ? 's' : ''} in cart`}
+                >
+                  {cartItemCount}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          )}
         </div>
 
         {/* Label */}

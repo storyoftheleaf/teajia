@@ -85,6 +85,10 @@ interface AppState {
   setActiveView: (viewId: string | null) => void;
   setInventoryGroupBy: (groupBy: string | null) => void;
   setInventorySortConfig: (sortConfig: { key: string; direction: 'asc' | 'desc' }[]) => void;
+
+  // Draft Product (auto-save for AddProductModal)
+  draftProduct: Partial<Product> | null;
+  setDraftProduct: (draft: Partial<Product> | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -272,6 +276,10 @@ export const useAppStore = create<AppState>()(
       setActiveView: (viewId) => set({ activeViewId: viewId }),
       setInventoryGroupBy: (groupBy) => set({ inventoryGroupBy: groupBy }),
       setInventorySortConfig: (sortConfig) => set({ inventorySortConfig: sortConfig }),
+
+      // Draft Product
+      draftProduct: null,
+      setDraftProduct: (draft) => set({ draftProduct: draft }),
     }),
     {
       name: 'teajia-storage',
@@ -289,6 +297,7 @@ export const useAppStore = create<AppState>()(
         activeViewId: state.activeViewId,
         inventoryGroupBy: state.inventoryGroupBy,
         inventorySortConfig: state.inventorySortConfig,
+        draftProduct: state.draftProduct,
       }),
     }
   )

@@ -44,16 +44,18 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
         <div className="space-y-6">
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
-            <input 
+            <input
               type="number" autoFocus value={quantity} onChange={(e) => setQuantity(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
+              inputMode="numeric"
+              onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
               className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text focus:border-tea-text-sec outline-none text-lg transition-colors placeholder-tea-text-sec/50"
               placeholder="0"
             />
             {product.type !== 'Teaware' && (
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="grid grid-cols-3 gap-2 mt-3">
                     {teaPresets.map(preset => (
-                        <button key={preset.value} onClick={() => setQuantity(preset.value.toString())} className="px-3 py-1.5 bg-tea-surface text-tea-text-sec text-xs rounded-md border border-tea-border hover:bg-tea-border/50 hover:text-tea-text hover:border-tea-text-sec/50 transition-all num">
+                        <button key={preset.value} onClick={() => setQuantity(preset.value.toString())} className="min-h-[44px] px-4 py-2.5 bg-tea-surface text-tea-text-sec text-xs rounded-md border border-tea-border hover:bg-tea-border/50 hover:text-tea-text hover:border-tea-text-sec/50 transition-all num">
                             {preset.label}
                         </button>
                     ))}
