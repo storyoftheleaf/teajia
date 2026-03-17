@@ -7,8 +7,15 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../lib/store';
-import { Settings, Calendar, LayoutDashboard, Briefcase, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Settings, Calendar, LayoutDashboard, Briefcase, ChevronsLeft, ChevronsRight, ChevronDown, Leaf, Coffee, Sparkles, Store, Users, FolderOpen, UserCheck } from 'lucide-react';
 
+
+interface SubNavItem {
+  id: string;
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+}
 
 interface NavItem {
   id: string;
@@ -18,6 +25,7 @@ interface NavItem {
   path?: string;
   badge?: number;
   action?: () => void;
+  children?: SubNavItem[];
 }
 
 const NavButton: React.FC<{
@@ -147,10 +155,24 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     { id: 'SHOP', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} />, section: 'SHOP' as Section },
   ];
 
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (id: string) => setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  const isChildActive = (children?: SubNavItem[]) => children?.some(c => currentPath === c.path) ?? false;
+
   const adminItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} strokeWidth={2} />, path: '/admin/dashboard' },
-    { id: 'inventory', label: 'Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory' },
-    { id: 'business', label: 'Business', icon: <Briefcase size={20} strokeWidth={2} />, path: '/admin/orders' },
+    { id: 'inventory', label: 'Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory', children: [
+      { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'tasting', path: '/admin/tasting', label: 'Tasting Notes', icon: <Sparkles className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'sources', path: '/admin/sources', label: 'Sources', icon: <Store className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'personal', path: '/admin/personal', label: 'Collection', icon: <UserCheck className="w-4 h-4" strokeWidth={2} /> },
+    ]},
+    { id: 'business', label: 'Business', icon: <Briefcase size={20} strokeWidth={2} />, path: '/admin/orders', children: [
+      { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings className="w-4 h-4" strokeWidth={2} /> },
+    ]},
     { id: 'events', label: 'Events', icon: <Calendar size={20} strokeWidth={2} />, path: '/admin/events' },
   ];
 
@@ -223,16 +245,54 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       {auth.isAuthenticated && auth.isAdmin && (
         <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>}
-          {adminItems.map((item, index) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPath === item.path}
-              onClick={() => {}}
-              animationDelay={(browseItems.length + index) * 50}
-              collapsed={collapsed}
-            />
-          ))}
+          {adminItems.map((item, index) => {
+            const hasChildren = !collapsed && item.children && item.children.length > 0;
+            const isExpanded = expandedGroups[item.id] || isChildActive(item.children);
+            return (
+              <div key={item.id}>
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <NavButton
+                      item={item}
+                      isActive={currentPath === item.path}
+                      onClick={() => {}}
+                      animationDelay={(browseItems.length + index) * 50}
+                      collapsed={collapsed}
+                    />
+                  </div>
+                  {hasChildren && (
+                    <button
+                      onClick={() => toggleGroup(item.id)}
+                      className="p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+                      aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                    >
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} strokeWidth={2} />
+                    </button>
+                  )}
+                </div>
+                {hasChildren && isExpanded && (
+                  <div className="ml-4 flex flex-col gap-0.5 mt-0.5">
+                    {item.children!.map((child) => (
+                      <Link
+                        key={child.id}
+                        to={child.path}
+                        className={`flex items-center gap-2.5 px-4 py-2 rounded-md text-xs font-medium transition-colors duration-200 group ${
+                          currentPath === child.path
+                            ? 'text-tea-gold bg-tea-gold/8'
+                            : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
+                        }`}
+                      >
+                        <div className={`shrink-0 transition-colors duration-200 ${currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}>
+                          {child.icon}
+                        </div>
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
       )}
 
