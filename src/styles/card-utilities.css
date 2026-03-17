@@ -1,11 +1,11 @@
 /* ============================================
    Numeric Display — consistent across entire site
-   Uses JetBrains Mono with tabular (equal-width),
+   Uses IBM Plex Mono with tabular (equal-width),
    lining (uniform-height) figures for clean alignment.
    ============================================ */
 
 .num {
-  font-family: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+  font-family: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
   letter-spacing: 0.02em;
@@ -115,11 +115,11 @@
 }
 
 .card-grid-price {
-  font-family: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+  font-family: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
   font-variant-numeric: tabular-nums lining-nums;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: var(--tea-gold);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   opacity: 0.9;
   background-color: var(--tea-accent-sub);
   padding: 0.375rem 0.375rem;
@@ -129,7 +129,7 @@
 
 @media (min-width: 768px) {
   .card-grid-price {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     background-color: transparent;
     padding: 0;
     align-self: auto;
@@ -137,7 +137,7 @@
 }
 
 .card-grid-badge {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--tea-text-sec);
@@ -542,9 +542,9 @@
   padding: 4px 10px;
   border-radius: 6px;
   border: none;
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   cursor: pointer;
   transition: all 150ms ease;
   background: transparent;
@@ -585,7 +585,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   border: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -780,7 +780,7 @@
   padding: 2px 8px;
   border-radius: 9999px;
   border: none;
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -808,7 +808,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   border: none;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: all 150ms ease;
@@ -1283,7 +1283,7 @@
 }
 
 .inv-detail-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;

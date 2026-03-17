@@ -24,8 +24,8 @@
   --font-display: 'Vollkorn', 'Lora', 'Noto Serif SC', Georgia, serif;
   --font-serif: 'Lora', 'Noto Serif SC', serif;
   --font-body: 'Lora', 'Noto Serif SC', serif;
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
 
   /* Legacy aliases (for CSS that still uses old names) */
   --color-tea-seal: var(--tea-gold);
@@ -98,7 +98,7 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 /* ============================================
-   Base Typography — Inter for UI, Lora for reading
+   Base Typography — Plus Jakarta Sans for UI, Lora for reading
    ============================================ */
 
 body {
@@ -205,7 +205,7 @@ p {
 
 /* Article body enhanced */
 .article-body {
-  line-height: 1.85;
+  line-height: 1.7;
   letter-spacing: 0.2px;
 }
 

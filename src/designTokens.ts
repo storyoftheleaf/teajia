@@ -3,7 +3,7 @@
  * ║  TEAJIA DESIGN SYSTEM — "Espresso + Gold"                      ║
  * ║  Single source of truth for all visual decisions.               ║
  * ║                                                                 ║
- * ║  Typography:  Vollkorn · Lora · Inter · JetBrains Mono          ║
+ * ║  Typography:  Vollkorn · Lora · Plus Jakarta Sans · IBM Plex Mono║
  * ║  Palette:     Warm espresso-and-gold, dark/light via CSS vars   ║
  * ║  Textures:    SVG grain, paper weave, fabric overlay            ║
  * ║  Philosophy:  Editorial calm. Nothing shouts. Everything hums.  ║
@@ -25,13 +25,13 @@
  *                Long-form articles, descriptions, editorial prose.
  *                Calligraphic serif optimized for screen reading.
  *
- *   UI / SANS  — Inter 300–500
+ *   UI / SANS  — Plus Jakarta Sans 300–600
  *                Labels, navigation, tags, buttons, metadata.
- *                Neutral, screen-first. Invisible when it should be.
+ *                Geometric but soft — warmer than Inter, better at small sizes.
  *
- *   MONO       — JetBrains Mono 400
+ *   MONO       — IBM Plex Mono 400
  *                Prices, weights, hex codes, technical metadata.
- *                Tabular nums, lining figures for clean alignment.
+ *                Wider and more readable at small sizes than JetBrains Mono.
  *
  *   CHINESE    — Noto Serif SC (body), Ma Shan Zheng (calligraphy)
  *                Chinese product names and tea card watermarks.
@@ -40,8 +40,8 @@
 export const FONT_STACKS = {
   display: ['Vollkorn', 'Lora', 'Noto Serif SC', 'Georgia', 'serif'],
   body:    ['Lora', 'Noto Serif SC', 'Georgia', 'serif'],
-  sans:    ['Inter', 'system-ui', 'sans-serif'],
-  mono:    ['JetBrains Mono', 'Menlo', 'Courier New', 'monospace'],
+  sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+  mono:    ['IBM Plex Mono', 'Menlo', 'Courier New', 'monospace'],
   chinese: ['Noto Serif SC', 'serif'],
   chineseCalligraphy: ['Ma Shan Zheng', 'cursive'],
 } as const;
@@ -49,50 +49,59 @@ export const FONT_STACKS = {
 /**
  * Google Fonts import URL (for index.html <link>):
  *
- * Vollkorn:       400, 500, 600 (normal + italic 400, 500)
- * Lora:           400, 500, 600, 700 (normal + italic 400, 500)
- * Inter:          300, 400, 500, 600
- * JetBrains Mono: 400
- * Noto Serif SC:  200, 400, 700
- * Ma Shan Zheng:  400
+ * Vollkorn:          400, 500, 600 (normal + italic 400, 500)
+ * Lora:              400, 500, 600, 700 (normal + italic 400, 500)
+ * Plus Jakarta Sans: 300, 400, 500, 600
+ * IBM Plex Mono:     400, 500
+ * Noto Serif SC:     200, 400, 700
+ * Ma Shan Zheng:     400
  *
- * https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap
+ * https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap
  */
 
 export const TYPE_SCALE = {
-  /** Page titles, hero headings — Vollkorn 400 */
+  /** Page titles, hero headings — Vollkorn 300 (lighter = more elegant at large sizes) */
   display: {
     fontFamily: 'display',
-    fontWeight: 400,
+    fontWeight: 300,
     fontSize: 'clamp(32px, 4.8vw, 48px)',
     lineHeight: 1.12,
     letterSpacing: '0.01em',
   },
 
-  /** Section headings, card titles — Vollkorn 400 */
+  /** Section headings — Vollkorn 500 (weight contrast against h1 creates hierarchy) */
   h2: {
     fontFamily: 'display',
-    fontWeight: 400,
+    fontWeight: 500,
     fontSize: 'clamp(24px, 3.5vw, 32px)',
     lineHeight: 1.2,
     letterSpacing: '0.01em',
   },
 
-  /** Descriptive subtitles, poetic text — Lora 300 italic */
+  /** Card titles, drawer headings — Vollkorn 400 (bridges h2→body gap) */
+  h3: {
+    fontFamily: 'display',
+    fontWeight: 400,
+    fontSize: '19px',
+    lineHeight: 1.3,
+    letterSpacing: '0.01em',
+  },
+
+  /** Descriptive subtitles, poetic text — Lora 400 italic (300 was too thin on non-retina) */
   subtitle: {
     fontFamily: 'body',
-    fontWeight: 300,
+    fontWeight: 400,
     fontStyle: 'italic' as const,
     fontSize: '17px',
     lineHeight: 1.4,
   },
 
-  /** Article text, long-form reading — Lora 400 */
+  /** Article text, long-form reading — Lora 400 (tighter leading: 1.7 reduces float) */
   body: {
     fontFamily: 'body',
     fontWeight: 400,
     fontSize: '17px',
-    lineHeight: 1.85,
+    lineHeight: 1.7,
   },
 
   /** Captions, secondary text — Lora 300 */
@@ -100,56 +109,57 @@ export const TYPE_SCALE = {
     fontFamily: 'body',
     fontWeight: 300,
     fontSize: '15px',
-    lineHeight: 1.8,
+    lineHeight: 1.65,
   },
 
-  /** Tags, categories, metadata — Inter 400 uppercase */
+  /** Tags, categories, metadata — Plus Jakarta Sans 400 uppercase (11px, tighter tracking) */
   label: {
-    fontFamily: 'sans',
-    fontWeight: 400,
-    fontSize: '10px',
-    lineHeight: 1.4,
-    letterSpacing: '2px',
-    textTransform: 'uppercase' as const,
-  },
-
-  /** Nav items, section headers — Inter 400 uppercase */
-  nav: {
     fontFamily: 'sans',
     fontWeight: 400,
     fontSize: '11px',
     lineHeight: 1.4,
-    letterSpacing: '1.5px',
+    letterSpacing: '1.2px',
     textTransform: 'uppercase' as const,
   },
 
-  /** Interactive text, buttons — Inter 400 */
+  /** Nav items, section headers — Plus Jakarta Sans 400 uppercase */
+  nav: {
+    fontFamily: 'sans',
+    fontWeight: 400,
+    fontSize: '12px',
+    lineHeight: 1.4,
+    letterSpacing: '1px',
+    textTransform: 'uppercase' as const,
+  },
+
+  /** Interactive text, buttons — Plus Jakarta Sans 400 */
   link: {
     fontFamily: 'sans',
     fontWeight: 400,
-    fontSize: '13px',
-    letterSpacing: '0.3px',
+    fontSize: '14px',
+    letterSpacing: '0.2px',
   },
 
-  /** Prices, hex codes, specs — JetBrains Mono 400 */
+  /** Prices, hex codes, specs — IBM Plex Mono 400 (11px, wider and more readable) */
   mono: {
     fontFamily: 'mono',
     fontWeight: 400,
-    fontSize: '9px',
+    fontSize: '11px',
   },
 } as const;
 
 /** Tailwind class presets for common typography patterns */
 export const TYPOGRAPHY_CLASSES = {
-  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-normal leading-[1.12] tracking-[0.01em]',
-  h2:        'font-display text-[clamp(24px,3.5vw,32px)] font-normal leading-[1.2] tracking-[0.01em]',
-  subtitle:  'font-body text-[17px] font-light italic leading-[1.4]',
-  body:      'font-body text-[17px] font-normal leading-[1.85]',
-  bodyLight: 'font-body text-[15px] font-light leading-[1.8]',
-  label:     'font-sans text-[10px] font-normal uppercase tracking-[2px] leading-[1.4]',
-  nav:       'font-sans text-[11px] font-normal uppercase tracking-[1.5px] leading-[1.4]',
-  link:      'font-sans text-[13px] font-normal tracking-[0.3px]',
-  mono:      'font-mono text-[9px] font-normal',
+  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-light leading-[1.12] tracking-[0.01em]',
+  h2:        'font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] tracking-[0.01em]',
+  h3:        'font-display text-[19px] font-normal leading-[1.3] tracking-[0.01em]',
+  subtitle:  'font-body text-[17px] font-normal italic leading-[1.4]',
+  body:      'font-body text-[17px] font-normal leading-[1.7]',
+  bodyLight: 'font-body text-[15px] font-light leading-[1.65]',
+  label:     'font-sans text-[11px] font-normal uppercase tracking-[1.2px] leading-[1.4]',
+  nav:       'font-sans text-[12px] font-normal uppercase tracking-[1px] leading-[1.4]',
+  link:      'font-sans text-[14px] font-normal tracking-[0.2px]',
+  mono:      'font-mono text-[11px] font-normal',
 } as const;
 
 export const FONT_SIZES = {
@@ -177,8 +187,8 @@ export const LINE_HEIGHTS = {
   snug:    '1.2',     // H2 headings
   normal:  '1.4',     // Subtitles, labels
   relaxed: '1.625',   // UI text
-  loose:   '1.8',     // Body light
-  reading: '1.85',    // Body / article text
+  loose:   '1.65',    // Body light (captions)
+  reading: '1.7',     // Body / article text
 } as const;
 
 
@@ -754,7 +764,7 @@ export const SURFACE_TREATMENTS = {
  *   - Transform: translateY(-3px) scale(1.01) on hover
  *   - Image: aspect-ratio 1/1, opacity 0.9 → 1 on hover, scale(1.06)
  *   - Title: font-display (Vollkorn), color transitions to --tea-gold on hover
- *   - Price: .num class (JetBrains Mono, tabular-nums)
+ *   - Price: .num class (IBM Plex Mono, tabular-nums)
  *
  * SURFACE TREATMENTS (see §12):
  *   - .surface-warm: Radial warmth gradient + grain noise — use on all panels/drawers
