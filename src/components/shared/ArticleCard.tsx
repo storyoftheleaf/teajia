@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Icons } from '../Icons';
 import { CardContainer } from './CardContainer';
 import { useLongPress } from '../../hooks/useLongPress';
-import { ContentType } from '../../types';
-
 interface ArticleCardProps {
   title: string;
   description?: string;
@@ -12,7 +10,6 @@ interface ArticleCardProps {
   slug?: string;
   onClick?: () => void;
   className?: string;
-  contentType?: ContentType;
   duration?: string;
   wordCount?: number;
   isFeatured?: boolean;
@@ -26,7 +23,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   slug,
   onClick,
   className = '',
-  contentType,
   duration,
   wordCount,
   isFeatured,
@@ -48,17 +44,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     return undefined;
   }, [duration, wordCount]);
 
-  const contentLabel = useMemo(() => {
-    if (!contentType) return undefined;
-    switch (contentType) {
-      case ContentType.Article: return 'Article';
-      case ContentType.PhotoEssay: return 'Photo Essay';
-      case ContentType.Reel: return 'Reel';
-      case ContentType.Film: return 'Film';
-      case ContentType.Audio: return 'Audio';
-      default: return undefined;
-    }
-  }, [contentType]);
 
   React.useEffect(() => {
     if (imageUrl) setImageLoading(true);
@@ -181,18 +166,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             </>
           )}
 
-
-          {/* Content type badge — top-left */}
-          {contentLabel && (
-            <span className="article-card-badge">
-              {contentType === ContentType.PhotoEssay ? (
-                <Icons.Grid className="w-3 h-3" />
-              ) : contentType === ContentType.Article ? (
-                <Icons.BookOpen className="w-3 h-3" />
-              ) : null}
-              {contentLabel}
-            </span>
-          )}
 
           {/* Reading time — bottom-right */}
           {readingTime && (
