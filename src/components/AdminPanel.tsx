@@ -891,7 +891,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     <tr key={item.id} onClick={() => !isHidden && handleInventoryEdit(item)} className={`border-b border-tea-border transition-colors group ${isHidden ? 'opacity-40' : 'hover:bg-tea-gold/5 cursor-pointer'}`}>
                                         <td className="p-2">
                                             <div className="w-8 h-8 bg-black border border-tea-border overflow-hidden">
-                                                {item.image && <img src={item.image} className="w-full h-full object-cover" />}
+                                                {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover" />}
                                             </div>
                                         </td>
                                         <td className="p-4 font-serif text-white">

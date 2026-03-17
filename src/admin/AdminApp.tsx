@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search } from 'lucide-react';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isConfigured, hasToken, clearToken, getTokenClaims } from '../lib/api';
 import { Product } from './types';
@@ -64,6 +66,7 @@ const AdminContent = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
 
   const claims = getTokenClaims();
   const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
@@ -82,6 +85,12 @@ const AdminContent = () => {
   const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
   const { data: rates = [], refetch: refetchRates } = useRates();
 
+  // Pull-to-refresh (mobile)
+  const { pullDistance, isRefreshing, progress } = usePullToRefresh(() => {
+    refetchProducts();
+    refetchRates();
+  });
+
   const loading = productsLoading;
 
   // Regular users can browse catalog but not manage inventory
@@ -98,6 +107,18 @@ const AdminContent = () => {
   useEffect(() => {
     setIsCartOpen(false);
   }, [location.pathname]);
+
+  // Click-outside to close currency selector
+  useEffect(() => {
+    if (!currencyOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-currency-selector]')) {
+        setCurrencyOpen(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [currencyOpen]);
 
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
@@ -157,7 +178,8 @@ const AdminContent = () => {
 
   return (
     <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
-      <button onClick={() => setIsMobileOpen(true)} className="fixed top-4 left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-text-sec backdrop-blur-md">
+      <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
+      <button onClick={() => setIsMobileOpen(true)} className="fixed top-[calc(1rem+env(safe-area-inset-top))] left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-text-sec backdrop-blur-md">
         <Menu size={24} />
       </button>
 
@@ -183,17 +205,22 @@ const AdminContent = () => {
               <RefreshCw size={16} />
            </button>
 
-           <div className="relative group">
-              <button className="flex items-center gap-2 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors">
-                {currency} <ChevronDown size={14} />
+           <div className="relative" data-currency-selector>
+              <button
+                onClick={() => setCurrencyOpen(prev => !prev)}
+                className="flex items-center gap-2 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                {currency} <ChevronDown size={14} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
               </button>
-              <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden backdrop-blur-xl">
-                {rates.map(rate => (
-                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-text-sec'}`}>
-                    {rate.currency}
-                  </button>
-                ))}
-              </div>
+              {currencyOpen && (
+                <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl z-50 max-h-[min(240px,40vh)] overflow-y-auto">
+                  {rates.map(rate => (
+                    <button key={rate.currency} onClick={() => { setCurrency(rate.currency); setCurrencyOpen(false); }} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-text-sec'}`}>
+                      {rate.currency}
+                    </button>
+                  ))}
+                </div>
+              )}
            </div>
 
            <div className="w-px h-4 bg-tea-border"></div>

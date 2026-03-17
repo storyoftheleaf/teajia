@@ -97,6 +97,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               )}
               {hasUtilityButtons && (
                 <div className="flex items-center gap-1.5 lg:hidden">
+                  {/* Search trigger — mobile */}
+                  <button
+                    onClick={() => {
+                      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
+                    }}
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-tea-text/5 text-tea-text-sec"
+                    aria-label="Search"
+                  >
+                    <Icons.Search className="w-5 h-5" />
+                  </button>
                   {/* Theme toggle — mobile */}
                   <button
                     onClick={(e) => toggleTheme(e)}

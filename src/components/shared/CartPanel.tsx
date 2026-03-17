@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, lazy, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { CartItem as PublicCartItem } from '../../types';
 import { Icons } from '../Icons';
@@ -39,6 +39,32 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
 
   useScrollLock(isOpen);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
+  // ── Swipe gesture hint (first open only) ───────────────────────────────
+  const panelControls = useAnimationControls();
+
+  useEffect(() => {
+    if (isOpen && !localStorage.getItem('cart-swipe-hint-shown')) {
+      const timer = setTimeout(() => {
+        panelControls.start({ x: [0, 20, 0], transition: { duration: 0.4, ease: 'easeInOut' } });
+        localStorage.setItem('cart-swipe-hint-shown', '1');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, panelControls]);
+
+  // ── Focus return on close (#61) ─────────────────────────────────────────
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement;
+    } else if (triggerRef.current) {
+      const el = triggerRef.current;
+      triggerRef.current = null;
+      setTimeout(() => el.focus(), 100);
+    }
+  }, [isOpen]);
 
   // ── Swipe to dismiss (public only) ─────────────────────────────────────
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -93,7 +119,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             : 'md:w-[450px] bg-tea-bg'
         }`}
         initial={{ x: '100%' }}
-        animate={{ x: isDragging ? touchOffset : 0, opacity: isDragging ? swipeOpacity : 1 }}
+        animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : panelControls}
         exit={{ x: '100%' }}
         transition={isDragging ? { duration: 0 } : { type: 'spring', damping: 30, stiffness: 300 }}
         onTouchStart={handleTouchStart}

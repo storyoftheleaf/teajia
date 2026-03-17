@@ -129,7 +129,7 @@ const VendorPicker = ({
           setQuery(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={(e) => { setOpen(true); setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
         onBlur={() => {
           setTimeout(() => handleSelectVendor(query.trim()), 150);
         }}
@@ -141,10 +141,11 @@ const VendorPicker = ({
         }}
         className={className}
         placeholder="Type or pick a source..."
+        autoComplete="off"
       />
 
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
           {isNew && query.trim() && (
             <button
               type="button"
@@ -184,7 +185,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { aiPromptTemplate } = useAppStore();
+  const { aiPromptTemplate, draftProduct, setDraftProduct } = useAppStore();
 
   const [tastingData, setTastingData] = useState<TastingData>({});
 
@@ -224,6 +225,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   });
 
   const isEditMode = !!initialData;
+
+  // #42 — Wrap onClose to clear draft on deliberate close
+  const handleClose = () => {
+    if (!isEditMode) setDraftProduct(null);
+    onClose();
+  };
 
   // Helper to get exchange rate for current form selection
   const currentRate = useMemo(() => {
@@ -365,6 +372,27 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   const [generatingWisdom, setGeneratingWisdom] = useState(false);
   const [wisdomOpen, setWisdomOpen] = useState(false);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+
+  // #42 — Show restore banner when opening a new product form and a draft exists
+  useEffect(() => {
+    if (isOpen && !initialData && draftProduct && Object.keys(draftProduct).length > 0) {
+      setShowDraftBanner(true);
+    } else {
+      setShowDraftBanner(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // #42 — Debounced auto-save draft (only for new products, not edits)
+  useEffect(() => {
+    if (!isOpen || initialData) return;
+    const timer = setTimeout(() => {
+      setDraftProduct({ ...formData } as unknown as Partial<Product>);
+    }, 2000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, isOpen]);
 
   const handleGenerateWisdom = async () => {
     if (!formData.productName) {
@@ -499,6 +527,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             }
         }
 
+        setDraftProduct(null);
         onSuccess();
         onClose();
     } catch (error: any) {
@@ -512,8 +541,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   // Reusable input styles — warm tones only, zero grey
-  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
-  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent transition-colors cursor-pointer font-sans";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec/50";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
   const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors font-sans";
 
@@ -523,7 +552,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
         className="fixed inset-0 z-priority flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
-        onClick={onClose}
+        onClick={handleClose}
     >
       <div
         className="bg-tea-surface border-x border-tea-border w-full flex flex-col overflow-hidden relative"
@@ -541,10 +570,41 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               <p className="text-[10px] text-tea-text-sec font-mono uppercase tracking-[0.2em]">Database Access</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
+          <button onClick={handleClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
             <X size={20} />
           </button>
         </div>
+
+        {/* #42 — Draft restore banner */}
+        {showDraftBanner && !isEditMode && (
+          <div className="px-6 py-2.5 bg-tea-gold/10 border-b border-tea-gold/20 flex items-center justify-between gap-4 shrink-0">
+            <span className="text-xs text-tea-text-sec">You have an unsaved draft. Restore?</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (draftProduct) {
+                    setFormData(prev => ({ ...prev, ...(draftProduct as unknown as typeof prev) }));
+                  }
+                  setShowDraftBanner(false);
+                }}
+                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
+              >
+                Restore
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraftProduct(null);
+                  setShowDraftBanner(false);
+                }}
+                className="text-xs text-tea-text-dim hover:text-tea-text-sec uppercase tracking-wider transition-colors"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content — Redesigned: compact data LEFT, content-rich RIGHT */}
         <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
@@ -603,7 +663,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             <div className="grid grid-cols-2 gap-4">
                <div>
                   <label className={labelStyle}>Year</label>
-                  <input name="year" type="number" inputMode="decimal" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
+                  <input name="year" type="number" inputMode="numeric" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
                </div>
                <div>
                   <label className={labelStyle}>Status</label>
@@ -626,16 +686,16 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             <div className="space-y-3">
                 <div>
                     <label className={labelStyle}><Tag size={9} /> Product Name / Cultivar *</label>
-                    <input name="productName" required value={formData.productName} onChange={handleChange} onBlur={handleProductNameBlur} className={inputStyle} placeholder="e.g. Alishan High Mountain" />
+                    <input name="productName" required value={formData.productName} onChange={handleChange} onBlur={handleProductNameBlur} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Alishan High Mountain" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={labelStyle}>Given Name</label>
-                        <input name="givenName" value={formData.givenName} onChange={handleChange} className={inputStyle} placeholder="e.g. Mist Walker" />
+                        <input name="givenName" value={formData.givenName} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Mist Walker" />
                     </div>
                     <div>
                         <label className={labelStyle}>Chinese Name</label>
-                        <input name="chineseName" value={formData.chineseName} onChange={handleChange} className={inputStyle} placeholder="e.g. 阿里山" />
+                        <input name="chineseName" value={formData.chineseName} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. 阿里山" />
                     </div>
                 </div>
             </div>
@@ -644,7 +704,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             <div className="grid grid-cols-2 gap-4">
                  <div>
                     <label className={labelStyle}><Globe size={9} /> Origin Region</label>
-                    <input name="originRegion" value={formData.originRegion} onChange={handleChange} className={inputStyle} placeholder="e.g. Nantou, Taiwan" />
+                    <input name="originRegion" value={formData.originRegion} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Nantou, Taiwan" />
                  </div>
                  <div>
                     <label className={labelStyle}>Source</label>
@@ -684,7 +744,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                               <input
                                   name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
                                   className="w-24 bg-transparent text-right text-tea-text outline-none placeholder-tea-text-sec/40 tabular-nums" placeholder="0.00"
-                                  inputMode="decimal"
+                                  inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                               />
                           </div>
                       </div>
@@ -693,7 +753,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <input
                               name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
                               className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
-                              inputMode="decimal"
+                              inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                           />
                       </div>
                       <div className="flex justify-between items-center">
@@ -701,7 +761,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <input
                               name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
                               className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="10.00"
-                              inputMode="decimal"
+                              inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                           />
                       </div>
                  </div>
@@ -732,10 +792,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                        <span className="text-base text-tea-text-sec font-serif">$</span>
                        <input
                           name="fixedRetailPriceUSD" type="number" inputMode="decimal" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
-                          onFocus={() => {
+                          onFocus={(e) => {
                               if (!formData.fixedRetailPriceUSD && calc.suggestedRetailUSD > 0) {
                                   setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
                               }
+                              setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
                           }}
                           className={`flex-1 bg-transparent text-lg num outline-none text-right ${
                               formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
@@ -753,7 +814,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <input
                               name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
                               className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
-                              inputMode="decimal"
+                              inputMode="numeric"
                           />
                       </div>
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
@@ -789,7 +850,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     </div>
                 ) : (
                     <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:bg-tea-accent/5 transition-colors mt-1">
-                        <div className="w-10 h-10 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0 cursor-pointer">
                             <ImageThumbnail src={formData.imageUrl} type={formData.type} />
                         </div>
                         <div className="flex-1 overflow-hidden">
@@ -807,7 +868,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <label className={labelStyle}><FileText size={9} /> Private Admin Notes</label>
                 <textarea
                     name="description" value={formData.description} onChange={handleChange} rows={3}
-                    className={`${wisdomInputStyle} resize-vertical`}
+                    className={`${wisdomInputStyle} resize-vertical max-h-[200px] md:max-h-none overflow-y-auto`}
                     placeholder="Private notes (e.g. Bought from Mr. Chen's son, needs 6 months rest)..."
                 />
             </div>
@@ -947,7 +1008,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
         {/* STICKY FOOTER */}
         <div className="px-6 py-3.5 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
+            <button type="button" onClick={handleClose} className="px-6 py-2.5 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
                 Cancel
             </button>
             <button

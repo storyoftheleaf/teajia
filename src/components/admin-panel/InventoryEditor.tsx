@@ -271,7 +271,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <div className="flex gap-4">
                                 {currentItem.image ? (
                                     <div className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 flex-shrink-0 bg-black border border-tea-gold/15 rounded-sm flex items-center justify-center overflow-hidden">
-                                        <img src={currentItem.image} className="w-full h-full object-cover" />
+                                        <img src={currentItem.image} alt={currentItem.name || 'Product preview'} className="w-full h-full object-cover" />
                                     </div>
                                 ) : (
                                     <div className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 flex-shrink-0 bg-black border border-tea-gold/15 rounded-sm flex items-center justify-center">

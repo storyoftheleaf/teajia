@@ -1,5 +1,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 import { InventoryItem } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { TeaInventory } from './TeaInventory';
@@ -15,6 +17,8 @@ import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useRates } from '../admin/hooks/useAdminData';
 import { ToastProvider } from '../admin/components/Toast';
+import { useAppStore } from '../lib/store';
+import { fmtPrice } from '../utils/formatNumber';
 import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
 
@@ -56,6 +60,15 @@ export const Shop: React.FC<ShopProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
+
+  const publicCart = useAppStore(state => state.publicCart);
+  const recentlyViewed = useAppStore(state => state.recentlyViewed);
+
+  const formatTotalPrice = () => {
+    const total = publicCart.reduce((sum, item) => sum + item.pricePerGram * item.quantityGrams, 0);
+    return fmtPrice(total);
+  };
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -66,6 +79,12 @@ export const Shop: React.FC<ShopProps> = ({
   const handleAdminEdit = (itemId: string) => {
     const product = productMap.get(itemId);
     if (product) setEditingProduct(product);
+  };
+
+  const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
+    onAddToCart(item, qty, total);
+    setAddedProductId(item.id);
+    setTimeout(() => setAddedProductId(null), 1500);
   };
 
   const allInventory = [...teaInventory, ...teawareInventory];
@@ -85,6 +104,8 @@ export const Shop: React.FC<ShopProps> = ({
       }
     });
     setIsAddingToCart(prev => ({ ...prev, [set.id]: false }));
+    setAddedProductId(set.id);
+    setTimeout(() => setAddedProductId(null), 1500);
   };
 
   const renderSetCard = (set: StarterSet) => (
@@ -220,7 +241,72 @@ export const Shop: React.FC<ShopProps> = ({
         )}
 
         {!isError && activeTab === 'sets' && renderSets()}
+
+        {/* #34 — Recently Viewed */}
+        {!isError && recentlyViewed.length > 0 && (() => {
+          const recentItems = recentlyViewed
+            .map(id => allInventory.find(item => item.id === id))
+            .filter((item): item is InventoryItem => item !== undefined)
+            .slice(0, 10);
+          if (recentItems.length === 0) return null;
+          return (
+            <div className="px-3 md:px-4 lg:px-6 pb-8 pt-6">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+                {recentItems.map(item => (
+                  <div
+                    key={item.id}
+                    className="flex-shrink-0 snap-start w-28 cursor-pointer group"
+                    onClick={() => onAddToCart(item, item.category === 'tea' ? 50 : 1, parseFloat(item.category === 'tea' ? (item.price_per_gram || '0') : (item.price_50g || '0')) * (item.category === 'tea' ? 50 : 1))}
+                  >
+                    <div className="w-28 h-28 bg-tea-surface rounded-lg overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Icons.Leaf className="w-8 h-8 text-tea-text-dim" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-tea-text font-serif leading-snug line-clamp-2">{item.name}</p>
+                    <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono">
+                      {item.category === 'tea'
+                        ? `$${parseFloat(item.price_per_gram || '0').toFixed(2)}/g`
+                        : `$${parseFloat(item.price_50g || '0').toFixed(2)}`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
+
+      {/* #29 — Sticky cart CTA bar */}
+      <AnimatePresence>
+        {publicCart.length > 0 && (
+          <motion.div
+            className="fixed bottom-[56px] lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-80 z-30"
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          >
+            <button
+              onClick={() => onCartClick?.()}
+              className="w-full bg-tea-gold text-white flex items-center justify-between px-5 py-3.5 rounded-xl shadow-lg font-sans text-sm font-medium"
+            >
+              <span className="flex items-center gap-2">
+                <span className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                  {publicCart.length}
+                </span>
+                View Cart
+              </span>
+              <span className="font-mono tabular-nums">{formatTotalPrice()}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Admin: Floating Action Button for quick product creation */}
       {isAdmin && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, FileQuestion } from 'lucide-react';
+import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, FileQuestion, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 
@@ -65,6 +65,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   // Progress State
   const [uploadProgress, setUploadProgress] = useState(0);
   const [totalRecords, setTotalRecords] = useState(0);
+
+  // Mobile expanded card state (only one open at a time)
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -424,7 +427,128 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                  </div>
               </div>
 
-              <div className="flex-1 overflow-auto border border-tea-border rounded-xl bg-tea-surface">
+              {/* Mobile card list */}
+              <div className="block md:hidden flex-1 overflow-auto pb-24">
+                <div className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] px-1 pb-2">
+                  Reviewing {stagingData.length} item{stagingData.length !== 1 ? 's' : ''}
+                </div>
+                {stagingData.map((row, idx) => {
+                  const isExpanded = expandedRowId === row.id;
+                  const hasErrors = row.errors.length > 0;
+                  return (
+                    <div key={row.id} className={`border border-tea-border rounded-xl mb-2 overflow-hidden ${hasErrors ? 'border-tea-accent/40' : ''}`}>
+                      {/* Collapsed header — tap to expand */}
+                      <button
+                        className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} active:bg-tea-surface/80`}
+                        onClick={() => setExpandedRowId(isExpanded ? null : row.id)}
+                      >
+                        {/* Status indicator */}
+                        <span className="flex-shrink-0">
+                          {hasErrors ? (
+                            <AlertTriangle size={14} className="text-tea-accent" aria-label={row.errors.join(', ')} />
+                          ) : row.status === 'Draft' ? (
+                            <span className="text-[9px] font-mono text-tea-text-sec bg-tea-text-sec/10 px-1.5 py-0.5 rounded-sm">DRAFT</span>
+                          ) : (
+                            <span className="text-[9px] font-mono text-tea-text bg-tea-text/10 px-1.5 py-0.5 rounded-sm">ACTIVE</span>
+                          )}
+                        </span>
+
+                        {/* Name + type */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-tea-text truncate">
+                            {row.givenName || row.productName || <span className="text-tea-text-sec/50 italic">Unnamed</span>}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                            <span className={isMissingOrUnknown(row.type) ? 'text-tea-accent/80 italic' : ''}>{row.type || 'No type'}</span>
+                            {row.costAmount && !isMissingOrUnknown(row.costAmount) && (
+                              <>
+                                <span className="opacity-40">·</span>
+                                <span className="font-mono">{row.costAmount} {row.currency}</span>
+                              </>
+                            )}
+                            {row.stockAmount && !isMissingOrUnknown(row.stockAmount) && (
+                              <>
+                                <span className="opacity-40">·</span>
+                                <span className="font-mono">{row.stockAmount}g stock</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-sec/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Expanded detail */}
+                      {isExpanded && (
+                        <div className="bg-tea-surface/40 border-t border-tea-border px-4 py-3">
+                          {hasErrors && (
+                            <div className="mb-3 px-3 py-2 bg-tea-accent/10 rounded-lg text-xs text-tea-accent">
+                              {row.errors.join(' · ')}
+                            </div>
+                          )}
+                          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Product Name</dt>
+                              <dd className="text-tea-text font-serif mt-0.5">{row.productName || '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Type</dt>
+                              <dd className={`mt-0.5 ${isMissingOrUnknown(row.type) ? 'text-tea-accent/80 italic' : 'text-tea-text'}`}>{row.type || '—'}</dd>
+                            </div>
+                            {row.year && (
+                              <div>
+                                <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Year</dt>
+                                <dd className="text-tea-text-sec font-serif italic mt-0.5">{row.year}</dd>
+                              </div>
+                            )}
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Grams Purchased</dt>
+                              <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.grams) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.grams || '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Stock</dt>
+                              <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.stockAmount) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.stockAmount || '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Cost</dt>
+                              <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.costAmount) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.costAmount || '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Currency</dt>
+                              <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.currency) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.currency || '—'}</dd>
+                            </div>
+                            {row.vendor && (
+                              <div>
+                                <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Vendor</dt>
+                                <dd className="text-tea-text-sec mt-0.5">{row.vendor}</dd>
+                              </div>
+                            )}
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Restock</dt>
+                              <dd className="mt-0.5">{row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">—</span>}</dd>
+                            </div>
+                            <div>
+                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Personal</dt>
+                              <dd className="mt-0.5">{row.isPersonal ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">—</span>}</dd>
+                            </div>
+                          </dl>
+                          <div className="mt-3 pt-3 border-t border-tea-border flex justify-end">
+                            <button
+                              onClick={() => deleteRow(row.id)}
+                              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-accent transition-colors"
+                            >
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block flex-1 overflow-auto border border-tea-border rounded-xl bg-tea-surface">
                 <table className="w-full text-left text-xs whitespace-nowrap">
                   <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-[10px] sticky top-0 z-10">
                     <tr>
@@ -461,21 +585,21 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                         <td className="p-2 text-tea-text">{row.givenName}</td>
                         <td className="p-2 text-tea-text font-serif">{row.productName}</td>
                         <td className="p-2 text-tea-text-sec font-serif italic">{row.year}</td>
-                        
+
                         <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.grams) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.grams}</td>
                         <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.stockAmount) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.stockAmount}</td>
                         <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.costAmount) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.costAmount}</td>
                         <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.currency) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.currency}</td>
-                        
+
                         <td className="p-2 text-tea-text-sec">{row.vendor}</td>
-                        
+
                         <td className="p-2 text-center">
                             {row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
                         </td>
                         <td className="p-2 text-center">
                              {row.isPersonal ? <span className="text-tea-accent font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
                         </td>
-                        
+
                         <td className="p-2 text-center"><button onClick={() => deleteRow(row.id)} className="text-tea-text-sec hover:text-tea-accent transition-colors"><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
