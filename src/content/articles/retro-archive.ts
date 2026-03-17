@@ -12,7 +12,7 @@ export const retroArchive: ReadableStory = {
   durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'A vintage-styled feature using sepia tones, typewriter text, and archival aesthetics to explore tea history.',
-  tags: ['History', 'Archive', 'Culture'],
+  tags: ['History', 'Culture'],
   content: [
     ":::COVER_TYPOGRAPHIC:::THE TAIWAN\nTEA RENAISSANCE\n1978 – 1988",
 

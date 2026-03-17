@@ -12,7 +12,7 @@ export const interviewWithImages: ReadableStory = {
   durationOrTime: '25 Pages',
   origin: 'In-house',
   description: 'A portrait-driven interview blending environmental photography with intimate Q&A about life in the tea fields.',
-  tags: ['Interview', 'Farming', 'People'],
+  tags: ['Culture', 'Sourcing'],
   category: 'interview',
   content: [
     ":::IMG_FULL_BLEED_TITLE:::Master Zhou Yu — Life in the Wuyi Mountains|https://picsum.photos/800/1200?random=iwi002",

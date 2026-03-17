@@ -12,7 +12,7 @@ export const poetryCollection: ReadableStory = {
   durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'A collection of tea poetry showcasing every poetic layout variant — centered, left-aligned, scattered, visual, and haiku.',
-  tags: ['Poetry', 'Literature', 'Culture'],
+  tags: ['Calligraphy', 'Culture'],
   content: [
     ":::COVER_MINIMAL:::Whispered\nVerse",
 

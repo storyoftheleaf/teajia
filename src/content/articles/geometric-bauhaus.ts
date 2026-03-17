@@ -12,7 +12,7 @@ export const geometricBauhaus: ReadableStory = {
   durationOrTime: '18 Pages',
   origin: 'In-house',
   description: 'A modernist grid-based design inspired by Bauhaus principles, featuring strict geometry and bold typography.',
-  tags: ['Design', 'Modernist', 'Visual'],
+  tags: ['Space Design', 'Culture'],
   content: [
     ":::COVER_TYPOGRAPHIC:::GEOMETRY\nOF TEA\nForm Follows Function",
 

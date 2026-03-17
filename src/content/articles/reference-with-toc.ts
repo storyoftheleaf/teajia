@@ -12,7 +12,7 @@ export const referenceWithToc: ReadableStory = {
   durationOrTime: '25 Pages',
   origin: 'In-house',
   description: 'A curated reference guide with table of contents, index, and organized sections — the encyclopedia format.',
-  tags: ['Reference', 'Guide', 'Archive'],
+  tags: ['Teaching', 'History'],
   content: [
     ":::COVER_TYPOGRAPHIC:::The Living Archive|A Comprehensive Reference to Tea",
 

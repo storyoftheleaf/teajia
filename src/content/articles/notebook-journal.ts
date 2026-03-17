@@ -12,7 +12,7 @@ export const notebookJournal: ReadableStory = {
   durationOrTime: '22 Pages',
   origin: 'In-house',
   description: 'A handwritten notebook aesthetic with ruled paper, marginalia, and sketched observations from the tea fields.',
-  tags: ['Journal', 'Fieldwork', 'Notes'],
+  tags: ['Culture', 'Sourcing', 'Tasting'],
   content: [
     ":::COVER_PHOTO_INSET:::FIELD\nNOTES|Yunnan Sourcing Journal|https://picsum.photos/800/1200?random=notebook2",
 

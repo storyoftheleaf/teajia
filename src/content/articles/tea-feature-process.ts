@@ -12,7 +12,7 @@ export const teaFeatureProcess: ReadableStory = {
   durationOrTime: '24 Pages',
   origin: 'In-house',
   description: 'A tea feature focusing on the unique processing story, including step-by-step manufacturing and the role of natural phenomena.',
-  tags: ['Oolong', 'Taiwan', 'Process', 'Tasting'],
+  tags: ['Oolong', 'Taiwan', 'Brewing', 'Tasting'],
   featured: true,
   category: 'tea-feature',
   endOfArticleCTA: { type: 'shop', text: 'This tea is in our shop.', linkTarget: 'shop' },

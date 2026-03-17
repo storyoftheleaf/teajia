@@ -12,8 +12,8 @@ export const curatedLinks: ReadableStory = {
   durationOrTime: '18 Pages',
   origin: 'Curated',
   description: 'An external link roundup template with curator notes, categories, and editorial commentary.',
-  tags: ['Curation', 'Links', 'Culture'],
-  category: 'curated-reading',
+  tags: ['Culture'],
+  category: 'curated',
   content: [
     ":::COVER_MASTHEAD:::This Week in Tea|Volume 47 — Spring Equinox Edition|https://picsum.photos/800/1200?random=cl002",
 

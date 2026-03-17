@@ -12,7 +12,7 @@ export const dataInfographic: ReadableStory = {
   durationOrTime: '19 Pages',
   origin: 'In-house',
   description: 'A data-rich feature using charts, statistics, and infographic elements to analyze tea terroir scientifically.',
-  tags: ['Science', 'Data', 'Terroir'],
+  tags: ['Health', 'Tasting', 'Sourcing'],
   content: [
     ":::COVER_ABSTRACT:::TERROIR\nIN NUMBERS\nA Data-Driven Analysis",
 

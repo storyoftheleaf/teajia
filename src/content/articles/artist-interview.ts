@@ -12,7 +12,7 @@ export const artistInterview: ReadableStory = {
   durationOrTime: '24 Pages',
   origin: 'In-house',
   description: 'An artist profile combining studio photography, creative process documentation, and philosophical dialogue.',
-  tags: ['Interview', 'Pottery', 'Art'],
+  tags: ['Culture', 'Pottery'],
   category: 'interview',
   content: [
     ":::COVER_SPLIT:::Master Lin|The Ceramicist|https://picsum.photos/800/1200?random=ai002",

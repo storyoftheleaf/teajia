@@ -12,7 +12,7 @@ export const travelJournalMaps: ReadableStory = {
   durationOrTime: '24 Pages',
   origin: 'In-house',
   description: 'A travelogue featuring cartographic illustrations, field observations, and cultural anthropology along historic tea trade routes.',
-  tags: ['Travel', 'History', 'Routes'],
+  tags: ['Culture', 'History'],
   content: [
     ":::COVER_SPLIT:::Travel Journal with Maps|Ancient Tea Routes|https://picsum.photos/800/1200?random=tj101",
     ":::MAP_CARTOGRAPHY:::The Tea Horse Road|Pu'er (Start)|Dali|Lijiang|Shangri-La|Markam|Chamdo|Lhasa (End)|Chengdu (Branch)|Kangding (Branch)",

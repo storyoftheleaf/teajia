@@ -12,7 +12,7 @@ export const architecturePhotoFeature: ReadableStory = {
   durationOrTime: '21 Pages',
   origin: 'In-house',
   description: 'A photo-heavy feature exploring the intersection of contemporary architecture and traditional tea space design.',
-  tags: ['Architecture', 'Design', 'Urban'],
+  tags: ['Architecture', 'Space Design'],
   content: [
     ":::COVER_PHOTO_INSET:::Architecture Photo Feature|Urban Tea House|https://picsum.photos/800/1200?random=ar101",
     ":::IMG_FULL_BLEED:::The concrete and bamboo facade of Wuwei Tea House, Shanghai|https://picsum.photos/800/1200?random=ar102",

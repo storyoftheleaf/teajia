@@ -12,7 +12,7 @@ export const scientificReference: ReadableStory = {
   durationOrTime: '23 Pages',
   origin: 'In-house',
   description: 'A systematic, botanical reference guide showcasing the scientific classification approach.',
-  tags: ['Botany', 'Science', 'Reference'],
+  tags: ['Health', 'Teaching'],
   content: [
     ":::COVER_TYPOGRAPHIC:::CAMELLIA|SINENSIS|ATLAS",
     ":::TEXT_DROP_CAP:::The tea plant, Camellia sinensis, is a member of the family Theaceae, order Ericales — a flowering evergreen shrub or small tree native to the borderlands where modern China, Myanmar, Laos, and Vietnam converge. First described scientifically by Carl Linnaeus in 1753 as Thea sinensis, it was later reclassified into the genus Camellia by Robert Sweet in 1818, and the current binomial Camellia sinensis was formally adopted by Otto Kuntze in 1887. Despite its apparent simplicity as a single species, C. sinensis displays extraordinary morphological and chemical variation across its range, a diversity that has been amplified by centuries of human selection and cultivation. This atlas presents a systematic survey of the major varieties, cultivars, and chemotypes of C. sinensis, organized by botanical classification and geographic distribution, drawing on field observations from twelve tea-producing regions across six countries.",

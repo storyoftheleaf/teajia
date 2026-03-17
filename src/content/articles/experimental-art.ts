@@ -12,7 +12,7 @@ export const experimentalArt: ReadableStory = {
   durationOrTime: '20 Pages',
   origin: 'Curated',
   description: 'An avant-garde visual essay pushing the boundaries of editorial design with unconventional layouts.',
-  tags: ['Art', 'Experimental', 'Visual'],
+  tags: ['Culture'],
   content: [
     ":::COVER_ABSTRACT:::FLUID|DYNAMICS|https://picsum.photos/800/1200?random=ex101",
     ":::POEM_SCATTERED:::Water has no memory\n   yet it remembers\n      every vessel\n         it has ever\n            filled",

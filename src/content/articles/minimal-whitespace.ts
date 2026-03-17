@@ -12,7 +12,7 @@ export const minimalWhitespace: ReadableStory = {
   durationOrTime: '18 Pages',
   origin: 'In-house',
   description: 'A study in restraint — maximum white space, minimal text, and careful typography create a meditative reading experience.',
-  tags: ['Philosophy', 'Zen', 'Design'],
+  tags: ['Philosophy', 'Space Design'],
   content: [
     ":::COVER_MINIMAL:::Minimal\nWhite Space",
 

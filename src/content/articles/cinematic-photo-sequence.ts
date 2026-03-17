@@ -12,7 +12,7 @@ export const cinematicPhotoSequence: ReadableStory = {
   durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'A visually driven narrative using full-bleed photography, letterbox framing, and minimal text to create a cinematic experience.',
-  tags: ['Photography', 'Cinematic', 'Ritual'],
+  tags: ['Culture', 'Ceremony'],
   content: [
     ":::COVER_MAIN:::THE SLOW\nPOUR|https://picsum.photos/800/1200?random=cine2",
 

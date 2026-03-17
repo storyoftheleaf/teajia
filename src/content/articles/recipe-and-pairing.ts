@@ -12,7 +12,7 @@ export const recipeAndPairing: ReadableStory = {
   durationOrTime: '22 Pages',
   origin: 'In-house',
   description: 'A culinary feature combining tea-infused recipes with pairing guides and tasting notes.',
-  tags: ['Culinary', 'Recipes', 'Pairing'],
+  tags: ['Tasting'],
   content: [
     ":::COVER_MASTHEAD:::Recipe & Pairing Template|Tea in the Kitchen|https://picsum.photos/800/1200?random=rc101",
     ":::TEXT_DROP_CAP:::For most of its four-thousand-year history, tea was food before it was beverage. The earliest records from Yunnan describe tea leaves pounded with garlic, salt, and chili into a paste eaten with rice — a practice that survives today in the lahpet thoke of Myanmar and the miang of northern Thailand. Tang dynasty preparation involved grinding compressed tea cakes into powder and boiling the result with salt, dried orange peel, and ginger — a method that would horrify modern purists but that understood something essential: tea is a culinary ingredient of extraordinary versatility. Its bitterness balances fat. Its tannins cut richness. Its aromatics — floral, fruity, smoky, marine — can complement or contrast with virtually any flavor profile. The recipes that follow are not novelties. They are explorations of tea's oldest identity: as something you eat, drink, cook with, and share at a table where the line between food and tea dissolves entirely.",

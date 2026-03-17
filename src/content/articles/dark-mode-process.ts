@@ -12,7 +12,7 @@ export const darkModeProcess: ReadableStory = {
   durationOrTime: '22 Pages',
   origin: 'In-house',
   description: 'A richly atmospheric article using dark mode to explore the nocturnal world of traditional kiln firing.',
-  tags: ['Pottery', 'Teaware', 'Process'],
+  tags: ['Pottery', 'Teaware', 'Brewing'],
   content: [
     ":::COVER_MAIN:::$$dark$$Dark Mode Process Feature|The Midnight Kiln|https://picsum.photos/800/1200?random=dk101",
     ":::TEXT_DROP_CAP:::$$dark$$The fire begins at dusk. Not because tradition demands it — though tradition does — but because the kiln must reach peak temperature in the dead of night, when the air is coolest and the draft pulls strongest through the chamber. Master Lin stands at the mouth of the anagama, a forty-foot tunnel of brick and earth that has been loaded over the past three days with two hundred pieces of raw stoneware. The firebox is stacked with split pine, aged for two years in an open shed. He strikes a match, touches it to a twist of newspaper stuffed between the bottom logs, and steps back. The flame catches. A thin column of white smoke rises from the chimney at the far end. The seventy-two-hour firing cycle has begun. For the next three days and three nights, someone must tend this fire without interruption — feeding it, reading it, coaxing it through the slow transformation that will turn raw clay into ceramic, and with luck, into art.",

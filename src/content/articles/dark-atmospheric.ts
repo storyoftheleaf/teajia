@@ -12,7 +12,7 @@ export const darkAtmospheric: ReadableStory = {
   durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'A moody, noir-influenced meditation on evening tea sessions, using dark mode throughout for immersive atmosphere.',
-  tags: ['Atmosphere', 'Meditation', 'Night'],
+  tags: ['Philosophy', 'Seasons'],
   content: [
     ":::COVER_MAIN:::$$dark$$NIGHT\nSESSION|https://picsum.photos/800/1200?random=dark2",
 
