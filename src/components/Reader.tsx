@@ -447,7 +447,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     };
     return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <span className="text-xs font-mono text-white/50 tabular-nums w-4 text-right">{currentPageIndex + 1}</span>
+        <span className="text-xs font-mono text-tea-text-sec/50 tabular-nums w-4 text-right">{currentPageIndex + 1}</span>
         <div
           onClick={handleClick}
           className="flex-1 h-8 flex items-center cursor-pointer group"
