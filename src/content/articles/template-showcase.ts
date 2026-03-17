@@ -9,7 +9,7 @@ export const templateShowcase: ReadableStory = {
   title: 'Layout Template Showcase',
   subtitle: 'Every layout variant, demonstrated',
   thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',
-  durationOrTime: '75 Pages',
+  durationOrTime: '94 Pages',
   origin: 'In-house',
   description: 'A visual reference guide showcasing every available layout template in the Teajia magazine reader.',
   tags: ['Teaching', 'Culture', 'Brewing'],
