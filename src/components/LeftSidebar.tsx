@@ -7,15 +7,8 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../lib/store';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, Users, History, Calendar, Store, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Settings, Calendar, LayoutDashboard, Briefcase, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
-function getCurrentSeason(): { name: string; icon: string } {
-  const month = new Date().getMonth();
-  if (month >= 2 && month <= 4) return { name: 'Spring', icon: '✧' };
-  if (month >= 5 && month <= 7) return { name: 'Summer', icon: '☀' };
-  if (month >= 8 && month <= 10) return { name: 'Autumn', icon: '☘' };
-  return { name: 'Winter', icon: '❄' };
-}
 
 interface NavItem {
   id: string;
@@ -131,7 +124,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
-  const season = getCurrentSeason();
   const location = useLocation();
   const currentPath = location.pathname;
   const { sidebarCollapsed: collapsed, toggleSidebarCollapsed } = useAppStore();
@@ -155,20 +147,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     { id: 'SHOP', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} />, section: 'SHOP' as Section },
   ];
 
-  const catalogItems: NavItem[] = [
-    { id: 'catalog', label: 'Tea Glossary', icon: <Leaf size={20} strokeWidth={2} />, path: '/admin/catalog' },
-    { id: 'teaware', label: 'Equipment', icon: <Coffee size={20} strokeWidth={2} />, path: '/admin/teaware' },
-    { id: 'invoices', label: 'Registry', icon: <Receipt size={20} strokeWidth={2} />, badge: cartItemCount, action: onCartClick },
-  ];
-
   const adminItems: NavItem[] = [
-    { id: 'inventory', label: 'Master Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory' },
-    { id: 'sources', label: 'Sources', icon: <Store size={20} strokeWidth={2} />, path: '/admin/sources' },
-    { id: 'customers', label: 'Customers', icon: <Users size={20} strokeWidth={2} />, path: '/admin/customers' },
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} strokeWidth={2} />, path: '/admin/dashboard' },
+    { id: 'inventory', label: 'Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory' },
+    { id: 'business', label: 'Business', icon: <Briefcase size={20} strokeWidth={2} />, path: '/admin/orders' },
     { id: 'events', label: 'Events', icon: <Calendar size={20} strokeWidth={2} />, path: '/admin/events' },
-    { id: 'orders', label: 'Orders', icon: <History size={20} strokeWidth={2} />, path: '/admin/orders' },
-    { id: 'records', label: 'Records & Logs', icon: <FolderOpen size={20} strokeWidth={2} />, path: '/admin/records' },
-    { id: 'settings', label: 'Settings', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/settings' },
   ];
 
   return (
@@ -236,11 +219,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         ))}
       </nav>
 
-      {/* Catalog Navigation — visible only for admin users */}
+      {/* Admin Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
         <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>}
-          {catalogItems.map((item, index) => (
+          {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>}
+          {adminItems.map((item, index) => (
             <NavButton
               key={item.id}
               item={item}
@@ -253,33 +236,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </nav>
       )}
 
-      {/* Admin Navigation — visible only for admin users */}
-      {auth.isAuthenticated && auth.isAdmin && (
-        <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>}
-          {adminItems.map((item, index) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPath === item.path}
-              onClick={() => {}}
-              animationDelay={(browseItems.length + catalogItems.length + index) * 50}
-              collapsed={collapsed}
-            />
-          ))}
-        </nav>
-      )}
-
       {/* Flexible spacing */}
       <div className="flex-1" />
-
-      {/* Seasonal indicator */}
-      {!collapsed && (
-        <div className="flex items-center gap-2 px-6 py-3 text-tea-gold/40">
-          <span className="text-sm">{season.icon}</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
-        </div>
-      )}
 
       {/* Utility Area */}
       <div className={`relative py-4 ${collapsed ? 'px-1.5' : 'px-3'}`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
