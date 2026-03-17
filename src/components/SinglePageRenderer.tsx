@@ -372,11 +372,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     const { variant, content = '', images = [], textColor = 'light' } = page;
     const isDarkText = textColor === 'dark'; 
     const theme = {
-      bg: isDarkText ? 'bg-tea-bg' : 'bg-tea-bg',
-      text: isDarkText ? 'text-tea-text' : 'text-tea-text',
-      subtext: isDarkText ? 'text-tea-text/60' : 'text-tea-text/60',
-      border: isDarkText ? 'border-tea-text/10' : 'border-tea-gold/10',
-      softBg: isDarkText ? 'bg-tea-text/5' : 'bg-tea-gold/5',
+      bg: isDarkText ? 'bg-tea-surface' : 'bg-tea-bg',
+      text: isDarkText ? 'text-tea-bg' : 'text-tea-text',
+      subtext: isDarkText ? 'text-tea-bg/60' : 'text-tea-text/60',
+      border: isDarkText ? 'border-tea-bg/10' : 'border-tea-gold/10',
+      softBg: isDarkText ? 'bg-tea-bg/5' : 'bg-tea-gold/5',
       seal: 'text-tea-gold',
     };
     const updateContent = (newContent: string) => { if (onPageUpdate && !readOnly) onPageUpdate({ content: newContent }); };
@@ -435,7 +435,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="absolute top-24 right-16 w-24 h-24 rounded-full border border-current/10"></div>
                         <div className="flex-1 flex flex-col justify-center">
                             {titleWords.map((word, i) => (
-                                <span key={i} className={`block text-[110px] font-serif leading-[0.85] uppercase break-words ${i % 2 === 0 ? 'font-bold' : 'font-light'}`}>{word}</span>
+                                <span key={i} className={`block ${TYPE.display} font-serif leading-[0.85] uppercase break-words ${i % 2 === 0 ? 'font-bold' : 'font-light'}`}>{word}</span>
                             ))}
                         </div>
                         <div className="flex justify-between items-end border-t border-current/15 pt-6">
@@ -457,8 +457,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.COVER_PHOTO_INSET:
                 return (
-                    <div className={`${paperBase} bg-[#faf6f0] flex flex-col items-center justify-center ${PAD.spacious} text-center`}>
-                        <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.headline} font-serif tracking-tight mb-2 opacity-90`} placeholder="Title" tag="h1" readOnly={readOnly} />
+                    <div className={`${paperBase} bg-tea-surface flex flex-col items-center justify-center ${PAD.spacious} text-center`}>
+                        <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.headline} font-serif tracking-tight mb-2`} placeholder="Title" tag="h1" readOnly={readOnly} />
                         <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] opacity-40 mb-10`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         <div className="w-[60%] aspect-[3/4] relative overflow-hidden">
                             <SafeImage index={0} className="w-full h-full" />
@@ -485,7 +485,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.COVER_MASTHEAD:
                 return (
-                    <div className={`${paperBase} bg-[#faf6f0] flex flex-col ${PAD.text}`}>
+                    <div className={`${paperBase} bg-tea-surface flex flex-col ${PAD.text}`}>
                         {/* Masthead */}
                         <div className="border-b-2 border-tea-text/80 pb-2 mb-1">
                             <div className="text-center">
@@ -807,8 +807,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              </svg>
                              <div className="relative z-10 text-center bg-tea-surface/60 backdrop-blur-sm p-16 border border-tea-border shadow-sm rounded-sm">
                                  <Icons.Grid className="w-16 h-16 mx-auto mb-6 opacity-50" />
-                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-5xl font-serif tracking-[0.15em] uppercase font-bold" placeholder="Location Name" tag="h2" readOnly={readOnly} />
-                                 <p className="text-2xl font-mono mt-6 opacity-60">32.4° N, 118.2° E</p>
+                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-serif tracking-[0.15em] uppercase font-bold`} placeholder="Location Name" tag="h2" readOnly={readOnly} />
+                                 <p className={`${TYPE.caption} font-mono mt-6 opacity-60`}>32.4° N, 118.2° E</p>
                              </div>
                          </div>
                     </div>
@@ -875,7 +875,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col pt-20`}>
                         <div className="mb-12 pb-6 border-b border-current/10">
-                            <h2 className="text-2xl uppercase tracking-[0.25em] opacity-60">Curated Reads</h2>
+                            <h2 className={`${TYPE.caption} uppercase tracking-[0.25em] opacity-60`}>Curated Reads</h2>
                         </div>
 
                         <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
@@ -889,18 +889,18 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div className="flex items-start justify-between gap-4 mb-3">
-                                        <h3 className="text-2xl font-serif leading-snug group-hover:text-tea-gold transition-colors">
+                                        <h3 className={`${TYPE.caption} font-serif leading-snug group-hover:text-tea-gold transition-colors`}>
                                             {link.title}
                                         </h3>
                                         <Icons.ExternalLink className="w-5 h-5 opacity-40 group-hover:opacity-80 flex-shrink-0 mt-1" />
                                     </div>
                                     {link.source && (
-                                        <div className={`text-sm uppercase tracking-[0.15em] ${theme.subtext} mb-3`}>
+                                        <div className={`${TYPE.micro} uppercase tracking-[0.15em] ${theme.subtext} mb-3`}>
                                             {link.source}
                                         </div>
                                     )}
                                     {link.note && (
-                                        <p className={`text-xl leading-relaxed ${theme.subtext} italic font-serif`}>
+                                        <p className={`${TYPE.caption} leading-relaxed ${theme.subtext} italic font-serif`}>
                                             "{link.note}"
                                         </p>
                                     )}
@@ -908,14 +908,14 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             )) : (
                                 <div className="text-center py-12 opacity-40">
                                     <Icons.Link className="w-12 h-12 mx-auto mb-4" />
-                                    <p className="text-xl">Add curated links in format:</p>
-                                    <p className="text-sm font-mono mt-2">title|url|source|note,...</p>
+                                    <p className={TYPE.caption}>Add curated links in format:</p>
+                                    <p className={`${TYPE.micro} font-mono mt-2`}>title|url|source|note,...</p>
                                 </div>
                             )}
                         </div>
 
                         <div className="mt-auto pt-8 text-center">
-                            <p className={`text-sm uppercase tracking-[0.15em] ${theme.subtext}`}>
+                            <p className={`${TYPE.micro} uppercase tracking-[0.15em] ${theme.subtext}`}>
                                 Curated with care
                             </p>
                         </div>
@@ -1041,7 +1041,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.TEXT_TYPEWRITER:
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex flex-col pt-16 bg-[#faf6f0]`} style={OPENTYPE}>
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col pt-16 bg-tea-surface`} style={OPENTYPE}>
                         <div className="flex justify-between mb-8">
                             <span className={`${FOLIO_CLASS}`}>{storyTitle || 'Field Notes'}</span>
                             <span className={`${TYPE.micro} font-mono text-red-800/40`}>Rev. 03</span>
@@ -1543,7 +1543,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             // --- SPECIAL: Missing implementations ---
             case LayoutVariant.NOTE_PAPER:
                 return (
-                    <div className={`${paperBase} relative bg-[#fefcf5]`} style={{ transform: 'rotate(0.3deg)' }}>
+                    <div className={`${paperBase} relative bg-tea-surface`} style={{ transform: 'rotate(0.3deg)' }}>
                         {/* Ruled lines */}
                         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 45px, rgba(0,0,0,0.04) 45px, rgba(0,0,0,0.04) 46px)', backgroundPosition: '0 32px' }}></div>
                         {/* Red margin line */}
@@ -1614,10 +1614,10 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col`}>
                         <div className="mb-12 pb-6 border-b border-current/10 opacity-30">
-                            <h3 className="text-xl uppercase tracking-[0.15em] select-none">{variant}</h3>
+                            <h3 className={`${TYPE.caption} uppercase tracking-[0.15em] select-none`}>{variant}</h3>
                         </div>
                         <div className="flex-1">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className="text-4xl leading-loose text-justify opacity-90" placeholder="Content..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} leading-loose opacity-90`} placeholder="Content..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );

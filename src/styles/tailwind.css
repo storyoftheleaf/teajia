@@ -135,8 +135,8 @@ p {
 }
 
 .fabric-texture {
-  background-image: repeating-linear-gradient(90deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px),
-                    repeating-linear-gradient(0deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px);
+  background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--tea-gold) 3%, transparent) 0px, color-mix(in srgb, var(--tea-gold) 3%, transparent) 1px, transparent 1px, transparent 4px),
+                    repeating-linear-gradient(0deg, color-mix(in srgb, var(--tea-gold) 3%, transparent) 0px, color-mix(in srgb, var(--tea-gold) 3%, transparent) 1px, transparent 1px, transparent 4px);
 }
 
 /* ============================================
@@ -228,9 +228,13 @@ p {
   .wood-texture,
   nav,
   .no-scrollbar,
-  button { display: none !important; }
+  button,
+  [role="slider"],
+  .hide-scrollbar-always { display: none !important; }
   body { background: white !important; color: black !important; }
   main { padding: 0 !important; margin: 0 !important; }
+  /* Hide Reader navigation overlays when printing */
+  .fixed { position: static !important; }
 }
 
 /* ============================================
@@ -242,6 +246,7 @@ p {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

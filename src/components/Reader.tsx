@@ -143,7 +143,10 @@ const ScaledPage: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     transform: `scale(${scale})`,
                     transformOrigin: 'center center',
                     filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))',
-                    contain: 'layout style paint'
+                    contain: 'layout style paint',
+                    willChange: 'transform',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden'
                 }}
                 className="shrink-0 bg-tea-bg"
             >
@@ -186,10 +189,12 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     const rawContent = story.content || [];
     
     const textDefaults = [
-        LayoutVariant.TEXT_SINGLE_COL, 
-        LayoutVariant.TEXT_DROP_CAP, 
+        LayoutVariant.TEXT_SINGLE_COL,
+        LayoutVariant.TEXT_DROP_CAP,
         LayoutVariant.TEXT_JUSTIFIED_NARROW,
-        LayoutVariant.TEXT_DOUBLE_COL
+        LayoutVariant.TEXT_CENTER_NARROW,
+        LayoutVariant.TEXT_DOUBLE_COL,
+        LayoutVariant.TEXT_SIDEBAR_IMAGE
     ];
     let textCycle = 0;
 
@@ -277,11 +282,11 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     });
 
     if (generated.length === 0) {
-        generated.push({ 
-            variant: LayoutVariant.COVER_MAIN, 
-            index: 0, 
-            content: story.subtitle, 
-            images: [story.thumbnailUrl || ''] 
+        generated.push({
+            variant: LayoutVariant.COVER_MAIN,
+            index: 0,
+            content: story.subtitle,
+            images: story.thumbnailUrl ? [story.thumbnailUrl] : []
         });
     }
 
@@ -392,22 +397,30 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
   useEffect(() => {
     if (!enableKeyboard) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') next();
-      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault(); // Prevent Space from scrolling the page
+        next();
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prev();
+      }
       if (e.key === 'Escape') onBack();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPageIndex, pages.length]);
+  }, [currentPageIndex, pages.length, enableKeyboard, onBack]);
 
   // --- IMAGE PRELOADING ---
   // Preload images for next 2-3 pages as user navigates
   useEffect(() => {
-    // Collect URLs from next 3 pages
+    // Collect URLs from next 3 pages, filtering out empty/undefined/invalid URLs
     const urlsToPreload: string[] = [];
     for (let i = 1; i <= 3 && currentPageIndex + i < pages.length; i++) {
       const pageImages = pages[currentPageIndex + i]?.images || [];
-      urlsToPreload.push(...pageImages.filter(Boolean));
+      urlsToPreload.push(
+        ...pageImages.filter((url): url is string => typeof url === 'string' && url.length > 0 && url !== 'undefined')
+      );
     }
 
     if (urlsToPreload.length > 0) {
@@ -558,8 +571,9 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         >
             <div className="inline-flex h-full" style={{ gap: '0' }}>
                 {pages.map((page, index) => {
-                    // Lazy rendering: only render pages within range of current page
-                    const isInRange = Math.abs(index - currentPageIndex) <= 2;
+                    // Lazy rendering: only render pages within ±3 of current page
+                    // (wider window prevents visible loading when swiping fast)
+                    const isInRange = Math.abs(index - currentPageIndex) <= 3;
 
                     if (isInRange) {
                         return (

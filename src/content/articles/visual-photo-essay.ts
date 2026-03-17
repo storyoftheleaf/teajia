@@ -14,6 +14,8 @@ export const visualPhotoEssay: ReadableStory = {
   description: 'A photo-driven narrative following the four seasons of tea cultivation with transitions between light and dark modes.',
   tags: ['Seasons', 'Culture'],
   content: [
+    ":::COVER_PHOTO_INSET:::Seasonal Rhythms|A Year in the Tea Garden|https://picsum.photos/800/1200?random=vpe001b",
+
     ":::IMG_FULL_BLEED:::A single tea bush emerges from morning fog, its youngest leaves translucent in the first light of March|https://picsum.photos/800/1200?random=vpe002",
 
     ":::CHAPTER_SPLIT:::Spring|Awakening",
