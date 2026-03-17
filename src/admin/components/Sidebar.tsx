@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Coffee, Receipt, Settings, FolderOpen, LogOut, User, History, UserCheck, Users, Sun, Moon, Calendar, Sparkles, Store, LayoutDashboard } from 'lucide-react';
+import { Settings, LogOut, User, Sun, Moon, Calendar, Briefcase, LayoutDashboard, ChevronDown, Leaf, Coffee, Sparkles, Store, Users, History, FolderOpen, UserCheck } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
 
-function getCurrentSeason(): { name: string; icon: string } {
-  const month = new Date().getMonth();
-  if (month >= 2 && month <= 4) return { name: 'Spring', icon: '✧' };
-  if (month >= 5 && month <= 7) return { name: 'Summer', icon: '☀' };
-  if (month >= 8 && month <= 10) return { name: 'Autumn', icon: '☘' };
-  return { name: 'Winter', icon: '❄' };
+
+interface SubNavItem {
+  id: string;
+  path: string;
+  label: string;
+  icon: React.ReactNode;
 }
 
 interface NavItem {
@@ -20,6 +20,7 @@ interface NavItem {
   icon: React.ReactNode;
   badge?: number;
   action?: () => void;
+  children?: SubNavItem[];
 }
 
 const NavButton: React.FC<{
@@ -104,7 +105,6 @@ export const Sidebar = ({
 }) => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const season = getCurrentSeason();
   const { theme, toggleTheme } = useTheme();
 
   const browseItems: NavItem[] = [
@@ -114,21 +114,27 @@ export const Sidebar = ({
     { id: 'shop', path: '/shop', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} /> },
   ];
 
-  const catalogItems: NavItem[] = [
-    { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'tasting', path: '/admin/tasting', label: 'Tasting Notes', icon: <Sparkles className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'invoices', path: '#', label: 'Registry', icon: <Receipt className="w-5 h-5" strokeWidth={2} />, badge: cartItemCount, action: onOpenCart },
-  ];
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (id: string) => setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // Auto-expand group if a child route is active
+  const isChildActive = (children?: SubNavItem[]) => children?.some(c => currentPath === c.path) ?? false;
 
   const adminItems: NavItem[] = [
     { id: 'dashboard', path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'inventory', path: '/admin/inventory', label: 'Master Inventory', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'sources', path: '/admin/sources', label: 'Sources', icon: <Store className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'inventory', path: '/admin/inventory', label: 'Inventory', icon: <Settings className="w-5 h-5" strokeWidth={2} />, children: [
+      { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'tasting', path: '/admin/tasting', label: 'Tasting Notes', icon: <Sparkles className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'sources', path: '/admin/sources', label: 'Sources', icon: <Store className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'personal', path: '/admin/personal', label: 'Collection', icon: <UserCheck className="w-4 h-4" strokeWidth={2} /> },
+    ]},
+    { id: 'business', path: '/admin/orders', label: 'Business', icon: <Briefcase className="w-5 h-5" strokeWidth={2} />, children: [
+      { id: 'customers', path: '/admin/customers', label: 'Customers', icon: <Users className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen className="w-4 h-4" strokeWidth={2} /> },
+      { id: 'settings', path: '/admin/settings', label: 'Settings', icon: <Settings className="w-4 h-4" strokeWidth={2} /> },
+    ]},
     { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'orders', path: '/admin/orders', label: 'Orders', icon: <History className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'records', path: '/admin/records', label: 'Records & Logs', icon: <FolderOpen className="w-5 h-5" strokeWidth={2} /> },
   ];
 
   const handleNav = () => {
@@ -147,7 +153,7 @@ export const Sidebar = ({
     >
       {/* Logo/Brand */}
       <Link
-        to="/admin"
+        to="/"
         onClick={handleNav}
         className="h-20 flex items-center justify-start px-6 gap-3 animate-[fadeIn_0.5s_ease-out] transition-colors duration-200 group"
         style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
@@ -174,46 +180,63 @@ export const Sidebar = ({
         ))}
       </nav>
 
-      {/* Catalog Navigation — admin only */}
-      {isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" aria-label="Catalog" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Catalog</span>
-          {catalogItems.map((item, index) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPath === item.path || (currentPath === '/admin' && item.id === 'catalog')}
-              onClick={handleNav}
-              animationDelay={(browseItems.length + index) * 50}
-            />
-          ))}
-        </nav>
-      )}
-
       {/* Admin Navigation */}
       {isAdmin && (
         <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" aria-label="Admin" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>
-          {adminItems.map((item, index) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPath === item.path}
-              onClick={handleNav}
-              animationDelay={(browseItems.length + catalogItems.length + index) * 50}
-            />
-          ))}
+          {adminItems.map((item, index) => {
+            const hasChildren = item.children && item.children.length > 0;
+            const isExpanded = expandedGroups[item.id] || isChildActive(item.children);
+            return (
+              <div key={item.id}>
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <NavButton
+                      item={item}
+                      isActive={currentPath === item.path}
+                      onClick={handleNav}
+                      animationDelay={(browseItems.length + index) * 50}
+                    />
+                  </div>
+                  {hasChildren && (
+                    <button
+                      onClick={() => toggleGroup(item.id)}
+                      className="p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+                      aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                    >
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} strokeWidth={2} />
+                    </button>
+                  )}
+                </div>
+                {hasChildren && isExpanded && (
+                  <div className="ml-4 flex flex-col gap-0.5 mt-0.5">
+                    {item.children!.map((child) => (
+                      <Link
+                        key={child.id}
+                        to={child.path}
+                        onClick={handleNav}
+                        className={`flex items-center gap-2.5 px-4 py-2 rounded-md text-xs font-medium transition-colors duration-200 group ${
+                          currentPath === child.path
+                            ? 'text-tea-gold bg-tea-gold/8'
+                            : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
+                        }`}
+                      >
+                        <div className={`shrink-0 transition-colors duration-200 ${currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}>
+                          {child.icon}
+                        </div>
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
       )}
 
       {/* Flexible spacing */}
       <div className="flex-1" />
-
-      {/* Seasonal indicator */}
-      <div className="flex items-center gap-2 px-6 py-3 text-tea-gold/40">
-        <span className="text-sm">{season.icon}</span>
-        <span className="text-xs uppercase tracking-[0.2em] font-sans">{season.name} {new Date().getFullYear()}</span>
-      </div>
 
       {/* Utility Area */}
       <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>

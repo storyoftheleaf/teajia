@@ -7,12 +7,18 @@ import {
   Search,
   ShoppingCart,
   MoreHorizontal,
-  UserCheck,
-  History,
-  FolderOpen,
-  Settings,
+  Calendar,
+  Briefcase,
   X,
   ExternalLink,
+  Leaf,
+  Coffee,
+  Sparkles,
+  Store,
+  Users,
+  FolderOpen,
+  Settings,
+  UserCheck,
 } from 'lucide-react';
 
 interface AdminBottomNavProps {
@@ -31,11 +37,17 @@ const tabs = [
 ] as const;
 
 const moreItems = [
-  { id: 'collection', label: 'Collection', icon: UserCheck, path: '/admin/personal' },
-  { id: 'orders', label: 'Orders', icon: History, path: '/admin/orders' },
-  { id: 'records', label: 'Records & Logs', icon: FolderOpen, path: '/admin/records' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
-  { id: 'main-site', label: 'View Main Site', icon: ExternalLink, path: '/' },
+  { id: 'orders', label: 'Orders', icon: Briefcase, path: '/admin/orders', group: 'Business' },
+  { id: 'customers', label: 'Customers', icon: Users, path: '/admin/customers', group: 'Business' },
+  { id: 'records', label: 'Records & Logs', icon: FolderOpen, path: '/admin/records', group: 'Business' },
+  { id: 'catalog', label: 'Tea Glossary', icon: Leaf, path: '/admin/catalog', group: 'Catalog' },
+  { id: 'teaware', label: 'Equipment', icon: Coffee, path: '/admin/teaware', group: 'Catalog' },
+  { id: 'tasting', label: 'Tasting Notes', icon: Sparkles, path: '/admin/tasting', group: 'Catalog' },
+  { id: 'sources', label: 'Sources', icon: Store, path: '/admin/sources', group: 'Catalog' },
+  { id: 'personal', label: 'Collection', icon: UserCheck, path: '/admin/personal', group: 'Catalog' },
+  { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events', group: null },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings', group: null },
+  { id: 'main-site', label: 'View Main Site', icon: ExternalLink, path: '/', group: null },
 ];
 
 export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
@@ -147,28 +159,38 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
 
               {/* Items */}
               <div className="py-2">
-                {moreItems.map((item) => {
-                  if (!isAdmin && item.id === 'settings') return null;
+                {moreItems.map((item, index) => {
                   const Icon = item.icon;
                   const active = isActive(item.path);
+                  const prevGroup = index > 0 ? moreItems[index - 1].group : undefined;
+                  const showGroupHeader = item.group && item.group !== prevGroup;
 
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleMoreItemClick(item)}
-                      aria-current={active ? 'page' : undefined}
-                      className={`w-full flex items-center gap-4 py-4 px-6 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
-                        active
-                          ? 'text-tea-accent bg-tea-accent/5'
-                          : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
-                      }`}
-                    >
-                      <Icon size={20} strokeWidth={1.8} />
-                      <span className="text-sm font-medium">{item.label}</span>
-                      {item.id === 'main-site' && (
-                        <ExternalLink size={14} className="ml-auto opacity-40" />
+                    <React.Fragment key={item.id}>
+                      {showGroupHeader && (
+                        <div className="px-6 pt-3 pb-1">
+                          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-dim font-sans font-medium">{item.group}</span>
+                        </div>
                       )}
-                    </button>
+                      {!prevGroup && item.group === null && index > 0 && moreItems[index - 1].group !== null && (
+                        <div className="mx-6 my-1 border-t border-tea-border" />
+                      )}
+                      <button
+                        onClick={() => handleMoreItemClick(item)}
+                        aria-current={active ? 'page' : undefined}
+                        className={`w-full flex items-center gap-4 py-3.5 px-6 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
+                          active
+                            ? 'text-tea-accent bg-tea-accent/5'
+                            : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
+                        }`}
+                      >
+                        <Icon size={18} strokeWidth={1.8} />
+                        <span className="text-sm font-medium">{item.label}</span>
+                        {item.id === 'main-site' && (
+                          <ExternalLink size={14} className="ml-auto opacity-40" />
+                        )}
+                      </button>
+                    </React.Fragment>
                   );
                 })}
               </div>
