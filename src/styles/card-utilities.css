@@ -11,6 +11,22 @@
 }
 
 /* ============================================
+   Theme-aware image filter classes
+   Used by EditableImage and similar components.
+   Applied via className so they adapt to dark/light mode.
+   ============================================ */
+
+/* Dark mode: preserve punch, keep saturation moderate */
+.img-filter-dark {
+  filter: saturate(0.85) contrast(1.08) brightness(1.0);
+}
+
+/* Light mode: slightly desaturate, soften contrast, dim slightly */
+.img-filter-light {
+  filter: saturate(0.9) contrast(1.02) brightness(0.98);
+}
+
+/* ============================================
    Numeric Display — consistent across entire site
    Uses IBM Plex Mono with tabular (equal-width),
    lining (uniform-height) figures for clean alignment.
