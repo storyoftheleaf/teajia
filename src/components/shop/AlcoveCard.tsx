@@ -847,12 +847,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   <>
                     <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
                     <button
-                      onClick={() => onTaste(item)}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onTaste(item); }}
                       onMouseEnter={() => setHovered("taste")}
                       onMouseLeave={() => setHovered(null)}
                       aria-label="Start tasting session"
                       style={{
-                        background: "none", border: "none", padding: "0",
+                        background: "none", border: "none", padding: "4px 0",
                         cursor: "pointer", transition: "all 0.2s ease",
                         display: "inline-flex", alignItems: "center", gap: "4px",
                         opacity: hovered === "taste" ? 0.9 : 0.7,

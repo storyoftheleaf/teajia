@@ -19,6 +19,12 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
 
   const handleTaste = useCallback((item: InventoryItem) => {
+    // Clean up ?product= URL param so useProductUrl doesn't re-open the modal
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('product')) {
+      url.searchParams.delete('product');
+      window.history.replaceState(null, '', url.toString());
+    }
     setViewItem(null);
     setTastingItem(item);
   }, []);
