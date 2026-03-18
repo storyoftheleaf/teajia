@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { X, Check, Copy, ChevronDown } from 'lucide-react';
+import { X, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Product } from '../types';
 import type { TastingData } from '../../types';
@@ -230,12 +230,12 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
             <TastingFlow mode="admin" value={tastingData} onChange={handleChange} teaType={product.type} />
           </div>
 
-          {/* Save button — compact */}
-          <div className="px-4 py-2 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
+          {/* Lock In button — compact with selection count */}
+          <div className="px-4 py-1.5 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
             <button
               onClick={handleSave}
               disabled={saving || !hasChanges}
-              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
+              className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200 ${
                 hasChanges
                   ? 'bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98]'
                   : 'bg-tea-border text-tea-text-dim cursor-not-allowed'
@@ -245,8 +245,13 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
                 <span className="animate-pulse">Saving...</span>
               ) : (
                 <>
-                  <Check size={14} />
+                  <Check size={12} />
                   {hasChanges ? 'Lock In' : 'No Changes'}
+                  {noteCount > 0 && (
+                    <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${hasChanges ? 'bg-tea-bg/20' : 'bg-tea-text-dim/10'}`}>
+                      {noteCount}
+                    </span>
+                  )}
                 </>
               )}
             </button>

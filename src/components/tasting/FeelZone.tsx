@@ -93,7 +93,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
 
       {totalCount === 0 && (
         <p
-          className="text-[12px] text-tea-text-dim italic mb-4"
+          className="text-[14px] text-tea-text-dim italic mb-4"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           How does this tea feel in your mouth?
@@ -103,7 +103,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
       {/* ── Body weight — warm recessed segment toggle ── */}
       <div className="mb-4">
         <div
-          className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+          className="text-[11px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Weight
@@ -117,7 +117,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
               onClick={() => toggleWeight(w.id)}
               role="radio"
               aria-checked={selectedWeight === w.id}
-              className={`flex-1 py-2.5 text-[12px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
+              className={`flex-1 py-2.5 text-[14px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
                 selectedWeight === w.id
                   ? 'text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text'
@@ -138,7 +138,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
       {/* ── Texture ── */}
       <div className="mb-5">
         <div
-          className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+          className="text-[11px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Texture
@@ -169,7 +169,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
       {/* ── Finish duration — warm segment toggle ── */}
       <div className="mb-4">
         <div
-          className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+          className="text-[11px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Finish
@@ -183,7 +183,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
               onClick={() => toggleDuration(d.id)}
               role="radio"
               aria-checked={selectedDuration === d.id}
-              className={`flex-1 py-2.5 text-[12px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
+              className={`flex-1 py-2.5 text-[14px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
                 selectedDuration === d.id
                   ? 'text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text'
@@ -205,7 +205,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
       {(finishCharacterGroup || finishThroatGroup) && (
         <div className="mb-2">
           <div
-            className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+            className="text-[11px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Finish character

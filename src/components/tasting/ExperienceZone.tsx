@@ -42,7 +42,7 @@ const ExperienceZoneInner: React.FC<ExperienceZoneProps> = ({ flow }) => {
 
       {count === 0 && (
         <p
-          className="text-[12px] text-tea-text-dim italic mb-4"
+          className="text-[14px] text-tea-text-dim italic mb-4"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           What experience does this tea evoke?
@@ -59,7 +59,7 @@ const ExperienceZoneInner: React.FC<ExperienceZoneProps> = ({ flow }) => {
               <div className="flex items-center gap-1.5 mb-1.5">
                 {GroupIcon && <GroupIcon size={12} className="text-tea-text-dim opacity-50" />}
                 <span
-                  className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 font-medium"
+                  className="text-[11px] uppercase tracking-[0.1em] text-tea-text-dim/70 font-medium"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {group.label}
@@ -87,7 +87,7 @@ const ExperienceZoneInner: React.FC<ExperienceZoneProps> = ({ flow }) => {
                           className={`shrink-0 ${isSelected ? 'text-tea-gold' : 'text-tea-text-dim opacity-40'} transition-colors`}
                         />
                       )}
-                      <span className={`text-[12px] ${isSelected ? 'text-tea-gold font-medium' : 'text-tea-text-sec'} transition-colors`}>
+                      <span className={`text-[14px] ${isSelected ? 'text-tea-gold font-medium' : 'text-tea-text-sec'} transition-colors`}>
                         {term.label}
                       </span>
                     </motion.button>
