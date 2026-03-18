@@ -48,6 +48,11 @@ export interface ArticleTagMeta {
 }
 
 export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
+  // --- All Pages (layout reference) ---
+  'all-pages': {
+    tags: ['Teaching', 'Culture'],
+  },
+
   // --- Template Showcase ---
   'template-showcase': {
     // Layout Template Showcase - all 86 layout variants
