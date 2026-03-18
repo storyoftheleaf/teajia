@@ -52,6 +52,7 @@ export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
   'template-showcase': {
     // Layout Template Showcase - all 86 layout variants
     tags: ['Teaching', 'Culture'],
+    featured: true,
   },
 
   // --- Original / Template Articles ---
@@ -119,7 +120,6 @@ export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
   'tea-feature-1': {
     // Laoshan Green - Shandong coastal green tea
     tags: ['Green', 'Tasting', 'China', 'Origins'],
-    featured: true,
     endOfArticleCTA: {
       type: 'shop',
       text: 'This tea is in our shop.',
