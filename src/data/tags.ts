@@ -48,6 +48,12 @@ export interface ArticleTagMeta {
 }
 
 export const ARTICLE_TAG_MAP: Record<string, ArticleTagMeta> = {
+  // --- Template Showcase ---
+  'template-showcase': {
+    // Layout Template Showcase - all 86 layout variants
+    tags: ['Teaching', 'Culture'],
+  },
+
   // --- Original / Template Articles ---
   '1': {
     // Path of Clouds - Wuyi mountains, Yan Yun
