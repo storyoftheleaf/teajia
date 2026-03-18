@@ -32,11 +32,12 @@ const REASON_LABELS: Record<string, string> = {
   CREATION: 'Created',
 };
 
-export const RecordsView = ({ products }: { products: Product[] }) => {
+export const RecordsView = ({ products, initialTab }: { products: Product[]; initialTab?: 'archive' | 'log' | 'ledger' }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'archive' | 'logs' | 'ledger'>('archive');
+  const mappedInitial = initialTab === 'log' ? 'logs' : (initialTab || 'archive');
+  const [activeTab, setActiveTab] = useState<'archive' | 'logs' | 'ledger'>(mappedInitial as any);
   const soldOutProducts = products.filter(p => p.status === 'Sold Out');
 
   // Logbook state

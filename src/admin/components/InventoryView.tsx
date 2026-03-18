@@ -18,6 +18,7 @@ import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
 import { TastingEditorModal } from './TastingEditorModal';
 import { StockLedgerPanel } from './StockLedgerPanel';
+import { TeaDetailsModal } from './TeaDetailsModal';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -29,7 +30,7 @@ import {
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
 // --- COLUMN DEFINITIONS ---
-type InventoryCategory = 'tea' | 'teaware';
+type InventoryCategory = 'tea' | 'teaware' | 'collection' | 'glossary';
 
 const TEA_COLUMN_DEFS = [
   { key: 'productName', label: 'Product', defaultWidth: 'w-[28%]', alwaysVisible: true },
@@ -570,6 +571,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryGroupBy, setInventoryGroupBy,
     inventorySortConfig, setInventorySortConfig,
     aiPromptTemplate,
+    currency,
   } = useAppStore();
 
   // --- STATE ---
@@ -644,6 +646,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Modals
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetInput, setResetInput] = useState('');
   const [isResetting, setIsResetting] = useState(false);
@@ -665,10 +668,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const processedProducts = useMemo(() => {
     let result = localProducts;
 
-    // 0. Category filter: tea vs teaware
+    // 0. Category filter
     if (inventoryCategory === 'teaware') {
       result = result.filter(p => p.type === 'Teaware');
+    } else if (inventoryCategory === 'collection') {
+      result = result.filter(p => p.isPersonal && p.type !== 'Teaware');
     } else {
+      // 'tea' and 'glossary' both show all non-teaware
       result = result.filter(p => p.type !== 'Teaware');
     }
 
@@ -739,6 +745,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const verificationStats = useMemo(() => {
     const categoryProducts = inventoryCategory === 'teaware'
       ? localProducts.filter(p => p.type === 'Teaware')
+      : inventoryCategory === 'collection'
+      ? localProducts.filter(p => p.isPersonal && p.type !== 'Teaware')
       : localProducts.filter(p => p.type !== 'Teaware');
     const active = categoryProducts.filter(p => p.status === 'Active');
     const verified = active.filter(p => !!p.stockVerifiedAt).length;
@@ -1430,28 +1438,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- CATEGORY TOGGLE + SAVED VIEWS TAB BAR --- */}
       <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar hide-scrollbar">
-        {/* Tea / Teaware category toggle */}
+        {/* Category toggle: All / Collection / Glossary / Equipment */}
         <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 mr-2 flex-shrink-0">
-          <button
-            onClick={() => setInventoryCategory('tea')}
-            className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              inventoryCategory === 'tea'
-                ? 'bg-tea-bg text-tea-text shadow-sm'
-                : 'text-tea-text-sec hover:text-tea-text'
-            }`}
-          >
-            Tea
-          </button>
-          <button
-            onClick={() => setInventoryCategory('teaware')}
-            className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              inventoryCategory === 'teaware'
-                ? 'bg-tea-bg text-tea-text shadow-sm'
-                : 'text-tea-text-sec hover:text-tea-text'
-            }`}
-          >
-            Teaware
-          </button>
+          {([
+            { id: 'tea' as InventoryCategory, label: 'All' },
+            { id: 'collection' as InventoryCategory, label: 'Collection' },
+            { id: 'glossary' as InventoryCategory, label: 'Glossary' },
+            { id: 'teaware' as InventoryCategory, label: 'Equipment' },
+          ]).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setInventoryCategory(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+                inventoryCategory === tab.id
+                  ? 'bg-tea-bg text-tea-text shadow-sm'
+                  : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         <div className="w-px h-4 bg-tea-border/30 mr-1" />
         {(savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews).map(view => (
@@ -1537,6 +1543,54 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               >
                 <MoreHorizontal size={18} />
               </button>
+              {/* Mobile Options Dropdown */}
+              {showOptions && (
+                <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
+                <div className="absolute right-4 top-10 w-52 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col">
+                    <button
+                        onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}
+                        className={`px-4 py-2.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                    >
+                        <AlertTriangle size={14} /> Low Stock Alerts
+                    </button>
+                    <button
+                        onClick={() => { setFilterType(filterType === 'Unverified' ? 'All' : 'Unverified'); setShowOptions(false); }}
+                        className={`px-4 py-2.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                    >
+                        <CheckSquare size={14} /> Stock Verification
+                    </button>
+                    <button
+                        onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
+                        className={`px-4 py-2.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                    >
+                        <Sparkles size={14} />
+                        Pending AI Approval
+                        {pendingCount > 0 && (
+                            <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+                        )}
+                    </button>
+                    <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2.5 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                        <FileSpreadsheet size={14} /> Import CSV
+                    </button>
+                    <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2.5 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                        <Download size={14} /> Export CSV
+                    </button>
+                    <button
+                        onClick={() => { handleBulkEnrich(); setShowOptions(false); }}
+                        disabled={isEnriching}
+                        className="px-4 py-2.5 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                        {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        Enrich Missing Wisdom
+                    </button>
+                    <div className="h-px bg-tea-border my-1"></div>
+                    <button onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-4 py-2.5 text-left text-xs text-tea-accent hover:bg-tea-accent/10 flex items-center gap-2 transition-colors">
+                        <Trash2 size={14} /> Wipe Database
+                    </button>
+                </div>
+                </>
+              )}
             </div>
           </div>
           {/* Search row — full width on mobile */}
@@ -1937,8 +1991,54 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
+        {/* GLOSSARY MODE — card grid for browsing */}
+        {inventoryCategory === 'glossary' && filterType !== 'Pending' && (
+          <div className="pb-24 px-3 md:px-6 pt-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {processedProducts.map(product => {
+                const dotColor = getThemeColor(product.type);
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => setDetailsProduct(product)}
+                    className="group text-left bg-tea-surface/50 hover:bg-tea-surface rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg"
+                  >
+                    {product.imageUrl ? (
+                      <div className="aspect-square overflow-hidden">
+                        <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      </div>
+                    ) : (
+                      <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: `${dotColor}15` }}>
+                        <Leaf size={32} style={{ color: dotColor }} className="opacity-30" />
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <div className="text-sm font-medium text-tea-text truncate">{product.productName}</div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
+                        <span className="text-[11px] text-tea-text-sec">{product.type}</span>
+                        {product.year && <span className="text-[11px] text-tea-text-dim">· {product.year}</span>}
+                      </div>
+                      {product.tastingNotes && product.tastingNotes.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {product.tastingNotes.slice(0, 3).map(note => (
+                            <span key={note} className="tag text-[9px]">{note}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {processedProducts.length === 0 && (
+              <div className="text-center py-16 text-tea-text-sec font-serif italic">No items found.</div>
+            )}
+          </div>
+        )}
+
         {/* MOBILE CARDS — redesigned with visible description + direct edit/view access */}
-        <div className={`md:hidden pb-24 ${filterType === 'Pending' ? 'hidden' : ''}`}>
+        <div className={`md:hidden pb-24 space-y-px bg-tea-border/15 ${filterType === 'Pending' || inventoryCategory === 'glossary' ? 'hidden' : ''}`}>
             {processedProducts.map((product, idx) => {
                 const dotColor = getThemeColor(product.type);
                 const isExpanded = expandedCardId === product.id;
@@ -1947,7 +2047,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 const stockClass = isOutOfStock ? 'stock-out' : isLowStock ? 'stock-low' : 'stock-ok';
                 const descriptionPreview = product.lore || product.description || '';
                 return (
-                <div key={product.id} className={`border-b border-tea-border/50 ${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/10' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/10'}`}>
+                <div key={product.id} className={`${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/10' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/20'}`}>
                     {/* Main row — tap to expand */}
                     <button
                         className="inv-row-accent w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-surface/60"
@@ -2040,8 +2140,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <Pencil size={12} /> Edit
                         </button>
                         <button
-                            onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface/50 rounded-md transition-colors"
+                            onClick={() => setDetailsProduct(product)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] font-semibold text-tea-text-sec hover:text-tea-text hover:bg-tea-surface/50 rounded-md transition-colors"
                         >
                             <FileText size={12} /> Details
                         </button>
@@ -2211,7 +2311,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className={`w-full max-w-7xl mx-auto bg-tea-surface min-h-full ${filterType === 'Pending' ? 'hidden' : 'hidden md:block'}`}>
+        <div className={`w-full max-w-7xl mx-auto bg-tea-surface min-h-full ${filterType === 'Pending' || inventoryCategory === 'glossary' ? 'hidden' : 'hidden md:block'}`}>
 
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
@@ -2379,6 +2479,29 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- MODALS --- */}
       <QrCodeModal isOpen={!!qrProduct} onClose={() => setQrProduct(null)} product={qrProduct} />
+
+      {/* Tea Details Modal (AlcoveCard) */}
+      <TeaDetailsModal
+        product={detailsProduct}
+        isOpen={!!detailsProduct}
+        onClose={() => setDetailsProduct(null)}
+        onAdd={() => {}}
+        currency={currency}
+        rates={rates}
+        isAdmin={true}
+        onEdit={(product) => {
+          setDetailsProduct(null);
+          setPanelProduct(product);
+        }}
+        onNext={detailsProduct ? (() => {
+          const idx = processedProducts.findIndex(p => p.id === detailsProduct.id);
+          if (idx < processedProducts.length - 1) setDetailsProduct(processedProducts[idx + 1]);
+        }) : undefined}
+        onPrev={detailsProduct ? (() => {
+          const idx = processedProducts.findIndex(p => p.id === detailsProduct.id);
+          if (idx > 0) setDetailsProduct(processedProducts[idx - 1]);
+        }) : undefined}
+      />
       
       {/* RESET CONFIRMATION */}
       {showResetConfirm && (
