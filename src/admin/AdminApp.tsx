@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search } from 'lucide-react';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, Leaf } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -179,9 +179,7 @@ const AdminContent = () => {
   return (
     <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
-      <button onClick={() => setIsMobileOpen(true)} className="fixed top-[calc(1rem+env(safe-area-inset-top))] left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-text-sec backdrop-blur-md">
-        <Menu size={24} />
-      </button>
+      {/* Mobile hamburger — hidden since bottom nav handles navigation */}
 
       {isMobileOpen && <div className="fixed inset-0 bg-tea-text/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
 
@@ -197,38 +195,56 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-6 py-4 flex justify-end items-center gap-4 flex-none">
-           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-text-sec hover:text-tea-text transition-colors p-2.5">
+        <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-4 md:px-6 py-3 flex items-center gap-3 flex-none">
+           {/* Left: Search (mobile) */}
+           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-text-sec hover:text-tea-text transition-colors p-2">
               <Search size={18} />
            </button>
-           <button onClick={handleRefresh} className="text-tea-text-sec hover:text-tea-text transition-colors p-2">
-              <RefreshCw size={16} />
+
+           {/* Center: Teajia branding — clickable to go home */}
+           <button
+             onClick={() => navigate('/')}
+             className="flex-1 flex items-center justify-center gap-2 md:flex-none md:ml-0"
+           >
+             <Leaf size={16} className="text-tea-gold" />
+             <span className="text-sm font-serif tracking-[0.2em] uppercase text-tea-text">Teajia</span>
            </button>
 
-           <div className="relative" data-currency-selector>
-              <button
-                onClick={() => setCurrencyOpen(prev => !prev)}
-                className="flex items-center gap-2 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors"
-              >
-                {currency} <ChevronDown size={14} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {currencyOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl z-50 max-h-[min(240px,40vh)] overflow-y-auto">
-                  {rates.map(rate => (
-                    <button key={rate.currency} onClick={() => { setCurrency(rate.currency); setCurrencyOpen(false); }} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-text-sec'}`}>
-                      {rate.currency}
+           {/* Right: Currency selector (with refresh inside) + Cart */}
+           <div className="flex items-center gap-2">
+             <div className="relative" data-currency-selector>
+                <button
+                  onClick={() => setCurrencyOpen(prev => !prev)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors px-2.5 py-1.5 rounded-lg hover:bg-tea-surface"
+                >
+                  {currency} <ChevronDown size={14} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {currencyOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl z-[100] max-h-[min(320px,50vh)] overflow-y-auto">
+                    {/* Refresh rates button inside dropdown */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors border-b border-tea-border"
+                    >
+                      <RefreshCw size={14} />
+                      <span>Refresh Rates</span>
                     </button>
-                  ))}
-                </div>
-              )}
+                    {/* Currency options */}
+                    {rates.map(rate => (
+                      <button key={rate.currency} onClick={() => { setCurrency(rate.currency); setCurrencyOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium bg-tea-accent/5' : 'text-tea-text-sec'}`}>
+                        <span>{rate.currency}</span>
+                        {rate.rate !== 1 && <span className="text-[10px] text-tea-text-dim tabular-nums">{rate.rate.toFixed(2)}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+             </div>
+
+             <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-2">
+               <ShoppingCart size={20} />
+               {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
+             </button>
            </div>
-
-           <div className="w-px h-4 bg-tea-border"></div>
-
-           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-2">
-             <ShoppingCart size={20} />
-             {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
-           </button>
         </div>
 
         <div className="flex-1 overflow-auto relative pb-16 md:pb-0">
@@ -325,6 +341,7 @@ const AdminContent = () => {
           onCartClick={() => setIsCartOpen(true)}
           cartItemCount={cart.length}
           isAdmin={isAdmin}
+          onAddProduct={() => setIsCreateModalOpen(true)}
         />
 
       </main>
