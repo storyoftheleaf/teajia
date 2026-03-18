@@ -135,8 +135,8 @@ p {
 }
 
 .fabric-texture {
-  background-image: repeating-linear-gradient(90deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px),
-                    repeating-linear-gradient(0deg, rgba(200,170,120,0.03) 0px, rgba(200,170,120,0.03) 1px, transparent 1px, transparent 4px);
+  background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--tea-gold) 3%, transparent) 0px, color-mix(in srgb, var(--tea-gold) 3%, transparent) 1px, transparent 1px, transparent 4px),
+                    repeating-linear-gradient(0deg, color-mix(in srgb, var(--tea-gold) 3%, transparent) 0px, color-mix(in srgb, var(--tea-gold) 3%, transparent) 1px, transparent 1px, transparent 4px);
 }
 
 /* ============================================
@@ -228,9 +228,13 @@ p {
   .wood-texture,
   nav,
   .no-scrollbar,
-  button { display: none !important; }
+  button,
+  [role="slider"],
+  .hide-scrollbar-always { display: none !important; }
   body { background: white !important; color: black !important; }
   main { padding: 0 !important; margin: 0 !important; }
+  /* Hide Reader navigation overlays when printing */
+  .fixed { position: static !important; }
 }
 
 /* ============================================
@@ -242,6 +246,7 @@ p {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -249,4 +254,153 @@ p {
 :focus-visible {
   outline: 2px solid var(--tea-gold);
   outline-offset: 2px;
+}
+
+/* ============================================
+   Reader Typography System
+   ============================================ */
+
+.font-display {
+  font-family: 'Vollkorn', 'Noto Serif SC', Georgia, serif;
+}
+
+.font-body {
+  font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
+}
+
+.font-caption {
+  font-family: 'Plus Jakarta Sans', 'Noto Serif SC', system-ui, sans-serif;
+}
+
+.font-calligraphy {
+  font-family: 'Ma Shan Zheng', 'Noto Serif SC', cursive;
+}
+
+/* Reader-specific enhancements */
+.reader-body-text {
+  text-align: left;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'liga' 1, 'kern' 1, 'calt' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.reader-body-justify {
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+/* Small caps utility */
+.small-caps {
+  font-variant: small-caps;
+  font-feature-settings: 'smcp' 1;
+  letter-spacing: 0.05em;
+}
+
+/* Paragraph spacing for multi-paragraph content */
+.reader-paragraphs p + p,
+.reader-paragraphs .paragraph + .paragraph {
+  margin-top: 1.2em;
+}
+
+/* Ruled paper lines for NOTE_PAPER */
+.ruled-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 39px,
+    rgba(184, 146, 78, 0.08) 39px,
+    rgba(184, 146, 78, 0.08) 40px
+  );
+  background-size: 100% 40px;
+}
+
+/* Timeline vertical line */
+.timeline-line {
+  position: relative;
+}
+.timeline-line::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(184, 146, 78, 0.4) 10%, rgba(184, 146, 78, 0.4) 90%, transparent);
+}
+
+/* Image color grading for editorial coherence */
+.reader-image-graded {
+  filter: saturate(0.85) contrast(1.05) brightness(1.02);
+}
+
+/* Brush stroke animation for Chinese aesthetic */
+@keyframes brushStroke {
+  from { stroke-dashoffset: 300; }
+  to { stroke-dashoffset: 0; }
+}
+.brush-stroke-animate {
+  stroke-dasharray: 300;
+  animation: brushStroke 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Gold accent rule with brush feel */
+.brush-rule {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.6) 20%, rgba(184, 146, 78, 0.8) 50%, rgba(184, 146, 78, 0.6) 80%, transparent);
+  border: none;
+}
+
+/* Recipe card step numbering */
+.recipe-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(184, 146, 78, 0.15);
+  color: var(--tea-gold);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Postcard stamp decoration */
+.postcard-stamp {
+  width: 60px;
+  height: 72px;
+  border: 2px dashed rgba(184, 146, 78, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+/* Map location dot */
+.map-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tea-gold);
+  box-shadow: 0 0 8px rgba(184, 146, 78, 0.4);
+}
+
+/* Fade overflow indicator */
+.text-fade-bottom {
+  position: relative;
+}
+.text-fade-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to top, var(--tea-surface), transparent);
+  pointer-events: none;
+}
+.text-fade-bottom-dark::after {
+  background: linear-gradient(to top, var(--tea-bg), transparent);
 }
