@@ -23,7 +23,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   finish: 'FINISH',
   feeling: 'FEEL',
   'liquor-color': 'COLOR',
-  brewing: 'BREW',
 };
 
 /** Category-specific tint classes for term backgrounds */
@@ -33,7 +32,6 @@ const CATEGORY_TINT_CLASSES: Record<string, string> = {
   finish: 'bg-tea-surface',
   feeling: 'bg-tea-accent-sub/30',
   'liquor-color': 'bg-tea-surface',
-  brewing: 'bg-tea-elevated/50',
 };
 
 /** Maximum visible terms before collapsing */

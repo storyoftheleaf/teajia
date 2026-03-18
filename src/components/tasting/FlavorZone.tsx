@@ -1,18 +1,19 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, X, Plus } from 'lucide-react';
+import { X, Plus, ChevronRight } from 'lucide-react';
 import { TASTING_TAXONOMY, GROUP_ICON_MAP, TERM_MAP, TEA_TYPE_SUGGESTIONS } from '../../data/tastingTaxonomy';
 import type { TastingFlowState } from './useTastingFlow';
 
 const flavorCategory = TASTING_TAXONOMY.categories.find(c => c.id === 'flavor')!;
 
-// Primary groups (shown by default)
 const PRIMARY_GROUPS = ['Floral', 'Sweet', 'Fruity', 'Nutty & grain', 'Roasted & warm', 'Woody', 'Earthy', 'Fresh & vegetal'];
-// Collapsed groups (shown after "More")
 const COLLAPSED_GROUPS = ['Mineral', 'Other qualities'];
 
 const primaryGroups = flavorCategory.groups.filter(g => PRIMARY_GROUPS.includes(g.label));
 const collapsedGroups = flavorCategory.groups.filter(g => COLLAPSED_GROUPS.includes(g.label));
+
+/** Number of terms to preview inline per group */
+const INLINE_PREVIEW_COUNT = 3;
 
 interface FlavorZoneProps {
   flow: TastingFlowState;
@@ -29,21 +30,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
 
   const flavorCount = flow.getCategoryCount('flavor');
   const clearCategory = flow.clearCategory;
-
-  // Click-outside handler to collapse expanded groups
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        flow.expandedGroups.forEach(groupLabel => {
-          flow.collapseGroup(groupLabel);
-        });
-      }
-    };
-    if (flow.expandedGroups.size > 0) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [flow.expandedGroups.size, flow]);
+  const selectedFlavors = flow.value.flavor || [];
 
   // Focus custom input when shown
   useEffect(() => {
@@ -64,76 +51,98 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
 
   // Get suggested terms for this tea type
   const suggestedTermIds = teaType ? (TEA_TYPE_SUGGESTIONS[teaType] || []) : [];
-  const selectedFlavors = flow.value.flavor || [];
 
-  // Groups to render
   const visibleGroups = showMore ? [...primaryGroups, ...collapsedGroups] : primaryGroups;
 
-  const renderGroupButton = (group: typeof flavorCategory.groups[0]) => {
-    const isSelected = flow.isGroupSelected('flavor', group.label);
+  const renderGroup = (group: typeof flavorCategory.groups[0]) => {
     const isExpanded = flow.expandedGroups.has(group.label);
     const selectedTerms = flow.getGroupSelectedTerms('flavor', group.label);
+    const hasSelections = selectedTerms.length > 0;
     const GroupIcon = GROUP_ICON_MAP[group.label];
 
+    // Preview terms: show first N terms (or all if few enough)
+    const previewTerms = group.terms.slice(0, INLINE_PREVIEW_COUNT);
+    const hasMore = group.terms.length > INLINE_PREVIEW_COUNT;
+
     return (
-      <React.Fragment key={group.label}>
-        {/* Group button with split interaction zones */}
-        <div
-          className={`flex items-center rounded-lg transition-all duration-150 ${
-            isSelected
+      <div key={group.label} className="space-y-0">
+        {/* Group header — always tappable to expand/collapse */}
+        <motion.button
+          type="button"
+          onClick={() => {
+            if (isExpanded) {
+              flow.collapseGroup(group.label);
+            } else {
+              flow.expandGroup(group.label);
+            }
+          }}
+          className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-150 ${
+            hasSelections
               ? 'bg-tea-gold-lt text-tea-gold'
-              : 'bg-tea-surface text-tea-text-sec'
+              : 'bg-tea-surface/60 text-tea-text-sec hover:bg-tea-surface'
           }`}
+          aria-expanded={isExpanded}
+          aria-label={`${group.label} flavors${hasSelections ? `, ${selectedTerms.length} selected` : ''}`}
         >
-          {/* Main area — toggles selection */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.95 }}
-            onClick={() => flow.toggleGroup('flavor', group.label)}
-            aria-pressed={isSelected}
-            className="flex items-center gap-2.5 px-3 py-2.5 flex-1 min-w-0"
-          >
-            {GroupIcon && (
-              <GroupIcon
-                size={16}
-                className={`shrink-0 ${isSelected ? 'opacity-100' : 'opacity-50'}`}
-              />
-            )}
-            <span className="text-xs font-medium truncate" style={{ fontFamily: 'var(--font-body)' }}>
-              {group.label}
-            </span>
-            {selectedTerms.length > 1 && (
-              <span className="ml-auto text-[10px] text-tea-gold shrink-0 opacity-70">
-                {selectedTerms.length}
-              </span>
-            )}
-          </motion.button>
-
-          {/* Chevron area — toggles expansion */}
-          {group.terms.length > 0 && (
-            <motion.button
-              type="button"
-              onClick={() => {
-                if (isExpanded) {
-                  flow.collapseGroup(group.label);
-                } else {
-                  flow.expandGroup(group.label);
-                }
-              }}
-              className="flex items-center justify-center w-11 min-h-[44px] shrink-0 opacity-50 hover:opacity-100 transition-opacity"
-              aria-label={isExpanded ? `Collapse ${group.label}` : `Expand ${group.label}`}
-            >
-              <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ChevronDown size={14} />
-              </motion.div>
-            </motion.button>
+          {GroupIcon && (
+            <GroupIcon
+              size={15}
+              className={`shrink-0 ${hasSelections ? 'opacity-100' : 'opacity-40'}`}
+            />
           )}
-        </div>
+          <span className="text-xs font-medium" style={{ fontFamily: 'var(--font-body)' }}>
+            {group.label}
+          </span>
+          {selectedTerms.length > 0 && (
+            <span className="text-[10px] text-tea-gold opacity-70">
+              {selectedTerms.length}
+            </span>
+          )}
+          <motion.div
+            className="ml-auto shrink-0 opacity-40"
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <ChevronRight size={12} />
+          </motion.div>
+        </motion.button>
 
-        {/* Sub-terms panel — spans full width below group row */}
+        {/* Inline preview — top terms shown directly below group header */}
+        {!isExpanded && (
+          <div className="flex flex-wrap gap-1 px-1 pt-1.5 pb-0.5">
+            {previewTerms.map(term => {
+              const isTermSelected = selectedFlavors.includes(term.id);
+              return (
+                <motion.button
+                  key={term.id}
+                  type="button"
+                  whileTap={{ scale: 0.93 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    flow.toggleTerm('flavor', term.id);
+                  }}
+                  className={`tag-selectable ${isTermSelected ? 'tag-selectable-active' : ''}`}
+                  style={{ fontFamily: 'var(--font-body)', fontSize: '11px' }}
+                  aria-pressed={isTermSelected}
+                >
+                  {term.label}
+                </motion.button>
+              );
+            })}
+            {hasMore && !isExpanded && (
+              <button
+                type="button"
+                onClick={() => flow.expandGroup(group.label)}
+                className="text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors px-1.5 py-1 opacity-60 hover:opacity-100"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                +{group.terms.length - INLINE_PREVIEW_COUNT}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Expanded: all terms */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -141,9 +150,9 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="col-span-2 overflow-hidden"
+              className="overflow-hidden"
             >
-              <div className="flex flex-wrap gap-1.5 pb-2 pt-1 px-1">
+              <div className="flex flex-wrap gap-1.5 px-1 pt-2 pb-1">
                 {group.terms.map(term => {
                   const isTermSelected = selectedFlavors.includes(term.id);
                   const termInfo = TERM_MAP.get(term.id);
@@ -169,7 +178,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                   );
                 })}
 
-                {/* Admin custom term button */}
+                {/* Admin custom term */}
                 {mode === 'admin' && (
                   <>
                     {showCustomInput ? (
@@ -209,7 +218,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
             </motion.div>
           )}
         </AnimatePresence>
-      </React.Fragment>
+      </div>
     );
   };
 
@@ -235,7 +244,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
         )}
       </div>
 
-      {/* Description — only when no selections */}
+      {/* Empty state */}
       {flavorCount === 0 && (
         <p
           className="text-xs text-tea-text-dim italic mb-3"
@@ -284,17 +293,17 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
         </div>
       )}
 
-      {/* Group grid — 2 columns */}
-      <div className="grid grid-cols-2 gap-2">
-        {visibleGroups.map(group => renderGroupButton(group))}
+      {/* Group list — single column, each group shows inline preview */}
+      <div className="flex flex-col gap-2">
+        {visibleGroups.map(group => renderGroup(group))}
 
-        {/* "More flavors" toggle for collapsed groups */}
+        {/* "More flavors" toggle */}
         {!showMore && collapsedGroups.length > 0 && (
           <motion.button
             type="button"
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowMore(true)}
-            className="col-span-2 flex items-center justify-center gap-1.5 py-2 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="flex items-center justify-center gap-1.5 py-2 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <Plus size={12} />

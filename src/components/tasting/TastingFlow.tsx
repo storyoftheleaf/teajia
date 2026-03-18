@@ -1,18 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Coffee, Palette, Leaf, Circle, Sparkles, Moon, Star,
+  Palette, Leaf, Sparkles, Star,
   Undo2, Zap,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
-import { SECTION_ICONS } from '../../data/tastingTaxonomy';
 import { useTastingFlow } from './useTastingFlow';
 import { FlavorZone } from './FlavorZone';
-import { MouthfeelZone } from './MouthfeelZone';
-import { FeelingCards } from './FeelingCards';
+import { FeelZone } from './FeelZone';
 import { ColorSwatches } from './ColorSwatches';
-import { BrewingZone } from './BrewingZone';
 import { ImpressionZone } from './ImpressionZone';
 import { TastingProfileStrip } from './TastingProfileStrip';
 
@@ -21,7 +18,7 @@ const RapidEntryMode = React.lazy(() => import('./RapidEntryMode'));
 
 /* ─── Section definition ─── */
 
-type SectionId = 'impression' | 'brewing' | 'liquor-color' | 'flavor' | 'mouthfeel' | 'feeling';
+type SectionId = 'impression' | 'liquor-color' | 'flavor' | 'feel';
 
 interface SectionDef {
   id: SectionId;
@@ -32,11 +29,9 @@ interface SectionDef {
 
 const ALL_SECTIONS: SectionDef[] = [
   { id: 'impression', label: 'Impression', icon: Star, bgClass: '' },
-  { id: 'brewing', label: 'Brew', icon: Coffee, bgClass: 'tasting-section-bg-brewing' },
   { id: 'liquor-color', label: 'Color', icon: Palette, bgClass: 'tasting-section-bg-liquor-color' },
   { id: 'flavor', label: 'Flavor', icon: Leaf, bgClass: 'tasting-section-bg-flavor' },
-  { id: 'mouthfeel', label: 'Mouthfeel', icon: Circle, bgClass: 'tasting-section-bg-body' },
-  { id: 'feeling', label: 'Feel', icon: Moon, bgClass: 'tasting-section-bg-feeling' },
+  { id: 'feel', label: 'Feel', icon: Sparkles, bgClass: 'tasting-section-bg-feeling' },
 ];
 
 /* ─── Transition variants ─── */
@@ -177,8 +172,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
   /* ─── Count helpers ─── */
 
   function getSectionCount(sectionId: SectionId): number {
-    if (sectionId === 'mouthfeel') {
-      return flow.getCategoryCount('body') + flow.getCategoryCount('finish');
+    if (sectionId === 'feel') {
+      return flow.getCategoryCount('body') + flow.getCategoryCount('finish') + flow.getCategoryCount('feeling');
     }
     if (sectionId === 'impression') {
       let count = 0;
@@ -199,8 +194,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
     switch (sectionId) {
       case 'impression':
         return <ImpressionZone value={value} onChange={onChange} />;
-      case 'brewing':
-        return <BrewingZone flow={flow} mode={mode} />;
       case 'liquor-color':
         return <ColorSwatches flow={flow} />;
       case 'flavor':
@@ -224,15 +217,13 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                   </div>
                 }
               >
-                <FlavorWheel />
+                <FlavorWheel flow={flow} />
               </Suspense>
             )}
           </div>
         );
-      case 'mouthfeel':
-        return <MouthfeelZone flow={flow} mode={mode} />;
-      case 'feeling':
-        return <FeelingCards flow={flow} mode={mode} />;
+      case 'feel':
+        return <FeelZone flow={flow} mode={mode} />;
       default:
         return null;
     }
