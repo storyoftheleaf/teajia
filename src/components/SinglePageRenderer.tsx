@@ -5,6 +5,7 @@ import { LayoutVariant, Story } from '../types';
 import { Icons } from './Icons';
 import { SkeletonLoader } from './shared/SkeletonLoader';
 import { sanitizeHTML } from '../utils/sanitize';
+import { useTheme } from '../context/ThemeContext';
 
 export interface PageData {
   variant: LayoutVariant;
@@ -196,6 +197,7 @@ const EditableText = ({ value, onChange, className = "", placeholder = "Type her
 const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = false }: { src?: string; index: number; onImageUpdate?: (idx: number, url: string) => void; className?: string; readOnly?: boolean; }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageLoading, setImageLoading] = useState(!!src);
+  const { theme } = useTheme();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -205,6 +207,9 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
       reader.readAsDataURL(file);
     }
   };
+
+  // Theme-aware filter class — defined in card-utilities.css
+  const filterClass = theme === 'dark' ? 'img-filter-dark' : 'img-filter-light';
 
   return (
     <div className={`relative group overflow-hidden ${onImageUpdate && !readOnly ? 'cursor-pointer' : ''} ${className}`} onClick={(e) => { e.stopPropagation(); if (!readOnly && onImageUpdate) fileInputRef.current?.click(); }}>
@@ -217,8 +222,8 @@ const EditableImage = ({ src, index, onImageUpdate, className = "", readOnly = f
       {src ? (
         <img
           src={src}
-          className="w-full h-full object-cover transition-opacity duration-300"
-          style={{opacity: imageLoading ? 0.5 : 1, filter: 'saturate(0.85) contrast(1.05) brightness(1.02)'}}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${filterClass}`}
+          style={{ opacity: imageLoading ? 0.5 : 1 }}
           alt={`img-${index}`}
           onLoad={() => setImageLoading(false)}
           onError={() => setImageLoading(false)}
