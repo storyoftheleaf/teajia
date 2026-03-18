@@ -227,7 +227,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
           <button
             type="button"
             onClick={() => clearCategory('flavor')}
-            className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
+            className="text-tea-text-dim hover:text-tea-text transition-colors p-2 -mr-1.5"
             aria-label="Clear all flavor selections"
           >
             <X size={12} />

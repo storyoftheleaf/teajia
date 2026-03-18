@@ -38,7 +38,7 @@ const FeelingCardsInner: React.FC<FeelingCardsProps> = ({ flow }) => {
           <button
             type="button"
             onClick={handleClear}
-            className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="text-tea-text-dim hover:text-tea-text-sec transition-colors p-2 -mr-1.5"
             aria-label="Clear feeling selections"
           >
             <X size={12} />

@@ -89,7 +89,7 @@ const MouthfeelZoneInner: React.FC<MouthfeelZoneProps> = ({ flow }) => {
           <button
             type="button"
             onClick={handleClear}
-            className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="text-tea-text-dim hover:text-tea-text-sec transition-colors p-2 -mr-1.5"
             aria-label="Clear mouthfeel selections"
           >
             <X size={12} />
