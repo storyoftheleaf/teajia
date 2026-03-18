@@ -15,11 +15,6 @@ import { TeaTable } from './components/TeaTable';
 import { TeawareCatalog } from './components/TeawareCatalog';
 import { InventoryView } from './components/InventoryView';
 import { CartPanel } from '../components/shared/CartPanel';
-import { RecordsView } from './components/SoldItemsView';
-import { OrdersView } from './components/OrdersView';
-import { CustomersView } from './components/CustomersView';
-import { PersonalCollectionView } from './components/PersonalCollectionView';
-import { SettingsView } from './components/SettingsView';
 import { ToastProvider, useToast } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -28,7 +23,8 @@ import { DashboardView } from './components/DashboardView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingNotesView } from './components/TastingNotesView';
-import { SourcesView } from './components/SourcesView';
+import { PeopleView } from './components/PeopleView';
+import { ActivityView } from './components/ActivityView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -99,7 +95,7 @@ const AdminContent = () => {
   // Redirect when entering admin at root
   useEffect(() => {
     if (isLoggedIn && location.pathname === '/admin') {
-      navigate(isAdmin ? '/admin/inventory' : '/admin/catalog');
+      navigate('/admin/inventory');
     }
   }, [isLoggedIn, isAdmin, navigate, location.pathname]);
 
@@ -251,10 +247,8 @@ const AdminContent = () => {
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />
-              <Route path="catalog" element={<PageTransition><TeaTable products={products} currency={currency} rates={rates} onAdd={openAddModal} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} isLoading={loading} isError={productsError} error={productsErrorObj} onRefresh={refetchProducts} /></PageTransition>} />
-              <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} /></PageTransition>} />
-              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
 
+              {/* Core admin views */}
               <Route path="inventory" element={
                 <ProtectedRoute isAdmin={isAdmin}>
                   <PageTransition>
@@ -270,15 +264,24 @@ const AdminContent = () => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="personal" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
-              <Route path="customers" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
-              <Route path="sources" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><SourcesView /></PageTransition></ProtectedRoute>} />
-              <Route path="orders" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
-              <Route path="records" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="people" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
-              <Route path="settings" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
+
+              {/* Supplementary views */}
+              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
               <Route path="events" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+
+              {/* Legacy routes — redirect to new unified views */}
+              <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="teaware" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="personal" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="customers" element={<Navigate to="/admin/people" replace />} />
+              <Route path="sources" element={<Navigate to="/admin/people" replace />} />
+              <Route path="orders" element={<Navigate to="/admin/activity" replace />} />
+              <Route path="records" element={<Navigate to="/admin/activity" replace />} />
+              <Route path="settings" element={<Navigate to="/admin/people" replace />} />
 
               <Route path="*" element={<Navigate to="inventory" replace />} />
             </Routes>
