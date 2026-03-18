@@ -19,6 +19,7 @@ import {
   FolderOpen,
   Settings,
   UserCheck,
+  Plus,
 } from 'lucide-react';
 
 interface AdminBottomNavProps {
@@ -26,13 +27,15 @@ interface AdminBottomNavProps {
   onCartClick: () => void;
   cartItemCount: number;
   isAdmin: boolean;
+  onAddProduct?: () => void;
 }
 
+// Primary tabs — the 5 most essential mobile actions
 const tabs = [
   { id: 'inventory', label: 'Inventory', icon: Package, path: '/admin/inventory' },
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/admin/dashboard' },
+  { id: 'add', label: 'Add', icon: Plus, path: null },
   { id: 'search', label: 'Search', icon: Search, path: null },
-  { id: 'cart', label: 'Cart', icon: ShoppingCart, path: null },
   { id: 'more', label: 'More', icon: MoreHorizontal, path: null },
 ] as const;
 
@@ -45,6 +48,7 @@ const moreItems = [
   { id: 'tasting', label: 'Tasting Notes', icon: Sparkles, path: '/admin/tasting', group: 'Catalog' },
   { id: 'sources', label: 'Sources', icon: Store, path: '/admin/sources', group: 'Catalog' },
   { id: 'personal', label: 'Collection', icon: UserCheck, path: '/admin/personal', group: 'Catalog' },
+  { id: 'cart', label: 'Cart / Registry', icon: ShoppingCart, path: null, group: null },
   { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events', group: null },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings', group: null },
   { id: 'main-site', label: 'View Main Site', icon: ExternalLink, path: '/', group: null },
@@ -55,6 +59,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   onCartClick,
   cartItemCount,
   isAdmin,
+  onAddProduct,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,8 +73,8 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   const handleTabClick = (tab: (typeof tabs)[number]) => {
     if (tab.id === 'search') {
       onSearchClick();
-    } else if (tab.id === 'cart') {
-      onCartClick();
+    } else if (tab.id === 'add') {
+      onAddProduct?.();
     } else if (tab.id === 'more') {
       setIsMoreOpen(true);
     } else if (tab.path) {
@@ -79,7 +84,11 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
 
   const handleMoreItemClick = (item: (typeof moreItems)[number]) => {
     setIsMoreOpen(false);
-    navigate(item.path);
+    if (item.id === 'cart') {
+      onCartClick();
+    } else {
+      navigate(item.path!);
+    }
   };
 
   return (
@@ -90,6 +99,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = tab.id === 'more' ? isMoreOpen : isActive(tab.path);
+            const isAddButton = tab.id === 'add';
 
             return (
               <button
@@ -97,19 +107,27 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 onClick={() => handleTabClick(tab)}
                 aria-current={active && tab.path ? 'page' : undefined}
                 aria-label={tab.label}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] py-2 transition-colors duration-200 relative focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
-                  active ? 'text-tea-accent' : 'text-tea-text-sec'
+                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[52px] py-2 transition-colors duration-200 relative focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
+                  isAddButton
+                    ? 'text-tea-gold'
+                    : active ? 'text-tea-accent' : 'text-tea-text-sec'
                 }`}
               >
                 <div className="relative">
-                  <Icon size={20} strokeWidth={1.8} />
-                  {tab.id === 'cart' && cartItemCount > 0 && (
+                  {isAddButton ? (
+                    <div className="w-9 h-9 rounded-full bg-tea-gold/15 flex items-center justify-center -mt-3 shadow-lg shadow-tea-gold/10">
+                      <Plus size={20} strokeWidth={2.5} className="text-tea-gold" />
+                    </div>
+                  ) : (
+                    <Icon size={20} strokeWidth={1.8} />
+                  )}
+                  {tab.id === 'more' && cartItemCount > 0 && (
                     <span className="absolute -top-2 -right-2.5 bg-tea-accent text-tea-bg font-bold text-[10px] min-w-[16px] h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20 px-1">
                       {cartItemCount}
                     </span>
                   )}
                 </div>
-                <span className="text-[9px] uppercase tracking-wider font-medium leading-none">
+                <span className={`text-[9px] uppercase tracking-wider font-medium leading-none ${isAddButton ? '-mt-1' : ''}`}>
                   {tab.label}
                 </span>
               </button>
@@ -150,18 +168,18 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                 <span className="text-sm font-medium text-tea-text">More</span>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="p-1.5 rounded-lg text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+                  className="p-2 rounded-lg text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
                   aria-label="Close menu"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {/* Items */}
-              <div className="py-2">
+              {/* Items — grid layout for quick access */}
+              <div className="py-3 max-h-[60vh] overflow-y-auto">
                 {moreItems.map((item, index) => {
                   const Icon = item.icon;
-                  const active = isActive(item.path);
+                  const active = item.path ? isActive(item.path) : false;
                   const prevGroup = index > 0 ? moreItems[index - 1].group : undefined;
                   const showGroupHeader = item.group && item.group !== prevGroup;
 
@@ -178,7 +196,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                       <button
                         onClick={() => handleMoreItemClick(item)}
                         aria-current={active ? 'page' : undefined}
-                        className={`w-full flex items-center gap-4 py-3.5 px-6 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
+                        className={`w-full flex items-center gap-4 py-3.5 px-6 min-h-[48px] transition-colors duration-150 active:bg-tea-elevated/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
                           active
                             ? 'text-tea-accent bg-tea-accent/5'
                             : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
@@ -186,6 +204,11 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
                       >
                         <Icon size={18} strokeWidth={1.8} />
                         <span className="text-sm font-medium">{item.label}</span>
+                        {item.id === 'cart' && cartItemCount > 0 && (
+                          <span className="ml-auto bg-tea-accent text-tea-bg font-bold text-[10px] min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5">
+                            {cartItemCount}
+                          </span>
+                        )}
                         {item.id === 'main-site' && (
                           <ExternalLink size={14} className="ml-auto opacity-40" />
                         )}

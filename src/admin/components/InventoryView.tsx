@@ -1429,7 +1429,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div className={`h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
       {/* --- CATEGORY TOGGLE + SAVED VIEWS TAB BAR --- */}
-      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar hide-scrollbar">
         {/* Tea / Teaware category toggle */}
         <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 mr-2 flex-shrink-0">
           <button
@@ -1516,8 +1516,52 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
+      <div className={`sticky top-0 z-30 border-b border-tea-border py-2 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+        {/* Mobile header — streamlined */}
+        <div className="md:hidden px-4 flex flex-col gap-2">
+          {/* Top row: title + item count + filter indicator */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                {isEditMode ? 'Editing' : 'Inventory'}
+              </h2>
+              <span className="text-[11px] text-tea-text-dim tabular-nums">{processedProducts.length}</span>
+              {filterType !== 'All' && (
+                <span className="text-[9px] uppercase tracking-[0.15em] text-tea-accent bg-tea-accent/10 px-2 py-0.5 rounded-full">{filterType}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowOptions(!showOptions)}
+                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+            </div>
+          </div>
+          {/* Search row — full width on mobile */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
+            <input
+              type="text"
+              placeholder="Search inventory..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-tea-surface/50 border border-tea-border rounded-lg pl-9 pr-8 py-2 text-sm text-tea-text outline-none focus:border-tea-accent-sub font-sans placeholder-tea-text-dim transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text p-0.5"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop header — unchanged */}
+        <div className="hidden md:flex px-6 max-w-7xl mx-auto items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
                 <Settings size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
                 <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
@@ -1532,8 +1576,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {/* Search */}
                 <div className="relative w-48">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         placeholder="Search master list..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -1543,13 +1587,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                 {/* Actions Group */}
                 <div className="flex items-center gap-2 relative">
-                    
+
                     {/* Toggle Edit Mode */}
-                    <button 
-                        onClick={() => setIsEditMode(!isEditMode)} 
+                    <button
+                        onClick={() => setIsEditMode(!isEditMode)}
                         className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
-                            isEditMode 
-                            ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-accent/90' 
+                            isEditMode
+                            ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-accent/90'
                             : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
                         }`}
                     >
@@ -1893,7 +1937,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {/* MOBILE CARDS — compact list with expandable detail + swipe-to-edit */}
+        {/* MOBILE CARDS — redesigned with visible description + direct edit/view access */}
         <div className={`md:hidden pb-24 ${filterType === 'Pending' ? 'hidden' : ''}`}>
             {processedProducts.map((product, idx) => {
                 const dotColor = getThemeColor(product.type);
@@ -1901,290 +1945,261 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 const isOutOfStock = product.stockGrams === 0;
                 const isLowStock = product.stockGrams > 0 && product.stockGrams <= (product.lowStockThreshold || 10);
                 const stockClass = isOutOfStock ? 'stock-out' : isLowStock ? 'stock-low' : 'stock-ok';
+                const descriptionPreview = product.lore || product.description || '';
                 return (
-                <div key={product.id} className="swipe-row-container">
-                    {/* Swipe action tray (behind the row) */}
-                    <div className="swipe-row-actions">
+                <div key={product.id} className={`border-b border-tea-border/50 ${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/10' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/10'}`}>
+                    {/* Main row — tap to expand */}
+                    <button
+                        className="inv-row-accent w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-surface/60"
+                        style={{ '--row-type-color': dotColor } as React.CSSProperties}
+                        onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                    >
+                        {/* Type color indicator */}
+                        <span
+                            className="flex-shrink-0 w-2.5 h-7 rounded-sm"
+                            style={{ backgroundColor: dotColor, opacity: 0.6 }}
+                        />
+
+                        {/* Name + metadata + description snippet */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-tea-text text-[15px] font-sans font-medium truncate leading-tight">{product.productName}</span>
+                                {product.isFeatured && <Star size={12} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
+                                {!product.isPublic && <EyeOff size={11} className="flex-shrink-0 text-tea-text-dim" />}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-tea-text-sec mt-0.5">
+                                <span className="font-medium">{product.type}</span>
+                                {product.originRegion && (
+                                    <>
+                                        <span className="text-tea-text-dim">·</span>
+                                        <span className="truncate text-tea-text-dim">{product.originRegion}</span>
+                                    </>
+                                )}
+                                {product.year && (
+                                    <>
+                                        <span className="text-tea-text-dim">·</span>
+                                        <span className="text-tea-text-dim">{product.year}</span>
+                                    </>
+                                )}
+                            </div>
+                            {/* Description preview — always visible, one line */}
+                            {descriptionPreview && (
+                                <p className="text-[11px] text-tea-text-dim font-serif italic leading-snug mt-1 truncate">
+                                    {descriptionPreview}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Stock + Price */}
+                        <div className="flex-shrink-0 text-right min-w-[52px]">
+                            {inventoryCategory === 'teaware' ? (
+                              <>
+                                <div className="text-[13px] text-tea-text font-sans font-medium tabular-nums">
+                                  {product.quantityUnits ?? '-'} <span className="text-tea-text-dim text-[11px]">units</span>
+                                </div>
+                                <div className="text-[11px] text-tea-text-sec tabular-nums">
+                                  {product.material || product.teawareCategory || '-'}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className={`text-[13px] font-sans font-medium tabular-nums ${stockClass}`}>
+                                    {Math.round(product.stockGrams)}g
+                                </div>
+                                <div className="text-[11px] text-tea-text-sec tabular-nums">
+                                    ${fmtNum(product.pricePerGramUSD)}/g
+                                </div>
+                              </>
+                            )}
+                        </div>
+
+                        {/* Verification checkmark (mobile) */}
+                        {filterType === 'Unverified' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isVerified = !!product.stockVerifiedAt;
+                              handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+                            }}
+                            className={`flex-shrink-0 w-7 h-7 rounded flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-text-dim'}`}
+                          >
+                            {product.stockVerifiedAt ? <Check size={16} strokeWidth={3} /> : <Square size={16} />}
+                          </button>
+                        )}
+
+                        {/* Expand indicator */}
+                        <ChevronDown size={16} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Quick actions bar — ALWAYS visible beneath each row (no expand needed) */}
+                    <div className="flex items-center px-4 py-1 gap-0.5 bg-tea-surface/20">
                         <button
-                            className="swipe-row-action swipe-row-action-edit"
                             onClick={() => setPanelProduct(product)}
-                            aria-label={`Edit ${product.productName}`}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] font-semibold text-tea-gold hover:bg-tea-gold/10 rounded-md transition-colors"
                         >
-                            <Pencil size={16} />
-                            <span>Edit</span>
+                            <Pencil size={12} /> Edit
                         </button>
                         <button
-                            className="swipe-row-action swipe-row-action-view"
-                            onClick={() => setQrProduct(product)}
-                            aria-label={`QR code for ${product.productName}`}
+                            onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface/50 rounded-md transition-colors"
                         >
-                            <QrCode size={16} />
-                            <span>QR</span>
+                            <FileText size={12} /> Details
+                        </button>
+                        <button
+                            onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
+                            className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                            aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
+                        >
+                            <Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} />
+                        </button>
+                        <button
+                            onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
+                            className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-text-sec' : 'text-tea-text-dim'}`}
+                            aria-label={product.isPublic ? 'Make private' : 'Make public'}
+                        >
+                            {product.isPublic ? <Eye size={14} /> : <EyeOff size={14} />}
                         </button>
                     </div>
 
-                    {/* Foreground row with swipe gesture */}
-                    <div
-                        className="swipe-row-content"
-                        onTouchStart={(e) => {
-                            const touch = e.targetTouches[0];
-                            (e.currentTarget as any)._swipeStartX = touch.clientX;
-                            (e.currentTarget as any)._swipeStartY = touch.clientY;
-                            (e.currentTarget as any)._swiping = false;
-                            e.currentTarget.classList.add('swiping');
-                        }}
-                        onTouchMove={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            const startX = (el as any)._swipeStartX;
-                            const startY = (el as any)._swipeStartY;
-                            if (startX == null) return;
-                            const dx = e.targetTouches[0].clientX - startX;
-                            const dy = e.targetTouches[0].clientY - startY;
-                            // Only swipe horizontally (not scroll)
-                            if (!(el as any)._swiping && Math.abs(dy) > Math.abs(dx)) return;
-                            if (Math.abs(dx) > 10) (el as any)._swiping = true;
-                            if ((el as any)._swiping) {
-                                const clamped = Math.max(-130, Math.min(0, dx));
-                                el.style.transform = `translateX(${clamped}px)`;
-                            }
-                        }}
-                        onTouchEnd={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            el.classList.remove('swiping');
-                            const startX = (el as any)._swipeStartX;
-                            if (startX == null) return;
-                            const rect = el.getBoundingClientRect();
-                            const currentX = parseFloat(el.style.transform?.replace(/[^-\d.]/g, '') || '0');
-                            if (currentX < -50) {
-                                el.style.transform = 'translateX(-130px)';
-                            } else {
-                                el.style.transform = 'translateX(0)';
-                            }
-                            (el as any)._swipeStartX = null;
-                        }}
-                        onClick={(e) => {
-                            const el = e.currentTarget as HTMLElement;
-                            const currentX = parseFloat(el.style.transform?.replace(/[^-\d.]/g, '') || '0');
-                            // If swiped open, snap closed instead of toggling expand
-                            if (currentX < -10) {
-                                el.style.transform = 'translateX(0)';
-                                return;
-                            }
-                        }}
-                    >
-                        {/* Compact row */}
-                        <button
-                            className={`inv-row-accent w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-surface/60 border-b border-tea-border/50 ${isExpanded ? 'bg-tea-surface/50 expanded' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/15'} ${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/15' : ''}`}
-                            style={{ '--row-type-color': dotColor } as React.CSSProperties}
-                            onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                    {/* Expanded detail panel */}
+                    <AnimatePresence>
+                    {isExpanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                            className="overflow-hidden"
                         >
-                            {/* Type color indicator — larger, rounded square */}
-                            <span
-                                className="flex-shrink-0 w-2.5 h-7 rounded-sm"
-                                style={{ backgroundColor: dotColor, opacity: 0.6 }}
-                            />
-
-                            {/* Name + metadata */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-tea-text text-[15px] font-sans font-medium truncate leading-tight">{product.productName}</span>
-                                    {product.isFeatured && <Star size={12} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
-                                    {!product.isPublic && <EyeOff size={11} className="flex-shrink-0 text-tea-text-dim" />}
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[11px] text-tea-text-sec mt-0.5">
-                                    <span className="font-medium">{product.type}</span>
-                                    {product.originRegion && (
-                                        <>
-                                            <span className="text-tea-text-dim">·</span>
-                                            <span className="truncate text-tea-text-dim">{product.originRegion}</span>
-                                        </>
-                                    )}
-                                    {product.year && (
-                                        <>
-                                            <span className="text-tea-text-dim">·</span>
-                                            <span className="text-tea-text-dim">{product.year}</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Stock + Price — larger, clearer */}
-                            <div className="flex-shrink-0 text-right min-w-[52px]">
-                                {inventoryCategory === 'teaware' ? (
-                                  <>
-                                    <div className="text-[13px] text-tea-text font-sans font-medium tabular-nums">
-                                      {product.quantityUnits ?? '-'} <span className="text-tea-text-dim text-[11px]">units</span>
-                                    </div>
-                                    <div className="text-[11px] text-tea-text-sec tabular-nums">
-                                      {product.material || product.teawareCategory || '-'}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className={`text-[13px] font-sans font-medium tabular-nums ${stockClass}`}>
-                                        {Math.round(product.stockGrams)}g
-                                    </div>
-                                    <div className="text-[11px] text-tea-text-sec tabular-nums">
-                                        ${fmtNum(product.pricePerGramUSD)}/g
-                                    </div>
-                                  </>
+                          <div className="inv-detail-panel px-4 pb-3 pt-2">
+                            {/* Thumbnail + Description section */}
+                            {(product.imageUrl || descriptionPreview) && (
+                              <div className="flex gap-3 mb-3">
+                                {product.imageUrl && (
+                                  <img
+                                    src={product.imageUrl}
+                                    alt={product.productName}
+                                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                                  />
                                 )}
-                            </div>
-
-                            {/* Verification checkmark (mobile) */}
-                            {filterType === 'Unverified' && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const isVerified = !!product.stockVerifiedAt;
-                                  handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
-                                }}
-                                className={`flex-shrink-0 w-7 h-7 rounded flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-text-dim'}`}
-                              >
-                                {product.stockVerifiedAt ? <Check size={16} strokeWidth={3} /> : <Square size={16} />}
-                              </button>
+                                {descriptionPreview && (
+                                  <p className="text-[13px] text-tea-text-sec font-serif italic leading-relaxed flex-1 whitespace-pre-line line-clamp-4">
+                                    {descriptionPreview}
+                                  </p>
+                                )}
+                              </div>
                             )}
 
-                            {/* Expand indicator — more visible */}
-                            <ChevronDown size={16} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {/* Expanded detail panel — warm inset design */}
-                        <AnimatePresence>
-                        {isExpanded && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                                className="overflow-hidden"
-                            >
-                              <div className="inv-detail-panel px-4 pb-3 pt-2">
-                                {/* Info grid — 2 columns on small, 3 on wider */}
-                                <div className="grid grid-cols-2 gap-x-5 gap-y-3 py-2">
-                                  {inventoryCategory === 'teaware' ? (
-                                    <>
-                                      {product.teawareCategory && (
-                                        <div>
-                                          <div className="inv-detail-label">Category</div>
-                                          <div className="inv-detail-value capitalize">{product.teawareCategory}</div>
-                                        </div>
-                                      )}
-                                      {product.material && (
-                                        <div>
-                                          <div className="inv-detail-label">Material</div>
-                                          <div className="inv-detail-value">{product.material}</div>
-                                        </div>
-                                      )}
-                                      {product.capacityMl && (
-                                        <div>
-                                          <div className="inv-detail-label">Capacity</div>
-                                          <div className="inv-detail-value tabular-nums">{product.capacityMl}ml</div>
-                                        </div>
-                                      )}
-                                      <div>
-                                        <div className="inv-detail-label">Units</div>
-                                        <div className="inv-detail-value tabular-nums">{product.quantityUnits ?? '-'}</div>
-                                      </div>
-                                      <div>
-                                        <div className="inv-detail-label">Cost</div>
-                                        <div className="inv-detail-value tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
-                                      </div>
-                                      <div>
-                                        <div className="inv-detail-label">Status</div>
-                                        <div className="inv-detail-value">{product.status}</div>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <div>
-                                          <div className="inv-detail-label">Stock</div>
-                                          <div className={`inv-detail-value tabular-nums ${stockClass}`}>{Math.round(product.stockGrams)}g</div>
-                                      </div>
-                                      <div>
-                                          <div className="inv-detail-label">Retail</div>
-                                          <div className="inv-detail-value tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
-                                      </div>
-                                      {product.costAmount > 0 && (
-                                        <div>
-                                            <div className="inv-detail-label">Cost</div>
-                                            <div className="inv-detail-value tabular-nums">${product.costAmount.toLocaleString()}</div>
-                                        </div>
-                                      )}
-                                      <div>
-                                          <div className="inv-detail-label">Status</div>
-                                          <div className={`inv-detail-value ${product.status === 'Draft' ? 'text-amber-500' : ''}`}>{product.status}</div>
-                                      </div>
-                                      {product.originRegion && (
-                                          <div className="col-span-2">
-                                              <div className="inv-detail-label">Origin</div>
-                                              <div className="inv-detail-value">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
-                                          </div>
-                                      )}
-                                      {product.vendor && (
-                                          <div>
-                                              <div className="inv-detail-label">Vendor</div>
-                                              <div className="inv-detail-value truncate">{product.vendor}</div>
-                                          </div>
-                                      )}
-                                    </>
+                            {/* Info grid */}
+                            <div className="grid grid-cols-2 gap-x-5 gap-y-3 py-2">
+                              {inventoryCategory === 'teaware' ? (
+                                <>
+                                  {product.teawareCategory && (
+                                    <div>
+                                      <div className="inv-detail-label">Category</div>
+                                      <div className="inv-detail-value capitalize">{product.teawareCategory}</div>
+                                    </div>
                                   )}
-                                </div>
-
-                                {/* Description / Lore */}
-                                {(product.lore || product.description) && (
-                                    <p className="text-[13px] text-tea-text-sec font-serif italic leading-relaxed mt-1 mb-2 line-clamp-3 whitespace-pre-line">
-                                        {product.lore || product.description}
-                                    </p>
-                                )}
-
-                                {/* Tasting notes — better contrast */}
-                                {product.tastingNotes && product.tastingNotes.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5 mb-2">
-                                        {product.tastingNotes.map(note => (
-                                            <span key={note} className="tag text-[11px]">{note}</span>
-                                        ))}
+                                  {product.material && (
+                                    <div>
+                                      <div className="inv-detail-label">Material</div>
+                                      <div className="inv-detail-value">{product.material}</div>
                                     </div>
-                                )}
-
-                                {/* Action bar — larger tap targets, clear edit button */}
-                                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-tea-border">
-                                    <button
-                                        onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-accent bg-tea-accent-sub' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                                        aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
-                                    >
-                                        <Star size={18} className={product.isFeatured ? "fill-tea-accent" : ""} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec' : 'text-tea-text-dim'}`}
-                                        aria-label={product.isPublic ? 'Make private' : 'Make public'}
-                                    >
-                                        {product.isPublic ? <Eye size={18} /> : <EyeOff size={18} />}
-                                    </button>
-                                    <button
-                                        onClick={() => setQrProduct(product)}
-                                        className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                                        aria-label="QR Code"
-                                    >
-                                        <QrCode size={18} />
-                                    </button>
-
-                                    <div className="ml-auto">
-                                        <button
-                                            onClick={() => setPanelProduct(product)}
-                                            className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.12em] font-semibold text-tea-gold bg-tea-accent-sub hover:bg-tea-gold/20 rounded-lg transition-colors"
-                                        >
-                                            <Pencil size={14} /> Edit
-                                        </button>
+                                  )}
+                                  {product.capacityMl && (
+                                    <div>
+                                      <div className="inv-detail-label">Capacity</div>
+                                      <div className="inv-detail-value tabular-nums">{product.capacityMl}ml</div>
                                     </div>
+                                  )}
+                                  <div>
+                                    <div className="inv-detail-label">Units</div>
+                                    <div className="inv-detail-value tabular-nums">{product.quantityUnits ?? '-'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="inv-detail-label">Cost</div>
+                                    <div className="inv-detail-value tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
+                                  </div>
+                                  <div>
+                                    <div className="inv-detail-label">Status</div>
+                                    <div className="inv-detail-value">{product.status}</div>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>
+                                      <div className="inv-detail-label">Stock</div>
+                                      <div className={`inv-detail-value tabular-nums ${stockClass}`}>{Math.round(product.stockGrams)}g</div>
+                                  </div>
+                                  <div>
+                                      <div className="inv-detail-label">Retail</div>
+                                      <div className="inv-detail-value tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
+                                  </div>
+                                  {product.costAmount > 0 && (
+                                    <div>
+                                        <div className="inv-detail-label">Cost</div>
+                                        <div className="inv-detail-value tabular-nums">${product.costAmount.toLocaleString()}</div>
+                                    </div>
+                                  )}
+                                  <div>
+                                      <div className="inv-detail-label">Status</div>
+                                      <div className={`inv-detail-value ${product.status === 'Draft' ? 'text-amber-500' : ''}`}>{product.status}</div>
+                                  </div>
+                                  {product.originRegion && (
+                                      <div className="col-span-2">
+                                          <div className="inv-detail-label">Origin</div>
+                                          <div className="inv-detail-value">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
+                                      </div>
+                                  )}
+                                  {product.vendor && (
+                                      <div>
+                                          <div className="inv-detail-label">Vendor</div>
+                                          <div className="inv-detail-value truncate">{product.vendor}</div>
+                                      </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* Tasting notes */}
+                            {product.tastingNotes && product.tastingNotes.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
+                                    {product.tastingNotes.map(note => (
+                                        <span key={note} className="tag text-[11px]">{note}</span>
+                                    ))}
                                 </div>
+                            )}
+
+                            {/* Mood / Experience preview */}
+                            {(product.mood || product.experience) && (
+                              <div className="mt-1 mb-2 text-[11px] text-tea-text-dim">
+                                {product.mood && <span className="italic">Mood: {product.mood}</span>}
+                                {product.mood && product.experience && <span className="mx-1.5">·</span>}
+                                {product.experience && <span className="italic line-clamp-2">{product.experience}</span>}
                               </div>
-                            </motion.div>
-                        )}
-                        </AnimatePresence>
-                    </div>
+                            )}
+
+                            {/* Bottom actions — QR + Full Edit */}
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
+                                <button
+                                    onClick={() => setQrProduct(product)}
+                                    className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-tea-text-dim hover:text-tea-text-sec rounded-md transition-colors"
+                                >
+                                    <QrCode size={14} /> QR Code
+                                </button>
+                                <div className="ml-auto">
+                                    <button
+                                        onClick={() => setPanelProduct(product)}
+                                        className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.12em] font-semibold text-tea-gold bg-tea-accent-sub hover:bg-tea-gold/20 rounded-lg transition-colors"
+                                    >
+                                        <Pencil size={14} /> Full Edit
+                                    </button>
+                                </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                    )}
+                    </AnimatePresence>
                 </div>
             )})}
 
