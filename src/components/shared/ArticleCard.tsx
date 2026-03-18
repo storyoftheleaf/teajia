@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Icons } from '../Icons';
 import { CardContainer } from './CardContainer';
 import { useLongPress } from '../../hooks/useLongPress';
-
 interface ArticleCardProps {
   title: string;
   description?: string;
@@ -11,6 +10,9 @@ interface ArticleCardProps {
   slug?: string;
   onClick?: () => void;
   className?: string;
+  duration?: string;
+  wordCount?: number;
+  isFeatured?: boolean;
 }
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({
@@ -21,6 +23,9 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   slug,
   onClick,
   className = '',
+  duration,
+  wordCount,
+  isFeatured,
 }) => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -29,6 +34,16 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const aspect = aspectRatio === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
   const hasImage = imageUrl && !imageError;
+
+  const readingTime = useMemo(() => {
+    if (duration) return duration;
+    if (wordCount) {
+      const mins = Math.max(1, Math.round(wordCount / 200));
+      return `${mins} min read`;
+    }
+    return undefined;
+  }, [duration, wordCount]);
+
 
   React.useEffect(() => {
     if (imageUrl) setImageLoading(true);
@@ -95,7 +110,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] relative ${className}`}
+      className={`cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] relative ${isFeatured ? 'article-card-hero' : ''} ${className}`}
       {...longPressHandlers}
     >
       <CardContainer className="p-0 overflow-hidden">
@@ -133,6 +148,9 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 }}
               />
 
+              {/* Vignette overlay — editorial depth */}
+              <div className="article-card-vignette" />
+
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
             </>
@@ -149,6 +167,17 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           )}
 
 
+          {/* Reading time — bottom-right */}
+          {readingTime && (
+            <span className="article-card-time">
+              <Icons.Clock className="w-3 h-3" />
+              {readingTime}
+            </span>
+          )}
+
+          {/* Gold accent line — grows on hover */}
+          <div className="article-card-accent" />
+
           {/* Share button — always visible on mobile, hover-reveal on desktop */}
           <button
             onClick={handleShare}
@@ -164,7 +193,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
           {/* Bottom text overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-            <h3 className="font-serif text-[19px] text-tea-text leading-[1.2] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
+            <h3 className="font-serif text-[17px] md:text-[21px] text-tea-text leading-[1.15] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
               {title}
             </h3>
             {description && (

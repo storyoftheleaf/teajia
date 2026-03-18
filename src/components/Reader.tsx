@@ -156,21 +156,24 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean }> = 
     );
 };
 
-/** Thin gold progress bar for Reader — uses page index instead of scroll position. */
+/** Enhanced progress bar with diamond marker for Reader. */
 const ReaderProgressBar: React.FC<{ currentPage: number; totalPages: number }> = ({ currentPage, totalPages }) => {
-  const progress = totalPages > 1 ? currentPage / (totalPages - 1) : 0;
-  const motionProgress = useMotionValue(progress);
-  const scaleX = useSpring(motionProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+  const progress = totalPages > 1 ? (currentPage / (totalPages - 1)) * 100 : 0;
+  const springProgress = useSpring(useMotionValue(progress), { stiffness: 100, damping: 30, restDelta: 0.001 });
 
   useEffect(() => {
-    motionProgress.set(progress);
-  }, [progress, motionProgress]);
+    springProgress.set(progress);
+  }, [progress, springProgress]);
 
   return (
-    <motion.div
-      className="absolute top-0 left-0 right-0 h-[2px] bg-tea-gold/80 origin-left z-[60]"
-      style={{ scaleX }}
-    />
+    <div className="absolute top-0 left-0 right-0 z-[60] reader-progress-track">
+      <motion.div
+        className="reader-progress-fill"
+        style={{ width: springProgress.get() + '%' }}
+        animate={{ width: progress + '%' }}
+        transition={{ type: 'spring', stiffness: 100, damping: 30 }}
+      />
+    </div>
   );
 };
 
@@ -466,18 +469,14 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
           aria-valuemax={pages.length}
           aria-label="Reading progress"
         >
-          <div className="w-full h-[3px] bg-tea-text-sec/15 rounded-full relative">
+          <div className="w-full reader-progress-track rounded-full relative">
             <div
-              className="absolute inset-y-0 left-0 bg-tea-text-sec/60 rounded-full transition-all duration-300 ease-out"
+              className="absolute inset-y-0 left-0 reader-progress-fill rounded-full"
               style={{ width: `${progress * 100}%` }}
-            />
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-tea-text-sec rounded-full shadow-[0_0_6px_rgba(181,168,146,0.3)] transition-all duration-300 ease-out group-hover:w-2.5 group-hover:h-2.5"
-              style={{ left: `calc(${progress * 100}% - 4px)` }}
             />
           </div>
         </div>
-        <span className="text-xs font-mono text-tea-text-sec/50 tabular-nums w-4">{pages.length}</span>
+        <span className="num text-[11px] text-tea-text-sec/50 w-4">{pages.length}</span>
       </div>
     );
   };
