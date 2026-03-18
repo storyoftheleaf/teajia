@@ -1549,6 +1549,17 @@
   100% { transform: translateY(-200px) scale(1.5); opacity: 0; }
 }
 
+@keyframes readerImageRevealCSS {
+  from { opacity: 0; transform: scale(1.04); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes typewriterReveal {
+  from { clip-path: inset(0 100% 0 0); opacity: 0; }
+  5% { opacity: 1; }
+  to { clip-path: inset(0 0% 0 0); opacity: 1; }
+}
+
 /* ============================================
    Texture Mode Classes
    Paper texture variants for Reader and editorial surfaces.
@@ -1630,6 +1641,12 @@
    Drop Cap — Gold Treatment
    Apply .drop-cap-gold to the article container.
    ============================================ */
+
+.drop-cap-gold::after {
+  content: '';
+  display: table;
+  clear: both;
+}
 
 .drop-cap-gold::first-letter,
 .drop-cap-gold p:first-child::first-letter {
@@ -1806,5 +1823,23 @@
   /* Shimmer loading */
   .animate-shimmer {
     animation: none !important;
+  }
+}
+
+/* ============================================
+   Reader — Image Reveal Animation
+   Subtle scale-down entrance for full-bleed
+   images. Used in IMG_FULL_BLEED and similar.
+   ============================================ */
+
+.reader-image-reveal {
+  animation: readerImageRevealCSS 0.9s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-image-reveal {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
   }
 }
