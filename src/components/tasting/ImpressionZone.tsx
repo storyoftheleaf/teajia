@@ -137,7 +137,7 @@ const ImpressionZoneInner: React.FC<ImpressionZoneProps> = ({ value, onChange })
                 role="radio"
                 aria-checked={leafIndex === currentRating}
                 aria-label={`${leafIndex} of ${MAX_RATING} leaves`}
-                className={`p-1 transition-colors duration-200 ${
+                className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors duration-200 ${
                   isFilled
                     ? 'text-tea-gold'
                     : 'text-tea-text-dim/40 hover:text-tea-text-dim'

@@ -53,7 +53,7 @@ const FeelingCardsInner: React.FC<FeelingCardsProps> = ({ flow }) => {
       </div>
 
       {/* Flat grid of all feeling terms, with subtle group labels */}
-      <div role="group" aria-label="Feeling">
+      <div>
         {feelingCategory.groups.map((group, groupIdx) => (
           <React.Fragment key={group.label}>
             {/* Non-interactive group label divider */}

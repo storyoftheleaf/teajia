@@ -173,7 +173,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
           )}
           <button
             onClick={onClose}
-            className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors"
+            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors"
+            aria-label="Close tasting session"
           >
             <X size={18} />
           </button>

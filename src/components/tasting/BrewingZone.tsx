@@ -78,7 +78,7 @@ const BrewingZoneInner: React.FC<BrewingZoneProps> = ({ flow, mode }) => {
           <button
             type="button"
             onClick={() => clearCategory('brewing')}
-            className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
+            className="text-tea-text-dim hover:text-tea-text transition-colors p-2 -mr-1.5"
             aria-label="Clear all brewing selections"
           >
             <X size={12} />

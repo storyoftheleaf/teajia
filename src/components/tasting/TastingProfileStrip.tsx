@@ -148,7 +148,9 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
         <button
           type="button"
           onClick={() => setExpanded(prev => !prev)}
-          className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5"
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Show fewer tasting notes' : `Show ${totalTerms - COLLAPSED_SHOW} more tasting notes`}
+          className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5 min-h-[44px]"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           <span>

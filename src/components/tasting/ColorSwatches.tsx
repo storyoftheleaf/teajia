@@ -41,7 +41,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
           <button
             type="button"
             onClick={() => clearCategory('liquor-color')}
-            className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
+            className="text-tea-text-dim hover:text-tea-text transition-colors p-2 -mr-1.5"
             aria-label="Clear liquor color selection"
           >
             <X size={12} />

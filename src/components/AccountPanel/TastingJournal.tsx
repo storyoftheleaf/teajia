@@ -119,7 +119,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           {entry.tasting.primaryNotes.map(termId => {
                             const Icon = resolveTermIcon(termId);
                             return (
-                              <span key={termId} className="tag" style={{ fontSize: 12, fontWeight: 600 }}>
+                              <span key={termId} className="tag text-xs font-semibold">
                                 <Icon size={12} />
                                 {resolveTermLabel(termId)}
                               </span>

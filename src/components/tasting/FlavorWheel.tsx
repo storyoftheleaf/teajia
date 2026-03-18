@@ -7,18 +7,22 @@ interface FlavorWheelProps {
   flow: TastingFlowState;
 }
 
-/** Subtle tea-themed colors per flavor group */
+/**
+ * Subtle tea-themed colors per flavor group.
+ * Uses color-mix with currentColor so they adapt to both light and dark themes.
+ * The base hues are defined via CSS custom properties for theme adaptability.
+ */
 const SEGMENT_COLORS = [
-  'rgba(200, 120, 160, 0.15)', // Floral - pink
-  'rgba(200, 160, 80, 0.15)',  // Sweet - amber
-  'rgba(200, 100, 80, 0.15)',  // Fruity - coral
-  'rgba(180, 150, 100, 0.15)', // Nutty - tan
-  'rgba(160, 100, 60, 0.15)',  // Roasted - brown
-  'rgba(120, 140, 100, 0.15)', // Woody - olive
-  'rgba(140, 120, 100, 0.15)', // Earthy - taupe
-  'rgba(140, 150, 170, 0.15)', // Mineral - slate
-  'rgba(100, 160, 100, 0.15)', // Fresh - green
-  'rgba(160, 160, 160, 0.15)', // Other - gray
+  'color-mix(in srgb, var(--tea-accent-sub, #c878a0) 15%, transparent)', // Floral
+  'color-mix(in srgb, var(--tea-gold, #b8924e) 15%, transparent)',       // Sweet
+  'color-mix(in srgb, var(--tea-gold, #c86450) 12%, transparent)',       // Fruity
+  'color-mix(in srgb, var(--tea-gold, #b49664) 12%, transparent)',       // Nutty
+  'color-mix(in srgb, var(--tea-gold, #a0643c) 15%, transparent)',       // Roasted
+  'color-mix(in srgb, var(--tea-accent-sub, #788c64) 15%, transparent)', // Woody
+  'color-mix(in srgb, var(--tea-text-dim, #8c7864) 12%, transparent)',   // Earthy
+  'color-mix(in srgb, var(--tea-text-sec, #8c96aa) 12%, transparent)',   // Mineral
+  'color-mix(in srgb, var(--tea-accent-sub, #64a064) 15%, transparent)', // Fresh
+  'color-mix(in srgb, var(--tea-text-dim, #a0a0a0) 10%, transparent)',   // Other
 ];
 
 const SELECTED_FILL = 'rgba(var(--tea-gold-rgb, 184, 146, 78), 0.25)';

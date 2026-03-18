@@ -75,7 +75,7 @@ const MouthfeelZoneInner: React.FC<MouthfeelZoneProps> = ({ flow }) => {
   };
 
   return (
-    <div>
+    <div role="group" aria-label="Mouthfeel and finish">
       {/* Section header */}
       <div className="flex items-center justify-between mb-1">
         <div className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium"

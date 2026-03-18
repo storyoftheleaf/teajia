@@ -301,7 +301,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => goToSection(section.id)}
-                  className={`relative flex items-center md:w-full gap-2 px-3 py-2 md:py-2.5 flex-shrink-0 rounded-md transition-all duration-150 ${
+                  className={`relative flex items-center md:w-full gap-2 px-3 py-2 md:py-2.5 min-h-[44px] flex-shrink-0 rounded-md transition-all duration-150 ${
                     isActive
                       ? 'bg-tea-gold/10 text-tea-gold'
                       : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'

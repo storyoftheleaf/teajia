@@ -120,7 +120,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                   flow.expandGroup(group.label);
                 }
               }}
-              className="flex items-center justify-center w-8 h-full shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+              className="flex items-center justify-center w-11 min-h-[44px] shrink-0 opacity-50 hover:opacity-100 transition-opacity"
               aria-label={isExpanded ? `Collapse ${group.label}` : `Expand ${group.label}`}
             >
               <motion.div
