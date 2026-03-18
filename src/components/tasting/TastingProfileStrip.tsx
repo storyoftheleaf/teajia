@@ -40,7 +40,7 @@ const CATEGORY_TINT_CLASSES: Record<string, string> = {
 const MAX_VISIBLE = 8;
 const COLLAPSED_SHOW = 6;
 
-export const TastingProfileStrip: React.FC<TastingProfileStripProps> = ({ value, onRemove }) => {
+const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, onRemove }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Group terms by category following the canonical order
@@ -163,3 +163,6 @@ export const TastingProfileStrip: React.FC<TastingProfileStripProps> = ({ value,
     </div>
   );
 };
+
+export const TastingProfileStrip = React.memo(TastingProfileStripInner);
+TastingProfileStrip.displayName = 'TastingProfileStrip';

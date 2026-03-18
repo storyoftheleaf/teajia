@@ -24,7 +24,7 @@ interface BrewingZoneProps {
   mode?: 'admin' | 'customer';
 }
 
-export const BrewingZone: React.FC<BrewingZoneProps> = ({ flow, mode }) => {
+const BrewingZoneInner: React.FC<BrewingZoneProps> = ({ flow, mode }) => {
   const selected = flow.value.brewing || [];
   const brewingCount = flow.getCategoryCount('brewing');
   const clearCategory = flow.clearCategory;
@@ -222,3 +222,6 @@ export const BrewingZone: React.FC<BrewingZoneProps> = ({ flow, mode }) => {
     </div>
   );
 };
+
+export const BrewingZone = React.memo(BrewingZoneInner);
+BrewingZone.displayName = 'BrewingZone';

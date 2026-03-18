@@ -27,7 +27,7 @@ const MOOD_OPTIONS = [
 
 const MAX_RATING = 5;
 
-export const ImpressionZone: React.FC<ImpressionZoneProps> = ({ value, onChange }) => {
+const ImpressionZoneInner: React.FC<ImpressionZoneProps> = ({ value, onChange }) => {
   // Parse current mood selections from comma-joined string
   const selectedMoods = useMemo(() => {
     if (!value.overallImpression) return new Set<string>();
@@ -91,7 +91,7 @@ export const ImpressionZone: React.FC<ImpressionZoneProps> = ({ value, onChange 
       </AnimatePresence>
 
       {/* Mood cards — 2x2 grid */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label="Overall mood">
         {MOOD_OPTIONS.map(({ id, icon: Icon }) => {
           const isSelected = selectedMoods.has(id);
 
@@ -105,6 +105,7 @@ export const ImpressionZone: React.FC<ImpressionZoneProps> = ({ value, onChange 
                 isSelected ? 'tag-selectable-active' : ''
               }`}
               style={{ fontFamily: 'var(--font-body)' }}
+              aria-pressed={isSelected}
             >
               <Icon size={20} strokeWidth={isSelected ? 2 : 1.5} />
               <span className="text-[12px]">{id}</span>
@@ -165,3 +166,6 @@ export const ImpressionZone: React.FC<ImpressionZoneProps> = ({ value, onChange 
     </div>
   );
 };
+
+export const ImpressionZone = React.memo(ImpressionZoneInner);
+ImpressionZone.displayName = 'ImpressionZone';

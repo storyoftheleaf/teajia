@@ -36,7 +36,7 @@ interface MouthfeelZoneProps {
   mode?: 'admin' | 'customer';
 }
 
-export const MouthfeelZone: React.FC<MouthfeelZoneProps> = ({ flow }) => {
+const MouthfeelZoneInner: React.FC<MouthfeelZoneProps> = ({ flow }) => {
   const bodySelected = flow.value.body || [];
   const finishSelected = flow.value.finish || [];
   const combinedCount = bodySelected.length + finishSelected.length;
@@ -215,6 +215,13 @@ export const MouthfeelZone: React.FC<MouthfeelZoneProps> = ({ flow }) => {
         </div>
       )}
 
+      {/* CSS for weight/finish segment borders via CSS variables */}
+      <style>{`
+        .weight-segment-border {
+          border-right: 1px solid var(--tea-border);
+        }
+      `}</style>
+
       {/* Part 5: Throat — pill row */}
       {finishThroatGroup && (
         <div>
@@ -247,3 +254,6 @@ export const MouthfeelZone: React.FC<MouthfeelZoneProps> = ({ flow }) => {
     </div>
   );
 };
+
+export const MouthfeelZone = React.memo(MouthfeelZoneInner);
+MouthfeelZone.displayName = 'MouthfeelZone';

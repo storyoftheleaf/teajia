@@ -19,7 +19,7 @@ interface SectionTabsProps {
   getCategoryCount: (categoryId: TastingCategoryId) => number;
 }
 
-export const SectionTabs: React.FC<SectionTabsProps> = ({
+const SectionTabsInner: React.FC<SectionTabsProps> = ({
   sections,
   activeSection,
   onSectionChange,
@@ -63,7 +63,7 @@ export const SectionTabs: React.FC<SectionTabsProps> = ({
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             onClick={() => onSectionChange(sectionId)}
-            className={`tasting-tab relative flex flex-col items-center gap-1 px-3 py-2 flex-shrink-0 transition-colors duration-150 ${
+            className={`tasting-tab relative flex flex-col items-center gap-1 px-3 py-2 min-h-[44px] flex-shrink-0 transition-colors duration-150 ${
               isActive ? 'tasting-tab-active text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
             }`}
             style={{ fontFamily: 'var(--font-display)', fontSize: '11px' }}
@@ -102,3 +102,6 @@ export const SectionTabs: React.FC<SectionTabsProps> = ({
     </div>
   );
 };
+
+export const SectionTabs = React.memo(SectionTabsInner);
+SectionTabs.displayName = 'SectionTabs';

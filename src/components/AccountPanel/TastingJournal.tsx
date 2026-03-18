@@ -9,7 +9,9 @@ import {
   resolveTermIcon,
   LIQUOR_COLORS,
   TERM_MAP,
+  TASTING_CATEGORY_ORDER,
 } from '../../data/tastingTaxonomy';
+import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 
 interface TastingJournalProps {
   onBack: () => void;
@@ -95,11 +97,40 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           <span className="text-[9px] text-tea-text-dim shrink-0">{entry.teaType}</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-tea-text-dim mb-1.5">{formatDate(entry.createdAt)}</div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] text-tea-text-dim">{formatDate(entry.createdAt)}</span>
+                        {/* Rating as filled tea leaves */}
+                        {(entry.tasting.rating ?? entry.rating ?? 0) > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <Leaf
+                                key={i}
+                                size={10}
+                                className={i <= (entry.tasting.rating ?? entry.rating ?? 0) ? 'text-tea-gold fill-tea-gold' : 'text-tea-text-dim/20'}
+                              />
+                            ))}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Primary notes — emphasized */}
+                      {entry.tasting.primaryNotes && entry.tasting.primaryNotes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {entry.tasting.primaryNotes.map(termId => {
+                            const Icon = resolveTermIcon(termId);
+                            return (
+                              <span key={termId} className="tag" style={{ fontSize: 12, fontWeight: 600 }}>
+                                <Icon size={12} />
+                                {resolveTermLabel(termId)}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Preview pills */}
                       <div className="flex flex-wrap gap-1">
-                        {previewNotes.map(termId => {
+                        {previewNotes.filter(t => !entry.tasting.primaryNotes?.includes(t)).slice(0, 3).map(termId => {
                           const Icon = resolveTermIcon(termId);
                           return (
                             <span key={termId} className="tag">
@@ -127,26 +158,50 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                       className="overflow-hidden"
                     >
                       <div className="px-3.5 pb-3.5 border-t border-tea-border pt-3">
-                        {/* Full notes grid */}
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-3">
-                          {allNotes.map(termId => {
-                            const Icon = resolveTermIcon(termId);
-                            const termInfo = TERM_MAP.get(termId);
-                            const isColor = termInfo?.categoryId === 'liquor-color';
-                            const hex = isColor ? LIQUOR_COLORS[termId] : null;
-                            return (
-                              <div key={termId} className="flex items-center gap-2 text-xs text-tea-text-sec py-0.5"
-                                style={{ fontFamily: 'var(--font-body)' }}>
-                                {hex ? (
-                                  <span className="w-3 h-3 rounded-full shrink-0" style={{ background: hex, border: '1px solid var(--tea-border)' }} />
-                                ) : (
-                                  <Icon size={13} className="shrink-0 text-tea-gold" style={{ opacity: 0.7 }} />
-                                )}
-                                {resolveTermLabel(termId)}
+                        {/* Category-grouped notes display */}
+                        <div className="space-y-2.5 mb-3">
+                          {TASTING_CATEGORY_ORDER
+                            .map(catId => ({
+                              categoryId: catId,
+                              label: ({ flavor: 'FLAVOR', body: 'BODY', finish: 'FINISH', feeling: 'FEEL', 'liquor-color': 'COLOR', brewing: 'BREW' } as Record<string, string>)[catId] || catId.toUpperCase(),
+                              terms: entry.tasting[catId as keyof typeof entry.tasting] as string[] | undefined,
+                            }))
+                            .filter(g => g.terms && g.terms.length > 0)
+                            .map(group => (
+                              <div key={group.categoryId}>
+                                <div
+                                  className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-1 ml-0.5"
+                                  style={{ fontFamily: 'var(--font-display)' }}
+                                >
+                                  {group.label}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {group.terms!.map(termId => {
+                                    const isColor = group.categoryId === 'liquor-color';
+                                    const hex = isColor ? LIQUOR_COLORS[termId] : null;
+                                    const Icon = !isColor ? resolveTermIcon(termId) : null;
+                                    return (
+                                      <span key={termId} className="tag">
+                                        {hex ? (
+                                          <span className="shrink-0 rounded-full inline-block" style={{ width: 10, height: 10, background: hex }} />
+                                        ) : Icon ? (
+                                          <Icon size={11} className="shrink-0" />
+                                        ) : null}
+                                        {resolveTermLabel(termId)}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            );
-                          })}
+                            ))}
                         </div>
+
+                        {/* Overall impression */}
+                        {entry.tasting.overallImpression && (
+                          <div className="text-xs text-tea-text-sec italic mb-2 px-1" style={{ fontFamily: 'var(--font-body)' }}>
+                            "{entry.tasting.overallImpression}"
+                          </div>
+                        )}
 
                         {/* Personal note */}
                         {entry.personalNote && (

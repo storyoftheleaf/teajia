@@ -11,7 +11,7 @@ interface FeelingCardsProps {
   mode?: 'admin' | 'customer';
 }
 
-export const FeelingCards: React.FC<FeelingCardsProps> = ({ flow }) => {
+const FeelingCardsInner: React.FC<FeelingCardsProps> = ({ flow }) => {
   const selected = flow.value.feeling || [];
   const count = selected.length;
 
@@ -22,7 +22,7 @@ export const FeelingCards: React.FC<FeelingCardsProps> = ({ flow }) => {
   };
 
   return (
-    <div>
+    <div role="group" aria-label="Feeling selections">
       {/* Section header */}
       <div className="flex items-center justify-between mb-1">
         <div
@@ -103,3 +103,6 @@ export const FeelingCards: React.FC<FeelingCardsProps> = ({ flow }) => {
     </div>
   );
 };
+
+export const FeelingCards = React.memo(FeelingCardsInner);
+FeelingCards.displayName = 'FeelingCards';

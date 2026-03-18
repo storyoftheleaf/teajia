@@ -20,7 +20,7 @@ interface FlavorZoneProps {
   mode?: 'admin' | 'customer';
 }
 
-export const FlavorZone: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => {
+const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => {
   const [showMore, setShowMore] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -305,3 +305,6 @@ export const FlavorZone: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) =
     </div>
   );
 };
+
+export const FlavorZone = React.memo(FlavorZoneInner);
+FlavorZone.displayName = 'FlavorZone';

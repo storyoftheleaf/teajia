@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Leaf } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
 import { useSubmitTastingNotes } from '../../hooks/useEventPolling';
 import type { TeaMenuItem } from '../../types/events';
@@ -71,7 +71,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-4">
           <TeaLeafIcon className="w-7 h-7 text-tea-gold" filled />
         </div>
-        <h3 className="font-serif text-xl text-tea-text mb-2">Thank You</h3>
+        <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Thank You</h3>
         <p className="text-sm text-tea-text-sec max-w-xs mx-auto">
           Your impressions have been shared. They help us curate even better sessions.
         </p>
@@ -81,8 +81,8 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
 
   return (
     <div className={`${className}`}>
-      <h3 className="font-serif text-xl text-tea-text mb-2">Share Your Impressions</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
+      <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Share Your Impressions</h3>
+      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6" style={{ fontFamily: 'var(--font-body)' }}>
         Rate the teas you tasted today
       </p>
 
@@ -104,7 +104,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                     </span>
                   )}
                 </div>
-                <h4 className="font-serif text-base text-tea-text">{item.customName || item.productName}</h4>
+                <h4 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{item.customName || item.productName}</h4>
                 {item.customDescription && (
                   <p className="text-xs text-tea-text-sec mt-1 line-clamp-2">{item.customDescription}</p>
                 )}

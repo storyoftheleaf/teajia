@@ -11,7 +11,7 @@ interface ColorSwatchesProps {
   flow: TastingFlowState;
 }
 
-export const ColorSwatches: React.FC<ColorSwatchesProps> = ({ flow }) => {
+const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
   const selected = flow.value['liquor-color'] || [];
   const colorCount = flow.getCategoryCount('liquor-color');
   const clearCategory = flow.clearCategory;
@@ -108,3 +108,6 @@ export const ColorSwatches: React.FC<ColorSwatchesProps> = ({ flow }) => {
     </div>
   );
 };
+
+export const ColorSwatches = React.memo(ColorSwatchesInner);
+ColorSwatches.displayName = 'ColorSwatches';
