@@ -4,15 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
   BarChart3,
-  Home,
   ClipboardList,
   Users,
   ShoppingCart,
   Calendar,
   Sparkles,
   X,
-  ExternalLink,
 } from 'lucide-react';
+import { LogoEmblem, LogoText } from '../../components/Logos';
 
 interface AdminBottomNavProps {
   onSearchClick: () => void;
@@ -22,12 +21,13 @@ interface AdminBottomNavProps {
   onAddProduct?: () => void;
 }
 
-// Primary tabs — 5 most essential mobile actions
-// Center button is Home (main site)
-const tabs = [
+// Left/right tabs — mirroring BottomTabBar's layout (2 left, center, 2 right)
+const leftTabs = [
   { id: 'inventory', label: 'Inventory', icon: Package, path: '/admin/inventory' },
   { id: 'activity', label: 'Activity', icon: ClipboardList, path: '/admin/activity' },
-  { id: 'home', label: 'Home', icon: Home, path: '/' },
+] as const;
+
+const rightTabs = [
   { id: 'people', label: 'People', icon: Users, path: '/admin/people' },
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/admin/dashboard' },
 ] as const;
@@ -49,15 +49,45 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   const location = useLocation();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
-  const isActive = (path: string | null) => {
-    if (!path || path === '/') return false;
+  const isActive = (path: string) => {
+    if (path === '/') return false;
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  const handleTabClick = (tab: (typeof tabs)[number]) => {
-    if (tab.path) {
-      navigate(tab.path);
-    }
+  const isHome = location.pathname === '/admin' || location.pathname === '/admin/';
+
+  const renderTab = (tab: { id: string; label: string; icon: React.ComponentType<any>; path: string }, index: number) => {
+    const Icon = tab.icon;
+    const active = isActive(tab.path);
+
+    return (
+      <div key={tab.id} className="flex items-center h-full flex-1">
+        <button
+          onClick={() => navigate(tab.path)}
+          aria-current={active ? 'page' : undefined}
+          aria-label={tab.label}
+          className="flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          style={{ animationDelay: `${index * 50}ms` }}
+        >
+          <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-visible transition-all duration-300 group-hover:scale-105">
+            <Icon
+              className={`transition-all duration-300 flex-shrink-0 w-5 h-5 ${
+                active
+                  ? 'text-tea-gold scale-110 origin-center'
+                  : 'text-tea-text/60 group-hover:text-tea-text/85'
+              }`}
+              strokeWidth={2}
+              {...(active ? { fill: 'currentColor' } : {})}
+            />
+          </div>
+          <span className={`text-[11px] font-sans font-normal uppercase tracking-[0.15em] mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
+            active ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+          }`}>
+            {tab.label}
+          </span>
+        </button>
+      </div>
+    );
   };
 
   const handleMoreItemClick = (item: (typeof moreItems)[number]) => {
@@ -71,45 +101,45 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
 
   return (
     <>
-      {/* Bottom Tab Bar */}
-      <nav aria-label="Admin navigation" className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-tea-surface/95 backdrop-blur-xl border-t border-tea-border pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-stretch">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = isActive(tab.path);
-            const isHomeButton = tab.id === 'home';
+      {/* Bottom Tab Bar — identical structure to home page BottomTabBar */}
+      <nav
+        aria-label="Admin navigation"
+        className="flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/92 backdrop-blur-xl z-sticky animate-[slideUp_0.4s_ease-out] transition-all duration-200 h-[56px] pb-[env(safe-area-inset-bottom)] md:hidden"
+        style={{ boxShadow: '0 -8px 24px var(--tea-accent-sub)' }}
+      >
+        <div className="flex items-center w-full px-0 h-full">
+          {/* Left tabs */}
+          {leftTabs.map((tab, index) => renderTab(tab, index))}
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab)}
-                aria-current={active && tab.path !== '/' ? 'page' : undefined}
-                aria-label={tab.label}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[52px] py-2 transition-colors duration-200 relative focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
-                  isHomeButton
-                    ? 'text-tea-gold'
-                    : active ? 'text-tea-accent' : 'text-tea-text-sec'
-                }`}
-              >
-                <div className="relative">
-                  {isHomeButton ? (
-                    <div className="w-9 h-9 rounded-full bg-tea-gold/15 flex items-center justify-center -mt-3 shadow-lg shadow-tea-gold/10">
-                      <Home size={20} strokeWidth={2.5} className="text-tea-gold" />
-                    </div>
-                  ) : (
-                    <Icon size={20} strokeWidth={1.8} />
-                  )}
-                </div>
-                <span className={`text-[9px] uppercase tracking-wider font-medium leading-none ${isHomeButton ? '-mt-1' : ''}`}>
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
+          {/* Center — Home with Teajia logo emblem (identical to home page) */}
+          <div className="flex items-center h-full flex-1">
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 h-full flex items-center justify-center relative transition-all duration-300"
+              title="Home"
+              aria-label="Return to home"
+            >
+              <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
+                <LogoEmblem
+                  size={48}
+                  color="var(--tea-accent-sub)"
+                  className="transition-all duration-300"
+                />
+              </div>
+              <LogoText
+                size="sm"
+                color="var(--tea-text-sec)"
+                className="relative z-10 transition-all duration-300 scale-[1.08]"
+              />
+            </button>
+          </div>
+
+          {/* Right tabs */}
+          {rightTabs.map((tab, index) => renderTab(tab, index + leftTabs.length + 1))}
         </div>
       </nav>
 
-      {/* More Bottom Sheet (for overflow items — triggered from long-press or swipe-up in future) */}
+      {/* More Bottom Sheet */}
       <AnimatePresence>
         {isMoreOpen && (
           <>

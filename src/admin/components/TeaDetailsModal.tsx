@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency, productToInventoryItem } from '../utils';
@@ -93,7 +94,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
 
   const hasNavigation = (onNext || onPrev);
 
-  return (
+  const dialog = (
     <div
       role="dialog"
       aria-modal="true"
@@ -173,13 +174,20 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         </button>
       )}
 
-      {/* Tasting Editor Modal (admin only) */}
-      {tastingProduct && (
+    </div>
+  );
+
+  return (
+    <>
+      {dialog}
+      {/* Tasting Editor Modal — rendered via portal to avoid click propagation closing the parent */}
+      {tastingProduct && createPortal(
         <TastingEditorModal
           product={tastingProduct}
           onClose={() => setTastingProduct(null)}
-        />
+        />,
+        document.body
       )}
-    </div>
+    </>
   );
 };

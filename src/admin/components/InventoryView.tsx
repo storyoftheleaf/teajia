@@ -2050,24 +2050,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <div key={product.id} className={`${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/10' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/20'}`}>
                     {/* Main row — tap to expand */}
                     <button
-                        className="inv-row-accent w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-surface/60"
+                        className="inv-row-accent w-full text-left px-4 py-2 flex items-center gap-2.5 transition-colors active:bg-tea-surface/60"
                         style={{ '--row-type-color': dotColor } as React.CSSProperties}
                         onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
                     >
                         {/* Type color indicator */}
                         <span
-                            className="flex-shrink-0 w-2.5 h-7 rounded-sm"
+                            className="flex-shrink-0 w-2 h-6 rounded-sm"
                             style={{ backgroundColor: dotColor, opacity: 0.6 }}
                         />
 
-                        {/* Name + metadata + description snippet */}
+                        {/* Name + metadata — compact, no description */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
-                                <span className="text-tea-text text-[15px] font-sans font-medium truncate leading-tight">{product.productName}</span>
-                                {product.isFeatured && <Star size={12} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
-                                {!product.isPublic && <EyeOff size={11} className="flex-shrink-0 text-tea-text-dim" />}
+                                <span className="text-tea-text text-[14px] font-sans font-medium truncate leading-tight">{product.productName}</span>
+                                {product.isFeatured && <Star size={11} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
+                                {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim" />}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-tea-text-sec mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec">
                                 <span className="font-medium">{product.type}</span>
                                 {product.originRegion && (
                                     <>
@@ -2082,12 +2082,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     </>
                                 )}
                             </div>
-                            {/* Description preview — always visible, one line */}
-                            {descriptionPreview && (
-                                <p className="text-[11px] text-tea-text-dim font-serif italic leading-snug mt-1 truncate">
-                                    {descriptionPreview}
-                                </p>
-                            )}
                         </div>
 
                         {/* Stock + Price */}
