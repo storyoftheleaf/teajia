@@ -21,7 +21,7 @@
   --tea-accent-sub: rgba(184,146,78,0.1);
 
   /* Font Families */
-  --font-display: 'Vollkorn', 'Lora', 'Noto Serif SC', Georgia, serif;
+  --font-display: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
   --font-serif: 'Lora', 'Noto Serif SC', serif;
   --font-body: 'Lora', 'Noto Serif SC', serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -261,7 +261,7 @@ p {
    ============================================ */
 
 .font-display {
-  font-family: 'Vollkorn', 'Noto Serif SC', Georgia, serif;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
 }
 
 .font-body {

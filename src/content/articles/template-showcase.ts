@@ -140,7 +140,7 @@ export const templateShowcase: ReadableStory = {
 
     ":::CHAPTER_MINIMAL:::04|Quotes and Poetry",
 
-    ":::QUOTE_BIG:::QUOTE_BIG — A large, centered quotation with thin horizontal rules above and below. The text is set in italic Vollkorn with generous tracking. Use for powerful standalone quotes that deserve an entire page to themselves.",
+    ":::QUOTE_BIG:::QUOTE_BIG — A large, centered quotation with thin horizontal rules above and below. The text is set in italic Cormorant Garamond with generous tracking. Use for powerful standalone quotes that deserve an entire page to themselves.",
 
     ":::QUOTE_MINIMAL:::QUOTE_MINIMAL — A left-aligned quotation with a subtle gold border on the left edge. More restrained than QUOTE_BIG, this layout works for shorter quotes, epigraphs, or transitional moments between sections.",
 
@@ -232,7 +232,7 @@ export const templateShowcase: ReadableStory = {
 
     ":::EPILOGUE_CENTERED:::Every layout tells a story differently. Some whisper; some shout. The art is in matching the vessel to the tea — or in this case, matching the template to the content. May this guide serve you well.",
 
-    ":::CREDITS_PAGE:::Layout Template Showcase\nConceived and designed by the Teajia Editorial Team\nAll layouts rendered by SinglePageRenderer\nPhotography from Unsplash\nTypeset in Vollkorn, system serif, and system mono\n\n© 2024 Teajia Journal",
+    ":::CREDITS_PAGE:::Layout Template Showcase\nConceived and designed by the Teajia Editorial Team\nAll layouts rendered by SinglePageRenderer\nPhotography from Unsplash\nTypeset in Cormorant Garamond, system serif, and system mono\n\n© 2024 Teajia Journal",
 
     ":::BACK_COVER:::BACK_COVER — The final page. Displays the Teajia monogram, issue number, and year. A quiet, dignified close.",
 
