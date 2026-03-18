@@ -57,7 +57,6 @@ import { thePottersWeek } from './photo-essays/the-potters-week';
 
 export const STORIES: Story[] = [
   // --- TEMPLATE SHOWCASES (1-12) ---
-  templateShowcase,
   travelFeatureVideo,
   darkModeProcess,
   scientificReference,
@@ -110,4 +109,7 @@ export const STORIES: Story[] = [
   beginnersGuide,
   timelineOverview,
   lifestyleGuide,
+
+  // --- REFERENCE ---
+  templateShowcase,
 ];
