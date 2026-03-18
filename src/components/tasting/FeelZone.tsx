@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { TASTING_TAXONOMY, TERM_MAP } from '../../data/tastingTaxonomy';
+import { TASTING_TAXONOMY, TERM_MAP, GROUP_ICON_MAP } from '../../data/tastingTaxonomy';
 import type { TastingFlowState } from './useTastingFlow';
 
 const finishCategory = TASTING_TAXONOMY.categories.find(c => c.id === 'finish')!;
@@ -30,9 +30,6 @@ const FINISH_DURATIONS = [
 
 const finishCharacterGroup = finishCategory.groups.find(g => g.label === 'Character');
 const finishThroatGroup = finishCategory.groups.find(g => g.label === 'Throat');
-
-// Flatten all feeling terms for a simpler display
-const allFeelingTerms = feelingCategory.groups.flatMap(g => g.terms);
 
 interface FeelZoneProps {
   flow: TastingFlowState;
@@ -78,12 +75,12 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
   return (
     <div role="group" aria-label="Feel and mouthfeel">
       {/* Section header */}
-      <div className="flex items-center justify-between mb-1">
-        <div
-          className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
+      <div className="flex items-center justify-between mb-3">
+        <div className="tasting-section-label flex-1">
           Feel
+          {totalCount > 0 && (
+            <span className="text-tea-gold ml-1 tracking-normal">{totalCount}</span>
+          )}
         </div>
         {totalCount > 0 && (
           <button
@@ -99,19 +96,22 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
 
       {totalCount === 0 && (
         <p
-          className="text-[11px] text-tea-text-dim italic mb-3"
+          className="text-[12px] text-tea-text-dim italic mb-4"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           How does this tea feel — in mouth, body, and mind?
         </p>
       )}
 
-      {/* ── Body weight — 3-segment toggle ── */}
+      {/* ── Body weight — warm recessed segment toggle ── */}
       <div className="mb-4">
-        <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 mb-1.5 font-medium">
+        <div
+          className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           Weight
         </div>
-        <div className="flex rounded-lg overflow-hidden bg-tea-surface" role="radiogroup" aria-label="Body weight">
+        <div className="tasting-segment-toggle" role="radiogroup" aria-label="Body weight">
           {WEIGHTS.map((w, i) => (
             <motion.button
               key={w.id}
@@ -120,12 +120,17 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
               onClick={() => toggleWeight(w.id)}
               role="radio"
               aria-checked={selectedWeight === w.id}
-              className={`flex-1 py-2.5 text-xs font-medium transition-all duration-150 min-h-[44px] ${
+              className={`flex-1 py-2.5 text-[12px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
                 selectedWeight === w.id
-                  ? 'tag-selectable-active'
+                  ? 'text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text'
               }${i < WEIGHTS.length - 1 ? ' weight-segment-border' : ''}`}
-              style={{ fontFamily: 'var(--font-body)' }}
+              style={{
+                fontFamily: 'var(--font-body)',
+                background: selectedWeight === w.id
+                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgba(184, 146, 78, 0.12) 0%, rgba(184, 146, 78, 0.04) 70%)'
+                  : 'transparent',
+              }}
             >
               {w.label}
             </motion.button>
@@ -134,8 +139,11 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
       </div>
 
       {/* ── Texture ── */}
-      <div className="mb-4">
-        <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 mb-1.5 font-medium">
+      <div className="mb-5">
+        <div
+          className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           Texture
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -158,15 +166,18 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
         </div>
       </div>
 
-      {/* ── Subtle divider ── */}
-      <div className="divider-warm my-4" />
+      {/* ── Warm divider ── */}
+      <div className="divider-warm my-5" />
 
-      {/* ── Finish duration — segment toggle ── */}
-      <div className="mb-3">
-        <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 mb-1.5 font-medium">
+      {/* ── Finish duration — warm segment toggle ── */}
+      <div className="mb-4">
+        <div
+          className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           Finish
         </div>
-        <div className="flex rounded-lg overflow-hidden bg-tea-surface" role="radiogroup" aria-label="Finish duration">
+        <div className="tasting-segment-toggle" role="radiogroup" aria-label="Finish duration">
           {FINISH_DURATIONS.map((d, i) => (
             <motion.button
               key={d.id}
@@ -175,12 +186,17 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
               onClick={() => toggleDuration(d.id)}
               role="radio"
               aria-checked={selectedDuration === d.id}
-              className={`flex-1 py-2.5 text-xs font-medium transition-all duration-150 min-h-[44px] ${
+              className={`flex-1 py-2.5 text-[12px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
                 selectedDuration === d.id
-                  ? 'tag-selectable-active'
+                  ? 'text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text'
               }${i < FINISH_DURATIONS.length - 1 ? ' weight-segment-border' : ''}`}
-              style={{ fontFamily: 'var(--font-body)' }}
+              style={{
+                fontFamily: 'var(--font-body)',
+                background: selectedDuration === d.id
+                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgba(184, 146, 78, 0.12) 0%, rgba(184, 146, 78, 0.04) 70%)'
+                  : 'transparent',
+              }}
             >
               {d.label}
             </motion.button>
@@ -190,9 +206,12 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
 
       {/* ── Finish character + throat — flowing pills ── */}
       {(finishCharacterGroup || finishThroatGroup) && (
-        <div className="mb-4">
-          <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 mb-1.5 font-medium">
-            Character
+        <div className="mb-5">
+          <div
+            className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Finish character
           </div>
           <div className="flex flex-wrap gap-1.5">
             {finishCharacterGroup?.terms.map(term => {
@@ -209,7 +228,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
                   style={{ fontFamily: 'var(--font-body)' }}
                   aria-pressed={isSelected}
                 >
-                  {Icon && <Icon size={11} style={{ opacity: isSelected ? 1 : 0.4, flexShrink: 0 }} />}
+                  {Icon && <Icon size={11} className={`shrink-0 ${isSelected ? 'opacity-100' : 'opacity-30'}`} />}
                   {term.label}
                 </motion.button>
               );
@@ -228,7 +247,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
                   style={{ fontFamily: 'var(--font-body)' }}
                   aria-pressed={isSelected}
                 >
-                  {Icon && <Icon size={11} style={{ opacity: isSelected ? 1 : 0.4, flexShrink: 0 }} />}
+                  {Icon && <Icon size={11} className={`shrink-0 ${isSelected ? 'opacity-100' : 'opacity-30'}`} />}
                   {term.label}
                 </motion.button>
               );
@@ -237,38 +256,59 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
         </div>
       )}
 
-      {/* ── Subtle divider ── */}
-      <div className="divider-warm my-4" />
+      {/* ── Warm divider ── */}
+      <div className="divider-warm my-5" />
 
-      {/* ── Mood / Feeling — flowing pills by group ── */}
+      {/* ── Mood / Feeling — warm mood cards by group ── */}
       <div>
-        <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 mb-2 font-medium">
+        <div className="tasting-section-label mb-3">
           State of mind
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {allFeelingTerms.map(term => {
-            const isSelected = feelingSelected.includes(term.id);
-            const termInfo = TERM_MAP.get(term.id);
-            const TermIcon = termInfo?.icon;
+        <div className="space-y-3">
+          {feelingCategory.groups.map(group => {
+            const GroupIcon = GROUP_ICON_MAP[group.label];
             return (
-              <motion.button
-                key={term.id}
-                type="button"
-                whileTap={{ scale: 0.93 }}
-                onClick={() => flow.toggleTerm('feeling', term.id)}
-                className={`tag-selectable ${isSelected ? 'tag-selectable-active' : ''}`}
-                style={{ fontFamily: 'var(--font-body)' }}
-                aria-pressed={isSelected}
-              >
-                {TermIcon && (
-                  <TermIcon
-                    size={12}
-                    className="shrink-0"
-                    style={{ opacity: isSelected ? 1 : 0.4 }}
-                  />
-                )}
-                {term.label}
-              </motion.button>
+              <div key={group.label}>
+                {/* Group label with icon */}
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {GroupIcon && <GroupIcon size={12} className="text-tea-text-dim opacity-50" />}
+                  <span
+                    className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim/70 font-medium"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {group.label}
+                  </span>
+                </div>
+                {/* Mood cards — horizontal flow */}
+                <div className="flex flex-wrap gap-2">
+                  {group.terms.map(term => {
+                    const isSelected = feelingSelected.includes(term.id);
+                    const termInfo = TERM_MAP.get(term.id);
+                    const TermIcon = termInfo?.icon;
+                    return (
+                      <motion.button
+                        key={term.id}
+                        type="button"
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => flow.toggleTerm('feeling', term.id)}
+                        className={`tasting-mood-card ${isSelected ? 'tasting-mood-card-active' : ''} flex items-center gap-2 px-3 py-2.5 min-h-[44px]`}
+                        style={{ fontFamily: 'var(--font-body)' }}
+                        aria-pressed={isSelected}
+                      >
+                        {TermIcon && (
+                          <TermIcon
+                            size={15}
+                            className={`shrink-0 ${isSelected ? 'text-tea-gold' : 'text-tea-text-dim opacity-40'} transition-colors`}
+                          />
+                        )}
+                        <span className={`text-[12px] ${isSelected ? 'text-tea-gold font-medium' : 'text-tea-text-sec'} transition-colors`}>
+                          {term.label}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>

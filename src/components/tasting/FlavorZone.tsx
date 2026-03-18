@@ -65,8 +65,11 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
     const hasMore = group.terms.length > INLINE_PREVIEW_COUNT;
 
     return (
-      <div key={group.label} className="space-y-0">
-        {/* Group header — always tappable to expand/collapse */}
+      <div
+        key={group.label}
+        className={`tasting-flavor-group ${hasSelections ? 'tasting-flavor-group-active' : ''}`}
+      >
+        {/* Group header — tappable to expand/collapse */}
         <motion.button
           type="button"
           onClick={() => {
@@ -76,42 +79,44 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
               flow.expandGroup(group.label);
             }
           }}
-          className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all duration-150 ${
-            hasSelections
-              ? 'bg-tea-gold-lt text-tea-gold'
-              : 'bg-tea-surface/60 text-tea-text-sec hover:bg-tea-surface'
-          }`}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 relative z-[1]"
           aria-expanded={isExpanded}
           aria-label={`${group.label} flavors${hasSelections ? `, ${selectedTerms.length} selected` : ''}`}
         >
           {GroupIcon && (
-            <GroupIcon
-              size={15}
-              className={`shrink-0 ${hasSelections ? 'opacity-100' : 'opacity-40'}`}
-            />
+            <span className={`shrink-0 ${hasSelections ? 'text-tea-gold' : 'text-tea-text-dim'} transition-colors`}>
+              <GroupIcon size={16} />
+            </span>
           )}
-          <span className="text-xs font-medium" style={{ fontFamily: 'var(--font-body)' }}>
+          <span
+            className={`text-[12px] font-medium ${hasSelections ? 'text-tea-gold' : 'text-tea-text-sec'} transition-colors`}
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
             {group.label}
           </span>
           {selectedTerms.length > 0 && (
-            <span className="text-[10px] text-tea-gold opacity-70">
+            <span
+              className="text-[9px] font-bold text-tea-gold bg-tea-gold/15 rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+            >
               {selectedTerms.length}
             </span>
           )}
           <motion.div
-            className="ml-auto shrink-0 opacity-40"
+            className={`ml-auto shrink-0 ${hasSelections ? 'text-tea-gold opacity-60' : 'text-tea-text-dim opacity-30'}`}
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.15 }}
           >
-            <ChevronRight size={12} />
+            <ChevronRight size={13} />
           </motion.div>
         </motion.button>
 
         {/* Inline preview — top terms shown directly below group header */}
         {!isExpanded && (
-          <div className="flex flex-wrap gap-1 px-1 pt-1.5 pb-0.5">
+          <div className="flex flex-wrap gap-1.5 px-3 pb-2.5 relative z-[1]">
             {previewTerms.map(term => {
               const isTermSelected = selectedFlavors.includes(term.id);
+              const termInfo = TERM_MAP.get(term.id);
+              const TermIcon = termInfo?.icon;
               return (
                 <motion.button
                   key={term.id}
@@ -122,27 +127,33 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                     flow.toggleTerm('flavor', term.id);
                   }}
                   className={`tag-selectable ${isTermSelected ? 'tag-selectable-active' : ''}`}
-                  style={{ fontFamily: 'var(--font-body)', fontSize: '11px' }}
+                  style={{ fontFamily: 'var(--font-body)' }}
                   aria-pressed={isTermSelected}
                 >
+                  {TermIcon && (
+                    <TermIcon
+                      size={11}
+                      className={`shrink-0 ${isTermSelected ? 'opacity-100' : 'opacity-30'}`}
+                    />
+                  )}
                   {term.label}
                 </motion.button>
               );
             })}
-            {hasMore && !isExpanded && (
+            {hasMore && (
               <button
                 type="button"
                 onClick={() => flow.expandGroup(group.label)}
-                className="text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors px-1.5 py-1 opacity-60 hover:opacity-100"
+                className="text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors px-2 py-1 rounded opacity-50 hover:opacity-100 hover:bg-tea-gold/5"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
-                +{group.terms.length - INLINE_PREVIEW_COUNT}
+                +{group.terms.length - INLINE_PREVIEW_COUNT} more
               </button>
             )}
           </div>
         )}
 
-        {/* Expanded: all terms */}
+        {/* Expanded: all terms with warm inset background */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -152,7 +163,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="flex flex-wrap gap-1.5 px-1 pt-2 pb-1">
+              <div className="flex flex-wrap gap-1.5 px-3 pb-3 pt-0.5 relative z-[1]">
                 {group.terms.map(term => {
                   const isTermSelected = selectedFlavors.includes(term.id);
                   const termInfo = TERM_MAP.get(term.id);
@@ -170,7 +181,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                       {TermIcon && (
                         <TermIcon
                           size={11}
-                          className={`shrink-0 ${isTermSelected ? 'opacity-100' : 'opacity-40'}`}
+                          className={`shrink-0 ${isTermSelected ? 'opacity-100' : 'opacity-30'}`}
                         />
                       )}
                       {term.label}
@@ -198,7 +209,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                             }
                           }}
                           placeholder="Custom term..."
-                          className="text-xs bg-tea-surface text-tea-text px-2 py-1 rounded w-24 outline-none"
+                          className="text-xs bg-tea-bg text-tea-text px-2.5 py-1.5 rounded outline-none w-28"
                           style={{ fontFamily: 'var(--font-body)' }}
                         />
                       </form>
@@ -206,7 +217,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                       <button
                         type="button"
                         onClick={() => setShowCustomInput(true)}
-                        className="tag-selectable flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity"
+                        className="tag-selectable flex items-center gap-1 opacity-40 hover:opacity-80 transition-opacity"
                         aria-label="Add custom flavor term"
                       >
                         <Plus size={11} />
@@ -225,12 +236,12 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
   return (
     <div ref={panelRef} role="group" aria-label="Flavor notes">
       {/* Section header */}
-      <div className="flex items-center justify-between mb-2">
-        <div
-          className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
+      <div className="flex items-center justify-between mb-3">
+        <div className="tasting-section-label flex-1">
           Flavor
+          {flavorCount > 0 && (
+            <span className="text-tea-gold ml-1 tracking-normal">{flavorCount}</span>
+          )}
         </div>
         {flavorCount > 0 && (
           <button
@@ -247,23 +258,23 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
       {/* Empty state */}
       {flavorCount === 0 && (
         <p
-          className="text-xs text-tea-text-dim italic mb-3"
+          className="text-[12px] text-tea-text-dim italic mb-4"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           What flavors do you taste?
         </p>
       )}
 
-      {/* Suggested row */}
+      {/* Suggested row — warm inset panel */}
       {suggestedTermIds.length > 0 && (
-        <div className="mb-3">
+        <div className="tasting-suggested-row mb-4">
           <div
-            className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim mb-1.5"
+            className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-2 relative z-[1]"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Suggested for {teaType}
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 relative z-[1]">
             {suggestedTermIds.map(termId => {
               const termInfo = TERM_MAP.get(termId);
               if (!termInfo) return null;
@@ -282,7 +293,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                   {TermIcon && (
                     <TermIcon
                       size={11}
-                      className={`shrink-0 ${isTermSelected ? 'opacity-100' : 'opacity-40'}`}
+                      className={`shrink-0 ${isTermSelected ? 'opacity-100' : 'opacity-30'}`}
                     />
                   )}
                   {termInfo.label}
@@ -293,8 +304,8 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
         </div>
       )}
 
-      {/* Group list — single column, each group shows inline preview */}
-      <div className="flex flex-col gap-2">
+      {/* Group list — warm cards with inline previews */}
+      <div className="flex flex-col gap-2.5">
         {visibleGroups.map(group => renderGroup(group))}
 
         {/* "More flavors" toggle */}
@@ -303,7 +314,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
             type="button"
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowMore(true)}
-            className="flex items-center justify-center gap-1.5 py-2 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <Plus size={12} />
