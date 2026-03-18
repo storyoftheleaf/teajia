@@ -22,7 +22,7 @@ interface FlavorZoneProps {
 }
 
 const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => {
-  const [showMore, setShowMore] = useState(false);
+  const [showMore, setShowMore] = useState(true);
   const [customInput, setCustomInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);

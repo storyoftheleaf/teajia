@@ -137,21 +137,19 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-          className="relative w-full max-w-2xl max-h-[90vh] bg-tea-bg rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-2xl max-h-[95vh] bg-tea-bg rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col"
           style={{ boxShadow: '0 -4px 40px rgba(0,0,0,0.3)' }}
         >
-          {/* Header */}
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border shrink-0">
+          {/* Header — compact */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-tea-border shrink-0">
             {product.imageUrl && (
-              <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+              <img src={product.imageUrl} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-tea-text truncate" style={{ fontFamily: 'var(--font-display)' }}>
+              <div className="text-xs font-medium text-tea-text truncate" style={{ fontFamily: 'var(--font-display)' }}>
                 {product.givenName || product.productName}
-              </div>
-              <div className="text-xs text-tea-text-dim">
-                {product.type} · Tasting Profile
-                {noteCount > 0 && <span className="text-tea-gold ml-1">({noteCount} notes)</span>}
+                <span className="text-tea-text-dim font-normal ml-1.5">{product.type}</span>
+                {noteCount > 0 && <span className="text-tea-gold ml-1.5 text-[10px]">{noteCount} notes</span>}
               </div>
             </div>
 
@@ -160,11 +158,10 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
               <div className="relative" ref={copyDropdownRef}>
                 <button
                   onClick={() => setShowCopyDropdown(!showCopyDropdown)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-tea-text-sec bg-tea-surface rounded-lg hover:text-tea-text hover:bg-tea-elevated transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] text-tea-text-sec bg-tea-surface rounded-lg hover:text-tea-text hover:bg-tea-elevated transition-colors"
                 >
-                  <Copy size={13} />
-                  <span>Copy from...</span>
-                  <ChevronDown size={12} className={`transition-transform ${showCopyDropdown ? 'rotate-180' : ''}`} />
+                  <Copy size={11} />
+                  <span>Copy</span>
                 </button>
 
                 <AnimatePresence>
@@ -177,7 +174,6 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
                       className="absolute right-0 top-full mt-1 w-64 bg-tea-surface rounded-xl overflow-hidden z-50"
                       style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}
                     >
-                      {/* Search input */}
                       <div className="p-2">
                         <input
                           type="text"
@@ -188,8 +184,6 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
                           autoFocus
                         />
                       </div>
-
-                      {/* Product list */}
                       <div className="max-h-48 overflow-auto">
                         {filteredCopyProducts.length === 0 ? (
                           <div className="px-3 py-4 text-xs text-tea-text-dim text-center">No teas with tasting data</div>
@@ -226,22 +220,22 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
               </div>
             )}
 
-            <button onClick={onClose} className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors">
-              <X size={18} />
+            <button onClick={onClose} className="p-1 text-tea-text-dim hover:text-tea-text transition-colors">
+              <X size={16} />
             </button>
           </div>
 
           {/* Tasting Flow */}
-          <div className="flex-1 overflow-auto px-5 py-4">
+          <div className="flex-1 overflow-auto px-4 py-3">
             <TastingFlow mode="admin" value={tastingData} onChange={handleChange} teaType={product.type} />
           </div>
 
-          {/* Save button */}
-          <div className="px-5 py-4 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
+          {/* Save button — compact */}
+          <div className="px-4 py-2 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
             <button
               onClick={handleSave}
               disabled={saving || !hasChanges}
-              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                 hasChanges
                   ? 'bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98]'
                   : 'bg-tea-border text-tea-text-dim cursor-not-allowed'
@@ -251,7 +245,7 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
                 <span className="animate-pulse">Saving...</span>
               ) : (
                 <>
-                  <Check size={16} />
+                  <Check size={14} />
                   {hasChanges ? 'Lock In' : 'No Changes'}
                 </>
               )}
