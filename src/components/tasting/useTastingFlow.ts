@@ -52,7 +52,10 @@ export function useTastingFlow(
   initialValue: TastingData,
   onChange: (data: TastingData) => void
 ): TastingFlowState {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // Start with all flavor groups expanded
+  const flavorCategory = TASTING_TAXONOMY.categories.find(c => c.id === 'flavor');
+  const allGroupLabels = flavorCategory ? flavorCategory.groups.map(g => g.label) : [];
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(allGroupLabels));
   const undoStack = useRef<TastingData[]>([]);
 
   const pushUndo = useCallback((current: TastingData) => {

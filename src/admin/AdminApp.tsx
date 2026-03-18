@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, Leaf } from 'lucide-react';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -191,33 +191,26 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-4 md:px-6 py-3 flex items-center gap-3 flex-none">
-           {/* Left: Search (mobile) */}
-           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-text-sec hover:text-tea-text transition-colors p-2">
-              <Search size={18} />
+        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl border-b border-tea-border px-3 md:px-6 py-2 flex items-center gap-2 flex-none">
+           {/* Search bar — compact, not full width */}
+           <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-lg px-3 py-1.5 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
+              <Search size={14} />
+              <span className="truncate">Search...</span>
            </button>
 
-           {/* Center: Teajia branding — clickable to go home */}
-           <button
-             onClick={() => navigate('/')}
-             className="flex-1 flex items-center justify-center gap-2 md:flex-none md:ml-0"
-           >
-             <Leaf size={16} className="text-tea-gold" />
-             <span className="text-sm font-serif tracking-[0.2em] uppercase text-tea-text">Teajia</span>
-           </button>
+           <div className="flex-1" />
 
-           {/* Right: Currency selector (with refresh inside) + Cart */}
-           <div className="flex items-center gap-2">
+           {/* Right: Currency selector + Cart */}
+           <div className="flex items-center gap-1.5">
              <div className="relative" data-currency-selector>
                 <button
                   onClick={() => setCurrencyOpen(prev => !prev)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors px-2.5 py-1.5 rounded-lg hover:bg-tea-surface"
+                  className="flex items-center gap-1 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors px-2 py-1.5 rounded-lg hover:bg-tea-elevated/50"
                 >
-                  {currency} <ChevronDown size={14} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
+                  {currency} <ChevronDown size={12} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {currencyOpen && (
                   <div className="absolute right-0 mt-2 w-44 bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl z-[100] max-h-[min(320px,50vh)] overflow-y-auto">
-                    {/* Refresh rates button inside dropdown */}
                     <button
                       onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
                       className="w-full flex items-center gap-2.5 px-4 py-3 text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors border-b border-tea-border"
@@ -225,7 +218,6 @@ const AdminContent = () => {
                       <RefreshCw size={14} />
                       <span>Refresh Rates</span>
                     </button>
-                    {/* Currency options */}
                     {rates.map(rate => (
                       <button key={rate.currency} onClick={() => { setCurrency(rate.currency); setCurrencyOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium bg-tea-accent/5' : 'text-tea-text-sec'}`}>
                         <span>{rate.currency}</span>
@@ -236,8 +228,8 @@ const AdminContent = () => {
                 )}
              </div>
 
-             <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-2">
-               <ShoppingCart size={20} />
+             <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-1.5">
+               <ShoppingCart size={18} />
                {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
              </button>
            </div>

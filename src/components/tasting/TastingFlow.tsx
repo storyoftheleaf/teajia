@@ -1,24 +1,21 @@
-import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Palette, Leaf, Sparkles, Star,
-  Undo2, Zap,
+  Palette, Leaf, Sparkles, Star, Heart,
+  Undo2,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { useTastingFlow } from './useTastingFlow';
 import { FlavorZone } from './FlavorZone';
 import { FeelZone } from './FeelZone';
+import { ExperienceZone } from './ExperienceZone';
 import { ColorSwatches } from './ColorSwatches';
 import { ImpressionZone } from './ImpressionZone';
-import { TastingProfileStrip } from './TastingProfileStrip';
-
-const FlavorWheel = React.lazy(() => import('./FlavorWheel'));
-const RapidEntryMode = React.lazy(() => import('./RapidEntryMode'));
 
 /* ─── Section definition ─── */
 
-type SectionId = 'impression' | 'liquor-color' | 'flavor' | 'feel';
+type SectionId = 'impression' | 'liquor-color' | 'flavor' | 'feel' | 'experience';
 
 interface SectionDef {
   id: SectionId;
@@ -32,6 +29,7 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: 'liquor-color', label: 'Color', icon: Palette, bgClass: 'tasting-section-bg-liquor-color' },
   { id: 'flavor', label: 'Flavor', icon: Leaf, bgClass: 'tasting-section-bg-flavor' },
   { id: 'feel', label: 'Feel', icon: Sparkles, bgClass: 'tasting-section-bg-feeling' },
+  { id: 'experience', label: 'Experience', icon: Heart, bgClass: '' },
 ];
 
 /* ─── Transition variants ─── */
@@ -75,8 +73,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>(sections[0].id);
   const [[direction, animKey], setDirection] = useState<[number, number]>([0, 0]);
-  const [showFlavorWheel, setShowFlavorWheel] = useState(false);
-  const [showRapidEntry, setShowRapidEntry] = useState(false);
   const [undoToastVisible, setUndoToastVisible] = useState(false);
   const [pulsingTabId, setPulsingTabId] = useState<SectionId | null>(null);
 
@@ -85,7 +81,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
   const touchStartY = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Track previous canUndo to detect new undo opportunities
   const prevCanUndo = useRef(flow.canUndo);
 
   const activeIdx = sections.findIndex((s) => s.id === activeSectionId);
@@ -127,7 +122,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
       const dx = e.changedTouches[0].clientX - touchStartX.current;
       const dy = e.changedTouches[0].clientY - touchStartY.current;
 
-      // Only swipe if horizontal movement dominates
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         if (dx < 0) goNext();
         else goPrev();
@@ -150,7 +144,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
   /* ─── Auto-advance pulse ─── */
 
   useEffect(() => {
-    // After 2s of inactivity, if current section has at least 1 selection, pulse the next tab
     const count = getSectionCount(activeSectionId);
     if (count === 0 || activeIdx >= sections.length - 1) {
       setPulsingTabId(null);
@@ -165,7 +158,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
       clearTimeout(timer);
       setPulsingTabId(null);
     };
-    // We intentionally track value changes to reset the timer
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSectionId, activeIdx, sections, value]);
 
@@ -173,7 +165,10 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
 
   function getSectionCount(sectionId: SectionId): number {
     if (sectionId === 'feel') {
-      return flow.getCategoryCount('body') + flow.getCategoryCount('finish') + flow.getCategoryCount('feeling');
+      return flow.getCategoryCount('body') + flow.getCategoryCount('finish');
+    }
+    if (sectionId === 'experience') {
+      return flow.getCategoryCount('feeling');
     }
     if (sectionId === 'impression') {
       let count = 0;
@@ -184,9 +179,9 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
     return flow.getCategoryCount(sectionId as TastingCategoryId);
   }
 
-  const handleRemoveTerm = (categoryId: TastingCategoryId, termId: string) => {
-    flow.toggleTerm(categoryId, termId);
-  };
+  function getTotalCount(): number {
+    return sections.reduce((sum, s) => sum + getSectionCount(s.id), 0);
+  }
 
   /* ─── Render section content ─── */
 
@@ -197,33 +192,11 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
       case 'liquor-color':
         return <ColorSwatches flow={flow} />;
       case 'flavor':
-        return (
-          <div className="flex flex-col gap-3">
-            <FlavorZone flow={flow} teaType={teaType} mode={mode} />
-            {/* Flavor wheel toggle */}
-            <button
-              type="button"
-              onClick={() => setShowFlavorWheel(!showFlavorWheel)}
-              className="self-center text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors py-1 px-3"
-              style={{ fontFamily: 'var(--font-body)' }}
-            >
-              {showFlavorWheel ? 'Hide flavor wheel' : 'Show flavor wheel'}
-            </button>
-            {showFlavorWheel && (
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-8 text-tea-text-dim text-xs">
-                    Loading wheel...
-                  </div>
-                }
-              >
-                <FlavorWheel flow={flow} />
-              </Suspense>
-            )}
-          </div>
-        );
+        return <FlavorZone flow={flow} teaType={teaType} mode={mode} />;
       case 'feel':
         return <FeelZone flow={flow} mode={mode} />;
+      case 'experience':
+        return <ExperienceZone flow={flow} />;
       default:
         return null;
     }
@@ -232,136 +205,97 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
   /* ─── Active section def ─── */
 
   const activeSection = sections[activeIdx] || sections[0];
+  const totalSelections = getTotalCount();
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* Profile strip */}
-      {flow.hasAnySelection && (
-        <div className="mb-3">
-          <TastingProfileStrip value={value} onRemove={handleRemoveTerm} />
-        </div>
-      )}
-
-      {/* Admin rapid entry toggle */}
-      {mode === 'admin' && (
-        <div className="flex justify-end mb-2">
-          <button
-            type="button"
-            onClick={() => setShowRapidEntry(!showRapidEntry)}
-            className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors px-2 py-1"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            <Zap size={12} />
-            {showRapidEntry ? 'Section view' : 'Rapid entry'}
-          </button>
-        </div>
-      )}
-
-      {/* Rapid entry mode (admin only) */}
-      {showRapidEntry && mode === 'admin' ? (
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center py-12 text-tea-text-dim text-xs">
-              Loading rapid entry...
-            </div>
-          }
+    <div className="flex flex-col gap-1 h-full">
+      {/* ─── Tab bar ─── */}
+      <div className="md:grid md:grid-cols-[180px_1fr] md:gap-0 flex-1 min-h-0">
+        <nav
+          className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-1 px-1 py-1.5 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border/20"
+          role="tablist"
+          aria-label="Tasting sections"
         >
-          <RapidEntryMode flow={flow} />
-        </Suspense>
-      ) : (
-        /* ─── Desktop: two-pane / Mobile: tab + swipe ─── */
-        <div className="md:grid md:grid-cols-[180px_1fr] md:gap-0">
-          {/* ─── Tab bar ─── */}
-          {/* Mobile: horizontal scroll tabs at top */}
-          {/* Desktop: vertical left rail */}
-          <nav
-            className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-1 px-1 py-1.5 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border/20"
-            role="tablist"
-            aria-label="Tasting sections"
-          >
-            {sections.map((section) => {
-              const isActive = section.id === activeSectionId;
-              const count = getSectionCount(section.id);
-              const isPulsing = pulsingTabId === section.id;
-              const Icon = section.icon;
+          {sections.map((section) => {
+            const isActive = section.id === activeSectionId;
+            const count = getSectionCount(section.id);
+            const isPulsing = pulsingTabId === section.id;
+            const Icon = section.icon;
 
-              return (
-                <button
-                  key={section.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  tabIndex={isActive ? 0 : -1}
-                  onClick={() => goToSection(section.id)}
-                  className={`relative flex items-center md:w-full gap-2.5 px-3 py-2.5 md:py-3 min-h-[44px] flex-shrink-0 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? 'text-tea-gold'
-                      : 'text-tea-text-dim hover:text-tea-text-sec'
-                  } ${isPulsing ? 'tasting-tab-pulse' : ''}`}
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '11px',
-                    letterSpacing: '0.06em',
-                    background: isActive
-                      ? 'radial-gradient(ellipse 100% 80% at 50% 30%, rgba(184, 146, 78, 0.08) 0%, transparent 70%)'
-                      : 'transparent',
-                  }}
-                >
-                  <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
-                  <span className="whitespace-nowrap">{section.label}</span>
-
-                  {/* Count indicator */}
-                  {count > 0 && (
-                    <span
-                      className={`ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[9px] font-bold px-1 ${
-                        isActive
-                          ? 'bg-tea-gold/20 text-tea-gold'
-                          : 'bg-tea-surface text-tea-text-sec'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  )}
-
-                  {/* Active indicator — warm gold bar */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="tasting-section-indicator"
-                      className="absolute md:left-0 md:top-1.5 md:bottom-1.5 md:w-[2px] md:h-auto bottom-0 left-3 right-3 h-[2px] md:rounded-r-full rounded-full"
-                      style={{
-                        background: 'linear-gradient(180deg, rgba(184, 146, 78, 0.6), rgba(184, 146, 78, 0.3))',
-                      }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* ─── Section content ─── */}
-          <div
-            ref={contentRef}
-            className="relative min-h-[280px] md:pl-5 pt-4 md:pt-0 overflow-hidden"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            <AnimatePresence initial={false} custom={direction} mode="wait">
-              <motion.div
-                key={activeSection.id + animKey}
-                custom={direction}
-                variants={sectionVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={sectionTransition}
-                className={`${activeSection.bgClass} rounded-lg px-1 py-1`}
+            return (
+              <button
+                key={section.id}
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => goToSection(section.id)}
+                className={`relative flex items-center md:w-full gap-2 px-3 py-2.5 md:py-3 min-h-[44px] flex-shrink-0 rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'text-tea-gold'
+                    : 'text-tea-text-dim hover:text-tea-text-sec'
+                } ${isPulsing ? 'tasting-tab-pulse' : ''}`}
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '13px',
+                  letterSpacing: '0.04em',
+                  background: isActive
+                    ? 'radial-gradient(ellipse 100% 80% at 50% 30%, rgba(184, 146, 78, 0.08) 0%, transparent 70%)'
+                    : 'transparent',
+                }}
               >
-                {renderSectionContent(activeSection.id)}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+                <span className="whitespace-nowrap">{section.label}</span>
+
+                {count > 0 && (
+                  <span
+                    className={`ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1 ${
+                      isActive
+                        ? 'bg-tea-gold/20 text-tea-gold'
+                        : 'bg-tea-surface text-tea-text-sec'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+
+                {isActive && (
+                  <motion.div
+                    layoutId="tasting-section-indicator"
+                    className="absolute md:left-0 md:top-1.5 md:bottom-1.5 md:w-[2px] md:h-auto bottom-0 left-3 right-3 h-[2px] md:rounded-r-full rounded-full"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(184, 146, 78, 0.6), rgba(184, 146, 78, 0.3))',
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* ─── Section content ─── */}
+        <div
+          ref={contentRef}
+          className="relative min-h-[280px] md:pl-5 pt-4 md:pt-0 overflow-hidden flex-1"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <AnimatePresence initial={false} custom={direction} mode="wait">
+            <motion.div
+              key={activeSection.id + animKey}
+              custom={direction}
+              variants={sectionVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={sectionTransition}
+              className={`${activeSection.bgClass} rounded-lg px-1 py-1`}
+            >
+              {renderSectionContent(activeSection.id)}
+            </motion.div>
+          </AnimatePresence>
         </div>
-      )}
+      </div>
 
       {/* ─── Undo toast ─── */}
       <AnimatePresence>
@@ -380,7 +314,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                 flow.undo();
                 setUndoToastVisible(false);
               }}
-              className="flex items-center gap-1.5 text-tea-gold text-[12px] font-medium hover:text-tea-text transition-colors"
+              className="flex items-center gap-1.5 text-tea-gold text-[13px] font-medium hover:text-tea-text transition-colors"
             >
               <Undo2 size={14} />
               Undo
