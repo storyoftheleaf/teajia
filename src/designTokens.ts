@@ -3,7 +3,7 @@
  * ║  TEAJIA DESIGN SYSTEM — "Espresso + Gold"                      ║
  * ║  Single source of truth for all visual decisions.               ║
  * ║                                                                 ║
- * ║  Typography:  Vollkorn · Lora · Plus Jakarta Sans · IBM Plex Mono║
+ * ║  Typography:  Cormorant Garamond · Lora · Plus Jakarta Sans · IBM Plex Mono║
  * ║  Palette:     Warm espresso-and-gold, dark/light via CSS vars   ║
  * ║  Textures:    SVG grain, paper weave, fabric overlay            ║
  * ║  Philosophy:  Editorial calm. Nothing shouts. Everything hums.  ║
@@ -17,7 +17,7 @@
 /**
  * Font Roles:
  *
- *   DISPLAY    — Vollkorn 400
+ *   DISPLAY    — Cormorant Garamond 400
  *                Article titles, page headings, hero text, card titles.
  *                Old Style serif with warmth and gravitas.
  *
@@ -38,8 +38,9 @@
  */
 
 export const FONT_STACKS = {
-  display: ['Vollkorn', 'Lora', 'Noto Serif SC', 'Georgia', 'serif'],
+  display: ['Cormorant Garamond', 'Noto Serif SC', 'Georgia', 'serif'],
   body:    ['Lora', 'Noto Serif SC', 'Georgia', 'serif'],
+  caption: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   mono:    ['IBM Plex Mono', 'Menlo', 'Courier New', 'monospace'],
   chinese: ['Noto Serif SC', 'serif'],
@@ -49,18 +50,18 @@ export const FONT_STACKS = {
 /**
  * Google Fonts import URL (for index.html <link>):
  *
- * Vollkorn:          400, 500, 600 (normal + italic 400, 500)
+ * Cormorant Garamond:          400, 500, 600 (normal + italic 400, 500)
  * Lora:              400, 500, 600, 700 (normal + italic 400, 500)
  * Plus Jakarta Sans: 300, 400, 500, 600
  * IBM Plex Mono:     400, 500
  * Noto Serif SC:     200, 400, 700
  * Ma Shan Zheng:     400
  *
- * https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap
+ * https://fonts.googleapis.com/css2?family=Cormorant Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap
  */
 
 export const TYPE_SCALE = {
-  /** Page titles, hero headings — Vollkorn 300 (lighter = more elegant at large sizes) */
+  /** Page titles, hero headings — Cormorant Garamond 300 (lighter = more elegant at large sizes) */
   display: {
     fontFamily: 'display',
     fontWeight: 300,
@@ -69,7 +70,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.01em',
   },
 
-  /** Section headings — Vollkorn 500 (weight contrast against h1 creates hierarchy) */
+  /** Section headings — Cormorant Garamond 500 (weight contrast against h1 creates hierarchy) */
   h2: {
     fontFamily: 'display',
     fontWeight: 500,
@@ -78,7 +79,7 @@ export const TYPE_SCALE = {
     letterSpacing: '0.01em',
   },
 
-  /** Card titles, drawer headings — Vollkorn 400 (bridges h2→body gap) */
+  /** Card titles, drawer headings — Cormorant Garamond 400 (bridges h2→body gap) */
   h3: {
     fontFamily: 'display',
     fontWeight: 400,
@@ -763,7 +764,7 @@ export const SURFACE_TREATMENTS = {
  *   - Border radius: 1px (intentionally minimal)
  *   - Transform: translateY(-3px) scale(1.01) on hover
  *   - Image: aspect-ratio 1/1, opacity 0.9 → 1 on hover, scale(1.06)
- *   - Title: font-display (Vollkorn), color transitions to --tea-gold on hover
+ *   - Title: font-display (Cormorant Garamond), color transitions to --tea-gold on hover
  *   - Price: .num class (IBM Plex Mono, tabular-nums)
  *
  * SURFACE TREATMENTS (see §12):
@@ -848,6 +849,7 @@ export const DESIGN_TOKENS = {
     display: FONT_STACKS.display,
     serif:   FONT_STACKS.body,
     body:    FONT_STACKS.body,
+    caption: FONT_STACKS.caption,
     sans:    FONT_STACKS.sans,
     mono:    FONT_STACKS.mono,
   },
@@ -877,7 +879,7 @@ export const DESIGN_TOKENS = {
 // Font Theme Presets for testing and customization
 export const FONT_THEMES = {
   default: {
-    name: 'Default (Vollkorn + Lora)',
+    name: 'Default (Cormorant Garamond + Lora)',
     display: FONT_STACKS.display,
     serif: FONT_STACKS.body,
     sans: FONT_STACKS.sans,
