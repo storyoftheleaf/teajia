@@ -125,7 +125,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
+      {/* Modal - full height on mobile, auto height with max on desktop */}
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
@@ -134,7 +134,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
         style={{ y: dragY, opacity: modalOpacity }}
         className="relative w-full max-w-lg md:max-w-2xl lg:max-w-4xl h-[100dvh] md:h-auto md:max-h-[90vh] bg-tea-bg md:rounded-2xl overflow-hidden flex flex-col"
       >
-        {/* iOS-style drag handle */}
+        {/* iOS-style drag handle - mobile only */}
         <div
           className="flex justify-center pt-2 pb-1 md:hidden cursor-grab active:cursor-grabbing"
           onTouchStart={handleTouchStart}
@@ -188,7 +188,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
               exit={{ opacity: 0 }}
               className="flex-1 overflow-auto flex flex-col min-h-0"
             >
-              {/* Tasting flow */}
+              {/* Tasting flow content area */}
               <div className="flex-1 overflow-auto px-5 py-4">
                 {/* Previous tasting comparison */}
                 {previousTasting && previousTasting.tasting && (
@@ -242,7 +242,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                     <button
                       type="button"
                       onClick={() => setNoteExpanded(true)}
-                      className="w-full px-3 py-2 text-left text-sm text-tea-text-dim/60 bg-tea-bg rounded-lg hover:text-tea-text-dim transition-colors"
+                      className="w-full px-3 py-2 text-left text-sm text-tea-text-dim/60 bg-tea-bg rounded-lg hover:text-tea-text-dim transition-colors truncate"
                       style={{ fontFamily: 'var(--font-body)' }}
                     >
                       {personalNote.trim() || 'Add note...'}
@@ -250,7 +250,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                   )}
                 </div>
 
-                {/* Save button */}
+                {/* Save button with state transitions */}
                 <button
                   onClick={handleSave}
                   disabled={!hasNotes || saveState !== 'idle'}
@@ -278,19 +278,20 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
               </div>
             </motion.div>
           ) : (
-            /* Saved confirmation */
+            /* Saved confirmation view */
             <motion.div
               key="saved"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="flex-1 overflow-auto px-5 py-6"
             >
-              {/* Particle-like gold dot animation (CSS-only) */}
+              {/* CSS-only particle animation: gold dots that fade and fall */}
               <div className="relative">
                 <style>{`
                   @keyframes goldParticleFall {
                     0% { opacity: 1; transform: translateY(0) scale(1); }
-                    100% { opacity: 0; transform: translateY(24px) scale(0.4); }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 0; transform: translateY(28px) scale(0.3); }
                   }
                   .gold-particle {
                     position: absolute;
@@ -298,7 +299,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                     height: 4px;
                     border-radius: 50%;
                     background: var(--tea-gold);
-                    animation: goldParticleFall 0.8s ease-out forwards;
+                    animation: goldParticleFall 0.9s ease-out forwards;
+                    pointer-events: none;
                   }
                 `}</style>
                 <div className="gold-particle" style={{ top: '10px', left: 'calc(50% - 20px)', animationDelay: '0s' }} />
@@ -308,7 +310,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
               </div>
 
               <div className="text-center mb-6">
-                {/* Larger gold check circle */}
+                {/* Large gold check circle */}
                 <div className="w-16 h-16 rounded-full bg-tea-gold/15 flex items-center justify-center mx-auto mb-3">
                   <motion.div
                     initial={{ scale: 0 }}
@@ -326,7 +328,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                 </div>
                 <div className="text-xs text-tea-text-dim">Added to your tasting journal</div>
 
-                {/* Rating display */}
+                {/* Rating display as filled tea leaves */}
                 {tastingData.rating && tastingData.rating > 0 && (
                   <div className="mt-2 flex justify-center">
                     <TeaLeafRating rating={tastingData.rating} />
@@ -334,7 +336,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                 )}
               </div>
 
-              {/* Summary grouped by category */}
+              {/* Summary terms grouped by category */}
               {groupedSavedNotes.length > 0 && (
                 <div className="rounded-xl p-4 mb-4 bg-tea-surface/50 space-y-3">
                   {groupedSavedNotes.map(group => (
@@ -371,6 +373,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                 </div>
               )}
 
+              {/* Personal note display */}
               {personalNote.trim() && (
                 <div
                   className="text-xs text-tea-text-dim italic mb-4 px-2"
@@ -380,7 +383,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                 </div>
               )}
 
-              {/* Actions */}
+              {/* Post-save actions */}
               <div className="flex flex-col gap-2">
                 {onOrderTea && (
                   <button

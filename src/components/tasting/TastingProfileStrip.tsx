@@ -16,7 +16,7 @@ interface TastingProfileStripProps {
   onRemove: (categoryId: TastingCategoryId, termId: string) => void;
 }
 
-/** Category display labels */
+/** Category display labels - small uppercase */
 const CATEGORY_LABELS: Record<string, string> = {
   flavor: 'FLAVOR',
   body: 'BODY',
@@ -43,7 +43,7 @@ const COLLAPSED_SHOW = 6;
 export const TastingProfileStrip: React.FC<TastingProfileStripProps> = ({ value, onRemove }) => {
   const [expanded, setExpanded] = useState(false);
 
-  // Group terms by category
+  // Group terms by category following the canonical order
   const groupedTerms = TASTING_CATEGORY_ORDER
     .map(catId => ({
       categoryId: catId,
@@ -85,7 +85,7 @@ export const TastingProfileStrip: React.FC<TastingProfileStripProps> = ({ value,
               transition={{ duration: 0.15 }}
               layout
             >
-              {/* Category label */}
+              {/* Tiny category label */}
               <div
                 className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-1 ml-0.5"
                 style={{ fontFamily: 'var(--font-display)' }}
@@ -93,7 +93,7 @@ export const TastingProfileStrip: React.FC<TastingProfileStripProps> = ({ value,
                 {group.label}
               </div>
 
-              {/* Terms row */}
+              {/* Terms row with category-tinted backgrounds */}
               <div className="flex flex-wrap gap-1.5">
                 <AnimatePresence mode="popLayout">
                   {visibleTerms.map(termId => {
