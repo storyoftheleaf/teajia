@@ -700,11 +700,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-16`} data-page-type="text" style={OPENTYPE}>
                         {/* Folio header */}
-                        <div className={`${FOLIO_CLASS} mb-4 flex justify-between`}>
+                        <div className={`${FOLIO_CLASS} opacity-[0.25] mb-4 flex justify-between`}>
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
-                        <div className="max-w-[640px] mx-auto w-full flex-1">
+                        <div className="max-w-[520px] mx-auto w-full flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Start writing..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
@@ -952,9 +952,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const chineseNameSplit = page.chineseName;
                 return (
                     <div className={`${paperBase} flex flex-col relative`} data-page-type="text">
-                         <div className={`h-[45%] ${theme.softBg} flex items-end p-16 pb-8 relative overflow-hidden`}>
-                             {/* Texture pattern in top half */}
-                             <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/diagonal-striped-brick.png')]"></div>
+                         <div className={`h-[45%] bg-tea-gold/[0.04] flex items-end p-16 pb-8 relative overflow-hidden`}>
                              <EditableText value={chTitle || content} onChange={isEditable ? (v) => updateContent(v + '|' + (chSub||'')) : undefined} className={`${TYPE.display} font-display font-bold leading-none relative z-10`} style={{ marginLeft: '-2px' }} placeholder="Chapter" tag="h1" readOnly={readOnly} />
                          </div>
                          {/* Vertical accent line from boundary */}
@@ -1413,8 +1411,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.text} pt-20 relative`} style={OPENTYPE}>
                         {/* Overlapping images */}
-                        <div className="absolute top-16 right-8 w-[180px] h-[220px] rotate-[2deg] shadow-lg z-10 overflow-hidden"><SafeImage index={0} className="w-full h-full" /></div>
-                        <div className="absolute top-[180px] right-[60px] w-[150px] h-[180px] -rotate-[1.5deg] shadow-lg z-20 overflow-hidden"><SafeImage index={1} className="w-full h-full" /></div>
+                        <div className="absolute top-16 right-8 w-[200px] h-[260px] rotate-[2deg] shadow-lg z-10 overflow-hidden"><SafeImage index={0} className="w-full h-full" /></div>
+                        <div className="absolute top-[180px] right-[60px] w-[160px] h-[200px] -rotate-[1.5deg] shadow-lg z-20 overflow-hidden"><SafeImage index={1} className="w-full h-full" /></div>
                         <div className="max-w-[55%]">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Text with overlapping images..." tag="p" readOnly={readOnly} />
                         </div>
@@ -1627,11 +1625,14 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.CHAPTER_LARGE_NUMBER: {
                 const [clNum, clTitle] = content.split('|');
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-end relative`}>
-                        <span className="absolute inset-0 flex items-center justify-center text-[400px] font-display font-bold opacity-[0.04] leading-none select-none pointer-events-none">{clNum || '01'}</span>
-                        <div className="relative z-10 mb-20">
-                            <EditableText value={clTitle || ''} onChange={isEditable ? (v) => updateContent((clNum||'') + '|' + v) : undefined} className={`${TYPE.headlineSm} font-display tracking-wide opacity-70`} placeholder="Chapter Title" tag="h2" readOnly={readOnly} />
-                            <div className="w-20 h-[1px] bg-tea-gold opacity-40 mt-6"></div>
+                    <div className={`${paperBase} ${PAD.spacious} flex items-center relative`}>
+                        {/* Large number — left edge, clear grid layout */}
+                        <div className="flex items-center gap-10 w-full">
+                            <span className="text-[200px] font-display font-light leading-none select-none opacity-[0.12] shrink-0">{clNum || '01'}</span>
+                            <div className="relative z-10">
+                                <div className="w-20 h-[0.5px] bg-tea-gold opacity-40 mb-6"></div>
+                                <EditableText value={clTitle || ''} onChange={isEditable ? (v) => updateContent((clNum||'') + '|' + v) : undefined} className={`${TYPE.headlineSm} font-display tracking-[0.06em]`} placeholder="Chapter Title" tag="h2" readOnly={readOnly} />
+                            </div>
                         </div>
                     </div>
                 );
