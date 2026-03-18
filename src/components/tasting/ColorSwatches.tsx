@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
-import { TASTING_TAXONOMY } from '../../data/tastingTaxonomy';
+import { X } from 'lucide-react';
+import { LIQUOR_COLORS, TASTING_TAXONOMY } from '../../data/tastingTaxonomy';
 import type { TastingFlowState } from './useTastingFlow';
 
 const colorCategory = TASTING_TAXONOMY.categories.find(c => c.id === 'liquor-color')!;
@@ -13,6 +13,8 @@ interface ColorSwatchesProps {
 
 export const ColorSwatches: React.FC<ColorSwatchesProps> = ({ flow }) => {
   const selected = flow.value['liquor-color'] || [];
+  const colorCount = flow.getCategoryCount('liquor-color');
+  const clearCategory = flow.clearCategory;
 
   const handleSelect = (termId: string) => {
     // Single-select — deselect old, select new (or toggle off)
@@ -25,16 +27,40 @@ export const ColorSwatches: React.FC<ColorSwatchesProps> = ({ flow }) => {
     }
   };
 
-  const selectedLabel = colorTerms.find(t => selected.includes(t.id))?.label;
-
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-3"
-        style={{ fontFamily: 'var(--font-display)' }}>
-        Liquor Color
+    <div role="radiogroup" aria-label="Liquor color">
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-2">
+        <div
+          className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Liquor Color
+        </div>
+        {colorCount > 0 && (
+          <button
+            type="button"
+            onClick={() => clearCategory('liquor-color')}
+            className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
+            aria-label="Clear liquor color selection"
+          >
+            <X size={12} />
+          </button>
+        )}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Description — only when nothing selected */}
+      {colorCount === 0 && (
+        <p
+          className="text-xs text-tea-text-dim italic mb-3"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          What color is the liquor in your cup?
+        </p>
+      )}
+
+      {/* Swatch grid: 2 rows x 5 columns */}
+      <div className="grid grid-cols-5 gap-3">
         {colorTerms.map(term => {
           const isSelected = selected.includes(term.id);
           const hex = LIQUOR_COLORS[term.id] || '#888';
@@ -43,35 +69,42 @@ export const ColorSwatches: React.FC<ColorSwatchesProps> = ({ flow }) => {
             <motion.button
               key={term.id}
               type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={term.label}
               whileTap={{ scale: 0.9 }}
               onClick={() => handleSelect(term.id)}
-              className="relative flex flex-col items-center gap-1 p-1"
-              title={term.label}
+              className="flex flex-col items-center gap-1.5 p-1 cursor-pointer"
             >
               <motion.div
-                animate={isSelected ? { scale: 1.15 } : { scale: 1 }}
+                animate={{
+                  scale: isSelected ? 1.1 : 1,
+                  boxShadow: isSelected
+                    ? '0 0 0 2px var(--tea-gold), 0 0 8px color-mix(in srgb, var(--tea-gold) 30%, transparent)'
+                    : '0 0 0 1px var(--tea-border)',
+                }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className="rounded-full"
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 44,
+                  height: 44,
                   borderRadius: '50%',
                   background: hex,
-                  border: isSelected ? '2px solid var(--tea-gold)' : '1px solid var(--tea-border)',
-                  boxShadow: isSelected ? '0 0 0 3px rgba(var(--tea-gold-rgb, 184, 146, 78), 0.2)' : 'none',
-                  transition: 'border 0.15s, box-shadow 0.15s',
                 }}
               />
+              {/* Label always visible */}
+              <span
+                className={`text-[9px] leading-tight text-center transition-colors duration-150 ${
+                  isSelected ? 'text-tea-gold' : 'text-tea-text-dim'
+                }`}
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {term.label}
+              </span>
             </motion.button>
           );
         })}
       </div>
-
-      {/* Show selected label */}
-      {selectedLabel && (
-        <div className="text-xs text-tea-gold mt-2" style={{ fontFamily: 'var(--font-body)' }}>
-          {selectedLabel}
-        </div>
-      )}
     </div>
   );
 };

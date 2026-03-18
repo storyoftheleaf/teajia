@@ -12,7 +12,7 @@ export const TASTING_TAXONOMY = taxonomyJson;
 export type TastingCategoryId = keyof TastingData;
 
 export const TASTING_CATEGORY_ORDER: TastingCategoryId[] = [
-  'flavor', 'body', 'finish', 'feeling', 'liquor-color', 'brewing',
+  'brewing', 'liquor-color', 'flavor', 'body', 'finish', 'feeling',
 ];
 
 export interface TastingTermInfo {
@@ -47,6 +47,26 @@ export const GROUP_ICON_MAP: Record<string, LucideIcon> = {
   'Temperature': Thermometer,
   'Approach': Clock,
   'Vessel': Coffee,
+};
+
+/** Icons for each tasting section tab */
+export const SECTION_ICONS: Record<string, LucideIcon> = {
+  'brewing': Coffee,
+  'liquor-color': Palette,
+  'flavor': Leaf,
+  'body': Circle,
+  'finish': Sparkles,
+  'feeling': Moon,
+};
+
+/** One-line descriptions for each section */
+export const SECTION_DESCRIPTIONS: Record<string, string> = {
+  'brewing': 'How are you preparing this tea?',
+  'liquor-color': 'What color is the liquor in your cup?',
+  'flavor': 'What flavors do you taste?',
+  'body': 'How does it feel in your mouth?',
+  'finish': 'What remains after you swallow?',
+  'feeling': 'What does this tea do to your state?',
 };
 
 // Fallback icons per category
@@ -120,6 +140,21 @@ export const LIQUOR_COLORS: Record<string, string> = {
   'deep-brown': '#5c3317',
   'dark-chestnut': '#3c1414',
   'ink': '#1a1a1a',
+};
+
+/** Suggested flavor terms per tea type */
+export const TEA_TYPE_SUGGESTIONS: Record<string, string[]> = {
+  'Green': ['fresh-grass', 'vegetal', 'herbaceous', 'floral', 'chestnut'],
+  'White': ['floral', 'honey', 'peach', 'vanilla'],
+  'Yellow': ['chestnut', 'honey', 'floral', 'vanilla'],
+  'Oolong': ['floral', 'orchid', 'stone-fruit', 'honey', 'toasted'],
+  'Red': ['honey', 'cocoa', 'dried-fruit', 'caramel', 'lychee'],
+  'Dark': ['earthy', 'mushroom', 'leather', 'woody', 'aged'],
+  'Sheng': ['floral', 'honey', 'bitter', 'astringent', 'camphor'],
+  'Shou': ['earthy', 'woody', 'aged', 'cocoa', 'mushroom'],
+  'Herbal': ['floral', 'herbaceous', 'honey', 'citrus', 'vanilla'],
+  'Matcha': ['vegetal', 'umami', 'fresh-grass', 'savory'],
+  'Flower': ['floral', 'jasmine', 'rose', 'osmanthus', 'honeysuckle'],
 };
 
 /** Flatten a TastingData object into an ordered list of term IDs (flavor first, then body, finish, feeling, liquor-color) */

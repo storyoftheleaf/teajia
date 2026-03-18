@@ -1843,3 +1843,194 @@
     transform: scale(1);
   }
 }
+
+/* ============================================
+   Tasting Flow — UI Classes
+   ============================================ */
+
+@keyframes tastingSelectPulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--tea-gold-rgb, 184, 146, 78), 0.4); }
+  100% { box-shadow: 0 0 0 8px rgba(var(--tea-gold-rgb, 184, 146, 78), 0); }
+}
+
+.tag-selectable-pulse {
+  animation: tastingSelectPulse 0.3s ease-out;
+}
+
+@media (max-width: 767px) {
+  .tag-selectable {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+}
+
+.tasting-section-bg-brewing {
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(184, 146, 78, 0.02) 0%, transparent 70%);
+}
+
+.tasting-section-bg-liquor-color {
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(200, 170, 120, 0.02) 0%, transparent 70%);
+}
+
+.tasting-section-bg-flavor {
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(200, 160, 80, 0.03) 0%, transparent 70%);
+}
+
+.tasting-section-bg-body {
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(160, 160, 160, 0.02) 0%, transparent 70%);
+}
+
+.tasting-section-bg-finish {
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(184, 146, 78, 0.025) 0%, transparent 70%);
+}
+
+.tasting-section-bg-feeling {
+  background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(120, 140, 180, 0.02) 0%, transparent 70%);
+}
+
+.tasting-undo-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--tea-elevated);
+  color: var(--tea-text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.tasting-undo-toast:hover {
+  background: var(--tea-surface);
+}
+
+.light .tasting-undo-toast {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.tasting-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tea-border);
+  margin: 8px auto 0;
+}
+
+.tasting-tab-bar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.tasting-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tasting-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 150ms ease;
+  position: relative;
+  background: transparent;
+  color: var(--tea-text-dim);
+  border: none;
+}
+
+.tasting-tab:hover {
+  color: var(--tea-text-sec);
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.04);
+}
+
+.tasting-tab-active {
+  color: var(--tea-gold);
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.08);
+}
+
+.tasting-tab-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--tea-gold);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.tasting-tab-dot-visible {
+  opacity: 1;
+}
+
+.tasting-tab-count {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tea-gold);
+  color: var(--tea-bg);
+}
+
+/* Mouthfeel weight toggle — no inline borders */
+.tasting-weight-toggle {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--tea-surface);
+}
+
+.tasting-weight-option {
+  flex: 1;
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: var(--tea-surface);
+  color: var(--tea-text-sec);
+  border: none;
+  border-right: 1px solid var(--tea-border);
+}
+
+.tasting-weight-option:last-child {
+  border-right: none;
+}
+
+.tasting-weight-option-active {
+  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.15);
+  color: var(--tea-gold);
+}
+
+.tasting-weight-option:hover:not(.tasting-weight-option-active) {
+  color: var(--tea-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag-selectable-pulse {
+    animation: none;
+  }
+}
