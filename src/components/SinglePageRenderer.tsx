@@ -1046,7 +1046,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                          </div>
                                          <div className="-mt-1">
                                              <span className={`${TYPE.bodyDense} font-body font-bold opacity-90 block`}>{loc.trim()}</span>
-                                             <span className={`${TYPE.micro} font-mono opacity-40 block`}>{pos.coord}</span>
+                                             <span className={`${TYPE.micro} font-caption opacity-40 block`}>{pos.coord}</span>
                                          </div>
                                      </div>
                                  );
@@ -1173,7 +1173,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                         <Icons.ExternalLink className="w-5 h-5 opacity-40 group-hover:opacity-80 flex-shrink-0 mt-1" />
                                     </div>
                                     {link.source && (
-                                        <div className={`${TYPE.micro} uppercase tracking-[0.15em] ${theme.subtext} mb-3`}>
+                                        <div className={`${TYPE.micro} font-caption uppercase tracking-[0.15em] ${theme.subtext} mb-3`}>
                                             {link.source}
                                         </div>
                                     )}
