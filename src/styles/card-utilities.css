@@ -1459,3 +1459,89 @@
 .light .reader-progress-fill::after {
   box-shadow: 0 0 8px rgba(142, 109, 46, 0.3);
 }
+
+/* ============================================
+   Reader — Drop Cap (Gold)
+   Float-left gold initial letter for editorial
+   TEXT_DROP_CAP layout variant.
+   ============================================ */
+
+.drop-cap-gold::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* ============================================
+   Reader — Typewriter Line Animation
+   Each paragraph line appears with a typewriter
+   reveal from left to right. Used in NOTE_PAPER
+   and TEXT_TYPEWRITER layout variants.
+   ============================================ */
+
+@keyframes typewriterReveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0% 0 0);
+    opacity: 1;
+  }
+}
+
+.typewriter-line {
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  animation: typewriterReveal 0.9s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typewriter-line {
+    animation: none;
+    clip-path: none;
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   Reader — Vertical CJK Accent Strip
+   Decorative vertical text margin strip for
+   CHAPTER_BOLD and CHAPTER_SPLIT variants.
+   ============================================ */
+
+.vertical-cjk {
+  /* writing-mode and textOrientation set inline */
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ============================================
+   Reader — Image Reveal Animation
+   Subtle scale-down entrance for full-bleed
+   images. Used in IMG_FULL_BLEED and similar.
+   ============================================ */
+
+@keyframes readerImageRevealCSS {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.reader-image-reveal {
+  animation: readerImageRevealCSS 0.9s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-image-reveal {
+    animation: none;
+  }
+}

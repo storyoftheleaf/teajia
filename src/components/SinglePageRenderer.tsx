@@ -1,6 +1,7 @@
 
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 import { LayoutVariant, Story } from '../types';
 import { Icons } from './Icons';
 import { SkeletonLoader } from './shared/SkeletonLoader';
@@ -13,10 +14,13 @@ export interface PageData {
   images?: string[];
   index: number;
   textColor?: 'light' | 'dark';
+  chineseName?: string;       // Optional CJK name for accent strips in chapter layouts
   // Video support
-  videoId?: string;         // YouTube video ID
-  instagramId?: string;     // Instagram Reel shortcode
+  videoId?: string;           // YouTube video ID
+  instagramId?: string;       // Instagram Reel shortcode
   videoCaption?: string;
+  // Visual rhythm metadata
+  pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed';
 }
 
 interface SinglePageRendererProps {
@@ -32,35 +36,48 @@ interface SinglePageRendererProps {
 }
 
 // --- Typography Scale (800×1067 canvas, ~47% scale on 375px phones) ---
-// Body text-[30px] → ~14px on phone (readable). text-[28px] → ~13px (minimum).
+// Body text-[28px] → ~13px on phone (readable). text-[26px] → ~12px (minimum).
 const TYPE = {
-  display: 'text-[88px] font-[Vollkorn] leading-[1.0] tracking-tight',      // Covers, huge numbers
+  displayFont: '"Vollkorn", "Georgia", serif',
+  bodyFont: '"Lora", "Palatino Linotype", serif',
+  display: 'text-[88px] font-[Vollkorn] leading-[1.0] tracking-tight font-bold',   // Covers, huge numbers
   displaySm: 'text-[72px]',    // Secondary display
-  title: 'text-[52px] font-[Vollkorn] leading-[1.0] tracking-tight',        // Article titles
-  headline: 'text-[48px]',     // Section titles
+  headline: 'text-[52px] leading-[1.15] font-semibold',   // Section titles (was 48px)
   subtitle: 'text-[38px]',     // Subtitles
-  headlineSm: 'text-[36px]',   // Sub-section titles
+  headlineSm: 'text-[36px] leading-[1.3]',   // Sub-section titles
   subhead: 'text-[28px]',      // Subheads, labels
-  bodyLarge: 'text-[28px] leading-[1.65]',  // Intro paragraphs
-  body: 'text-[24px] leading-[1.7]',        // Standard body
-  bodyDense: 'text-[28px] leading-[46px]',  // Multi-column body
-  caption: 'text-[18px] leading-[1.4] tracking-[0.12em]',      // Captions, credits
-  micro: 'text-[16px]',        // Folios, page numbers
+  bodyLarge: 'text-[28px] leading-[1.65]',   // Intro paragraphs
+  body: 'text-[28px] leading-[1.65]',        // Standard body (was 24px → 28px)
+  bodySm: 'text-[26px] leading-[1.6]',       // Slightly smaller body
+  bodyDense: 'text-[28px] leading-[46px]',   // Multi-column body
+  caption: 'text-[22px] leading-[1.4] tracking-[0.12em]', // Captions, credits (was 18px → 22px)
+  folio: 'text-[20px] leading-[1.3] tracking-widest',     // Folio text
+  micro: 'text-[18px] leading-[1.2]',        // Folios, page numbers (was 16px)
+} as const;
+
+// --- Line Height Semantic Constants ---
+const LH = {
+  tight: 'leading-[1.3]',    // captions, headers
+  normal: 'leading-[1.5]',   // short body, quotes
+  relaxed: 'leading-[1.65]', // long-form body (primary)
+  loose: 'leading-[2.2]',    // poetry, verse
 } as const;
 
 // --- Padding Variants ---
 const PAD = {
-  text: 'px-16 py-12',         // Text-heavy pages (maximizes content)
+  text: 'px-20 py-16',         // Text-heavy pages (maximizes content)
   image: 'p-0',                // Full-bleed images
   spacious: 'p-20',            // Covers, quotes, chapters (breathing room)
+  card: 'px-16 py-12',         // Card-style pages
+  tight: 'px-12 py-8',         // Dense/compact pages
 } as const;
 
 // --- Shared Typography Classes ---
-const BODY_CLASS = `${TYPE.body} text-left font-serif`;
-const BODY_DENSE_CLASS = `${TYPE.bodyDense} text-justify font-serif`;
-const CAPTION_CLASS = `${TYPE.caption} uppercase font-sans opacity-50`;
-const FOLIO_CLASS = `text-[14px] uppercase tracking-[0.12em] font-sans opacity-30`;
-const OPENTYPE = { fontFeatureSettings: "'liga' 1, 'kern' 1, 'calt' 1" };
+const BODY_CLASS = `${TYPE.body} ${LH.relaxed} text-left font-serif [font-optical-sizing:auto] font-[420] [hanging-punctuation:first_last]`;
+const BODY_DENSE_CLASS = `${TYPE.bodyDense} ${LH.relaxed} text-justify font-serif [font-optical-sizing:auto] font-[420] [hyphens:auto] [word-spacing:-0.02em]`;
+const CAPTION_CLASS = `${TYPE.caption} ${LH.tight} uppercase font-sans opacity-50`;
+const FOLIO_CLASS = `${TYPE.folio} uppercase font-sans opacity-30 hidden sm:block`;
+const OPENTYPE = { fontFeatureSettings: "'liga' 1, 'kern' 1, 'calt' 1", fontOpticalSizing: 'auto' as const, fontWeight: '420' };
 
 // --- Animation Styles & Rich Text Helpers ---
 const ANIMATION_STYLES = `
@@ -72,6 +89,14 @@ const ANIMATION_STYLES = `
     from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
   }
+  @keyframes readerImageReveal {
+    from { opacity: 0; transform: scale(1.03); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes chapterNumReveal {
+    from { opacity: 0; }
+    to { opacity: 0.07; }
+  }
   .rich-text-content:empty:before {
     content: attr(placeholder);
     opacity: 0.4;
@@ -80,11 +105,139 @@ const ANIMATION_STYLES = `
   }
   /* Hanging punctuation for quotes */
   .hang-punct { text-indent: -0.4em; }
-  /* Column rules */
-  .col-rule { column-rule: 0.5px solid currentColor; column-rule-color: rgba(128,128,128,0.1); }
+  /* Column rules — subtle 1px */
+  .col-rule { column-rule: 1px solid rgba(128,128,128,0.18); }
   /* Highlight effect */
   .text-highlight mark { background: linear-gradient(to bottom, transparent 55%, var(--tea-gold-lt, rgba(184,146,78,0.15)) 55%); padding: 0 2px; }
+  /* Reader image reveal animation */
+  .reader-image-reveal { animation: readerImageReveal 0.8s ease-out forwards; }
+  /* Chapter number background fade-in */
+  .chapter-num-reveal { animation: chapterNumReveal 1.2s ease-out forwards; opacity: 0; }
 `;
+
+// --- Bottom Page Treatment Helper ---
+const getBottomTreatment = (variant: LayoutVariant, fadeBg: string): string => {
+  const chapterVariants: LayoutVariant[] = [
+    LayoutVariant.CHAPTER_BOLD, LayoutVariant.CHAPTER_MINIMAL,
+    LayoutVariant.CHAPTER_CENTERED_SMALL, LayoutVariant.CHAPTER_SPLIT,
+    LayoutVariant.CHAPTER_IMAGE_BG, LayoutVariant.CHAPTER_LARGE_NUMBER,
+  ];
+  const imageVariants: LayoutVariant[] = [
+    LayoutVariant.IMG_FULL_BLEED, LayoutVariant.IMG_FULL_BLEED_TITLE,
+    LayoutVariant.IMG_OVERLAY_TEXT, LayoutVariant.IMG_DUOTONE,
+    LayoutVariant.IMG_VIGNETTE_SOFT, LayoutVariant.QUOTE_IMAGE_BG,
+    LayoutVariant.CHAPTER_IMAGE_BG, LayoutVariant.SPREAD_PANORAMIC,
+    LayoutVariant.FULL_BLEED_TEXT,
+  ];
+  const quoteVariants: LayoutVariant[] = [
+    LayoutVariant.QUOTE_BIG, LayoutVariant.QUOTE_MINIMAL,
+    LayoutVariant.POEM_CENTERED, LayoutVariant.POEM_HAIKU_MINIMAL,
+    LayoutVariant.POEM_LEFT_ALIGN, LayoutVariant.DEDICATION_SIMPLE,
+  ];
+  if (chapterVariants.includes(variant) || imageVariants.includes(variant)) return '';
+  if (quoteVariants.includes(variant)) return `absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t ${fadeBg} to-transparent pointer-events-none z-10`;
+  return `absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${fadeBg} to-transparent pointer-events-none z-10`;
+};
+
+// --- Visual Weight Categories for Rhythm Analysis ---
+export const LAYOUT_WEIGHTS: Record<string, 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed'> = {
+  [LayoutVariant.TEXT_SINGLE_COL]: 'text-heavy',
+  [LayoutVariant.TEXT_DOUBLE_COL]: 'text-heavy',
+  [LayoutVariant.TEXT_TRIPLE_COL]: 'text-heavy',
+  [LayoutVariant.TEXT_DROP_CAP]: 'text-heavy',
+  [LayoutVariant.TEXT_JUSTIFIED_NARROW]: 'text-heavy',
+  [LayoutVariant.TEXT_VERTICAL_CJK]: 'text-heavy',
+  [LayoutVariant.TEXT_BLOCKQUOTE_CENTER]: 'mixed',
+  [LayoutVariant.TEXT_BLOCKQUOTE_LEFT]: 'mixed',
+  [LayoutVariant.TEXT_SIDEBAR_RIGHT]: 'mixed',
+  [LayoutVariant.TEXT_SIDEBAR_LEFT]: 'mixed',
+  [LayoutVariant.TEXT_ASYMMETRIC_LEFT]: 'mixed',
+  [LayoutVariant.TEXT_ASYMMETRIC_RIGHT]: 'mixed',
+  [LayoutVariant.TEXT_INVERTED]: 'text-heavy',
+  [LayoutVariant.TEXT_TYPEWRITER]: 'text-heavy',
+  [LayoutVariant.TEXT_HIGHLIGHTED]: 'text-heavy',
+  [LayoutVariant.TEXT_CENTER_NARROW]: 'spacious',
+  [LayoutVariant.TEXT_SIDEBAR_IMAGE]: 'mixed',
+  [LayoutVariant.TEXT_OVERLAPPING_IMAGES]: 'mixed',
+  [LayoutVariant.MAGAZINE_INTERVIEW_Q_A]: 'text-heavy',
+  [LayoutVariant.IMG_FULL_BLEED]: 'image-heavy',
+  [LayoutVariant.IMG_FULL_BLEED_TITLE]: 'image-heavy',
+  [LayoutVariant.IMG_SPLIT_HORIZONTAL]: 'mixed',
+  [LayoutVariant.IMG_SPLIT_VERTICAL]: 'mixed',
+  [LayoutVariant.IMG_DIAGONAL_SPLIT]: 'image-heavy',
+  [LayoutVariant.IMG_GRID_2x2]: 'image-heavy',
+  [LayoutVariant.IMG_GRID_3x3]: 'image-heavy',
+  [LayoutVariant.IMG_GRID_MONDRIAN]: 'image-heavy',
+  [LayoutVariant.IMG_QUAD_GRID]: 'image-heavy',
+  [LayoutVariant.IMG_CIRCLE_MASK]: 'spacious',
+  [LayoutVariant.IMG_ARCH_MASK]: 'spacious',
+  [LayoutVariant.IMG_OVAL_VIGNETTE]: 'spacious',
+  [LayoutVariant.IMG_POLAROID_SCATTER]: 'spacious',
+  [LayoutVariant.IMG_FILM_STRIP_VERTICAL]: 'image-heavy',
+  [LayoutVariant.IMG_WITH_CAPTION_BOTTOM]: 'image-heavy',
+  [LayoutVariant.IMG_OVERLAY_TEXT]: 'image-heavy',
+  [LayoutVariant.IMG_GALLERY_MOSAIC]: 'image-heavy',
+  [LayoutVariant.IMG_DUOTONE]: 'image-heavy',
+  [LayoutVariant.IMG_VIGNETTE_SOFT]: 'image-heavy',
+  [LayoutVariant.IMG_PANORAMIC]: 'spacious',
+  [LayoutVariant.COVER_MAIN]: 'image-heavy',
+  [LayoutVariant.COVER_MINIMAL]: 'spacious',
+  [LayoutVariant.COVER_TYPOGRAPHIC]: 'text-heavy',
+  [LayoutVariant.COVER_PHOTO_INSET]: 'mixed',
+  [LayoutVariant.COVER_SPLIT]: 'mixed',
+  [LayoutVariant.COVER_MASTHEAD]: 'mixed',
+  [LayoutVariant.COVER_ABSTRACT]: 'spacious',
+  [LayoutVariant.CHAPTER_BOLD]: 'spacious',
+  [LayoutVariant.CHAPTER_MINIMAL]: 'spacious',
+  [LayoutVariant.CHAPTER_CENTERED_SMALL]: 'spacious',
+  [LayoutVariant.CHAPTER_SPLIT]: 'mixed',
+  [LayoutVariant.CHAPTER_IMAGE_BG]: 'image-heavy',
+  [LayoutVariant.CHAPTER_LARGE_NUMBER]: 'spacious',
+  [LayoutVariant.QUOTE_BIG]: 'spacious',
+  [LayoutVariant.QUOTE_MINIMAL]: 'spacious',
+  [LayoutVariant.QUOTE_IMAGE_BG]: 'image-heavy',
+  [LayoutVariant.POEM_CENTERED]: 'spacious',
+  [LayoutVariant.POEM_LEFT_ALIGN]: 'spacious',
+  [LayoutVariant.POEM_SCATTERED]: 'spacious',
+  [LayoutVariant.POEM_VISUAL]: 'spacious',
+  [LayoutVariant.POEM_HAIKU_MINIMAL]: 'spacious',
+  [LayoutVariant.INTERVIEW_STANDARD]: 'text-heavy',
+  [LayoutVariant.DEFINITION_LARGE]: 'text-heavy',
+  [LayoutVariant.STAT_BIG_NUMBER]: 'spacious',
+  [LayoutVariant.STAT_CHART_MINIMAL]: 'mixed',
+  [LayoutVariant.DATA_BAR_CHART]: 'mixed',
+  [LayoutVariant.LIST_CHECKLIST]: 'text-heavy',
+  [LayoutVariant.LIST_TIMELINE]: 'text-heavy',
+  [LayoutVariant.RECIPE_CARD]: 'text-heavy',
+  [LayoutVariant.INDEX_GRID]: 'text-heavy',
+  [LayoutVariant.TASTING_NOTES_GRID]: 'spacious',
+  [LayoutVariant.MAP_CARTOGRAPHY]: 'mixed',
+  [LayoutVariant.NOTE_PAPER]: 'text-heavy',
+  [LayoutVariant.POSTCARD_STYLE]: 'mixed',
+  [LayoutVariant.BOTANICAL_SKETCH]: 'mixed',
+  [LayoutVariant.EPILOGUE_CENTERED]: 'spacious',
+  [LayoutVariant.CREDITS_PAGE]: 'spacious',
+  [LayoutVariant.BACK_COVER]: 'spacious',
+  [LayoutVariant.NEXT_READS]: 'text-heavy',
+  [LayoutVariant.CURATED_LINKS]: 'text-heavy',
+  [LayoutVariant.TEXT_WITH_VIDEO]: 'mixed',
+  [LayoutVariant.TEXT_WITH_VIDEO_VERTICAL]: 'mixed',
+  [LayoutVariant.SPREAD_PANORAMIC]: 'image-heavy',
+  [LayoutVariant.PULL_QUOTE_MARGINAL]: 'mixed',
+  [LayoutVariant.LETTERPRESS_DEBOSS]: 'spacious',
+  [LayoutVariant.ANNOTATED_IMAGE]: 'image-heavy',
+  [LayoutVariant.CONVERSATION_BUBBLE]: 'text-heavy',
+  [LayoutVariant.TIMELINE_VISUAL]: 'mixed',
+  [LayoutVariant.COMPARISON_SPLIT]: 'image-heavy',
+  [LayoutVariant.STACKED_CARDS]: 'mixed',
+  [LayoutVariant.FULL_BLEED_TEXT]: 'image-heavy',
+  [LayoutVariant.INFOGRAPHIC_CIRCLE]: 'mixed',
+  [LayoutVariant.COPYRIGHT_PAGE]: 'spacious',
+  [LayoutVariant.DEDICATION_SIMPLE]: 'spacious',
+  [LayoutVariant.TOC_MINIMAL]: 'text-heavy',
+  [LayoutVariant.TOC_IMAGE]: 'mixed',
+  [LayoutVariant.CHAPTER_MARKER]: 'spacious',
+};
 
 const wrapSelection = (className: string, tagName: string = 'span') => {
   const selection = window.getSelection();
@@ -536,7 +689,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             // --- TEXT LAYOUTS ---
             case LayoutVariant.TEXT_SINGLE_COL:
                 return (
-                    <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-16`} style={OPENTYPE}>
+                    <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-16`} data-page-type="text" style={OPENTYPE}>
                         {/* Folio header */}
                         <div className={`${FOLIO_CLASS} mb-4 flex justify-between`}>
                             <span>{storyTitle || ''}</span>
@@ -545,31 +698,42 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="max-w-[640px] mx-auto w-full flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Start writing..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
+                        <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DOUBLE_COL:
                 return (
-                    <div className={`${paperBase} ${PAD.text} pt-16`} style={OPENTYPE}>
+                    <div className={`${paperBase} ${PAD.text} pt-16`} data-page-type="text" style={OPENTYPE}>
                         {/* Folio header */}
                         <div className={`${FOLIO_CLASS} mb-6 flex justify-between`}>
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
-                        <div className="mt-6 columns-2 gap-12 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
+                        <div className="mt-6 columns-2 gap-12 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule [hyphens:auto] [hyphenate-limit-chars:6_3_2] [word-spacing:-0.02em]">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Double column text..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
+                        <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
                     </div>
                 );
             case LayoutVariant.TEXT_DROP_CAP:
                 return (
-                    <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-20`} style={OPENTYPE}>
+                    <div className={`${paperBase} ${PAD.text} flex flex-col justify-start pt-20`} data-page-type="text" style={OPENTYPE}>
                         <div className="relative max-w-[640px] mx-auto w-full">
-                            <span className={`float-left text-[72px] font-[Vollkorn] leading-[0.8] mr-4 mt-1 ${theme.seal}`}>{content.charAt(0) || "T"}</span>
-                            <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
+                            <div className="drop-cap-gold">
+                                <span
+                                    className="float-left font-serif font-bold mr-3 mt-0 text-tea-gold leading-none select-none"
+                                    style={{
+                                        fontSize: 'calc(28px * 3 * 0.85)',
+                                        lineHeight: '0.8',
+                                        marginRight: '0.12em',
+                                        marginTop: '0.06em',
+                                    }}
+                                    aria-hidden="true"
+                                >{content.charAt(0) || 'T'}</span>
+                                <EditableText value={content.slice(1)} onChange={isEditable ? (v) => updateContent(content.charAt(0) + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="he story begins..." tag="p" readOnly={readOnly} />
+                            </div>
                         </div>
-                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
+                        <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
                     </div>
                 );
             case LayoutVariant.TEXT_SIDEBAR_RIGHT:
@@ -602,22 +766,49 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     </div>
                 );
 
-            case LayoutVariant.QUOTE_BIG:
+            case LayoutVariant.QUOTE_BIG: {
+                const quoteWords = content ? content.split(' ') : ['Quote', 'goes', 'here...'];
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center text-center`}>
+                    <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center text-center`} data-page-type="text">
                         <div className="w-full px-8">
                             <div className="w-16 h-[0.5px] bg-current mx-auto mb-16 opacity-15"></div>
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-[Vollkorn] tracking-wide font-light italic leading-[1.3] hang-punct`} placeholder="Quote goes here..." tag="p" readOnly={readOnly} />
+                            {isEditable ? (
+                                <EditableText value={content} onChange={updateContent} className={`${TYPE.headline} font-[Vollkorn] tracking-wide font-light italic ${LH.normal} hang-punct`} placeholder="Quote goes here..." tag="p" readOnly={readOnly} />
+                            ) : (
+                                <p className={`${TYPE.headline} font-[Vollkorn] tracking-wide font-light italic ${LH.normal} hang-punct`}>
+                                    {quoteWords.map((word, i) => (
+                                        <motion.span
+                                            key={i}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={
+                                                i === quoteWords.length - 1
+                                                    ? { delay: i * 0.07, type: 'spring', bounce: 0.4 }
+                                                    : { delay: i * 0.07, duration: 0.4, ease: 'easeOut' }
+                                            }
+                                            className="inline-block mr-[0.25em]"
+                                        >
+                                            {word}
+                                        </motion.span>
+                                    ))}
+                                </p>
+                            )}
                             <div className="w-16 h-[0.5px] bg-current mx-auto mt-16 opacity-15"></div>
                         </div>
                     </div>
                 );
+            }
             case LayoutVariant.CHAPTER_BOLD: {
                 const [chNum, chTitle2] = content.split('|');
+                const chineseName = page.chineseName;
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-center pl-20 relative`}>
-                        {/* Massive background number */}
-                        <span className="absolute top-1/2 left-12 -translate-y-1/2 text-[240px] font-serif font-bold opacity-[0.03] leading-none select-none pointer-events-none">{chNum || '01'}</span>
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-center pl-20 relative`} data-page-type="text">
+                        {/* Massive background number — improved opacity */}
+                        <span className="chapter-num-reveal absolute top-1/2 left-12 -translate-y-1/2 text-[240px] font-serif font-bold leading-none select-none pointer-events-none">{chNum || '01'}</span>
+                        {/* Vertical CJK accent strip */}
+                        <div className="vertical-cjk absolute right-3 top-0 bottom-0 flex items-center justify-center pointer-events-none select-none" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                            <span className="text-[20px] font-serif tracking-[0.4em] opacity-15">{chineseName || '茶茶茶茶茶'}</span>
+                        </div>
                         <div className="relative z-10">
                             <EditableText value={chNum || ''} onChange={isEditable ? (v) => updateContent(v + '|' + (chTitle2 || '')) : undefined} className={`${TYPE.displaySm} font-serif font-bold mb-4 leading-none`} placeholder="01" tag="h1" readOnly={readOnly} />
                             {chTitle2 && <EditableText value={chTitle2} onChange={isEditable ? (v) => updateContent((chNum || '') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] opacity-50`} placeholder="Title" tag="p" readOnly={readOnly} />}
@@ -628,8 +819,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             }
             case LayoutVariant.POEM_CENTERED:
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`}>
-                         <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-serif italic leading-[2.2] text-center whitespace-pre-wrap`} placeholder="Poem lines..." tag="p" readOnly={readOnly} />
+                    <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`} data-page-type="text">
+                         <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-serif italic ${LH.loose} text-center whitespace-pre-wrap`} placeholder="Poem lines..." tag="p" readOnly={readOnly} />
                     </div>
                 );
             case LayoutVariant.DEFINITION_LARGE:
@@ -651,10 +842,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             // --- IMAGE LAYOUTS ---
             case LayoutVariant.IMG_FULL_BLEED:
                 return (
-                    <div className={`${paperBase} bg-black`}>
-                        <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
-                        {/* Thin gallery frame inset */}
-                        <div className="absolute inset-[3px] border border-tea-border z-20 pointer-events-none"></div>
+                    <div className={`${paperBase} bg-black`} data-page-type="image">
+                        <div className="absolute inset-0 z-0 reader-image-reveal"><SafeImage index={0} className="w-full h-full" /></div>
                         {/* Gradient overlay for caption readability */}
                         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/30 to-transparent z-[5] pointer-events-none"></div>
                         {/* Minimal caption strip */}
@@ -708,13 +897,13 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             
             case LayoutVariant.IMG_CIRCLE_MASK:
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`}>
-                        <div className="w-[70%] aspect-square relative mb-12">
-                             <div className="absolute inset-0 rounded-full overflow-hidden border-2 border-current/8 shadow-inner bg-tea-text/5">
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`} data-page-type="mixed">
+                        <div className="w-[70%] aspect-square relative mb-12 reader-image-reveal">
+                             <div className="absolute inset-0 rounded-full overflow-hidden shadow-inner bg-tea-text/5">
                                  <SafeImage index={0} className="w-full h-full object-cover scale-105" />
                              </div>
                         </div>
-                        <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} leading-[1.5] text-center font-serif italic max-w-lg mx-auto opacity-80`} placeholder="Caption..." tag="p" readOnly={readOnly} />
+                        <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} ${LH.normal} text-center font-serif italic max-w-lg mx-auto opacity-80`} placeholder="Caption..." tag="p" readOnly={readOnly} />
                     </div>
                 );
 
@@ -750,17 +939,22 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.CHAPTER_SPLIT: {
                 const [chTitle, chSub] = content.split('|');
+                const chineseNameSplit = page.chineseName;
                 return (
-                    <div className={`${paperBase} flex flex-col`}>
+                    <div className={`${paperBase} flex flex-col relative`} data-page-type="text">
                          <div className={`h-[45%] ${theme.softBg} flex items-end p-16 pb-8 relative overflow-hidden`}>
                              {/* Texture pattern in top half */}
                              <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/diagonal-striped-brick.png')]"></div>
-                             <EditableText value={chTitle || content} onChange={isEditable ? (v) => updateContent(v + '|' + (chSub||'')) : undefined} className={`${TYPE.display} font-serif font-bold leading-none relative z-10`} placeholder="Chapter" tag="h1" readOnly={readOnly} />
+                             <EditableText value={chTitle || content} onChange={isEditable ? (v) => updateContent(v + '|' + (chSub||'')) : undefined} className={`${TYPE.display} font-serif font-bold leading-none relative z-10`} style={{ marginLeft: '-2px' }} placeholder="Chapter" tag="h1" readOnly={readOnly} />
                          </div>
                          {/* Vertical accent line from boundary */}
                          <div className="relative h-[55%] p-16 pt-10">
                              <div className="absolute top-0 left-24 w-[1px] h-16 bg-tea-gold opacity-40"></div>
                              <EditableText value={chSub || ''} onChange={isEditable ? (v) => updateContent((chTitle||'') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] opacity-50`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                         </div>
+                         {/* Vertical CJK accent strip */}
+                         <div className="vertical-cjk absolute left-3 top-0 bottom-0 flex items-center justify-center pointer-events-none select-none" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                             <span className="text-[20px] font-serif tracking-[0.4em] opacity-15">{chineseNameSplit || '茶茶茶茶茶'}</span>
                          </div>
                     </div>
                 );
@@ -789,9 +983,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.QUOTE_MINIMAL:
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`}>
+                    <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`} data-page-type="text">
                         <div className="max-w-[80%] pl-8 border-l-2 border-tea-gold/20">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-[Vollkorn] tracking-wide font-light italic leading-[1.5] opacity-80 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-[Vollkorn] tracking-wide font-light italic ${LH.normal} opacity-80 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -1045,15 +1239,15 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             // --- TEXT LAYOUTS: Missing implementations ---
             case LayoutVariant.TEXT_TRIPLE_COL:
                 return (
-                    <div className={`${paperBase} px-8 py-10 pt-16`} style={OPENTYPE}>
+                    <div className={`${paperBase} px-8 py-10 pt-16`} data-page-type="text" style={OPENTYPE}>
                         <div className={`${FOLIO_CLASS} mb-6 flex justify-between`}>
                             <span>{storyTitle || ''}</span>
                             <span>{page.index + 1}</span>
                         </div>
-                        <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-justify [column-fill:auto] col-rule">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_DENSE_CLASS} opacity-90`} placeholder="Triple column text..." tag="p" readOnly={readOnly} />
+                        <div className="columns-3 gap-6 h-[calc(100%-3rem)] text-left [column-fill:auto] col-rule">
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.bodySm} ${LH.relaxed} font-serif [font-optical-sizing:auto] font-[420] opacity-90`} placeholder="Triple column text..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`}></div>
+                        <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
                     </div>
                 );
 
@@ -1118,18 +1312,30 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     </div>
                 );
 
-            case LayoutVariant.TEXT_TYPEWRITER:
+            case LayoutVariant.TEXT_TYPEWRITER: {
+                const typewriterLines = content ? content.split('\n') : ['The field notes begin...'];
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex flex-col pt-16 bg-tea-surface`} style={OPENTYPE}>
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col pt-16 bg-tea-surface`} data-page-type="text" style={OPENTYPE}>
                         <div className="flex justify-between mb-8">
                             <span className={`${FOLIO_CLASS}`}>{storyTitle || 'Field Notes'}</span>
                             <span className={`${TYPE.micro} font-mono text-red-800/40`}>Rev. 03</span>
                         </div>
                         <div className="max-w-[600px] mx-auto w-full">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-mono leading-[1.7] opacity-80 whitespace-pre-wrap`} placeholder="The field notes begin..." tag="p" readOnly={readOnly} />
+                            {isEditable ? (
+                                <EditableText value={content} onChange={updateContent} className={`${TYPE.body} font-mono leading-[1.7] opacity-80 whitespace-pre-wrap`} placeholder="The field notes begin..." tag="p" readOnly={readOnly} />
+                            ) : (
+                                <div>
+                                    {typewriterLines.map((line, i) => (
+                                        <div key={i} className="typewriter-line" style={{ animationDelay: `${i * 1.2}s` }}>
+                                            <p className={`${TYPE.body} font-mono leading-[1.7] opacity-80`}>{line || '\u00A0'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
+            }
 
             case LayoutVariant.TEXT_HIGHLIGHTED:
                 return (
@@ -1320,10 +1526,22 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.IMG_DUOTONE:
                 return (
-                    <div className={`${paperBase} relative bg-black`}>
-                        <div className="absolute inset-0 z-0" style={{ filter: 'grayscale(100%) contrast(1.1)' }}><SafeImage index={0} className="w-full h-full" /></div>
-                        <div className="absolute inset-0 z-10 bg-tea-gold/30 mix-blend-multiply pointer-events-none"></div>
-                        <div className="absolute inset-0 z-20 bg-tea-bg/10 mix-blend-screen pointer-events-none"></div>
+                    <div className={`${paperBase} relative bg-black`} data-page-type="image">
+                        {/* SVG duotone filter definition */}
+                        <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+                            <defs>
+                                <filter id="duotone-teatype">
+                                    <feColorMatrix type="saturate" values="0"/>
+                                    <feColorMatrix type="matrix" values="
+                                        0.35 0 0 0 0.45
+                                        0.25 0 0 0 0.30
+                                        0.10 0 0 0 0.15
+                                        0    0 0 1 0
+                                    "/>
+                                </filter>
+                            </defs>
+                        </svg>
+                        <div className="absolute inset-0 z-0 reader-image-reveal" style={{ filter: 'url(#duotone-teatype)' }}><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute bottom-0 left-0 w-full px-6 py-4 z-30 pointer-events-none">
                             <div className={`inline-block bg-black/50 px-4 py-2 backdrop-blur-sm ${readOnly ? '' : 'pointer-events-auto'}`}>
                                 <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/80`} placeholder="Caption" tag="span" readOnly={readOnly} />
@@ -1440,9 +1658,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             // --- POETRY & QUOTES: Missing implementations ---
             case LayoutVariant.POEM_LEFT_ALIGN:
                 return (
-                    <div className={`${paperBase} ${PAD.spacious} flex items-center`} style={OPENTYPE}>
+                    <div className={`${paperBase} ${PAD.spacious} flex items-center`} data-page-type="text" style={OPENTYPE}>
                         <div className="ml-[30%] w-[60%]">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-serif leading-[2] whitespace-pre-wrap opacity-85`} placeholder="Each line / on its own..." tag="p" readOnly={readOnly} />
+                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-serif ${LH.loose} whitespace-pre-wrap opacity-85`} placeholder="Each line / on its own..." tag="p" readOnly={readOnly} />
                             <div className={`${CAPTION_CLASS} text-right mt-8 opacity-30`}>— Author</div>
                         </div>
                     </div>
@@ -1621,18 +1839,30 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             }
 
             // --- SPECIAL: Missing implementations ---
-            case LayoutVariant.NOTE_PAPER:
+            case LayoutVariant.NOTE_PAPER: {
+                const noteLines = content ? content.split('\n') : ['Notes here...'];
                 return (
-                    <div className={`${paperBase} relative bg-tea-surface`} style={{ transform: 'rotate(1deg)' }}>
+                    <div className={`${paperBase} relative bg-tea-surface`} data-page-type="text" style={{ transform: 'rotate(1deg)' }}>
                         {/* Faint horizontal ruled lines */}
                         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 38px, rgba(0,0,0,0.06) 38px, rgba(0,0,0,0.06) 39px)', backgroundPosition: '0 28px' }}></div>
                         {/* Red margin line */}
                         <div className="absolute top-0 bottom-0 left-[15%] w-[1px] bg-red-300/30 pointer-events-none"></div>
                         <div className="p-10 pl-[18%] pt-16">
-                            <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-[Ma_Shan_Zheng] italic leading-[39px] opacity-70 whitespace-pre-wrap`} placeholder="Notes here..." tag="p" readOnly={readOnly} />
+                            {isEditable ? (
+                                <EditableText value={content} onChange={updateContent} className={`${TYPE.body} font-[Ma_Shan_Zheng] italic leading-[39px] opacity-70 whitespace-pre-wrap`} placeholder="Notes here..." tag="p" readOnly={readOnly} />
+                            ) : (
+                                <div>
+                                    {noteLines.map((line, i) => (
+                                        <div key={i} className="typewriter-line" style={{ animationDelay: `${i * 1.2}s` }}>
+                                            <p className={`${TYPE.body} font-[Ma_Shan_Zheng] italic leading-[39px] opacity-70`}>{line || '\u00A0'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
+            }
 
             case LayoutVariant.POSTCARD_STYLE:
                 return (
@@ -1692,6 +1922,293 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <span className={`${TYPE.micro} opacity-15 font-mono`}>2024</span>
                     </div>
                 );
+
+            // ===================================================================
+            // NEW LAYOUT VARIANTS (Groups 16–17)
+            // ===================================================================
+
+            case LayoutVariant.SPREAD_PANORAMIC:
+                return (
+                    <div className={`${paperBase} bg-black relative overflow-hidden`} data-page-type="image">
+                        <div className="absolute inset-0 z-0 reader-image-reveal">
+                            <img
+                                src={images[0] || ''}
+                                className="w-full h-full object-cover object-center"
+                                alt="panoramic"
+                                style={{ filter: 'saturate(0.9) contrast(1.05)' }}
+                            />
+                        </div>
+                        {/* Gradient overlay for readability */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/20 z-[5] pointer-events-none"></div>
+                        {/* Swipe hint arrow */}
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                            <span className="text-white/40 text-[32px] font-light">→</span>
+                        </div>
+                    </div>
+                );
+
+            case LayoutVariant.PULL_QUOTE_MARGINAL:
+                return (
+                    <div className={`${paperBase} ${PAD.text} pt-16 grid`} data-page-type="mixed" style={{ gridTemplateColumns: '60% 40%', ...OPENTYPE }}>
+                        <div className="pr-8">
+                            <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main body text..." tag="p" readOnly={readOnly} />
+                        </div>
+                        <div className="pl-6 flex items-center" style={{ marginLeft: '-1.5rem' }}>
+                            <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`text-[36px] ${LH.normal} font-serif italic text-tea-gold font-light hang-punct`} placeholder="Pull quote here..." tag="p" readOnly={readOnly} />
+                        </div>
+                        <div className={getBottomTreatment(variant, theme.fadeBg)}></div>
+                    </div>
+                );
+
+            case LayoutVariant.LETTERPRESS_DEBOSS: {
+                const [lpTitle, lpBody] = content.split('|');
+                return (
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center text-center bg-tea-surface`} data-page-type="text">
+                        {/* Warm textured background */}
+                        <div className="absolute inset-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')]"></div>
+                        <div className="relative z-10">
+                            <EditableText
+                                value={lpTitle || content}
+                                onChange={isEditable ? (v) => updateContent(v + '|' + (lpBody || '')) : undefined}
+                                className={`${TYPE.display} font-serif font-bold leading-none tracking-tight mb-8`}
+                                style={{ textShadow: '0 -1px 0 rgba(0,0,0,0.25), 0 1px 1px rgba(255,255,255,0.06)', marginLeft: '-2px' }}
+                                placeholder="TITLE"
+                                tag="h1"
+                                readOnly={readOnly}
+                            />
+                            {lpBody && (
+                                <EditableText value={lpBody} onChange={isEditable ? (v) => updateContent((lpTitle || '') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-[0.2em] opacity-40`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            case LayoutVariant.ANNOTATED_IMAGE: {
+                // Parse: IMAGE_URL||x1,y1,label1||x2,y2,label2
+                const parts = content.split('||');
+                const imageUrl = parts[0] || (images[0] || '');
+                const annotations = parts.slice(1).map(a => {
+                    const [x, y, ...labelParts] = a.split(',');
+                    return { x: parseFloat(x) || 50, y: parseFloat(y) || 50, label: labelParts.join(',') || '' };
+                });
+                return (
+                    <div className={`${paperBase} flex flex-col`} data-page-type="image">
+                        <div className="flex-1 relative bg-black overflow-hidden">
+                            {imageUrl ? (
+                                <img src={imageUrl} className="w-full h-full object-cover reader-image-reveal" alt="annotated" />
+                            ) : (
+                                <SafeImage index={0} className="w-full h-full" />
+                            )}
+                            {/* Annotation circles */}
+                            {annotations.map((ann, i) => (
+                                <div key={i} className="absolute z-20 pointer-events-none" style={{ left: `${ann.x}%`, top: `${ann.y}%`, transform: 'translate(-50%, -50%)' }}>
+                                    <div className="w-8 h-8 rounded-full bg-tea-gold text-tea-bg flex items-center justify-center text-[14px] font-bold shadow-lg border-2 border-tea-bg">
+                                        {i + 1}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {annotations.length > 0 && (
+                            <div className={`${PAD.tight} bg-tea-surface`}>
+                                <div className="space-y-2">
+                                    {annotations.map((ann, i) => (
+                                        <div key={i} className="flex items-start gap-3">
+                                            <span className="w-5 h-5 rounded-full bg-tea-gold/20 text-tea-gold flex items-center justify-center text-[12px] font-bold shrink-0">{i + 1}</span>
+                                            <span className={`${TYPE.caption} ${LH.tight} opacity-70`}>{ann.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            case LayoutVariant.CONVERSATION_BUBBLE: {
+                // Parse: SPEAKER_A: text\nSPEAKER_B: text\n...
+                const dialogueLines = content.split('\n').filter(Boolean);
+                const speakers = new Set<string>();
+                dialogueLines.forEach(line => {
+                    const match = line.match(/^([^:]+):/);
+                    if (match) speakers.add(match[1].trim());
+                });
+                const speakerList = Array.from(speakers);
+                return (
+                    <div className={`${paperBase} ${PAD.card} pt-16 flex flex-col gap-4 overflow-hidden`} data-page-type="text" style={OPENTYPE}>
+                        <div className={`${FOLIO_CLASS} mb-2`}>{storyTitle || 'Conversation'}</div>
+                        <div className="flex-1 space-y-4 overflow-hidden">
+                            {isEditable ? (
+                                <EditableText value={content} onChange={updateContent} className={`${BODY_CLASS} opacity-90 whitespace-pre-wrap`} placeholder="SPEAKER_A: Hello\nSPEAKER_B: Hi there..." tag="p" readOnly={readOnly} />
+                            ) : (
+                                dialogueLines.map((line, i) => {
+                                    const match = line.match(/^([^:]+):\s*(.*)/);
+                                    if (!match) return null;
+                                    const [, speaker, text] = match;
+                                    const isFirst = speaker.trim() === speakerList[0];
+                                    const initials = speaker.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                                    return (
+                                        <div key={i} className={`flex items-end gap-3 ${isFirst ? 'flex-row' : 'flex-row-reverse'}`}>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${isFirst ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-text/10 text-tea-text-sec'}`}>
+                                                {initials}
+                                            </div>
+                                            <div className={`max-w-[70%] px-5 py-3 ${isFirst ? 'bg-tea-gold/8 text-tea-text' : 'bg-tea-surface text-tea-text-sec'}`}>
+                                                <p className={`${TYPE.body} ${LH.relaxed} opacity-90`}>{text}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            case LayoutVariant.TIMELINE_VISUAL: {
+                // Parse: date—event pairs, pipe separated
+                const tlEvents = content.split('|').filter(Boolean);
+                return (
+                    <div className={`${paperBase} ${PAD.text} pt-16`} data-page-type="mixed" style={OPENTYPE}>
+                        <div className={`${FOLIO_CLASS} mb-4`}>{storyTitle || 'Timeline'}</div>
+                        <div className="relative pl-10 flex-1">
+                            <div className="absolute left-4 top-0 bottom-0 w-[1px] bg-gradient-to-b from-tea-gold/60 via-tea-gold/30 to-transparent"></div>
+                            <div className="space-y-10">
+                                {tlEvents.map((event, i) => {
+                                    const [date, ...descParts] = event.split('—').map(s => s.trim());
+                                    const desc = descParts.join('—') || date;
+                                    const isLast = i === tlEvents.length - 1;
+                                    return (
+                                        <div key={i} className="relative flex items-start gap-4">
+                                            <div className={`absolute -left-[1.8rem] top-1.5 w-4 h-4 rounded-full ${isLast ? 'bg-tea-gold' : 'bg-tea-gold/50 border-2 border-tea-bg'} shadow-sm`}></div>
+                                            <div>
+                                                {descParts.length > 0 && <span className={`${TYPE.caption} ${LH.tight} font-mono opacity-40 block mb-1`}>{date}</span>}
+                                                <span className={`${TYPE.body} ${LH.relaxed} font-serif opacity-90`}>{descParts.length > 0 ? desc : date}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            case LayoutVariant.COMPARISON_SPLIT: {
+                // Parse: imageUrl1|imageUrl2|label1|label2
+                const csParts = content.split('|');
+                const csImg1 = csParts[0] || images[0] || '';
+                const csImg2 = csParts[1] || images[1] || '';
+                const csLabel1 = csParts[2] || 'Before';
+                const csLabel2 = csParts[3] || 'After';
+                return (
+                    <div className={`${paperBase} flex`} data-page-type="image">
+                        <div className="w-1/2 relative overflow-hidden bg-black">
+                            {csImg1 ? <img src={csImg1} className="w-full h-full object-cover reader-image-reveal" alt={csLabel1} /> : <SafeImage index={0} className="w-full h-full" />}
+                            <div className="absolute bottom-4 left-4 z-10">
+                                <span className={`${CAPTION_CLASS} bg-black/60 px-3 py-1 backdrop-blur-sm text-tea-text/80`}>{csLabel1}</span>
+                            </div>
+                        </div>
+                        <div className="w-[1px] bg-tea-gold/40 z-20 shrink-0"></div>
+                        <div className="w-1/2 relative overflow-hidden bg-black">
+                            {csImg2 ? <img src={csImg2} className="w-full h-full object-cover reader-image-reveal" alt={csLabel2} /> : <SafeImage index={1} className="w-full h-full" />}
+                            <div className="absolute bottom-4 right-4 z-10">
+                                <span className={`${CAPTION_CLASS} bg-black/60 px-3 py-1 backdrop-blur-sm text-tea-text/80`}>{csLabel2}</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            case LayoutVariant.STACKED_CARDS: {
+                // Parse: title|subtitle pairs separated by ;;
+                const cardItems = content.split(';;').filter(Boolean);
+                return (
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`} data-page-type="mixed" style={OPENTYPE}>
+                        <div className="relative w-full max-w-[500px]">
+                            {cardItems.map((card, i) => {
+                                const [cardTitle, cardSub] = card.split('|');
+                                const zIndex = cardItems.length - i;
+                                const offset = i * 8;
+                                return (
+                                    <div
+                                        key={i}
+                                        className="absolute inset-x-0 bg-tea-surface border border-tea-border/20 shadow-lg p-8"
+                                        style={{ top: offset, zIndex, transform: `rotate(${(i - Math.floor(cardItems.length / 2)) * 1.5}deg)` }}
+                                    >
+                                        <h3 className={`${TYPE.headline} font-serif leading-none mb-2 opacity-90`}>{cardTitle}</h3>
+                                        {cardSub && <p className={`${TYPE.caption} ${LH.tight} opacity-50`}>{cardSub}</p>}
+                                    </div>
+                                );
+                            })}
+                            {/* Spacer for absolute positioned cards */}
+                            <div style={{ paddingTop: `${cardItems.length * 8 + 140}px` }}></div>
+                        </div>
+                    </div>
+                );
+            }
+
+            case LayoutVariant.FULL_BLEED_TEXT: {
+                // Position: top-left, center, bottom (from content after first ||)
+                const [fbImageUrl, fbText, fbPosition = 'bottom'] = content.split('||');
+                const posClass = fbPosition === 'top' ? 'items-start pt-20' : fbPosition === 'center' ? 'items-center' : 'items-end pb-16';
+                const displayImg = fbImageUrl || images[0] || '';
+                return (
+                    <div className={`${paperBase} bg-black relative flex flex-col ${posClass} px-16`} data-page-type="image">
+                        <div className="absolute inset-0 z-0 reader-image-reveal">
+                            {displayImg ? <img src={displayImg} className="w-full h-full object-cover" alt="full bleed" /> : <SafeImage index={0} className="w-full h-full" />}
+                        </div>
+                        <div className="relative z-20 max-w-[80%]">
+                            <EditableText
+                                value={fbText || (isEditable ? '' : '')}
+                                onChange={isEditable ? (v) => updateContent(`${fbImageUrl}||${v}||${fbPosition}`) : undefined}
+                                className={`${TYPE.display} font-serif text-white leading-none font-bold`}
+                                style={{ textShadow: '0 4px 40px rgba(0,0,0,0.8), 0 2px 10px rgba(0,0,0,0.6)', marginLeft: '-2px' }}
+                                placeholder="Display text"
+                                tag="h2"
+                                readOnly={readOnly}
+                            />
+                        </div>
+                    </div>
+                );
+            }
+
+            case LayoutVariant.INFOGRAPHIC_CIRCLE: {
+                // Parse: title|value1,label1|value2,label2|... (values 0-100)
+                const icParts = content.split('|');
+                const icTitle = icParts[0] || 'Data';
+                const icData = icParts.slice(1).map(p => {
+                    const [val, ...labelP] = p.split(',');
+                    return { value: Math.min(parseFloat(val) || 0, 100), label: labelP.join(',') };
+                });
+                const r = 80;
+                const circumference = 2 * Math.PI * r;
+                return (
+                    <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`} data-page-type="mixed" style={OPENTYPE}>
+                        <h2 className={`${CAPTION_CLASS} mb-10`}>{icTitle}</h2>
+                        <div className="grid grid-cols-2 gap-10">
+                            {icData.map((d, i) => {
+                                const dashArray = `${(d.value / 100) * circumference} ${circumference}`;
+                                const colors = ['text-tea-gold', 'text-tea-text-sec', 'text-tea-gold/60', 'text-tea-text/40'];
+                                const strokeColors = ['var(--tea-gold)', 'var(--tea-text-sec)', 'rgba(184,146,78,0.5)', 'rgba(184,146,78,0.3)'];
+                                return (
+                                    <div key={i} className="flex flex-col items-center">
+                                        <div className="relative w-[120px] h-[120px]">
+                                            <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
+                                                <circle cx="100" cy="100" r={r} fill="none" stroke="currentColor" strokeWidth="8" className="opacity-10" />
+                                                <circle cx="100" cy="100" r={r} fill="none" stroke={strokeColors[i % strokeColors.length]} strokeWidth="8" strokeDasharray={dashArray} strokeLinecap="round" />
+                                            </svg>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className={`${TYPE.bodyLarge} font-mono font-bold ${colors[i % colors.length]}`}>{d.value.toFixed(0)}</span>
+                                            </div>
+                                        </div>
+                                        <span className={`${TYPE.caption} ${LH.tight} text-center opacity-60 mt-2 max-w-[100px]`}>{d.label}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            }
 
             default: // Generic Fallback
                 return (
