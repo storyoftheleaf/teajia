@@ -1,9 +1,17 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import type { TastingData } from '../../types';
 import {
   TASTING_TAXONOMY,
   type TastingCategoryId,
 } from '../../data/tastingTaxonomy';
+
+/** Haptic feedback helpers */
+const vibrateLight = () => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+};
+const vibrateMedium = () => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(25);
+};
 
 export interface TastingFlowState {
   value: TastingData;
@@ -12,13 +20,18 @@ export interface TastingFlowState {
   toggleGroup: (categoryId: TastingCategoryId, groupLabel: string) => void;
   expandGroup: (groupLabel: string) => void;
   collapseGroup: (groupLabel: string) => void;
+  collapseAllGroups: () => void;
   isGroupSelected: (categoryId: TastingCategoryId, groupLabel: string) => boolean;
   getGroupSelectedTerms: (categoryId: TastingCategoryId, groupLabel: string) => string[];
   addCustomTerm: (categoryId: TastingCategoryId, term: string) => void;
+  clearCategory: (categoryId: TastingCategoryId) => void;
+  clearAll: () => void;
+  undo: () => void;
+  canUndo: boolean;
   hasAnySelection: boolean;
+  getCategoryCount: (categoryId: TastingCategoryId) => number;
 }
 
-/** Find the first term in a group (used as the "group-level" selection) */
 function getGroupFirstTerm(categoryId: string, groupLabel: string): string | null {
   const cat = TASTING_TAXONOMY.categories.find(c => c.id === categoryId);
   if (!cat) return null;
@@ -26,7 +39,6 @@ function getGroupFirstTerm(categoryId: string, groupLabel: string): string | nul
   return group?.terms[0]?.id ?? null;
 }
 
-/** Get all term IDs in a group */
 function getGroupTermIds(categoryId: string, groupLabel: string): string[] {
   const cat = TASTING_TAXONOMY.categories.find(c => c.id === categoryId);
   if (!cat) return [];
@@ -34,19 +46,28 @@ function getGroupTermIds(categoryId: string, groupLabel: string): string[] {
   return group?.terms.map(t => t.id) ?? [];
 }
 
+const MAX_UNDO = 5;
+
 export function useTastingFlow(
   initialValue: TastingData,
   onChange: (data: TastingData) => void
 ): TastingFlowState {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const undoStack = useRef<TastingData[]>([]);
+
+  const pushUndo = useCallback((current: TastingData) => {
+    undoStack.current = [...undoStack.current.slice(-(MAX_UNDO - 1)), current];
+  }, []);
 
   const toggleTerm = useCallback((categoryId: TastingCategoryId, termId: string) => {
+    vibrateLight();
+    pushUndo(initialValue);
     const current = initialValue[categoryId] || [];
     const next = current.includes(termId)
       ? current.filter(t => t !== termId)
       : [...current, termId];
     onChange({ ...initialValue, [categoryId]: next.length ? next : undefined });
-  }, [initialValue, onChange]);
+  }, [initialValue, onChange, pushUndo]);
 
   const isGroupSelected = useCallback((categoryId: TastingCategoryId, groupLabel: string): boolean => {
     const current = initialValue[categoryId] || [];
@@ -61,37 +82,28 @@ export function useTastingFlow(
   }, [initialValue]);
 
   const toggleGroup = useCallback((categoryId: TastingCategoryId, groupLabel: string) => {
+    vibrateMedium();
+    pushUndo(initialValue);
     const current = initialValue[categoryId] || [];
     const groupTerms = getGroupTermIds(categoryId, groupLabel);
     const hasAny = groupTerms.some(t => current.includes(t));
 
     if (hasAny) {
-      // If group is already expanded, just collapse it and keep selections
-      if (expandedGroups.has(groupLabel)) {
-        setExpandedGroups(prev => {
-          const next = new Set(prev);
-          next.delete(groupLabel);
-          return next;
-        });
-        return;
-      }
-      // If not expanded, deselect all group terms
       const next = current.filter(t => !groupTerms.includes(t));
       onChange({ ...initialValue, [categoryId]: next.length ? next : undefined });
       setExpandedGroups(prev => {
-        const next = new Set(prev);
-        next.delete(groupLabel);
-        return next;
+        if (!prev.has(groupLabel)) return prev;
+        const n = new Set(prev);
+        n.delete(groupLabel);
+        return n;
       });
     } else {
-      // Select the first/generic term and expand to show sub-terms
       const firstTerm = getGroupFirstTerm(categoryId, groupLabel);
       if (firstTerm) {
         onChange({ ...initialValue, [categoryId]: [...current, firstTerm] });
       }
-      setExpandedGroups(prev => new Set(prev).add(groupLabel));
     }
-  }, [initialValue, onChange, expandedGroups]);
+  }, [initialValue, onChange, pushUndo]);
 
   const expandGroup = useCallback((groupLabel: string) => {
     setExpandedGroups(prev => new Set(prev).add(groupLabel));
@@ -99,10 +111,14 @@ export function useTastingFlow(
 
   const collapseGroup = useCallback((groupLabel: string) => {
     setExpandedGroups(prev => {
-      const next = new Set(prev);
-      next.delete(groupLabel);
-      return next;
+      const n = new Set(prev);
+      n.delete(groupLabel);
+      return n;
     });
+  }, []);
+
+  const collapseAllGroups = useCallback(() => {
+    setExpandedGroups(new Set());
   }, []);
 
   const addCustomTerm = useCallback((categoryId: TastingCategoryId, term: string) => {
@@ -110,11 +126,45 @@ export function useTastingFlow(
     if (!id) return;
     const current = initialValue[categoryId] || [];
     if (current.includes(id)) return;
+    pushUndo(initialValue);
+    vibrateLight();
     onChange({ ...initialValue, [categoryId]: [...current, id] });
-  }, [initialValue, onChange]);
+  }, [initialValue, onChange, pushUndo]);
+
+  const clearCategory = useCallback((categoryId: TastingCategoryId) => {
+    if (!initialValue[categoryId]?.length) return;
+    vibrateMedium();
+    pushUndo(initialValue);
+    const next = { ...initialValue };
+    delete next[categoryId];
+    onChange(next);
+  }, [initialValue, onChange, pushUndo]);
+
+  const clearAll = useCallback(() => {
+    vibrateMedium();
+    pushUndo(initialValue);
+    onChange({});
+    setExpandedGroups(new Set());
+  }, [initialValue, onChange, pushUndo]);
+
+  const undo = useCallback(() => {
+    const stack = undoStack.current;
+    if (stack.length === 0) return;
+    const prev = stack.pop()!;
+    vibrateLight();
+    onChange(prev);
+  }, [onChange]);
+
+  const canUndo = undoStack.current.length > 0;
 
   const hasAnySelection = useMemo(() => {
-    return Object.values(initialValue).some(arr => arr && arr.length > 0);
+    return Object.entries(initialValue).some(([, arr]) => {
+      return Array.isArray(arr) && arr.length > 0;
+    });
+  }, [initialValue]);
+
+  const getCategoryCount = useCallback((categoryId: TastingCategoryId): number => {
+    return initialValue[categoryId]?.length || 0;
   }, [initialValue]);
 
   return {
@@ -124,9 +174,15 @@ export function useTastingFlow(
     toggleGroup,
     expandGroup,
     collapseGroup,
+    collapseAllGroups,
     isGroupSelected,
     getGroupSelectedTerms,
     addCustomTerm,
+    clearCategory,
+    clearAll,
+    undo,
+    canUndo,
     hasAnySelection,
+    getCategoryCount,
   };
 }

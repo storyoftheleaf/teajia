@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use MouthfeelZone instead — merges Body + Finish into one section.
+ * Kept for backwards compatibility. Will be removed in a future update.
+ */
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TASTING_TAXONOMY, TERM_MAP } from '../../data/tastingTaxonomy';

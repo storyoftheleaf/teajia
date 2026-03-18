@@ -6,6 +6,9 @@ export interface TastingData {
   feeling?: string[];
   'liquor-color'?: string[];
   brewing?: string[];
+  rating?: number;           // 1-5 overall rating
+  primaryNotes?: string[];   // Emphasized notes (shown larger/first)
+  overallImpression?: string; // Quick one-word impression
 }
 
 export interface CustomerTasting {
@@ -16,6 +19,7 @@ export interface CustomerTasting {
   teaImage?: string;
   tasting: TastingData;
   personalNote?: string;
+  rating?: number;
   createdAt: string;
 }
 

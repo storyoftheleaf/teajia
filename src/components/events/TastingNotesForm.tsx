@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Leaf } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
 import { useSubmitTastingNotes } from '../../hooks/useEventPolling';
 import type { TeaMenuItem } from '../../types/events';
@@ -71,7 +71,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-4">
           <TeaLeafIcon className="w-7 h-7 text-tea-gold" filled />
         </div>
-        <h3 className="font-serif text-xl text-tea-text mb-2">Thank You</h3>
+        <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Thank You</h3>
         <p className="text-sm text-tea-text-sec max-w-xs mx-auto">
           Your impressions have been shared. They help us curate even better sessions.
         </p>
@@ -81,8 +81,8 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
 
   return (
     <div className={`${className}`}>
-      <h3 className="font-serif text-xl text-tea-text mb-2">Share Your Impressions</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
+      <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Share Your Impressions</h3>
+      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6" style={{ fontFamily: 'var(--font-body)' }}>
         Rate the teas you tasted today
       </p>
 
@@ -104,7 +104,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                     </span>
                   )}
                 </div>
-                <h4 className="font-serif text-base text-tea-text">{item.customName || item.productName}</h4>
+                <h4 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{item.customName || item.productName}</h4>
                 {item.customDescription && (
                   <p className="text-xs text-tea-text-sec mt-1 line-clamp-2">{item.customDescription}</p>
                 )}
@@ -112,25 +112,25 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
 
               {/* Rating: tea leaves */}
               <div className="mb-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
                   Rating
                 </p>
-                <div className="flex gap-1.5">
+                <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((level) => (
                     <button
                       key={level}
                       type="button"
                       onClick={() => updateNote(item.id, 'rating', note.rating === level ? 0 : level)}
-                      className="p-1 transition-all duration-200 hover:scale-110"
+                      className="min-h-[44px] min-w-[44px] flex items-center justify-center transition-all duration-200 hover:scale-110"
                       aria-label={`Rate ${level} out of 5`}
                     >
-                      <TeaLeafIcon
-                        className={`w-6 h-6 transition-colors duration-200 ${
+                      <Leaf
+                        size={22}
+                        className={`transition-colors duration-200 ${
                           level <= note.rating
-                            ? 'text-tea-gold'
-                            : 'text-tea-text-sec/20 hover:text-tea-text-sec/40'
+                            ? 'text-tea-gold fill-tea-gold'
+                            : 'text-tea-text-dim/20'
                         }`}
-                        filled={level <= note.rating}
                       />
                     </button>
                   ))}
@@ -144,7 +144,8 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                   value={note.impression}
                   onChange={(e) => updateNote(item.id, 'impression', e.target.value)}
                   placeholder="One-line impression..."
-                  className="w-full px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  style={{ fontFamily: 'var(--font-body)' }}
                 />
               </div>
 
@@ -152,13 +153,13 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
               <button
                 type="button"
                 onClick={() => updateNote(item.id, 'isFavorite', !note.isFavorite)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs transition-all duration-200 border ${
+                className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${
                   note.isFavorite
-                    ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-                    : 'bg-transparent border-tea-border text-tea-text-sec hover:border-tea-gold/20 hover:text-tea-text-sec'
+                    ? 'bg-tea-gold/15 text-tea-gold'
+                    : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
                 }`}
               >
-                <TeaLeafIcon className="w-3.5 h-3.5" filled={note.isFavorite} />
+                <Leaf size={14} className={note.isFavorite ? 'fill-tea-gold' : ''} />
                 This was my favorite
               </button>
             </div>
