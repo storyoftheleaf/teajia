@@ -1,18 +1,5 @@
 import type { PublicProduct, InventoryItem } from '../types';
 
-const CATEGORY_TO_SUBCATEGORY: Record<string, string> = {
-  pot: 'brewing',
-  cup: 'serving',
-  tray: 'serving',
-  storage: 'ritual',
-  accessory: 'ritual',
-  decorative: 'elements',
-};
-
-function categoryToSubcategory(cat: string): string {
-  return CATEGORY_TO_SUBCATEGORY[cat] || 'ritual';
-}
-
 /**
  * Converts a PublicProduct (from D1 API) to an InventoryItem shape
  * so existing shop components work without immediate refactoring.
@@ -47,7 +34,7 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     isCurated: p.isCurated,
     material: p.material,
     capacityMl: p.capacityMl,
-    subcategory: p.teawareCategory ? categoryToSubcategory(p.teawareCategory) : undefined,
+    subcategory: p.teawareCategory || undefined,
     tasting: p.tasting,
   };
 }

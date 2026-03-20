@@ -103,9 +103,10 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
                 <ServiceLabel>{label}</ServiceLabel>
                 <ServiceHeading>{heading}</ServiceHeading>
               </div>
-              {badge && (
+              {/* #5 Badge — bg tint only, no border (respects card-utilities rule) */}
+            {badge && (
                 <span className="shrink-0 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap mt-1
-                                 border border-tea-gold/20 rounded-full px-3 py-1"
+                                 bg-tea-gold/[0.08] rounded-full px-3 py-1"
                       style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
                   {badge}
                 </span>
@@ -118,15 +119,17 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
             </p>
 
             {/* Inset hero image — padded inside the card like the Alcove tea photo */}
+            {/* #4 Taller cinematic images */}
             {img && (
-              <div className="relative overflow-hidden rounded-md mt-5" style={{ height: 120, ...alcoveInsetStyle }}>
+              <div className="relative overflow-hidden rounded-md mt-5" style={{ height: 200, ...alcoveInsetStyle }}>
                 <img
                   src={img}
                   alt={imgAlt}
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-tea-text/10 pointer-events-none" />
+                <div className="absolute inset-0 pointer-events-none"
+                     style={{ background: 'linear-gradient(to top, var(--tea-bg), transparent 40%)' }} />
               </div>
             )}
 
@@ -229,14 +232,13 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
           </div>
         }
       >
-        {/* Pillars */}
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-3">
+        {/* #17 Pillars — tag-selectable pattern, no border */}
+        <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-tea-text-dim mb-3">
           What's Involved
         </p>
         <div className="flex flex-wrap gap-2 mb-8">
           {PILLARS.map((p) => (
-            <span key={p} className="text-xs text-tea-text-sec rounded-full px-3 py-1.5 tracking-wide
-                                    border border-tea-border bg-tea-accent-sub/50">
+            <span key={p} className="tag-selectable">
               {p}
             </span>
           ))}
@@ -249,11 +251,15 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
           <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-5">
             The Process
           </p>
-          {/* Mobile */}
-          <div className="relative md:hidden space-y-4">
-            {PROCESS.map(({ step, title, desc }) => (
-              <div key={step} className="flex items-start gap-4">
-                <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">{step}</span>
+          {/* #7 Mobile — gold thread connector between steps */}
+          <div className="relative md:hidden space-y-0">
+            {/* Vertical gold thread */}
+            <div className="absolute left-3 top-3 bottom-3 w-[1px] bg-tea-gold/12" />
+            {PROCESS.map(({ step, title, desc }, i) => (
+              <div key={step} className={`flex items-start gap-4 relative ${i > 0 ? 'pt-4' : ''}`}>
+                <span className="relative z-[1] text-tea-gold font-mono text-xs num bg-tea-gold/[0.08] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">
+                  {step}
+                </span>
                 <div>
                   <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
                   <p className="text-[11px] text-tea-text-sec mt-0.5">{desc}</p>
@@ -261,11 +267,15 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
               </div>
             ))}
           </div>
-          {/* Desktop */}
+          {/* #7 Desktop — horizontal gold thread connector */}
           <div className="relative hidden md:grid md:grid-cols-5 gap-6">
+            {/* Horizontal gold thread */}
+            <div className="absolute top-3 left-3 right-3 h-[1px] bg-tea-gold/12" />
             {PROCESS.map(({ step, title, desc }) => (
-              <div key={step}>
-                <span className="text-tea-gold font-mono text-xs num bg-tea-gold/[0.06] rounded-full w-6 h-6 flex items-center justify-center mb-2">{step}</span>
+              <div key={step} className="relative">
+                <span className="relative z-[1] text-tea-gold font-mono text-xs num bg-tea-gold/[0.08] rounded-full w-6 h-6 flex items-center justify-center mb-3">
+                  {step}
+                </span>
                 <h4 className="font-serif text-sm font-medium text-tea-text">{title}</h4>
                 <p className="text-[11px] text-tea-text-sec mt-1 leading-relaxed">{desc}</p>
               </div>
@@ -273,12 +283,12 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
           </div>
         </div>
 
-        {/* Pricing callout */}
-        <div className="border-l-2 border-tea-gold/30 pl-4">
+        {/* #20 Pricing callout — warm panel style */}
+        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-gold/30">
           <p className="text-sm text-tea-text-sec">
-            Projects range from $5,000 to $100,000+.
+            Projects range from <span className="text-tea-gold font-mono num">$5,000</span> to <span className="text-tea-gold font-mono num">$100,000+</span>.
           </p>
-          <p className="text-xs text-tea-text/30 mt-1">
+          <p className="text-xs text-tea-text-dim mt-1.5">
             Every project is scoped through conversation.
           </p>
         </div>
@@ -294,8 +304,8 @@ DesignSection.displayName = 'DesignSection';
 
 const OFFERINGS = [
   { name: 'Open Sit', price: 'Free', desc: 'Come by the studio. Share tea. No appointment.' },
-  { name: 'Guided Practice Setup', price: '$250 – 300', desc: '2-3 hours. Leave fully equipped. Includes $100-150 product credit.' },
-  { name: 'Group Ceremonial Session', price: 'From $30/person', desc: 'Up to 12. The living room space.' },
+  { name: 'Guided Practice Setup', price: '$250 – 300', desc: '2+ hours. Leave fully equipped. Includes $100 teaware credit.' },
+  { name: 'Group Ceremonial Session', price: 'Inquire', desc: 'Up to 14 or two rooms up to 24. Different tearooms for different purposes.' },
   { name: 'Private or Group Booking', price: 'From $500', desc: 'Half-day or full-day. Your gathering.' },
 ];
 
@@ -337,30 +347,36 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-sec px-5 pt-5 pb-2">
             Offerings
           </p>
-          {OFFERINGS.map(({ name, price, desc }) => (
-            <div key={name} className="relative flex items-start justify-between px-5 py-4 last:border-0"
-              style={{ borderBottom: '1px solid var(--tea-border)' }}>
+          {/* #8 Alternating row tints for readability */}
+          {OFFERINGS.map(({ name, price, desc }, i) => (
+            <div key={name}
+              className={`relative flex items-start justify-between px-5 py-4 ${
+                i % 2 === 1 ? 'bg-tea-accent-sub/30' : ''
+              }`}
+              style={{ borderBottom: i < OFFERINGS.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
               <div>
                 <h4 className="font-serif text-base text-tea-text">{name}</h4>
-                <p className="text-xs text-tea-text-sec mt-1">{desc}</p>
+                <p className="text-xs text-tea-text-sec mt-1 leading-relaxed">{desc}</p>
               </div>
               <span className="font-mono text-xs text-tea-gold num whitespace-nowrap ml-4 mt-1">{price}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-3">
+        {/* #16 Walk-away list with checkmark icons */}
+        <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-tea-text-dim mb-3">
           What You Walk Away With
         </p>
-        <div className="border-l border-tea-border pl-4">
-          <ul className="space-y-2">
-            {WALKAWAY.map(item => (
-              <li key={item} className="text-sm text-tea-text-sec">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="space-y-3">
+          {WALKAWAY.map(item => (
+            <li key={item} className="flex items-start gap-3 text-sm text-tea-text-sec">
+              <span className="w-4 h-4 rounded-full bg-tea-gold/[0.08] flex items-center justify-center shrink-0 mt-0.5">
+                <Icons.Check className="w-2.5 h-2.5 text-tea-gold" />
+              </span>
+              {item}
+            </li>
+          ))}
+        </ul>
       </ServiceCard>
     );
   }
@@ -406,8 +422,9 @@ export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
           These aren't tours — each journey is shaped around what calls to you.
         </p>
 
-        <div className="inline-flex items-center gap-2 border border-tea-gold/15 rounded-full px-4 py-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/40" />
+        {/* #6 Invitation badge — bg tint only, no border */}
+        <div className="inline-flex items-center gap-2 bg-tea-gold/[0.06] rounded-full px-4 py-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/50" />
           <span className="text-xs text-tea-gold/70 uppercase tracking-wider">Seasonal &middot; By invitation</span>
         </div>
       </ServiceCard>
@@ -493,9 +510,9 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           Retreats, dinners, brand activations, celebrations. Fully curated from start to finish.
         </p>
 
-        <div className="border-l-2 border-tea-gold/30 pl-4">
-          <p className="text-sm text-tea-gold/80">From $500 for a half-day.</p>
-          <p className="text-xs text-tea-text-sec mt-1">
+        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-gold/30">
+          <p className="text-sm text-tea-gold/80">From <span className="font-mono num">$500</span> for a half-day.</p>
+          <p className="text-xs text-tea-text-dim mt-1.5">
             Full-day and multi-day experiences quoted based on scope.
           </p>
         </div>

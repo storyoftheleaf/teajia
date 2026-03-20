@@ -11,7 +11,6 @@ import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { Icons } from './Icons';
 import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
-import { ShopGridLayout } from './shared/ShopGridLayout';
 import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
@@ -108,44 +107,126 @@ export const Shop: React.FC<ShopProps> = ({
     setTimeout(() => setAddedProductId(null), 1500);
   };
 
-  const renderSetCard = (set: StarterSet) => (
-    <div
-      key={set.id}
-      className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
-      onClick={() => handleAddStarterSet(set)}
-    >
-      <div className="p-2 md:p-3 bg-tea-surface rounded-lg">
-        <CardImage src={set.image} alt={set.name} aspect="square" />
-        <div className="px-1 mt-3">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">
-            <h4 className="card-grid-title">{set.name}</h4>
-            <div className="card-grid-price"><span className="card-grid-price">{set.price}</span></div>
+  // Resolve set items to inventory names
+  const resolveSetItems = (set: StarterSet) =>
+    set.items.map(({ type, itemId, quantity }) => {
+      const item = allInventory.find(inv => inv.id === itemId);
+      return {
+        name: item?.name || itemId,
+        type,
+        itemId,
+        quantity: quantity || (type === 'tea' ? 50 : 1),
+        unit: type === 'tea' ? 'g' : '',
+      };
+    });
+
+  // Calculate "retail" total from individual item prices
+  const calcRetailTotal = (set: StarterSet): number => {
+    let total = 0;
+    set.items.forEach(({ type, itemId }) => {
+      const item = allInventory.find(inv => inv.id === itemId);
+      if (item) {
+        if (type === 'tea') {
+          total += parseFloat(item.price_per_gram || '0') * 50;
+        } else {
+          total += parseFloat(item.price_50g || '0');
+        }
+      }
+    });
+    return Math.round(total);
+  };
+
+  const renderSetCard = (set: StarterSet) => {
+    const resolvedItems = resolveSetItems(set);
+    const retailTotal = calcRetailTotal(set);
+    const setPrice = parseInt(set.price.replace('$', ''), 10);
+    const showComparison = retailTotal > 0 && retailTotal > setPrice;
+
+    return (
+      <div key={set.id} className="set-card group">
+        <div className="flex flex-col md:flex-row">
+          {/* Image side */}
+          <div className="relative md:w-[40%] lg:w-[35%] flex-shrink-0">
+            <span className="set-badge">Set</span>
+            <CardImage src={set.image} alt={set.name} aspect="video" className="md:!aspect-auto md:h-full" />
           </div>
-          <div className="mb-2">
-            <span className="card-grid-badge">{set.items.length} items</span>
-          </div>
-          <p className="card-grid-description">{set.shortDescription}</p>
-          <div className="mt-3">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
-              disabled={isAddingToCart[set.id]}
-              className="bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 w-full"
-            >
-              <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
-              <span className="w-[1px] h-3 bg-tea-text-sec/30" />
-              <span className="font-mono text-sm">{set.price}</span>
-            </button>
+
+          {/* Content side */}
+          <div className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col">
+            {/* Tags */}
+            {set.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {set.tags.map(tag => (
+                  <span key={tag} className="tag text-[0.5625rem]">{tag}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Title */}
+            <h3 className="font-serif text-lg md:text-xl text-tea-text leading-tight mb-1">
+              {set.name}
+            </h3>
+
+            {/* Ideal for */}
+            {set.idealFor && (
+              <p className="text-xs text-tea-gold/80 italic mb-3">
+                {set.idealFor}
+              </p>
+            )}
+
+            {/* Full description */}
+            <p className="text-sm text-tea-text-sec leading-relaxed mb-4">
+              {set.description}
+            </p>
+
+            {/* What's inside */}
+            <div className="mb-4">
+              <p className="text-[0.625rem] uppercase tracking-[0.12em] text-tea-text-dim mb-2">
+                What's inside
+              </p>
+              <div className="space-y-0">
+                {resolvedItems.map((item) => (
+                  <div key={item.itemId} className="set-item-row">
+                    <span className="set-item-dot" />
+                    <span>{item.name}{item.type === 'tea' ? ` · ${item.quantity}${item.unit}` : ''}</span>
+                    <span className="set-item-type">{item.type === 'tea' ? 'Tea' : 'Teaware'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Price + Add button */}
+            <div className="mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  {showComparison && (
+                    <span className="set-price-original">${retailTotal}</span>
+                  )}
+                  <span className="set-price-current">{set.price}</span>
+                </div>
+                {set.discount && (
+                  <p className="set-discount mt-0.5">{set.discount}</p>
+                )}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
+                disabled={isAddingToCart[set.id]}
+                className="bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap"
+              >
+                <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSets = () => (
     <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 opacity-40">
-          <div className="w-16 h-16 border border-tea-text/20  rounded-full flex items-center justify-center mb-4">
+          <div className="w-16 h-16 border border-tea-text/20 rounded-full flex items-center justify-center mb-4">
             <Icons.Box className="w-6 h-6 text-tea-text/50" />
           </div>
           <p className="font-serif italic text-base text-tea-text/60">No sets available.</p>
@@ -153,14 +234,14 @@ export const Shop: React.FC<ShopProps> = ({
       ) : (
         <>
           <SectionDivider label="Tea Sets" subtitle="Curated tea collections with essential brewing vessels." />
-          <ShopGridLayout>
+          <div className="space-y-4 md:space-y-5 stagger-grid">
             {STARTER_TEA_SETS.map(set => renderSetCard(set))}
-          </ShopGridLayout>
+          </div>
 
           <SectionDivider label="Teaware Sets" subtitle="Complete teaware collections for any brewing style." />
-          <ShopGridLayout>
+          <div className="space-y-4 md:space-y-5 stagger-grid">
             {STARTER_TEAWARE_SETS.map(set => renderSetCard(set))}
-          </ShopGridLayout>
+          </div>
         </>
       )}
     </div>

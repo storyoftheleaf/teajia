@@ -35,6 +35,10 @@ export const usePublicProducts = () => {
         terroir: p.terroir || '',
         mood: p.mood || '',
         experience: p.experience || '',
+        material: p.material || '',
+        capacityMl: p.capacity_ml != null ? Number(p.capacity_ml) : undefined,
+        teawareCategory: p.teaware_category || undefined,
+        quantityUnits: p.quantity_units != null ? Number(p.quantity_units) : undefined,
         tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
       }));
     },

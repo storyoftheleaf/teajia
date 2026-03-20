@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -30,7 +30,7 @@ import {
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
 // --- COLUMN DEFINITIONS ---
-type InventoryCategory = 'tea' | 'teaware' | 'collection' | 'glossary';
+type InventoryCategory = 'tea' | 'teaware';
 
 const TEA_COLUMN_DEFS = [
   { key: 'productName', label: 'Product', defaultWidth: 'w-[28%]', alwaysVisible: true },
@@ -143,6 +143,10 @@ interface InventoryViewProps {
   onImportClick: () => void;
   onAddClick: () => void;
   onRefresh: () => void;
+  /** Category controlled from parent top bar */
+  externalCategory?: 'tea' | 'teaware';
+  /** Search query controlled from parent top bar */
+  externalSearchQuery?: string;
 }
 
 // --- GHOST INPUT COMPONENT ---
@@ -560,7 +564,8 @@ const ImageManager = ({ product, onUpdate }: {
 };
 
 export const InventoryView: React.FC<InventoryViewProps> = ({
-  products, isLoading, isError, error, onImportClick, onAddClick, onRefresh
+  products, isLoading, isError, error, onImportClick, onAddClick, onRefresh,
+  externalCategory = 'tea', externalSearchQuery = '',
 }) => {
   const { showToast } = useToast();
 
@@ -575,20 +580,34 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   } = useAppStore();
 
   // --- STATE ---
-  const [searchParams] = useSearchParams();
-  const [inventoryCategory, setInventoryCategory] = useState<InventoryCategory>('tea');
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const vendorFilter = searchParams.get('vendor') || '';
+  const navigate = useNavigate();
+
+  // Use external category/search from parent top bar
+  const inventoryCategory: InventoryCategory = externalCategory;
+  const searchQuery = externalSearchQuery;
   const [filterType, setFilterType] = useState<string>('All');
   const [showOptions, setShowOptions] = useState(false);
+  const [glossaryMode, setGlossaryMode] = useState(false);
+
+  // Reset glossary mode when switching categories
+  useEffect(() => { setGlossaryMode(false); }, [externalCategory]);
 
   // EDIT MODE STATE
   const [isEditMode, setIsEditMode] = useState(false);
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
 
   // Initialize/Sync Local Products for Optimistic Updates
+  // When a vendor filter is active, only show products from that vendor
   useEffect(() => {
-    setLocalProducts(products);
-  }, [products]);
+    if (vendorFilter) {
+      const vendorLower = vendorFilter.toLowerCase();
+      setLocalProducts(products.filter(p => p.vendor && p.vendor.toLowerCase() === vendorLower));
+    } else {
+      setLocalProducts(products);
+    }
+  }, [products, vendorFilter]);
 
   // Feature 2: Column Show/Hide popover
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
@@ -671,10 +690,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // 0. Category filter
     if (inventoryCategory === 'teaware') {
       result = result.filter(p => p.type === 'Teaware');
-    } else if (inventoryCategory === 'collection') {
-      result = result.filter(p => p.isPersonal && p.type !== 'Teaware');
     } else {
-      // 'tea' and 'glossary' both show all non-teaware
+      // 'tea' — all non-teaware
       result = result.filter(p => p.type !== 'Teaware');
     }
 
@@ -745,8 +762,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const verificationStats = useMemo(() => {
     const categoryProducts = inventoryCategory === 'teaware'
       ? localProducts.filter(p => p.type === 'Teaware')
-      : inventoryCategory === 'collection'
-      ? localProducts.filter(p => p.isPersonal && p.type !== 'Teaware')
       : localProducts.filter(p => p.type !== 'Teaware');
     const active = categoryProducts.filter(p => p.status === 'Active');
     const verified = active.filter(p => !!p.stockVerifiedAt).length;
@@ -1436,34 +1451,57 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   return (
     <div className={`h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
-      {/* --- CATEGORY TOGGLE + SAVED VIEWS TAB BAR --- */}
+      {/* --- VENDOR FILTER BANNER --- */}
+      {vendorFilter && (
+        <div className="flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
+          <button
+            onClick={() => navigate('/admin/people')}
+            className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <ChevronLeft size={14} />
+            <span className="uppercase tracking-[0.15em] text-[10px] font-bold">Sources</span>
+          </button>
+          <div className="w-px h-4 bg-tea-border/30" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <User size={14} className="text-tea-gold flex-shrink-0" />
+            <span className="text-sm font-serif text-tea-text truncate">{vendorFilter}</span>
+            <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em]">
+              — {processedProducts.length} tea{processedProducts.length !== 1 ? 's' : ''} supplied
+            </span>
+          </div>
+          <button
+            onClick={() => { setSearchParams({}); }}
+            className="flex items-center gap-1 text-[10px] text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em] transition-colors px-2 py-1 hover:bg-tea-bg rounded-md"
+          >
+            <XIcon size={12} /> Clear Filter
+          </button>
+        </div>
+      )}
+
+      {/* --- SAVED VIEWS TAB BAR --- */}
       <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar hide-scrollbar">
-        {/* Category toggle: All / Collection / Glossary / Equipment */}
-        <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 mr-2 flex-shrink-0">
-          {([
-            { id: 'tea' as InventoryCategory, label: 'All' },
-            { id: 'collection' as InventoryCategory, label: 'Collection' },
-            { id: 'glossary' as InventoryCategory, label: 'Glossary' },
-            { id: 'teaware' as InventoryCategory, label: 'Equipment' },
-          ]).map(tab => (
+        {/* Glossary toggle — only for tea category */}
+        {inventoryCategory === 'tea' && (
+          <>
             <button
-              key={tab.id}
-              onClick={() => setInventoryCategory(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-                inventoryCategory === tab.id
-                  ? 'bg-tea-bg text-tea-text shadow-sm'
-                  : 'text-tea-text-sec hover:text-tea-text'
+              onClick={() => setGlossaryMode(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
+                glossaryMode
+                  ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent-sub'
+                  : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
               }`}
             >
-              {tab.label}
+              <ImageIcon size={10} />
+              Glossary
             </button>
-          ))}
-        </div>
-        <div className="w-px h-4 bg-tea-border/30 mr-1" />
+            <div className="w-px h-4 bg-tea-border/30 mx-1 shrink-0" />
+          </>
+        )}
         {(savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews).map(view => (
           <button
             key={view.id}
             onClick={() => {
+              setGlossaryMode(false);
               setActiveView(view.id);
               setInventoryColumns(view.columns);
               setInventorySortConfig(view.sortConfig);
@@ -1593,25 +1631,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               )}
             </div>
           </div>
-          {/* Search row — full width on mobile */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim" size={14} />
-            <input
-              type="text"
-              placeholder="Search inventory..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-tea-surface/50 border border-tea-border rounded-lg pl-9 pr-8 py-2 text-sm text-tea-text outline-none focus:border-tea-accent-sub font-sans placeholder-tea-text-dim transition-colors"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text p-0.5"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Desktop header — unchanged */}
@@ -1627,18 +1646,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
 
             <div className="flex items-center gap-4 ml-auto">
-                {/* Search */}
-                <div className="relative w-48">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
-                    <input
-                        type="text"
-                        placeholder="Search master list..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
-                    />
-                </div>
-
                 {/* Actions Group */}
                 <div className="flex items-center gap-2 relative">
 
@@ -1992,7 +1999,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         )}
 
         {/* GLOSSARY MODE — card grid for browsing */}
-        {inventoryCategory === 'glossary' && filterType !== 'Pending' && (
+        {glossaryMode && filterType !== 'Pending' && (
           <div className="pb-24 px-3 md:px-6 pt-3">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {processedProducts.map(product => {
@@ -2038,7 +2045,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         )}
 
         {/* MOBILE CARDS — redesigned with visible description + direct edit/view access */}
-        <div className={`md:hidden pb-24 space-y-px bg-tea-border/15 ${filterType === 'Pending' || inventoryCategory === 'glossary' ? 'hidden' : ''}`}>
+        <div className={`md:hidden pb-24 space-y-px bg-tea-border/15 ${filterType === 'Pending' || glossaryMode ? 'hidden' : ''}`}>
             {processedProducts.map((product, idx) => {
                 const dotColor = getThemeColor(product.type);
                 const isExpanded = expandedCardId === product.id;
@@ -2305,7 +2312,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className={`w-full max-w-7xl mx-auto bg-tea-surface min-h-full ${filterType === 'Pending' || inventoryCategory === 'glossary' ? 'hidden' : 'hidden md:block'}`}>
+        <div className={`w-full max-w-7xl mx-auto bg-tea-surface min-h-full ${filterType === 'Pending' || glossaryMode ? 'hidden' : 'hidden md:block'}`}>
 
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (

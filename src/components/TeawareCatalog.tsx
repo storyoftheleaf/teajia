@@ -24,10 +24,12 @@ export interface TeawareCatalogProps {
 }
 
 const CATEGORIES_META = [
-  { id: 'brewing', label: 'Brewing' },
-  { id: 'serving', label: 'Serving' },
-  { id: 'elements', label: 'Elements' },
-  { id: 'ritual', label: 'Ritual' }
+  { id: 'pot', label: 'Pots & Kettles' },
+  { id: 'cup', label: 'Cups & Bowls' },
+  { id: 'tray', label: 'Trays & Mats' },
+  { id: 'accessory', label: 'Accessories' },
+  { id: 'decorative', label: 'Decorative' },
+  { id: 'storage', label: 'Storage' },
 ];
 
 export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, externalInventory = [], hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {

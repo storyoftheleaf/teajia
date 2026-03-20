@@ -318,6 +318,7 @@ export interface StarterSet {
   name: string;
   shortDescription: string; // Brief one-liner for collapsed state
   description: string; // Full description for expanded state
+  idealFor?: string; // "Perfect for: ..." one-liner
   image: string;
   price: string;
   discount?: string; // e.g., "15% off" or "$5 off individual items"

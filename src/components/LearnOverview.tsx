@@ -75,12 +75,12 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
 
 /** Section label — serif, editorial, warm gold accent */
 const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
-  <div className="mb-8 md:mb-10">
-    <h3 className="font-serif text-[clamp(22px,3vw,28px)] text-tea-text tracking-[0.01em] leading-[1.2]">
+  <div style={{ marginBottom: 'clamp(28px, 3vw, 40px)' }}>
+    <h3 className="font-serif text-tea-text tracking-[0.01em] leading-[1.2]" style={{ fontSize: 'clamp(20px, 2.5vw + 8px, 28px)' }}>
       {children}
     </h3>
     {subtitle && (
-      <p className="mt-2 font-serif font-light italic text-[15px] text-tea-text-sec leading-[1.6]">
+      <p className="mt-2 font-serif font-light italic text-tea-text-sec leading-[1.6]" style={{ fontSize: 'clamp(13px, 1vw + 8px, 15px)' }}>
         {subtitle}
       </p>
     )}
@@ -173,16 +173,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={heroReveal.ref}
-        className={`mb-20 md:mb-28 ${heroReveal.className}`}
+        className={`mb-[clamp(5rem,8vw,7rem)] ${heroReveal.className}`}
         style={heroReveal.style}
       >
         {/* Hero image — wide, cinematic */}
-        <div className="relative overflow-hidden rounded-[1px] mb-6 md:mb-8">
+        <div className="relative overflow-hidden rounded-[1px]" style={{ marginBottom: 'clamp(20px, 2.5vw, 32px)' }}>
           <InkWashPlaceholder label="tea ceremony" aspectRatio="2.35/1" mood="warm" />
           {/* Quote overlaid at the bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 via-transparent to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
-            <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] max-w-md">
+          <div className="absolute bottom-0 left-0 right-0" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
+            <p className="font-serif font-light italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)' }}>
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
             <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.2em] text-tea-text-sec">
@@ -192,7 +192,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
 
         {/* Search */}
-        <div className="mb-6 md:mb-8">
+        <div style={{ marginBottom: 'clamp(20px, 2.5vw, 32px)' }}>
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
@@ -215,16 +215,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <button
               key={tile.id}
               onClick={() => onNavigateTo(tile.id)}
-              className={`w-full flex items-center gap-4 py-3.5 px-1 last:shadow-none hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
-              style={{ boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
+              className={`w-full flex items-center py-3.5 px-1 last:shadow-none hover:bg-tea-text/[0.02] transition-colors group text-left ${CTA_FOCUS}`}
+              style={{ gap: 'clamp(8px, 1.5vw, 16px)', boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
             >
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}
               </span>
-              <span className="flex-1 font-serif text-[15px] text-tea-text leading-[1.4] group-hover:text-tea-gold transition-colors">
+              <span className="flex-1 font-serif text-tea-text leading-[1.4] group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1.2vw + 8px, 15px)' }}>
                 {tile.label}
               </span>
-              <span className="text-[11px] text-tea-text-sec font-sans tracking-[0.15em]">
+              <span className="text-tea-text-sec font-sans text-right shrink-0 max-w-[45%] leading-[1.5]" style={{ fontSize: 'clamp(9px, 0.8vw + 5px, 11px)', letterSpacing: 'clamp(0.08em, 0.5vw, 0.15em)' }}>
                 {tile.sub}
               </span>
             </button>
@@ -280,7 +280,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={glossaryReveal.ref}
-        className={`mb-20 md:mb-28 ${glossaryReveal.className}`}
+        className={`mb-[clamp(5rem,8vw,7rem)] ${glossaryReveal.className}`}
         style={glossaryReveal.style}
       >
         <SectionLabel subtitle="A new word, each morning">Term of the Day</SectionLabel>
@@ -296,7 +296,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 backgroundImage: `radial-gradient(ellipse at 0% 100%, var(--tea-accent-sub) 0%, transparent 60%)`
               }} />
 
-              <div className="relative p-7 md:p-10 lg:p-12">
+              <div className="relative" style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans border border-tea-gold/20 px-2.5 py-1 rounded-sm">
@@ -316,7 +316,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 )}
 
                 {/* Definition — Body role */}
-                <p className="font-serif text-[17px] text-tea-text-sec leading-[1.85] mb-8 max-w-lg">
+                <p className="font-serif text-tea-text-sec leading-[1.85] mb-8 max-w-lg" style={{ fontSize: 'clamp(14px, 1.2vw + 8px, 17px)' }}>
                   {spotlightTerm.definition}
                 </p>
 
@@ -380,7 +380,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={coursesReveal.ref}
-        className={`mb-20 md:mb-28 ${coursesReveal.className}`}
+        className={`mb-[clamp(5rem,8vw,7rem)] ${coursesReveal.className}`}
         style={coursesReveal.style}
       >
         <SectionLabel subtitle="Courses on leaf, water, and practice">Go Deeper</SectionLabel>
@@ -396,13 +396,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 onClick={() => onNavigateTo('course')}
                 className={`w-full text-left group border-b border-tea-border last:border-0 ${CTA_FOCUS}`}
               >
-                <div className="py-5 md:py-6">
+                <div style={{ padding: 'clamp(16px, 2vw, 24px) 0' }}>
                   <div className="flex items-baseline justify-between gap-4 mb-2">
-                    <h4 className={`font-serif text-[19px] leading-[1.2] tracking-[0.01em] transition-colors ${
+                    <h4 className={`font-serif leading-[1.2] tracking-[0.01em] transition-colors ${
                       isNext ? 'text-tea-text group-hover:text-tea-gold' :
                       isDone ? 'text-tea-text/30' :
                       'text-tea-text/55 group-hover:text-tea-gold/80'
-                    }`}>
+                    }`} style={{ fontSize: 'clamp(15px, 1.5vw + 8px, 19px)' }}>
                       {mod.title}
                     </h4>
                     <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
@@ -410,9 +410,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                       'text-tea-text/10 group-hover:text-tea-gold/40'
                     }`} />
                   </div>
-                  <p className={`font-serif font-light italic text-[15px] leading-[1.8] ${
+                  <p className={`font-serif font-light italic leading-[1.8] ${
                     isDone ? 'text-tea-text-sec/50' : 'text-tea-text-sec'
-                  }`}>
+                  }`} style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)' }}>
                     {mod.description}
                   </p>
                 </div>
@@ -429,12 +429,12 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={resourcesReveal.ref}
-        className={`mb-20 md:mb-28 ${resourcesReveal.className}`}
+        className={`mb-[clamp(5rem,8vw,7rem)] ${resourcesReveal.className}`}
         style={resourcesReveal.style}
       >
         <SectionLabel subtitle="References, music, and visual guides">Resources & Tools</SectionLabel>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(140px, 100%), 1fr))', gap: 'clamp(10px, 1.5vw, 16px)' }}>
           {[
             { id: 'playlists' as LearnView, label: 'Playlists', subtitle: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" /> },
             { id: 'videos' as LearnView, label: 'Videos', subtitle: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" /> },
@@ -448,14 +448,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-surface rounded-[1px] border border-transparent p-5 md:p-6 hover:border-tea-gold/20 transition-colors duration-300">
+              <div className="h-full bg-tea-surface rounded-[1px] border border-transparent hover:border-tea-gold/20 transition-colors duration-300" style={{ padding: 'clamp(14px, 2vw, 24px)' }}>
                 <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
-                <h4 className="font-serif text-[15px] text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors">
+                <h4 className="font-serif text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)' }}>
                   {tile.label}
                 </h4>
-                <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.2em] leading-[1.4]">
+                <p className="text-tea-text-sec font-sans uppercase leading-[1.4]" style={{ fontSize: 'clamp(8px, 0.6vw + 4px, 10px)', letterSpacing: 'clamp(0.12em, 0.5vw, 0.2em)' }}>
                   {tile.subtitle}
                 </p>
               </div>
@@ -471,14 +471,14 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={atlasReveal.ref}
-        className={`mb-20 md:mb-28 ${atlasReveal.className}`}
+        className={`mb-[clamp(5rem,8vw,7rem)] ${atlasReveal.className}`}
         style={atlasReveal.style}
       >
         <SectionLabel subtitle="Tea locations, farms, and cultural landmarks across Asia">Places</SectionLabel>
 
         <SwipeCarousel
-          itemWidth={220}
-          gap={14}
+          itemWidth={Math.max(160, Math.min(220, window.innerWidth * 0.28))}
+          gap={Math.max(8, Math.min(14, window.innerWidth * 0.015))}
           showArrows={true}
           peek={3}
           arrowTheme="light"
@@ -517,7 +517,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       <section
         ref={spacesReveal.ref}
-        className={`mb-20 md:mb-28 ${spacesReveal.className}`}
+        className={`mb-[clamp(5rem,8vw,7rem)] ${spacesReveal.className}`}
         style={spacesReveal.style}
       >
         <button
@@ -529,11 +529,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <InkWashPlaceholder label="tea space" aspectRatio="21/9" mood="warm" />
 
             {/* Content below image */}
-            <div className="p-5 md:p-7 bg-tea-bg">
+            <div className="bg-tea-bg" style={{ padding: 'clamp(16px, 2.5vw, 28px)' }}>
               <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
-              <h4 className="font-serif text-lg md:text-xl text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight">
+              <h4 className="font-serif text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight" style={{ fontSize: 'clamp(16px, 1.5vw + 8px, 20px)' }}>
                 {featuredSpace.title}
               </h4>
               <p className="font-serif italic text-sm text-tea-text/50 leading-relaxed mb-4 max-w-md">
@@ -560,7 +560,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <div className="divider-warm mb-10" />
 
-        <div className="inset-panel p-8 md:p-12">
+        <div className="inset-panel" style={{ padding: 'clamp(28px, 4vw, 48px)' }}>
           <div className="text-center max-w-sm mx-auto">
             <p className="font-serif text-[17px] text-tea-text/40 leading-[1.85] mb-5">
               This archive grows with every session, every conversation, every cup.

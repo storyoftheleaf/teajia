@@ -20,10 +20,18 @@ interface TeaTableProps {
   error?: Error | null;
   onEdit?: (product: Product) => void;
   onRefresh?: () => void;
+  /** Skip default Active/non-Teaware/non-Personal filter — show all passed products */
+  showAll?: boolean;
+  /** Override header title */
+  title?: string;
+  /** Render custom content above the filter bar */
+  headerSlot?: React.ReactNode;
+  /** Inline mode — auto height instead of full viewport */
+  inline?: boolean;
 }
 
 export const TeaTable: React.FC<TeaTableProps> = ({
-  products, currency, rates, onAdd, isAdmin, isLoading, isError, error, onEdit, onRefresh
+  products, currency, rates, onAdd, isAdmin, isLoading, isError, error, onEdit, onRefresh, showAll, title, headerSlot, inline
 }) => {
   const [filter, setFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,12 +41,13 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   const teaTypes: ProductType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal', 'Matcha', 'Flower', 'Misc'];
 
   const activeProducts = useMemo(() => {
+    if (showAll) return products;
     return products.filter(p => {
       if (p.status !== 'Active' || p.type === 'Teaware' || p.isPersonal) return false;
       if (!isAdmin && !p.isPublic) return false;
       return true;
     });
-  }, [products, isAdmin]);
+  }, [products, isAdmin, showAll]);
 
   const fuse = useMemo(() => new Fuse(activeProducts, {
     keys: ['givenName', 'productName', 'originRegion', 'originCountry', 'year', 'tastingNotes'],
@@ -144,20 +153,22 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
+    <div className={`${inline ? '' : 'h-[calc(100vh-64px)] overflow-hidden'} flex flex-col bg-tea-bg`}>
 
       {/* Header */}
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <Leaf size={16} className="text-tea-accent" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
-              Tea Glossary
-            </h2>
-            <span className="text-tea-text-sec text-xs tracking-wide">
-              — {sortedProducts.length} items
-            </span>
-          </div>
+          {headerSlot || (
+            <div className="flex items-center gap-2 shrink-0">
+              <Leaf size={16} className="text-tea-accent" />
+              <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                {title || 'Tea Glossary'}
+              </h2>
+              <span className="text-tea-text-sec text-xs tracking-wide">
+                — {sortedProducts.length} items
+              </span>
+            </div>
+          )}
 
           <div className="relative w-48 ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
@@ -214,7 +225,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
+      <div className={`${inline ? '' : 'flex-1 overflow-auto custom-scrollbar'} bg-tea-bg md:px-6`}>
 
         {sortedProducts.length === 0 ? (
             <div className="text-center py-16 text-tea-text-sec font-serif italic">

@@ -9,10 +9,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import Papa from 'papaparse';
-import { useCustomers, useProducts } from '../hooks/useAdminData';
+import { useCustomers, useProducts, useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
 import { Customer, CustomerTag, Product } from '../types';
+import { useAppStore } from '../store';
+import { TeaTable } from './TeaTable';
 
 // ── Add/Edit Source Modal ──
 const SourceModal = ({
@@ -213,6 +215,11 @@ export const SourcesView = () => {
   const { showToast } = useToast();
   const { data: customers = [], isLoading, refetch } = useCustomers();
   const { data: allProducts = [] } = useProducts();
+  const { data: rates = [] } = useRates();
+  const { currency } = useAppStore();
+
+  // Expanded source — shows inline inventory table
+  const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
 
   // --- LOCAL VIEW STATE ---
   const [searchQuery, setSearchQuery] = useState('');
@@ -270,6 +277,12 @@ export const SourcesView = () => {
       .filter(c => c.tags?.includes('vendor'))
       .map(c => ({ ...c, teaCount: teaCountMap[c.id] || 0 }));
   }, [customers, teaCountMap]);
+
+  // Get products for a specific source by vendor name
+  const getSourceProducts = useCallback((sourceName: string) => {
+    const nameLower = sourceName.toLowerCase();
+    return allProducts.filter(p => p.vendor && p.vendor.toLowerCase() === nameLower);
+  }, [allProducts]);
 
   // Fuse search
   const fuse = useMemo(() => new Fuse(allSources, {
@@ -578,12 +591,14 @@ export const SourcesView = () => {
   };
 
   // --- ROW COMPONENT ---
-  const renderRow = (source: SourceRow) => (
+  const renderRow = (source: SourceRow) => {
+    const isExpanded = expandedSourceId === source.id;
+    return (
+    <React.Fragment key={source.id}>
     <tr
-      key={source.id}
-      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${panelSource?.id === source.id ? 'bg-tea-accent/5' : ''}`}
+      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${isExpanded ? 'bg-tea-accent/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-accent/5' : ''}`}
       style={{ height: ROW_HEIGHT }}
-      onClick={() => !isEditMode && setPanelSource(source)}
+      onClick={() => !isEditMode && setExpandedSourceId(isExpanded ? null : source.id)}
     >
       {visibleCols.map(col => renderCell(source, col.key))}
       <td className="px-2 align-middle text-right">
@@ -605,7 +620,41 @@ export const SourcesView = () => {
         </div>
       </td>
     </tr>
-  );
+    {isExpanded && (
+      <tr>
+        <td colSpan={visibleCols.length + 1} className="p-0">
+          <div className="border-b-2 border-tea-accent-sub bg-tea-bg pb-6">
+            <TeaTable
+              products={getSourceProducts(source.name)}
+              currency={currency}
+              rates={rates}
+              onAdd={() => {}}
+              isAdmin={true}
+              isLoading={false}
+              showAll={true}
+              inline={true}
+              headerSlot={
+                <div className="flex items-center gap-2 shrink-0">
+                  <Leaf size={16} className="text-tea-accent" />
+                  <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                    {source.name}
+                  </h2>
+                  <span className="text-tea-text-sec text-xs tracking-wide">
+                    — {getSourceProducts(source.name).length} teas supplied
+                  </span>
+                </div>
+              }
+              onEdit={(product) => {
+                navigate(`/admin/inventory?search=${encodeURIComponent(product.givenName || product.productName)}`);
+              }}
+            />
+          </div>
+        </td>
+      </tr>
+    )}
+    </React.Fragment>
+    );
+  };
 
   if (isLoading) {
     return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading sources...</div>;
@@ -903,6 +952,26 @@ export const SourcesView = () => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Inline tea inventory */}
+                    {source.teaCount > 0 && (
+                      <div className="mt-3 -mx-4 border-t border-tea-accent-sub">
+                        <TeaTable
+                          products={getSourceProducts(source.name)}
+                          currency={currency}
+                          rates={rates}
+                          onAdd={() => {}}
+                          isAdmin={true}
+                          isLoading={false}
+                          showAll={true}
+                          inline={true}
+                          title={`${source.name}'s Teas`}
+                          onEdit={(product) => {
+                            navigate(`/admin/inventory?search=${encodeURIComponent(product.givenName || product.productName)}`);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

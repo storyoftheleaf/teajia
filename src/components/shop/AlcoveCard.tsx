@@ -660,58 +660,29 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               </h3>
               <div style={{
                 display: "flex",
-                gap: "10px",
-                overflowX: "auto",
-                paddingBottom: "4px",
-              }}
-              className="no-scrollbar"
-              >
+                flexWrap: "wrap",
+                gap: "6px 12px",
+              }}>
                 {related.map(rec => (
                   <button
                     key={rec.id}
                     onClick={() => onItemSelect?.(rec)}
                     style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      flexShrink: 0,
-                      width: "56px",
                       background: "none",
                       border: "none",
                       padding: 0,
                       cursor: onItemSelect ? "pointer" : "default",
-                    }}
-                  >
-                    <div style={{
-                      width: "40px", height: "40px",
-                      borderRadius: "4px",
-                      overflow: "hidden",
-                      background: "var(--tea-elevated)",
-                      marginBottom: "4px",
-                    }}>
-                      {rec.image ? (
-                        <img src={rec.image} alt={rec.name} style={{
-                          width: "100%", height: "100%", objectFit: "cover",
-                        }} loading="lazy" />
-                      ) : (
-                        <TeaPlaceholder type={rec.type} style={{ width: '100%', height: '100%' }} />
-                      )}
-                    </div>
-                    <span style={{
                       fontFamily: "var(--font-body)",
-                      fontSize: "10px",
+                      fontSize: "12px",
                       fontWeight: 300,
                       color: "var(--tea-text-sec)",
-                      textAlign: "center",
-                      lineHeight: 1.2,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical" as any,
-                      overflow: "hidden",
-                      width: "100%",
-                    }}>
-                      {rec.name}
-                    </span>
+                      lineHeight: 1.4,
+                      transition: "color 0.2s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = "var(--tea-gold)")}
+                    onMouseLeave={e => (e.currentTarget.style.color = "var(--tea-text-sec)")}
+                  >
+                    {rec.name}
                   </button>
                 ))}
               </div>

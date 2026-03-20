@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search } from 'lucide-react';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -76,6 +76,11 @@ const AdminContent = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
+
+  // Inventory top-bar controls (lifted from InventoryView)
+  const [inventoryCategory, setInventoryCategory] = useState<'tea' | 'teaware'>('tea');
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  const isOnInventory = location.pathname.includes('/admin/inventory');
 
   // React Query Hooks
   const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
@@ -191,17 +196,60 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl border-b border-tea-border px-3 md:px-6 py-2 flex items-center gap-2 flex-none">
-           {/* Search bar — compact, not full width */}
-           <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-lg px-3 py-1.5 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
-              <Search size={14} />
-              <span className="truncate">Search...</span>
-           </button>
-
-           <div className="flex-1" />
+        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl border-b border-tea-border px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
+           {/* Inventory: Tea / Teaware toggle + search */}
+           {isOnInventory ? (
+             <>
+               <div className="flex items-center p-0.5 shrink-0">
+                 <button
+                   onClick={() => { setInventoryCategory('tea'); setInventorySearchQuery(''); }}
+                   className={`px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md transition-colors ${
+                     inventoryCategory === 'tea'
+                       ? 'text-tea-gold font-medium'
+                       : 'text-tea-text-sec hover:text-tea-text'
+                   }`}
+                 >
+                   Tea
+                 </button>
+                 <button
+                   onClick={() => { setInventoryCategory('teaware'); setInventorySearchQuery(''); }}
+                   className={`px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md transition-colors ${
+                     inventoryCategory === 'teaware'
+                       ? 'text-tea-gold font-medium'
+                       : 'text-tea-text-sec hover:text-tea-text'
+                   }`}
+                 >
+                   Wares
+                 </button>
+               </div>
+               <div className="relative flex-1 min-w-0 max-w-[220px]">
+                 <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" size={13} />
+                 <input
+                   type="text"
+                   placeholder={inventoryCategory === 'tea' ? 'Search tea…' : 'Search teaware…'}
+                   value={inventorySearchQuery}
+                   onChange={(e) => setInventorySearchQuery(e.target.value)}
+                   className="w-full bg-transparent border-b border-tea-border/50 pl-5 pr-7 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/40 font-serif italic placeholder-tea-text-sec/50 transition-colors"
+                 />
+                 {inventorySearchQuery && (
+                   <button
+                     onClick={() => setInventorySearchQuery('')}
+                     className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text p-0.5"
+                   >
+                     <XIcon size={12} />
+                   </button>
+                 )}
+               </div>
+             </>
+           ) : (
+             <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-lg px-3 py-1 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
+                <Search size={13} />
+                <span className="truncate">Search...</span>
+             </button>
+           )}
 
            {/* Right: Currency selector + Cart */}
-           <div className="flex items-center gap-1.5">
+           <div className="flex items-center gap-1.5 ml-auto shrink-0">
              <div className="relative" data-currency-selector>
                 <button
                   onClick={() => setCurrencyOpen(prev => !prev)}
@@ -252,6 +300,8 @@ const AdminContent = () => {
                       onImportClick={() => setIsImportOpen(true)}
                       onAddClick={() => setIsCreateModalOpen(true)}
                       onRefresh={refetchProducts}
+                      externalCategory={inventoryCategory}
+                      externalSearchQuery={inventorySearchQuery}
                     />
                   </PageTransition>
                 </ProtectedRoute>
