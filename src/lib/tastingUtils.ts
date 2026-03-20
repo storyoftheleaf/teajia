@@ -1,0 +1,36 @@
+import type { TastingData } from '../types';
+import { resolveTermLabel } from '../data/tastingTaxonomy';
+
+/**
+ * Derive a mood string from feeling terms in tasting data.
+ * e.g. ['calming', 'grounding'] → "Calming & Grounding"
+ */
+export function deriveMoodFromFeeling(tasting: TastingData): string {
+  const feelings = tasting.feeling || [];
+  if (feelings.length === 0) return '';
+  const labels = feelings.map(id => resolveTermLabel(id));
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
+  return labels.slice(0, -1).join(', ') + ' & ' + labels[labels.length - 1];
+}
+
+/**
+ * Derive tastingNotes string array from flavor terms
+ */
+export function deriveFlavorNotes(tasting: TastingData): string[] {
+  const flavorTerms = tasting.flavor || [];
+  return flavorTerms.map(id => resolveTermLabel(id));
+}
+
+/**
+ * Build the payload fields that should auto-sync when saving tasting data.
+ * Returns { mood, tastingNotes } fields to merge into save payload.
+ */
+export function buildTastingSyncPayload(tasting: TastingData): { mood?: string; tastingNotes?: string[] } {
+  const result: { mood?: string; tastingNotes?: string[] } = {};
+  const mood = deriveMoodFromFeeling(tasting);
+  if (mood) result.mood = mood;
+  const notes = deriveFlavorNotes(tasting);
+  if (notes.length > 0) result.tastingNotes = notes;
+  return result;
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Story, ContentType } from '../types';
 import { ArticleCard } from './shared/ArticleCard';
 import { PageHeader } from './shared/PageHeader';
@@ -130,25 +131,29 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   };
 
   const renderArticleCards = (storiesList: Story[]) => (
-    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto stagger-grid">
-      {storiesList.map((story) => (
-        <ArticleCard
-          key={story.id}
-          title={story.title}
-          description={story.subtitle}
-          imageUrl={story.thumbnailUrl}
-          aspectRatio="portrait"
-          onClick={() => onCardClick(story)}
-          contentType={story.type}
-          duration={story.durationOrTime}
-          wordCount={getWordCount(story)}
-        />
-      ))}
+    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4 max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-3 md:px-0 stagger-grid">
+      {storiesList.map((story, index) => {
+        const isHero = index === 0 && (story.isFeatured || storiesList.length > 2);
+        return (
+          <ArticleCard
+            key={story.id}
+            title={story.title}
+            description={story.subtitle}
+            imageUrl={story.thumbnailUrl}
+            aspectRatio={isHero ? 'square' : 'portrait'}
+            onClick={() => onCardClick(story)}
+            contentType={story.type}
+            duration={story.durationOrTime}
+            wordCount={getWordCount(story)}
+            isFeatured={isHero}
+          />
+        );
+      })}
     </div>
   );
 
   const renderVisualCards = (storiesList: Story[]) => (
-    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto stagger-grid">
+    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4 max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-3 md:px-0 stagger-grid">
       {storiesList.map((story) => (
         <ArticleCard
           key={story.id}
@@ -277,11 +282,21 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
       {/* Tab Content */}
       <div className="mt-8 mb-24">
-        {activeTab === 'articles' ? (
-          displayedArticles.length > 0 ? renderContent() : renderEmptyState('articles')
-        ) : activeTab === 'visual' ? (
-          displayedPhotoEssays.length > 0 ? renderContent() : renderEmptyState('visual')
-        ) : null}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            {activeTab === 'articles' ? (
+              displayedArticles.length > 0 ? renderContent() : renderEmptyState('articles')
+            ) : activeTab === 'visual' ? (
+              displayedPhotoEssays.length > 0 ? renderContent() : renderEmptyState('visual')
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

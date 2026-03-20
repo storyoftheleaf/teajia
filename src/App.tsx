@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 
 // Reload once on stale chunk hash (happens after a new deployment)
 function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
@@ -369,7 +369,11 @@ const AppContent = () => {
   if (location.pathname.startsWith('/admin')) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg text-tea-text-sec font-sans text-sm">Loading admin...</div>}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-screen bg-tea-bg">
+            <div className="w-8 h-8 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" />
+          </div>
+        }>
           <Routes>
             <Route path="/admin/*" element={<AdminApp />} />
           </Routes>
@@ -379,7 +383,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]">
 
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.20] z-0"></div>
@@ -654,16 +658,18 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <StoryProvider>
-          <InventoryProvider>
-              <NetworkStatus />
-              <SessionExpiredNotice />
-              <AppContent />
-          </InventoryProvider>
-        </StoryProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <MotionConfig reducedMotion="user">
+      <ErrorBoundary>
+        <ThemeProvider>
+          <StoryProvider>
+            <InventoryProvider>
+                <NetworkStatus />
+                <SessionExpiredNotice />
+                <AppContent />
+            </InventoryProvider>
+          </StoryProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
+    </MotionConfig>
   );
 }

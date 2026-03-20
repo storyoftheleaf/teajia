@@ -231,7 +231,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                     <td className="px-4 align-middle text-right">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingProduct(product); }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-tea-text-sec hover:text-tea-text p-1"
+                                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center"
                                         >
                                             <Pencil size={14} />
                                         </button>

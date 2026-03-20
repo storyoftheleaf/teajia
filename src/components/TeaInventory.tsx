@@ -123,6 +123,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Tasting Session State
   const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
   const handleTaste = useCallback((item: TeaItem) => {
+    // Clean up ?product= URL param so useProductUrl doesn't re-open the modal
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('product')) {
+      url.searchParams.delete('product');
+      window.history.replaceState(null, '', url.toString());
+    }
     setViewItem(null); // close AlcoveModal
     setTastingItem(item);
   }, []);

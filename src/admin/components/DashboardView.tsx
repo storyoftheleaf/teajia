@@ -87,48 +87,48 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
   const COLORS_TYPE = ['#C8A97E', '#DBC19D', '#E8E3D9', '#A39B8E', '#5C544E', '#26221D'];
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-8 pb-24">
-      <div className="flex justify-between items-end border-b border-tea-border pb-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-24">
+      <div className="flex justify-between items-end border-b border-tea-border pb-4 md:pb-6">
           <div>
-            <h2 className="text-4xl md:text-5xl font-serif text-tea-text tracking-tight">Financial Intelligence</h2>
-            <p className="text-tea-text-sec text-sm mt-2 font-light tracking-wide">Real-time valuation based on current exchange rates.</p>
+            <h2 className="text-2xl md:text-5xl font-serif text-tea-text tracking-tight">Financial Intelligence</h2>
+            <p className="text-tea-text-sec text-xs md:text-sm mt-1 md:mt-2 font-light tracking-wide">Real-time valuation based on current exchange rates.</p>
           </div>
       </div>
-      
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
-             <DollarSign size={80} strokeWidth={1} />
+
+      {/* KPI Cards — horizontal scroll on mobile, grid on desktop */}
+      <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+          <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
+             <DollarSign size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mb-4 font-bold">Total Asset Cost</p>
-          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
-          <p className="text-xs text-tea-text-sec/70 mt-4 num">Capital deployed in inventory</p>
+          <p className="text-tea-text-sec text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Total Asset Cost</p>
+          <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
+          <p className="text-[10px] md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Capital deployed</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
-             <PieIcon size={80} strokeWidth={1} />
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+          <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
+             <PieIcon size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mb-4 font-bold">Retail Valuation</p>
-          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
-          <p className="text-xs text-tea-text-sec/70 mt-4 num">Potential revenue at current prices</p>
+          <p className="text-tea-text-sec text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Retail Valuation</p>
+          <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
+          <p className="text-[10px] md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">At current prices</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200">
-          <p className="text-tea-text-sec text-xs uppercase tracking-[0.2em] mb-4 font-bold">Unrealized P&L</p>
-          <h3 className="text-3xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
-          <p className="text-xs text-tea-text-sec/70 mt-4 num">Projected Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+          <p className="text-tea-text-sec text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Unrealized P&L</p>
+          <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <p className="text-[10px] md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+
         {/* CHART 1: Currency Exposure */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg h-64 md:h-96">
-          <div className="flex justify-between items-center mb-6">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
+          <div className="flex justify-between items-center mb-4 md:mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Capital Exposure by Currency</h4>
-            <div className="text-xs text-tea-text-sec uppercase tracking-wider">Base: USD Equivalent</div>
+            <div className="text-[10px] md:text-xs text-tea-text-sec uppercase tracking-wider">USD Equiv.</div>
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -161,35 +161,42 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 2: Live Exchange Rates */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg h-64 md:h-96 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-auto md:h-96 flex flex-col">
+          <div className="flex justify-between items-center mb-4 md:mb-6">
             <div>
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
-              <div className="text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
+              <div className="text-[10px] md:text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
             </div>
-            <div className="text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-gold/20">
+            <div className="text-[10px] md:text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-gold/20">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse"></span>
               Live
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3">
             {rates.filter(r => r.currency !== 'USD' && r.currency !== 'UNK').map(rate => (
-              <div key={rate.currency} className="flex justify-between items-center p-3 bg-tea-bg/50 border border-tea-border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-xs font-bold text-tea-text-sec">
+              <div key={rate.currency} className="flex justify-between items-center p-2.5 md:p-3 bg-tea-bg/50 border border-tea-border rounded-lg">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-[10px] md:text-xs font-bold text-tea-text-sec">
                     {rate.currency}
                   </div>
-                  <span className="text-sm text-tea-text font-medium">
-                    {rate.currency === 'NT' ? 'New Taiwan Dollar' : 
-                     rate.currency === 'Yuan' ? 'Chinese Yuan' : 
-                     rate.currency === 'IDR' ? 'Indonesian Rupiah' : 
-                     rate.currency === 'JPY' ? 'Japanese Yen' : 
-                     rate.currency === 'MYR' ? 'Malaysian Ringgit' : rate.currency}
+                  <span className="text-xs md:text-sm text-tea-text font-medium">
+                    {rate.currency === 'NT' ? 'TWD' :
+                     rate.currency === 'Yuan' ? 'CNY' :
+                     rate.currency === 'IDR' ? 'IDR' :
+                     rate.currency === 'JPY' ? 'JPY' :
+                     rate.currency === 'MYR' ? 'MYR' : rate.currency}
+                    <span className="hidden md:inline">
+                      {rate.currency === 'NT' ? ' — New Taiwan Dollar' :
+                       rate.currency === 'Yuan' ? ' — Chinese Yuan' :
+                       rate.currency === 'IDR' ? ' — Indonesian Rupiah' :
+                       rate.currency === 'JPY' ? ' — Japanese Yen' :
+                       rate.currency === 'MYR' ? ' — Malaysian Ringgit' : ''}
+                    </span>
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="num text-tea-text">{fmtNum(rate.rateToUSD)}</div>
-                  <div className="text-xs text-tea-text-sec">per USD</div>
+                  <div className="num text-tea-text text-sm md:text-base">{fmtNum(rate.rateToUSD)}</div>
+                  <div className="text-[10px] md:text-xs text-tea-text-sec">per USD</div>
                 </div>
               </div>
             ))}
@@ -197,8 +204,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 3: Value by Region */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg h-64 md:h-96">
-          <div className="flex justify-between items-center mb-6">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
+          <div className="flex justify-between items-center mb-4 md:mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Asset Value by Terroir</h4>
             <MapPin className="w-4 h-4 text-tea-text-sec" />
           </div>
@@ -218,8 +225,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 4: Portfolio Composition */}
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg h-64 md:h-96 lg:col-span-2">
-           <h4 className="text-sm font-medium text-tea-text font-serif mb-6">Portfolio Distribution (Retail Value)</h4>
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96 lg:col-span-2">
+           <h4 className="text-sm font-medium text-tea-text font-serif mb-4 md:mb-6">Portfolio Distribution (Retail Value)</h4>
            <ResponsiveContainer width="100%" height="90%">
             <BarChart data={metrics.typeValue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#26221D" vertical={false} />

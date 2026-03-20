@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search } from 'lucide-react';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isConfigured, hasToken, clearToken, getTokenClaims } from '../lib/api';
 import { Product } from './types';
@@ -13,11 +15,6 @@ import { TeaTable } from './components/TeaTable';
 import { TeawareCatalog } from './components/TeawareCatalog';
 import { InventoryView } from './components/InventoryView';
 import { CartPanel } from '../components/shared/CartPanel';
-import { RecordsView } from './components/SoldItemsView';
-import { OrdersView } from './components/OrdersView';
-import { CustomersView } from './components/CustomersView';
-import { PersonalCollectionView } from './components/PersonalCollectionView';
-import { SettingsView } from './components/SettingsView';
 import { ToastProvider, useToast } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -26,7 +23,8 @@ import { DashboardView } from './components/DashboardView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingNotesView } from './components/TastingNotesView';
-import { SourcesView } from './components/SourcesView';
+import { PeopleView } from './components/PeopleView';
+import { ActivityView } from './components/ActivityView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -64,6 +62,7 @@ const AdminContent = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
 
   const claims = getTokenClaims();
   const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
@@ -82,6 +81,12 @@ const AdminContent = () => {
   const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
   const { data: rates = [], refetch: refetchRates } = useRates();
 
+  // Pull-to-refresh (mobile)
+  const { pullDistance, isRefreshing, progress } = usePullToRefresh(() => {
+    refetchProducts();
+    refetchRates();
+  });
+
   const loading = productsLoading;
 
   // Regular users can browse catalog but not manage inventory
@@ -90,7 +95,7 @@ const AdminContent = () => {
   // Redirect when entering admin at root
   useEffect(() => {
     if (isLoggedIn && location.pathname === '/admin') {
-      navigate(isAdmin ? '/admin/inventory' : '/admin/catalog');
+      navigate('/admin/inventory');
     }
   }, [isLoggedIn, isAdmin, navigate, location.pathname]);
 
@@ -98,6 +103,18 @@ const AdminContent = () => {
   useEffect(() => {
     setIsCartOpen(false);
   }, [location.pathname]);
+
+  // Click-outside to close currency selector
+  useEffect(() => {
+    if (!currencyOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-currency-selector]')) {
+        setCurrencyOpen(false);
+      }
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [currencyOpen]);
 
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
@@ -157,9 +174,8 @@ const AdminContent = () => {
 
   return (
     <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
-      <button onClick={() => setIsMobileOpen(true)} className="fixed top-4 left-4 z-40 p-2 bg-tea-surface rounded-xl border border-tea-border md:hidden text-tea-text-sec backdrop-blur-md">
-        <Menu size={24} />
-      </button>
+      <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
+      {/* Mobile hamburger — hidden since bottom nav handles navigation */}
 
       {isMobileOpen && <div className="fixed inset-0 bg-tea-text/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
 
@@ -175,43 +191,56 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-bg/80 backdrop-blur-xl border-b border-tea-border px-6 py-4 flex justify-end items-center gap-4 flex-none">
-           <button onClick={() => setIsCommandPaletteOpen(true)} className="md:hidden text-tea-text-sec hover:text-tea-text transition-colors p-2.5">
-              <Search size={18} />
-           </button>
-           <button onClick={handleRefresh} className="text-tea-text-sec hover:text-tea-text transition-colors p-2">
-              <RefreshCw size={16} />
+        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl border-b border-tea-border px-3 md:px-6 py-2 flex items-center gap-2 flex-none">
+           {/* Search bar — compact, not full width */}
+           <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-lg px-3 py-1.5 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
+              <Search size={14} />
+              <span className="truncate">Search...</span>
            </button>
 
-           <div className="relative group">
-              <button className="flex items-center gap-2 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors">
-                {currency} <ChevronDown size={14} />
-              </button>
-              <div className="absolute right-0 mt-2 w-32 bg-tea-surface border border-tea-border rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden backdrop-blur-xl">
-                {rates.map(rate => (
-                  <button key={rate.currency} onClick={() => setCurrency(rate.currency)} className={`block w-full text-left px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium' : 'text-tea-text-sec'}`}>
-                    {rate.currency}
-                  </button>
-                ))}
-              </div>
+           <div className="flex-1" />
+
+           {/* Right: Currency selector + Cart */}
+           <div className="flex items-center gap-1.5">
+             <div className="relative" data-currency-selector>
+                <button
+                  onClick={() => setCurrencyOpen(prev => !prev)}
+                  className="flex items-center gap-1 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors px-2 py-1.5 rounded-lg hover:bg-tea-elevated/50"
+                >
+                  {currency} <ChevronDown size={12} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {currencyOpen && (
+                  <div className="absolute right-0 mt-2 w-44 bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl z-[100] max-h-[min(320px,50vh)] overflow-y-auto">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors border-b border-tea-border"
+                    >
+                      <RefreshCw size={14} />
+                      <span>Refresh Rates</span>
+                    </button>
+                    {rates.map(rate => (
+                      <button key={rate.currency} onClick={() => { setCurrency(rate.currency); setCurrencyOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium bg-tea-accent/5' : 'text-tea-text-sec'}`}>
+                        <span>{rate.currency}</span>
+                        {rate.rate !== 1 && <span className="text-[10px] text-tea-text-dim tabular-nums">{rate.rate.toFixed(2)}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+             </div>
+
+             <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-1.5">
+               <ShoppingCart size={18} />
+               {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
+             </button>
            </div>
-
-           <div className="w-px h-4 bg-tea-border"></div>
-
-           <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-2">
-             <ShoppingCart size={20} />
-             {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
-           </button>
         </div>
 
         <div className="flex-1 overflow-auto relative pb-16 md:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />
-              <Route path="catalog" element={<PageTransition><TeaTable products={products} currency={currency} rates={rates} onAdd={openAddModal} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} isLoading={loading} isError={productsError} error={productsErrorObj} onRefresh={refetchProducts} /></PageTransition>} />
-              <Route path="teaware" element={<PageTransition><TeawareCatalog products={products} currency={currency} rates={rates} onAdd={openAddModal} loading={loading} isAdmin={isAdmin} onEdit={(product) => setEditingProduct(product)} /></PageTransition>} />
-              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
 
+              {/* Core admin views */}
               <Route path="inventory" element={
                 <ProtectedRoute isAdmin={isAdmin}>
                   <PageTransition>
@@ -227,15 +256,24 @@ const AdminContent = () => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="personal" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PersonalCollectionView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
-              <Route path="customers" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><CustomersView /></PageTransition></ProtectedRoute>} />
-              <Route path="sources" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><SourcesView /></PageTransition></ProtectedRoute>} />
-              <Route path="orders" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><OrdersView /></PageTransition></ProtectedRoute>} />
-              <Route path="records" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><RecordsView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="people" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
-              <Route path="settings" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><SettingsView /></PageTransition></ProtectedRoute>} />
+
+              {/* Supplementary views */}
+              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
               <Route path="events" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+
+              {/* Legacy routes — redirect to new unified views */}
+              <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="teaware" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="personal" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="customers" element={<Navigate to="/admin/people" replace />} />
+              <Route path="sources" element={<Navigate to="/admin/people" replace />} />
+              <Route path="orders" element={<Navigate to="/admin/activity" replace />} />
+              <Route path="records" element={<Navigate to="/admin/activity" replace />} />
+              <Route path="settings" element={<Navigate to="/admin/people" replace />} />
 
               <Route path="*" element={<Navigate to="inventory" replace />} />
             </Routes>
@@ -298,6 +336,7 @@ const AdminContent = () => {
           onCartClick={() => setIsCartOpen(true)}
           cartItemCount={cart.length}
           isAdmin={isAdmin}
+          onAddProduct={() => setIsCreateModalOpen(true)}
         />
 
       </main>

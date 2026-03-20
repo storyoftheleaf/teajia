@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Teajia | Tea Journal</title>
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -21,11 +21,45 @@
     <meta name="twitter:title" content="Teajia | Tea Journal" />
     <meta name="twitter:description" content="An editorial journal for the world of tea — articles, visual stories, a curated shop, courses, and space design services." />
     <meta name="twitter:image" content="https://teajia.com/og-image.png" />
-    <!-- Fonts: Load critical fonts first, defer others -->
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#b8924e">
+    <!-- Service worker: add /sw.js for offline support -->
+    <!-- Critical CSS: prevent flash of unstyled content -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        background-color: #18130e;
+        color: #e8dfd4;
+        font-family: 'Lora', 'Noto Serif SC', Georgia, serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root { min-height: 100dvh; }
+    </style>
+    <!-- Fonts: preconnect hints -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Fonts: Vollkorn (display), Lora (body), Inter (UI), JetBrains Mono (technical), Chinese -->
-    <link href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://teajia-api.lightcodes.workers.dev" crossorigin>
+    <!-- Critical fonts: Cormorant Garamond (display), Lora (body), Plus Jakarta Sans (UI/captions), Noto Serif SC (Chinese), IBM Plex Mono (data) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&display=swap">
+    <!-- Deferred fonts: calligraphy (decorative, not critical path) -->
+    <script>
+      (function() {
+        function loadDeferredFonts() {
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap';
+          document.head.appendChild(link);
+        }
+        if (document.readyState === 'complete') {
+          loadDeferredFonts();
+        } else {
+          window.addEventListener('load', loadDeferredFonts);
+        }
+      })();
+    </script>
 </head>
   <body class="bg-tea-bg text-tea-text font-sans" style="scrollbar-gutter: stable; -webkit-font-smoothing: antialiased;">
     <!-- Skip to main content link for keyboard/screen reader users -->

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency, productToInventoryItem } from '../utils';
@@ -93,7 +94,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
 
   const hasNavigation = (onNext || onPrev);
 
-  return (
+  const dialog = (
     <div
       role="dialog"
       aria-modal="true"
@@ -112,18 +113,18 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
         }
       `}</style>
 
-      {/* Desktop prev arrow — always visible, disabled at boundary */}
+      {/* Desktop prev/next arrows — hidden on mobile (swipe gestures handle it) */}
       {hasNavigation && (
         <button
           onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
           disabled={!onPrev}
-          className={`hidden md:flex absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg`}
+          className="hidden md:flex absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg"
         >
           <ChevronLeft size={32} />
         </button>
       )}
 
-      {/* Card container with swipe */}
+      {/* Card container with swipe (mobile swipe replaces arrows) */}
       <div
         className="flex flex-col items-center justify-center w-full h-full"
         onTouchStart={onTouchStart}
@@ -160,51 +161,33 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
             </svg>
           </button>
         </div>
-
-        {/* Mobile navigation buttons + counter */}
-        {hasNavigation && (
-          <div className="mt-3 flex items-center gap-3 md:hidden" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => onPrev?.()}
-              disabled={!onPrev}
-              className="nav-control nav-control-sm"
-              aria-label="Previous tea"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="text-xs text-tea-text-sec tracking-wide">
-              ← swipe →
-            </span>
-            <button
-              onClick={() => onNext?.()}
-              disabled={!onNext}
-              className="nav-control nav-control-sm"
-              aria-label="Next tea"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Desktop next arrow — always visible, disabled at boundary */}
+      {/* Desktop next arrow */}
       {hasNavigation && (
         <button
           onClick={(e) => { e.stopPropagation(); onNext?.(); }}
           disabled={!onNext}
-          className={`hidden md:flex absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg`}
+          className="hidden md:flex absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg"
         >
           <ChevronRight size={32} />
         </button>
       )}
 
-      {/* Tasting Editor Modal (admin only) */}
-      {tastingProduct && (
+    </div>
+  );
+
+  return (
+    <>
+      {dialog}
+      {/* Tasting Editor Modal — rendered via portal to avoid click propagation closing the parent */}
+      {tastingProduct && createPortal(
         <TastingEditorModal
           product={tastingProduct}
           onClose={() => setTastingProduct(null)}
-        />
+        />,
+        document.body
       )}
-    </div>
+    </>
   );
 };

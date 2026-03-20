@@ -1,0 +1,319 @@
+/*
+ * reader-animations.css
+ *
+ * Imported by src/components/Reader.tsx
+ * Contains all keyframes and CSS classes for the Teajia magazine reader.
+ * Do NOT import this file from other components — it is scoped to the Reader.
+ */
+
+/* ─────────────────────────────────────────
+   Ken Burns Keyframes
+   ───────────────────────────────────────── */
+
+@keyframes kenBurns {
+  0%   { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.06) translate(-1.5%, -1%); }
+}
+
+@keyframes kenBurnsZoom {
+  0%   { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.1) translate(0, 0); }
+}
+
+@keyframes kenBurnsPan {
+  0%   { transform: scale(1.04) translate(0, 0); }
+  50%  { transform: scale(1.04) translate(-2%, -1%); }
+  100% { transform: scale(1.04) translate(2%, 1%); }
+}
+
+/* Ken Burns class selectors (scoped to active page) */
+[data-page-active="true"] .ken-burns-hero {
+  animation: kenBurns 14s ease-in-out infinite alternate;
+}
+[data-page-active="true"] .ken-burns-zoom {
+  animation: kenBurnsZoom 16s ease-in-out infinite alternate;
+}
+[data-page-active="true"] .ken-burns-pan {
+  animation: kenBurnsPan 18s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────
+   Page Entrance Animations — 5 categories
+   ───────────────────────────────────────── */
+
+/* 1. Text pages: subtle fade + translate up */
+@keyframes readerEnterText {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reader-enter-text {
+  animation: readerEnterText 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 2. Image pages: clip-path reveal */
+@keyframes readerEnterReveal {
+  from { clip-path: inset(0 100% 0 0); opacity: 0; }
+  to   { clip-path: inset(0 0% 0 0);   opacity: 1; }
+}
+.reader-enter-reveal {
+  animation: readerEnterReveal 560ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* 3. Spacious pages: gentle scale from 0.96 */
+@keyframes readerEnterScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.reader-enter-scale {
+  animation: readerEnterScale 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 4. Mixed pages: slight slide from right */
+@keyframes readerEnterSlide {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.reader-enter-slide {
+  animation: readerEnterSlide 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 5. Chapter pages: horizontal wipe */
+@keyframes readerEnterWipe {
+  from { clip-path: inset(0 0 0 100%); opacity: 0; }
+  to   { clip-path: inset(0 0 0 0);    opacity: 1; }
+}
+.reader-enter-wipe {
+  animation: readerEnterWipe 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ─────────────────────────────────────────
+   Legacy fade-in (stagger on active page text nodes)
+   ───────────────────────────────────────── */
+
+@keyframes readerFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-page-active="true"] p,
+[data-page-active="true"] [data-animate] {
+  animation: readerFadeIn 500ms ease both;
+}
+[data-page-active="true"] p:nth-child(1) { animation-delay: 200ms; }
+[data-page-active="true"] p:nth-child(2) { animation-delay: 400ms; }
+[data-page-active="true"] p:nth-child(3) { animation-delay: 600ms; }
+[data-page-active="true"] p:nth-child(4) { animation-delay: 800ms; }
+
+/* ─────────────────────────────────────────
+   Image Reveal & Chapter Number
+   ───────────────────────────────────────── */
+
+@keyframes imageReveal {
+  from { clip-path: circle(0% at 50% 50%); }
+  to   { clip-path: circle(75% at 50% 50%); }
+}
+
+@keyframes chapterNumberReveal {
+  from { transform: scale(1.5); opacity: 0;    filter: blur(3px); }
+  to   { transform: scale(1);   opacity: 0.07; filter: blur(0px); }
+}
+
+[data-page-active="true"] .reader-image-reveal {
+  animation: imageReveal 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: 100ms;
+}
+
+[data-page-active="true"] .chapter-bg-number {
+  animation: chapterNumberReveal 1200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ─────────────────────────────────────────
+   Vignette overlay (page-vignette pseudo-element)
+   ───────────────────────────────────────── */
+
+.page-vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(24,19,14,0.12) 100%);
+  z-index: 1;
+}
+
+/* ─────────────────────────────────────────
+   Page Indicator (transient bottom-right counter)
+   ───────────────────────────────────────── */
+
+.reader-page-indicator {
+  position: absolute;
+  bottom: 5rem;
+  right: 1.5rem;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  color: var(--tea-text-dim);
+}
+
+/* ─────────────────────────────────────────
+   Chapter Drawer
+   ───────────────────────────────────────── */
+
+@keyframes chapterDrawerSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes chapterDrawerSlideDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
+.reader-chapter-drawer {
+  animation: chapterDrawerSlideUp 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reader-chapter-drawer-exit {
+  animation: chapterDrawerSlideDown 260ms cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+
+/* ─────────────────────────────────────────
+   Peek Preview Strip
+   (shown when swipe progress is 5–30%)
+   ───────────────────────────────────────── */
+
+.reader-peek-strip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 100%;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: var(--tea-surface);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 40;
+  transition: opacity 120ms ease;
+}
+
+/* ─────────────────────────────────────────
+   Keyboard Shortcut Overlay
+   ───────────────────────────────────────── */
+
+.reader-keyboard-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.reader-keyboard-hint-card {
+  background: var(--tea-elevated);
+  border: 1px solid var(--tea-border);
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  min-width: 280px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+}
+
+.reader-keyboard-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.375rem 0;
+  color: var(--tea-text);
+  font-size: 13px;
+}
+
+.reader-keyboard-hint-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--tea-surface);
+  border: 1px solid var(--tea-border);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--tea-text-dim);
+}
+
+/* ─────────────────────────────────────────
+   Desktop Right Sidebar
+   ───────────────────────────────────────── */
+
+.reader-sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--tea-surface);
+  border-left: 1px solid var(--tea-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transition: width 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reader-sidebar.collapsed {
+  width: 0;
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────
+   Progress Track & Fill
+   (referenced in component JSX)
+   ───────────────────────────────────────── */
+
+.reader-progress-track {
+  height: 3px;
+  background: var(--tea-border);
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+}
+
+.reader-progress-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  background: var(--tea-gold);
+  border-radius: 9999px;
+  transition: width 300ms ease;
+}
+
+/* Scrubber thumb */
+.reader-scrubber-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--tea-gold);
+  box-shadow: 0 0 0 3px var(--tea-accent-sub);
+  transition: transform 150ms ease;
+}
+
+.reader-scrubber-thumb:hover,
+.reader-scrubber-thumb.dragging {
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+/* Scrubber drag tooltip */
+.reader-scrubber-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: var(--tea-elevated);
+  border: 1px solid var(--tea-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--tea-text-dim);
+  white-space: nowrap;
+  pointer-events: none;
+}

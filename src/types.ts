@@ -6,6 +6,9 @@ export interface TastingData {
   feeling?: string[];
   'liquor-color'?: string[];
   brewing?: string[];
+  rating?: number;           // 1-5 overall rating
+  primaryNotes?: string[];   // Emphasized notes (shown larger/first)
+  overallImpression?: string; // Quick one-word impression
 }
 
 export interface CustomerTasting {
@@ -16,6 +19,7 @@ export interface CustomerTasting {
   teaImage?: string;
   tasting: TastingData;
   personalNote?: string;
+  rating?: number;
   createdAt: string;
 }
 
@@ -32,6 +36,10 @@ export enum LayoutVariant {
   COVER_MAIN = 'COVER_MAIN',
   COVER_MINIMAL = 'COVER_MINIMAL',
   COVER_TYPOGRAPHIC = 'COVER_TYPOGRAPHIC',
+  COVER_PHOTO_INSET = 'COVER_PHOTO_INSET',
+  COVER_SPLIT = 'COVER_SPLIT',
+  COVER_MASTHEAD = 'COVER_MASTHEAD',
+  COVER_ABSTRACT = 'COVER_ABSTRACT',
   COPYRIGHT_PAGE = 'COPYRIGHT_PAGE',
   DEDICATION_SIMPLE = 'DEDICATION_SIMPLE',
   TOC_MINIMAL = 'TOC_MINIMAL',
@@ -129,6 +137,18 @@ export enum LayoutVariant {
 
   // Curated Content
   CURATED_LINKS = 'CURATED_LINKS', // External link cards with curator notes
+
+  // New Layout Variants
+  SPREAD_PANORAMIC = 'SPREAD_PANORAMIC',
+  PULL_QUOTE_MARGINAL = 'PULL_QUOTE_MARGINAL',
+  LETTERPRESS_DEBOSS = 'LETTERPRESS_DEBOSS',
+  ANNOTATED_IMAGE = 'ANNOTATED_IMAGE',
+  CONVERSATION_BUBBLE = 'CONVERSATION_BUBBLE',
+  TIMELINE_VISUAL = 'TIMELINE_VISUAL',
+  COMPARISON_SPLIT = 'COMPARISON_SPLIT',
+  STACKED_CARDS = 'STACKED_CARDS',
+  FULL_BLEED_TEXT = 'FULL_BLEED_TEXT',
+  INFOGRAPHIC_CIRCLE = 'INFOGRAPHIC_CIRCLE',
 }
 
 export interface Person {

@@ -60,6 +60,9 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
     <div
       className="fixed bottom-20 md:bottom-6 right-4 md:right-6 flex flex-col gap-2"
       style={{ zIndex: ADMIN_Z_INDEX.TOAST }}
+      aria-live="polite"
+      aria-atomic="true"
+      role="status"
     >
       <AnimatePresence mode="popLayout">
         {toasts.map(toast => (

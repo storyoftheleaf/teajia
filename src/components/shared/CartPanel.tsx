@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, lazy, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { CartItem as PublicCartItem } from '../../types';
 import { Icons } from '../Icons';
@@ -40,6 +40,32 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
   useScrollLock(isOpen);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
+  // ── Swipe gesture hint (first open only) ───────────────────────────────
+  const panelControls = useAnimationControls();
+
+  useEffect(() => {
+    if (isOpen && !localStorage.getItem('cart-swipe-hint-shown')) {
+      const timer = setTimeout(() => {
+        panelControls.start({ x: [0, 20, 0], transition: { duration: 0.4, ease: 'easeInOut' } });
+        localStorage.setItem('cart-swipe-hint-shown', '1');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, panelControls]);
+
+  // ── Focus return on close (#61) ─────────────────────────────────────────
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement;
+    } else if (triggerRef.current) {
+      const el = triggerRef.current;
+      triggerRef.current = null;
+      setTimeout(() => el.focus(), 100);
+    }
+  }, [isOpen]);
+
   // ── Swipe to dismiss (public only) ─────────────────────────────────────
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchOffset, setTouchOffset] = useState(0);
@@ -74,9 +100,9 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     <AnimatePresence>
       {isOpen && (
       <>
-      {/* Backdrop with blur fade */}
+      {/* Backdrop with blur fade — z-[55] to render above bottom nav (z-50) */}
       <motion.div
-        className="fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[55] bg-tea-text/80 backdrop-blur-sm"
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -84,16 +110,16 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         transition={{ duration: 0.3 }}
       />
 
-      {/* Panel — slide in from right */}
+      {/* Panel — slide in from right, z-[55] above bottom nav */}
       <motion.div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full z-drawer shadow-2xl flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full z-[55] shadow-2xl flex flex-col ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-bg'
         }`}
         initial={{ x: '100%' }}
-        animate={{ x: isDragging ? touchOffset : 0, opacity: isDragging ? swipeOpacity : 1 }}
+        animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : panelControls}
         exit={{ x: '100%' }}
         transition={isDragging ? { duration: 0 } : { type: 'spring', damping: 30, stiffness: 300 }}
         onTouchStart={handleTouchStart}

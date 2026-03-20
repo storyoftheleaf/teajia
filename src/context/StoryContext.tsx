@@ -17,11 +17,18 @@ const StoryContext = createContext<StoryContextType | undefined>(undefined);
 
 export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [stories, setStories] = useState<Story[]>(() => {
-    // Load stories from localStorage or fallback to constants
+    // Load stories from localStorage, then merge with code-defined STORIES
+    // so new articles added in code always appear even if localStorage is stale
     const saved = safeLocalStorageGet<Story[]>('teajia_stories', []);
     if (saved.length > 0) {
       const validatedStories = validateStoriesArray(saved);
       if (validatedStories.length > 0) {
+        const savedIds = new Set(validatedStories.map(s => s.id));
+        const newFromCode = STORIES.filter(s => !savedIds.has(s.id));
+        if (newFromCode.length > 0) {
+          // Prepend new code-defined stories so they appear first
+          return [...newFromCode, ...validatedStories];
+        }
         return validatedStories;
       }
     }

@@ -284,24 +284,24 @@ export const OrdersView = () => {
                               >
                                 <PackageCheck size={12} /> FILL
                               </button>
-                              <button onClick={() => setEditInvoice(order)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors" title="Edit Order">
+                              <button onClick={() => setEditInvoice(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="Edit Order">
                                 <Pencil size={14} />
                               </button>
-                              <button onClick={() => setSplitInvoice(order)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors" title="Split Order">
+                              <button onClick={() => setSplitInvoice(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="Split Order">
                                 <Scissors size={14} />
                               </button>
                             </>
                           )}
-                          <button onClick={() => handleView(order)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors" title="View Details">
+                          <button onClick={() => handleView(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="View Details">
                             <Eye size={14} />
                           </button>
                           {!isVoid && (
-                            <button onClick={() => setConfirmState({ type: 'void', invoice: order })} className="p-1 text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Void Order">
+                            <button onClick={() => setConfirmState({ type: 'void', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Void Order">
                               <XCircle size={14} />
                             </button>
                           )}
                           {isVoid && (
-                            <button onClick={() => setConfirmState({ type: 'delete', invoice: order })} className="p-1 text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Delete Record">
+                            <button onClick={() => setConfirmState({ type: 'delete', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Delete Record">
                               <Trash2 size={14} />
                             </button>
                           )}
@@ -361,7 +361,7 @@ export const OrdersView = () => {
                         <PackageCheck size={12} /> FILL
                       </button>
                     )}
-                    <button onClick={() => handleView(order)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"><Eye size={14} /></button>
+                    <button onClick={() => handleView(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors"><Eye size={14} /></button>
                     {/* Mobile overflow — show ... menu for secondary actions */}
                     <MobileActions
                       isPending={isPending}
@@ -584,13 +584,13 @@ const MobileActions: React.FC<{
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors">
+      <button onClick={() => setOpen(!open)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
         <MoreHorizontal size={14} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 bottom-full mb-1 bg-tea-surface border border-tea-border rounded-lg shadow-2xl z-50 min-w-[140px] py-1">
+          <div className="absolute right-0 bottom-full mb-1 bg-tea-surface border border-tea-border rounded-lg shadow-2xl z-50 min-w-[140px] py-1 max-h-[min(240px,40vh)] overflow-y-auto">
             {isPending && (
               <>
                 <button onClick={() => { setOpen(false); onEdit(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">
