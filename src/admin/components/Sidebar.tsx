@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, User, Sun, Moon, Calendar, LayoutDashboard, Package, Users, ClipboardList } from 'lucide-react';
+import { LogOut, User, Sun, Moon, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -112,6 +112,7 @@ export const Sidebar = ({
     { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <ClipboardList className="w-5 h-5" strokeWidth={2} /> },
     { id: 'people', path: '/admin/people', label: 'People', icon: <Users className="w-5 h-5" strokeWidth={2} /> },
     { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'capture', path: '/admin/capture', label: 'Capture', icon: <Camera className="w-5 h-5" strokeWidth={2} /> },
   ];
 
   const handleNav = () => {

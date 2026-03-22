@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Loader2, AlertCircle, Plus, ArrowUpDown, ArrowUp, ArrowDown, EyeOff, Star, Sparkles, Pencil, Leaf } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Plus, ArrowUpDown, ArrowUp, ArrowDown, EyeOff, Star, Sparkles, Pencil, Leaf, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Product, Currency, ExchangeRate, ProductType } from '../types';
@@ -270,7 +270,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                     </div>
                     <div className="flex-shrink-0 text-right">
                       <div className="text-xs text-tea-text/80 tabular-nums">{formatCurrency(product.pricePerGramUSD, currency, rates)}</div>
-                      {isAdmin && <div className="text-[10px] text-tea-text-sec/60 tabular-nums">{Math.round(product.stockGrams)}g</div>}
+                      {isAdmin && <div className="text-[10px] text-tea-text-sec/60 tabular-nums flex items-center gap-0.5 justify-end">{product.inTransit && <Package size={9} className="text-tea-gold" />}{Math.round(product.stockGrams)}g</div>}
                     </div>
                   </button>
                 );
@@ -361,7 +361,8 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
                                     {isAdmin && (
                                         <td className="px-4 align-middle overflow-hidden text-right">
-                                            <span className={`num text-xs ${isLowStock ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>
+                                            <span className={`num text-xs inline-flex items-center gap-1 justify-end ${product.inTransit ? 'text-tea-gold font-medium' : isLowStock ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>
+                                                {product.inTransit && <Package size={10} className="text-tea-gold" />}
                                                 {Math.round(product.stockGrams)}g
                                             </span>
                                         </td>

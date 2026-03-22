@@ -39,6 +39,7 @@ export interface Product {
   isFeatured?: boolean; // Suggested/Featured flag
   isCurated?: boolean; // Curated selection flag
   isSample?: boolean; // Sample/trial tea not yet committed to inventory
+  inTransit?: boolean; // Stock ordered but not yet physically arrived
   lore?: string; // AI or handcrafted history/story
   isCustomWisdom?: boolean; // True if manually edited
   showWisdom?: boolean; // Toggle to display on public card

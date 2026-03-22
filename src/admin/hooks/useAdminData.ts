@@ -43,6 +43,7 @@ export const useProducts = () => {
         isPublic: p.is_public == null ? true : !!p.is_public,
         isFeatured: !!p.is_featured,
         isSample: !!p.is_sample,
+        inTransit: !!p.in_transit,
         lore: p.lore || '',
         isCustomWisdom: !!p.is_custom_wisdom,
         showWisdom: p.show_wisdom == null ? true : !!p.show_wisdom,

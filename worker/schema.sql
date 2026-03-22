@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS products (
     quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
     vendor_id TEXT,                -- FK to customers table (vendor contact)
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
+    in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
     stock_verified_at TEXT,                        -- Last time stock was physically verified
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export

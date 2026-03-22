@@ -645,7 +645,7 @@ export const SourcesView = () => {
                 </div>
               }
               onEdit={(product) => {
-                navigate(`/admin/inventory?search=${encodeURIComponent(product.givenName || product.productName)}`);
+                navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
               }}
             />
           </div>
@@ -967,7 +967,7 @@ export const SourcesView = () => {
                           inline={true}
                           title={`${source.name}'s Teas`}
                           onEdit={(product) => {
-                            navigate(`/admin/inventory?search=${encodeURIComponent(product.givenName || product.productName)}`);
+                            navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
                           }}
                         />
                       </div>
@@ -1212,7 +1212,7 @@ export const SourcesView = () => {
                               <tr key={p.id} className="border-b border-tea-border last:border-0 hover:bg-tea-surface/50 transition-colors">
                                 <td className="px-3 py-2">
                                   <button
-                                    onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.given_name || p.product_name || '')}`)}
+                                    onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
                                     className="text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5"
                                   >
                                     {p.image_url && <img src={p.image_url} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" />}

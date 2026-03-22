@@ -4,6 +4,7 @@ interface Env {
   ADMIN_PASSWORD_HASH: string;
   JWT_SECRET: string;
   ANTHROPIC_API_KEY: string;
+  GEMINI_API_KEY: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -622,7 +623,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -658,12 +659,37 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
   }
 
-  const stmts = products.map(raw => {
+  // Duplicate check: fetch existing products to match against
+  const existingProducts = await env.DB.prepare(
+    'SELECT id, product_name, given_name, chinese_name, type FROM products'
+  ).all();
+  const existingSet = new Set(
+    existingProducts.results.map(p => {
+      const name = ((p.product_name || p.given_name || '') as string).toLowerCase().trim();
+      const type = ((p.type || '') as string).toLowerCase().trim();
+      return `${type}::${name}`;
+    })
+  );
+
+  const toInsert: any[] = [];
+  const skipped: string[] = [];
+
+  for (const raw of products) {
     // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
     const body: Record<string, any> = {};
     for (const [k, v] of Object.entries(raw)) {
       if (v !== null && v !== undefined && v !== '') body[k] = v;
     }
+
+    // Check for duplicate by type + product_name or given_name
+    const name = ((body.product_name || body.given_name || '') as string).toLowerCase().trim();
+    const type = ((body.type || '') as string).toLowerCase().trim();
+    const key = `${type}::${name}`;
+    if (name && existingSet.has(key)) {
+      skipped.push(body.product_name || body.given_name || 'unknown');
+      continue;
+    }
+    existingSet.add(key); // Prevent duplicates within the same batch
 
     if (body.quantity_purchased == null) {
       body.quantity_purchased = body.type === 'Teaware'
@@ -673,26 +699,28 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-    for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample']) {
-      if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
+    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+      if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
     // Apply cached vendor_id
     if (body.vendor && !body.vendor_id) {
-      const key = (body.vendor as string).trim().toLowerCase();
-      if (vendorCache[key]) body.vendor_id = vendorCache[key];
+      const vkey = (body.vendor as string).trim().toLowerCase();
+      if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
     const id = crypto.randomUUID();
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
-    return env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
-      .bind(id, ...cols.map(c => body[c] ?? null));
-  });
-
-  for (let i = 0; i < stmts.length; i += 100) {
-    await env.DB.batch(stmts.slice(i, i + 100));
+    toInsert.push(
+      env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
+        .bind(id, ...cols.map(c => body[c] ?? null))
+    );
   }
 
-  return json({ inserted: stmts.length });
+  for (let i = 0; i < toInsert.length; i += 100) {
+    await env.DB.batch(toInsert.slice(i, i + 100));
+  }
+
+  return json({ inserted: toInsert.length, skipped: skipped.length, skippedNames: skipped });
 };
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
@@ -704,7 +732,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -1709,6 +1737,119 @@ const handleUploadImage: Handler = async (request, env) => {
   const publicUrl = `https://media.teajia.co/${key}`;
 
   return json({ url: publicUrl, key }, 201);
+};
+
+// ── Extract Product Info from Image (Gemini Flash) ──
+const handleExtractFromImage: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  if (!env.GEMINI_API_KEY) {
+    return json({ error: 'GEMINI_API_KEY not configured' }, 503);
+  }
+
+  const contentType = request.headers.get('Content-Type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No image provided' }, 400);
+
+  // Convert image to base64 for Gemini
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const mimeType = file.type || 'image/jpeg';
+
+  // Also upload to R2 so the draft product has an image
+  let imageUrl = '';
+  if (env.MEDIA_BUCKET) {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const key = `products/${crypto.randomUUID()}.${ext}`;
+    await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
+      httpMetadata: { contentType: mimeType },
+    });
+    imageUrl = `https://media.teajia.co/${key}`;
+  }
+
+  // Call Gemini Flash to extract product info from the image
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              inlineData: {
+                mimeType,
+                data: base64,
+              },
+            },
+            {
+              text: `You are a tea product data extractor. Analyze this image of a tea product (package, label, menu listing, or price tag) and extract as much information as possible.
+
+Return ONLY a valid JSON object with these fields (omit any you can't determine):
+{
+  "givenName": "The tea's name in English (translate if needed)",
+  "chineseName": "Chinese characters if visible",
+  "productName": "Cultivar or botanical name if identifiable (e.g. Da Hong Pao, Tie Guan Yin)",
+  "type": "One of: Green, Yellow, White, Oolong, Red, Dark, Sheng, Shou, Herbal, Matcha, Flower, Teaware, Misc",
+  "form": "One of: Loose Leaf, Cake, Tuo, Brick, Rolled, Ball, Powder, Bag, Other",
+  "year": 2024,
+  "originCountry": "Country of origin",
+  "originRegion": "Specific region if visible",
+  "vendor": "Brand or vendor name if visible",
+  "costAmount": 0,
+  "costCurrency": "One of: USD, NT, Yuan, IDR, JPY, MYR, HKD, UNK",
+  "quantityPurchased": 0,
+  "description": "Brief description based on what you see",
+  "notes": "Any other useful info from the image (brewing instructions, tasting notes, etc.)"
+}
+
+Important:
+- Translate all Chinese/Japanese/other text to English for givenName and description
+- Keep chineseName in original characters
+- For costAmount, extract the numeric price if visible
+- For quantityPurchased, extract grams/weight if visible (always in grams)
+- If you see a price like "NT$300" set costAmount=300 and costCurrency="NT"
+- Return ONLY the JSON object, no markdown formatting or explanation`,
+            },
+          ],
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        },
+      }),
+    }
+  );
+
+  if (!geminiRes.ok) {
+    const errText = await geminiRes.text();
+    return json({ error: `Gemini API error: ${geminiRes.status}`, details: errText }, 502);
+  }
+
+  const geminiData = await geminiRes.json() as any;
+  const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  // Parse the JSON from Gemini's response (strip markdown fences if present)
+  let extracted: Record<string, any> = {};
+  try {
+    const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    extracted = JSON.parse(jsonStr);
+  } catch {
+    return json({ error: 'Failed to parse Gemini response', raw: rawText }, 500);
+  }
+
+  // Attach the uploaded image URL
+  if (imageUrl) {
+    extracted.imageUrl = imageUrl;
+  }
+
+  return json(extracted);
 };
 
 // ── Waitlist Cascade Helper ──
@@ -2923,6 +3064,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/upload-image', handleUploadImage],
 
   // AI
+  ['POST', '/api/extract-from-image', handleExtractFromImage],
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 

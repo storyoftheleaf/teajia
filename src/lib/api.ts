@@ -449,6 +449,20 @@ export const api = {
     return handleResponse(res);
   },
 
+  extractFromImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('adminToken');
+    const res = await fetchWithTimeout(`${API_URL}/api/extract-from-image`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    return handleResponse(res);
+  },
+
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

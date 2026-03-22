@@ -266,6 +266,62 @@ interface Product {
 - The 139+ tea inventory lives in Cloudflare D1. The Grid's static markdown data has been replaced.
 - Both apps use Tailwind via CDN (`<script src="https://cdn.tailwindcss.com">`). For production, consider switching to PostCSS Tailwind for proper tree-shaking, but CDN works fine for now.
 
+## Adding New Inventory: Receipt-to-Database Workflow
+
+When Adrian acquires new teas or teaware, new stock enters the system through this workflow. **Do not skip steps or assume the in-app AI generation is available — it is not configured yet.**
+
+### Step 1: Receipt → CSV (in Claude conversation)
+
+Adrian provides receipts (photos, text, or pasted breakdowns) from tea vendors. Claude parses them into a CSV matching the import format.
+
+**Required columns from the receipt:**
+- `Type` — Green, Oolong, Sheng, Shou, Dark, Red, White, Yellow, Herbal, Matcha, Flower, Teaware, Misc
+- `Given Name` — Short English name
+- `Chinese Name` — Hanzi characters
+- `Product Name` — Full descriptive name
+- `Form` — Cake, Brick, Tuo, Loose Leaf, Ball, Rolled, Powder, Bag, Other
+- `Year` — Harvest/production year if known
+- `Origin Country`, `Origin Region`
+- `Grams` — Amount purchased
+- `Stock` — Current stock (usually same as Grams for new purchases)
+- `Cost Amount`, `Cost Currency` — What was paid (USD, NT, Yuan, MYR, IDR, JPY)
+- `Vendor` — Source/shop name
+- `Restockable`, `Personal Collection` — Yes/No
+- `Status` — Active or Draft (use Draft for incoming/unreceived shipments)
+
+For teaware add: `Teaware Category` (pot, cup, filter, etc.), `Material`, `Capacity` (ml), `Units`
+
+### Step 2: Generate Wisdom Content (in Claude conversation)
+
+Claude generates the rich content fields for each tea, matching the voice and depth of existing entries in `Teajia_Tea_Complete.csv`. These fields go directly into the same CSV before import:
+
+- `Lore` — 2-3 short paragraphs: origin story, terroir significance, cultural context
+- `Tasting Notes` — 3-5 comma-separated sensory descriptors
+- `Processing Notes` — How the tea was made (roasting, fermentation, pressing, aging)
+- `Terroir` — Growing environment (altitude, soil, climate, region character)
+- `Mood` — Short phrase (e.g., "quiet persistence", "steady ground")
+- `Experience` — 1-2 sentences on what drinking it feels like
+
+**Reference file for voice/style:** `Spread Sheets/Teajia_Tea_Complete.csv` — read existing entries to match tone. Poetic but grounded. No pretension.
+
+### Step 3: Save the CSV
+
+Save the completed CSV to: `../1 Projects/TeaJia/Spread Sheets/Import_YYYY_Month.csv`
+
+This file serves as both the import payload and a permanent record of that acquisition batch.
+
+### Step 4: Import via Admin UI
+
+Adrian imports manually: Admin → Inventory → ⋮ menu → **Import CSV** → select file. The `CsvImportModal` validates, previews, and batch-uploads to D1.
+
+### Important Notes
+
+- **No in-app AI generation** — the "Generate Wisdom" and "Enrich all teas" features in the admin require an API key that is not yet configured. All content generation happens in Claude conversations for now.
+- **CSV is the master format** — multi-paragraph lore works fine in CSV with quoted fields. No per-tea markdown files exist.
+- **Teaware skips wisdom** — teapots, cups, etc. don't need lore/mood/experience fields.
+- **Group discounts** — when a vendor gives a bulk discount across multiple items, store list prices in Cost Amount and note the discount in Description, OR store actual paid amounts. Ask Adrian which he prefers.
+- **Incoming stock** — mark as Status: Draft with "INCOMING" in the description until received.
+
 ## Commands
 
 ```bash

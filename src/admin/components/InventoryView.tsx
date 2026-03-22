@@ -98,6 +98,14 @@ const DEFAULT_TEA_VIEWS = [
     groupBy: null,
   },
   {
+    id: 'default-drafts',
+    name: 'Drafts',
+    columns: ['productName', 'type', 'year', 'originRegion', 'vendor', 'costAmount', 'stockGrams'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Drafts',
+    groupBy: null,
+  },
+  {
     id: 'default-samples',
     name: 'Samples',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
@@ -582,6 +590,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const vendorFilter = searchParams.get('vendor') || '';
+  const panelParam = searchParams.get('panel') || '';
   const navigate = useNavigate();
 
   // Use external category/search from parent top bar
@@ -645,6 +654,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [panelDirty, setPanelDirty] = useState(false);
   useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
 
+  // Auto-open panel from URL param (e.g. from Sources view)
+  useEffect(() => {
+    if (panelParam && products.length > 0) {
+      const match = products.find(p => p.id === panelParam);
+      if (match) {
+        setPanelProduct(match);
+        // Clear the param so it doesn't re-trigger
+        setSearchParams(prev => { prev.delete('panel'); return prev; }, { replace: true });
+      }
+    }
+  }, [panelParam, products]);
+
   // Tasting Editor Modal
   const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
 
@@ -705,6 +726,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // 2. Filter
     if (filterType === 'Alerts') {
       result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
+    } else if (filterType === 'Drafts') {
+      result = result.filter(p => p.status === 'Draft');
     } else if (filterType === 'Pending') {
       result = result.filter(p => p.lore && !p.showWisdom);
     } else if (filterType === 'Unverified') {

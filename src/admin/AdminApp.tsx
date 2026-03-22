@@ -25,6 +25,7 @@ import { EventDetail } from './components/EventDetail';
 import { TastingNotesView } from './components/TastingNotesView';
 import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
+import { QuickCapture } from './components/QuickCapture';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -309,6 +310,22 @@ const AdminContent = () => {
               <Route path="activity" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="people" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+
+              {/* Quick Capture — Intake Hub */}
+              <Route path="capture" element={
+                <ProtectedRoute isAdmin={isAdmin}>
+                  <PageTransition>
+                    <QuickCapture
+                      products={products}
+                      isLoading={loading}
+                      onDraftCreated={refetchProducts}
+                      onImportClick={() => setIsImportOpen(true)}
+                      onAddClick={() => setIsCreateModalOpen(true)}
+                      rates={rates}
+                    />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
 
               {/* Supplementary views */}
               <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />

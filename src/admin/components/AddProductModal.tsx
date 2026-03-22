@@ -214,6 +214,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     isFeatured: false,
     isCurated: false,
     recheckStock: false,
+    inTransit: false,
     lore: '',
     tastingNotes: '', // We'll store as comma separated string in form
     isCustomWisdom: false,
@@ -268,6 +269,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         isFeatured: initialData.isFeatured || false,
         isCurated: initialData.isCurated || false,
         recheckStock: initialData.recheckStock || false,
+        inTransit: initialData.inTransit || false,
         lore: initialData.lore || '',
         tastingNotes: initialData.tastingNotes ? initialData.tastingNotes.join(', ') : '',
         isCustomWisdom: initialData.isCustomWisdom || false,
@@ -305,6 +307,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         isFeatured: false,
         isCurated: false,
         recheckStock: false,
+        inTransit: false,
         lore: '',
         tastingNotes: '',
         isCustomWisdom: false,
@@ -491,6 +494,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             mood: formData.mood,
             experience: formData.experience,
             recheck_stock: formData.recheckStock ? 1 : 0,
+            in_transit: formData.inTransit ? 1 : 0,
         };
 
         let productId: string | undefined;
@@ -825,6 +829,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                               </div>
                           </div>
                           <span className="text-xs text-tea-text-sec group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                      </label>
+                      <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
+                          <div className="relative">
+                              <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="sr-only" />
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                                  {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                          </div>
+                          <span className="text-xs text-tea-text-sec group-hover:text-tea-gold transition-colors uppercase tracking-[0.15em]">In transit (awaiting shipment)</span>
                       </label>
                  </div>
               </div>

@@ -8,6 +8,7 @@ import {
   Users,
   ShoppingCart,
   Calendar,
+  Camera,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -33,6 +34,7 @@ const rightTabs = [
 ] as const;
 
 const moreItems = [
+  { id: 'capture', label: 'Quick Capture', icon: Camera, path: '/admin/capture' },
   { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
   { id: 'tasting', label: 'Tasting Notes', icon: Sparkles, path: '/admin/tasting' },
   { id: 'cart', label: 'Cart / Registry', icon: ShoppingCart, path: null },
