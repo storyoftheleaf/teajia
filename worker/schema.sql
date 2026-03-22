@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS products (
     vendor_id TEXT,                -- FK to customers table (vendor contact)
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
     in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
+    tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
+    sold_out_at TEXT,                             -- When product auto-archived due to zero stock
     stock_verified_at TEXT,                        -- Last time stock was physically verified
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
@@ -99,6 +101,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     shipping_cost_usd REAL DEFAULT 0,
     status TEXT DEFAULT 'Draft',
     inventory_deducted INTEGER DEFAULT 0,
+    deleted_at TEXT,                          -- Soft-delete timestamp
+    notes TEXT,                              -- Free-text notes on the invoice
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -139,6 +143,22 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     user_email TEXT,
     action TEXT,
     details TEXT,
+    entity_type TEXT,             -- product, invoice, customer, etc.
+    entity_id TEXT,               -- ID of affected entity
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 6b. Stock Ledger Table (audit trail for stock changes)
+CREATE TABLE IF NOT EXISTS stock_ledger (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    product_id TEXT NOT NULL REFERENCES products(id),
+    delta INTEGER NOT NULL,           -- Change amount (+100, -50, etc.)
+    balance_after INTEGER NOT NULL,   -- Stock after the change
+    reason TEXT NOT NULL,             -- MANUAL_ADJUST, FULFILLMENT, VOID, MANUAL_INCREMENT
+    source_invoice_id TEXT,           -- FK to invoices (if change was from invoice)
+    source_invoice_number TEXT,       -- Denormalized for easy display
+    user_email TEXT,
+    note TEXT,                        -- Human-readable description
     created_at TEXT DEFAULT (datetime('now'))
 );
 
