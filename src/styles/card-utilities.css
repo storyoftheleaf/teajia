@@ -1340,7 +1340,7 @@
 
 .stock-ok { color: var(--tea-text); }
 .stock-low { color: #d97706; }
-.stock-out { color: var(--tea-text-dim); opacity: 0.5; }
+.stock-out { color: var(--tea-text-dim); opacity: 0.4; }
 
 /* ============================================
    Mobile Inventory — Row Type Accent Strip
@@ -1355,18 +1355,18 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 4px;
-  bottom: 4px;
+  top: 0;
+  bottom: 0;
   width: 3px;
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 1px 1px 0;
   background: var(--row-type-color, transparent);
-  opacity: 0.5;
+  opacity: 0.75;
   transition: opacity 200ms ease;
 }
 
 .inv-row-accent:active::before,
 .inv-row-accent.expanded::before {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 /* ============================================

@@ -69,10 +69,10 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           style={{ animationDelay: `${index * 50}ms` }}
         >
           <span
-            className={`text-[15px] tracking-[0.04em] lowercase transition-all duration-300 ${
-              active ? 'text-tea-gold' : 'text-tea-text-sec/80 group-hover:text-tea-text-sec'
+            className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${
+              active ? 'text-tea-gold font-bold' : 'text-tea-text-sec/80 group-hover:text-tea-text-sec'
             }`}
-            style={{ fontFamily: 'var(--font-display)', fontWeight: active ? 500 : 400 }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             {tab.label.toLowerCase()}
           </span>
@@ -95,10 +95,10 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
       {/* Bottom Tab Bar — identical structure to home page BottomTabBar */}
       <nav
         aria-label="Admin navigation"
-        className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 h-[44px] pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 h-[49px] pb-[env(safe-area-inset-bottom)] md:hidden"
         style={{
           background: 'rgba(40,33,26,0.65)',
-          boxShadow: '0 -1px 0 rgba(184,146,78,0.06)',
+          boxShadow: '0 -1px 0 rgba(166,132,80,0.06)',
         }}
       >
         <div className="flex items-center w-full px-0 h-full">
@@ -114,14 +114,15 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           <div className="flex items-center h-full flex-1">
             <button
               onClick={() => navigate('/')}
-              className="flex-1 h-full flex items-center justify-center relative transition-all duration-300"
+              className="flex-1 h-full flex items-center justify-center relative transition-all duration-300 select-none"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
               title="Home"
               aria-label="Return to home"
             >
               <LogoText
                 size="sm"
                 color="var(--tea-text-sec)"
-                className="transition-all duration-300"
+                className="transition-all duration-300 pointer-events-none"
               />
             </button>
           </div>

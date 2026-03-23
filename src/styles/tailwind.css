@@ -21,12 +21,12 @@
   --tea-text-sec-rgb: 181 168 146;
   --tea-text-dim: #917a55;
   --tea-text-dim-rgb: 145 122 85;
-  --tea-gold: #b8924e;
-  --tea-gold-rgb: 184 146 78;
-  --tea-gold-lt: #d4ac66;
-  --tea-gold-lt-rgb: 212 172 102;
+  --tea-gold: #a68450;
+  --tea-gold-rgb: 166 132 80;
+  --tea-gold-lt: #c4a060;
+  --tea-gold-lt-rgb: 196 160 96;
   --tea-border: rgba(181,168,146,0.14);
-  --tea-accent-sub: rgba(184,146,78,0.1);
+  --tea-accent-sub: rgba(166,132,80,0.1);
 
   /* Font Families */
   --font-display: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
@@ -55,12 +55,12 @@
   --tea-text-sec-rgb: 94 83 66;
   --tea-text-dim: #9a8c78;
   --tea-text-dim-rgb: 154 140 120;
-  --tea-gold: #8e6d2e;
-  --tea-gold-rgb: 142 109 46;
-  --tea-gold-lt: #a88340;
-  --tea-gold-lt-rgb: 168 131 64;
+  --tea-gold: #7d6330;
+  --tea-gold-rgb: 125 99 48;
+  --tea-gold-lt: #96783e;
+  --tea-gold-lt-rgb: 150 120 62;
   --tea-border: rgba(24,19,14,0.1);
-  --tea-accent-sub: rgba(142,109,46,0.07);
+  --tea-accent-sub: rgba(125,99,48,0.07);
 }
 
 /* ============================================

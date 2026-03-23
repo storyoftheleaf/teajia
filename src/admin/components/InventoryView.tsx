@@ -83,7 +83,7 @@ const DEFAULT_TEA_VIEWS = [
   },
   {
     id: 'default-unpublished',
-    name: 'Unpublished',
+    name: 'Hidden',
     columns: ['productName', 'type', 'stockGrams', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'Unpublished',
@@ -134,7 +134,7 @@ const DEFAULT_TEAWARE_VIEWS = [
   },
   {
     id: 'default-teaware-unpublished',
-    name: 'Unpublished',
+    name: 'Hidden',
     columns: ['productName', 'teawareCategory', 'material', 'costAmount', 'pricePerGramUSD'],
     sortConfig: [{ key: 'teawareCategory', direction: 'asc' as const }],
     filterType: 'Unpublished',
@@ -615,6 +615,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const searchQuery = externalSearchQuery;
   const [filterType, setFilterType] = useState<string>('All');
   const [showOptions, setShowOptions] = useState(false);
+  const [showMobileSort, setShowMobileSort] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
 
   // Reset glossary mode when switching categories
@@ -649,12 +650,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Feature 3: Row Grouping collapsed state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Feature 4: Saved Views — initialize defaults
+  // Feature 4: Saved Views — initialize defaults + sync names from defaults
   useEffect(() => {
     if (savedViews.length === 0) {
       DEFAULT_TEA_VIEWS.forEach(v => saveView(v));
       DEFAULT_TEAWARE_VIEWS.forEach(v => saveView(v));
       setActiveView('default-all');
+    } else {
+      // Sync default view names (in case they were updated)
+      [...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].forEach(def => {
+        const existing = savedViews.find(v => v.id === def.id);
+        if (existing && existing.name !== def.name) saveView({ ...existing, name: def.name });
+      });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1534,105 +1541,156 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       )}
 
       {/* --- SAVED VIEWS TAB BAR --- */}
-      <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar hide-scrollbar">
-        {/* Glossary toggle — only for tea category */}
-        {inventoryCategory === 'tea' && (
-          <>
+      <div className="relative">
+        <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar hide-scrollbar">
+          {(savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews).map(view => (
             <button
-              onClick={() => setGlossaryMode(prev => !prev)}
-              className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors shrink-0 ${
-                glossaryMode
-                  ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent-sub'
-                  : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
-              }`}
-              aria-label="Glossary view"
-            >
-              <ImageIcon size={12} />
-            </button>
-            <div className="w-px h-4 bg-tea-border/30 mx-1 shrink-0" />
-          </>
-        )}
-        {(savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews).map(view => (
-          <button
-            key={view.id}
-            onClick={() => {
-              setGlossaryMode(false);
-              setActiveView(view.id);
-              setInventoryColumns(view.columns);
-              setInventorySortConfig(view.sortConfig);
-              setFilterType(view.filterType);
-              setInventoryGroupBy(view.groupBy);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              activeViewId === view.id
-                ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent-sub'
-                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
-            }`}
-          >
-            {view.name}
-            {!view.id.startsWith('default-') && (
-              <span
-                onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                className="ml-1 text-tea-text-sec/40 hover:text-tea-accent transition-colors"
-              >
-                <XIcon size={10} />
-              </span>
-            )}
-          </button>
-        ))}
-        <div className="w-px h-4 bg-tea-border/30 mx-1" />
-        {showSaveViewPrompt ? (
-          <div className="flex items-center gap-1">
-            <input
-              autoFocus
-              value={newViewName}
-              onChange={(e) => setNewViewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newViewName.trim()) {
-                  const id = `custom-${Date.now()}`;
-                  saveView({ id, name: newViewName.trim(), columns: inventoryColumns, sortConfig: inventorySortConfig, filterType, groupBy: inventoryGroupBy });
-                  setActiveView(id);
-                  setNewViewName('');
-                  setShowSaveViewPrompt(false);
-                } else if (e.key === 'Escape') {
-                  setShowSaveViewPrompt(false);
-                  setNewViewName('');
-                }
+              key={view.id}
+              onClick={() => {
+                setGlossaryMode(false);
+                setActiveView(view.id);
+                setInventoryColumns(view.columns);
+                setInventorySortConfig(view.sortConfig);
+                setFilterType(view.filterType);
+                setInventoryGroupBy(view.groupBy);
               }}
-              placeholder="View name..."
-              className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
-            />
-            <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
+                activeViewId === view.id
+                  ? 'bg-tea-accent/15 text-tea-accent'
+                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
+              }`}
+            >
+              {view.name}
+              {!view.id.startsWith('default-') && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
+                  className="ml-1 text-tea-text-sec/40 hover:text-tea-accent transition-colors"
+                >
+                  <XIcon size={10} />
+                </span>
+              )}
+            </button>
+          ))}
+          {/* Right-side icons pushed to far right */}
+          <div className="flex items-center gap-1 ml-auto shrink-0">
+            {showSaveViewPrompt ? (
+              <div className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  value={newViewName}
+                  onChange={(e) => setNewViewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newViewName.trim()) {
+                      const id = `custom-${Date.now()}`;
+                      saveView({ id, name: newViewName.trim(), columns: inventoryColumns, sortConfig: inventorySortConfig, filterType, groupBy: inventoryGroupBy });
+                      setActiveView(id);
+                      setNewViewName('');
+                      setShowSaveViewPrompt(false);
+                    } else if (e.key === 'Escape') {
+                      setShowSaveViewPrompt(false);
+                      setNewViewName('');
+                    }
+                  }}
+                  placeholder="View name..."
+                  className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
+                />
+                <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSaveViewPrompt(true)}
+                className="flex items-center justify-center w-8 h-8 rounded-md text-tea-text-sec/40 hover:text-tea-text-sec hover:bg-tea-surface transition-colors shrink-0"
+                aria-label="Save current view"
+              >
+                <Save size={15} />
+              </button>
+            )}
+            {/* Glossary toggle — only for tea category, far right */}
+            {inventoryCategory === 'tea' && (
+              <>
+                <div className="w-px h-4 bg-tea-border/30 shrink-0" />
+                <button
+                  onClick={() => setGlossaryMode(prev => !prev)}
+                  className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0 ${
+                    glossaryMode
+                      ? 'bg-tea-accent/15 text-tea-accent'
+                      : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
+                  }`}
+                  aria-label="Glossary view"
+                >
+                  <ImageIcon size={15} />
+                </button>
+              </>
+            )}
           </div>
-        ) : (
-          <button
-            onClick={() => setShowSaveViewPrompt(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
-          >
-            <Save size={10} /> Save View
-          </button>
-        )}
+        </div>
+        {/* Fade gradient indicating more tabs offscreen */}
+        <div className="md:hidden pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-tea-bg to-transparent" />
       </div>
 
       {/* --- HEADER CONTROLS --- */}
       <div className={`sticky top-0 z-30 border-b border-tea-border py-2 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        {/* Mobile header — streamlined */}
-        <div className="md:hidden px-4 flex flex-col gap-2">
-          {/* Top row: title + item count + filter indicator */}
+        {/* Mobile header — compressed single row */}
+        <div className="md:hidden px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
-                {isEditMode ? 'Editing' : 'Inventory'}
-              </h2>
-              <span className="text-[11px] text-tea-text-dim tabular-nums">{processedProducts.length}</span>
+              <span className="text-[12px] text-tea-text-sec tabular-nums font-medium">{processedProducts.length} <span className="text-tea-text-dim font-normal">{inventoryCategory === 'teaware' ? 'items' : 'teas'}</span></span>
               {filterType !== 'All' && (
-                <span className="text-[9px] uppercase tracking-[0.15em] text-tea-accent bg-tea-accent/10 px-2 py-0.5 rounded-full">{filterType}</span>
+                <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded-full">{filterType}</span>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0 relative">
+              {/* Sort button */}
               <button
-                onClick={() => setShowOptions(!showOptions)}
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg"
+                onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
+                className={`w-10 h-10 flex items-center justify-center transition-colors rounded-lg ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'}`}
+              >
+                <ArrowUpDown size={16} />
+              </button>
+              {/* Sort dropdown */}
+              {showMobileSort && (
+                <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
+                <div className="absolute right-0 top-10 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                  {[
+                    { key: 'type', label: 'Type' },
+                    { key: 'productName', label: 'Name' },
+                    { key: 'stockGrams', label: 'Stock' },
+                    { key: 'pricePerGramUSD', label: 'Price' },
+                    { key: 'year', label: 'Year' },
+                    { key: 'originRegion', label: 'Origin' },
+                    { key: 'costAmount', label: 'Cost' },
+                  ].map(opt => {
+                    const current = inventorySortConfig[0];
+                    const isActive = current?.key === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          if (isActive) {
+                            setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                          } else {
+                            setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
+                          }
+                          setShowMobileSort(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                      >
+                        {opt.label}
+                        {isActive && (
+                          <span className="ml-auto">
+                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                </>
+              )}
+              <button
+                onClick={() => { setShowOptions(!showOptions); setShowMobileSort(false); }}
+                className="w-10 h-10 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors rounded-lg"
               >
                 <MoreHorizontal size={18} />
               </button>
@@ -2119,273 +2177,271 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         )}
 
-        {/* MOBILE CARDS — redesigned with visible description + direct edit/view access */}
-        <div className={`md:hidden pb-24 space-y-px bg-tea-border/15 ${filterType === 'Pending' || glossaryMode ? 'hidden' : ''}`}>
-            {processedProducts.map((product, idx) => {
+        {/* MOBILE CARDS — compact rows with inline action icons */}
+        <div className={`md:hidden pb-24 ${filterType === 'Pending' || glossaryMode ? 'hidden' : ''}`}>
+            {(() => {
+              let lastType: string | null = null;
+              return processedProducts.map((product, idx) => {
                 const dotColor = getThemeColor(product.type);
                 const isExpanded = expandedCardId === product.id;
                 const isOutOfStock = product.stockGrams === 0;
                 const isLowStock = product.stockGrams > 0 && product.stockGrams <= (product.lowStockThreshold || 10);
-                const stockClass = isOutOfStock ? 'stock-out' : isLowStock ? 'stock-low' : 'stock-ok';
                 const descriptionPreview = product.lore || product.description || '';
+                const showTypeHeader = product.type !== lastType;
+                lastType = product.type;
                 return (
-                <div key={product.id} className={`${!product.isPublic ? 'opacity-60' : ''} ${product.isPersonal ? 'bg-amber-950/10' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/20'}`}>
-                    {/* Main row — tap to expand */}
-                    <button
-                        className="inv-row-accent w-full text-left px-4 py-2 flex items-center gap-2.5 transition-colors active:bg-tea-surface/60"
-                        style={{ '--row-type-color': dotColor } as React.CSSProperties}
-                        onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
-                    >
-                        {/* Type color indicator */}
-                        <span
-                            className="flex-shrink-0 w-2 h-6 rounded-sm"
-                            style={{ backgroundColor: dotColor, opacity: 0.6 }}
-                        />
+                <React.Fragment key={product.id}>
+                    {/* Type group header */}
+                    {showTypeHeader && (
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-tea-bg">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
+                        <span className="text-[11px] uppercase tracking-[0.15em] font-semibold text-tea-text-sec">{product.type}</span>
+                        <div className="flex-1 h-px bg-tea-border/30" />
+                      </div>
+                    )}
 
-                        {/* Name + metadata — compact, no description */}
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-tea-text text-[14px] font-sans font-medium truncate leading-tight">{product.productName}</span>
-                                {product.isFeatured && <Star size={11} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
-                                {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim" />}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec">
-                                <span className="font-medium">{product.type}</span>
-                                {product.originRegion && (
-                                    <>
-                                        <span className="text-tea-text-dim">·</span>
-                                        <span className="truncate text-tea-text-dim">{product.originRegion}</span>
-                                    </>
-                                )}
-                                {product.year && (
-                                    <>
-                                        <span className="text-tea-text-dim">·</span>
-                                        <span className="text-tea-text-dim">{product.year}</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Stock + Price */}
-                        <div className="flex-shrink-0 text-right min-w-[52px]">
-                            {inventoryCategory === 'teaware' ? (
-                              <>
-                                <div className="text-[13px] text-tea-text font-sans font-medium tabular-nums">
-                                  {product.quantityUnits ?? '-'} <span className="text-tea-text-dim text-[11px]">units</span>
-                                </div>
-                                <div className="text-[11px] text-tea-text-sec tabular-nums">
-                                  {product.material || product.teawareCategory || '-'}
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className={`text-[13px] font-sans font-medium tabular-nums ${stockClass}`}>
-                                    {Math.round(product.stockGrams)}g
-                                </div>
-                                <div className="text-[11px] text-tea-text-sec tabular-nums">
-                                    ${fmtNum(product.pricePerGramUSD)}/g
-                                </div>
-                              </>
-                            )}
-                        </div>
-
-                        {/* Verification checkmark (mobile) */}
-                        {filterType === 'Unverified' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const isVerified = !!product.stockVerifiedAt;
-                              handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
-                            }}
-                            className={`flex-shrink-0 w-7 h-7 rounded flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-text-dim'}`}
-                          >
-                            {product.stockVerifiedAt ? <Check size={16} strokeWidth={3} /> : <Square size={16} />}
-                          </button>
-                        )}
-
-                    </button>
-
-                    {/* Quick actions bar — ALWAYS visible beneath each row (no expand needed) */}
-                    <div className="flex items-center px-4 py-1 gap-0.5 bg-tea-surface/20">
-                        <button
-                            onClick={() => setPanelProduct(product)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] font-semibold text-tea-gold hover:bg-tea-gold/10 rounded-md transition-colors"
+                    <div className={`${!product.isPublic ? 'opacity-50' : ''} ${product.isPersonal ? 'bg-amber-900/20 border-l-2 border-l-amber-700/40' : idx % 2 === 0 ? 'bg-tea-bg' : 'bg-tea-surface/35'}`}>
+                        {/* Main row — tap to expand, with inline action icons */}
+                        <div
+                            className="inv-row-accent w-full flex items-center transition-colors active:bg-tea-surface/60"
+                            style={{ '--row-type-color': dotColor } as React.CSSProperties}
                         >
-                            <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                            onClick={() => setDetailsProduct(product)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] font-semibold text-tea-text-sec hover:text-tea-text hover:bg-tea-surface/50 rounded-md transition-colors"
-                        >
-                            <FileText size={12} /> Details
-                        </button>
-                        <button
-                            onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                            className={`p-1.5 rounded-md transition-colors ${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                            aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
-                        >
-                            <Star size={14} className={product.isFeatured ? "fill-tea-accent" : ""} />
-                        </button>
-                        <button
-                            onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                            className={`p-1.5 rounded-md transition-colors ${product.isPublic ? 'text-tea-text-sec' : 'text-tea-text-dim'}`}
-                            aria-label={product.isPublic ? 'Make private' : 'Make public'}
-                        >
-                            {product.isPublic ? <Eye size={14} /> : <EyeOff size={14} />}
-                        </button>
-                        <button
-                            onClick={() => {
-                              const newStatus = product.status === 'Archived' ? 'Active' : 'Archived';
-                              handleProductUpdate(product.id, 'status', newStatus);
-                            }}
-                            className={`p-1.5 rounded-md transition-colors ${product.status === 'Archived' ? 'text-amber-400' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                            aria-label={product.status === 'Archived' ? 'Unarchive' : 'Archive'}
-                        >
-                            <Archive size={14} />
-                        </button>
-                    </div>
-
-                    {/* Expanded detail panel */}
-                    <AnimatePresence>
-                    {isExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                            className="overflow-hidden"
-                        >
-                          <div className="inv-detail-panel px-4 pb-3 pt-2">
-                            {/* Thumbnail + Description section */}
-                            {(product.imageUrl || descriptionPreview) && (
-                              <div className="flex gap-3 mb-3">
-                                {product.imageUrl && (
-                                  <img
-                                    src={product.imageUrl}
-                                    alt={product.productName}
-                                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                                  />
-                                )}
-                                {descriptionPreview && (
-                                  <p className="text-[13px] text-tea-text-sec font-serif italic leading-relaxed flex-1 whitespace-pre-line line-clamp-4">
-                                    {descriptionPreview}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Info grid */}
-                            <div className="grid grid-cols-2 gap-x-5 gap-y-3 py-2">
-                              {inventoryCategory === 'teaware' ? (
-                                <>
-                                  {product.teawareCategory && (
-                                    <div>
-                                      <div className="inv-detail-label">Category</div>
-                                      <div className="inv-detail-value capitalize">{product.teawareCategory}</div>
+                            {/* Tappable name area — expands card */}
+                            <button
+                                className="flex-1 min-w-0 text-left px-4 py-2 flex items-center gap-2"
+                                onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                            >
+                                {/* Name + metadata */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-tea-text text-[15px] font-sans font-medium truncate leading-tight">{product.productName}</span>
+                                        {product.isFeatured && <Star size={11} className="flex-shrink-0 text-tea-gold fill-tea-gold" />}
+                                        {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim" />}
                                     </div>
-                                  )}
-                                  {product.material && (
-                                    <div>
-                                      <div className="inv-detail-label">Material</div>
-                                      <div className="inv-detail-value">{product.material}</div>
+                                    <div className="flex items-center gap-1.5 mt-0.5 text-[12px]">
+                                        <span className="font-medium text-tea-text-sec">{product.type}</span>
+                                        {product.originRegion && (
+                                            <>
+                                                <span className="text-tea-text-dim">·</span>
+                                                <span className="truncate text-tea-text-dim">{product.originRegion}</span>
+                                            </>
+                                        )}
+                                        {product.year && (
+                                            <>
+                                                <span className="text-tea-text-dim">·</span>
+                                                <span className="text-tea-text-dim">{product.year}</span>
+                                            </>
+                                        )}
                                     </div>
-                                  )}
-                                  {product.capacityMl && (
-                                    <div>
-                                      <div className="inv-detail-label">Capacity</div>
-                                      <div className="inv-detail-value tabular-nums">{product.capacityMl}ml</div>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <div className="inv-detail-label">Units</div>
-                                    <div className="inv-detail-value tabular-nums">{product.quantityUnits ?? '-'}</div>
-                                  </div>
-                                  <div>
-                                    <div className="inv-detail-label">Cost</div>
-                                    <div className="inv-detail-value tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
-                                  </div>
-                                  <div>
-                                    <div className="inv-detail-label">Status</div>
-                                    <div className="inv-detail-value">{product.status}</div>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div>
-                                      <div className="inv-detail-label">Stock</div>
-                                      <div className={`inv-detail-value tabular-nums ${stockClass}`}>{Math.round(product.stockGrams)}g</div>
-                                  </div>
-                                  <div>
-                                      <div className="inv-detail-label">Retail</div>
-                                      <div className="inv-detail-value tabular-nums">${fmtNum(product.pricePerGramUSD)}/g</div>
-                                  </div>
-                                  {product.costAmount > 0 && (
-                                    <div>
-                                        <div className="inv-detail-label">Cost</div>
-                                        <div className="inv-detail-value tabular-nums">${product.costAmount.toLocaleString()}</div>
-                                    </div>
-                                  )}
-                                  <div>
-                                      <div className="inv-detail-label">Status</div>
-                                      <div className={`inv-detail-value ${product.status === 'Draft' ? 'text-amber-500' : ''}`}>{product.status}</div>
-                                  </div>
-                                  {product.originRegion && (
-                                      <div className="col-span-2">
-                                          <div className="inv-detail-label">Origin</div>
-                                          <div className="inv-detail-value">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
-                                      </div>
-                                  )}
-                                  {product.vendor && (
-                                      <div>
-                                          <div className="inv-detail-label">Vendor</div>
-                                          <div className="inv-detail-value truncate">{product.vendor}</div>
-                                      </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-
-                            {/* Tasting notes */}
-                            {product.tastingNotes && product.tastingNotes.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
-                                    {product.tastingNotes.map(note => (
-                                        <span key={note} className="tag text-[11px]">{note}</span>
-                                    ))}
                                 </div>
-                            )}
 
-                            {/* Mood / Experience preview */}
-                            {(product.mood || product.experience) && (
-                              <div className="mt-1 mb-2 text-[11px] text-tea-text-dim">
-                                {product.mood && <span className="italic">Mood: {product.mood}</span>}
-                                {product.mood && product.experience && <span className="mx-1.5">·</span>}
-                                {product.experience && <span className="italic line-clamp-2">{product.experience}</span>}
-                              </div>
-                            )}
+                                {/* Stock + Price */}
+                                <div className="flex-shrink-0 text-right min-w-[64px]">
+                                    {inventoryCategory === 'teaware' ? (
+                                      <>
+                                        <div className="text-[13px] text-tea-text font-sans font-medium tabular-nums">
+                                          {product.quantityUnits ?? '-'} <span className="text-tea-text-dim text-[11px]">units</span>
+                                        </div>
+                                        <div className="text-[12px] text-tea-text-sec tabular-nums">
+                                          {product.material || product.teawareCategory || '-'}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        {isOutOfStock ? (
+                                          <div className="text-[11px] font-medium text-tea-text-dim tabular-nums">0g</div>
+                                        ) : isLowStock ? (
+                                          <div className="text-[13px] font-sans font-medium tabular-nums text-amber-500">
+                                              {Math.round(product.stockGrams)}g
+                                          </div>
+                                        ) : (
+                                          <div className="text-[13px] font-sans font-medium tabular-nums text-tea-text">
+                                              {Math.round(product.stockGrams)}g
+                                          </div>
+                                        )}
+                                        <div className="text-[12px] text-tea-text-dim tabular-nums">
+                                            {fmtNum(product.pricePerGramUSD)}/g
+                                        </div>
+                                      </>
+                                    )}
+                                </div>
+                            </button>
 
-                            {/* Bottom actions — QR + Full Edit */}
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
+                            {/* Inline action icons — Edit + Details */}
+                            <div className="flex items-center gap-0 pr-2 flex-shrink-0">
                                 <button
-                                    onClick={() => setQrProduct(product)}
-                                    className="flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-tea-text-dim hover:text-tea-text-sec rounded-md transition-colors"
+                                    onClick={() => setDetailsProduct(product)}
+                                    className="w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-lg"
+                                    aria-label="View details"
                                 >
-                                    <QrCode size={14} /> QR Code
+                                    <FileText size={16} />
                                 </button>
-                                <div className="ml-auto">
+                                <button
+                                    onClick={() => setPanelProduct(product)}
+                                    className="w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors rounded-lg"
+                                    aria-label="Edit product"
+                                >
+                                    <Pencil size={16} />
+                                </button>
+                            </div>
+
+                            {/* Verification checkmark (mobile) */}
+                            {filterType === 'Unverified' && (
+                              <button
+                                onClick={() => {
+                                  const isVerified = !!product.stockVerifiedAt;
+                                  handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+                                }}
+                                className={`flex-shrink-0 w-10 h-10 mr-2 rounded-lg flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-text-dim'}`}
+                              >
+                                {product.stockVerifiedAt ? <Check size={18} strokeWidth={3} /> : <Square size={18} />}
+                              </button>
+                            )}
+                        </div>
+
+                        {/* Expanded detail panel — shows extra info + rare actions */}
+                        <AnimatePresence>
+                        {isExpanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                                className="overflow-hidden"
+                            >
+                              <div className="inv-detail-panel px-4 pb-3 pt-2">
+                                {/* Thumbnail + Description section */}
+                                {(product.imageUrl || descriptionPreview) && (
+                                  <div className="flex gap-3 mb-3">
+                                    {product.imageUrl && (
+                                      <img
+                                        src={product.imageUrl}
+                                        alt={product.productName}
+                                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                                      />
+                                    )}
+                                    {descriptionPreview && (
+                                      <p className="text-[13px] text-tea-text-sec font-serif italic leading-relaxed flex-1 whitespace-pre-line line-clamp-4">
+                                        {descriptionPreview}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Info grid — only show data NOT already visible on the row */}
+                                <div className="grid grid-cols-2 gap-x-5 gap-y-3 py-2">
+                                  {inventoryCategory === 'teaware' ? (
+                                    <>
+                                      {product.teawareCategory && (
+                                        <div>
+                                          <div className="inv-detail-label">Category</div>
+                                          <div className="inv-detail-value capitalize">{product.teawareCategory}</div>
+                                        </div>
+                                      )}
+                                      {product.capacityMl && (
+                                        <div>
+                                          <div className="inv-detail-label">Capacity</div>
+                                          <div className="inv-detail-value tabular-nums">{product.capacityMl}ml</div>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <div className="inv-detail-label">Cost</div>
+                                        <div className="inv-detail-value tabular-nums">{product.costAmount > 0 ? `$${product.costAmount.toLocaleString()}` : '-'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="inv-detail-label">Status</div>
+                                        <div className="inv-detail-value">{product.status}</div>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {product.costAmount > 0 && (
+                                        <div>
+                                            <div className="inv-detail-label">Cost</div>
+                                            <div className="inv-detail-value tabular-nums">${product.costAmount.toLocaleString()}</div>
+                                        </div>
+                                      )}
+                                      <div>
+                                          <div className="inv-detail-label">Status</div>
+                                          <div className={`inv-detail-value ${product.status === 'Draft' ? 'text-amber-500' : ''}`}>{product.status}</div>
+                                      </div>
+                                      {product.originCountry && (
+                                          <div className="col-span-2">
+                                              <div className="inv-detail-label">Origin</div>
+                                              <div className="inv-detail-value">{product.originCountry}{product.originRegion ? `, ${product.originRegion}` : ''}</div>
+                                          </div>
+                                      )}
+                                      {product.vendor && (
+                                          <div>
+                                              <div className="inv-detail-label">Vendor</div>
+                                              <div className="inv-detail-value truncate">{product.vendor}</div>
+                                          </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Tasting notes */}
+                                {product.tastingNotes && product.tastingNotes.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2 mt-1">
+                                        {product.tastingNotes.map(note => (
+                                            <span key={note} className="tag text-[11px]">{note}</span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Mood / Experience preview */}
+                                {(product.mood || product.experience) && (
+                                  <div className="mt-1 mb-2 text-[12px] text-tea-text-dim">
+                                    {product.mood && <span className="italic">{product.mood}</span>}
+                                    {product.mood && product.experience && <span className="mx-1.5">·</span>}
+                                    {product.experience && <span className="italic line-clamp-2">{product.experience}</span>}
+                                  </div>
+                                )}
+
+                                {/* Toggle actions — star, public, archive */}
+                                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-tea-border/50">
                                     <button
-                                        onClick={() => setPanelProduct(product)}
-                                        className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-[0.12em] font-semibold text-tea-gold bg-tea-accent-sub hover:bg-tea-gold/20 rounded-lg transition-colors"
+                                        onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
+                                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
                                     >
-                                        <Pencil size={14} /> Full Edit
+                                        <Star size={16} className={product.isFeatured ? "fill-tea-gold" : ""} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
+                                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec bg-tea-surface/30' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        aria-label={product.isPublic ? 'Make private' : 'Make public'}
+                                    >
+                                        {product.isPublic ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                          const newStatus = product.status === 'Archived' ? 'Active' : 'Archived';
+                                          handleProductUpdate(product.id, 'status', newStatus);
+                                        }}
+                                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.status === 'Archived' ? 'text-amber-400 bg-amber-500/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        aria-label={product.status === 'Archived' ? 'Unarchive' : 'Archive'}
+                                    >
+                                        <Archive size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => setQrProduct(product)}
+                                        className="w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50 rounded-lg transition-colors"
+                                        aria-label="QR Code"
+                                    >
+                                        <QrCode size={16} />
                                     </button>
                                 </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                    )}
-                    </AnimatePresence>
-                </div>
-            )})}
+                              </div>
+                            </motion.div>
+                        )}
+                        </AnimatePresence>
+                    </div>
+                </React.Fragment>
+              );
+            });
+            })()}
 
             {processedProducts.length === 0 && (
               <div className="text-center py-16 text-tea-text-sec font-serif italic">

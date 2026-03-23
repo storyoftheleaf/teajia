@@ -13,6 +13,10 @@ export const useLongPress = ({ delay = 500, onLongPress, onClick }: LongPressOpt
   const startPos = useRef({ x: 0, y: 0 });
 
   const start = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    // Prevent iOS from triggering text selection / callout on long press
+    if ('touches' in e) {
+      e.preventDefault();
+    }
     isLongPress.current = false;
     isMoved.current = false;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
