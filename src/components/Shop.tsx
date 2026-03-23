@@ -389,16 +389,7 @@ export const Shop: React.FC<ShopProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Admin: Floating Action Button for quick product creation */}
-      {isAdmin && (
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-28 right-6 lg:bottom-8 z-sticky w-12 h-12 rounded-full bg-tea-gold text-white shadow-lg hover:bg-tea-gold/90 transition-all active:scale-95 flex items-center justify-center hover:shadow-xl"
-          title="Add new product"
-        >
-          <Icons.Plus className="w-5 h-5" />
-        </button>
-      )}
+
 
       {/* Admin: Edit/Create Product Modal */}
       {(editingProduct || showCreateModal) && (

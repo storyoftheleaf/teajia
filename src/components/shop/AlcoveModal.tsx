@@ -202,23 +202,42 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
 
         {/* Current card */}
         <div
-          className="flex flex-col items-center justify-center p-4 md:p-8"
+          className="flex flex-col items-center justify-center p-0 md:p-8"
           style={{
             zIndex: 5,
             position: 'relative',
             transform: `translateX(${swipeOffset * 0.4}px)`,
             transition: touchStart ? 'none' : 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            width: '100%',
+            height: '100%',
           }}
         >
           <div
             ref={cardRef}
-            className="relative w-full max-w-[480px] md:max-w-[560px]"
+            className="relative w-full md:max-w-[560px]"
             style={{
-              height: 'min(90vh, 780px)',
-              minHeight: '480px',
-              width: 'min(480px, 85vw)',
+              height: '100%',
+              maxHeight: '100dvh',
+              width: '100%',
             }}
           >
+          {/* On desktop, constrain size */}
+          <style>{`
+            [data-alcove-card-wrapper] {
+              height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+              max-height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+            }
+            @media (min-width: 768px) {
+              [data-alcove-card-wrapper] {
+                height: min(90vh, 780px) !important;
+                min-height: 480px !important;
+                width: min(480px, 85vw) !important;
+                max-height: min(90vh, 780px) !important;
+                border-radius: 3px;
+              }
+            }
+          `}</style>
+          <div data-alcove-card-wrapper className="w-full md:rounded-[3px] overflow-hidden">
             <AlcoveCard
               item={item}
               onAddToCart={handleAddToCart}
@@ -241,15 +260,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               </svg>
             </button>
           </div>
-
-          {/* Mobile counter */}
-          {hasNavigation && (
-            <div className="mt-3 flex items-center gap-3 md:hidden" onClick={(e) => e.stopPropagation()}>
-              <span className="text-xs text-tea-text-sec/70 tracking-wide">
-                {currentIndex + 1} of {items.length}
-              </span>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Next card (peeking from right) */}

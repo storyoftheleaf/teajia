@@ -522,6 +522,12 @@
   opacity: 0.2;
 }
 
+/* ── Panel Sidebar ── */
+.panel-sidebar {
+  box-shadow: -12px 0 40px -8px rgba(0, 0, 0, 0.35),
+              inset 1px 0 0 var(--tea-accent-sub);
+}
+
 /* Light mode adjustments */
 .light .nav-control {
   border-color: rgba(142, 109, 46, 0.2);
@@ -640,8 +646,8 @@
 }
 
 .badge-status-red {
-  background: rgba(239, 68, 68, 0.10);
-  color: #f87171;
+  background: rgba(166, 93, 78, 0.12);
+  color: #a65d4e;
 }
 
 .badge-status-amber {
@@ -1594,7 +1600,7 @@
 
 /* Animated underline for key terms — draws in when page activates */
 .key-term {
-  background-image: linear-gradient(var(--tea-gold, #b8924e), var(--tea-gold, #b8924e));
+  background-image: linear-gradient(var(--tea-gold, #a8874d), var(--tea-gold, #a8874d));
   background-repeat: no-repeat;
   background-position: 0 100%;
   background-size: 0% 1px;
@@ -1619,7 +1625,7 @@
 
 /* Typewriter cursor blink animation */
 @keyframes typewriterCursor {
-  0%, 50% { border-color: var(--tea-gold, #b8924e); }
+  0%, 50% { border-color: var(--tea-gold, #a8874d); }
   51%, 100% { border-color: transparent; }
 }
 
@@ -1627,7 +1633,7 @@
 .typewriter-line {
   overflow: hidden;
   white-space: nowrap;
-  border-right: 2px solid var(--tea-gold, #b8924e);
+  border-right: 2px solid var(--tea-gold, #a8874d);
   animation: typewriterCursor 1s step-end infinite;
 }
 
@@ -1651,7 +1657,7 @@
 .drop-cap-gold::first-letter,
 .drop-cap-gold p:first-child::first-letter {
   initial-letter: 3;
-  color: var(--tea-gold, #b8924e);
+  color: var(--tea-gold, #a8874d);
   font-weight: 600;
   margin-right: 0.05em;
   font-optical-sizing: auto;
@@ -1665,7 +1671,7 @@
     line-height: 0.85;
     margin-right: 0.06em;
     margin-top: 0.04em;
-    color: var(--tea-gold, #b8924e);
+    color: var(--tea-gold, #a8874d);
     font-weight: 600;
   }
 }

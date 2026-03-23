@@ -60,8 +60,10 @@ const CharacterRevealCapture: React.FC = () => {
   // Sequential — logo starts immediately, everything else follows
   // 1. Logo position: descends from top of screen (0% → 40%)
   const logoPosP = ease(Math.max(0, Math.min(1, progress / 0.40)));
-  // Logo opacity: fades in over the first 8%
-  const logoOpacity = Math.max(0, Math.min(1, progress / 0.08));
+  // Logo opacity: starts very transparent, becomes opaque over descent (0% → 40%)
+  const logoOpacity = 0.15 + 0.85 * logoPosP;
+  // Logo shrinks from 1.6× down to 1× as it descends
+  const logoEntryScale = 1.6 - 0.6 * logoPosP;
   // Teaser text: fades in just before 家 starts (42% → 50%)
   const teaserP = Math.max(0, Math.min(1, (progress - 0.42) / 0.08));
   // Logo grows 20% while characters come in (50% → 85%)
@@ -106,7 +108,7 @@ const CharacterRevealCapture: React.FC = () => {
             className="mb-8"
             style={{
               opacity: logoOpacity,
-              transform: `translateY(${(1 - logoPosP) * -400}px)`,
+              transform: `translateY(${(1 - logoPosP) * -400}px) scale(${logoEntryScale})`,
             }}
           >
             <LogoText
@@ -217,16 +219,29 @@ const CharacterRevealCapture: React.FC = () => {
               transform: `translateY(${(1 - emailP) * 20}px)`,
             }}
           >
+            <p
+              className="text-base italic font-light text-tea-text-sec/50"
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
+            >
+              stay connected
+            </p>
+            <p
+              className="text-base italic font-light mt-1"
+              style={{ fontFamily: 'var(--font-display)', color: '#d4c4a8', letterSpacing: '0.04em' }}
+            >
+              it's nothing without you
+            </p>
+
             <form
               onSubmit={handleSubmit}
-              className="w-full relative"
+              className="w-full relative mt-3"
             >
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your email"
-                className="w-full bg-transparent text-base font-light text-center outline-none pb-2.5 pr-7 transition-colors placeholder:italic placeholder:text-tea-text-sec/50"
+                className="w-full bg-transparent text-base font-light text-center outline-none pb-2.5 pl-7 pr-7 transition-colors placeholder:italic placeholder:text-tea-text-sec/50"
                 style={{
                   fontFamily: 'var(--font-display)',
                   color: '#ede4d4',
@@ -248,18 +263,6 @@ const CharacterRevealCapture: React.FC = () => {
                 </svg>
               </button>
             </form>
-
-            <div
-              className="flex flex-col items-center mt-4"
-              style={{ fontFamily: 'var(--font-body)', color: '#b5a892' }}
-            >
-              <p className="text-[16px] md:text-[17px] tracking-[0.04em] italic font-light" style={{ color: '#d4c4a8' }}>
-                it's nothing without you
-              </p>
-              <p className="text-[14px] md:text-[15px] tracking-[0.06em] font-light -mt-[1px]">
-                stay connected
-              </p>
-            </div>
           </div>
         </div>
       )}
@@ -279,6 +282,20 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const initial = (vals: Record<string, any>) => shouldAnimate ? vals : false;
 
+  // Scroll-driven fade-out for Act 1
+  const [fadeOpacity, setFadeOpacity] = useState(1);
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      // Fade out over the first 40% of viewport height
+      const fadeEnd = window.innerHeight * 0.4;
+      setFadeOpacity(Math.max(0, 1 - scrollY / fadeEnd));
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="flex flex-col items-center text-center">
       <Helmet>
@@ -287,7 +304,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       </Helmet>
 
       {/* ── Act 1: Above the fold ── */}
-      <div className="flex flex-col items-center justify-between px-8" style={{ minHeight: 'calc(100dvh - 70px)' }}>
+      <div
+        className="flex flex-col items-center justify-between px-8"
+        style={{ minHeight: 'calc(100dvh - 70px)', opacity: fadeOpacity }}
+      >
 
         {/* Top spacer */}
         <div />

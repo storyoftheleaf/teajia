@@ -49,7 +49,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         navigate('/admin');
       }
     },
-    onClick: () => onNavigate('HOME'),
+    onClick: () => { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); },
   });
 
   const leftSections = [
@@ -123,8 +123,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
-          background: 'rgba(40,33,26,0.65)',
-          boxShadow: '0 -1px 0 rgba(166,132,80,0.06)',
+          background: 'rgba(var(--tea-surface-rgb), 0.82)',
+          boxShadow: '0 -1px 0 rgba(var(--tea-gold-rgb), 0.06)',
         }}
       >
         <div className="flex items-center w-full px-0 h-full">

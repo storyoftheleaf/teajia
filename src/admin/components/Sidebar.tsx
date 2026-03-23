@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, User, Sun, Moon, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera } from 'lucide-react';
+import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -177,59 +177,16 @@ export const Sidebar = ({
       {/* Flexible spacing */}
       <div className="flex-1" />
 
-      {/* Utility Area */}
-      <div className="relative py-4 px-3" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-        <div className="absolute top-0 left-6 w-6 h-[2px] bg-tea-gold/20"></div>
-
+      {/* Close button */}
+      <div className="py-4 px-3 md:hidden">
         <button
-          onClick={onOpenCart}
+          onClick={() => setIsMobileOpen(false)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-          aria-label={`Cart${cartItemCount > 0 ? `, ${cartItemCount} items` : ''}`}
+          aria-label="Close sidebar"
         >
-          <div className="relative shrink-0">
-            <Icons.Bag
-              className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text"
-              strokeWidth={2}
-            />
-            {cartItemCount > 0 && (
-              <div className="absolute -top-2 -right-3 w-5 h-5 bg-tea-gold text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {cartItemCount > 9 ? '9+' : cartItemCount}
-              </div>
-            )}
-          </div>
+          <X className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
           <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text">
-            Cart
-          </span>
-        </button>
-
-        <button
-          onClick={isLoggedIn ? onLogoutClick : onLoginClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-          aria-label={isLoggedIn ? 'Sign out' : 'Sign in'}
-        >
-          {isLoggedIn ? (
-            <LogOut className="text-tea-text-sec w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
-          ) : (
-            <User className="text-tea-text-sec w-5 h-5 group-hover:text-tea-text transition-colors duration-200 shrink-0" strokeWidth={2} />
-          )}
-          <span className="text-sm font-semibold text-tea-text-sec group-hover:text-tea-text transition-colors duration-200">
-            {isLoggedIn ? 'Sign Out' : 'Sign In'}
-          </span>
-        </button>
-
-        <button
-          onClick={(e) => toggleTheme(e)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors duration-200 group hover:bg-tea-elevated/50 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? (
-            <Sun className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
-          ) : (
-            <Moon className="transition-colors duration-200 text-tea-text-sec w-5 h-5 group-hover:text-tea-text shrink-0" strokeWidth={2} />
-          )}
-          <span className="text-sm font-semibold transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text">
-            {theme === 'dark' ? 'Light' : 'Dark'}
+            Close
           </span>
         </button>
       </div>

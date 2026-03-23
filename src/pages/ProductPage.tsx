@@ -20,7 +20,7 @@ function toTitleCase(str: string): string {
 }
 
 function getStockStatus(stockG: number, isOneOfAKind?: boolean, isCurated?: boolean) {
-  if (stockG <= 0) return { label: 'Sold Out', color: '#c0392b', level: 'out' as const };
+  if (stockG <= 0) return { label: 'Sold Out', color: '#a65d4e', level: 'out' as const };
   if (isCurated) return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
   if (isOneOfAKind) return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
   if (stockG < 100) return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };

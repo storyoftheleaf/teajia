@@ -3,17 +3,10 @@ import { useSectionReveal } from '../../hooks/useSectionReveal';
 
 /* =====================================================
    V2 — Editorial service sections
-
-   Spatial strategy:
-   - Alternating warm/neutral background bands (full-bleed)
-   - Pull-quotes live BETWEEN sections as thresholds
-   - Staggered alignment (left → indented → left)
-   - Massive whitespace between zones
    ===================================================== */
 
 /* ── Shared helpers ── */
 
-/** Full-bleed background band — wraps a section to shift the "world" */
 const WarmBand: React.FC<{ children: React.ReactNode; tone?: 'warm' | 'cool' }> = ({ children, tone = 'warm' }) => (
   <div className="-mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8"
        style={{
@@ -25,7 +18,6 @@ const WarmBand: React.FC<{ children: React.ReactNode; tone?: 'warm' | 'cool' }> 
   </div>
 );
 
-/** Pull-quote as a threshold between sections — belongs to neither */
 const Threshold = ({ children }: { children: string }) => (
   <div className="py-16 md:py-24 flex justify-center">
     <p className="text-[1.4rem] md:text-[1.7rem] leading-[1.35] font-light text-tea-text text-center max-w-[440px] px-4"
@@ -35,17 +27,18 @@ const Threshold = ({ children }: { children: string }) => (
   </div>
 );
 
+/** CTA — uppercase sans-serif, visually distinct from body text */
 const ServiceCTA = ({ label, onClick, variant = 'primary' }: { label: string; onClick: () => void; variant?: 'primary' | 'secondary' }) => (
   <button onClick={onClick}
-    className={`text-[13px] tracking-[0.01em] transition-colors duration-300 min-h-[44px]
+    className={`text-[11px] uppercase tracking-[0.1em] transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm
                ${variant === 'primary'
-                 ? 'text-tea-gold hover:text-tea-gold/70'
-                 : 'text-tea-text-sec hover:text-tea-gold'
+                 ? 'text-tea-gold hover:text-tea-gold/70 font-medium'
+                 : 'text-tea-text-dim hover:text-tea-gold font-normal'
                }`}
-    style={{ fontFamily: 'var(--font-body)' }}
+    style={{ fontFamily: 'var(--font-sans)' }}
   >
-    {label} &rarr;
+    {label} <span className="ml-1">&rarr;</span>
   </button>
 );
 
@@ -67,7 +60,7 @@ const useCombinedRef = (reveal: { ref: React.RefObject<HTMLElement | null> }, re
 };
 
 /* =====================================================
-   DesignSection — left-aligned, neutral background
+   DesignSection
    ===================================================== */
 
 const PROCESS = [
@@ -85,38 +78,50 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
     return (
       <section ref={combinedRef} className={`pb-4 ${reveal.className}`} style={reveal.style}>
-        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-3"
+        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-4"
            style={{ fontFamily: 'var(--font-sans)' }}>
           Space Design
         </p>
-        <h3 className="text-2xl md:text-[2rem] font-light text-tea-text leading-snug mb-6"
+        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
             style={{ fontFamily: 'var(--font-display)' }}>
-          Tea House Design & Curation
+          Tea House Design<br className="sm:hidden" /> & Curation
         </h3>
 
-        <p className="text-[15px] leading-[1.8] text-tea-text-sec max-w-[520px] mb-10"
+        <p className="text-[15px] leading-[1.85] text-tea-text-sec max-w-[520px] mb-12"
            style={{ fontFamily: 'var(--font-body)' }}>
           From concept through opening — design, curation, tea selection, training, and operations.
         </p>
 
-        {/* Process */}
-        <div className="mb-10 max-w-[400px]">
+        {/* Process — numbers as a design feature */}
+        <div className="mb-12 max-w-[420px]">
           {PROCESS.map(({ step, title }) => (
-            <div key={step} className="flex items-baseline gap-4 py-2"
+            <div key={step} className="flex items-center gap-5 py-3"
                  style={{ borderBottom: step < 5 ? '1px solid var(--tea-border)' : undefined }}>
-              <span className="text-tea-gold/30 font-mono text-xs tabular-nums w-4 shrink-0">{step}</span>
-              <span className="text-[14px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>{title}</span>
+              <span className="text-[1.1rem] text-tea-gold/25 tabular-nums w-6 shrink-0"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                {step}
+              </span>
+              <span className="text-[15px] font-light text-tea-text"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                {title}
+              </span>
             </div>
           ))}
         </div>
 
-        <p className="text-[14px] text-tea-text-dim mb-8" style={{ fontFamily: 'var(--font-body)' }}>
-          <span className="text-tea-gold">$5,000</span> – <span className="text-tea-gold">$100,000+</span>
-          <span className="ml-2 text-tea-text-dim/60">·</span>
-          <span className="ml-2">scoped through conversation</span>
+        {/* Pricing — display font, set apart */}
+        <p className="text-[1.1rem] font-light text-tea-text mb-1"
+           style={{ fontFamily: 'var(--font-display)' }}>
+          <span className="text-tea-gold">$5,000</span>
+          <span className="text-tea-text-dim mx-2">–</span>
+          <span className="text-tea-gold">$100,000+</span>
+        </p>
+        <p className="text-[12px] text-tea-text-dim mb-12"
+           style={{ fontFamily: 'var(--font-sans)' }}>
+          Every project is scoped through conversation.
         </p>
 
-        <div className="flex flex-col items-start gap-0">
+        <div className="flex flex-col items-start gap-1">
           <ServiceCTA label="Start a conversation" onClick={() => onOpenInquiry('Space design or tea integration')} />
           {onNavigateToProjects && (
             <ServiceCTA label="See completed spaces" onClick={() => onNavigateToProjects('space')} variant="secondary" />
@@ -129,7 +134,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
 DesignSection.displayName = 'DesignSection';
 
 /* =====================================================
-   SessionsSection — indented, warm background band
+   SessionsSection
    ===================================================== */
 
 const OFFERINGS = [
@@ -153,44 +158,53 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
     return (
       <section ref={combinedRef} className={`ml-6 md:ml-16 pb-4 ${reveal.className}`} style={reveal.style}>
-        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-3"
+        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-4"
            style={{ fontFamily: 'var(--font-sans)' }}>
           Sessions
         </p>
-        <h3 className="text-2xl md:text-[2rem] font-light text-tea-text leading-snug mb-6"
+        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
             style={{ fontFamily: 'var(--font-display)' }}>
           Sessions & Guidance
         </h3>
 
-        <p className="text-[15px] leading-[1.8] text-tea-text-sec max-w-[480px] mb-10"
+        <p className="text-[15px] leading-[1.85] text-tea-text-sec max-w-[480px] mb-12"
            style={{ fontFamily: 'var(--font-body)' }}>
           Tea experiences and practice support — in the Bali studio or wherever you are.
         </p>
 
-        {/* Offerings */}
-        <div className="mb-10 max-w-[480px]">
+        {/* Offerings — name in display font, desc in sans for contrast */}
+        <div className="mb-12 max-w-[480px]">
           {OFFERINGS.map(({ name, price, desc }, i) => (
-            <div key={name} className="flex items-baseline justify-between gap-4 py-3"
+            <div key={name} className="py-4"
                  style={{ borderBottom: i < OFFERINGS.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
-              <div className="min-w-0">
-                <span className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{name}</span>
-                <span className="text-[13px] text-tea-text-dim ml-3">{desc}</span>
+              <div className="flex items-baseline justify-between gap-4">
+                <h4 className="text-[1.05rem] font-light text-tea-text"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                  {name}
+                </h4>
+                <span className="text-[12px] text-tea-gold shrink-0 uppercase tracking-[0.04em]"
+                      style={{ fontFamily: 'var(--font-sans)' }}>
+                  {price}
+                </span>
               </div>
-              <span className="text-[13px] text-tea-gold shrink-0">{price}</span>
+              <p className="text-[12px] text-tea-text-dim mt-1.5 leading-relaxed tracking-[0.01em]"
+                 style={{ fontFamily: 'var(--font-sans)' }}>
+                {desc}
+              </p>
             </div>
           ))}
         </div>
 
-        {/* Walk-away */}
-        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-text-dim mb-4"
+        {/* Walk-away — sans-serif, distinct from body copy */}
+        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-text-dim mb-5"
            style={{ fontFamily: 'var(--font-sans)' }}>
           You walk away with
         </p>
-        <ul className="space-y-2 mb-8 max-w-[480px]">
+        <ul className="space-y-3 mb-12 max-w-[480px]">
           {WALKAWAY.map(item => (
-            <li key={item} className="flex items-start gap-3 text-[14px] text-tea-text-sec"
-                style={{ fontFamily: 'var(--font-body)' }}>
-              <span className="text-tea-gold/40 mt-[2px]">&mdash;</span>
+            <li key={item} className="flex items-start gap-3 text-[13px] text-tea-text-sec tracking-[0.01em]"
+                style={{ fontFamily: 'var(--font-sans)' }}>
+              <span className="text-tea-gold/30 mt-[1px]">&mdash;</span>
               {item}
             </li>
           ))}
@@ -204,7 +218,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
 SessionsSection.displayName = 'SessionsSection';
 
 /* =====================================================
-   AlsoSection — back to left-aligned, neutral background
+   AlsoSection
    ===================================================== */
 
 const ALSO_SERVICES = [
@@ -261,28 +275,29 @@ export const AlsoSection: React.FC<AlsoSectionProps> = ({
               const r = refs[svc.id];
               if (r) (r as React.MutableRefObject<HTMLElement | null>).current = el;
             }}
-            className="py-6"
+            className="py-7"
             style={{ borderBottom: i < ALSO_SERVICES.length - 1 ? '1px solid var(--tea-border)' : undefined }}
           >
-            <h4 className="text-lg font-light text-tea-text mb-2"
+            <h4 className="text-[1.15rem] font-light text-tea-text mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.heading}
             </h4>
-            <p className="text-[14px] leading-[1.7] text-tea-text-sec"
+            <p className="text-[14px] leading-[1.75] text-tea-text-sec mb-1"
                style={{ fontFamily: 'var(--font-body)' }}>
               {svc.body}
-              {svc.note && (
-                <span className="text-tea-text-dim italic ml-1">— {svc.note}</span>
-              )}
             </p>
-            <div className="mt-2">
-              <ServiceCTA label="Inquire" onClick={() => onOpenInquiry(svc.preselect)} />
-            </div>
+            {svc.note && (
+              <p className="text-[11px] text-tea-text-dim italic tracking-[0.02em] mb-3"
+                 style={{ fontFamily: 'var(--font-body)' }}>
+                {svc.note}
+              </p>
+            )}
+            <ServiceCTA label="Inquire" onClick={() => onOpenInquiry(svc.preselect)} />
           </div>
         ))}
       </div>
 
-      <div className="flex flex-col items-start gap-0 mt-2">
+      <div className="flex flex-col items-start gap-1 mt-6">
         {onNavigateToShop && (
           <ServiceCTA label="Browse the shop" onClick={onNavigateToShop} variant="secondary" />
         )}
@@ -293,8 +308,6 @@ export const AlsoSection: React.FC<AlsoSectionProps> = ({
     </section>
   );
 };
-
-/* ── Exports for ConsultPage layout ── */
 
 export { WarmBand, Threshold };
 

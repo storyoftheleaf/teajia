@@ -6,6 +6,7 @@ import { CartItem as PublicCartItem, CustomerTasting } from '../types';
 interface InventoryViewConfig {
   id: string;
   name: string;
+  icon?: string | null;
   columns: string[];
   sortConfig: { key: string; direction: 'asc' | 'desc' }[];
   filterType: string;

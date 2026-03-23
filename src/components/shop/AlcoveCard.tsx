@@ -60,7 +60,7 @@ function ShareIcon({ color }: { color: string }) {
 /** Returns stock status info for display */
 function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean, isCurated?: boolean) {
   if (status === 'Sold Out' || stockG <= 0) {
-    return { label: 'Sold Out', color: '#c0392b', level: 'out' as const };
+    return { label: 'Sold Out', color: '#a65d4e', level: 'out' as const };
   }
   if (isCurated) {
     return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
@@ -881,8 +881,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     : added
                       ? alcoveColors.success
                       : hovered === "cart"
-                        ? 'var(--tea-gold-lt, #d4ac66)'
-                        : 'var(--tea-gold, #b8924e)',
+                        ? 'var(--tea-gold-lt, #bfa06a)'
+                        : 'var(--tea-gold, #a8874d)',
                   border: isSoldOut
                     ? '1px solid var(--tea-border)'
                     : added

@@ -98,18 +98,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   >
                     <Icons.Search className="w-5 h-5" />
                   </button>
-                  {/* Theme toggle — mobile */}
-                  <button
-                    onClick={(e) => toggleTheme(e)}
-                    className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-tea-text/5 transition-colors"
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                  >
-                    {theme === 'dark' ? (
-                      <Icons.Sun className="w-5 h-5 text-tea-text/60" />
-                    ) : (
-                      <Icons.Moon className="w-5 h-5 text-tea-text/60" />
-                    )}
-                  </button>
                   {onCartClick && (
                     <button
                       onClick={onCartClick}

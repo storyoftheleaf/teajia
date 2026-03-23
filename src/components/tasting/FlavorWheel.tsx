@@ -14,7 +14,7 @@ interface FlavorWheelProps {
  */
 const SEGMENT_COLORS = [
   'color-mix(in srgb, var(--tea-accent-sub, #c878a0) 15%, transparent)', // Floral
-  'color-mix(in srgb, var(--tea-gold, #b8924e) 15%, transparent)',       // Sweet
+  'color-mix(in srgb, var(--tea-gold, #a8874d) 15%, transparent)',       // Sweet
   'color-mix(in srgb, var(--tea-gold, #c86450) 12%, transparent)',       // Fruity
   'color-mix(in srgb, var(--tea-gold, #b49664) 12%, transparent)',       // Nutty
   'color-mix(in srgb, var(--tea-gold, #a0643c) 15%, transparent)',       // Roasted

@@ -187,7 +187,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     >
       {/* Logo/Brand - Home Button */}
       <button
-        onClick={() => onNavigate('HOME')}
+        onClick={() => { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         className={`h-20 flex items-center ${collapsed ? 'justify-center px-2' : 'justify-start px-6 gap-3'} animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group ${
           activeSection === 'HOME' ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
         }`}
@@ -352,23 +352,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           )}
         </button>
 
-        <button
-          onClick={(e) => toggleTheme(e)}
-          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50`}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? (
-            <Icons.Sun className="transition-all duration-300 text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
-          ) : (
-            <Icons.Moon className="transition-all duration-300 text-tea-text-sec w-5 h-5 group-hover:text-tea-text group-hover:scale-105 shrink-0" strokeWidth={2} />
-          )}
-          {!collapsed && (
-            <span className="text-sm font-semibold transition-all duration-300 text-tea-text-sec group-hover:text-tea-text">
-              {theme === 'dark' ? 'Light' : 'Dark'}
-            </span>
-          )}
-        </button>
 
         {/* Collapse/Expand toggle */}
         <button

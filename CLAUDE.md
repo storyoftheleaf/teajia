@@ -11,6 +11,13 @@
 
 **Quick rule:** If your color class doesn't start with `tea-text`, `tea-surface`, `tea-bg`, `tea-elevated`, `tea-gold`, `tea-gold-lt`, `tea-border`, `tea-accent-sub`, `tea-text-sec`, or `tea-text-dim` — you're probably using the wrong token.
 
+## MANDATORY: Bottom Navigation Clearance
+
+**No modal, overlay, drawer, or floating element may overlap the bottom navigation bar.** The bottom tab bar is `h-[49px]` plus `env(safe-area-inset-bottom)`. Any full-screen or bottom-anchored UI must account for this:
+- Use `calc(100dvh - 49px - env(safe-area-inset-bottom, 0px))` for full-height modals on mobile
+- Use `bottom-[49px]` or equivalent for sticky/fixed bottom elements on mobile (below `lg:` breakpoint)
+- The bottom nav only renders below `lg:` — on desktop (`lg:` and up) this clearance is not needed
+
 ## MANDATORY: Centralized Component Styles
 
 **All reusable UI element styles live in `src/styles/card-utilities.css`.** This is the single source of truth. When you need to style a pill, badge, tag, card, or any recurring UI pattern — use the CSS classes defined there. **NEVER** inline border/background/color styles for these elements in individual components.

@@ -23,8 +23,6 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   product, isOpen, onClose, currency, rates, onNext, onPrev, isAdmin, onEdit
 }) => {
   const [tastingProduct, setTastingProduct] = useState<Product | null>(null);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // Convert Product → InventoryItem for AlcoveCard
   const mappedItem = useMemo(
@@ -46,29 +44,6 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
 
   if (!isOpen || !product || !mappedItem) return null;
 
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('input')) return;
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe && onNext) onNext();
-    if (isRightSwipe && onPrev) onPrev();
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
 
   const handleAddToCart = (_item: any, qty: number, total: number) => {
     // The AlcoveCard handles its own add-to-cart UI state,
@@ -96,7 +71,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={product?.productName || 'Tea details'}
-      className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 bottom-[calc(49px+env(safe-area-inset-bottom))] lg:bottom-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
       onClick={onClose}
     >
       {/* Scrollbar + responsive card height styles */}
@@ -108,19 +83,16 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .alcove-modal-card { height: 100vh; height: 100dvh; }
+        .alcove-modal-card { height: calc(100dvh - 49px - env(safe-area-inset-bottom)); height: calc(100vh - 49px); }
+        @supports (height: 100dvh) {
+          .alcove-modal-card { height: calc(100dvh - 49px - env(safe-area-inset-bottom)); }
+        }
         @media (min-width: 768px) {
           .alcove-modal-card { height: min(90vh, 720px); }
         }
       `}</style>
 
-      {/* Card container — swipe to navigate */}
-      <div
-        className="flex flex-col items-center justify-center w-full h-full"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+      <div className="flex flex-col items-center justify-center w-full h-full">
         <div
           onClick={(e) => e.stopPropagation()}
           className="relative w-full md:max-w-[480px] alcove-modal-card"

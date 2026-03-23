@@ -164,7 +164,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
+      className={`fixed inset-0 z-[45] flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
     >
       <div
         ref={focusTrapRef}

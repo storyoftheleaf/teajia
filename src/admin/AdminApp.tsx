@@ -185,7 +185,7 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl border-b border-tea-border px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
+        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-2.5 flex items-center gap-2 flex-none">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -218,7 +218,7 @@ const AdminContent = () => {
                    placeholder={inventoryCategory === 'tea' ? 'Search tea…' : 'Search teaware…'}
                    value={inventorySearchQuery}
                    onChange={(e) => setInventorySearchQuery(e.target.value)}
-                   className="w-full bg-transparent border-b border-tea-border/50 pl-5 pr-7 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/40 font-serif italic placeholder-tea-text-sec/50 transition-colors"
+                   className="w-full bg-transparent pl-5 pr-7 py-1 text-xs text-tea-text outline-none font-serif italic placeholder-tea-text-sec/50 transition-colors"
                  />
                  {inventorySearchQuery && (
                    <button
@@ -237,9 +237,20 @@ const AdminContent = () => {
              </button>
            )}
 
-           {/* Right: Currency label (selector moved to inventory options) */}
-           <div className="flex items-center ml-auto shrink-0">
-             <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.1em] px-2 py-1">{currency}</span>
+           {/* Right: Currency selector */}
+           <div className="flex items-center ml-auto shrink-0 relative">
+             <select
+               value={currency}
+               onChange={(e) => setCurrency(e.target.value as any)}
+               className="appearance-none bg-transparent text-[10px] text-tea-text-dim uppercase tracking-[0.1em] px-2 py-1 pr-4 cursor-pointer hover:text-tea-text-sec transition-colors outline-none"
+             >
+               {rates.map(rate => (
+                 <option key={rate.currency} value={rate.currency} className="bg-tea-surface text-tea-text">
+                   {rate.currency}
+                 </option>
+               ))}
+             </select>
+             <ChevronDown size={8} className="absolute right-1 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
            </div>
         </div>
 

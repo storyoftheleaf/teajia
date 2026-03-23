@@ -62,10 +62,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const [adminRequestLoading, setAdminRequestLoading] = useState(false);
   const [adminRequestStatus, setAdminRequestStatus] = useState<string | null>(null);
 
-  // Swipe to dismiss state
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchOffset, setTouchOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
 
   // Derived stats
   const cartCount = publicCart.length;
@@ -145,25 +141,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setEditEmail('');
   };
 
-  // Swipe handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
-    const offset = e.touches[0].clientX - touchStart;
-    if (offset > 0) setTouchOffset(offset);
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStart === null) return;
-    if (touchOffset > 150) onClose();
-    setTouchStart(null);
-    setTouchOffset(0);
-    setIsDragging(false);
-  };
 
   const handleOpenCart = () => {
     onClose();
@@ -278,8 +255,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     window.location.href = path;
   };
 
-  const swipeProgress = touchOffset / 150;
-  const swipeOpacity = Math.max(0.3, 1 - swipeProgress * 0.7);
 
   const getInitials = (nameStr: string) => {
     return nameStr
@@ -320,56 +295,32 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         ref={focusTrapRef}
         className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg  z-modal shadow-2xl flex flex-col"
         style={{
-          transform: isVisible ? `translateX(${touchOffset}px)` : 'translateX(100%)',
-          opacity: isDragging ? swipeOpacity : 1,
-          transition: isDragging ? 'none' : 'transform 300ms ease-out, opacity 300ms ease-out',
+          transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 300ms ease-out, opacity 300ms ease-out',
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Header */}
-        <div className="flex flex-col">
-          {/* Mobile drag handle */}
-          <div className="md:hidden flex flex-col items-center py-3 gap-1 bg-tea-surface/50">
-            <div className={`h-1 rounded-full transition-all duration-150 ${
-              isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/20 w-12'
-            }`} />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec/40">Swipe to close</span>
-          </div>
-
-          <div className="flex items-center justify-center p-6 border-b border-[var(--tea-border)] bg-tea-surface/50 relative">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--tea-border)] bg-tea-surface/50">
+          {panelView !== 'main' ? (
             <button
               onClick={() => {
-                if (panelView !== 'main') {
-                  setPanelView('main');
-                  resetForm();
-                } else {
-                  onClose();
-                }
+                setPanelView('main');
+                resetForm();
               }}
-              className="absolute left-6 min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5"
+              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
             >
-              {panelView !== 'main' ? (
-                <Icons.Back className="w-6 h-6 text-tea-text-sec hover:text-tea-text transition-colors" />
-              ) : (
-                <Icons.Close className="w-6 h-6 text-tea-text-sec hover:text-tea-text transition-colors" />
-              )}
+              <Icons.Back className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
             </button>
-            <h2 className="text-lg font-serif text-tea-text  tracking-wide">{headerTitle}</h2>
-            <button
-              onClick={(e) => toggleTheme(e)}
-              className="absolute right-6 min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5 hover:bg-tea-gold/10 rounded-full transition-colors"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-5 h-5 text-tea-gold" />
-              ) : (
-                <Moon className="w-5 h-5 text-tea-gold" />
-              )}
-            </button>
-          </div>
+          ) : (
+            <div className="min-w-[36px]" />
+          )}
+          <h2 className="text-sm font-serif text-tea-text tracking-wide">{headerTitle}</h2>
+          <button
+            onClick={onClose}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
+          >
+            <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
+          </button>
         </div>
 
         {/* Content Area */}
@@ -793,30 +744,36 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               <>
                 {/* Profile Header */}
                 {auth.isAuthenticated && auth.user ? (
-                  <div className="flex flex-col items-center pt-4 pb-2 animate-[fadeIn_0.3s_ease-out]">
-                    <div className="w-20 h-20 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4 border-2 border-tea-gold/20">
-                      <span className="text-2xl font-serif text-tea-gold font-medium">
+                  <div className="flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-gold/20 shrink-0">
+                      <span className="text-sm font-serif text-tea-gold font-medium">
                         {getInitials(auth.user.name || auth.user.email)}
                       </span>
                     </div>
-                    <h3 className="font-serif text-xl text-tea-text ">
-                      {auth.user.name || 'Tea Enthusiast'}
-                    </h3>
-                    <span className="text-[11px] text-tea-text-sec mt-0.5">{auth.user.email}</span>
-                    {auth.isAdmin && (
-                      <span className="mt-2 inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-tea-gold bg-tea-gold/10 border border-tea-gold/20">
-                        <Icons.Shield className="w-3 h-3" />
-                        Admin
-                      </span>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif text-sm text-tea-text truncate">
+                          {auth.user.name || 'Tea Enthusiast'}
+                        </h3>
+                        {auth.isAdmin && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-px text-[8px] uppercase tracking-[0.1em] text-tea-gold bg-tea-gold/10 rounded shrink-0">
+                            <Icons.Shield className="w-2.5 h-2.5" />
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-tea-text-sec truncate block">{auth.user.email}</span>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center pt-4 pb-2">
-                    <div className="w-20 h-20 rounded-full bg-tea-bg/5 flex items-center justify-center mb-4">
-                      <Icons.User className="w-8 h-8 text-tea-text/30" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-tea-bg/5 flex items-center justify-center shrink-0">
+                      <Icons.User className="w-5 h-5 text-tea-text/30" />
                     </div>
-                    <h3 className="font-serif text-xl text-tea-text ">Tea Enthusiast</h3>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mt-1">Guest</span>
+                    <div>
+                      <h3 className="font-serif text-sm text-tea-text">Tea Enthusiast</h3>
+                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Guest</span>
+                    </div>
                   </div>
                 )}
 
@@ -836,295 +793,92 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     >
                       Create Account
                     </button>
-                    <p className="text-center text-[11px] text-tea-text-sec pt-1">
-                      Sign in to track orders, save favorites, and more
-                    </p>
                   </div>
                 )}
 
-                {/* Admin Mini Dashboard — quick overview */}
-                {auth.isAuthenticated && auth.isAdmin && (
-                  <AdminMiniDashboard onClose={onClose} />
-                )}
-
-                {/* Admin Navigation — only for admins */}
-                {auth.isAuthenticated && auth.isAdmin && (
-                  <div>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Administration</span>
-                    <div className="border border-tea-border overflow-hidden rounded-md">
-                      {[
-                        { path: '/admin/inventory', label: 'Inventory', desc: 'Manage products & stock', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
-                        { path: '/admin/personal', label: 'Collection', desc: 'Personal tea collection', icon: <Icons.Heart className="w-4.5 h-4.5" /> },
-                        { path: '/admin/orders', label: 'Orders', desc: 'Track & manage orders', icon: <Icons.Clock className="w-4.5 h-4.5" /> },
-                        { path: '/admin/records', label: 'Records', desc: 'Sales logs & history', icon: <Icons.BookOpen className="w-4.5 h-4.5" /> },
-                        { path: '/admin/settings', label: 'Settings', desc: 'System configuration', icon: <Icons.Settings className="w-4.5 h-4.5" /> },
-                      ].map((item, i, arr) => (
-                        <button
-                          key={item.path}
-                          onClick={() => handleGoToAdmin(item.path)}
-                          className={`w-full flex items-center gap-4 px-4 py-3.5 bg-tea-accent-sub hover:bg-tea-gold/10 transition-colors group ${
-                            i < arr.length - 1 ? 'border-b border-tea-border' : ''
-                          }`}
-                        >
-                          <div className="text-tea-gold">{item.icon}</div>
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="text-sm font-serif text-tea-text ">{item.label}</span>
-                            <span className="text-[10px] text-tea-text-sec">{item.desc}</span>
-                          </div>
-                          <Icons.ChevronRight className="w-4 h-4 text-tea-gold/30 group-hover:text-tea-gold/60 transition-colors" />
-                        </button>
-                      ))}
-                    </div>
+                {/* Navigation — admin + account in one flat list */}
+                {auth.isAuthenticated && (
+                  <div className="border border-tea-border overflow-hidden rounded-md">
+                    {[
+                      ...(auth.isAdmin ? [
+                        { action: () => handleGoToAdmin('/admin/inventory'), label: 'Inventory', icon: <Icons.Settings className="w-4 h-4" />, gold: true },
+                        { action: () => handleGoToAdmin('/admin/orders'), label: 'Orders', icon: <Icons.Clock className="w-4 h-4" />, gold: true },
+                        { action: () => handleGoToAdmin('/admin/records'), label: 'Records', icon: <Icons.BookOpen className="w-4 h-4" />, gold: true },
+                      ] : []),
+                      { action: () => { setEditName(auth.user?.name || ''); setEditEmail(auth.user?.email || ''); setPanelView('edit-profile'); }, label: 'Edit Profile', icon: <Icons.User className="w-4 h-4" /> },
+                      { action: () => { resetForm(); setPanelView('change-password'); }, label: 'Change Password', icon: <Icons.Lock className="w-4 h-4" /> },
+                    ].map((item, i, arr) => (
+                      <button
+                        key={item.label}
+                        onClick={item.action}
+                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-tea-surface/50 transition-colors group ${
+                          i < arr.length - 1 ? 'border-b border-tea-border' : ''
+                        }`}
+                      >
+                        <div className={item.gold ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-gold transition-colors'}>{item.icon}</div>
+                        <span className="text-sm text-tea-text flex-1 text-left">{item.label}</span>
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15" />
+                      </button>
+                    ))}
                   </div>
                 )}
 
-                {/* Account Settings — for authenticated users */}
+                {/* Your Tea */}
                 {auth.isAuthenticated && (
                   <div>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Account</span>
-                    <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-sec/50 block mb-3">Your Tea</span>
+                    <div className="border border-tea-border overflow-hidden rounded-md">
                       <button
-                        onClick={() => {
-                          setEditName(auth.user?.name || '');
-                          setEditEmail(auth.user?.email || '');
-                          setPanelView('edit-profile');
-                        }}
-                        className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
+                        onClick={() => setPanelView('collection')}
+                        className="w-full flex items-center gap-3 px-4 py-3 border-b border-tea-border hover:bg-tea-surface/50 transition-colors group"
                       >
-                        <Icons.User className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-                        <div className="flex flex-col items-start flex-1">
-                          <span className="font-serif text-sm text-tea-text">Edit Profile</span>
-                          <span className="text-[10px] text-tea-text-sec">Change your name or email</span>
-                        </div>
-                        <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
+                        <Icons.Heart filled={favoriteTeas.length > 0} className={`w-4 h-4 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-gold'} transition-colors`} />
+                        <span className="text-sm text-tea-text flex-1 text-left">Favorites</span>
+                        {favoriteTeas.length > 0 && <span className="text-[11px] font-mono text-tea-text-sec">{favoriteTeas.length}</span>}
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15" />
                       </button>
                       <button
-                        onClick={() => { resetForm(); setPanelView('change-password'); }}
-                        className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
+                        onClick={() => setPanelView('tasting-journal')}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-tea-surface/50 transition-colors group"
                       >
-                        <Icons.Lock className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-                        <div className="flex flex-col items-start flex-1">
-                          <span className="font-serif text-sm text-tea-text">Change Password</span>
-                          <span className="text-[10px] text-tea-text-sec">Update your login credentials</span>
-                        </div>
-                        <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
+                        <Icons.Sparkles className={`w-4 h-4 ${tastingJournal.length > 0 ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-gold'} transition-colors`} />
+                        <span className="text-sm text-tea-text flex-1 text-left">Tasting Journal</span>
+                        {tastingJournal.length > 0 && <span className="text-[11px] font-mono text-tea-text-sec">{tastingJournal.length}</span>}
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15" />
                       </button>
-                      {/* Request Admin — only for non-admin users */}
-                      {!auth.isAdmin && (
-                        <button
-                          onClick={handleRequestAdmin}
-                          disabled={adminRequestLoading || adminRequestStatus === 'pending'}
-                          className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-surface/50 transition-colors group disabled:opacity-60"
-                        >
-                          <Icons.Shield className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-                          <div className="flex flex-col items-start flex-1">
-                            <span className="font-serif text-sm text-tea-text">Request Admin Access</span>
-                            <span className="text-[10px] text-tea-text-sec">
-                              {adminRequestStatus === 'pending'
-                                ? 'Request pending — awaiting approval'
-                                : 'Submit a request to the site owner'}
-                            </span>
-                          </div>
-                          {adminRequestLoading ? (
-                            <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
-                          ) : adminRequestStatus === 'pending' ? (
-                            <span className="text-[10px] uppercase tracking-wider text-tea-gold">Pending</span>
-                          ) : (
-                            <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
-                          )}
-                        </button>
-                      )}
                     </div>
-                  </div>
-                )}
 
-                {/* Activity Stats — 3 columns now */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
-                    <Icons.Bag className="w-5 h-5 text-tea-text-sec" />
-                    <span className="font-sans text-2xl font-light text-tea-text">{cartCount}</span>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Cart</span>
-                  </div>
-                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
-                    <Icons.Heart className="w-5 h-5 text-tea-text-sec" />
-                    <span className="font-sans text-2xl font-light text-tea-text">{favoriteTeas.length}</span>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Favorites</span>
-                  </div>
-                  <div className="bg-tea-surface border border-tea-border p-4 flex flex-col items-center gap-2 rounded-md">
-                    <Icons.BookOpen className="w-5 h-5 text-tea-text-sec" />
-                    <span className="font-sans text-2xl font-light text-tea-text">{progressCount}</span>
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Read</span>
-                  </div>
-                </div>
-
-                {/* My Collection — shareable favorites */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Your Tea Collection</span>
-                  <button
-                    onClick={() => setPanelView('collection')}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border hover:bg-tea-surface transition-colors group"
-                  >
-                    <Icons.Heart filled={favoriteTeas.length > 0} className={`w-5 h-5 ${favoriteTeas.length > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
-                    <div className="flex flex-col items-start flex-1">
-                      <span className="font-serif text-sm text-tea-text ">My Favorites</span>
-                      <span className="text-[10px] text-tea-text-sec">
-                        {favoriteTeas.length === 0 ? 'No teas saved yet' : `${favoriteTeas.length} ${favoriteTeas.length === 1 ? 'tea' : 'teas'} — shareable`}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {favoriteTeas.length > 0 && (
-                        <Icons.Share className="w-3.5 h-3.5 text-tea-gold/40" />
-                      )}
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 group-hover:text-tea-text/40 transition-colors" />
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setPanelView('tasting-journal')}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-tea-surface border border-tea-border border-t-0 hover:bg-tea-surface transition-colors group"
-                  >
-                    <Icons.Sparkles className={`w-5 h-5 ${tastingJournal.length > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
-                    <div className="flex flex-col items-start flex-1">
-                      <span className="font-serif text-sm text-tea-text">Tasting Journal</span>
-                      <span className="text-[10px] text-tea-text-sec">
-                        {tastingJournal.length === 0 ? 'Record your tastings' : `${tastingJournal.length} ${tastingJournal.length === 1 ? 'tasting' : 'tastings'}`}
-                      </span>
-                    </div>
-                    <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 group-hover:text-tea-text/40 transition-colors" />
-                  </button>
-                </div>
-
-                {/* Reading & Stories */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Reading</span>
-                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
-                    <button
-                      onClick={() => setPanelView('saved-stories')}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
-                    >
-                      <Icons.Leaf filled={savedStoryCount > 0} className={`w-5 h-5 ${savedStoryCount > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
-                      <div className="flex flex-col items-start flex-1">
-                        <span className="font-serif text-sm text-tea-text ">Saved Stories</span>
-                        <span className="text-[10px] text-tea-text-sec">
-                          {savedStoryCount === 0 ? 'None saved' : `${savedStoryCount} saved`}
-                        </span>
-                      </div>
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
-                    </button>
-                    <button
-                      onClick={() => setPanelView('reading-history')}
-                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-surface/50 transition-colors group"
-                    >
-                      <Icons.BookOpen className={`w-5 h-5 ${progressCount > 0 ? 'text-tea-gold' : 'text-tea-text-sec'} group-hover:text-tea-gold transition-colors`} />
-                      <div className="flex flex-col items-start flex-1">
-                        <span className="font-serif text-sm text-tea-text ">Reading History</span>
-                        <span className="text-[10px] text-tea-text-sec">
-                          {progressCount === 0 ? 'No articles read' : `${progressCount} ${progressCount === 1 ? 'article' : 'articles'}`}
-                        </span>
-                      </div>
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-text/20" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Preferences: Theme + Currency */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Preferences</span>
-                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
-                    {/* Theme Toggle */}
-                    <button
-                      onClick={toggleTheme}
-                      className="w-full flex items-center justify-between px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {theme === 'light' ? (
-                          <Icons.Sun className="w-5 h-5 text-tea-gold" />
-                        ) : (
-                          <Icons.Moon className="w-5 h-5 text-tea-gold" />
-                        )}
-                        <span className="font-serif text-sm text-tea-text ">
-                          {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
-                        </span>
-                      </div>
-                      <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${theme === 'dark' ? 'bg-tea-gold' : 'bg-tea-bg/20'}`}>
-                        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-tea-text shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                      </div>
-                    </button>
-
-                    {/* Currency Selector */}
-                    <div className="px-4 py-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-tea-gold font-mono text-sm font-bold">$</span>
-                        <span className="font-serif text-sm text-tea-text ">Currency</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
+                    {/* Currency — inline */}
+                    <div className="flex items-center gap-2 mt-4">
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-sec/50 shrink-0">Currency</span>
+                      <div className="flex flex-wrap gap-1">
                         {CURRENCY_OPTIONS.map((opt) => (
                           <button
                             key={opt.code}
                             onClick={() => setCurrency(opt.code)}
-                            className={`px-2.5 py-1.5 text-[11px] uppercase tracking-wider border transition-colors ${
+                            className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded transition-colors ${
                               currency === opt.code
-                                ? 'bg-tea-gold text-tea-bg border-tea-gold'
-                                : 'border-[var(--tea-border)] text-tea-text-sec hover:border-tea-gold/30'
+                                ? 'bg-tea-gold/15 text-tea-gold'
+                                : 'text-tea-text-sec/40 hover:text-tea-text-sec'
                             }`}
                           >
-                            {opt.symbol} {opt.code}
+                            {opt.code}
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Quick Actions */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec block mb-4">Quick Actions</span>
-                  <div className="border border-[var(--tea-border)] overflow-hidden rounded-md">
-                    <button
-                      onClick={handleOpenCart}
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
-                    >
-                      <Icons.Bag className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-                      <span className="text-sm font-serif text-tea-text ">Open Cart</span>
-                      {cartCount > 0 && (
-                        <span className="text-xs font-mono text-tea-gold">{cartCount}</span>
-                      )}
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 ml-auto" />
-                    </button>
-
-                    <a
-                      href="mailto:hello@teajia.com"
-                      className="w-full flex items-center gap-4 px-4 py-4 border-b border-[var(--tea-accent-sub)] hover:bg-tea-surface/50 transition-colors group"
-                    >
-                      <Icons.Mail className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-                      <span className="text-sm font-serif text-tea-text ">Contact Us</span>
-                      <Icons.ChevronRight className="w-4 h-4 text-tea-text/20 ml-auto" />
-                    </a>
-
-                    <a
-                      href="https://instagram.com/teajia.journal"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center gap-4 px-4 py-4 hover:bg-tea-surface/50 transition-colors group"
-                    >
-                      <Icons.Instagram className="w-5 h-5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-                      <span className="text-sm font-serif text-tea-text ">@teajia.journal</span>
-                      <Icons.ExternalLink className="w-4 h-4 text-tea-text/20 ml-auto" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Sign Out — only for authenticated users */}
+                {/* Sign Out */}
                 {auth.isAuthenticated && (
-                  <div>
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 text-tea-text-sec hover:text-red-500 border border-[var(--tea-border)] hover:border-red-500/20 transition-colors rounded-md"
-                    >
-                      <Icons.LogOut className="w-4 h-4" />
-                      <span className="text-xs uppercase tracking-[0.2em] font-medium">Sign Out</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-tea-text-sec/40 hover:text-red-500 transition-colors text-xs uppercase tracking-[0.2em]"
+                  >
+                    <Icons.LogOut className="w-3.5 h-3.5" />
+                    Sign Out
+                  </button>
                 )}
               </>
             )}
@@ -1132,11 +886,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-[var(--tea-border)] bg-tea-surface/50 flex flex-col items-center gap-2">
-          <LogoEmblem size={28} color="var(--tea-gold)" className="opacity-60" />
-          <span className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec">Teajia</span>
-        </div>
       </div>
     </>
   );

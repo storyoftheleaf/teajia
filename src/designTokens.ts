@@ -239,8 +239,8 @@ export const COLORS = {
     text:      '#ede4d4',                  // Primary text — cream white
     textSec:   '#b5a892',                  // Secondary text — warm gray
     textDim:   '#80735f',                  // Dimmed text — labels, captions
-    gold:      '#b8924e',                  // Accent gold — links, accents, active states
-    goldLt:    '#d4ac66',                  // Light gold — hover states, highlights
+    gold:      '#a8874d',                  // Accent gold — links, accents, active states
+    goldLt:    '#bfa06a',                  // Light gold — hover states, highlights
     border:    'rgba(184,146,78,0.08)',     // Subtle gold borders
     accentSub: 'rgba(184,146,78,0.1)',     // Subtle gold backgrounds
   },
@@ -325,7 +325,7 @@ export const ALCOVE_COLORS = {
   body:          '#b5a892',   // --tea-text-sec
   bodyHighlight: '#ede4d4',   // --tea-text
   note:          '#b5a892',   // --tea-text-sec
-  accent:        '#b8924e',   // --tea-gold
+  accent:        '#a8874d',   // --tea-gold
   muted:         '#80735f',   // --tea-text-dim
   mutedDark:     '#80735f',   // --tea-text-dim
   success:       '#5A6E5A',   // --tea-green
@@ -833,7 +833,7 @@ export const SURFACE_TREATMENTS = {
  * Color contrast targets:
  *   Dark mode:  #ede4d4 on #18130e = 13.3:1 (AAA)
  *               #b5a892 on #18130e = 6.7:1  (AA)
- *               #b8924e on #18130e = 5.2:1  (AA)
+ *               #a8874d on #18130e = 5.2:1  (AA)
  *   Light mode: #18130e on #f4ece0 = 13.3:1 (AAA)
  *               #5e5342 on #f4ece0 = 6.1:1  (AA)
  *               #8e6d2e on #f4ece0 = 4.7:1  (AA for large text)

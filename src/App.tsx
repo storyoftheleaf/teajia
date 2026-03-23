@@ -54,7 +54,6 @@ import { ConsultPage } from './components/ConsultPage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
-import { AdminToolbar } from './components/admin-overlay/AdminToolbar';
 import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
@@ -87,8 +86,7 @@ const AppContent = () => {
   } = useAppStore();
   const { isAdmin, isAuthenticated } = useAuth();
   useFavoritesSync(isAuthenticated);
-  const [adminToolbarCollapsed, setAdminToolbarCollapsed] = useState(false);
-  const showAdminBar = isAdmin && !adminToolbarCollapsed;
+  const showAdminBar = false;
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
 
@@ -103,19 +101,24 @@ const AppContent = () => {
   const scrollPositions = useRef<Record<Section, number>>({
     HOME: 0, MAGAZINE: 0, LEARN: 0, SHOP: 0, OFFERINGS: 0, ACCOUNT: 0, ABOUT: 0
   });
-
-  // Previous section for scroll position save
   const prevSection = useRef<Section>(activeSection);
+  // Track whether the navigation was a deliberate link click (scroll to top)
+  // vs browser back/forward (restore saved position)
+  const isNavClick = useRef(false);
 
-  // Save/restore scroll positions on section change
   useEffect(() => {
     if (prevSection.current !== activeSection) {
-      // Save scroll for previous section
       scrollPositions.current[prevSection.current] = window.scrollY;
-      // Restore scroll for new section
-      requestAnimationFrame(() => {
-        window.scrollTo(0, scrollPositions.current[activeSection]);
-      });
+      if (isNavClick.current) {
+        // Deliberate link click — go to top
+        window.scrollTo(0, 0);
+        isNavClick.current = false;
+      } else {
+        // Browser back/forward — restore saved position
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollPositions.current[activeSection]);
+        });
+      }
       prevSection.current = activeSection;
     }
   }, [activeSection]);
@@ -134,19 +137,16 @@ const AppContent = () => {
     document.title = titles[activeSection] ?? 'Teajia | Tea Journal';
   }, [activeSection]);
 
-  // Navigate with scroll position memory + skeleton flash
+  // Navigate to section with skeleton flash
   const setActiveSection = useCallback((section: Section) => {
     if (section === activeSection) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    // Save current scroll position before navigating
-    scrollPositions.current[activeSection] = window.scrollY;
+    isNavClick.current = true;
     setIsSectionTransitioning(true);
-    // Brief skeleton flash for perceived speed
     setTimeout(() => {
       navigate(sectionToPath(section));
-      // Close any open reader/viewer when navigating to a different section
       setViewState('BROWSE');
       setSelectedStory(null);
       setIsSectionTransitioning(false);
@@ -390,7 +390,6 @@ const AppContent = () => {
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
 
       {/* Admin Toolbar — visible only for admin users */}
-      {isAdmin && <AdminToolbar collapsed={adminToolbarCollapsed} onCollapsedChange={setAdminToolbarCollapsed} />}
 
       {/* Scroll Progress Bar */}
       <ScrollProgressBar />
@@ -647,7 +646,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} onAccountClick={handleOpenAccount} />
+      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={false} onAccountClick={handleOpenAccount} />
 
       </div>
     </div>

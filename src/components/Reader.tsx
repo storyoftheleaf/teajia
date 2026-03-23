@@ -1054,9 +1054,8 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                         data-page-active={isActive ? "true" : "false"}
                         data-page-type={pageType}
                         style={{
-                          opacity: isActive ? 1 : 0.85,
-                          transform: isActive ? 'scale(1)' : 'scale(0.97)',
-                          transition: 'opacity 300ms ease, transform 300ms ease'
+                          opacity: isActive ? 1 : 0.6,
+                          transition: 'opacity 200ms ease'
                         }}
                       >
                         <ScaledPage isActive={isActive}>
