@@ -11,14 +11,14 @@ const config: Config = {
     extend: {
       colors: {
         // CSS variable-driven tokens (switch with dark/light mode)
-        'tea-bg': 'var(--tea-bg)',
-        'tea-surface': 'var(--tea-surface)',
-        'tea-elevated': 'var(--tea-elevated)',
-        'tea-text': 'var(--tea-text)',
-        'tea-text-sec': 'var(--tea-text-sec)',
-        'tea-text-dim': 'var(--tea-text-dim)',
-        'tea-gold': 'var(--tea-gold)',
-        'tea-gold-lt': 'var(--tea-gold-lt)',
+        'tea-bg': 'rgb(var(--tea-bg-rgb) / <alpha-value>)',
+        'tea-surface': 'rgb(var(--tea-surface-rgb) / <alpha-value>)',
+        'tea-elevated': 'rgb(var(--tea-elevated-rgb) / <alpha-value>)',
+        'tea-text': 'rgb(var(--tea-text-rgb) / <alpha-value>)',
+        'tea-text-sec': 'rgb(var(--tea-text-sec-rgb) / <alpha-value>)',
+        'tea-text-dim': 'rgb(var(--tea-text-dim-rgb) / <alpha-value>)',
+        'tea-gold': 'rgb(var(--tea-gold-rgb) / <alpha-value>)',
+        'tea-gold-lt': 'rgb(var(--tea-gold-lt-rgb) / <alpha-value>)',
         'tea-border': 'var(--tea-border)',
         'tea-accent-sub': 'var(--tea-accent-sub)',
         // DEPRECATED LEGACY ALIASES — DO NOT USE IN NEW CODE

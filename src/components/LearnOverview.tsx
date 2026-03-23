@@ -299,7 +299,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <div className="relative" style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans border border-tea-gold/20 px-2.5 py-1 rounded-sm">
+                  <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
                     {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
                   </span>
                 </div>
@@ -322,7 +322,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
                 {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
-                  <div className="border-l-2 border-tea-gold/25 pl-4 mb-8 max-w-md">
+                  <div className="border-l-2 border-tea-border pl-4 mb-8 max-w-md">
                     <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-sans block mb-1.5">
                       Try this
                     </span>

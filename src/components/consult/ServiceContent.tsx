@@ -19,14 +19,14 @@ const alcoveInsetStyle = SURFACE_TREATMENTS.imageInset;
 const cardFrameStyle = SURFACE_TREATMENTS.cardFrame;
 
 const ServiceLabel = ({ children }: { children: string }) => (
-  <p className="text-[11px] uppercase tracking-[0.2em] text-tea-gold mb-1.5"
+  <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-1.5"
      style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
     {children}
   </p>
 );
 
 const ServiceHeading = ({ children }: { children: string }) => (
-  <h3 className="text-xl md:text-2xl font-light text-tea-text mb-0 leading-snug"
+  <h3 className="text-2xl md:text-3xl font-light text-tea-text mb-0 leading-snug"
       style={{ fontFamily: "var(--font-display)" }}>
     {children}
   </h3>
@@ -34,8 +34,8 @@ const ServiceHeading = ({ children }: { children: string }) => (
 
 const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
-               flex items-center gap-1 transition-colors duration-300 min-h-[44px]
+    className="w-full text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
+               flex items-center justify-between py-3 transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
     <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -44,8 +44,8 @@ const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) 
 
 const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick}
-    className="text-tea-text-sec hover:text-tea-gold text-xs uppercase tracking-[0.15em]
-               font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px]
+    className="w-full text-tea-text-sec hover:text-tea-gold text-xs uppercase tracking-[0.15em]
+               font-medium flex items-center justify-between py-3 transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {label}
     <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -90,67 +90,77 @@ const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName
 
     return (
       <section ref={ref} className={`pt-8 md:pt-10 ${revealClassName}`} style={revealStyle}>
-        <div style={cardFrameStyle} className="overflow-hidden relative">
+        <div style={{ ...cardFrameStyle, borderRadius: 12 }} className="overflow-hidden relative">
           {/* Alcove texture layers — radial warmth + grain */}
           <div style={SURFACE_TREATMENTS.radialWarmth} />
           <div style={SURFACE_TREATMENTS.grainTexture.card} />
 
           {/* Card body — the "printable" area with padding around everything */}
-          <div className="relative z-[1] px-5 py-5 md:px-7 md:py-6">
-            {/* Header row: label + heading + badge */}
-            <div className="flex items-start justify-between gap-4">
+          <div className="relative z-[1] px-6 py-6 md:px-8 md:py-7">
+            {/* Desktop: header + image side by side. Mobile: stacked */}
+            <div className="md:flex md:items-start md:gap-6">
+              {/* Text column */}
               <div className="flex-1 min-w-0">
-                <ServiceLabel>{label}</ServiceLabel>
-                <ServiceHeading>{heading}</ServiceHeading>
+                {/* Header row: label + heading + badge */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <ServiceLabel>{label}</ServiceLabel>
+                    <ServiceHeading>{heading}</ServiceHeading>
+                  </div>
+                  {/* Badge — hidden on mobile (shown inline below summary) */}
+                  {badge && (
+                    <span className="hidden md:inline-block shrink-0 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap mt-1
+                                     bg-tea-gold/[0.08] rounded-full px-3 py-1"
+                          style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
+                      {badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Summary */}
+                <p className="font-serif text-[15px] leading-relaxed text-tea-text-sec italic mt-3 max-w-[640px]">
+                  {summary}
+                </p>
+
+                {/* Badge — inline on mobile only */}
+                {badge && (
+                  <span className="md:hidden inline-block mt-3 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap
+                                   bg-tea-gold/[0.08] rounded-full px-3 py-1"
+                        style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
+                    {badge}
+                  </span>
+                )}
               </div>
-              {/* #5 Badge — bg tint only, no border (respects card-utilities rule) */}
-            {badge && (
-                <span className="shrink-0 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap mt-1
-                                 bg-tea-gold/[0.08] rounded-full px-3 py-1"
-                      style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
-                  {badge}
-                </span>
+
+              {/* Image — full-width 4:3 on mobile, compact square thumbnail on desktop */}
+              {img && (
+                <div className="relative overflow-hidden rounded-lg mt-5 md:mt-0 md:shrink-0 md:w-[180px] aspect-[4/3] md:aspect-square" style={alcoveInsetStyle}>
+                  <img
+                    src={img}
+                    alt={imgAlt}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 pointer-events-none md:hidden"
+                       style={{ background: 'linear-gradient(to bottom, transparent 50%, var(--tea-surface) 100%)' }} />
+                </div>
               )}
             </div>
 
-            {/* Summary — italic serif like Alcove description */}
-            <p className="font-serif text-sm leading-relaxed text-tea-text-sec italic mt-3 max-w-[640px]">
-              {summary}
-            </p>
-
-            {/* Inset hero image — padded inside the card like the Alcove tea photo */}
-            {/* #4 Taller cinematic images */}
-            {img && (
-              <div className="relative overflow-hidden rounded-md mt-5" style={{ height: 200, ...alcoveInsetStyle }}>
-                <img
-                  src={img}
-                  alt={imgAlt}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 pointer-events-none"
-                     style={{ background: 'linear-gradient(to top, var(--tea-bg), transparent 40%)' }} />
-              </div>
-            )}
-
-            {/* Expand/collapse button — integrated as a subtle divider with action */}
+            {/* Expand/collapse toggle */}
             <button
               onClick={toggle}
               aria-expanded={expanded}
-              className="w-full group mt-5 mb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+              className="group mt-4 mb-1 min-h-[44px] flex items-center gap-2
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-[1px] bg-tea-gold/12 group-hover:bg-tea-gold/20 transition-colors" />
-                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-sec
-                                 group-hover:text-tea-gold transition-colors select-none whitespace-nowrap">
-                  {expanded ? 'Less' : 'Details'}
-                  {expanded
-                    ? <Icons.ChevronUp className="w-3 h-3 transition-transform" />
-                    : <Icons.ChevronDown className="w-3 h-3 transition-transform" />
-                  }
-                </span>
-                <div className="flex-1 h-[1px] bg-tea-gold/12 group-hover:bg-tea-gold/20 transition-colors" />
-              </div>
+              <span className="text-[11px] uppercase tracking-[0.12em] text-tea-text-sec
+                               group-hover:text-tea-gold transition-colors select-none">
+                Details
+              </span>
+              <Icons.ChevronDown className={`w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-all duration-300 ${
+                expanded ? 'rotate-180' : ''
+              }`} />
             </button>
 
             {/* Expandable content — no inner scroll, page scrolls naturally */}

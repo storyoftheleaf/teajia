@@ -172,21 +172,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const aspect = aspectRatio === 'portrait' ? 'aspect-[3/4]' : 'aspect-square';
   const hasImage = imageUrl && !imageError;
 
   const { rotateX, rotateY, requestPermission, needsPermission } = useGyroscopeTilt();
-
-  const readingTime = useMemo(() => {
-    if (duration) return duration;
-    if (wordCount) {
-      const mins = Math.max(1, Math.round(wordCount / 200));
-      return `${mins} min read`;
-    }
-    return undefined;
-  }, [duration, wordCount]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -203,22 +193,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
     };
   }, [contextMenu]);
-
-  const handleShare = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const url = window.location.origin + (slug ? `/article/${slug}` : window.location.pathname);
-    try {
-      if (navigator.share) {
-        await navigator.share({ title, text: description, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch {
-      // User cancelled share or clipboard unavailable — do nothing
-    }
-  }, [slug, title, description]);
 
   const handleLongPress = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
@@ -325,14 +299,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               </>
             )}
 
-            {/* Reading time — bottom-right */}
-            {readingTime && (
-              <span className="article-card-time">
-                <Icons.Clock className="w-3 h-3" />
-                {readingTime}
-              </span>
-            )}
-
             {/* Gold accent line — grows on hover */}
             <div className="article-card-accent" />
 
@@ -345,19 +311,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 Enable tilt
               </button>
             )}
-
-            {/* Share button — always visible on mobile, hover-reveal on desktop */}
-            <button
-              onClick={handleShare}
-              aria-label={copied ? 'Link copied!' : 'Share article'}
-              className="absolute top-3 right-3 z-20 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full bg-tea-surface/70 text-tea-text-sec hover:text-tea-gold hover:bg-tea-elevated/90 transition-all duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100 backdrop-blur-sm"
-            >
-              {copied ? (
-                <Icons.Check className="w-4 h-4 text-tea-gold" />
-              ) : (
-                <Icons.Share className="w-4 h-4" />
-              )}
-            </button>
 
             {/* Bottom text overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-4 z-10">

@@ -55,11 +55,13 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
 
   return (
     <div className={`${className}`}>
-      <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal text-tea-text mb-3">
+      <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-1.5">
+        Newsletter
+      </p>
+      <h2 className="font-serif text-xl md:text-2xl font-normal text-tea-text mb-2 leading-snug" style={{ fontFamily: 'var(--font-display)' }}>
         {heading}
       </h2>
-      <div className="w-12 h-[1px] bg-tea-gold mb-6" />
-      <p className="text-tea-text/70 mb-8 max-w-2xl">
+      <p className="text-sm text-tea-text/60 mb-4 max-w-lg leading-relaxed">
         {subtitle}
       </p>
 
@@ -118,7 +120,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
           </Button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-lg">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2.5 max-w-md">
           <input
             type="email"
             value={email}
@@ -126,9 +128,9 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
             placeholder="your@email.com"
             required
             disabled={loading}
-            className="flex-1 px-4 py-3 rounded-sm border border-tea-border bg-transparent text-tea-text placeholder:text-tea-text-sec font-sans text-base focus:outline-none focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/20 transition-colors disabled:opacity-50"
+            className="flex-1 px-3.5 py-2.5 rounded-lg bg-tea-bg text-tea-text text-sm placeholder:text-tea-text-dim font-sans focus:outline-none focus:ring-1 focus:ring-tea-gold/30 transition-colors disabled:opacity-50"
           />
-          <Button type="submit" variant="primary" size="md" disabled={loading}>
+          <Button type="submit" variant="primary" size="sm" disabled={loading}>
             {loading ? 'Subscribing...' : 'Subscribe'}
           </Button>
         </form>

@@ -42,7 +42,7 @@ const TABS = [
   { id: 'tea', label: 'Tea', icon: <Icons.Leaf className="w-4 h-4" /> },
   { id: 'teaware', label: 'Teaware', icon: <Icons.Teapot className="w-4 h-4" /> },
   { id: 'sets', label: 'Sets', icon: <Icons.Box className="w-4 h-4" /> },
-  { id: 'collection', label: 'Collection', icon: <Icons.Seal className="w-4 h-4" /> },
+  { id: 'collection', label: 'Saved', icon: <Icons.Bookmark className="w-4 h-4" /> },
 ];
 
 export const Shop: React.FC<ShopProps> = ({
@@ -226,7 +226,7 @@ export const Shop: React.FC<ShopProps> = ({
     <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 opacity-40">
-          <div className="w-16 h-16 border border-tea-text/20 rounded-full flex items-center justify-center mb-4">
+          <div className="w-16 h-16 border border-tea-border rounded-full flex items-center justify-center mb-4">
             <Icons.Box className="w-6 h-6 text-tea-text/50" />
           </div>
           <p className="font-serif italic text-base text-tea-text/60">No sets available.</p>
@@ -274,7 +274,7 @@ export const Shop: React.FC<ShopProps> = ({
 
         {isError && (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-[fadeIn_0.5s_ease-out]">
-            <div className="w-14 h-14 border border-tea-gold/30 rounded-full flex items-center justify-center mb-5">
+            <div className="w-14 h-14 border border-tea-border rounded-full flex items-center justify-center mb-5">
               <Icons.Leaf className="w-6 h-6 text-tea-gold/60" />
             </div>
             <h3 className="font-serif text-lg text-tea-text mb-2">Unable to load teas</h3>

@@ -33,10 +33,10 @@
    ============================================ */
 
 .num {
-  font-family: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 /* ============================================

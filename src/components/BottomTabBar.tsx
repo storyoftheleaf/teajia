@@ -121,10 +121,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
         aria-label="Main navigation"
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/92 backdrop-blur-xl z-sticky animate-[slideUp_0.4s_ease-out] transition-all duration-200 pb-[env(safe-area-inset-bottom)] ${
-          hidden ? 'opacity-0 pointer-events-none' : 'h-[56px] opacity-100'
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface backdrop-blur-xl z-overlay animate-[slideUp_0.4s_ease-out] transition-transform duration-200 h-[56px] pb-[env(safe-area-inset-bottom)] ${
+          hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
-        style={{ boxShadow: '0 -8px 24px var(--tea-accent-sub)' }}
+        style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.25)' }}
       >
         <div className="flex items-center w-full px-0 h-full">
           {/* Left sections */}

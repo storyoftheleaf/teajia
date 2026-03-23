@@ -10,13 +10,21 @@
 :root {
   color-scheme: dark;
   --tea-bg: #18130e;
+  --tea-bg-rgb: 24 19 14;
   --tea-surface: #28211a;
+  --tea-surface-rgb: 40 33 26;
   --tea-elevated: #3a3126;
+  --tea-elevated-rgb: 58 49 38;
   --tea-text: #ede4d4;
+  --tea-text-rgb: 237 228 212;
   --tea-text-sec: #b5a892;
+  --tea-text-sec-rgb: 181 168 146;
   --tea-text-dim: #917a55;
+  --tea-text-dim-rgb: 145 122 85;
   --tea-gold: #b8924e;
+  --tea-gold-rgb: 184 146 78;
   --tea-gold-lt: #d4ac66;
+  --tea-gold-lt-rgb: 212 172 102;
   --tea-border: rgba(181,168,146,0.14);
   --tea-accent-sub: rgba(184,146,78,0.1);
 
@@ -36,13 +44,21 @@
 :root.light, .light {
   color-scheme: light;
   --tea-bg: #f4ece0;
+  --tea-bg-rgb: 244 236 224;
   --tea-surface: #e6dbcc;
+  --tea-surface-rgb: 230 219 204;
   --tea-elevated: #d5c8b4;
+  --tea-elevated-rgb: 213 200 180;
   --tea-text: #18130e;
+  --tea-text-rgb: 24 19 14;
   --tea-text-sec: #5e5342;
+  --tea-text-sec-rgb: 94 83 66;
   --tea-text-dim: #9a8c78;
+  --tea-text-dim-rgb: 154 140 120;
   --tea-gold: #8e6d2e;
+  --tea-gold-rgb: 142 109 46;
   --tea-gold-lt: #a88340;
+  --tea-gold-lt-rgb: 168 131 64;
   --tea-border: rgba(24,19,14,0.1);
   --tea-accent-sub: rgba(142,109,46,0.07);
 }

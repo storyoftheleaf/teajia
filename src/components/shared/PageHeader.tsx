@@ -43,25 +43,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     prevCountRef.current = cartItemCount;
   }, [cartItemCount]);
 
-  // Interpolate between expanded and collapsed states — mobile only (desktop stays expanded)
-  const titleSize = isAtTop ? 'text-4xl lg:text-5xl' : 'text-base lg:text-5xl';
-  const titlePadding = isAtTop
-    ? `${onBack ? 'pt-2' : 'pt-6'} pb-4 px-4 md:px-6 lg:pt-8 lg:pb-6 lg:px-10`
-    : `pt-2 pb-1.5 px-4 md:px-6 lg:pt-8 lg:pb-6 lg:px-10`;
+  // Static title — no longer collapses on scroll since header flows with page
+  const titleSize = 'text-2xl lg:text-3xl';
+  const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-6 lg:pb-4 lg:px-10`;
 
   const hasUtilityButtons = onCartClick || onAccountClick;
 
   return (
     <div
-      className={`sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-10 backdrop-saturate-150 transition-all duration-500 ease-out ${className}`}
-      style={{
-        backgroundColor: `color-mix(in srgb, var(--tea-surface) ${Math.round(70 + progress * 25)}%, transparent)`,
-        backdropFilter: `blur(${Math.round(12 + progress * 12)}px)`,
-        WebkitBackdropFilter: `blur(${Math.round(12 + progress * 12)}px)`,
-        boxShadow: isAtTop
-          ? '0 1px 0 var(--tea-border)'
-          : '0 1px 0 var(--tea-border), 0 2px 8px rgba(0,0,0,0.12)',
-      }}
+      className={`z-30 -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out inset-panel rounded-none border-b border-tea-border ${className}`}
     >
       <div className="w-full">
         {/* Back navigation — inside the glass */}
@@ -84,7 +74,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <div className={`flex items-center justify-between transition-all duration-500 ease-out ${titlePadding}`}>
             {title && (
               <h1
-                className={`font-serif font-light text-tea-text leading-tight tracking-wide pl-1 lg:pl-0 transition-all duration-500 ease-out ${titleSize}`}
+                className={`font-serif font-normal text-tea-text leading-tight tracking-[0.02em] pl-1 lg:pl-0 ${titleSize}`}
+                style={{ fontFamily: 'var(--font-display)' }}
               >
                 {title}
               </h1>
