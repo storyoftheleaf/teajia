@@ -113,6 +113,14 @@ const DEFAULT_TEA_VIEWS = [
     filterType: 'Samples',
     groupBy: null,
   },
+  {
+    id: 'default-archived',
+    name: 'Archived',
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Archived',
+    groupBy: null,
+  },
 ];
 
 const DEFAULT_TEAWARE_VIEWS = [
@@ -130,6 +138,14 @@ const DEFAULT_TEAWARE_VIEWS = [
     columns: ['productName', 'teawareCategory', 'material', 'costAmount', 'pricePerGramUSD'],
     sortConfig: [{ key: 'teawareCategory', direction: 'asc' as const }],
     filterType: 'Unpublished',
+    groupBy: null,
+  },
+  {
+    id: 'default-teaware-archived',
+    name: 'Archived',
+    columns: ['productName', 'teawareCategory', 'material', 'costAmount', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'teawareCategory', direction: 'asc' as const }],
+    filterType: 'Archived',
     groupBy: null,
   },
 ];
@@ -716,6 +732,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => p.type !== 'Teaware');
     }
 
+    // 0b. Hide archived products unless explicitly viewing the Archived filter
+    if (filterType !== 'Archived') {
+      result = result.filter(p => p.status !== 'Archived');
+    }
+
     // 1. Search
     if (searchQuery) {
       result = fuse.search(searchQuery).map(r => r.item).filter(p =>
@@ -736,6 +757,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => !p.isPublic);
     } else if (filterType === 'Samples') {
       result = result.filter(p => p.isSample);
+    } else if (filterType === 'Archived') {
+      result = result.filter(p => p.status === 'Archived');
     } else if (filterType !== 'All') {
       result = result.filter(p => p.type === filterType);
     }
@@ -2183,6 +2206,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         >
                             {product.isPublic ? <Eye size={14} /> : <EyeOff size={14} />}
                         </button>
+                        <button
+                            onClick={() => {
+                              const newStatus = product.status === 'Archived' ? 'Active' : 'Archived';
+                              handleProductUpdate(product.id, 'status', newStatus);
+                            }}
+                            className={`p-1.5 rounded-md transition-colors ${product.status === 'Archived' ? 'text-amber-400' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                            aria-label={product.status === 'Archived' ? 'Unarchive' : 'Archive'}
+                        >
+                            <Archive size={14} />
+                        </button>
                     </div>
 
                     {/* Expanded detail panel */}
@@ -2644,6 +2677,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     >
                       {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
+                    <button
+                      onClick={() => {
+                        const newStatus = panelProduct.status === 'Archived' ? 'Active' : 'Archived';
+                        handleProductUpdate(panelProduct.id, 'status', newStatus);
+                        setPanelProduct(prev => prev ? { ...prev, status: newStatus as any } : null);
+                      }}
+                      className={`p-1 rounded transition-colors ${panelProduct.status === 'Archived' ? 'text-amber-400 hover:text-amber-300' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                      title={panelProduct.status === 'Archived' ? 'Unarchive' : 'Archive'}
+                    >
+                      <Archive size={13} />
+                    </button>
                   </div>
                   <span className="text-[10px] text-tea-text-dim">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
                 </div>
