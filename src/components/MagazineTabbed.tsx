@@ -132,23 +132,19 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
   const renderArticleCards = (storiesList: Story[]) => (
     <div className="grid grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4 max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-3 md:px-0 stagger-grid">
-      {storiesList.map((story, index) => {
-        const isHero = index === 0 && (story.isFeatured || storiesList.length > 2);
-        return (
+      {storiesList.map((story) => (
           <ArticleCard
             key={story.id}
             title={story.title}
             description={story.subtitle}
             imageUrl={story.thumbnailUrl}
-            aspectRatio={isHero ? 'square' : 'portrait'}
+            aspectRatio="portrait"
             onClick={() => onCardClick(story)}
             contentType={story.type}
             duration={story.durationOrTime}
             wordCount={getWordCount(story)}
-            isFeatured={isHero}
           />
-        );
-      })}
+      ))}
     </div>
   );
 

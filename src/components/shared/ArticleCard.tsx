@@ -322,14 +322,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                   {description}
                 </p>
               )}
-              {/* Desktop hover: expanded description overlay */}
-              {description && (
-                <div className="hidden lg:block max-h-0 overflow-hidden opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-500 ease-out mt-1">
-                  <p className="text-xs text-tea-text-sec/80 font-sans leading-relaxed line-clamp-3">
-                    {description}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </TornEdgeMask>

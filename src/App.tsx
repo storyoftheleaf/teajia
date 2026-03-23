@@ -645,8 +645,6 @@ const AppContent = () => {
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>
 
-      {/* Back to Top */}
-      <BackToTop />
 
       {/* Bottom Tab Bar for Mobile */}
       <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={isCartOpen || showAccountModal} onAccountClick={handleOpenAccount} />

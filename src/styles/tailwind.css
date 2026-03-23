@@ -351,6 +351,11 @@ p {
 }
 
 /* Brush stroke animation for Chinese aesthetic */
+@keyframes teaserBreath {
+  0%, 100% { color: var(--tea-text-dim); opacity: 0.7; }
+  50% { color: var(--tea-text-sec); opacity: 0.85; }
+}
+
 @keyframes brushStroke {
   from { stroke-dashoffset: 300; }
   to { stroke-dashoffset: 0; }

@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface LogoTextProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'panel' | 'hero';
   color?: string;
   className?: string;
   ariaLabel?: string;
@@ -16,7 +16,9 @@ export const LogoText: React.FC<LogoTextProps> = ({
   const sizeMap = {
     sm: 21,
     md: 80,
-    lg: 100
+    lg: 100,
+    panel: 44,
+    hero: 60,
   };
 
   const height = sizeMap[size];
