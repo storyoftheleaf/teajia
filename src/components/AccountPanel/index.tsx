@@ -312,7 +312,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               <Icons.Back className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
             </button>
           ) : (
-            <div className="min-w-[36px]" />
+            <button
+              onClick={(e) => toggleTheme(e)}
+              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 hover:bg-tea-gold/10 rounded-full transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4.5 h-4.5 text-tea-gold" />
+              ) : (
+                <Moon className="w-4.5 h-4.5 text-tea-gold" />
+              )}
+            </button>
           )}
           <h2 className="text-sm font-serif text-tea-text tracking-wide">{headerTitle}</h2>
           <button
