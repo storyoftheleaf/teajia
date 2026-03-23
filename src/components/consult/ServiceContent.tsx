@@ -1,195 +1,55 @@
-import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
-import { Icons } from '../Icons';
-import { CardContainer } from '../shared/CardContainer';
+import React, { forwardRef } from 'react';
 import { useSectionReveal } from '../../hooks/useSectionReveal';
-import { SURFACE_TREATMENTS } from '../../designTokens';
 
 /* =====================================================
-   Shared helpers — reused across all service sections
-   Styles sourced from SURFACE_TREATMENTS (designTokens.ts §12)
+   V2 — Editorial service sections
+
+   Spatial strategy:
+   - Alternating warm/neutral background bands (full-bleed)
+   - Pull-quotes live BETWEEN sections as thresholds
+   - Staggered alignment (left → indented → left)
+   - Massive whitespace between zones
    ===================================================== */
 
-/** Recessed panel — from SURFACE_TREATMENTS.recessedPanel */
-const alcovePanelStyle = SURFACE_TREATMENTS.recessedPanel;
+/* ── Shared helpers ── */
 
-/** Image inset — from SURFACE_TREATMENTS.imageInset */
-const alcoveInsetStyle = SURFACE_TREATMENTS.imageInset;
-
-/** Card frame — from SURFACE_TREATMENTS.cardFrame */
-const cardFrameStyle = SURFACE_TREATMENTS.cardFrame;
-
-const ServiceLabel = ({ children }: { children: string }) => (
-  <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-1.5"
-     style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
+/** Full-bleed background band — wraps a section to shift the "world" */
+const WarmBand: React.FC<{ children: React.ReactNode; tone?: 'warm' | 'cool' }> = ({ children, tone = 'warm' }) => (
+  <div className="-mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8"
+       style={{
+         background: tone === 'warm'
+           ? 'rgba(184,146,78,0.035)'
+           : 'rgba(90,110,90,0.04)',
+       }}>
     {children}
-  </p>
+  </div>
 );
 
-const ServiceHeading = ({ children }: { children: string }) => (
-  <h3 className="text-2xl md:text-3xl font-light text-tea-text mb-0 leading-snug"
-      style={{ fontFamily: "var(--font-display)" }}>
-    {children}
-  </h3>
+/** Pull-quote as a threshold between sections — belongs to neither */
+const Threshold = ({ children }: { children: string }) => (
+  <div className="py-16 md:py-24 flex justify-center">
+    <p className="text-[1.4rem] md:text-[1.7rem] leading-[1.35] font-light text-tea-text text-center max-w-[440px] px-4"
+       style={{ fontFamily: 'var(--font-display)' }}>
+      {children}
+    </p>
+  </div>
 );
 
-const PrimaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
+const ServiceCTA = ({ label, onClick, variant = 'primary' }: { label: string; onClick: () => void; variant?: 'primary' | 'secondary' }) => (
   <button onClick={onClick}
-    className="w-full text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium
-               flex items-center justify-between py-3 transition-colors duration-300 min-h-[44px]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
-    {label}
-    <Icons.ChevronRight className="w-3.5 h-3.5" />
+    className={`text-[13px] tracking-[0.01em] transition-colors duration-300 min-h-[44px]
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm
+               ${variant === 'primary'
+                 ? 'text-tea-gold hover:text-tea-gold/70'
+                 : 'text-tea-text-sec hover:text-tea-gold'
+               }`}
+    style={{ fontFamily: 'var(--font-body)' }}
+  >
+    {label} &rarr;
   </button>
 );
 
-const SecondaryCTA = ({ label, onClick }: { label: string; onClick: () => void }) => (
-  <button onClick={onClick}
-    className="w-full text-tea-text-sec hover:text-tea-gold text-xs uppercase tracking-[0.15em]
-               font-medium flex items-center justify-between py-3 transition-colors duration-300 min-h-[44px]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
-    {label}
-    <Icons.ChevronRight className="w-3.5 h-3.5" />
-  </button>
-);
-
-/* =====================================================
-   ServiceCard — the expandable printable card shell
-   ===================================================== */
-
-interface ServiceCardProps {
-  label: string;
-  heading: string;
-  summary: string;
-  badge?: string;
-  img?: string;
-  imgAlt: string;
-  children: React.ReactNode;
-  /** Content shown in the card footer (CTAs) — always visible */
-  footer?: React.ReactNode;
-}
-
-const ServiceCard = forwardRef<HTMLElement, ServiceCardProps & { revealClassName: string; revealStyle?: React.CSSProperties }>(
-  ({ label, heading, summary, badge, img, imgAlt, children, footer, revealClassName, revealStyle }, ref) => {
-    const [expanded, setExpanded] = useState(false);
-    const contentRef = useRef<HTMLDivElement>(null);
-    const [contentHeight, setContentHeight] = useState(0);
-
-    // Measure content height for smooth animation
-    useEffect(() => {
-      if (contentRef.current) {
-        const measure = () => setContentHeight(contentRef.current?.scrollHeight ?? 0);
-        measure();
-        // Re-measure on resize
-        const ro = new ResizeObserver(measure);
-        ro.observe(contentRef.current);
-        return () => ro.disconnect();
-      }
-    }, [expanded]);
-
-    const toggle = useCallback(() => setExpanded(prev => !prev), []);
-
-    return (
-      <section ref={ref} className={`pt-8 md:pt-10 ${revealClassName}`} style={revealStyle}>
-        <div style={{ ...cardFrameStyle, borderRadius: 12 }} className="overflow-hidden relative">
-          {/* Alcove texture layers — radial warmth + grain */}
-          <div style={SURFACE_TREATMENTS.radialWarmth} />
-          <div style={SURFACE_TREATMENTS.grainTexture.card} />
-
-          {/* Card body — the "printable" area with padding around everything */}
-          <div className="relative z-[1] px-6 py-6 md:px-8 md:py-7">
-            {/* Desktop: header + image side by side. Mobile: stacked */}
-            <div className="md:flex md:items-start md:gap-6">
-              {/* Text column */}
-              <div className="flex-1 min-w-0">
-                {/* Header row: label + heading + badge */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <ServiceLabel>{label}</ServiceLabel>
-                    <ServiceHeading>{heading}</ServiceHeading>
-                  </div>
-                  {/* Badge — hidden on mobile (shown inline below summary) */}
-                  {badge && (
-                    <span className="hidden md:inline-block shrink-0 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap mt-1
-                                     bg-tea-gold/[0.08] rounded-full px-3 py-1"
-                          style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
-                      {badge}
-                    </span>
-                  )}
-                </div>
-
-                {/* Summary */}
-                <p className="font-serif text-[15px] leading-relaxed text-tea-text-sec italic mt-3 max-w-[640px]">
-                  {summary}
-                </p>
-
-                {/* Badge — inline on mobile only */}
-                {badge && (
-                  <span className="md:hidden inline-block mt-3 text-[10px] uppercase tracking-wider text-tea-gold whitespace-nowrap
-                                   bg-tea-gold/[0.08] rounded-full px-3 py-1"
-                        style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}>
-                    {badge}
-                  </span>
-                )}
-              </div>
-
-              {/* Image — full-width 4:3 on mobile, compact square thumbnail on desktop */}
-              {img && (
-                <div className="relative overflow-hidden rounded-lg mt-5 md:mt-0 md:shrink-0 md:w-[180px] aspect-[4/3] md:aspect-square" style={alcoveInsetStyle}>
-                  <img
-                    src={img}
-                    alt={imgAlt}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 pointer-events-none md:hidden"
-                       style={{ background: 'linear-gradient(to bottom, transparent 50%, var(--tea-surface) 100%)' }} />
-                </div>
-              )}
-            </div>
-
-            {/* Expand/collapse toggle */}
-            <button
-              onClick={toggle}
-              aria-expanded={expanded}
-              className="group mt-4 mb-1 min-h-[44px] flex items-center gap-2
-                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
-            >
-              <span className="text-[11px] uppercase tracking-[0.12em] text-tea-text-sec
-                               group-hover:text-tea-gold transition-colors select-none">
-                Details
-              </span>
-              <Icons.ChevronDown className={`w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-all duration-300 ${
-                expanded ? 'rotate-180' : ''
-              }`} />
-            </button>
-
-            {/* Expandable content — no inner scroll, page scrolls naturally */}
-            <div
-              className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              style={{ maxHeight: expanded ? contentHeight : 0, opacity: expanded ? 1 : 0 }}
-            >
-              <div ref={contentRef} className="pt-5 pb-1">
-                {children}
-              </div>
-            </div>
-
-            {/* Footer CTAs */}
-            {footer && (
-              <div className="mt-3 pt-3 border-t border-tea-border">
-                {footer}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-    );
-  }
-);
-ServiceCard.displayName = 'ServiceCard';
-
-/* =====================================================
-   Shared section props
-   ===================================================== */
+/* ── Shared types ── */
 
 export interface ServiceSectionProps {
   onOpenInquiry: (preselect: string) => void;
@@ -198,336 +58,249 @@ export interface ServiceSectionProps {
   onNavigateToMagazine?: () => void;
 }
 
+const useCombinedRef = (reveal: { ref: React.RefObject<HTMLElement | null> }, ref: React.ForwardedRef<HTMLElement>) => {
+  return (el: HTMLElement | null) => {
+    (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
+  };
+};
+
 /* =====================================================
-   DesignSection
+   DesignSection — left-aligned, neutral background
    ===================================================== */
 
-const PILLARS = ['Design', 'Curation', 'Tea Selection', 'Training', 'Operations'];
-
 const PROCESS = [
-  { step: 1, title: 'Conversation', desc: 'Share your vision' },
-  { step: 2, title: 'Vision & Concept', desc: 'Written design direction' },
-  { step: 3, title: 'Sourcing & Creation', desc: 'Sourcing and installation' },
-  { step: 4, title: 'Training', desc: 'Your team learns the practice' },
-  { step: 5, title: 'Opening', desc: 'Launch and refinement' },
+  { step: 1, title: 'Conversation' },
+  { step: 2, title: 'Vision & Concept' },
+  { step: 3, title: 'Sourcing & Creation' },
+  { step: 4, title: 'Training' },
+  { step: 5, title: 'Opening' },
 ];
 
 export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
   ({ onOpenInquiry, onNavigateToProjects }, ref) => {
     const reveal = useSectionReveal();
-
-    const combinedRef = (el: HTMLElement | null) => {
-      (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-    };
+    const combinedRef = useCombinedRef(reveal, ref);
 
     return (
-      <ServiceCard
-        ref={combinedRef}
-        revealClassName={reveal.className}
-        revealStyle={reveal.style}
-        label="Space Design"
-        heading="Tea House Design & Curation"
-        summary="Complete tea space creation — from concept through opening. Design, curation, tea selection, training, and operations."
-        badge="By Inquiry"
-        img="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80&auto=format"
-        imgAlt="A completed tea space with natural materials"
-        footer={
-          <div className="flex flex-col gap-1">
-            <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('Space design or tea integration')} />
-            {onNavigateToProjects && (
-              <SecondaryCTA label="See completed spaces" onClick={() => onNavigateToProjects('space')} />
-            )}
-          </div>
-        }
-      >
-        {/* #17 Pillars — tag-selectable pattern, no border */}
-        <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-tea-text-dim mb-3">
-          What's Involved
+      <section ref={combinedRef} className={`pb-4 ${reveal.className}`} style={reveal.style}>
+        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-3"
+           style={{ fontFamily: 'var(--font-sans)' }}>
+          Space Design
         </p>
-        <div className="flex flex-wrap gap-2 mb-8">
-          {PILLARS.map((p) => (
-            <span key={p} className="tag-selectable">
-              {p}
-            </span>
+        <h3 className="text-2xl md:text-[2rem] font-light text-tea-text leading-snug mb-6"
+            style={{ fontFamily: 'var(--font-display)' }}>
+          Tea House Design & Curation
+        </h3>
+
+        <p className="text-[15px] leading-[1.8] text-tea-text-sec max-w-[520px] mb-10"
+           style={{ fontFamily: 'var(--font-body)' }}>
+          From concept through opening — design, curation, tea selection, training, and operations.
+        </p>
+
+        {/* Process */}
+        <div className="mb-10 max-w-[400px]">
+          {PROCESS.map(({ step, title }) => (
+            <div key={step} className="flex items-baseline gap-4 py-2"
+                 style={{ borderBottom: step < 5 ? '1px solid var(--tea-border)' : undefined }}>
+              <span className="text-tea-gold/30 font-mono text-xs tabular-nums w-4 shrink-0">{step}</span>
+              <span className="text-[14px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>{title}</span>
+            </div>
           ))}
         </div>
 
-        {/* Process */}
-        <div className="relative px-5 py-6 md:px-6 md:py-7 mb-8 overflow-hidden" style={alcovePanelStyle}>
-          <div style={SURFACE_TREATMENTS.grainTexture.panel} />
-          <div style={SURFACE_TREATMENTS.ambientGlow} />
-          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-sec mb-5">
-            The Process
-          </p>
-          {/* #7 Mobile — gold thread connector between steps */}
-          <div className="relative md:hidden space-y-0">
-            {/* Vertical gold thread */}
-            <div className="absolute left-3 top-3 bottom-3 w-[1px] bg-tea-gold/12" />
-            {PROCESS.map(({ step, title, desc }, i) => (
-              <div key={step} className={`flex items-start gap-4 relative ${i > 0 ? 'pt-4' : ''}`}>
-                <span className="relative z-[1] text-tea-gold font-mono text-xs num bg-tea-gold/[0.08] rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">
-                  {step}
-                </span>
-                <div>
-                  <span className="font-serif text-sm font-medium text-tea-text">{title}</span>
-                  <p className="text-[11px] text-tea-text-sec mt-0.5">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* #7 Desktop — horizontal gold thread connector */}
-          <div className="relative hidden md:grid md:grid-cols-5 gap-6">
-            {/* Horizontal gold thread */}
-            <div className="absolute top-3 left-3 right-3 h-[1px] bg-tea-gold/12" />
-            {PROCESS.map(({ step, title, desc }) => (
-              <div key={step} className="relative">
-                <span className="relative z-[1] text-tea-gold font-mono text-xs num bg-tea-gold/[0.08] rounded-full w-6 h-6 flex items-center justify-center mb-3">
-                  {step}
-                </span>
-                <h4 className="font-serif text-sm font-medium text-tea-text">{title}</h4>
-                <p className="text-[11px] text-tea-text-sec mt-1 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="text-[14px] text-tea-text-dim mb-8" style={{ fontFamily: 'var(--font-body)' }}>
+          <span className="text-tea-gold">$5,000</span> – <span className="text-tea-gold">$100,000+</span>
+          <span className="ml-2 text-tea-text-dim/60">·</span>
+          <span className="ml-2">scoped through conversation</span>
+        </p>
 
-        {/* #20 Pricing callout — warm panel style */}
-        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-gold/30">
-          <p className="text-sm text-tea-text-sec">
-            Projects range from <span className="text-tea-gold font-mono num">$5,000</span> to <span className="text-tea-gold font-mono num">$100,000+</span>.
-          </p>
-          <p className="text-xs text-tea-text-dim mt-1.5">
-            Every project is scoped through conversation.
-          </p>
+        <div className="flex flex-col items-start gap-0">
+          <ServiceCTA label="Start a conversation" onClick={() => onOpenInquiry('Space design or tea integration')} />
+          {onNavigateToProjects && (
+            <ServiceCTA label="See completed spaces" onClick={() => onNavigateToProjects('space')} variant="secondary" />
+          )}
         </div>
-      </ServiceCard>
+      </section>
     );
   }
 );
 DesignSection.displayName = 'DesignSection';
 
 /* =====================================================
-   SessionsSection
+   SessionsSection — indented, warm background band
    ===================================================== */
 
 const OFFERINGS = [
-  { name: 'Open Sit', price: 'Free', desc: 'Come by the studio. Share tea. No appointment.' },
-  { name: 'Guided Practice Setup', price: '$250 – 300', desc: '2+ hours. Leave fully equipped. Includes $100 teaware credit.' },
-  { name: 'Group Ceremonial Session', price: 'Inquire', desc: 'Up to 14 or two rooms up to 24. Different tearooms for different purposes.' },
-  { name: 'Private or Group Booking', price: 'From $500', desc: 'Half-day or full-day. Your gathering.' },
+  { name: 'Open Sit', price: 'Free', desc: 'Share tea at the studio. No appointment.' },
+  { name: 'Guided Practice Setup', price: '$250 – 300', desc: '2+ hours. Leave fully equipped.' },
+  { name: 'Group Ceremonial', price: 'Inquire', desc: 'Up to 24 across two tearooms.' },
+  { name: 'Private Booking', price: 'From $500', desc: 'Half-day or full-day.' },
 ];
 
 const WALKAWAY = [
   'Teas chosen for your palate',
   'Personalized brewing guide',
   'Practice philosophy card',
-  'Follow-up check-in within two weeks',
+  'Follow-up within two weeks',
 ];
 
 export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
   ({ onOpenInquiry }, ref) => {
     const reveal = useSectionReveal();
-
-    const combinedRef = (el: HTMLElement | null) => {
-      (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-    };
+    const combinedRef = useCombinedRef(reveal, ref);
 
     return (
-      <ServiceCard
-        ref={combinedRef}
-        revealClassName={reveal.className}
-        revealStyle={reveal.style}
-        label="Sessions"
-        heading="Sessions & Guidance"
-        summary="Tea experiences and practice support — in the Bali studio or wherever you are."
-        badge="From $50"
-        img="https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=1200&q=80&auto=format"
-        imgAlt="Ceremonial tea space with floor seating"
-        footer={
-          <PrimaryCTA label="Book a session" onClick={() => onOpenInquiry('A session or practice guidance')} />
-        }
-      >
-        <div className="relative max-w-[640px] mb-8 overflow-hidden" style={alcovePanelStyle}>
-          <div style={SURFACE_TREATMENTS.grainTexture.panel} />
-          <div style={SURFACE_TREATMENTS.ambientGlow} />
-          <p className="relative text-[11px] uppercase tracking-wider font-medium text-tea-text-sec px-5 pt-5 pb-2">
-            Offerings
-          </p>
-          {/* #8 Alternating row tints for readability */}
+      <section ref={combinedRef} className={`ml-6 md:ml-16 pb-4 ${reveal.className}`} style={reveal.style}>
+        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-3"
+           style={{ fontFamily: 'var(--font-sans)' }}>
+          Sessions
+        </p>
+        <h3 className="text-2xl md:text-[2rem] font-light text-tea-text leading-snug mb-6"
+            style={{ fontFamily: 'var(--font-display)' }}>
+          Sessions & Guidance
+        </h3>
+
+        <p className="text-[15px] leading-[1.8] text-tea-text-sec max-w-[480px] mb-10"
+           style={{ fontFamily: 'var(--font-body)' }}>
+          Tea experiences and practice support — in the Bali studio or wherever you are.
+        </p>
+
+        {/* Offerings */}
+        <div className="mb-10 max-w-[480px]">
           {OFFERINGS.map(({ name, price, desc }, i) => (
-            <div key={name}
-              className={`relative flex items-start justify-between px-5 py-4 ${
-                i % 2 === 1 ? 'bg-tea-accent-sub/30' : ''
-              }`}
-              style={{ borderBottom: i < OFFERINGS.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
-              <div>
-                <h4 className="font-serif text-base text-tea-text">{name}</h4>
-                <p className="text-xs text-tea-text-sec mt-1 leading-relaxed">{desc}</p>
+            <div key={name} className="flex items-baseline justify-between gap-4 py-3"
+                 style={{ borderBottom: i < OFFERINGS.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
+              <div className="min-w-0">
+                <span className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{name}</span>
+                <span className="text-[13px] text-tea-text-dim ml-3">{desc}</span>
               </div>
-              <span className="font-mono text-xs text-tea-gold num whitespace-nowrap ml-4 mt-1">{price}</span>
+              <span className="text-[13px] text-tea-gold shrink-0">{price}</span>
             </div>
           ))}
         </div>
 
-        {/* #16 Walk-away list with checkmark icons */}
-        <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-tea-text-dim mb-3">
-          What You Walk Away With
+        {/* Walk-away */}
+        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-text-dim mb-4"
+           style={{ fontFamily: 'var(--font-sans)' }}>
+          You walk away with
         </p>
-        <ul className="space-y-3">
+        <ul className="space-y-2 mb-8 max-w-[480px]">
           {WALKAWAY.map(item => (
-            <li key={item} className="flex items-start gap-3 text-sm text-tea-text-sec">
-              <span className="w-4 h-4 rounded-full bg-tea-gold/[0.08] flex items-center justify-center shrink-0 mt-0.5">
-                <Icons.Check className="w-2.5 h-2.5 text-tea-gold" />
-              </span>
+            <li key={item} className="flex items-start gap-3 text-[14px] text-tea-text-sec"
+                style={{ fontFamily: 'var(--font-body)' }}>
+              <span className="text-tea-gold/40 mt-[2px]">&mdash;</span>
               {item}
             </li>
           ))}
         </ul>
-      </ServiceCard>
+
+        <ServiceCTA label="Book a session" onClick={() => onOpenInquiry('A session or practice guidance')} />
+      </section>
     );
   }
 );
 SessionsSection.displayName = 'SessionsSection';
 
 /* =====================================================
-   JourneysSection
+   AlsoSection — back to left-aligned, neutral background
    ===================================================== */
 
-export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(
-  ({ onOpenInquiry, onNavigateToMagazine }, ref) => {
-    const reveal = useSectionReveal();
+const ALSO_SERVICES = [
+  {
+    id: 'journeys',
+    heading: 'Sourcing Journeys',
+    body: 'Travel to tea origins with twenty years of relationships opening the door.',
+    note: 'Seasonal · By invitation',
+    preselect: 'A sourcing journey',
+  },
+  {
+    id: 'sourcing',
+    heading: 'Tea Sourcing',
+    body: 'Direct sourcing from Taiwan, China, and trusted origins — for collectors, spaces, and communities.',
+    preselect: 'Tea sourcing',
+  },
+  {
+    id: 'events',
+    heading: 'Gatherings & Experiences',
+    body: 'Tea brought to your retreat, dinner, or celebration. Fully curated.',
+    note: 'From $500',
+    preselect: 'An event or group experience',
+  },
+];
 
-    const combinedRef = (el: HTMLElement | null) => {
-      (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-    };
+interface AlsoSectionProps {
+  onOpenInquiry: (preselect: string) => void;
+  onNavigateToShop?: () => void;
+  onNavigateToMagazine?: () => void;
+  journeysRef: React.RefObject<HTMLElement | null>;
+  sourcingRef: React.RefObject<HTMLElement | null>;
+  eventsRef: React.RefObject<HTMLElement | null>;
+}
 
-    return (
-      <ServiceCard
-        ref={combinedRef}
-        revealClassName={reveal.className}
-        revealStyle={reveal.style}
-        label="Travel"
-        heading="Sourcing Journeys"
-        summary="Travel to tea origins with a guide who knows the way. Taiwan, China, and beyond."
-        badge="Seasonal"
-        img="https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&q=80&auto=format"
-        imgAlt="Mountain tea terraces at sunrise"
-        footer={
-          <div className="flex flex-col gap-1">
-            <PrimaryCTA label="Start a conversation" onClick={() => onOpenInquiry('A sourcing journey')} />
-            {onNavigateToMagazine && (
-              <SecondaryCTA label="Read stories from tea origins" onClick={onNavigateToMagazine} />
-            )}
+export const AlsoSection: React.FC<AlsoSectionProps> = ({
+  onOpenInquiry, onNavigateToShop, onNavigateToMagazine,
+  journeysRef, sourcingRef, eventsRef,
+}) => {
+  const reveal = useSectionReveal();
+
+  const refs: Record<string, React.RefObject<HTMLElement | null>> = {
+    journeys: journeysRef,
+    sourcing: sourcingRef,
+    events: eventsRef,
+  };
+
+  return (
+    <section ref={reveal.ref} className={`pb-4 ${reveal.className}`} style={reveal.style}>
+      <div className="max-w-[520px]">
+        {ALSO_SERVICES.map((svc, i) => (
+          <div
+            key={svc.id}
+            ref={el => {
+              const r = refs[svc.id];
+              if (r) (r as React.MutableRefObject<HTMLElement | null>).current = el;
+            }}
+            className="py-6"
+            style={{ borderBottom: i < ALSO_SERVICES.length - 1 ? '1px solid var(--tea-border)' : undefined }}
+          >
+            <h4 className="text-lg font-light text-tea-text mb-2"
+                style={{ fontFamily: 'var(--font-display)' }}>
+              {svc.heading}
+            </h4>
+            <p className="text-[14px] leading-[1.7] text-tea-text-sec"
+               style={{ fontFamily: 'var(--font-body)' }}>
+              {svc.body}
+              {svc.note && (
+                <span className="text-tea-text-dim italic ml-1">— {svc.note}</span>
+              )}
+            </p>
+            <div className="mt-2">
+              <ServiceCTA label="Inquire" onClick={() => onOpenInquiry(svc.preselect)} />
+            </div>
           </div>
-        }
-      >
-        <p className="font-sans text-sm leading-relaxed text-tea-text-sec max-w-[640px] mb-6">
-          For two decades, I've built relationships with farmers, masters, and artisans across Asia.
-          These aren't tours — each journey is shaped around what calls to you.
-        </p>
+        ))}
+      </div>
 
-        {/* #6 Invitation badge — bg tint only, no border */}
-        <div className="inline-flex items-center gap-2 bg-tea-gold/[0.06] rounded-full px-4 py-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/50" />
-          <span className="text-xs text-tea-gold/70 uppercase tracking-wider">Seasonal &middot; By invitation</span>
-        </div>
-      </ServiceCard>
-    );
-  }
-);
+      <div className="flex flex-col items-start gap-0 mt-2">
+        {onNavigateToShop && (
+          <ServiceCTA label="Browse the shop" onClick={onNavigateToShop} variant="secondary" />
+        )}
+        {onNavigateToMagazine && (
+          <ServiceCTA label="Stories from tea origins" onClick={onNavigateToMagazine} variant="secondary" />
+        )}
+      </div>
+    </section>
+  );
+};
+
+/* ── Exports for ConsultPage layout ── */
+
+export { WarmBand, Threshold };
+
+export const JourneysSection = forwardRef<HTMLElement, ServiceSectionProps>(() => null);
 JourneysSection.displayName = 'JourneysSection';
-
-/* =====================================================
-   SourcingSection
-   ===================================================== */
-
-export const SourcingSection = forwardRef<HTMLElement, ServiceSectionProps>(
-  ({ onOpenInquiry, onNavigateToShop }, ref) => {
-    const reveal = useSectionReveal();
-
-    const combinedRef = (el: HTMLElement | null) => {
-      (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-    };
-
-    return (
-      <ServiceCard
-        ref={combinedRef}
-        revealClassName={reveal.className}
-        revealStyle={reveal.style}
-        label="Supply"
-        heading="Tea Sourcing"
-        summary="Quality tea for your space, your collection, or your community."
-        badge="By Inquiry"
-        imgAlt="Tea sourcing service"
-        footer={
-          <div className="flex flex-col gap-1">
-            <PrimaryCTA label="Inquire" onClick={() => onOpenInquiry('Tea sourcing')} />
-            {onNavigateToShop && (
-              <SecondaryCTA label="Browse the shop" onClick={onNavigateToShop} />
-            )}
-          </div>
-        }
-      >
-        <p className="font-sans text-sm leading-relaxed text-tea-text-sec max-w-[640px]">
-          Direct sourcing from Taiwan, China, and trusted origins. For individual collectors seeking access
-          to exceptional teas. For retreat centers, hotels, and communities wanting quality tea as part of
-          what they offer.
-        </p>
-      </ServiceCard>
-    );
-  }
-);
+export const SourcingSection = forwardRef<HTMLElement, ServiceSectionProps>(() => null);
 SourcingSection.displayName = 'SourcingSection';
-
-/* =====================================================
-   EventsSection
-   ===================================================== */
-
-export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
-  ({ onOpenInquiry }, ref) => {
-    const reveal = useSectionReveal();
-
-    const combinedRef = (el: HTMLElement | null) => {
-      (reveal.ref as React.MutableRefObject<HTMLElement | null>).current = el;
-      if (typeof ref === 'function') ref(el);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = el;
-    };
-
-    return (
-      <ServiceCard
-        ref={combinedRef}
-        revealClassName={reveal.className}
-        revealStyle={reveal.style}
-        label="Events"
-        heading="Tea Experiences for Gatherings"
-        summary="I bring everything — tea, teaware, the setup, and the atmosphere — to your gathering."
-        badge="From $500"
-        img="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80&auto=format"
-        imgAlt="Group tea ceremony with candles and charcoal"
-        footer={
-          <PrimaryCTA label="Inquire" onClick={() => onOpenInquiry('An event or group experience')} />
-        }
-      >
-        <p className="font-sans text-sm leading-relaxed text-tea-text-sec max-w-[640px] mb-6">
-          Retreats, dinners, brand activations, celebrations. Fully curated from start to finish.
-        </p>
-
-        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-gold/30">
-          <p className="text-sm text-tea-gold/80">From <span className="font-mono num">$500</span> for a half-day.</p>
-          <p className="text-xs text-tea-text-dim mt-1.5">
-            Full-day and multi-day experiences quoted based on scope.
-          </p>
-        </div>
-      </ServiceCard>
-    );
-  }
-);
+export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(() => null);
 EventsSection.displayName = 'EventsSection';

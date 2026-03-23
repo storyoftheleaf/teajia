@@ -15,9 +15,9 @@ import { ProjectDetail } from './consult/ProjectDetail';
 import {
   DesignSection,
   SessionsSection,
-  AlsoSection,
-  WarmBand,
-  Threshold,
+  JourneysSection,
+  SourcingSection,
+  EventsSection,
 } from './consult/ServiceContent';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 import { useScrollDirection } from '../hooks/useScrollDirection';
@@ -233,44 +233,37 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         {/* Adrian — between overview and depth */}
         <AdrianSection onOpenInquiry={() => openInquiry('')} />
 
-        {/* ── Services ── */}
-        <div className="mt-20 md:mt-28" />
+        {/* #15 Services label with gold accent underline + #14 more spacing */}
+        <div className="mt-14 md:mt-20">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text-dim font-sans mb-1">
+            Services
+          </p>
+          <div className="w-10 h-[1px] bg-tea-gold/40" />
+        </div>
 
         <DesignSection
           ref={designRef}
           onOpenInquiry={openInquiry}
           onNavigateToProjects={() => navigateTo('projects')}
         />
-
-        <Threshold>
-          Every space is different. Every project begins with listening.
-        </Threshold>
-
-        <WarmBand>
-          <div className="py-12 md:py-16">
-            <SessionsSection
-              ref={sessionsRef}
-              onOpenInquiry={openInquiry}
-            />
-          </div>
-        </WarmBand>
-
-        <Threshold>
-          You don't need to know anything about tea to sit down.
-        </Threshold>
-
-        <WarmBand tone="cool">
-          <div className="py-12 md:py-16">
-            <AlsoSection
-              onOpenInquiry={openInquiry}
-              onNavigateToShop={() => navigateToSection('SHOP')}
-              onNavigateToMagazine={() => navigateToSection('MAGAZINE')}
-              journeysRef={journeysRef}
-              sourcingRef={sourcingRef}
-              eventsRef={eventsRef}
-            />
-          </div>
-        </WarmBand>
+        <SessionsSection
+          ref={sessionsRef}
+          onOpenInquiry={openInquiry}
+        />
+        <JourneysSection
+          ref={journeysRef}
+          onOpenInquiry={openInquiry}
+          onNavigateToMagazine={() => navigateToSection('MAGAZINE')}
+        />
+        <SourcingSection
+          ref={sourcingRef}
+          onOpenInquiry={openInquiry}
+          onNavigateToShop={() => navigateToSection('SHOP')}
+        />
+        <EventsSection
+          ref={eventsRef}
+          onOpenInquiry={openInquiry}
+        />
 
         {/* Portfolio Preview */}
         <ProjectsPreview
@@ -285,7 +278,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         <ClosingCTA onOpenInquiry={() => openInquiry('')} />
       </div>
 
-      {/* Floating pill CTA */}
+      {/* #19 Floating mobile inquiry CTA */}
       <FloatingInquiryCTA onOpenInquiry={() => openInquiry('')} />
 
       <InquiryForm isOpen={inquiryOpen} onClose={() => setInquiryOpen(false)} preselect={inquiryPreselect} />
@@ -307,24 +300,26 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Show only on mobile, after scrolling past hero, hide when scrolling down
   const visible = pastHero && scrollDir.direction !== 'down';
 
   return (
-    <button
-      onClick={onOpenInquiry}
-      className={`fixed z-[35] right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))]
-                  transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
-                  ${visible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95 pointer-events-none'}
-                  bg-tea-bg/80 backdrop-blur-md text-tea-gold
-                  text-[12px] tracking-[0.06em] font-medium
-                  px-5 py-3 rounded-full
-                  shadow-[0_2px_12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(184,146,78,0.12)]
-                  hover:bg-tea-bg/95 active:scale-[0.97]
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
-      style={{ fontFamily: 'var(--font-sans)' }}
+    <div
+      className={`fixed bottom-0 inset-x-0 z-[35] md:hidden transition-transform duration-300 ${
+        visible ? 'translate-y-0' : 'translate-y-full'
+      }`}
     >
-      Start a conversation
-    </button>
+      <div className="bg-tea-bg/90 backdrop-blur-md border-t border-tea-border px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <button
+          onClick={onOpenInquiry}
+          className="w-full bg-tea-gold text-tea-bg font-sans text-xs uppercase tracking-[0.15em] font-medium
+                     py-3 rounded-xl transition-colors hover:bg-tea-gold-lt active:bg-tea-gold/80
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+        >
+          Start a Conversation
+        </button>
+      </div>
+    </div>
   );
 };
 

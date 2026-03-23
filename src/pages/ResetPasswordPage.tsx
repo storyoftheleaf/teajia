@@ -103,7 +103,7 @@ const ResetPasswordPage: React.FC = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 text-sm"
+              className="w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 text-base"
               placeholder="Min 6 characters"
               required
               autoFocus
@@ -115,7 +115,7 @@ const ResetPasswordPage: React.FC = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors text-sm"
+              className="w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors text-base"
               required
             />
           </div>

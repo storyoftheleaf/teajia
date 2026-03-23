@@ -67,7 +67,7 @@ const GROUPBY_OPTIONS = [
 const DEFAULT_TEA_VIEWS = [
   {
     id: 'default-all',
-    name: 'All Tea',
+    name: 'All',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'All',
@@ -75,7 +75,7 @@ const DEFAULT_TEA_VIEWS = [
   },
   {
     id: 'default-low-stock',
-    name: 'Low Stock',
+    name: 'Low',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
     sortConfig: [{ key: 'stockGrams', direction: 'asc' as const }],
     filterType: 'Alerts',
@@ -126,7 +126,7 @@ const DEFAULT_TEA_VIEWS = [
 const DEFAULT_TEAWARE_VIEWS = [
   {
     id: 'default-teaware-all',
-    name: 'All Teaware',
+    name: 'All',
     columns: ['productName', 'teawareCategory', 'material', 'capacityMl', 'quantityUnits', 'costAmount', 'pricePerGramUSD'],
     sortConfig: [{ key: 'teawareCategory', direction: 'asc' as const }],
     filterType: 'All',
@@ -601,6 +601,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventorySortConfig, setInventorySortConfig,
     aiPromptTemplate,
     currency,
+    setCurrency,
   } = useAppStore();
 
   // --- STATE ---
@@ -618,6 +619,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Reset glossary mode when switching categories
   useEffect(() => { setGlossaryMode(false); }, [externalCategory]);
+
+  // Escape key closes options dropdown
+  useEffect(() => {
+    if (!showOptions) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { setShowOptions(false); e.preventDefault(); } };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showOptions]);
 
   // EDIT MODE STATE
   const [isEditMode, setIsEditMode] = useState(false);
@@ -1531,14 +1540,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <>
             <button
               onClick={() => setGlossaryMode(prev => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
+              className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors shrink-0 ${
                 glossaryMode
                   ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent-sub'
                   : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
               }`}
+              aria-label="Glossary view"
             >
-              <ImageIcon size={10} />
-              Glossary
+              <ImageIcon size={12} />
             </button>
             <div className="w-px h-4 bg-tea-border/30 mx-1 shrink-0" />
           </>
@@ -1630,47 +1639,67 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {/* Mobile Options Dropdown */}
               {showOptions && (
                 <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                <div className="absolute right-4 top-10 w-52 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col">
+                <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }} />
+                <div
+                  className="absolute right-4 top-10 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col max-h-[calc(100vh-100px)] overflow-y-auto"
+                  role="menu"
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }}
+                  tabIndex={-1}
+                  ref={(el) => el?.focus()}
+                >
+                    {/* Currency selector — compact inline */}
+                    <div className="px-3 py-1.5 flex items-center gap-1 flex-wrap">
+                      {rates.map(rate => (
+                        <button
+                          key={rate.currency}
+                          onClick={() => setCurrency(rate.currency)}
+                          className={`px-1.5 py-0.5 text-[10px] rounded transition-colors ${currency === rate.currency ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                        >
+                          {rate.currency}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="h-px bg-tea-border"></div>
                     <button
                         onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}
-                        className={`px-4 py-2.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                        className={`px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                     >
-                        <AlertTriangle size={14} /> Low Stock Alerts
+                        <AlertTriangle size={13} /> Low Stock
                     </button>
                     <button
                         onClick={() => { setFilterType(filterType === 'Unverified' ? 'All' : 'Unverified'); setShowOptions(false); }}
-                        className={`px-4 py-2.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                        className={`px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                     >
-                        <CheckSquare size={14} /> Stock Verification
+                        <CheckSquare size={13} /> Verify Stock
                     </button>
                     <button
                         onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
-                        className={`px-4 py-2.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                        className={`px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                     >
-                        <Sparkles size={14} />
-                        Pending AI Approval
+                        <Sparkles size={13} />
+                        Pending AI
                         {pendingCount > 0 && (
-                            <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+                            <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[9px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
                         )}
                     </button>
-                    <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2.5 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
-                        <FileSpreadsheet size={14} /> Import CSV
+                    <div className="h-px bg-tea-border"></div>
+                    <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-3 py-2 text-left text-[11px] text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                        <FileSpreadsheet size={13} /> Import CSV
                     </button>
-                    <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2.5 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
-                        <Download size={14} /> Export CSV
+                    <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-3 py-2 text-left text-[11px] text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                        <Download size={13} /> Export CSV
                     </button>
                     <button
                         onClick={() => { handleBulkEnrich(); setShowOptions(false); }}
                         disabled={isEnriching}
-                        className="px-4 py-2.5 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 text-left text-[11px] text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                     >
-                        {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                        Enrich Missing Wisdom
+                        {isEnriching ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                        Enrich Wisdom
                     </button>
-                    <div className="h-px bg-tea-border my-1"></div>
-                    <button onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-4 py-2.5 text-left text-xs text-tea-accent hover:bg-tea-accent/10 flex items-center gap-2 transition-colors">
-                        <Trash2 size={14} /> Wipe Database
+                    <div className="h-px bg-tea-border"></div>
+                    <button onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-3 py-2 text-left text-[11px] text-tea-accent hover:bg-tea-accent/10 flex items-center gap-2 transition-colors">
+                        <Trash2 size={13} /> Wipe Database
                     </button>
                 </div>
                 </>
@@ -2174,8 +2203,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </button>
                         )}
 
-                        {/* Expand indicator */}
-                        <ChevronDown size={16} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
 
                     {/* Quick actions bar — ALWAYS visible beneath each row (no expand needed) */}

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency, productToInventoryItem } from '../utils';
 import { AlcoveCard } from '../../components/shop/AlcoveCard';
@@ -92,17 +91,15 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
     return formatCurrency(pricePerGram * grams, currency, rates);
   };
 
-  const hasNavigation = (onNext || onPrev);
-
   const dialog = (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={product?.productName || 'Tea details'}
-      className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
       onClick={onClose}
     >
-      {/* Scrollbar styles */}
+      {/* Scrollbar + responsive card height styles */}
       <style>{`
         .tea-card-scroll::-webkit-scrollbar { width: 3px; }
         .tea-card-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -111,20 +108,13 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        .alcove-modal-card { height: 100vh; height: 100dvh; }
+        @media (min-width: 768px) {
+          .alcove-modal-card { height: min(90vh, 720px); }
+        }
       `}</style>
 
-      {/* Desktop prev/next arrows — hidden on mobile (swipe gestures handle it) */}
-      {hasNavigation && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
-          disabled={!onPrev}
-          className="hidden md:flex absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg"
-        >
-          <ChevronLeft size={32} />
-        </button>
-      )}
-
-      {/* Card container with swipe (mobile swipe replaces arrows) */}
+      {/* Card container — swipe to navigate */}
       <div
         className="flex flex-col items-center justify-center w-full h-full"
         onTouchStart={onTouchStart}
@@ -133,11 +123,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-[480px]"
-          style={{
-            height: "min(90vh, 720px)",
-            minHeight: "480px",
-          }}
+          className="relative w-full md:max-w-[480px] alcove-modal-card"
         >
           <AlcoveCard
             item={mappedItem}
@@ -162,17 +148,6 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Desktop next arrow */}
-      {hasNavigation && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onNext?.(); }}
-          disabled={!onNext}
-          className="hidden md:flex absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-modal nav-control nav-control-lg"
-        >
-          <ChevronRight size={32} />
-        </button>
-      )}
 
     </div>
   );

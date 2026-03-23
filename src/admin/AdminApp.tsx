@@ -63,7 +63,7 @@ const AdminContent = () => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [currencyOpen, setCurrencyOpen] = useState(false);
+  // currencyOpen state removed — currency selector moved to InventoryView options menu
 
   const claims = getTokenClaims();
   const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
@@ -109,18 +109,6 @@ const AdminContent = () => {
   useEffect(() => {
     setIsCartOpen(false);
   }, [location.pathname]);
-
-  // Click-outside to close currency selector
-  useEffect(() => {
-    if (!currencyOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (!(e.target as Element).closest('[data-currency-selector]')) {
-        setCurrencyOpen(false);
-      }
-    };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
-  }, [currencyOpen]);
 
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
@@ -223,7 +211,7 @@ const AdminContent = () => {
                    Wares
                  </button>
                </div>
-               <div className="relative flex-1 min-w-0 max-w-[220px]">
+               <div className="relative flex-1 min-w-0">
                  <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" size={13} />
                  <input
                    type="text"
@@ -249,38 +237,9 @@ const AdminContent = () => {
              </button>
            )}
 
-           {/* Right: Currency selector + Cart */}
-           <div className="flex items-center gap-1.5 ml-auto shrink-0">
-             <div className="relative" data-currency-selector>
-                <button
-                  onClick={() => setCurrencyOpen(prev => !prev)}
-                  className="flex items-center gap-1 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors px-2 py-1.5 rounded-lg hover:bg-tea-elevated/50"
-                >
-                  {currency} <ChevronDown size={12} className={`transition-transform duration-200 ${currencyOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {currencyOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl z-[100] max-h-[min(320px,50vh)] overflow-y-auto">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleRefresh(); }}
-                      className="w-full flex items-center gap-2.5 px-4 py-3 text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50 transition-colors border-b border-tea-border"
-                    >
-                      <RefreshCw size={14} />
-                      <span>Refresh Rates</span>
-                    </button>
-                    {rates.map(rate => (
-                      <button key={rate.currency} onClick={() => { setCurrency(rate.currency); setCurrencyOpen(false); }} className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-tea-elevated/50 transition-colors ${currency === rate.currency ? 'text-tea-accent font-medium bg-tea-accent/5' : 'text-tea-text-sec'}`}>
-                        <span>{rate.currency}</span>
-                        {rate.rate !== 1 && <span className="text-[10px] text-tea-text-dim tabular-nums">{rate.rate.toFixed(2)}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-             </div>
-
-             <button onClick={() => setIsCartOpen(true)} className="relative text-tea-text-sec hover:text-tea-text transition-colors p-1.5">
-               <ShoppingCart size={18} />
-               {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-tea-accent text-tea-bg font-bold text-[10px] w-4 h-4 flex items-center justify-center rounded-full shadow-lg shadow-tea-accent/20">{cart.length}</span>}
-             </button>
+           {/* Right: Currency label (selector moved to inventory options) */}
+           <div className="flex items-center ml-auto shrink-0">
+             <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.1em] px-2 py-1">{currency}</span>
            </div>
         </div>
 

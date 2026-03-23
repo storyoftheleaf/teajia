@@ -24,18 +24,16 @@ interface AdminBottomNavProps {
 
 // Left/right tabs — mirroring BottomTabBar's layout (2 left, center, 2 right)
 const leftTabs = [
-  { id: 'inventory', label: 'Inventory', icon: Package, path: '/admin/inventory' },
+  { id: 'inventory', label: 'Stock', icon: Package, path: '/admin/inventory' },
   { id: 'activity', label: 'Activity', icon: ClipboardList, path: '/admin/activity' },
 ] as const;
 
 const rightTabs = [
   { id: 'people', label: 'People', icon: Users, path: '/admin/people' },
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/admin/dashboard' },
+  { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
 ] as const;
 
 const moreItems = [
-  { id: 'capture', label: 'Quick Capture', icon: Camera, path: '/admin/capture' },
-  { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
   { id: 'tasting', label: 'Tasting Notes', icon: Sparkles, path: '/admin/tasting' },
   { id: 'cart', label: 'Cart / Registry', icon: ShoppingCart, path: null },
 ];
@@ -59,7 +57,6 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   const isHome = location.pathname === '/admin' || location.pathname === '/admin/';
 
   const renderTab = (tab: { id: string; label: string; icon: React.ComponentType<any>; path: string }, index: number) => {
-    const Icon = tab.icon;
     const active = isActive(tab.path);
 
     return (
@@ -68,24 +65,16 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           onClick={() => navigate(tab.path)}
           aria-current={active ? 'page' : undefined}
           aria-label={tab.label}
-          className="flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-visible transition-all duration-300 group-hover:scale-105">
-            <Icon
-              className={`transition-all duration-300 flex-shrink-0 w-5 h-5 ${
-                active
-                  ? 'text-tea-gold scale-110 origin-center'
-                  : 'text-tea-text/60 group-hover:text-tea-text/85'
-              }`}
-              strokeWidth={2}
-              {...(active ? { fill: 'currentColor' } : {})}
-            />
-          </div>
-          <span className={`text-[11px] font-sans font-normal uppercase tracking-[0.15em] mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
-            active ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-          }`}>
-            {tab.label}
+          <span
+            className={`text-[15px] tracking-[0.04em] lowercase transition-all duration-300 ${
+              active ? 'text-tea-gold' : 'text-tea-text-sec/80 group-hover:text-tea-text-sec'
+            }`}
+            style={{ fontFamily: 'var(--font-display)', fontWeight: active ? 500 : 400 }}
+          >
+            {tab.label.toLowerCase()}
           </span>
         </button>
       </div>
@@ -106,14 +95,22 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
       {/* Bottom Tab Bar — identical structure to home page BottomTabBar */}
       <nav
         aria-label="Admin navigation"
-        className="flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface/92 backdrop-blur-xl z-sticky animate-[slideUp_0.4s_ease-out] transition-all duration-200 h-[56px] pb-[env(safe-area-inset-bottom)] md:hidden"
-        style={{ boxShadow: '0 -8px 24px var(--tea-accent-sub)' }}
+        className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 h-[44px] pb-[env(safe-area-inset-bottom)] md:hidden"
+        style={{
+          background: 'rgba(40,33,26,0.65)',
+          boxShadow: '0 -1px 0 rgba(184,146,78,0.06)',
+        }}
       >
         <div className="flex items-center w-full px-0 h-full">
           {/* Left tabs */}
-          {leftTabs.map((tab, index) => renderTab(tab, index))}
+          {leftTabs.map((tab, index) => (
+            <React.Fragment key={tab.id}>
+              {renderTab(tab, index)}
+              <div className="w-px h-3 bg-tea-gold/10" />
+            </React.Fragment>
+          ))}
 
-          {/* Center — Home with Teajia logo emblem (identical to home page) */}
+          {/* Center — Home logo */}
           <div className="flex items-center h-full flex-1">
             <button
               onClick={() => navigate('/')}
@@ -121,23 +118,21 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
               title="Home"
               aria-label="Return to home"
             >
-              <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
-                <LogoEmblem
-                  size={48}
-                  color="var(--tea-accent-sub)"
-                  className="transition-all duration-300"
-                />
-              </div>
               <LogoText
                 size="sm"
                 color="var(--tea-text-sec)"
-                className="relative z-10 transition-all duration-300 scale-[1.08]"
+                className="transition-all duration-300"
               />
             </button>
           </div>
 
           {/* Right tabs */}
-          {rightTabs.map((tab, index) => renderTab(tab, index + leftTabs.length + 1))}
+          {rightTabs.map((tab, index) => (
+            <React.Fragment key={tab.id}>
+              <div className="w-px h-3 bg-tea-gold/10" />
+              {renderTab(tab, index + leftTabs.length + 1)}
+            </React.Fragment>
+          ))}
         </div>
       </nav>
 

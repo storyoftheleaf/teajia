@@ -71,16 +71,16 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           {mode === 'signup' && (
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-text-sec transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-base text-tea-text outline-none focus:border-tea-text-sec transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
             </div>
           )}
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
-             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-text-sec transition-colors placeholder-tea-text-sec/50" placeholder="you@example.com" required />
+             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-base text-tea-text outline-none focus:border-tea-text-sec transition-colors placeholder-tea-text-sec/50" placeholder="you@example.com" required />
           </div>
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Password</label>
-             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text outline-none focus:border-tea-text-sec transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
+             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-base text-tea-text outline-none focus:border-tea-text-sec transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
           </div>
           {error && <div className="p-3 bg-tea-accent/10 border border-tea-accent-sub text-tea-accent text-sm rounded-lg">{error}</div>}
           <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-accent/10">

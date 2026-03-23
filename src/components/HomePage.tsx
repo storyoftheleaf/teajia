@@ -226,7 +226,7 @@ const CharacterRevealCapture: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your email"
-                className="w-full bg-transparent text-[13px] font-light text-center outline-none pb-2.5 pr-7 transition-colors placeholder:italic placeholder:text-tea-text-sec/50"
+                className="w-full bg-transparent text-base font-light text-center outline-none pb-2.5 pr-7 transition-colors placeholder:italic placeholder:text-tea-text-sec/50"
                 style={{
                   fontFamily: 'var(--font-display)',
                   color: '#ede4d4',

@@ -8,6 +8,7 @@ import { getNavIcon, getIconScale } from './navIconConfig';
 import { useTheme } from '../context/ThemeContext';
 import { useLongPress } from '../hooks/useLongPress';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 
 
@@ -29,14 +30,24 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const { toggleTheme, theme } = useTheme();
   const isDark = theme === 'dark';
   const auth = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [themeFlash, setThemeFlash] = React.useState(false);
+  const isOnAdmin = location.pathname.startsWith('/admin');
 
   const centerLongPress = useLongPress({
     delay: 500,
-    onLongPress: (e) => {
-      toggleTheme(e as React.MouseEvent);
+    onLongPress: () => {
+      if (!auth.isAdmin) return;
+      if ('vibrate' in navigator) { navigator.vibrate?.(30); }
       setThemeFlash(true);
       setTimeout(() => setThemeFlash(false), 400);
+      if (isOnAdmin) {
+        navigate('/');
+        onNavigate('HOME');
+      } else {
+        navigate('/admin');
+      }
     },
     onClick: () => onNavigate('HOME'),
   });
@@ -52,9 +63,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   ];
 
   const renderTabButton = (section: { id: Section; label: string }, index: number) => {
-    const IconComponent = getNavIcon(section.id);
     const isActive = activeSection === section.id;
-    const scale = getIconScale(section.id);
 
     return (
       <button
@@ -67,51 +76,40 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className={`flex-1 min-w-0 h-full flex flex-col items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none`}
+        className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
         style={{ animationDelay: `${index * 50}ms` }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
       >
-        {/* Icon with relative positioning for badge */}
-        <div className="relative flex-shrink-0 w-6 h-6 flex items-center justify-center overflow-visible transition-all duration-300 group-hover:scale-105">
-          <IconComponent
-            className={`transition-all duration-300 flex-shrink-0 ${
-              isActive
-                ? 'text-tea-gold w-5 h-5 scale-110 origin-center'
-                : 'text-tea-text/60 w-5 h-5 group-hover:text-tea-text/85'
-            }`}
-            strokeWidth={2}
-            {...(isActive ? { fill: 'currentColor' } : {})}
-            style={scale !== 1 ? { transform: `scale(${scale})` } : undefined}
-          />
-          {/* Animated cart badge on Shop tab */}
-          {section.id === 'SHOP' && (
-            <AnimatePresence mode="wait">
-              {cartItemCount > 0 && (
-                <motion.span
-                  key={cartItemCount}
-                  className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-tea-gold text-white text-[10px] font-bold flex items-center justify-center leading-none pointer-events-none"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: [1.3, 1], opacity: 1 }}
-                  exit={{ scale: 0.5, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: 'backOut' }}
-                  aria-label={`${cartItemCount} item${cartItemCount !== 1 ? 's' : ''} in cart`}
-                >
-                  {cartItemCount}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          )}
-        </div>
+        {/* Cart badge */}
+        {section.id === 'SHOP' && (
+          <AnimatePresence mode="wait">
+            {cartItemCount > 0 && (
+              <motion.span
+                key={cartItemCount}
+                className="absolute top-1 right-2 min-w-[16px] h-4 px-0.5 rounded-full bg-tea-gold text-white text-[9px] font-bold flex items-center justify-center leading-none pointer-events-none"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: [1.3, 1], opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'backOut' }}
+                aria-label={`${cartItemCount} item${cartItemCount !== 1 ? 's' : ''} in cart`}
+              >
+                {cartItemCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        )}
 
-        {/* Label */}
-        <span className={`text-[11px] font-sans font-normal uppercase tracking-[0.15em] mt-1 transition-all duration-300 text-center truncate px-1 relative z-10 ${
-          isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-        }`}>
-          {section.label}
+        {/* Text-only label */}
+        <span
+          className={`text-[15px] tracking-[0.04em] lowercase transition-all duration-300 ${
+            isActive ? 'text-tea-gold' : 'text-tea-text-sec/80 group-hover:text-tea-text-sec'
+          }`}
+          style={{ fontFamily: 'var(--font-display)', fontWeight: isActive ? 500 : 400 }}
+        >
+          {section.label.toLowerCase()}
         </span>
-
       </button>
     );
   };
@@ -121,54 +119,51 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
         aria-label="Main navigation"
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 bg-tea-surface backdrop-blur-xl z-overlay animate-[slideUp_0.4s_ease-out] transition-transform duration-200 h-[56px] pb-[env(safe-area-inset-bottom)] ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 h-[44px] pb-[env(safe-area-inset-bottom)] ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
-        style={{ boxShadow: '0 -1px 12px rgba(0,0,0,0.25)' }}
+        style={{
+          background: 'rgba(40,33,26,0.65)',
+          boxShadow: '0 -1px 0 rgba(184,146,78,0.06)',
+        }}
       >
         <div className="flex items-center w-full px-0 h-full">
           {/* Left sections */}
           {leftSections.map((section, index) => (
-            <div key={section.id} className="flex items-center h-full flex-1">
-              {renderTabButton(section, index)}
-            </div>
+            <React.Fragment key={section.id}>
+              <div className="flex items-center h-full flex-1">
+                {renderTabButton(section, index)}
+              </div>
+              <div className="w-px h-3 bg-tea-gold/10" />
+            </React.Fragment>
           ))}
 
-          {/* Center - HOME Logo (Subtle Seal) */}
+          {/* Center - HOME */}
           <div className="flex items-center h-full flex-1">
             <button
               {...centerLongPress}
               className={`flex-1 h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] ${themeFlash ? 'scale-95' : ''}`}
               style={{ animationDelay: `${leftSections.length * 50}ms` }}
-              title="Home · Long press for theme"
-              aria-label="Return to home, long press to toggle theme"
+              title="Home · Long press for admin"
+              aria-label="Return to home, long press to toggle admin"
             >
-              <div className="absolute inset-0 flex items-end justify-center pb-1 pointer-events-none">
-                <LogoEmblem
-                  size={48}
-                  color={isDark
-                    ? (activeSection === 'HOME' ? 'var(--tea-border)' : 'var(--tea-accent-sub)')
-                    : (activeSection === 'HOME' ? 'var(--tea-text-sec)' : 'var(--tea-accent-sub)')
-                  }
-                  className={`transition-all duration-300 ${themeFlash ? 'scale-125 opacity-50' : ''}`}
-                />
-              </div>
               <LogoText
                 size="sm"
                 color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
-                className={`relative z-10 transition-all duration-300 scale-[1.08] ${themeFlash ? 'opacity-60' : ''}`}
+                className={`transition-all duration-300 ${activeSection !== 'HOME' ? 'opacity-60' : ''}`}
               />
             </button>
           </div>
 
           {/* Right sections */}
           {rightSections.map((section, index) => (
-            <div key={section.id} className="flex items-center h-full flex-1">
-              {renderTabButton(section, index + leftSections.length + 1)}
-            </div>
+            <React.Fragment key={section.id}>
+              <div className="w-px h-3 bg-tea-gold/10" />
+              <div className="flex items-center h-full flex-1">
+                {renderTabButton(section, index + leftSections.length + 1)}
+              </div>
+            </React.Fragment>
           ))}
-
-          {/* Account button removed — account accessible via sidebar/header */}
         </div>
       </nav>
     </LayoutGroup>
