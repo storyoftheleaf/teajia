@@ -3,14 +3,20 @@ import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   type: ToastType;
   message: string;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType) => void;
+  showToast: (message: string, type?: ToastType, options?: { action?: ToastAction; duration?: number }) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -18,12 +24,12 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info', options?: { action?: ToastAction; duration?: number }) => {
     const id = Math.random().toString(36).substring(7);
-    setToasts((prev) => [...prev, { id, type, message }]);
+    setToasts((prev) => [...prev, { id, type, message, action: options?.action }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    }, options?.duration ?? 4000);
   }, []);
 
   return (
@@ -45,9 +51,17 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             {t.type === 'error' && <AlertCircle size={16} />}
             {t.type === 'info' && <Info size={16} />}
             <span className="text-xs font-medium tracking-wide font-sans">{t.message}</span>
+            {t.action && (
+              <button
+                onClick={() => { t.action!.onClick(); setToasts((prev) => prev.filter((x) => x.id !== t.id)); }}
+                className="ml-auto text-[10px] font-bold uppercase tracking-[0.15em] text-tea-accent hover:text-tea-text transition-colors px-2 py-0.5"
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-              className="ml-auto opacity-50 hover:opacity-100 transition-opacity"
+              className={`${t.action ? '' : 'ml-auto '}opacity-50 hover:opacity-100 transition-opacity`}
             >
               <X size={14} />
             </button>

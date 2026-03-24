@@ -185,7 +185,7 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-2.5 flex items-center gap-2 flex-none">
+        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>

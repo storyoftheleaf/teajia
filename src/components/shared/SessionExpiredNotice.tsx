@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SESSION_EXPIRED_EVENT } from '../../lib/api';
 
 /**
@@ -12,7 +13,6 @@ export const SessionExpiredNotice = () => {
 
   useEffect(() => {
     const handleExpired = () => {
-      // Avoid stacking multiple notifications
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
       setVisible(true);
       dismissTimer.current = setTimeout(() => {
@@ -28,37 +28,43 @@ export const SessionExpiredNotice = () => {
   }, []);
 
   return (
-    <div
-      role="alert"
-      aria-live="polite"
-      className={`fixed top-0 left-0 right-0 z-toast flex items-center justify-center gap-2 px-4 py-2.5 text-xs tracking-wide border-b transition-transform duration-500 ease-out bg-tea-surface border-tea-border text-tea-text-sec ${
-        visible ? 'translate-y-0' : '-translate-y-full'
-      }`}
-    >
-      <svg
-        className="w-4 h-4 text-tea-gold shrink-0"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-      <span>Session expired. Please sign in again.</span>
-      <button
-        onClick={() => setVisible(false)}
-        className="ml-2 text-tea-text-sec hover:text-tea-text transition-colors"
-        aria-label="Dismiss"
-      >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-    </div>
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          role="alert"
+          aria-live="polite"
+          initial={{ y: '-100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '-100%', opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="fixed top-0 left-0 right-0 z-toast flex items-center justify-center gap-2 px-4 py-2.5 text-xs tracking-wide border-b bg-tea-surface border-tea-border text-tea-text-sec"
+        >
+          <svg
+            className="w-4 h-4 text-tea-gold shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Session expired. Please sign in again.</span>
+          <button
+            onClick={() => setVisible(false)}
+            className="ml-2 text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="Dismiss"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

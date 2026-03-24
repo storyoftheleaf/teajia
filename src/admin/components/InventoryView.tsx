@@ -39,6 +39,17 @@ const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; classNa
   FlaskConical,
   Archive,
   Coffee,
+  FileText,
+  Globe,
+};
+
+const VIEW_FILTER_LABELS: Record<string, string> = {
+  Alerts: 'Needs Attention',
+  Unpublished: 'Unpublished',
+  Unverified: 'Stock Unverified',
+  Samples: 'Samples',
+  Personal: 'Personal Collection',
+  Archived: 'Archived',
 };
 
 // --- COLUMN DEFINITIONS ---
@@ -77,7 +88,7 @@ const GROUPBY_OPTIONS = [
 ] as const;
 
 const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null; columns: string[]; sortConfig: { key: string; direction: 'asc' | 'desc' }[]; filterType: string; groupBy: string | null }> = [
-  // Text labels first
+  // Text label
   {
     id: 'default-all',
     name: 'All',
@@ -87,25 +98,25 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
     filterType: 'All',
     groupBy: null,
   },
-  {
-    id: 'default-drafts',
-    name: 'Drafts',
-    icon: null,
-    columns: ['productName', 'type', 'year', 'originRegion', 'vendor', 'costAmount', 'stockGrams'],
-    sortConfig: [{ key: 'type', direction: 'asc' as const }],
-    filterType: 'Drafts',
-    groupBy: null,
-  },
+  // Icons after
   {
     id: 'default-forsale',
-    name: 'Shop',
-    icon: null,
+    name: '',
+    icon: 'Globe',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'ForSale',
     groupBy: null,
   },
-  // Icons after
+  {
+    id: 'default-drafts',
+    name: '',
+    icon: 'FileText',
+    columns: ['productName', 'type', 'year', 'originRegion', 'vendor', 'costAmount', 'stockGrams'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Drafts',
+    groupBy: null,
+  },
   {
     id: 'default-low-stock',
     name: '',
@@ -1534,7 +1545,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+                const name = product.givenName || product.productName;
+                if (!isVerified) {
+                  handleProductUpdate(product.id, 'stockVerifiedAt', new Date().toISOString());
+                  showToast(`${name} verified`, 'success', {
+                    duration: 5000,
+                    action: {
+                      label: 'Undo',
+                      onClick: () => handleProductUpdate(product.id, 'stockVerifiedAt', null),
+                    },
+                  });
+                } else {
+                  handleProductUpdate(product.id, 'stockVerifiedAt', null);
+                }
               }}
               title={isVerified ? `Verified ${new Date(product.stockVerifiedAt!).toLocaleDateString()}` : 'Mark as verified'}
               className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300' : 'bg-tea-surface text-tea-border hover:text-tea-text-sec hover:bg-tea-bg'}`}
@@ -1641,13 +1664,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       setFilterType(view.filterType);
                       setInventoryGroupBy(view.groupBy);
                     }}
-                    className={`flex items-center justify-center shrink-0 ${isIconOnly ? 'w-8 h-8' : 'px-2 h-8 text-[11px] uppercase tracking-[0.08em]'} rounded-md transition-colors ${
+                    className={`flex items-center justify-center shrink-0 ${isIconOnly ? 'w-9 h-9' : 'px-2 h-9 text-[11px] uppercase tracking-[0.08em]'} rounded-md transition-colors ${
                       activeViewId === view.id
                         ? 'bg-tea-accent/15 text-tea-accent'
                         : 'text-tea-text-dim hover:text-tea-text-sec'
                     }`}
                   >
-                    {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
+                    {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
                     {view.name || null}
                     {!view.id.startsWith('default-') && (
                       <span
@@ -1667,9 +1690,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="flex items-center gap-0 ml-auto shrink-0 relative">
             <button
               onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
-              className={`w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
-              <ArrowUpDown size={14} />
+              <ArrowUpDown size={15} />
             </button>
             {showMobileSort && (
               <>
@@ -1714,9 +1737,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             )}
             <button
               onClick={() => { setShowOptions(!showOptions); setShowMobileSort(false); }}
-              className="w-8 h-8 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-md"
+              className="w-9 h-9 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-md"
             >
-              <MoreHorizontal size={16} />
+              <MoreHorizontal size={17} />
             </button>
             {showOptions && (
               <>
@@ -1859,10 +1882,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-30 border-b border-tea-border py-2 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      <div className={`sticky top-0 z-30 border-b border-tea-border py-2 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
 
         {/* Desktop header — unchanged */}
-        <div className="hidden md:flex px-6 max-w-7xl mx-auto items-center gap-4">
+        <div className="flex px-6 max-w-7xl mx-auto items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
                 <Settings size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
                 <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
@@ -2039,6 +2062,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
         onScroll={(e) => filterType !== 'Pending' && setScrollTop(e.currentTarget.scrollTop)}
       >
+
+        {/* ACTIVE FILTER LABEL — shows for icon-only views */}
+        {VIEW_FILTER_LABELS[filterType] && (
+          <div className="px-4 md:px-0 pt-4 pb-2 max-w-7xl mx-auto">
+            <div className="flex items-center gap-2.5">
+              {(() => {
+                const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
+                const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
+                return IconComp ? <IconComp size={14} className="text-tea-text-sec" /> : null;
+              })()}
+              <span className="text-xs uppercase tracking-[0.15em] text-tea-text">{VIEW_FILTER_LABELS[filterType]}</span>
+              <span className="ml-auto text-[10px] text-tea-text-dim uppercase tracking-[0.15em]">{processedProducts.length} item{processedProducts.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+        )}
 
         {/* STOCK VERIFICATION BANNER */}
         {filterType === 'Unverified' && (
@@ -2388,7 +2426,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               <button
                                 onClick={() => {
                                   const isVerified = !!product.stockVerifiedAt;
-                                  handleProductUpdate(product.id, 'stockVerifiedAt', isVerified ? null : new Date().toISOString());
+                                  const name = product.givenName || product.productName;
+                                  if (!isVerified) {
+                                    handleProductUpdate(product.id, 'stockVerifiedAt', new Date().toISOString());
+                                    showToast(`${name} verified`, 'success', {
+                                      duration: 5000,
+                                      action: {
+                                        label: 'Undo',
+                                        onClick: () => handleProductUpdate(product.id, 'stockVerifiedAt', null),
+                                      },
+                                    });
+                                  } else {
+                                    handleProductUpdate(product.id, 'stockVerifiedAt', null);
+                                  }
                                 }}
                                 className={`flex-shrink-0 w-10 h-10 mr-2 rounded-lg flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-tea-surface text-tea-text-dim'}`}
                               >
