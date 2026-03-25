@@ -23,7 +23,7 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
       {categories.map((cat) => (
         <button
           key={cat.id}
-          onClick={() => onSelect(cat.id)}
+          onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); onSelect(cat.id); }}
           className={`flex-shrink-0 pill ${activeId === cat.id ? 'pill-active' : ''}`}
         >
           {cat.label}

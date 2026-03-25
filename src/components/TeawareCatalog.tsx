@@ -130,7 +130,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
             <button
-              onClick={() => setActiveCategory('All')}
+              onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory('All'); }}
               className={`shrink-0 pill ${activeCategory === 'All' ? 'pill-active' : ''}`}
             >
               All
@@ -138,7 +138,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
             {categories.map(c => (
               <button
                 key={c.id}
-                onClick={() => setActiveCategory(prev => prev === c.id ? 'All' : c.id)}
+                onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory(prev => prev === c.id ? 'All' : c.id); }}
                 className={`shrink-0 pill ${activeCategory === c.id ? 'pill-active' : ''}`}
               >
                 {c.label}

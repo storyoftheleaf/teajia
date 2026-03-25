@@ -169,7 +169,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
                   <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${getTypeColor(item.type)}`}>
                     {item.type}
                   </span>
-                  <h4 className="font-serif text-base text-tea-text mt-2 mb-1">{item.title}</h4>
+                  <h4 className="text-base text-tea-text mt-2 mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
                   <p className="text-xs text-tea-text/60 line-clamp-2">{item.description}</p>
                 </div>
               </CardContainer>
@@ -209,7 +209,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
               <div className="w-8 h-8 rounded-sm bg-tea-green/10 flex items-center justify-center shrink-0">
                 <Icons.Download className="w-4 h-4 text-tea-green" />
               </div>
-              <span className="font-serif text-sm text-tea-text flex-1">{item.title}</span>
+              <span className="text-sm text-tea-text flex-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</span>
               <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
               <Icons.Next className="w-4 h-4 text-tea-text/30 group-hover:text-tea-gold transition-colors shrink-0" />
             </button>
@@ -231,7 +231,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
                 <div className="w-10 h-10 rounded-sm bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center mb-3">
                   <Icons.Music className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h4 className="font-serif text-sm text-tea-text mb-1">{item.title}</h4>
+                <h4 className="text-sm text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
                 <p className="text-xs text-tea-text/50 line-clamp-2 mb-3">{item.description}</p>
                 <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-300 text-xs font-medium">
                   <Icons.Play className="w-3.5 h-3.5" />
@@ -257,7 +257,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
                 <div className="w-10 h-10 rounded-sm bg-tea-text/10 flex items-center justify-center mb-3">
                   <Icons.Play className="w-5 h-5 text-tea-text/60" />
                 </div>
-                <h4 className="font-serif text-sm text-tea-text mb-1">{item.title}</h4>
+                <h4 className="text-sm text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
                 <p className="text-xs text-tea-text/50 line-clamp-2 mb-3">{item.description}</p>
                 <div className="flex items-center gap-1.5 text-tea-gold text-xs font-medium">
                   <Icons.Play className="w-3.5 h-3.5" />
@@ -306,7 +306,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
                       {REFERENCE_ICONS[item.id] || <Icons.Grid className="w-6 h-6" />}
                     </span>
                   </div>
-                  <h4 className="font-serif text-sm text-tea-text mb-1">{item.title}</h4>
+                  <h4 className="text-sm text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
                   <p className="text-[11px] text-tea-text/50 line-clamp-2">{item.description}</p>
                 </div>
               </CardContainer>

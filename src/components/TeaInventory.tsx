@@ -297,7 +297,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button
-                              onClick={() => { setActiveType('All'); setOpenFilter(null); }}
+                              onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType('All'); setOpenFilter(null); }}
                               className={`pill ${activeType === 'All' ? 'pill-active' : ''}`}
                            >
                               All
@@ -305,7 +305,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                            {teaTypes.map(t => (
                               <button
                                  key={t}
-                                 onClick={() => { setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
+                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
                                  className={`pill ${activeType === t ? 'pill-active' : ''}`}
                               >
                                  {t}
@@ -317,7 +317,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         <div className="flex flex-wrap gap-1.5">
                            {activeFeeling && (
                               <button
-                                 onClick={() => { setActiveFeeling(null); setOpenFilter(null); }}
+                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(null); setOpenFilter(null); }}
                                  className="pill"
                               >
                                  Clear
@@ -326,7 +326,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                            {availableFeelings.map(f => (
                               <button
                                  key={f.id}
-                                 onClick={() => { setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
+                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
                                  className={`pill ${activeFeeling === f.id ? 'pill-active' : ''}`}
                               >
                                  {f.label}
