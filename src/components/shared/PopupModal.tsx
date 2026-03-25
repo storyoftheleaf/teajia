@@ -297,8 +297,8 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       {/* Mobile: Bottom sheet */}
       <div
         ref={sheetRef}
-        className={`md:hidden absolute bottom-0 left-0 right-0 flex flex-col transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ transform: isVisible ? `translateY(${sheetDragY}px)` : 'translateY(100%)' }}
+        className={`md:hidden absolute left-0 right-0 flex flex-col transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ transform: isVisible ? `translateY(${sheetDragY}px)` : 'translateY(100%)', bottom: 0, maxHeight: 'calc(100dvh - 49px - env(safe-area-inset-bottom, 0px))' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Image area — peek above sheet */}
@@ -317,7 +317,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         </div>
 
         {/* Sheet content */}
-        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[calc(49px+env(safe-area-inset-bottom,0px))] lg:pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
             <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />

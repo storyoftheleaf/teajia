@@ -51,7 +51,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div
-      className={`z-30 -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out inset-panel rounded-none border-b border-tea-border ${className}`}
+      className={`sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none border-b border-tea-border ${className}`}
     >
       <div className="w-full">
         {/* Back navigation — inside the glass */}
