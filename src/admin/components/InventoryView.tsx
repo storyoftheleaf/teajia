@@ -44,6 +44,7 @@ const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; classNa
 };
 
 const VIEW_FILTER_LABELS: Record<string, string> = {
+  All: 'All Inventory',
   ForSale: 'For Sale',
   Drafts: 'Drafts',
   Alerts: 'Needs Attention',
@@ -1645,7 +1646,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       )}
 
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
-      <div className={`md:hidden sticky top-[37px] z-20 bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
+      <div className={`md:hidden sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         <div className="flex items-center px-2 py-1.5 gap-0.5">
           {/* View tabs — text then icons */}
           {(() => {
