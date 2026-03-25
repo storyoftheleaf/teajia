@@ -13,14 +13,15 @@ interface InsightOverlayProps {
   onClose: () => void;
 }
 
-const INSIGHT_COLORS: Record<Insight['type'], string> = {
-  design: 'bg-tea-gold',
-  curation: 'bg-tea-gold',
-  layout: 'bg-tea-gold',
-  material: 'bg-tea-gold',
-  philosophy: 'bg-tea-gold',
-  story: 'bg-tea-gold',
-  work: 'bg-tea-gold',
+// Insight type → badge-format variant from card-utilities.css
+const INSIGHT_VARIANTS: Record<Insight['type'], string> = {
+  design: 'badge-format-amber',
+  curation: 'badge-format-amber',
+  layout: 'badge-format-amber',
+  material: 'badge-format-amber',
+  philosophy: 'badge-format-amber',
+  story: 'badge-format-amber',
+  work: 'badge-format-amber',
 };
 
 export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose }) => {
@@ -42,7 +43,7 @@ export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose
         </button>
 
         {/* Category Badge */}
-        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${INSIGHT_COLORS[insight.type]} text-white text-xs font-medium uppercase tracking-[0.15em] mb-6`}>
+        <div className={`badge-format ${INSIGHT_VARIANTS[insight.type]} mb-6`}>
           <span>{insight.type}</span>
         </div>
 

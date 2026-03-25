@@ -7,13 +7,13 @@ import { useParallax } from '../hooks/useParallax';
 import { useLongPress } from '../hooks/useLongPress';
 import { QuickActionMenu } from './shared/QuickActionMenu';
 
-// Category badge configuration
-const CATEGORY_BADGES: Record<StoryCategory, { label: string; color: string }> = {
-  'tea-feature': { label: 'Tea Feature', color: 'bg-tea-gold' },
-  'interview': { label: 'Interview', color: 'bg-emerald-700' },
-  'science': { label: 'Science', color: 'bg-blue-700' },
-  'curated': { label: 'Curated', color: 'bg-purple-700' },
-  'pairing': { label: 'Pairing', color: 'bg-amber-700' },
+// Category badge configuration — uses .badge-format variants from card-utilities.css
+const CATEGORY_BADGES: Record<StoryCategory, { label: string; variant: string }> = {
+  'tea-feature': { label: 'Tea Feature', variant: 'badge-format-amber' },
+  'interview': { label: 'Interview', variant: 'badge-format-green' },
+  'science': { label: 'Science', variant: 'badge-format-blue' },
+  'curated': { label: 'Curated', variant: 'badge-format-purple' },
+  'pairing': { label: 'Pairing', variant: 'badge-format-orange' },
 };
 
 interface CardProps {
@@ -83,29 +83,29 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                             <Icons.Audio className="w-5 h-5 text-tea-text/60 group-hover:text-tea-gold transition-colors" />
                        </div>
 
-                       <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500">
+                       <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500" style={{ fontFamily: 'var(--font-display)' }}>
                            {story.title}
                        </h3>
-                       <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.2em] mb-4">
+                       <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.15em] mb-4">
                            {story.subtitle}
                        </p>
 
                        <div className="w-6 h-[1px] bg-tea-gold/10 mb-4"></div>
 
-                       <span className="text-[9px] font-mono text-tea-text-sec">{story.durationOrTime}</span>
+                       <span className="text-[9px] font-mono tabular-nums text-tea-text-sec">{story.durationOrTime}</span>
                    </div>
                 ) : (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
-                        <h3 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2">
+                        <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>
                            {story.title}
                         </h3>
                         <div className="flex flex-col gap-1.5 items-center">
-                             <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.2em]">
+                             <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.15em]">
                                 {story.subtitle}
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
                                 <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
-                                <p className="font-serif font-light italic text-[18px] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]">
+                                <p className="font-light italic text-[clamp(16px,1.5vw+8px,18px)] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]" style={{ fontFamily: 'var(--font-body)' }}>
                                     {story.description}
                                 </p>
                                 <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
@@ -155,7 +155,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {/* Category Badge */}
                {story.category && CATEGORY_BADGES[story.category] && (
-                 <div className={`absolute top-3 left-3 z-30 px-2 py-1 ${CATEGORY_BADGES[story.category].color} text-tea-text text-[10px] uppercase tracking-[0.15em] font-sans rounded-sm shadow-md`}>
+                 <div className={`absolute top-3 left-3 z-30 badge-format ${CATEGORY_BADGES[story.category].variant}`}>
                    {CATEGORY_BADGES[story.category].label}
                  </div>
                )}
@@ -172,7 +172,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                               <Icons.Audio className="w-3 h-3 opacity-90" />
                               <span className="text-xs uppercase tracking-[0.15em] opacity-90">Listen</span>
                            </div>
-                           <span className="text-xs font-mono opacity-80">{story.durationOrTime}</span>
+                           <span className="text-xs font-mono tabular-nums opacity-80">{story.durationOrTime}</span>
                         </div>
                     </div>
                  </div>
@@ -192,11 +192,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
         {!isTextOnly && (
             <div className="pt-3 pb-1 px-0.5 flex justify-between items-start gap-3">
                 <div className="text-left min-w-0 flex-1">
-                    <h3 className="text-[17px] font-serif text-tea-text leading-[1.2] mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate">
+                    <h3 className="text-[17px] text-tea-text leading-[1.2] mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate" style={{ fontFamily: 'var(--font-display)' }}>
                         {story.title}
                     </h3>
                     <div className="flex items-center gap-2">
-                        <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] font-sans truncate">
+                        <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] font-sans truncate">
                             {story.subtitle}
                         </p>
                     </div>

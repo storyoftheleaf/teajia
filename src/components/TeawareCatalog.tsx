@@ -131,11 +131,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
             <button
               onClick={() => setActiveCategory('All')}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all ${
-                activeCategory === 'All'
-                  ? 'bg-tea-elevated text-tea-text font-medium border border-tea-border'
-                  : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
-              }`}
+              className={`shrink-0 pill ${activeCategory === 'All' ? 'pill-active' : ''}`}
             >
               All
             </button>
@@ -143,11 +139,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
               <button
                 key={c.id}
                 onClick={() => setActiveCategory(prev => prev === c.id ? 'All' : c.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all ${
-                  activeCategory === c.id
-                    ? 'bg-tea-gold text-tea-bg font-medium border border-tea-gold'
-                    : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
-                }`}
+                className={`shrink-0 pill ${activeCategory === c.id ? 'pill-active' : ''}`}
               >
                 {c.label}
               </button>
