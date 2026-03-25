@@ -110,12 +110,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
         aria-label="Main navigation"
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 border-t border-tea-border/30 ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
           background: 'rgba(var(--tea-bg-rgb, 24,19,14), 0.95)',
-          boxShadow: '0 -4px 12px rgba(var(--tea-bg-rgb, 24,19,14),0.06)',
+          boxShadow: '0 -6px 20px rgba(var(--tea-bg-rgb, 24,19,14),0.25), 0 -1px 4px rgba(var(--tea-bg-rgb, 24,19,14),0.15)',
           height: 'calc(49px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           WebkitTapHighlightColor: 'transparent',
