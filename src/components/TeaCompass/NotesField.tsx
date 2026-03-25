@@ -84,7 +84,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
 
   return (
     <div className="space-y-1">
-      <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+      <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
         Notes
       </label>
 
@@ -101,7 +101,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
                   onBlur={commitEdit}
                   onKeyDown={handleEditKeyDown}
                   rows={2}
-                  className="w-full bg-tea-surface text-tea-text border border-tea-gold rounded px-3 py-2 text-sm resize-none focus:outline-none transition-all"
+                  className="w-full bg-tea-surface text-tea-text border border-tea-border/40 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-tea-gold transition-all"
                 />
               ) : (
                 <div
@@ -129,7 +129,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
           onKeyDown={handleKeyDown}
           placeholder="What did the vendor say? Your impressions..."
           rows={focused ? 5 : 3}
-          className="flex-1 bg-tea-surface text-tea-text border border-tea-border rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-tea-gold transition-all"
+          className="flex-1 bg-tea-surface text-tea-text border border-tea-border/40 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-tea-gold transition-all"
         />
         {currentInput.trim() && (
           <button

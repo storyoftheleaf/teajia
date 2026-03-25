@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { BrowseCard } from './BrowseCard';
+import { VendorHistory } from './VendorHistory';
 import { CompassIcon } from './CompassIcon';
-import type { TeaCompassEntry, BrowseGrouping, BrowseFilter } from './types';
+import type { TeaCompassEntry, BrowseGrouping, BrowseFilter, TeaType, TeaForm } from './types';
+import type { Currency } from '../../admin/types';
 
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
@@ -24,8 +26,30 @@ function getDateGroup(dateStr: string): string {
 }
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
-  const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter } = useTeaCompassStore();
+  const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter, lastVendorId, lastVendorName } = useTeaCompassStore();
+  const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleBuyAgain = useCallback((item: {
+    name: string;
+    type?: string;
+    form?: string;
+    priceAmount?: number;
+    priceCurrency: string;
+    pricePerUnitGrams?: number;
+  }) => {
+    const newId = startNewCapture();
+    updateEntry(newId, {
+      name: item.name,
+      type: item.type as TeaType | undefined,
+      form: item.form as TeaForm | undefined,
+      priceAmount: item.priceAmount,
+      priceCurrency: item.priceCurrency as Currency,
+      pricePerUnitGrams: item.pricePerUnitGrams,
+      status: 'buying',
+    });
+  }, [startNewCapture, updateEntry]);
 
   const filteredEntries = useMemo(() => {
     if (browseFilter === 'all') return entries;
@@ -88,6 +112,16 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   return (
     <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+      {lastVendorName && (
+        <div className="mb-4">
+          <VendorHistory
+            vendorId={lastVendorId || undefined}
+            vendorName={lastVendorName}
+            onBuyAgain={handleBuyAgain}
+          />
+        </div>
+      )}
+
       <div className="space-y-3">
         <div className="flex gap-1">
           {groupingOptions.map((opt) => (

@@ -76,48 +76,51 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
   const presets = !unitBased && entry.form ? GRAM_PRESETS[entry.form] : null;
 
   return (
-    <div className="py-4 border-b border-tea-border/40 last:border-b-0">
-      {/* Chinese name, large */}
-      {entry.chineseName && (
-        <p className="text-tea-text text-xl font-medium tracking-wide mb-0.5">
-          {entry.chineseName}
+    <div className="py-5 border-b border-tea-border/30 last:border-b-0">
+      {/* Hero: Chinese name or English name promoted */}
+      {entry.chineseName ? (
+        <>
+          <p className="text-2xl font-chinese font-medium text-tea-text tracking-wide mb-0.5">
+            {entry.chineseName}
+          </p>
+          <p className="text-sm text-tea-text-sec">
+            {entry.name || 'Unnamed tea'}
+          </p>
+        </>
+      ) : (
+        <p className="text-xl font-display text-tea-text">
+          {entry.name || 'Unnamed tea'}
         </p>
       )}
 
-      {/* English name + quantity row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-tea-text-sec text-base">
-            {entry.name || 'Unnamed tea'}
-          </p>
-          {entry.type && (
-            <p className="text-tea-text-dim text-xs mt-0.5">
-              {entry.type}{entry.form ? ` · ${entry.form}` : ''}{entry.year ? ` · ${entry.year}` : ''}
-            </p>
-          )}
-        </div>
+      {entry.type && (
+        <p className="text-tea-text-dim text-xs mt-0.5">
+          {entry.type}{entry.form ? ` · ${entry.form}` : ''}{entry.year ? ` · ${entry.year}` : ''}
+        </p>
+      )}
 
-        {/* Quantity + price calc */}
-        <div className="flex items-center gap-2 shrink-0 text-right">
+      {/* Quantity controls */}
+      <div className="flex items-center justify-between gap-3 mt-3">
+        <div className="flex items-center gap-2 shrink-0">
           {unitBased ? (
             /* Unit stepper for cakes/bricks/tuo */
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
-                className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
+                className="w-8 h-8 rounded-full bg-tea-surface flex items-center justify-center
                            text-tea-text-sec active:bg-tea-border transition-colors"
               >
-                <Minus size={14} />
+                <Minus size={15} />
               </button>
-              <span className="text-tea-text text-lg font-medium w-6 text-center">{quantity}</span>
+              <span className="text-xl tabular-nums text-tea-text font-medium w-8 text-center">{quantity}</span>
               <button
                 type="button"
                 onClick={() => onQuantityChange(quantity + 1)}
-                className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
+                className="w-8 h-8 rounded-full bg-tea-surface flex items-center justify-center
                            text-tea-text-sec active:bg-tea-border transition-colors"
               >
-                <Plus size={14} />
+                <Plus size={15} />
               </button>
             </div>
           ) : (
@@ -127,7 +130,7 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
                 type="number"
                 value={quantity}
                 onChange={(e) => onQuantityChange(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-16 text-right text-tea-text text-lg font-medium bg-transparent
+                className="w-20 text-xl tabular-nums text-center text-tea-text font-medium bg-transparent
                            border-b border-tea-border/60 focus:border-tea-gold outline-none
                            px-1 py-0.5"
               />
@@ -135,47 +138,46 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
             </div>
           )}
         </div>
+
+        {/* Line total */}
+        {entry.priceAmount != null && entry.priceAmount > 0 && (
+          <div className="text-right tabular-nums">
+            <p className="text-sm text-tea-text-sec">
+              {unitBased
+                ? <>{quantity} <span className="text-tea-text-dim">×</span> {formatCurrency(entry.priceAmount, entry.priceCurrency)}</>
+                : entry.pricePerUnitGrams
+                  ? <>{quantity}g <span className="text-tea-text-dim">×</span> {formatCurrency(entry.priceAmount / entry.pricePerUnitGrams, entry.priceCurrency)}/g</>
+                  : null
+              }
+            </p>
+            <p className="text-lg font-medium text-tea-text">
+              {formatCurrency(lineTotal, entry.priceCurrency)}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Gram equivalent for unit-based */}
       {unitBased && gramEquiv && (
-        <p className="text-tea-text-dim text-xs mt-1">
+        <p className="text-tea-text-dim text-xs mt-1.5">
           {gramEquiv}g total ({getDefaultGrams(entry.form)}g each)
         </p>
       )}
 
       {/* Gram presets for loose tea */}
       {presets && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
           {presets.map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => onQuantityChange(g)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors
-                ${quantity === g
-                  ? 'bg-tea-gold/20 text-tea-gold'
-                  : 'bg-tea-surface text-tea-text-sec active:bg-tea-border'
-                }`}
+              className={`pill ${quantity === g ? 'pill-active' : ''}`}
             >
               {g}g
             </button>
           ))}
         </div>
-      )}
-
-      {/* Line total */}
-      {entry.priceAmount != null && entry.priceAmount > 0 && (
-        <p className="text-tea-text text-right text-base font-medium mt-2">
-          {unitBased
-            ? `${quantity} × ${formatCurrency(entry.priceAmount, entry.priceCurrency)}`
-            : entry.pricePerUnitGrams
-              ? `${quantity}g × ${formatCurrency(entry.priceAmount / entry.pricePerUnitGrams, entry.priceCurrency)}/g`
-              : ''
-          }
-          {' = '}
-          <span className="text-lg">{formatCurrency(lineTotal, entry.priceCurrency)}</span>
-        </p>
       )}
     </div>
   );
@@ -185,55 +187,67 @@ const TeawareLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityC
   const lineTotal = (entry.priceAmount ?? 0) * quantity;
 
   return (
-    <div className="py-4 border-b border-tea-border/40 last:border-b-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          {entry.chineseName && (
-            <p className="text-tea-text text-xl font-medium tracking-wide mb-0.5">
-              {entry.chineseName}
-            </p>
-          )}
-          <p className="text-tea-text-sec text-base">
+    <div className="py-5 border-b border-tea-border/30 last:border-b-0">
+      {/* Hero: Chinese name or English name promoted */}
+      {entry.chineseName ? (
+        <>
+          <p className="text-2xl font-chinese font-medium text-tea-text tracking-wide mb-0.5">
+            {entry.chineseName}
+          </p>
+          <p className="text-sm text-tea-text-sec">
             {entry.name || 'Unnamed teaware'}
           </p>
-          {(entry.teawareCategory || entry.material) && (
-            <p className="text-tea-text-dim text-xs mt-0.5">
-              {[entry.teawareCategory, entry.material, entry.capacityMl ? `${entry.capacityMl}ml` : null]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          )}
-        </div>
+        </>
+      ) : (
+        <p className="text-xl font-display text-tea-text">
+          {entry.name || 'Unnamed teaware'}
+        </p>
+      )}
 
-        {/* Quantity stepper */}
-        <div className="flex items-center gap-1.5 shrink-0">
+      {(entry.teawareCategory || entry.material) && (
+        <p className="text-tea-text-dim text-xs mt-0.5">
+          {[entry.teawareCategory, entry.material, entry.capacityMl ? `${entry.capacityMl}ml` : null]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      )}
+
+      {/* Quantity + line total */}
+      <div className="flex items-center justify-between gap-3 mt-3">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
+            className="w-8 h-8 rounded-full bg-tea-surface flex items-center justify-center
                        text-tea-text-sec active:bg-tea-border transition-colors"
           >
-            <Minus size={14} />
+            <Minus size={15} />
           </button>
-          <span className="text-tea-text text-lg font-medium w-6 text-center">{quantity}</span>
+          <span className="text-xl tabular-nums text-tea-text font-medium w-8 text-center">{quantity}</span>
           <button
             type="button"
             onClick={() => onQuantityChange(quantity + 1)}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
+            className="w-8 h-8 rounded-full bg-tea-surface flex items-center justify-center
                        text-tea-text-sec active:bg-tea-border transition-colors"
           >
-            <Plus size={14} />
+            <Plus size={15} />
           </button>
         </div>
-      </div>
 
-      {/* Line total */}
-      {entry.priceAmount != null && entry.priceAmount > 0 && (
-        <p className="text-tea-text text-right text-base font-medium mt-2">
-          {quantity > 1 && `${quantity} × ${formatCurrency(entry.priceAmount, entry.priceCurrency)} = `}
-          <span className="text-lg">{formatCurrency(lineTotal, entry.priceCurrency)}</span>
-        </p>
-      )}
+        {/* Line total */}
+        {entry.priceAmount != null && entry.priceAmount > 0 && (
+          <div className="text-right tabular-nums">
+            {quantity > 1 && (
+              <p className="text-sm text-tea-text-sec">
+                {quantity} <span className="text-tea-text-dim">×</span> {formatCurrency(entry.priceAmount, entry.priceCurrency)}
+              </p>
+            )}
+            <p className="text-lg font-medium text-tea-text">
+              {formatCurrency(lineTotal, entry.priceCurrency)}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -377,11 +391,11 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
           {/* ── Header: vendor + date ── */}
           <div className="px-6 pb-4">
             {vendorName && (
-              <h1 className="text-tea-text text-2xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-display text-tea-text tracking-tight">
                 {vendorName}
               </h1>
             )}
-            <p className="text-tea-text-dim text-sm mt-0.5">{today}</p>
+            <p className="text-sm text-tea-text-dim mt-0.5">{today}</p>
           </div>
 
           {/* ── Line items ── */}
@@ -410,11 +424,11 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
           </div>
 
           {/* ── Grand total + confirm ── */}
-          <div className="px-6 pt-4 pb-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] border-t border-tea-border">
+          <div className="px-6 pb-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
             {/* Total */}
-            <div className="flex items-baseline justify-between mb-5">
-              <span className="text-tea-text-sec text-base">Total</span>
-              <span className="text-tea-text text-3xl font-semibold tracking-tight">
+            <div className="flex items-baseline justify-between mt-6 pt-6 border-t border-tea-border mb-5">
+              <span className="text-lg text-tea-text-sec">Total</span>
+              <span className="text-3xl font-medium text-tea-gold tabular-nums tracking-tight">
                 {formatCurrency(grandTotal, currency)}
               </span>
             </div>
@@ -427,10 +441,10 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center justify-center gap-2 py-3.5 rounded-lg bg-green-600/20 text-green-400"
+                  className="flex items-center justify-center gap-2 py-4 rounded-lg bg-green-600/20 text-green-400"
                 >
                   <Check size={20} />
-                  <span className="font-medium">Purchase confirmed</span>
+                  <span className="text-base font-medium uppercase tracking-wider">Purchase confirmed</span>
                 </motion.div>
               ) : (
                 <motion.button
@@ -439,8 +453,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
                   onClick={handleConfirm}
                   disabled={buyingEntries.length === 0}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-3.5 rounded-lg bg-tea-gold text-tea-bg font-semibold text-base
-                             shadow-lg transition-opacity disabled:opacity-40"
+                  className="w-full py-4 rounded-lg bg-tea-gold text-tea-bg text-base font-medium
+                             uppercase tracking-wider shadow-lg transition-opacity disabled:opacity-40"
                 >
                   Confirm Purchase
                 </motion.button>

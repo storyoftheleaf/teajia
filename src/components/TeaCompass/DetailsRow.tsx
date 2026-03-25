@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Droplets } from 'lucide-react';
 import {
   SEASONS,
   STORAGE_OPTIONS,
@@ -9,6 +9,9 @@ import {
   type Storage,
   type TeaType,
 } from './types';
+import type { TastingData } from '../../types';
+import type { TastingCategoryId } from '../../data/tastingTaxonomy';
+import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 
 interface DetailsRowProps {
   year?: number;
@@ -16,10 +19,16 @@ interface DetailsRowProps {
   storage?: Storage;
   originRegion?: string;
   teaType?: TeaType;
+  chineseName?: string;
+  tasting?: TastingData;
+  hasTasting: boolean;
   onYearChange: (year: number | undefined) => void;
   onSeasonChange: (season: Season | undefined) => void;
   onStorageChange: (storage: Storage | undefined) => void;
   onRegionChange: (region: string | undefined) => void;
+  onChineseNameChange: (name: string) => void;
+  onOpenTasting: () => void;
+  onTastingStripRemove: (categoryId: TastingCategoryId, termId: string) => void;
 }
 
 const showStorage = (type?: TeaType) =>
@@ -31,10 +40,16 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   storage,
   originRegion,
   teaType,
+  chineseName,
+  tasting,
+  hasTasting,
   onYearChange,
   onSeasonChange,
   onStorageChange,
   onRegionChange,
+  onChineseNameChange,
+  onOpenTasting,
+  onTastingStripRemove,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [customRegion, setCustomRegion] = useState('');
@@ -65,7 +80,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
     [handleCustomRegionSubmit]
   );
 
-  const hasValues = year || season || storage || originRegion;
+  const hasValues = year || season || storage || originRegion || chineseName;
 
   return (
     <div>
@@ -89,6 +104,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
               season,
               storage,
               originRegion,
+              chineseName,
             ]
               .filter(Boolean)
               .join(' / ')}
@@ -108,7 +124,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
             <div className="space-y-3 pt-2">
               {/* Year */}
               <div className="space-y-1">
-                <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
                   Year
                 </label>
                 <input
@@ -118,13 +134,13 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   value={year ?? ''}
                   onChange={handleYearInput}
                   maxLength={4}
-                  className="w-24 bg-tea-surface text-tea-text border border-tea-border rounded px-3 py-2 text-sm num focus:outline-none focus:border-tea-gold transition-colors"
+                  className="w-24 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-sm num transition-colors"
                 />
               </div>
 
               {/* Season */}
               <div className="space-y-1">
-                <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
                   Season
                 </label>
                 <div className="flex gap-1.5">
@@ -144,7 +160,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
               {/* Storage (conditional) */}
               {showStorage(teaType) && (
                 <div className="space-y-1">
-                  <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+                  <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
                     Storage
                   </label>
                   <div className="flex gap-1.5 flex-wrap">
@@ -164,7 +180,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
 
               {/* Region */}
               <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
                   Region
                 </label>
                 <div className="flex gap-1 flex-wrap">
@@ -187,9 +203,42 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                     onChange={(e) => setCustomRegion(e.target.value)}
                     onKeyDown={handleCustomRegionKey}
                     onBlur={handleCustomRegionSubmit}
-                    className="flex-1 bg-tea-surface text-tea-text border border-tea-border rounded px-3 py-1.5 text-xs focus:outline-none focus:border-tea-gold transition-colors"
+                    className="flex-1 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-xs transition-colors"
                   />
                 </div>
+              </div>
+
+              {/* Chinese name — optional, at the bottom of details */}
+              <div className="space-y-1">
+                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+                  Chinese name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={chineseName || ''}
+                  onChange={(e) => onChineseNameChange(e.target.value)}
+                  placeholder="e.g. \u5927\u7D05\u888D"
+                  className="w-full bg-transparent text-tea-text-sec text-xs placeholder:text-tea-text-dim/50 border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 transition-colors"
+                />
+              </div>
+
+              {/* Tasting button + TastingProfileStrip */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={onOpenTasting}
+                  className="pill flex items-center gap-1.5 text-xs text-tea-text-sec"
+                >
+                  <Droplets size={13} strokeWidth={1.5} />
+                  {hasTasting ? 'Edit tasting' : 'Record tasting'}
+                </button>
+
+                {hasTasting && tasting && (
+                  <TastingProfileStrip
+                    value={tasting}
+                    onRemove={onTastingStripRemove}
+                  />
+                )}
               </div>
             </div>
           </motion.div>

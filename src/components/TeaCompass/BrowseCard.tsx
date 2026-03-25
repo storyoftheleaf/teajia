@@ -146,57 +146,57 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
   }, [entry.type, entry.form, entry.year, entry.season, entry.storage, entry.originRegion]);
 
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-md overflow-hidden transition-colors duration-150">
-      {/* Collapsed row -- always visible */}
+    <div className="bg-tea-surface/40 hover:bg-tea-surface/70 rounded-lg overflow-hidden transition-colors duration-150">
+      {/* Collapsed row -- always visible, two-line layout */}
       <button
         type="button"
         onClick={onToggleExpand}
-        className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-tea-elevated/30 transition-colors duration-150"
+        className="w-full px-3 py-2.5 text-left transition-colors duration-150"
       >
-        {/* Name */}
-        <span
-          className={`flex-1 min-w-0 truncate text-sm font-sans ${
-            hasName ? 'text-tea-text' : 'text-tea-text-dim italic'
-          }`}
-        >
-          {hasName ? entry.name : 'Untitled'}
-        </span>
-
-        {/* Type badge */}
-        {entry.type && (
+        {/* Line 1: Name + Chevron */}
+        <div className="flex items-center gap-2">
           <span
-            className="badge-status shrink-0"
-            style={getTeaTypeBadgeStyle(entry.type)}
+            className={`flex-1 min-w-0 truncate text-sm font-sans ${
+              hasName ? 'text-tea-text' : 'text-tea-text-dim italic'
+            }`}
           >
-            {entry.type}
+            {hasName ? entry.name : 'Untitled'}
           </span>
-        )}
 
-        {/* Status badge */}
-        <span className={`${statusConfig.className} shrink-0`}>
-          {statusConfig.label}
-        </span>
+          <motion.span
+            animate={{ rotate: expanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="shrink-0 text-tea-text-dim"
+          >
+            <ChevronDown size={14} />
+          </motion.span>
+        </div>
 
-        {/* Price */}
-        {entry.priceAmount != null && entry.priceAmount > 0 && (
-          <span className="text-xs num text-tea-gold shrink-0">
-            {formatPrice(entry.priceAmount, entry.priceCurrency)}
+        {/* Line 2: Type + Status + Price + Date */}
+        <div className="flex items-center gap-2 mt-1">
+          {entry.type && (
+            <span
+              className="badge-status shrink-0 text-[11px]"
+              style={getTeaTypeBadgeStyle(entry.type)}
+            >
+              {entry.type}
+            </span>
+          )}
+
+          <span className={`${statusConfig.className} shrink-0 text-[11px]`}>
+            {statusConfig.label}
           </span>
-        )}
 
-        {/* Date */}
-        <span className="text-xs text-tea-text-dim shrink-0 tabular-nums">
-          {formatRelativeDate(entry.createdAt)}
-        </span>
+          {entry.priceAmount != null && entry.priceAmount > 0 && (
+            <span className="text-[11px] num text-tea-gold shrink-0">
+              {formatPrice(entry.priceAmount, entry.priceCurrency)}
+            </span>
+          )}
 
-        {/* Expand chevron */}
-        <motion.span
-          animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="shrink-0 text-tea-text-dim"
-        >
-          <ChevronDown size={14} />
-        </motion.span>
+          <span className="text-[11px] text-tea-text-dim shrink-0 tabular-nums ml-auto">
+            {formatRelativeDate(entry.createdAt)}
+          </span>
+        </div>
       </button>
 
       {/* Expanded content */}

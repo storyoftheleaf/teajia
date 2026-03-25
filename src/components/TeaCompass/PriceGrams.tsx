@@ -61,7 +61,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
     <div className="space-y-3">
       {/* Price + Currency row */}
       <div className="space-y-1.5">
-        <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+        <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
           {getGramLabel(form, pricePerUnitGrams)}
         </label>
         <div className="flex gap-2">
@@ -71,7 +71,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             placeholder="0"
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
-            className="flex-1 bg-tea-surface text-tea-text border border-tea-border rounded px-3 py-2 text-base num focus:outline-none focus:border-tea-gold transition-colors"
+            className="flex-1 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
           />
         </div>
         <div className="flex gap-1 flex-wrap">
@@ -81,7 +81,6 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               type="button"
               onClick={() => onCurrencyChange(c.value)}
               className={priceCurrency === c.value ? 'pill-active' : 'pill'}
-              style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem' }}
             >
               {c.label}
             </button>
@@ -91,7 +90,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
 
       {/* Grams row */}
       <div className="space-y-1.5">
-        <label className="text-xs text-tea-text-dim uppercase tracking-wider">
+        <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
           Grams
         </label>
         <input
@@ -100,7 +99,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
           placeholder={form ? String(DEFAULT_GRAMS[form]) : '100'}
           value={pricePerUnitGrams ?? ''}
           onChange={handleGramsInput}
-          className="w-full bg-tea-surface text-tea-text border border-tea-border rounded px-3 py-2 text-base num focus:outline-none focus:border-tea-gold transition-colors"
+          className="w-full bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
         />
         <div className="flex gap-1 flex-wrap">
           {presets.map((g) => (
@@ -109,7 +108,6 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               type="button"
               onClick={() => onGramsChange(g)}
               className={pricePerUnitGrams === g ? 'pill-active' : 'pill'}
-              style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem' }}
             >
               {g}g
             </button>

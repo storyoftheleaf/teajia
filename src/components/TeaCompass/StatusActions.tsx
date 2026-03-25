@@ -38,11 +38,11 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
 
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
-  const draftTransactions = useLedgerStore((s) => s.getDraftTransactions());
+  const transactions = useLedgerStore((s) => s.transactions);
 
   // Check if this entry is already in a ledger transaction
-  const isInLedger = entry && draftTransactions.some(
-    (tx) => tx.items.some((item) => item.compassEntryId === entry.id)
+  const isInLedger = entry && transactions.some(
+    (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
   );
 
   const handleWant = () => {

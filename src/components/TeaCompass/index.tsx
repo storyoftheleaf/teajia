@@ -33,10 +33,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
 
   // Ledger draft count for badge
-  const draftCount = useLedgerStore((s) => s.getDraftTransactions().length);
-  const draftItemCount = useLedgerStore((s) =>
-    s.getDraftTransactions().reduce((sum, tx) => sum + tx.items.length, 0)
-  );
+  const transactions = useLedgerStore((s) => s.transactions);
+  const draftItemCount = transactions
+    .filter((tx) => tx.status === 'draft')
+    .reduce((sum, tx) => sum + tx.items.length, 0);
 
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || (activeEntryId ? 'capture' : 'browse'));

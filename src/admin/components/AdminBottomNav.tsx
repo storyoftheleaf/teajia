@@ -49,7 +49,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const draftItemCount = useLedgerStore((s) =>
-    s.getDraftTransactions().reduce((sum, tx) => sum + tx.items.length, 0)
+    s.transactions.filter((tx) => tx.status === 'draft').reduce((sum, tx) => sum + tx.items.length, 0)
   );
 
   const isActive = (path: string) => {
