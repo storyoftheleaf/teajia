@@ -1,7 +1,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { InventoryItem } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { TeaInventory } from './TeaInventory';
@@ -163,7 +163,7 @@ export const Shop: React.FC<ShopProps> = ({
             )}
 
             {/* Title */}
-            <h3 className="font-serif text-lg md:text-xl text-tea-text leading-tight mb-1">
+            <h3 className="text-lg md:text-xl text-tea-text leading-tight mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {set.name}
             </h3>
 
@@ -211,8 +211,9 @@ export const Shop: React.FC<ShopProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap"
+                className="bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                {isAddingToCart[set.id] && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
               </button>
             </div>
@@ -268,7 +269,10 @@ export const Shop: React.FC<ShopProps> = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
-        {isLoading && !isError && teaInventory.length === 0 && (
+        {isLoading && !isError && (
+          (activeTab === 'tea' && teaInventory.length === 0) ||
+          (activeTab === 'teaware' && teawareInventory.length === 0)
+        ) && (
           <SectionSkeleton variant="shop" />
         )}
 
@@ -277,7 +281,7 @@ export const Shop: React.FC<ShopProps> = ({
             <div className="w-14 h-14 border border-tea-border rounded-full flex items-center justify-center mb-5">
               <Icons.Leaf className="w-6 h-6 text-tea-gold/60" />
             </div>
-            <h3 className="font-serif text-lg text-tea-text mb-2">Unable to load teas</h3>
+            <h3 className="text-lg text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Unable to load teas</h3>
             <p className="text-tea-text/50 text-sm mb-6 max-w-sm">
               {error?.message || 'We couldn\'t reach the server. Please check your connection and try again.'}
             </p>
@@ -299,7 +303,7 @@ export const Shop: React.FC<ShopProps> = ({
           />
         )}
 
-        {!isError && activeTab === 'tea' && (
+        {!isError && !(isLoading && teaInventory.length === 0) && activeTab === 'tea' && (
           <TeaInventory
             inventory={teaInventory}
             onAddToCart={onAddToCart}
@@ -310,7 +314,7 @@ export const Shop: React.FC<ShopProps> = ({
           />
         )}
 
-        {!isError && activeTab === 'teaware' && (
+        {!isError && !(isLoading && teawareInventory.length === 0) && activeTab === 'teaware' && (
           <TeawareCatalog
             externalInventory={teawareInventory}
             onAddToCart={onAddToCart}
