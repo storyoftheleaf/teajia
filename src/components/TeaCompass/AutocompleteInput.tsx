@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
 // Persisted set of dismissed suggestions (typos, etc.)
@@ -41,32 +40,22 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   onSelect,
   itemData,
 }) => {
-  const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [dismissedVersion, setDismissedVersion] = useState(0);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [dismissedVersion, setDismissedVersion] = useState(0);
-
-  // Filter suggestions: case-insensitive contains, exclude dismissed, max 6
+  // Filter: case-insensitive contains, exclude dismissed, max 8
   const filtered = value.length >= 2
     ? suggestions
         .filter((s) => s.toLowerCase().includes(value.toLowerCase()) && isNotDismissed(s))
-        .slice(0, 6)
+        .slice(0, 8)
     : [];
-  // dismissedVersion is used to force re-filter after a dismiss
   void dismissedVersion;
-
-  const showDropdown = open && focused && filtered.length > 0;
-
-  useEffect(() => {
-    setOpen(filtered.length > 0);
-  }, [filtered.length]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange(e.target.value);
-      setOpen(true);
     },
     [onChange]
   );
@@ -74,7 +63,6 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const handleSelect = useCallback(
     (suggestion: string) => {
       onChange(suggestion);
-      setOpen(false);
       if (onSelect && itemData?.[suggestion]) {
         onSelect(itemData[suggestion]);
       }
@@ -95,35 +83,27 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter' && showDropdown && filtered.length > 0) {
+      if (e.key === 'Enter' && focused && filtered.length > 0) {
         e.preventDefault();
         handleSelect(filtered[0]);
       }
     },
-    [showDropdown, filtered, handleSelect]
+    [focused, filtered, handleSelect]
   );
 
   const handleFocus = useCallback(() => {
     if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     setFocused(true);
-    setOpen(true);
   }, []);
 
   const handleBlur = useCallback(() => {
-    // Small delay so tap on suggestion registers before close
-    blurTimeoutRef.current = setTimeout(() => {
-      setFocused(false);
-      setOpen(false);
-    }, 180);
+    blurTimeoutRef.current = setTimeout(() => setFocused(false), 150);
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
-    };
+    return () => { if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current); };
   }, []);
 
-  // Highlight matching portion of text
   const renderHighlighted = (text: string) => {
     if (!value) return text;
     const idx = text.toLowerCase().indexOf(value.toLowerCase());
@@ -131,14 +111,16 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     return (
       <>
         {text.slice(0, idx)}
-        <span className="font-semibold text-tea-gold">{text.slice(idx, idx + value.length)}</span>
+        <span className="font-medium text-tea-gold">{text.slice(idx, idx + value.length)}</span>
         {text.slice(idx + value.length)}
       </>
     );
   };
 
+  const showSuggestions = focused && filtered.length > 0;
+
   return (
-    <div className="relative flex-1 min-w-0">
+    <div className="flex-1 min-w-0">
       <input
         ref={inputRef}
         type="text"
@@ -150,40 +132,32 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         placeholder={placeholder}
         className={className}
       />
-      <AnimatePresence>
-        {showDropdown && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 z-20 bg-tea-surface border border-tea-border rounded-lg shadow-lg mt-1 overflow-hidden"
-          >
-            {filtered.map((suggestion) => (
-              <div key={suggestion} className="flex items-center hover:bg-tea-elevated transition-colors group">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSelect(suggestion);
-                  }}
-                  className="flex-1 text-left px-3 py-2 text-sm text-tea-text cursor-pointer min-w-0 truncate"
-                >
-                  {renderHighlighted(suggestion)}
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => handleDismiss(suggestion, e)}
-                  className="shrink-0 px-2 py-2 text-tea-text-dim/0 group-hover:text-tea-text-dim hover:!text-tea-text transition-colors"
-                  aria-label="Remove suggestion"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showSuggestions && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {filtered.map((suggestion) => (
+            <div key={suggestion} className="flex items-center gap-0.5 group">
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelect(suggestion);
+                }}
+                className="text-[12px] text-tea-text-sec bg-tea-surface/60 hover:bg-tea-surface px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+              >
+                {renderHighlighted(suggestion)}
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => handleDismiss(suggestion, e)}
+                className="text-tea-text-dim/0 group-hover:text-tea-text-dim hover:!text-tea-text transition-colors -ml-1"
+                aria-label="Remove suggestion"
+              >
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
