@@ -2689,8 +2689,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {/* Grouped sections */}
               {Object.entries(groupedProducts).map(([groupKey, items]) => {
                 const isCollapsed = collapsedGroups.has(groupKey);
-                const totalStock = Math.round(items.reduce((sum, p) => sum + (p.stockGrams || 0), 0));
-                const totalRetail = items.reduce((sum, p) => sum + ((p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * (p.stockGrams || 0), 0);
+                const totalStock = Math.round(items.reduce((sum, p) => sum + (Number(p.stockGrams) || 0), 0));
+                const totalRetail = items.reduce((sum, p) => sum + (Number(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) || 0) * (Number(p.stockGrams) || 0), 0);
                 return (
                   <div key={groupKey}>
                     <button
