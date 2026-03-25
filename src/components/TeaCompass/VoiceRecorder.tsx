@@ -136,7 +136,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="text-[11px] text-red-400 font-mono tabular-nums"
+            className="text-[11px] text-tea-gold font-mono tabular-nums"
           >
             {formatDuration(duration)}
           </motion.span>
@@ -156,7 +156,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="text-[11px] text-red-400 max-w-[120px] text-center leading-tight"
+            className="text-[11px] text-tea-text-dim max-w-[120px] text-center leading-tight"
           >
             {errorMsg}
           </motion.span>
@@ -172,11 +172,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
         whileTap={state !== 'transcribing' ? { scale: 0.95 } : undefined}
         className={`relative w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-colors
           ${state === 'recording'
-            ? 'bg-red-500/20 text-red-400'
+            ? 'bg-tea-gold/15 text-tea-gold'
             : state === 'transcribing'
               ? 'bg-tea-surface text-tea-text-dim cursor-wait'
               : state === 'error'
-                ? 'bg-red-500/10 text-red-400'
+                ? 'bg-tea-surface text-tea-text-dim'
                 : 'bg-tea-surface text-tea-text-dim hover:text-tea-text border border-tea-border'
           }`}
         aria-label={state === 'recording' ? 'Stop recording' : 'Start voice note'}
@@ -184,9 +184,9 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
         {/* Pulsing ring when recording */}
         {state === 'recording' && (
           <motion.span
-            className="absolute inset-0 rounded-full border-2 border-red-400/40"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0, 0.6] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute inset-0 rounded-full border border-tea-gold/30"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
 

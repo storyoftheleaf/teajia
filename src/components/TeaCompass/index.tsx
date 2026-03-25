@@ -87,15 +87,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
 
   const handleVoiceTranscript = useCallback(
     (text: string) => {
-      if (!activeEntryId || !activeEntry) return;
-      const currentNotes = activeEntry.notes || '';
+      if (!activeEntryId) return;
+      // Read latest entry from store to avoid stale closure
+      const latest = useTeaCompassStore.getState().entries.find(e => e.id === activeEntryId);
+      if (!latest) return;
+      const currentNotes = latest.notes || '';
       const delimiter = '\n\n';
       const updated = currentNotes.trim()
         ? currentNotes.trim() + delimiter + text
         : text;
       updateEntry(activeEntryId, { notes: updated });
     },
-    [activeEntryId, activeEntry, updateEntry]
+    [activeEntryId, updateEntry]
   );
 
   return (
