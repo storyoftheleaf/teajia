@@ -101,7 +101,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
                   onBlur={commitEdit}
                   onKeyDown={handleEditKeyDown}
                   rows={2}
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm resize-none"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm resize-none"
                 />
               ) : (
                 <div
@@ -129,7 +129,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
           onKeyDown={handleKeyDown}
           placeholder="What did the vendor say? Your impressions..."
           rows={focused ? 5 : 3}
-          className="flex-1 bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm resize-none"
+          className="flex-1 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm resize-none"
         />
         {currentInput.trim() && (
           <button
