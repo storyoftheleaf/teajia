@@ -11,10 +11,11 @@ import { useAppStore } from '../../lib/store';
 import { api, setToken } from '../../lib/api';
 import { MyCollection } from './MyCollection';
 import { TastingJournal } from './TastingJournal';
+import { TeaCompass } from '../TeaCompass';
 import { AdminMiniDashboard } from '../admin-overlay/AdminMiniDashboard';
 import type { Currency } from '../../admin/types';
 
-type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'tasting-journal' | 'saved-stories' | 'reading-history' | 'change-password' | 'edit-profile';
+type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'tasting-journal' | 'tea-compass' | 'saved-stories' | 'reading-history' | 'change-password' | 'edit-profile';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -274,6 +275,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       case 'signup': return 'Create Account';
       case 'collection': return 'My Collection';
       case 'tasting-journal': return 'Tasting Journal';
+      case 'tea-compass': return 'Tea Compass';
       case 'saved-stories': return 'Saved Stories';
       case 'reading-history': return 'Reading History';
       case 'change-password': return 'Change Password';
@@ -653,6 +655,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               <TastingJournal onBack={() => setPanelView('main')} />
             )}
 
+            {/* ============ TEA COMPASS SUB-VIEW ============ */}
+            {panelView === 'tea-compass' && (
+              <TeaCompass onBack={() => setPanelView('main')} />
+            )}
+
             {/* ============ SAVED STORIES SUB-VIEW ============ */}
             {panelView === 'saved-stories' && (
               <div className="animate-[fadeIn_0.3s_ease-out]">
@@ -839,6 +846,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <div>
                     <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-sec/50 block mb-3">Your Tea</span>
                     <div className="border border-tea-border overflow-hidden rounded-md">
+                      <button
+                        onClick={() => setPanelView('tea-compass')}
+                        className="w-full flex items-center gap-3 px-4 py-3 border-b border-tea-border hover:bg-tea-surface/50 transition-colors group"
+                      >
+                        <Icons.MapPin className="w-4 h-4 text-tea-gold transition-colors" />
+                        <span className="text-sm text-tea-text flex-1 text-left">Tea Compass</span>
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15" />
+                      </button>
                       <button
                         onClick={() => setPanelView('collection')}
                         className="w-full flex items-center gap-3 px-4 py-3 border-b border-tea-border hover:bg-tea-surface/50 transition-colors group"
