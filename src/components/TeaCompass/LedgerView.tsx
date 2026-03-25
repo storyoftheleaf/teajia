@@ -59,7 +59,7 @@ const LineItemRow: React.FC<{
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
-    <div className="py-3 border-b border-tea-border last:border-b-0">
+    <div className="py-3 border-b border-tea-border/15 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {item.chineseName && (
@@ -169,7 +169,7 @@ const TransactionCard: React.FC<{
         type="button"
         onClick={onToggle}
         aria-expanded={isExpanded}
-        className={`w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-tea-elevated active:bg-tea-surface transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isExpanded ? 'bg-tea-elevated/30' : ''}`}
+        className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-tea-elevated active:bg-tea-surface transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isExpanded ? 'bg-tea-elevated/30' : ''}`}
       >
         <DirectionIcon
           size={16}
@@ -213,7 +213,7 @@ const TransactionCard: React.FC<{
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-tea-border">
+            <div className="px-3 pb-3 border-t border-tea-border/20">
               {/* Line items */}
               {tx.items.length === 0 ? (
                 <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">No items yet</p>
@@ -230,7 +230,7 @@ const TransactionCard: React.FC<{
 
               {/* Grand total */}
               {tx.items.length > 0 && (
-                <div className="flex items-baseline justify-between pt-4 border-t border-tea-border/30" aria-label="Grand total">
+                <div className="flex items-baseline justify-between pt-3 border-t border-tea-border/15" aria-label="Grand total">
                   <span className="text-tea-text-sec text-[11px] uppercase tracking-[0.15em]">Total</span>
                   <span className="text-tea-text text-lg font-serif font-semibold num">
                     {fmtPrice(total, tx.currency)}
@@ -296,7 +296,8 @@ interface LedgerViewProps {
 export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // All transactions expanded by default
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<LedgerFilter>('all');
 
   const counts = useMemo(() => ({
@@ -383,8 +384,12 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
             >
               <TransactionCard
                 tx={tx}
-                isExpanded={expandedId === tx.id}
-                onToggle={() => setExpandedId(expandedId === tx.id ? null : tx.id)}
+                isExpanded={!collapsedIds.has(tx.id)}
+                onToggle={() => setCollapsedIds(prev => {
+                  const next = new Set(prev);
+                  if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
+                  return next;
+                })}
               />
             </motion.div>
           ))}
@@ -392,11 +397,10 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
       </div>
 
       {/* Quick create buttons */}
-      <div className="flex gap-2 pt-4 border-t border-tea-border/30">
+      <div className="flex gap-2 pt-4 border-t border-tea-border/15">
         <button
           onClick={() => {
-            const id = createTransaction('purchase', '', 'NT');
-            setExpandedId(id);
+            createTransaction('purchase', '', 'NT');
           }}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
         >
@@ -405,8 +409,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
         </button>
         <button
           onClick={() => {
-            const id = createTransaction('sale', '', 'USD');
-            setExpandedId(id);
+            createTransaction('sale', '', 'USD');
           }}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
         >

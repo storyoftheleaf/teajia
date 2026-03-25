@@ -554,7 +554,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="What is it?"
-            className="w-full bg-tea-bg/50 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-surface/60 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
           />
         </div>
 
@@ -570,7 +570,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ priceAmount: val === '' ? undefined : Number(val) });
             }}
-            className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums"
+            className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums"
           />
           <div className="flex gap-1 flex-wrap pt-1">
             {CURRENCIES.map((c) => (
@@ -695,7 +695,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-bg/50 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            className="w-full bg-tea-surface/60 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -999,7 +999,7 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
                     const val = e.target.value;
                     onCapacityChange(val === '' ? undefined : Number(val));
                   }}
-                  className="w-24 bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
+                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
                 />
               </div>
 
