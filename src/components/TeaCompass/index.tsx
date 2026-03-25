@@ -150,13 +150,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   ];
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative surface-warm">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-border">
+      <div className="flex items-center gap-3 px-4 py-3">
         <button
           type="button"
           onClick={onBack}
-          className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+          className="p-2 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
           aria-label="Back"
         >
           <ArrowLeft size={20} />
@@ -170,7 +170,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
       </div>
 
       {/* ── Mode tabs ── */}
-      <div className="flex border-b border-tea-border px-4">
+      <div className="flex border-b border-tea-border px-4" role="tablist">
         {tabs.map((tab) => {
           const active = mode === tab.id;
           return (
@@ -178,7 +178,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               key={tab.id}
               type="button"
               onClick={() => handleSwitchMode(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] font-bold transition-colors relative ${
+              role="tab"
+              aria-selected={active}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] uppercase tracking-[0.08em] font-bold transition-colors relative ${
                 active
                   ? 'text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text'
@@ -193,7 +195,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               {active && (
                 <motion.div
                   layoutId="compass-tab-indicator"
-                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-tea-gold rounded-full"
+                  className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-tea-gold rounded-full shadow-[0_0_6px_rgba(184,146,78,0.4)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -203,7 +205,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 pb-20">
+      <div className="flex-1 overflow-y-auto px-4 py-3 pb-[calc(80px+env(safe-area-inset-bottom,0px))]" role="tabpanel">
         <AnimatePresence mode="wait">
           {mode === 'capture' ? (
             <motion.div

@@ -33,12 +33,12 @@ interface HistoryItem {
 }
 
 const STATUS_CONFIG: Record<HistoryItem['status'], { label: string; dotColor: string }> = {
-  want:     { label: 'Want',     dotColor: '#c9a227' },  // gold-ish
-  buying:   { label: 'Buying',   dotColor: '#c9a227' },
-  draft:    { label: 'Draft',    dotColor: '#a3a3a3' },
-  'in-stock': { label: 'In Stock', dotColor: '#86efac' },
-  bought:   { label: 'Bought',   dotColor: '#78716c' },
-  logged:   { label: 'Logged',   dotColor: '#78716c' },
+  want:     { label: 'Want',     dotColor: 'var(--tea-gold)' },
+  buying:   { label: 'Buying',   dotColor: 'var(--tea-gold)' },
+  draft:    { label: 'Draft',    dotColor: 'var(--tea-text-sec)' },
+  'in-stock': { label: 'In Stock', dotColor: 'var(--tea-gold-lt)' },
+  bought:   { label: 'Bought',   dotColor: 'var(--tea-text-dim)' },
+  logged:   { label: 'Logged',   dotColor: 'var(--tea-text-dim)' },
 };
 
 const SORT_ORDER: Record<HistoryItem['status'], number> = {
@@ -60,7 +60,7 @@ function compassStatusToHistoryStatus(s: TeaCompassEntry['status']): HistoryItem
 function getTypeBadgeStyle(type?: string): React.CSSProperties {
   const color = TEA_TYPE_COLORS[type as keyof typeof TEA_TYPE_COLORS]?.card ?? '#737373';
   return {
-    backgroundColor: `${color}20`,
+    backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
     color,
   };
 }

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2 } from 'lucide-react';
-import { TEA_TYPE_COLORS } from '../../designTokens';
+import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { compassEntryToProductDraft } from './types';
 import { api, isConfigured, hasToken } from '../../lib/api';
@@ -74,11 +74,12 @@ function getStatusConfig(status: string): { label: string; className: string } {
 }
 
 function getTeaTypeBadgeStyle(type: string): React.CSSProperties {
-  const color = TEA_TYPE_COLORS[type as keyof typeof TEA_TYPE_COLORS]?.card ?? '#737373';
+  const color = getTeaColor(type);
   return {
-    backgroundColor: `${color}20`,
+    '--type-color': color,
+    backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
     color,
-  };
+  } as React.CSSProperties;
 }
 
 export const BrowseCard: React.FC<BrowseCardProps> = ({

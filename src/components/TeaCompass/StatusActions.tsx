@@ -113,22 +113,20 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleWant}
-          className={`flex-1 text-sm rounded-lg ${status === 'want' ? 'pill-active-amber' : 'pill'}`}
-          style={{ justifyContent: 'center', paddingTop: '0.75rem', paddingBottom: '0.75rem', textTransform: 'none', letterSpacing: 'normal' }}
+          className={`flex-1 text-sm rounded-lg text-center py-3 normal-case tracking-normal ${status === 'want' ? 'pill-active-amber' : 'pill'}`}
         >
           Want
         </button>
         <button
           type="button"
           onClick={handleBuyClick}
-          className={`flex-1 text-sm rounded-lg ${
+          className={`flex-1 text-sm rounded-lg text-center py-3 normal-case tracking-normal ${
             isInLedger
               ? 'pill-active flex items-center justify-center gap-1.5'
               : status === 'buying'
                 ? 'pill-active'
                 : 'pill'
           }`}
-          style={{ justifyContent: 'center', paddingTop: '0.75rem', paddingBottom: '0.75rem', textTransform: 'none', letterSpacing: 'normal' }}
         >
           {isInLedger ? (
             <>
@@ -151,8 +149,8 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-tea-elevated rounded-lg px-4 py-3 space-y-3">
-              <p className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+            <div className="inset-panel px-4 py-3 space-y-3">
+              <p className="text-xs text-tea-text-sec uppercase tracking-wider">
                 How much?
               </p>
 
@@ -160,7 +158,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(step, quantity - step))}
-                  className="w-9 h-9 rounded-full bg-tea-surface flex items-center justify-center
+                  className="w-11 h-11 rounded-full bg-tea-surface flex items-center justify-center
                              text-tea-text-sec active:bg-tea-elevated transition-colors"
                 >
                   <Minus size={16} />
@@ -170,10 +168,8 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                     type="number"
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    style={{ MozAppearance: 'textfield' } as React.CSSProperties}
                     className="w-16 text-center text-tea-text text-2xl font-semibold bg-transparent num
-                               border-none outline-none
-                               [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                               border-none outline-none"
                   />
                   <span className="text-tea-text-sec text-xs">
                     {unitBased ? (quantity === 1 ? 'unit' : 'units') : 'g'}
@@ -182,7 +178,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={() => setQuantity(quantity + step)}
-                  className="w-9 h-9 rounded-full bg-tea-surface flex items-center justify-center
+                  className="w-11 h-11 rounded-full bg-tea-surface flex items-center justify-center
                              text-tea-text-sec active:bg-tea-elevated transition-colors"
                 >
                   <Plus size={16} />
@@ -209,14 +205,14 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowQtyPicker(false)}
-                  className="flex-1 py-2 text-xs font-bold uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="flex-1 py-2.5 rounded-lg bg-tea-surface text-xs font-semibold uppercase tracking-[0.08em] text-tea-text-sec active:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmAdd}
-                  className="flex-1 py-2 rounded-lg bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.15em] transition-opacity active:opacity-80"
+                  className="flex-1 py-2 rounded-lg bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>
