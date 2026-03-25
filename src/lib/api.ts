@@ -728,6 +728,17 @@ export const api = {
     },
   },
 
+  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'recording.webm');
+    const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${getToken()}` },
+      body: formData,
+    });
+    return handleResponse(res);
+  },
+
   favorites: {
     get: async (): Promise<{ favorites: string[] }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {

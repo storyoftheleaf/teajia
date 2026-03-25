@@ -94,7 +94,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
           setState('idle');
         } catch (err: any) {
           console.error('Transcription failed:', err);
-          setErrorMsg(err.message || 'Transcription failed');
+          const msg = typeof err?.message === 'string' ? err.message : 'Transcription failed';
+          setErrorMsg(msg.slice(0, 60));
           setState('error');
         }
       };
