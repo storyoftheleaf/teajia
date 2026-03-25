@@ -3,7 +3,7 @@ import type { Currency } from '../../admin/types';
 
 export type TeaType = 'Green' | 'White' | 'Yellow' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware';
 export type TeaForm = 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag';
-export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought' | 'passed';
+export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought';
 export type CompassCategory = 'tea' | 'teaware';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
@@ -87,8 +87,8 @@ export const DEFAULT_GRAMS: Record<TeaForm, number> = {
   Bag: 100,
 };
 
-// Tea types array for the grid
-export const TEA_TYPES: TeaType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware'];
+// Tea types array for the grid (tea only — Teaware is a separate tab now)
+export const TEA_TYPES: TeaType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal'];
 
 // Form options
 export const TEA_FORMS: TeaForm[] = ['Loose', 'Cake', 'Brick', 'Tuo', 'Ball', 'Bag'];
@@ -106,6 +106,7 @@ export const TEAWARE_CATEGORIES: TeawareCategory[] = ['Pot', 'Cup', 'Gaiwan', 'F
 export const TEAWARE_MATERIALS: Record<string, TeawareMaterial[]> = {
   Pot: ['Zhuni', 'Zisha', 'Duanni', 'Hongni', 'Porcelain', 'Silver', 'Glass', 'Other'],
   Cup: ['Porcelain', 'Celadon', 'Wood-fired', 'Glass', 'Clay', 'Other'],
+  Gaiwan: ['Porcelain', 'Celadon', 'Glass', 'Clay', 'Other'],
   default: ['Clay', 'Porcelain', 'Glass', 'Ceramic', 'Wood', 'Metal', 'Stone', 'Other'],
 };
 

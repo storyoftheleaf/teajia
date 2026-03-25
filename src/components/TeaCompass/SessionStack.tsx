@@ -13,7 +13,6 @@ const STATUS_DOT: Record<string, string> = {
   want: 'bg-amber-400',
   buying: 'bg-tea-gold',
   bought: 'bg-emerald-500',
-  passed: 'bg-tea-text-dim opacity-40',
 };
 
 export const SessionStack: React.FC<SessionStackProps> = ({

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { Camera, Upload, Loader2, Check, X, ChevronRight, FileSpreadsheet, PlusCircle, Image as ImageIcon, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Camera, Upload, Loader2, Check, X, ChevronRight, FileSpreadsheet, PlusCircle, Image as ImageIcon, AlertTriangle, CheckCircle2, ArrowRight, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { Product, ProductType, Currency, TeaForm } from '../types';
 import { InventoryView } from './InventoryView';
@@ -47,6 +48,7 @@ const CURRENCIES: Currency[] = ['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD',
 export const QuickCapture: React.FC<QuickCaptureProps> = ({
   products, isLoading, onDraftCreated, onImportClick, onAddClick,
 }) => {
+  const navigate = useNavigate();
   const [items, setItems] = useState<CaptureItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(true);
@@ -217,7 +219,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             >
               <div className="px-4 md:px-6 pb-4 space-y-4">
                 {/* Intake Method Buttons */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   <button
                     onClick={() => cameraInputRef.current?.click()}
                     className="flex flex-col items-center gap-2 p-4 rounded-xl bg-tea-surface/50 hover:bg-tea-surface transition-colors group"
@@ -249,6 +251,17 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                       <PlusCircle className="w-5 h-5 text-tea-gold" />
                     </div>
                     <span className="text-xs font-medium text-tea-text-sec">Manual</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/admin/compass')}
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-tea-surface/50 hover:bg-tea-surface transition-colors group"
+                    style={{ boxShadow: '0 1px 3px var(--tea-accent-sub)' }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center group-hover:bg-tea-gold/20 transition-colors">
+                      <Compass className="w-5 h-5 text-tea-gold" />
+                    </div>
+                    <span className="text-xs font-medium text-tea-text-sec">Compass</span>
                   </button>
                 </div>
 

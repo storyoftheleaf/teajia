@@ -65,8 +65,6 @@ function getStatusConfig(status: string): { label: string; className: string } {
       return { label: 'Bought', className: 'badge-status badge-status-gold' };
     case 'buying':
       return { label: 'Buying', className: 'badge-status badge-status-green' };
-    case 'passed':
-      return { label: 'Passed', className: 'badge-status badge-status-red' };
     case 'logged':
     default:
       return { label: 'Logged', className: 'badge-status badge-status-muted' };

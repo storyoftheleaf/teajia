@@ -1,10 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, LayoutGrid, PenLine } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import type { CompassCategory } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SessionStack } from './SessionStack';
 import { OrderBar } from './OrderBar';
+import { OrderSummary } from './OrderSummary';
 import { CaptureCard } from './CaptureCard';
 import { BrowseView } from './BrowseView';
 
@@ -18,16 +20,43 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const getEntry = useTeaCompassStore((s) => s.getEntry);
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
   const getBuyingEntries = useTeaCompassStore((s) => s.getBuyingEntries);
+
+  const [orderOpen, setOrderOpen] = useState(false);
 
   const sessionEntries = getSessionEntries();
   const buyingEntries = getBuyingEntries();
   const isCaptureMode = activeEntryId !== null;
+  const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;
+  const activeCategory: CompassCategory = activeEntry?.category || 'tea';
 
-  const handleNewCapture = useCallback(() => {
-    startNewCapture();
-  }, [startNewCapture]);
+  const handleNewCapture = useCallback((category?: CompassCategory) => {
+    startNewCapture(category || activeCategory);
+  }, [startNewCapture, activeCategory]);
+
+  const handleCategorySwitch = useCallback((category: CompassCategory) => {
+    if (activeEntryId && activeEntry) {
+      // Update the current entry's category
+      const updates: Record<string, unknown> = { category };
+      if (category === 'teaware') {
+        updates.type = undefined;
+        updates.form = undefined;
+        updates.season = undefined;
+        updates.storage = undefined;
+      } else {
+        updates.teawareCategory = undefined;
+        updates.material = undefined;
+        updates.capacityMl = undefined;
+        updates.era = undefined;
+      }
+      updateEntry(activeEntryId, updates);
+    } else {
+      startNewCapture(category);
+    }
+  }, [activeEntryId, activeEntry, updateEntry, startNewCapture]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -48,7 +77,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
   }, [setActiveEntry]);
 
   const handleViewOrder = useCallback(() => {
-    // Future: open order summary view
+    setOrderOpen(true);
+  }, []);
+
+  const handleCloseOrder = useCallback(() => {
+    setOrderOpen(false);
   }, []);
 
   return (
@@ -101,6 +134,25 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
                 activeEntryId={activeEntryId}
                 onSelectEntry={handleSelectEntry}
               />
+
+              {/* Tea / Teaware tab toggle */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => handleCategorySwitch('tea')}
+                  className={`flex-1 text-center py-2 text-sm ${activeCategory === 'tea' ? 'pill-active' : 'pill'}`}
+                >
+                  Tea
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCategorySwitch('teaware')}
+                  className={`flex-1 text-center py-2 text-sm ${activeCategory === 'teaware' ? 'pill-active' : 'pill'}`}
+                >
+                  Teaware
+                </button>
+              </div>
+
               <CaptureCard entryId={activeEntryId} />
             </motion.div>
           ) : (
@@ -130,7 +182,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
       {/* ── Floating + button ── */}
       <motion.button
         type="button"
-        onClick={handleNewCapture}
+        onClick={() => handleNewCapture()}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className="fixed right-5 z-30 w-12 h-12 rounded-full bg-tea-gold text-tea-bg
@@ -141,6 +193,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
       >
         <Plus size={22} strokeWidth={2.5} />
       </motion.button>
+
+      {/* ── Order Summary overlay ── */}
+      <OrderSummary open={orderOpen} onClose={handleCloseOrder} />
     </div>
   );
 };

@@ -26,6 +26,7 @@ import { TastingNotesView } from './components/TastingNotesView';
 import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
+import { TeaCompass } from '../components/TeaCompass';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -306,6 +307,15 @@ const AdminContent = () => {
                       onAddClick={() => setIsCreateModalOpen(true)}
                       rates={rates}
                     />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+
+              {/* Tea Compass — full page */}
+              <Route path="compass" element={
+                <ProtectedRoute isAdmin={isAdmin}>
+                  <PageTransition>
+                    <TeaCompass onBack={() => navigate('/admin/inventory')} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
