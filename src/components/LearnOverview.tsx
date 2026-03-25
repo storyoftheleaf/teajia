@@ -257,7 +257,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     onClick={() => { onNavigateTo('glossary'); setSearchQuery(''); }}
                     className={`block w-full text-left py-2 text-sm text-tea-text hover:text-tea-gold transition-colors ${CTA_FOCUS}`}
                   >
-                    <span className="font-serif">{term.term}</span>
+                    <span style={{ fontFamily: 'var(--font-display)' }}>{term.term}</span>
                     {term.chineseCharacters && <span className="text-tea-gold/30 ml-2">{term.chineseCharacters}</span>}
                     <span className="text-tea-text/30 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
                   </button>
@@ -356,10 +356,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             >
               <div className="flex items-baseline gap-2">
                 {secondTerm.chineseCharacters && (
-                  <span className="text-sm text-tea-gold/30 font-serif">{secondTerm.chineseCharacters}</span>
+                  <span className="text-sm text-tea-gold/30">{secondTerm.chineseCharacters}</span>
                 )}
                 <div>
-                  <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
+                  <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                     {secondTerm.term}
                   </span>
                   <span className="text-xs text-tea-text/30 ml-2">

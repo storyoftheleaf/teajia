@@ -284,7 +284,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-4">{item.description}</p>
+              <p className="italic text-sm text-tea-text/80 leading-relaxed mb-4" style={{ fontFamily: 'var(--font-body)' }}>{item.description}</p>
             )}
             {purchaseControls}
           </div>
@@ -324,7 +324,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
 
           <div className="px-6 pb-6">
-            <h2 className="text-2xl font-serif text-tea-text mb-1">{item.name}</h2>
+            <h2 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
@@ -338,7 +338,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-3">{item.description}</p>
+              <p className="italic text-sm text-tea-text/80 leading-relaxed mb-3" style={{ fontFamily: 'var(--font-body)' }}>{item.description}</p>
             )}
             {purchaseControls}
           </div>
