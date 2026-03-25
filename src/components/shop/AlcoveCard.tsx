@@ -283,10 +283,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         </div>
       )}
 
-      {/* === PINNED TOP: Identity === */}
-      <div style={{
-        position: "relative", zIndex: 1, flexShrink: 0,
+      {/* === SCROLLABLE MIDDLE === */}
+      <div ref={scrollRef} className="tea-card-scroll" style={{
+        position: "relative", zIndex: 1,
+        flex: 1,
+        overflowY: "auto",
+        minHeight: 0,
       }}>
+
+        {/* === Identity (scrolls with content) === */}
         <div style={{
           padding: "16px 20px 0",
           position: "relative",
@@ -330,15 +335,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </p>
               </div>
         </div>
-      </div>
-
-      {/* === SCROLLABLE MIDDLE === */}
-      <div ref={scrollRef} className="tea-card-scroll" style={{
-        position: "relative", zIndex: 1,
-        flex: 1,
-        overflowY: "auto",
-        minHeight: 0,
-      }}>
 
         {/* === VISUAL ZONE — compact image strip, click to expand fullscreen === */}
         {allImages.length > 0 && (
@@ -695,7 +691,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       {/* === PINNED BOTTOM: Commerce (compressed 2-row) === */}
       <div style={{
         position: "relative", zIndex: 3, flexShrink: 0,
-        padding: "8px 14px 10px",
+        padding: "6px 14px 8px",
         borderTop: "1px solid var(--tea-border)",
         background: alcoveColors.bg,
       }}>
@@ -703,7 +699,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             {!isSoldOut && presets.length > 1 ? (
               <div style={{
                 display: "flex", gap: "4px", alignItems: "center",
-                marginBottom: "6px",
+                marginBottom: "4px",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px", marginRight: "4px", flexShrink: 0 }}>
                   <div style={{
@@ -745,7 +741,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             ) : (
               <div style={{
                 display: "flex", alignItems: "center", gap: "6px",
-                marginBottom: "6px",
+                marginBottom: "4px",
               }}>
                 <div style={{
                   width: "5px", height: "5px", borderRadius: "50%",
@@ -869,7 +865,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 onMouseEnter={() => setHovered("cart")}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  flex: 1, height: "38px", boxSizing: "border-box",
+                  flex: 1, height: "34px", boxSizing: "border-box",
                   fontFamily: "var(--font-sans)",
                   fontSize: "12px", fontWeight: 700,
                   letterSpacing: "0.08em", textTransform: "uppercase",

@@ -119,7 +119,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
       </div>
 
       {/* Category Filters — refined pills */}
-      <div className="relative z-0 mb-5 overflow-x-auto no-scrollbar">
+      <div className="relative z-0 mb-5 overflow-x-auto hide-scrollbar">
         <div className="flex gap-1.5 pb-1">
           {categoryButtons.map((cat) => (
             <button
@@ -128,11 +128,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                 setActiveCategory(cat.id);
                 setActiveLetter(null);
               }}
-              className={`px-3.5 py-1.5 rounded-full text-[10px] uppercase tracking-[0.15em] font-sans whitespace-nowrap transition-all duration-300
-                ${activeCategory === cat.id
-                  ? 'text-tea-gold bg-tea-gold/10'
-                  : 'text-tea-text-sec bg-tea-text/[0.04] hover:text-tea-text hover:bg-tea-text/[0.08]'
-                }`}
+              className={`pill whitespace-nowrap ${activeCategory === cat.id ? 'pill-active' : ''}`}
             >
               {cat.label}
             </button>
@@ -142,7 +138,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
       {/* Alphabetical Index */}
       {isFullView && (
-        <div className="relative z-0 mb-8 overflow-x-auto no-scrollbar">
+        <div className="relative z-0 mb-8 overflow-x-auto hide-scrollbar">
           <div className="flex gap-0.5 pb-1">
             <button
               onClick={() => setActiveLetter(null)}

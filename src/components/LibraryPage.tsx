@@ -126,7 +126,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
         cartItemCount={cartItemCount}
       >
         <PageHeaderSubtitle>
-          <p className="font-serif italic text-sm leading-relaxed">Tools and treasures for your tea journey</p>
+          <p className="italic text-sm leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>Tools and treasures for your tea journey</p>
         </PageHeaderSubtitle>
       </PageHeader>
 
@@ -160,7 +160,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
+                            <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                               {result.title}
                             </span>
                             <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/40">
@@ -192,7 +192,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                           <span className={card.accentText}>{card.icon}</span>
                         </div>
                         <div>
-                          <h3 className="font-serif text-base text-tea-text mb-0.5">
+                          <h3 className="text-base text-tea-text mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
                             {card.title}
                           </h3>
                           <p className="text-xs text-tea-text/50">

@@ -155,7 +155,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
       <div className="fixed left-[-9999px] top-0">
           <div id="story-format-export" className="w-[450px] h-[800px] relative bg-tea-bg flex flex-col items-center justify-center p-12 overflow-hidden">
               {/* Background */}
-              <img src={story.thumbnailUrl || 'https://www.transparenttextures.com/patterns/wood-pattern.png'} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl" crossOrigin="anonymous" />
+              <img src={story.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xl" crossOrigin="anonymous" />
               <div className="absolute inset-0 bg-tea-text/20"></div>
               
               {/* Card */}
@@ -203,7 +203,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
         {/* Visual Card Preview - Enhanced with more prominent preview */}
         <div id="share-card-preview" className="relative p-6 pb-8 bg-gradient-to-b from-tea-bg to-tea-surface border-b border-tea-text/10 flex flex-col items-center text-center">
-           <div className="absolute inset-0 opacity-[0.05] bg-[url('https://www.transparenttextures.com/patterns/shattered-island.png')] mix-blend-multiply pointer-events-none"></div>
+           <div className="absolute inset-0 opacity-[0.05] mix-blend-multiply pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div>
 
            {/* Featured Article Preview */}
            <div className="w-full mb-4">

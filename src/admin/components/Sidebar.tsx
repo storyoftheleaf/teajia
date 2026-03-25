@@ -123,7 +123,7 @@ export const Sidebar = ({
     <div
       className={`fixed inset-y-0 left-0 z-50 w-48 text-tea-text transform transition-transform duration-300 ease-in-out ${
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:relative md:translate-x-0 flex flex-col overflow-y-auto no-scrollbar`}
+      } md:relative md:translate-x-0 flex flex-col overflow-y-auto hide-scrollbar`}
       style={{
         background: 'linear-gradient(180deg, var(--tea-surface) 0%, var(--tea-bg) 100%)',
         boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgba(0,0,0,0.08)'

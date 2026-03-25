@@ -127,27 +127,19 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
         {/* Category filter chips — matching tea's type chips */}
         <div className="mb-4 space-y-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
             <button
-              onClick={() => setActiveCategory('All')}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all ${
-                activeCategory === 'All'
-                  ? 'bg-tea-elevated text-tea-text font-medium border border-tea-border'
-                  : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
-              }`}
+              onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory('All'); }}
+              className={`shrink-0 pill ${activeCategory === 'All' ? 'pill-active' : ''}`}
             >
               All
             </button>
             {categories.map(c => (
               <button
                 key={c.id}
-                onClick={() => setActiveCategory(prev => prev === c.id ? 'All' : c.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] uppercase tracking-wider transition-all ${
-                  activeCategory === c.id
-                    ? 'bg-tea-gold text-tea-bg font-medium border border-tea-gold'
-                    : 'text-tea-text/50 border border-tea-border hover:text-tea-text hover:border-tea-gold/30'
-                }`}
+                onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory(prev => prev === c.id ? 'All' : c.id); }}
+                className={`shrink-0 pill ${activeCategory === c.id ? 'pill-active' : ''}`}
               >
                 {c.label}
               </button>

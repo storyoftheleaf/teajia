@@ -126,7 +126,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
       {/* Content */}
       <div className="p-4 md:p-5 flex-1 flex flex-col">
-        <h3 className="font-serif text-lg text-tea-text mb-2 line-clamp-2 group-hover:text-tea-gold transition-colors">
+        <h3 className="text-lg text-tea-text mb-2 line-clamp-2 group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
           {resource.title}
         </h3>
 
@@ -205,7 +205,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     </div>
 
                     {/* Name & Location */}
-                    <h3 className="font-serif text-lg text-tea-text text-center mb-1">
+                    <h3 className="text-lg text-tea-text text-center mb-1" style={{ fontFamily: 'var(--font-display)' }}>
                       {member.name}
                     </h3>
                     <div className="flex items-center justify-center gap-1 text-xs text-tea-text/60 mb-3">
@@ -257,7 +257,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
             <div className="w-16 h-16 bg-tea-text/5 rounded-full flex items-center justify-center mb-4">
               <Icons.Grid className="w-8 h-8 text-tea-text/40" />
             </div>
-            <p className="font-serif text-lg text-tea-text/60">
+            <p className="text-lg text-tea-text/60" style={{ fontFamily: 'var(--font-display)' }}>
               {activeTab === 'community' ? 'No community members found' : 'No resources in this category yet'}
             </p>
             <p className="text-sm text-tea-text/40 mt-2">

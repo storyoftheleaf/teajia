@@ -11,8 +11,8 @@ const WarmBand: React.FC<{ children: React.ReactNode; tone?: 'warm' | 'cool' }> 
   <div className="-mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8"
        style={{
          background: tone === 'warm'
-           ? 'rgba(184,146,78,0.035)'
-           : 'rgba(90,110,90,0.04)',
+           ? 'rgba(var(--tea-gold-rgb, 184,146,78),0.035)'
+           : 'rgba(var(--tea-gold-rgb, 184,146,78),0.02)',
        }}>
     {children}
   </div>

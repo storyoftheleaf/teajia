@@ -522,7 +522,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
           )}
 
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 via-tea-bg/20 to-tea-bg/40" />
 
           {/* Custom Play Button - Tea themed */}
           <button
@@ -574,7 +574,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
         {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-gold/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
         {/* Paper texture — hidden on full-bleed image pages */}
         {![LayoutVariant.IMG_FULL_BLEED, LayoutVariant.IMG_FULL_BLEED_TITLE, LayoutVariant.IMG_OVERLAY_TEXT, LayoutVariant.QUOTE_IMAGE_BG, LayoutVariant.IMG_VIGNETTE_SOFT, LayoutVariant.CHAPTER_IMAGE_BG].includes(variant) && (
-          <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.06] mix-blend-overlay"><div className="w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div></div>
+          <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.06] mix-blend-overlay"><div className="w-full h-full" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div></div>
         )}
 
         {(() => {
@@ -584,7 +584,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} flex flex-col ${PAD.spacious}`}>
                         <div className="absolute inset-0 z-0"><SafeImage index={0} className="w-full h-full" /></div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-10 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/50 via-transparent to-transparent z-10 pointer-events-none"></div>
                         {/* Masthead — top left, small caps */}
                         <div className="relative z-20">
                             <span className={`${TYPE.folio} uppercase tracking-[0.3em] text-tea-text/70`}>Teajia</span>
@@ -855,7 +855,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`} data-page-type="image">
                         <div className="absolute inset-0 z-0 reader-image-reveal"><SafeImage index={0} className="w-full h-full" /></div>
                         {/* Gradient overlay for caption readability */}
-                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/30 to-transparent z-[5] pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-tea-bg/30 to-transparent z-[5] pointer-events-none"></div>
                         {/* Caption — bottom-left, no bg container, sits over gradient */}
                         <div className="absolute bottom-0 left-0 px-6 py-4 z-10 pointer-events-none">
                             <div className={readOnly ? "" : "pointer-events-auto"}><EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/80`} placeholder="Caption" tag="span" readOnly={readOnly} /></div>
@@ -1018,7 +1018,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} flex flex-col`}>
                          <div className="flex-1 relative bg-tea-surface text-tea-text p-12 overflow-hidden">
-                             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/notebook.png')]"></div>
+                             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div>
                              <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
                                  <path d="M0,50 Q25,40 50,50 T100,50" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="2 2" />
                                  <path d="M20,0 Q30,50 20,100" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="1 3" />
@@ -1119,7 +1119,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`${FOLIO_CLASS}`}>Issue 03</span>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto no-scrollbar">
+                        <div className="flex-1 overflow-y-auto hide-scrollbar">
                             <div className="flex flex-col">
                                 {recommendations?.map((story, i) => (
                                     <div
@@ -1156,7 +1156,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <h2 className={`${TYPE.caption} uppercase tracking-[0.25em] opacity-60`}>Curated Reads</h2>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
+                        <div className="flex-1 overflow-y-auto hide-scrollbar space-y-6">
                             {links.length > 0 ? links.map((link, i) => (
                                 <a
                                     key={i}
@@ -1949,7 +1949,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             />
                         </div>
                         {/* Gradient overlay for readability */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/20 z-[5] pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-tea-bg/10 to-tea-bg/20 z-[5] pointer-events-none"></div>
                         {/* Swipe hint arrow */}
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
                             <span className="text-white/40 text-[32px] font-light">→</span>
@@ -1975,7 +1975,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center text-center bg-tea-surface`} data-page-type="text">
                         {/* Warm textured background */}
-                        <div className="absolute inset-0 opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')]"></div>
+                        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div>
                         <div className="relative z-10">
                             <EditableText
                                 value={lpTitle || content}

@@ -177,14 +177,23 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         {/* 2. SERVICES */}
         <Services />
 
+        {/* warm divider */}
+        <div className="divider-warm my-16 md:my-20" />
+
         {/* 3. PORTFOLIO */}
         <ProjectsPreview
           onSelectProject={(id) => navigateTo('project-detail', id)}
           onViewAll={() => navigateTo('projects')}
         />
 
+        {/* warm divider */}
+        <div className="divider-warm my-16 md:my-20" />
+
         {/* 4. TESTIMONIAL */}
         <Testimonial />
+
+        {/* warm divider */}
+        <div className="divider-warm my-16 md:my-20" />
 
         {/* 5. CLOSE */}
         <ClosingCTA onOpenInquiry={() => openInquiry('')} />
@@ -221,7 +230,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
                   bg-tea-bg/80 backdrop-blur-md text-tea-gold
                   text-[11px] uppercase tracking-[0.08em] font-medium
                   px-5 py-3 rounded-full
-                  shadow-[0_2px_12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(184,146,78,0.12)]
+                  shadow-[0_2px_12px_rgba(var(--tea-bg-rgb,24,19,14),0.25),0_0_0_1px_rgba(var(--tea-gold-rgb,184,146,78),0.12)]
                   hover:bg-tea-bg/95 active:scale-[0.97]
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
       style={{ fontFamily: 'var(--font-sans)' }}
@@ -241,48 +250,49 @@ const Services: React.FC = () => (
       const isDesign = svc.id === 'design';
 
       return (
-        <motion.div key={svc.id}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
-          style={i < SERVICES.length - 1 ? { borderBottom: '1px solid var(--tea-border)' } : undefined}
-        >
-          <div className="flex items-baseline justify-between gap-6 mb-3">
+        <React.Fragment key={svc.id}>
+          {i > 0 && <div className="h-px bg-tea-border/20" />}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
+          >
+            <div className="flex items-baseline justify-between gap-6 mb-3">
             <h3 className={`font-light text-tea-text leading-tight tracking-[-0.01em]
                            ${isDesign ? 'text-[1.5rem] md:text-[1.75rem]' : 'text-[1.2rem] md:text-[1.35rem]'}`}
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.label}
             </h3>
-            <span className="text-[11px] uppercase tracking-[0.06em] text-tea-gold/70 shrink-0"
+            <span className="text-[11px] uppercase tracking-[0.1em] text-tea-gold/70 shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {svc.price}
             </span>
           </div>
 
-          <p className="text-[14px] text-tea-text-sec leading-[1.8]"
+          <p className="text-[14px] text-tea-text/80 leading-[1.8]"
              style={{ fontFamily: 'var(--font-body)' }}>
             {svc.desc}
           </p>
 
           {'offerings' in svc && svc.offerings && (
-            <div className="mt-8">
+            <div className="mt-8 pt-4">
               {svc.offerings.map((o, j) => (
-                <div key={o.name} className="py-3.5"
-                     style={{ borderBottom: j < svc.offerings.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
+                <div key={o.name}
+                     className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-sm">
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-[15px] font-light text-tea-text"
                           style={{ fontFamily: 'var(--font-display)' }}>
                       {o.name}
                     </span>
-                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.04em]"
-                          style={{ fontFamily: 'var(--font-sans)' }}>
+                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.1em] tabular-nums"
+                          style={{ fontFamily: 'var(--font-mono, var(--font-sans))' }}>
                       {o.price}
                     </span>
                   </div>
                   {'desc' in o && (
-                    <p className="text-[12px] text-tea-text-dim mt-1.5 leading-relaxed"
+                    <p className="text-[12px] text-tea-text-sec mt-1.5 leading-relaxed"
                        style={{ fontFamily: 'var(--font-sans)' }}>
                       {o.desc}
                     </p>
@@ -291,7 +301,8 @@ const Services: React.FC = () => (
               ))}
             </div>
           )}
-        </motion.div>
+          </motion.div>
+        </React.Fragment>
       );
     })}
   </section>
@@ -335,7 +346,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
                   style={{ fontFamily: 'var(--font-body)' }}>
               {project.name}
             </span>
-            <span className="text-[11px] text-tea-text-dim/70 shrink-0"
+            <span className="text-[11px] text-tea-text-sec shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {project.location}
             </span>
@@ -376,9 +387,9 @@ const Testimonial: React.FC = () => {
          style={{ fontFamily: 'var(--font-display)' }}>
         "{testimonial.quote}"
       </p>
-      <p className="text-[11px] text-tea-text-dim mt-6 tracking-[0.04em]"
+      <p className="text-[11px] text-tea-text-sec mt-6 tracking-[0.1em]"
          style={{ fontFamily: 'var(--font-sans)' }}>
-        {testimonial.name}<span className="text-tea-text-dim/30 mx-2">&middot;</span>{testimonial.title}
+        {testimonial.name}<span className="text-tea-text-sec/40 mx-2">&middot;</span>{testimonial.title}
       </p>
     </motion.section>
   );
@@ -406,8 +417,9 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     </h3>
     <button
       onClick={onOpenInquiry}
-      className="mt-10 text-[11px] uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
-                 font-medium transition-colors duration-300 min-h-[44px]
+      className="mt-10 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium
+                 py-2.5 px-6 hover:bg-tea-gold/90 transition-colors duration-300
+                 active:scale-95 min-h-[44px]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
       style={{ fontFamily: 'var(--font-sans)' }}
     >

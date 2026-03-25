@@ -80,7 +80,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                      <Icons.Leaf className="w-32 h-32 text-tea-text opacity-10" />
                    </div>
                  )}
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 to-transparent"></div>
               </div>
            )}
         </div>

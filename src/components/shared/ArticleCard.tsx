@@ -229,7 +229,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] relative ${isFeatured ? 'article-card-hero' : ''} ${className}`}
+      className={`cursor-pointer group transition-all duration-300 hover:-translate-y-[3px] hover:scale-[1.01] active:scale-[0.98] relative ${isFeatured ? 'article-card-hero' : ''} ${className}`}
       {...longPressHandlers}
     >
       <CardContainer className="p-0 overflow-hidden">
@@ -249,32 +249,34 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                   </div>
                 )}
 
-                <img
-                  src={imageUrl}
-                  alt={title}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:saturate-100 group-hover:contrast-100"
-                  style={{
-                    // Blur-up progressive loading: start blurred+desaturated, reveal on load
-                    filter: imageLoaded
-                      ? 'saturate(0.88) contrast(1.03) blur(0px)'
-                      : 'saturate(0) contrast(1) blur(12px)',
-                    transform: imageLoaded ? 'scale(1)' : 'scale(1.05)',
-                    transition: 'filter 0.6s ease, transform 0.6s ease',
-                    willChange: 'filter, transform',
-                  }}
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {
-                    setImageLoaded(true);
-                    setImageError(true);
-                  }}
-                />
+                <div className="w-full h-full transition-transform duration-700 ease-out group-hover:scale-[1.06]">
+                  <img
+                    src={imageUrl}
+                    alt={title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:saturate-100 group-hover:contrast-100"
+                    style={{
+                      // Blur-up progressive loading: start blurred+desaturated, reveal on load
+                      filter: imageLoaded
+                        ? 'saturate(0.88) contrast(1.03) blur(0px)'
+                        : 'saturate(0) contrast(1) blur(12px)',
+                      transform: imageLoaded ? 'scale(1)' : 'scale(1.05)',
+                      transition: 'filter 0.6s ease, transform 0.6s ease',
+                      willChange: 'filter, transform',
+                    }}
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {
+                      setImageLoaded(true);
+                      setImageError(true);
+                    }}
+                  />
+                </div>
 
                 {/* Paper texture overlay */}
                 <div
                   className="absolute inset-0 opacity-[0.07] mix-blend-overlay pointer-events-none z-10"
                   style={{
-                    backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
                   }}
                 />
 
@@ -282,7 +284,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 <div className="article-card-vignette" />
 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/95 via-tea-bg/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
 
                 {/* Optional tilt-shift miniature effect (landscape/panoramic photos) */}
                 {tiltShift && <TiltShiftOverlay />}
@@ -295,7 +297,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                     <Icons.BookOpen className="w-5 h-5 text-tea-text/30" />
                   </div>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/95 via-tea-bg/50 to-transparent" />
               </>
             )}
 

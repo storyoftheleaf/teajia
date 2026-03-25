@@ -35,19 +35,19 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
   mood = 'neutral',
 }) => {
   const gradients: Record<string, string> = {
-    warm: `radial-gradient(ellipse at 20% 50%, rgba(201,148,58,0.12) 0%, transparent 60%),
-           radial-gradient(ellipse at 80% 30%, rgba(139,90,43,0.08) 0%, transparent 50%),
-           radial-gradient(ellipse at 50% 80%, rgba(201,148,58,0.06) 0%, transparent 40%),
-           linear-gradient(160deg, rgba(245,240,230,1) 0%, rgba(235,225,210,1) 100%)`,
-    cool: `radial-gradient(ellipse at 70% 20%, rgba(120,140,120,0.10) 0%, transparent 50%),
-           radial-gradient(ellipse at 30% 70%, rgba(100,120,100,0.08) 0%, transparent 50%),
-           linear-gradient(160deg, rgba(240,242,238,1) 0%, rgba(230,235,225,1) 100%)`,
-    neutral: `radial-gradient(ellipse at 40% 40%, rgba(201,148,58,0.08) 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 70%, rgba(180,160,140,0.06) 0%, transparent 50%),
-              linear-gradient(160deg, rgba(245,242,235,1) 0%, rgba(238,232,222,1) 100%)`,
-    dark: `radial-gradient(ellipse at 30% 30%, rgba(201,148,58,0.08) 0%, transparent 50%),
-           radial-gradient(ellipse at 70% 60%, rgba(201,148,58,0.05) 0%, transparent 40%),
-           linear-gradient(160deg, rgba(35,32,28,1) 0%, rgba(28,25,22,1) 100%)`,
+    warm: `radial-gradient(ellipse at 20% 50%, rgba(var(--tea-gold-rgb, 184,146,78),0.12) 0%, transparent 60%),
+           radial-gradient(ellipse at 80% 30%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, transparent 50%),
+           radial-gradient(ellipse at 50% 80%, rgba(var(--tea-gold-rgb, 184,146,78),0.06) 0%, transparent 40%),
+           linear-gradient(160deg, rgba(var(--tea-surface-rgb, 244,236,224),1) 0%, rgba(var(--tea-surface-rgb, 244,236,224),0.9) 100%)`,
+    cool: `radial-gradient(ellipse at 70% 20%, rgba(var(--tea-gold-rgb, 184,146,78),0.06) 0%, transparent 50%),
+           radial-gradient(ellipse at 30% 70%, rgba(var(--tea-gold-rgb, 184,146,78),0.04) 0%, transparent 50%),
+           linear-gradient(160deg, rgba(var(--tea-surface-rgb, 244,236,224),1) 0%, rgba(var(--tea-surface-rgb, 244,236,224),0.92) 100%)`,
+    neutral: `radial-gradient(ellipse at 40% 40%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 70%, rgba(var(--tea-gold-rgb, 184,146,78),0.06) 0%, transparent 50%),
+              linear-gradient(160deg, rgba(var(--tea-surface-rgb, 244,236,224),1) 0%, rgba(var(--tea-surface-rgb, 244,236,224),0.92) 100%)`,
+    dark: `radial-gradient(ellipse at 30% 30%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, transparent 50%),
+           radial-gradient(ellipse at 70% 60%, rgba(var(--tea-gold-rgb, 184,146,78),0.05) 0%, transparent 40%),
+           linear-gradient(160deg, rgba(var(--tea-bg-rgb, 24,19,14),1) 0%, rgba(var(--tea-bg-rgb, 24,19,14),0.95) 100%)`,
   };
 
   return (
@@ -76,11 +76,11 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
 /** Section label — serif, editorial, warm gold accent */
 const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
   <div style={{ marginBottom: 'clamp(28px, 3vw, 40px)' }}>
-    <h3 className="font-serif text-tea-text tracking-[0.01em] leading-[1.2]" style={{ fontSize: 'clamp(20px, 2.5vw + 8px, 28px)' }}>
+    <h3 className="text-tea-text tracking-[0.01em] leading-[1.2]" style={{ fontSize: 'clamp(20px, 2.5vw + 8px, 28px)', fontFamily: 'var(--font-display)' }}>
       {children}
     </h3>
     {subtitle && (
-      <p className="mt-2 font-serif font-light italic text-tea-text-sec leading-[1.6]" style={{ fontSize: 'clamp(13px, 1vw + 8px, 15px)' }}>
+      <p className="mt-2 font-light italic text-tea-text-sec leading-[1.6]" style={{ fontSize: 'clamp(13px, 1vw + 8px, 15px)', fontFamily: 'var(--font-body)' }}>
         {subtitle}
       </p>
     )}
@@ -182,10 +182,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           {/* Quote overlaid at the bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
-            <p className="font-serif font-light italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)' }}>
+            <p className="font-light italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)', fontFamily: 'var(--font-body)' }}>
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
-            <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.2em] text-tea-text-sec">
+            <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.15em] text-tea-text-sec">
               Adrian
             </span>
           </div>
@@ -221,7 +221,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}
               </span>
-              <span className="flex-1 font-serif text-tea-text leading-[1.4] group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1.2vw + 8px, 15px)' }}>
+              <span className="flex-1 text-tea-text leading-[1.4] group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1.2vw + 8px, 15px)', fontFamily: 'var(--font-display)' }}>
                 {tile.label}
               </span>
               <span className="text-tea-text-sec font-sans text-right shrink-0 max-w-[45%] leading-[1.5]" style={{ fontSize: 'clamp(9px, 0.8vw + 5px, 11px)', letterSpacing: 'clamp(0.08em, 0.5vw, 0.15em)' }}>
@@ -236,7 +236,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           <div className="mt-4 bg-tea-surface border border-transparent rounded-[1px] p-5 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans block mb-2">Courses</span>
+                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Courses</span>
                 {searchResults.courses.map(mod => (
                   <button
                     key={mod.id}
@@ -250,16 +250,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             )}
             {searchResults.terms.length > 0 && (
               <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans block mb-2">Terms</span>
+                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Terms</span>
                 {searchResults.terms.map(term => (
                   <button
                     key={term.id}
                     onClick={() => { onNavigateTo('glossary'); setSearchQuery(''); }}
                     className={`block w-full text-left py-2 text-sm text-tea-text hover:text-tea-gold transition-colors ${CTA_FOCUS}`}
                   >
-                    <span className="font-serif">{term.term}</span>
+                    <span style={{ fontFamily: 'var(--font-display)' }}>{term.term}</span>
                     {term.chineseCharacters && <span className="text-tea-gold/30 ml-2">{term.chineseCharacters}</span>}
-                    <span className="text-tea-text/30 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
+                    <span className="text-tea-text/60 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
                   </button>
                 ))}
               </div>
@@ -267,12 +267,15 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </div>
         )}
         {searchResults === 'empty' && (
-          <p className="mt-4 text-sm text-tea-text/35 font-serif italic">
+          <p className="mt-4 text-sm text-tea-text/60 italic" style={{ fontFamily: 'var(--font-body)' }}>
             Nothing found for &ldquo;{searchQuery}&rdquo;
           </p>
         )}
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 3 — GLOSSARY SPOTLIGHT
@@ -299,34 +302,34 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <div className="relative" style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-[10px] uppercase tracking-[0.3em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
                     {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
                   </span>
                 </div>
 
                 {/* Term name */}
-                <h3 className="font-serif text-[clamp(32px,4.8vw,48px)] text-tea-text leading-[1.12] mb-2 tracking-[0.01em]">
+                <h3 className="text-[clamp(32px,4.8vw,48px)] text-tea-text leading-[1.12] mb-2 tracking-[0.01em]" style={{ fontFamily: 'var(--font-display)' }}>
                   {spotlightTerm.term}
                 </h3>
 
                 {spotlightTerm.pronunciation && (
-                  <p className="font-mono text-[9px] text-tea-text-sec mb-6 md:mb-8">
+                  <p className="font-mono tabular-nums text-[9px] text-tea-text-sec mb-6 md:mb-8">
                     /{spotlightTerm.pronunciation}/
                   </p>
                 )}
 
                 {/* Definition — Body role */}
-                <p className="font-serif text-tea-text-sec leading-[1.85] mb-8 max-w-lg" style={{ fontSize: 'clamp(14px, 1.2vw + 8px, 17px)' }}>
+                <p className="text-tea-text-sec leading-[1.85] mb-8 max-w-lg" style={{ fontSize: 'clamp(14px, 1.2vw + 8px, 17px)', fontFamily: 'var(--font-body)' }}>
                   {spotlightTerm.definition}
                 </p>
 
                 {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
                   <div className="border-l-2 border-tea-border pl-4 mb-8 max-w-md">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-sans block mb-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-sans block mb-1.5">
                       Try this
                     </span>
-                    <p className="text-[15px] text-tea-text-sec leading-[1.8] font-serif font-light italic">
+                    <p className="text-[15px] text-tea-text-sec leading-[1.8] font-light italic" style={{ fontFamily: 'var(--font-body)' }}>
                       {spotlightTerm.deepDive.tryThis[0].description}
                     </p>
                   </div>
@@ -334,11 +337,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
                 {/* CTA */}
                 <div className="flex items-center gap-6">
-                  <span className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all border-b border-tea-gold pb-0.5">
+                  <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                     Explore full glossary
                     <Icons.ChevronRight className="w-4 h-4" />
                   </span>
-                  <span className="text-tea-text-sec text-[9px] font-mono">
+                  <span className="text-tea-text-sec text-[9px] font-mono tabular-nums">
                     {counts.glossary} terms
                   </span>
                 </div>
@@ -356,13 +359,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             >
               <div className="flex items-baseline gap-2">
                 {secondTerm.chineseCharacters && (
-                  <span className="text-sm text-tea-gold/30 font-serif">{secondTerm.chineseCharacters}</span>
+                  <span className="text-sm text-tea-gold/30">{secondTerm.chineseCharacters}</span>
                 )}
                 <div>
-                  <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors">
+                  <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                     {secondTerm.term}
                   </span>
-                  <span className="text-xs text-tea-text/30 ml-2">
+                  <span className="text-xs text-tea-text/60 ml-2">
                     {secondTerm.definition.slice(0, 50)}...
                   </span>
                 </div>
@@ -372,6 +375,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         )}
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 4 — CURRICULUM ENTRY
@@ -398,21 +404,21 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               >
                 <div style={{ padding: 'clamp(16px, 2vw, 24px) 0' }}>
                   <div className="flex items-baseline justify-between gap-4 mb-2">
-                    <h4 className={`font-serif leading-[1.2] tracking-[0.01em] transition-colors ${
+                    <h4 className={`leading-[1.2] tracking-[0.01em] transition-colors ${
                       isNext ? 'text-tea-text group-hover:text-tea-gold' :
-                      isDone ? 'text-tea-text/30' :
-                      'text-tea-text/55 group-hover:text-tea-gold/80'
-                    }`} style={{ fontSize: 'clamp(15px, 1.5vw + 8px, 19px)' }}>
+                      isDone ? 'text-tea-text/60' :
+                      'text-tea-text/70 group-hover:text-tea-gold/80'
+                    }`} style={{ fontSize: 'clamp(15px, 1.5vw + 8px, 19px)', fontFamily: 'var(--font-display)' }}>
                       {mod.title}
                     </h4>
                     <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
                       isNext ? 'text-tea-gold/40 group-hover:text-tea-gold group-hover:translate-x-0.5' :
-                      'text-tea-text/10 group-hover:text-tea-gold/40'
+                      'text-tea-text/30 group-hover:text-tea-gold/40'
                     }`} />
                   </div>
-                  <p className={`font-serif font-light italic leading-[1.8] ${
-                    isDone ? 'text-tea-text-sec/50' : 'text-tea-text-sec'
-                  }`} style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)' }}>
+                  <p className={`font-light italic leading-[1.8] ${
+                    isDone ? 'text-tea-text-sec/80' : 'text-tea-text-sec'
+                  }`} style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)', fontFamily: 'var(--font-body)' }}>
                     {mod.description}
                   </p>
                 </div>
@@ -422,6 +428,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 5 — RESOURCES & TOOLS (moved up from original position)
@@ -448,11 +457,11 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-surface rounded-[1px] border border-transparent hover:border-tea-gold/20 transition-colors duration-300" style={{ padding: 'clamp(14px, 2vw, 24px)' }}>
+              <div className="h-full bg-tea-surface rounded-md border border-tea-border hover:border-tea-gold/30 transition-colors duration-200" style={{ padding: 'clamp(14px, 2vw, 24px)' }}>
                 <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
-                <h4 className="font-serif text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)' }}>
+                <h4 className="text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)', fontFamily: 'var(--font-display)' }}>
                   {tile.label}
                 </h4>
                 <p className="text-tea-text-sec font-sans uppercase leading-[1.4]" style={{ fontSize: 'clamp(8px, 0.6vw + 4px, 10px)', letterSpacing: 'clamp(0.12em, 0.5vw, 0.2em)' }}>
@@ -464,6 +473,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 6 — ATLAS & PLACES
@@ -489,18 +501,18 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onStoryClick(geographyLesson)}
               className={`text-left w-full group ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-[1px] border border-transparent hover:border-tea-gold/15 transition-colors duration-300">
+              <div className="relative overflow-hidden rounded-[1px] border border-tea-border hover:border-tea-gold/30 transition-colors duration-200">
                 {/* Location placeholder */}
                 <InkWashPlaceholder label={pin.name} aspectRatio="4/3" mood={i % 2 === 0 ? 'warm' : 'cool'} />
 
                 <div className="p-4 bg-tea-bg">
-                  <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-2">
+                  <span className="inline-block text-[9px] uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-2">
                     {PIN_TYPE_LABELS[pin.type] || pin.type}
                   </span>
-                  <h4 className="font-serif text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors">
+                  <h4 className="text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                     {pin.name}
                   </h4>
-                  <p className="text-[11px] text-tea-text/35 font-sans">
+                  <p className="text-[11px] text-tea-text/60 font-sans">
                     {pin.location}
                   </p>
                 </div>
@@ -510,6 +522,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </SwipeCarousel>
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 7 — TEA SPACE TEASER
@@ -530,16 +545,16 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
             {/* Content below image */}
             <div className="bg-tea-bg" style={{ padding: 'clamp(16px, 2.5vw, 28px)' }}>
-              <span className="inline-block text-[9px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans mb-3">
+              <span className="inline-block text-[9px] uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
-              <h4 className="font-serif text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight" style={{ fontSize: 'clamp(16px, 1.5vw + 8px, 20px)' }}>
+              <h4 className="text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight" style={{ fontSize: 'clamp(16px, 1.5vw + 8px, 20px)', fontFamily: 'var(--font-display)' }}>
                 {featuredSpace.title}
               </h4>
-              <p className="font-serif italic text-sm text-tea-text/50 leading-relaxed mb-4 max-w-md">
+              <p className="italic text-sm text-tea-text/70 leading-relaxed mb-4 max-w-md" style={{ fontFamily: 'var(--font-body)' }}>
                 {featuredSpace.description}
               </p>
-              <span className="text-tea-gold text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+              <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                 See all {counts.spaces} spaces
                 <Icons.ChevronRight className="w-4 h-4" />
               </span>
@@ -562,13 +577,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         <div className="inset-panel" style={{ padding: 'clamp(28px, 4vw, 48px)' }}>
           <div className="text-center max-w-sm mx-auto">
-            <p className="font-serif text-[17px] text-tea-text/40 leading-[1.85] mb-5">
+            <p className="text-[17px] text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
               This archive grows with every session, every conversation, every cup.
             </p>
             {onNavigateToConsult ? (
               <button
                 onClick={onNavigateToConsult}
-                className={`inline-flex items-center gap-1.5 text-tea-gold text-[13px] font-sans tracking-[0.08em] hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+                className={`inline-flex items-center gap-1.5 text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans hover:gap-2.5 transition-all ${CTA_FOCUS}`}
               >
                 Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -578,7 +593,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
             <div className="mt-8 flex items-center justify-center gap-2.5">
               <div className="w-6 h-px bg-tea-gold/15" />
-              <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/15">
+              <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/40">
                 Teajia
               </span>
               <div className="w-6 h-px bg-tea-gold/15" />

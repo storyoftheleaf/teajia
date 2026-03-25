@@ -297,24 +297,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button
-                              onClick={() => { setActiveType('All'); setOpenFilter(null); }}
-                              className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider transition-all ${
-                                 activeType === 'All'
-                                    ? 'bg-tea-elevated text-tea-text font-medium'
-                                    : 'text-tea-text/40 hover:text-tea-text/70'
-                              }`}
+                              onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType('All'); setOpenFilter(null); }}
+                              className={`pill ${activeType === 'All' ? 'pill-active' : ''}`}
                            >
                               All
                            </button>
                            {teaTypes.map(t => (
                               <button
                                  key={t}
-                                 onClick={() => { setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
-                                 className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider transition-all ${
-                                    activeType === t
-                                       ? 'bg-tea-gold/15 text-tea-gold font-medium'
-                                       : 'text-tea-text/40 hover:text-tea-text/70'
-                                 }`}
+                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
+                                 className={`pill ${activeType === t ? 'pill-active' : ''}`}
                               >
                                  {t}
                               </button>
@@ -325,8 +317,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         <div className="flex flex-wrap gap-1.5">
                            {activeFeeling && (
                               <button
-                                 onClick={() => { setActiveFeeling(null); setOpenFilter(null); }}
-                                 className="px-2.5 py-1 rounded-full text-[10px] tracking-wider text-tea-text/40 hover:text-tea-text/70 transition-all"
+                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(null); setOpenFilter(null); }}
+                                 className="pill"
                               >
                                  Clear
                               </button>
@@ -334,12 +326,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                            {availableFeelings.map(f => (
                               <button
                                  key={f.id}
-                                 onClick={() => { setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
-                                 className={`px-2.5 py-1 rounded-full text-[10px] tracking-wider transition-all ${
-                                    activeFeeling === f.id
-                                       ? 'bg-tea-gold/15 text-tea-gold font-medium'
-                                       : 'text-tea-text/40 hover:text-tea-text/70'
-                                 }`}
+                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
+                                 className={`pill ${activeFeeling === f.id ? 'pill-active' : ''}`}
                               >
                                  {f.label}
                               </button>
@@ -357,7 +345,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                   <div className="flex items-center gap-2 mt-1">
                      <button
                         onClick={clearTastingFilter}
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold text-[10px] tracking-wider hover:bg-tea-gold/20 transition-colors"
+                        className="tag cursor-pointer hover:opacity-80 transition-opacity"
                      >
                         <Icon size={10} />
                         <span>{resolveTermLabel(tastingFilter.termId)}</span>
@@ -517,7 +505,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
         <div className="mt-10 px-3 md:px-4 lg:px-6">
           <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
             {recentlyViewedItems.map(item => (
               <button
                 key={item.id}

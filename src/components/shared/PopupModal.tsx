@@ -267,10 +267,10 @@ export const PopupModal: React.FC<PopupModalProps> = ({
                 <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />
               </div>
             )}
-            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-tea-bg/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-3xl font-serif text-tea-text mb-1">{item.name}</h2>
+            <h2 className="text-3xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
@@ -278,13 +278,13 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             )}
             {(item.year || item.origin) && (
               <div className="flex items-center justify-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-4">
-                {item.year && <span className="font-mono">{item.year}</span>}
+                {item.year && <span className="font-mono tabular-nums">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-4">{item.description}</p>
+              <p className="italic text-sm text-tea-text/80 leading-relaxed mb-4" style={{ fontFamily: 'var(--font-body)' }}>{item.description}</p>
             )}
             {purchaseControls}
           </div>
@@ -297,8 +297,8 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       {/* Mobile: Bottom sheet */}
       <div
         ref={sheetRef}
-        className={`md:hidden absolute bottom-0 left-0 right-0 flex flex-col transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ transform: isVisible ? `translateY(${sheetDragY}px)` : 'translateY(100%)' }}
+        className={`md:hidden absolute left-0 right-0 flex flex-col transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ transform: isVisible ? `translateY(${sheetDragY}px)` : 'translateY(100%)', bottom: 0, maxHeight: 'calc(100dvh - 49px - env(safe-area-inset-bottom, 0px))' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Image area — peek above sheet */}
@@ -317,14 +317,14 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         </div>
 
         {/* Sheet content */}
-        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[calc(49px+env(safe-area-inset-bottom,0px))] lg:pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
             <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />
           </div>
 
           <div className="px-6 pb-6">
-            <h2 className="text-2xl font-serif text-tea-text mb-1">{item.name}</h2>
+            <h2 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</h2>
             {(item.type || item.variant) && (
               <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
@@ -332,13 +332,13 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             )}
             {(item.year || item.origin) && (
               <div className="flex items-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-3">
-                {item.year && <span className="font-mono">{item.year}</span>}
+                {item.year && <span className="font-mono tabular-nums">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
               </div>
             )}
             {itemType === 'teaware' && item.description && (
-              <p className="font-serif italic text-sm text-tea-text/80 leading-relaxed mb-3">{item.description}</p>
+              <p className="italic text-sm text-tea-text/80 leading-relaxed mb-3" style={{ fontFamily: 'var(--font-body)' }}>{item.description}</p>
             )}
             {purchaseControls}
           </div>

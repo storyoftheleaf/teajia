@@ -32,7 +32,7 @@ export const SharedCollection: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
         <SealIcon className="w-12 h-12 text-tea-gold/30 mb-4" />
-        <h1 className="text-2xl font-serif text-tea-text mb-2">Collection Not Found</h1>
+        <h1 className="text-2xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Collection Not Found</h1>
         <p className="text-sm text-tea-text/50 max-w-md">
           This collection link appears to be invalid or expired.
         </p>
@@ -52,8 +52,8 @@ export const SharedCollection: React.FC = () => {
       {/* Header */}
       <div className="text-center pt-8 pb-8">
         <SealIcon className="w-8 h-8 text-tea-gold mx-auto mb-3 opacity-60" />
-        <h1 className="text-3xl font-serif text-tea-text mb-1">Shared Collection</h1>
-        <p className="text-sm text-tea-text/50 font-serif italic">
+        <h1 className="text-3xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>Shared Collection</h1>
+        <p className="text-sm text-tea-text/50 italic" style={{ fontFamily: 'var(--font-body)' }}>
           {collectionItems.length} {collectionItems.length === 1 ? 'selection' : 'selections'} from Teajia
         </p>
       </div>
@@ -76,7 +76,7 @@ export const SharedCollection: React.FC = () => {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-serif text-base text-tea-text group-hover:text-tea-gold transition-colors truncate">
+              <h3 className="text-base text-tea-text group-hover:text-tea-gold transition-colors truncate" style={{ fontFamily: 'var(--font-display)' }}>
                 {item.name}
               </h3>
               <div className="flex items-center gap-2 text-[11px] text-tea-text/50 mt-0.5">
@@ -90,12 +90,12 @@ export const SharedCollection: React.FC = () => {
                 {item.year && (
                   <>
                     <span className="opacity-40">·</span>
-                    <span className="font-mono">{item.year}</span>
+                    <span className="font-mono tabular-nums">{item.year}</span>
                   </>
                 )}
               </div>
               {item.mood && (
-                <p className="text-[11px] font-serif italic text-tea-text/40 mt-1 truncate">{item.mood}</p>
+                <p className="text-[11px] italic text-tea-text/40 mt-1 truncate" style={{ fontFamily: 'var(--font-body)' }}>{item.mood}</p>
               )}
             </div>
 
@@ -113,7 +113,7 @@ export const SharedCollection: React.FC = () => {
       <div className="text-center pt-8">
         <a
           href="/shop"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 transition-colors"
         >
           Browse Full Shop
           <Icons.ChevronRight className="w-3.5 h-3.5" />

@@ -5,9 +5,7 @@ import { LogoEmblem, LogoText } from './Logos';
 import { Section } from '../types';
 
 import { getNavIcon, getIconScale } from './navIconConfig';
-import { useTheme } from '../context/ThemeContext';
 import { useLongPress } from '../hooks/useLongPress';
-import { useAuth } from '../hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 
@@ -27,20 +25,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick
 }) => {
-  const { toggleTheme, theme } = useTheme();
-  const isDark = theme === 'dark';
-  const auth = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [themeFlash, setThemeFlash] = React.useState(false);
   const isOnAdmin = location.pathname.startsWith('/admin');
 
   const centerLongPress = useLongPress({
     delay: 500,
     onLongPress: () => {
       if ('vibrate' in navigator) { navigator.vibrate?.(30); }
-      setThemeFlash(true);
-      setTimeout(() => setThemeFlash(false), 400);
       if (isOnAdmin) {
         navigate('/');
         onNavigate('HOME');
@@ -118,12 +110,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
         aria-label="Main navigation"
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 border-t border-tea-border ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
-          background: 'rgba(var(--tea-surface-rgb), 0.92)',
-          boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
+          background: 'rgba(var(--tea-bg-rgb, 24,19,14), 0.95)',
+          boxShadow: '0 -6px 20px rgba(var(--tea-bg-rgb, 24,19,14),0.25), 0 -1px 4px rgba(var(--tea-bg-rgb, 24,19,14),0.15)',
           height: 'calc(49px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           WebkitTapHighlightColor: 'transparent',
@@ -144,7 +136,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           <div className="flex items-center h-full flex-1">
             <button
               {...centerLongPress}
-              className={`flex-1 h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] select-none ${themeFlash ? 'scale-95' : ''}`}
+              className="flex-1 h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] select-none"
               style={{
                 animationDelay: `${leftSections.length * 50}ms`,
                 WebkitTouchCallout: 'none',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { api, setToken } from '../../lib/api';
 import { useAppStore } from '../store';
 
@@ -58,13 +58,12 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'} onKeyDown={(e) => { if (e.key === 'Escape') { resetForm(); onClose(); } }}>
-      <div className="bg-tea-bg border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-2xl relative">
-        <button onClick={() => { resetForm(); onClose(); }} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={20} /></button>
-        <h3 className="text-2xl font-serif text-tea-text mb-2">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
+      <div className="w-full max-w-sm px-8">
+        <h3 className="text-2xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>
           {mode === 'login' ? 'Welcome Back' : 'Create Account'}
         </h3>
-        <p className="text-tea-text-sec text-sm mb-6 font-serif italic">
+        <p className="text-tea-text-sec text-sm mb-6 italic" style={{ fontFamily: 'var(--font-display)' }}>
           {mode === 'login' ? 'Sign in to your account.' : 'Join the Teajia community.'}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
