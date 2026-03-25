@@ -1,5 +1,26 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+
+// Persisted set of dismissed suggestions (typos, etc.)
+const DISMISSED_KEY = 'teajia-autocomplete-dismissed';
+
+function getDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+}
+
+function dismissSuggestion(text: string) {
+  const set = getDismissed();
+  set.add(text.toLowerCase());
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
+}
+
+function isNotDismissed(text: string): boolean {
+  return !getDismissed().has(text.toLowerCase());
+}
 
 interface AutocompleteInputProps {
   value: string;
@@ -25,12 +46,16 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Filter suggestions: case-insensitive contains, max 6
+  const [dismissedVersion, setDismissedVersion] = useState(0);
+
+  // Filter suggestions: case-insensitive contains, exclude dismissed, max 6
   const filtered = value.length >= 2
     ? suggestions
-        .filter((s) => s.toLowerCase().includes(value.toLowerCase()))
+        .filter((s) => s.toLowerCase().includes(value.toLowerCase()) && isNotDismissed(s))
         .slice(0, 6)
     : [];
+  // dismissedVersion is used to force re-filter after a dismiss
+  void dismissedVersion;
 
   const showDropdown = open && focused && filtered.length > 0;
 
@@ -56,6 +81,16 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       inputRef.current?.blur();
     },
     [onChange, onSelect, itemData]
+  );
+
+  const handleDismiss = useCallback(
+    (suggestion: string, e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dismissSuggestion(suggestion);
+      setDismissedVersion((v) => v + 1);
+    },
+    []
   );
 
   const handleKeyDown = useCallback(
@@ -125,18 +160,26 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
             className="absolute left-0 right-0 z-20 bg-tea-surface border border-tea-border rounded-lg shadow-lg mt-1 overflow-hidden"
           >
             {filtered.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onMouseDown={(e) => {
-                  // Prevent blur from firing before select
-                  e.preventDefault();
-                  handleSelect(suggestion);
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-tea-text hover:bg-tea-elevated cursor-pointer transition-colors"
-              >
-                {renderHighlighted(suggestion)}
-              </button>
+              <div key={suggestion} className="flex items-center hover:bg-tea-elevated transition-colors group">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(suggestion);
+                  }}
+                  className="flex-1 text-left px-3 py-2 text-sm text-tea-text cursor-pointer min-w-0 truncate"
+                >
+                  {renderHighlighted(suggestion)}
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => handleDismiss(suggestion, e)}
+                  className="shrink-0 px-2 py-2 text-tea-text-dim/0 group-hover:text-tea-text-dim hover:!text-tea-text transition-colors"
+                  aria-label="Remove suggestion"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             ))}
           </motion.div>
         )}
