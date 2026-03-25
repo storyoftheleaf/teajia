@@ -136,7 +136,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <MobileHeader title={story.title} onBack={onBack} transparent />
         
         {/* Mobile Side Actions - Hide during play if it's immersive */}
-        <div className={`absolute right-4 bottom-32 flex flex-col space-y-6 items-center text-tea-text/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
+        <div className={`absolute right-4 bottom-[calc(49px+env(safe-area-inset-bottom,0px)+128px)] flex flex-col space-y-6 items-center text-tea-text/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
             <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-gold' : ''}`}>
                <Icons.Leaf filled={isSaved} className="w-7 h-7" />
             </button>
@@ -147,7 +147,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
         {/* Bottom Info - Hide during play */}
         {!isPlaying && (
-            <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-tea-text pointer-events-none bg-gradient-to-t from-tea-bg/90 to-transparent">
+            <div className="absolute bottom-0 left-0 w-full p-6 pb-[calc(49px+env(safe-area-inset-bottom,0px)+10px)] text-tea-text pointer-events-none bg-gradient-to-t from-tea-bg/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
                 <span className="px-2 py-0.5 border border-tea-gold/20 text-[9px] uppercase tracking-[0.15em] rounded-full">
                     {story.type}
