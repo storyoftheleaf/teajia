@@ -159,10 +159,10 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         {groups.map(([groupName, groupEntries]) => (
           <div key={groupName}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">
                 {groupName}
               </span>
-              <span className="text-[10px] text-tea-text-dim">
+              <span className="text-[10px] text-tea-text-sec">
                 {groupEntries.length} {groupEntries.length === 1 ? 'entry' : 'entries'}
               </span>
             </div>

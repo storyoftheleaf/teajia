@@ -23,6 +23,11 @@ const CURRENCY_LABELS: Record<Currency, string> = {
   UNK: '?',
 };
 
+/* Hide number input spinners globally for these inputs */
+const noSpinnerStyle: React.CSSProperties = {
+  MozAppearance: 'textfield',
+};
+
 export const PriceGrams: React.FC<PriceGramsProps> = ({
   priceAmount,
   priceCurrency,
@@ -53,17 +58,17 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
   return (
     <div className="space-y-2">
       {/* Price (with currency dropdown) + Grams — one line */}
-      <div className="flex gap-3 items-end">
+      <div className="flex gap-4 items-end">
         {/* Price half */}
         <div className="flex-1 min-w-0">
-          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1">
+          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1.5">
             Price
           </label>
-          <div className="flex items-end gap-1">
+          <div className="flex items-center gap-1">
             <select
               value={priceCurrency}
               onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-              className="bg-transparent text-tea-text-sec text-sm font-medium border-none outline-none cursor-pointer appearance-none pr-1 pb-1"
+              className="bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none outline-none cursor-pointer appearance-none shrink-0"
               style={{ backgroundImage: 'none' }}
             >
               {Object.entries(CURRENCY_LABELS).filter(([k]) => k !== 'UNK').map(([value, label]) => (
@@ -76,16 +81,16 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               placeholder="0"
               value={priceAmount ?? ''}
               onChange={handlePriceInput}
-              className="flex-1 min-w-0 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
+              style={noSpinnerStyle}
+              className="flex-1 min-w-0 bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+                         placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>
 
-        <div className="w-px h-6 bg-tea-border/30 shrink-0" />
-
         {/* Grams half */}
         <div className="flex-1 min-w-0">
-          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1">
+          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1.5">
             Grams
           </label>
           <input
@@ -94,19 +99,21 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             placeholder={form ? String(DEFAULT_GRAMS[form]) : '100'}
             value={pricePerUnitGrams ?? ''}
             onChange={handleGramsInput}
-            className="w-full bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors text-right"
+            style={noSpinnerStyle}
+            className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums text-right
+                       placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
       </div>
 
       {/* Gram presets */}
-      <div className="flex gap-1 flex-wrap">
+      <div className="flex gap-1.5 flex-wrap">
         {presets.map((g) => (
           <button
             key={g}
             type="button"
             onClick={() => onGramsChange(g)}
-            className={pricePerUnitGrams === g ? 'pill-active' : 'pill'}
+            className={`${pricePerUnitGrams === g ? 'pill-active' : 'pill'} py-1.5 px-3`}
           >
             {g}g
           </button>

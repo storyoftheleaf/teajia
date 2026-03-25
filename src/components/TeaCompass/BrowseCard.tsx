@@ -321,7 +321,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                       removeEntry(entry.id);
                     }
                   }}
-                  className="text-xs text-tea-text-dim hover:text-red-400 transition-colors duration-150 cursor-pointer"
+                  className="text-xs text-tea-text-sec hover:text-tea-text transition-colors duration-150 cursor-pointer"
                 >
                   <span className="flex items-center gap-1">
                     <Trash2 size={11} />

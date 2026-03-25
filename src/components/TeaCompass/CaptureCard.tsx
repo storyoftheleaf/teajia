@@ -532,33 +532,35 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const hasTeawareName = (entry.name || '').trim().length > 0;
 
     return (
-      <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-4">
-        {/* Layer 1: Photo + Name + Price + Status */}
-        <TeawarePhotos
-          photos={entry.photos}
-          onPhotosChange={handleTeawarePhotosChange}
-        />
+      <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-3">
+        {/* Panel 1: Identity — Photo + Name */}
+        <div className="bg-tea-surface/40 rounded-lg p-3 space-y-3">
+          <TeawarePhotos
+            photos={entry.photos}
+            onPhotosChange={handleTeawarePhotosChange}
+          />
 
-        <VendorStrip
-          vendorName={entry.vendorName}
-          vendorId={entry.vendorId}
-          vendorDetails={entry.vendorDetails}
-          onVendorSelect={handleVendorSelect}
-          onClear={handleVendorClear}
-          onDetailsChange={handleVendorDetailsChange}
-        />
+          <VendorStrip
+            vendorName={entry.vendorName}
+            vendorId={entry.vendorId}
+            vendorDetails={entry.vendorDetails}
+            onVendorSelect={handleVendorSelect}
+            onClear={handleVendorClear}
+            onDetailsChange={handleVendorDetailsChange}
+          />
 
-        <input
-          type="text"
-          value={entry.name}
-          onChange={(e) => update({ name: e.target.value })}
-          placeholder="What is it?"
-          className="w-full bg-transparent text-tea-text text-lg font-display placeholder:text-tea-text-dim border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 transition-colors"
-        />
+          <input
+            type="text"
+            value={entry.name}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder="What is it?"
+            className="w-full bg-tea-bg/50 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
+          />
+        </div>
 
-        {/* Price (underlined) */}
-        <div className="space-y-1.5">
-          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Price</label>
+        {/* Panel 2: Price */}
+        <div className="bg-tea-surface/40 rounded-lg p-3 space-y-1.5">
+          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1.5">Price</label>
           <input
             type="number"
             inputMode="decimal"
@@ -568,9 +570,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ priceAmount: val === '' ? undefined : Number(val) });
             }}
-            className="w-full bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
+            className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums"
           />
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap pt-1">
             {CURRENCIES.map((c) => (
               <button
                 key={c.value}
@@ -584,7 +586,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         </div>
 
-        {/* Status — always visible */}
+        {/* Status — standalone, not in panel */}
         <StatusActions
           status={entry.status}
           onStatusChange={(status: CompassStatus) => update({ status })}
@@ -600,8 +602,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="overflow-hidden space-y-4"
+              className="overflow-hidden space-y-3"
             >
+              {/* Panel 3: Category & Material */}
+              <div className="bg-tea-surface/40 rounded-lg p-3 space-y-3">
               {/* Category */}
               <div className="space-y-1.5">
                 <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Category</label>
@@ -641,12 +645,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   ))}
                 </div>
               </div>
+              </div>
 
-              {/* Notes */}
+              {/* Panel 4: Notes */}
+              <div className="bg-tea-surface/40 rounded-lg p-3">
               <NotesField
                 notes={entry.notes}
                 onNotesChange={(notes) => update({ notes })}
               />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -668,31 +675,32 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Tea card layout — progressive disclosure ────────────────────────
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-4">
-      {/* ─── LAYER 1: Always visible — the "notebook page" ─── */}
+    <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-3">
+      {/* ─── LAYER 1: Always visible ─── */}
 
-      {/* 1. Vendor strip — persistent at top, compact */}
-      <VendorStrip
-        vendorName={entry.vendorName}
-        vendorId={entry.vendorId}
-        vendorDetails={entry.vendorDetails}
-        onVendorSelect={handleVendorSelect}
-        onClear={handleVendorClear}
-        onDetailsChange={handleVendorDetailsChange}
-      />
-
-      {/* 2. Name input (large, underlined) + PhotoCapture inline right */}
-      <div className="flex items-center gap-2">
-        <AutocompleteInput
-          value={entry.name}
-          onChange={(val) => update({ name: val })}
-          suggestions={allNameSuggestions}
-          placeholder="What are you tasting?"
-          className="w-full bg-transparent text-tea-text text-lg font-display placeholder:text-tea-text-dim border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 transition-colors min-w-0"
-          onSelect={handleNameAutocompleteSelect}
-          itemData={productNameMap}
+      {/* Panel 1: Identity — vendor + name + photo */}
+      <div className="bg-tea-surface/40 rounded-lg p-3 space-y-3">
+        <VendorStrip
+          vendorName={entry.vendorName}
+          vendorId={entry.vendorId}
+          vendorDetails={entry.vendorDetails}
+          onVendorSelect={handleVendorSelect}
+          onClear={handleVendorClear}
+          onDetailsChange={handleVendorDetailsChange}
         />
-        <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+
+        <div className="flex items-center gap-2">
+          <AutocompleteInput
+            value={entry.name}
+            onChange={(val) => update({ name: val })}
+            suggestions={allNameSuggestions}
+            placeholder="What are you tasting?"
+            className="w-full bg-tea-bg/50 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            onSelect={handleNameAutocompleteSelect}
+            itemData={productNameMap}
+          />
+          <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+        </div>
       </div>
 
       {/* 2a. Duplicate nudge */}
@@ -730,18 +738,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
-      {/* 3. Price + Grams — immediately after name */}
-      <PriceGrams
-        priceAmount={entry.priceAmount}
-        priceCurrency={entry.priceCurrency}
-        pricePerUnitGrams={entry.pricePerUnitGrams}
-        form={entry.form}
-        onPriceChange={(priceAmount) => update({ priceAmount })}
-        onCurrencyChange={handleCurrencyChange}
-        onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
-      />
+      {/* Panel 2: Price & Grams */}
+      <div className="bg-tea-surface/40 rounded-lg p-3">
+        <PriceGrams
+          priceAmount={entry.priceAmount}
+          priceCurrency={entry.priceCurrency}
+          pricePerUnitGrams={entry.pricePerUnitGrams}
+          form={entry.form}
+          onPriceChange={(priceAmount) => update({ priceAmount })}
+          onCurrencyChange={handleCurrencyChange}
+          onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
+        />
+      </div>
 
-      {/* 4. Status — Want / Buy — always visible at bottom of visible layer */}
+      {/* Status — standalone, not in panel */}
       <StatusActions
         status={entry.status}
         onStatusChange={(status: CompassStatus) => update({ status })}
@@ -757,9 +767,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden space-y-4"
+            className="overflow-hidden space-y-3"
           >
-            {/* Compact inline chip selectors — Type + Form on one row */}
+            {/* Panel 3: Type & Form */}
+            <div className="bg-tea-surface/40 rounded-lg p-3">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Type chip */}
               <div className="relative" ref={typePopoverRef}>
@@ -782,15 +793,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-1 z-20 bg-tea-surface border border-tea-border rounded-lg p-2 shadow-lg"
+                      className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
                     >
-                      <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '180px' }}>
+                      <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '200px' }}>
                         {TEA_TYPES.map((type) => (
                           <button
                             key={type}
                             type="button"
                             onClick={() => handleTypeSelect(type)}
-                            className={entry.type === type ? 'pill-active' : 'pill'}
+                            className={`${entry.type === type ? 'pill-active' : 'pill'} py-2`}
                           >
                             {type}
                           </button>
@@ -818,15 +829,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-1 z-20 bg-tea-surface border border-tea-border rounded-lg p-2 shadow-lg"
+                      className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
                     >
-                      <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '160px' }}>
+                      <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '180px' }}>
                         {TEA_FORMS.map((form) => (
                           <button
                             key={form}
                             type="button"
                             onClick={() => handleFormSelect(form)}
-                            className={entry.form === form ? 'pill-active' : 'pill'}
+                            className={`${entry.form === form ? 'pill-active' : 'pill'} py-2`}
                           >
                             {form}
                           </button>
@@ -837,12 +848,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 </AnimatePresence>
               </div>
             </div>
+            </div>
 
-            {/* Notes */}
-            <NotesField
-              notes={entry.notes}
-              onNotesChange={(notes) => update({ notes })}
-            />
+            {/* Panel 4: Notes */}
+            <div className="bg-tea-surface/40 rounded-lg p-3">
+              <NotesField
+                notes={entry.notes}
+                onNotesChange={(notes) => update({ notes })}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -887,7 +901,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           >
             {/* Header bar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0">
-              <h2 className="text-tea-text text-sm font-display tracking-wide">Tasting</h2>
+              <h2 className="text-tea-text text-sm font-medium tracking-wide">Tasting</h2>
               <button
                 type="button"
                 onClick={closeTastingOverlay}
@@ -985,7 +999,7 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
                     const val = e.target.value;
                     onCapacityChange(val === '' ? undefined : Number(val));
                   }}
-                  className="w-24 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-sm num transition-colors"
+                  className="w-24 bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
                 />
               </div>
 

@@ -192,7 +192,7 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
     <div className="space-y-1.5 mb-3">
       {/* Label */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+        <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] font-serif">
           From {vendorName || 'this vendor'}
         </span>
         {items.length > 3 && (

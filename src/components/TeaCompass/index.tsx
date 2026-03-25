@@ -164,7 +164,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
 
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <CompassIcon className="w-5 h-5 text-tea-gold shrink-0" filled={mode === 'capture'} />
-          <h2 className="text-tea-text font-medium text-base truncate">Tea Compass</h2>
+          <h2 className="text-tea-text font-serif text-base truncate">Tea Compass</h2>
           <SyncIndicator />
         </div>
       </div>
@@ -178,15 +178,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               key={tab.id}
               type="button"
               onClick={() => handleSwitchMode(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] uppercase tracking-[0.12em] font-medium transition-colors relative ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-[10px] uppercase tracking-[0.15em] font-bold transition-colors relative ${
                 active
                   ? 'text-tea-gold'
-                  : 'text-tea-text-sec/60 hover:text-tea-text-sec'
+                  : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
               {tab.label}
               {tab.badge != null && (
-                <span className="ml-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-tea-gold/20 text-tea-gold text-[10px] font-bold px-1">
+                <span className="badge-status badge-status-gold ml-1">
                   {tab.badge}
                 </span>
               )}

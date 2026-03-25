@@ -51,20 +51,16 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
 
   const handleBuyClick = () => {
     if (!entry) {
-      // Fallback to old behavior if no entry provided
       onStatusChange(status === 'buying' ? 'logged' : 'buying');
       return;
     }
 
     if (isInLedger) {
-      // Already in ledger — go to ledger tab
       onAddedToLedger?.();
       return;
     }
 
-    // Show quantity picker
     setShowQtyPicker(true);
-    // Reset quantity based on entry
     if (entry.category === 'teaware') {
       setQuantity(1);
     } else if (isUnitBased(entry.form)) {
@@ -80,12 +76,9 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
     const vendorName = entry.vendorName || 'Unknown Vendor';
     const currency = entry.priceCurrency || 'NT';
 
-    // Find or create a purchase transaction for this vendor
     const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
-
     const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);
 
-    // Add line item
     addLineItem(txId, {
       name: entry.name || 'Unnamed',
       chineseName: entry.chineseName,
@@ -101,7 +94,6 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
       compassEntryId: entry.id,
     });
 
-    // Update compass entry status
     onStatusChange('buying');
 
     setShowQtyPicker(false);
@@ -121,22 +113,22 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleWant}
-          className={`flex-1 ${status === 'want' ? 'pill-active-amber' : 'pill'}`}
-          style={{ justifyContent: 'center', paddingTop: '0.625rem', paddingBottom: '0.625rem' }}
+          className={`flex-1 text-sm rounded-lg ${status === 'want' ? 'pill-active-amber' : 'pill'}`}
+          style={{ justifyContent: 'center', paddingTop: '0.75rem', paddingBottom: '0.75rem', textTransform: 'none', letterSpacing: 'normal' }}
         >
           Want
         </button>
         <button
           type="button"
           onClick={handleBuyClick}
-          className={`flex-1 ${
+          className={`flex-1 text-sm rounded-lg ${
             isInLedger
               ? 'pill-active flex items-center justify-center gap-1.5'
               : status === 'buying'
                 ? 'pill-active'
                 : 'pill'
           }`}
-          style={{ justifyContent: 'center', paddingTop: '0.625rem', paddingBottom: '0.625rem' }}
+          style={{ justifyContent: 'center', paddingTop: '0.75rem', paddingBottom: '0.75rem', textTransform: 'none', letterSpacing: 'normal' }}
         >
           {isInLedger ? (
             <>
@@ -159,8 +151,8 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-tea-elevated/30 rounded-lg px-4 py-3 space-y-3">
-              <p className="text-tea-text-sec text-xs uppercase tracking-wider">
+            <div className="bg-tea-elevated rounded-lg px-4 py-3 space-y-3">
+              <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] font-serif">
                 How much?
               </p>
 
@@ -169,7 +161,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                   type="button"
                   onClick={() => setQuantity(Math.max(step, quantity - step))}
                   className="w-9 h-9 rounded-full bg-tea-surface flex items-center justify-center
-                             text-tea-text-sec active:bg-tea-border transition-colors"
+                             text-tea-text-sec active:bg-tea-elevated transition-colors"
                 >
                   <Minus size={16} />
                 </button>
@@ -178,10 +170,12 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                     type="number"
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-16 text-center text-tea-text text-2xl font-semibold bg-transparent
-                               border-b-2 border-tea-gold/40 focus:border-tea-gold outline-none"
+                    style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+                    className="w-16 text-center text-tea-text text-2xl font-semibold bg-transparent num
+                               border-none outline-none
+                               [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  <span className="text-tea-text-dim text-sm">
+                  <span className="text-tea-text-sec text-xs font-serif">
                     {unitBased ? (quantity === 1 ? 'unit' : 'units') : 'g'}
                   </span>
                 </div>
@@ -189,7 +183,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                   type="button"
                   onClick={() => setQuantity(quantity + step)}
                   className="w-9 h-9 rounded-full bg-tea-surface flex items-center justify-center
-                             text-tea-text-sec active:bg-tea-border transition-colors"
+                             text-tea-text-sec active:bg-tea-elevated transition-colors"
                 >
                   <Plus size={16} />
                 </button>
@@ -203,11 +197,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                       key={g}
                       type="button"
                       onClick={() => setQuantity(g)}
-                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                        quantity === g
-                          ? 'bg-tea-gold/20 text-tea-gold'
-                          : 'bg-tea-surface text-tea-text-sec active:bg-tea-border'
-                      }`}
+                      className={quantity === g ? 'pill-active' : 'pill'}
                     >
                       {g}g
                     </button>
@@ -219,14 +209,14 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowQtyPicker(false)}
-                  className="flex-1 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="flex-1 py-2 text-xs font-bold uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmAdd}
-                  className="flex-1 py-2 rounded-lg bg-tea-gold text-tea-bg font-semibold text-sm shadow transition-opacity active:opacity-80"
+                  className="flex-1 py-2 rounded-lg bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.15em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>
@@ -240,7 +230,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-600/15 text-green-400 text-sm font-medium"
+            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/15 text-tea-gold text-sm font-medium"
           >
             <Check size={16} />
             Added to Ledger

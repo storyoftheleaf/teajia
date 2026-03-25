@@ -9,10 +9,9 @@ import {
   Trash2,
   Check,
   ShoppingBag,
-  Package,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import type { LedgerTransaction, LedgerLineItem, TransactionDirection } from '../../lib/ledgerStore';
+import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
@@ -60,19 +59,19 @@ const LineItemRow: React.FC<{
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
-    <div className="py-3 border-b border-tea-border/30 last:border-b-0">
+    <div className="py-3 border-b border-tea-border last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {item.chineseName && (
-            <p className="text-tea-text text-lg font-medium tracking-wide leading-tight">
+            <p className="text-tea-text text-lg font-serif tracking-wide leading-tight">
               {item.chineseName}
             </p>
           )}
-          <p className="text-tea-text-sec text-sm">
+          <p className="text-tea-text font-serif text-sm">
             {item.name || 'Unnamed'}
           </p>
           {(item.type || item.form || item.year) && (
-            <p className="text-tea-text-dim text-[11px] mt-0.5">
+            <p className="text-tea-text-sec text-[10px] mt-0.5 num">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -84,7 +83,7 @@ const LineItemRow: React.FC<{
             type="button"
             onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}
             className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
-                       text-tea-text-sec active:bg-tea-border transition-colors"
+                       text-tea-text-sec active:bg-tea-elevated transition-colors"
           >
             <Minus size={14} />
           </button>
@@ -92,15 +91,17 @@ const LineItemRow: React.FC<{
             type="number"
             value={currentQty}
             onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-14 text-center text-tea-text text-base font-medium bg-transparent
-                       border-b border-tea-border/60 focus:border-tea-gold outline-none py-0.5"
+            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+            className="w-14 text-center text-tea-text text-sm font-medium bg-transparent num
+                       border-none outline-none py-0.5
+                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
-          <span className="text-tea-text-dim text-xs w-3">{isUnitBased ? '×' : 'g'}</span>
+          <span className="text-tea-text-sec text-[10px] num w-3">{isUnitBased ? '×' : 'g'}</span>
           <button
             type="button"
             onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}
             className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
-                       text-tea-text-sec active:bg-tea-border transition-colors"
+                       text-tea-text-sec active:bg-tea-elevated transition-colors"
           >
             <Plus size={14} />
           </button>
@@ -112,12 +113,12 @@ const LineItemRow: React.FC<{
         <button
           type="button"
           onClick={onRemove}
-          className="text-tea-text-dim hover:text-red-400 transition-colors text-[11px] flex items-center gap-1"
+          className="text-tea-text-sec hover:text-tea-text transition-colors text-[10px] uppercase tracking-wider flex items-center gap-1"
         >
           <Trash2 size={10} />
           Remove
         </button>
-        <span className="text-tea-text text-sm font-medium num">
+        <span className="text-tea-text text-sm font-serif num">
           {fmtPrice(total, item.currency)}
         </span>
       </div>
@@ -135,7 +136,6 @@ const TransactionCard: React.FC<{
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
-  const setActiveTransaction = useLedgerStore((s) => s.setActiveTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
 
   const total = useMemo(
@@ -161,42 +161,40 @@ const TransactionCard: React.FC<{
   }, [tx.id, isPurchase, removeTransaction]);
 
   return (
-    <div className={`bg-tea-surface rounded-lg overflow-hidden transition-colors ${isDraft ? 'border border-tea-border' : 'border border-tea-gold/20'}`}>
+    <div className="bg-tea-surface rounded-lg overflow-hidden transition-colors border border-tea-border">
       {/* Header — always visible */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-tea-elevated/20 transition-colors"
+        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-tea-elevated transition-colors"
       >
         <DirectionIcon
           size={16}
-          className={isPurchase ? 'text-tea-gold shrink-0' : 'text-green-400 shrink-0'}
+          className={isPurchase ? 'text-tea-gold shrink-0' : 'text-tea-gold-lt shrink-0'}
         />
         <div className="flex-1 min-w-0">
-          <p className="text-tea-text text-sm font-medium truncate">
+          <p className="text-tea-text text-sm font-serif truncate">
             {tx.counterpartyName || 'Unnamed'}
           </p>
-          <p className="text-tea-text-dim text-[11px]">
+          <p className="text-tea-text-sec text-[10px] uppercase tracking-wider">
             {directionLabel} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
           </p>
         </div>
 
         {/* Status */}
-        <span className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded ${
-          isDraft ? 'bg-tea-gold/10 text-tea-gold' : 'bg-green-500/10 text-green-400'
-        }`}>
+        <span className={`badge-status ${isDraft ? 'badge-status-gold' : 'badge-status-default'}`}>
           {isDraft ? 'Draft' : 'Confirmed'}
         </span>
 
         {/* Total */}
-        <span className="text-tea-text text-sm font-medium num shrink-0">
+        <span className="text-tea-text text-sm font-serif num shrink-0">
           {fmtPrice(total, tx.currency)}
         </span>
 
         <motion.span
           animate={{ rotate: isExpanded ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="text-tea-text-dim shrink-0"
+          className="text-tea-text-sec shrink-0"
         >
           <ChevronDown size={14} />
         </motion.span>
@@ -212,10 +210,10 @@ const TransactionCard: React.FC<{
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-tea-border/50">
+            <div className="px-4 pb-4 border-t border-tea-border">
               {/* Line items */}
               {tx.items.length === 0 ? (
-                <p className="text-tea-text-dim text-sm py-6 text-center">No items yet</p>
+                <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">No items yet</p>
               ) : (
                 tx.items.map((item) => (
                   <LineItemRow
@@ -230,8 +228,8 @@ const TransactionCard: React.FC<{
               {/* Grand total */}
               {tx.items.length > 0 && (
                 <div className="flex items-baseline justify-between pt-3 mt-1">
-                  <span className="text-tea-text-sec text-sm">Total</span>
-                  <span className="text-tea-text text-xl font-semibold num">
+                  <span className="text-tea-text-sec text-[10px] uppercase tracking-[0.15em] font-serif">Total</span>
+                  <span className="text-tea-text text-xl font-serif font-semibold num">
                     {fmtPrice(total, tx.currency)}
                   </span>
                 </div>
@@ -246,7 +244,7 @@ const TransactionCard: React.FC<{
                         key="confirmed"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-600/20 text-green-400 text-sm font-medium"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/15 text-tea-gold text-sm font-medium"
                       >
                         <Check size={16} />
                         Confirmed
@@ -257,7 +255,7 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={handleConfirm}
                         whileTap={{ scale: 0.98 }}
-                        className="flex-1 py-2.5 rounded-lg bg-tea-gold text-tea-bg font-semibold text-sm shadow-lg transition-opacity"
+                        className="flex-1 py-2.5 rounded-lg bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.15em] transition-opacity"
                       >
                         {isPurchase ? 'Confirm Purchase' : 'Confirm Sale'}
                       </motion.button>
@@ -268,7 +266,7 @@ const TransactionCard: React.FC<{
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="p-2.5 rounded-lg text-tea-text-dim hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                  className="p-2.5 rounded-lg text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
                   aria-label="Delete transaction"
                 >
                   <Trash2 size={16} />
@@ -289,7 +287,6 @@ type LedgerFilter = 'all' | 'purchase' | 'sale' | 'draft' | 'confirmed';
 // ─── Main Ledger View ───────────────────────────────────────────────────────
 
 interface LedgerViewProps {
-  /** When inside TeaCompass, provide this to add "New Purchase" shortcut */
   embedded?: boolean;
 }
 
@@ -330,19 +327,19 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
           <ShoppingBag className="w-7 h-7 text-tea-gold/40" />
         </div>
         <h3 className="font-serif text-lg text-tea-text mb-2">No transactions yet</h3>
-        <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed mb-6">
+        <p className="text-sm text-tea-text-sec font-serif text-center max-w-[260px] leading-relaxed mb-6">
           Mark items as "Buy" in the Compass, or start a new purchase or sale here.
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => createTransaction('purchase', '', 'NT')}
-            className="px-5 py-2.5 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.15em] transition-colors"
+            className="px-5 py-2.5 bg-tea-gold text-tea-bg text-[10px] font-bold uppercase tracking-[0.2em] transition-colors"
           >
             New Purchase
           </button>
           <button
             onClick={() => createTransaction('sale', '', 'USD')}
-            className="px-5 py-2.5 bg-tea-surface text-tea-text-sec text-xs font-bold uppercase tracking-[0.15em] border border-tea-border transition-colors hover:text-tea-text"
+            className="px-5 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-bold uppercase tracking-[0.2em] border border-tea-border transition-colors hover:text-tea-text"
           >
             New Sale
           </button>
@@ -360,11 +357,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              className={`px-3 py-1.5 text-[11px] uppercase tracking-wider rounded transition-colors ${
-                filter === opt.value
-                  ? 'bg-tea-gold/15 text-tea-gold'
-                  : 'text-tea-text-sec/50 hover:text-tea-text-sec'
-              }`}
+              className={filter === opt.value ? 'pill-active' : 'pill'}
             >
               {opt.label}{opt.count > 0 ? ` (${opt.count})` : ''}
             </button>
@@ -400,7 +393,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
             const id = createTransaction('purchase', '', 'NT');
             setExpandedId(id);
           }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-xs font-medium border border-tea-border/50 hover:text-tea-text hover:border-tea-border transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[10px] font-bold uppercase tracking-[0.15em] border border-tea-border hover:text-tea-text transition-colors"
         >
           <ArrowDownLeft size={14} />
           New Purchase
@@ -410,7 +403,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
             const id = createTransaction('sale', '', 'USD');
             setExpandedId(id);
           }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-xs font-medium border border-tea-border/50 hover:text-tea-text hover:border-tea-border transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[10px] font-bold uppercase tracking-[0.15em] border border-tea-border hover:text-tea-text transition-colors"
         >
           <ArrowUpRight size={14} />
           New Sale
