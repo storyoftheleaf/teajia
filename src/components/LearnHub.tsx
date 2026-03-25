@@ -86,7 +86,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
     switch (currentView) {
       case 'course':
         return (
-          <div className="w-full pb-32">
+          <div className="w-full">
             <LearnCurriculum onStoryClick={onStoryClick} watchedStories={watchedStories} />
           </div>
         );

@@ -165,7 +165,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
   const featuredSpace = TEA_SPACES[0];
 
   return (
-    <div className="pb-32">
+    <div>
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 1 — HERO + EXPLORE (integrated)
