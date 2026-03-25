@@ -12,6 +12,7 @@ import {
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
+import { AutocompleteInput } from './AutocompleteInput';
 
 interface DetailsRowProps {
   year?: number;
@@ -22,6 +23,7 @@ interface DetailsRowProps {
   chineseName?: string;
   tasting?: TastingData;
   hasTasting: boolean;
+  availableRegions?: string[];
   onYearChange: (year: number | undefined) => void;
   onSeasonChange: (season: Season | undefined) => void;
   onStorageChange: (storage: Storage | undefined) => void;
@@ -43,6 +45,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   chineseName,
   tasting,
   hasTasting,
+  availableRegions = COMMON_REGIONS,
   onYearChange,
   onSeasonChange,
   onStorageChange,
@@ -52,7 +55,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   onTastingStripRemove,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [customRegion, setCustomRegion] = useState('');
 
   const handleYearInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,24 +62,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
       onYearChange(val === '' ? undefined : Number(val));
     },
     [onYearChange]
-  );
-
-  const handleCustomRegionSubmit = useCallback(() => {
-    const trimmed = customRegion.trim();
-    if (trimmed) {
-      onRegionChange(trimmed);
-      setCustomRegion('');
-    }
-  }, [customRegion, onRegionChange]);
-
-  const handleCustomRegionKey = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleCustomRegionSubmit();
-      }
-    },
-    [handleCustomRegionSubmit]
   );
 
   const hasValues = year || season || storage || originRegion || chineseName;
@@ -179,33 +163,17 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
               )}
 
               {/* Region */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
                   Region
                 </label>
-                <div className="flex gap-1 flex-wrap">
-                  {COMMON_REGIONS.map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => onRegionChange(originRegion === r ? undefined : r)}
-                      className={originRegion === r ? 'tag-selectable tag-selectable-active' : 'tag-selectable'}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-1.5 items-center mt-1">
-                  <input
-                    type="text"
-                    placeholder="Other region..."
-                    value={customRegion}
-                    onChange={(e) => setCustomRegion(e.target.value)}
-                    onKeyDown={handleCustomRegionKey}
-                    onBlur={handleCustomRegionSubmit}
-                    className="flex-1 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-xs transition-colors"
-                  />
-                </div>
+                <AutocompleteInput
+                  value={originRegion || ''}
+                  onChange={(val) => onRegionChange(val || undefined)}
+                  suggestions={availableRegions}
+                  placeholder="e.g. Alishan, Yiwu..."
+                  className="w-full bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-sm transition-colors"
+                />
               </div>
 
               {/* Chinese name — optional, at the bottom of details */}

@@ -12,23 +12,16 @@ interface PriceGramsProps {
   onGramsChange: (grams: number | undefined) => void;
 }
 
-const CURRENCIES: { value: Currency; label: string }[] = [
-  { value: 'NT', label: 'NT' },
-  { value: 'USD', label: 'USD' },
-  { value: 'Yuan', label: '\u00A5' },
-  { value: 'MYR', label: 'MYR' },
-  { value: 'IDR', label: 'IDR' },
-  { value: 'JPY', label: 'JPY' },
-  { value: 'HKD', label: 'HKD' },
-];
-
-function getGramLabel(form?: TeaForm, grams?: number): string {
-  if (!form || !grams) return 'Price';
-  if (form === 'Cake') return `Price per ${grams}g cake`;
-  if (form === 'Brick') return `Price per ${grams}g brick`;
-  if (form === 'Tuo') return `Price per ${grams}g tuo`;
-  return `Price per ${grams}g`;
-}
+const CURRENCY_LABELS: Record<Currency, string> = {
+  NT: 'NT$',
+  USD: '$',
+  Yuan: '¥',
+  MYR: 'RM',
+  IDR: 'Rp',
+  JPY: '¥',
+  HKD: 'HK$',
+  UNK: '?',
+};
 
 export const PriceGrams: React.FC<PriceGramsProps> = ({
   priceAmount,
@@ -58,61 +51,66 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
   );
 
   return (
-    <div className="space-y-3">
-      {/* Price + Currency row */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
-          {getGramLabel(form, pricePerUnitGrams)}
-        </label>
-        <div className="flex gap-2">
+    <div className="space-y-2">
+      {/* Price (with currency dropdown) + Grams — one line */}
+      <div className="flex gap-3 items-end">
+        {/* Price half */}
+        <div className="flex-1 min-w-0">
+          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1">
+            Price
+          </label>
+          <div className="flex items-end gap-1">
+            <select
+              value={priceCurrency}
+              onChange={(e) => onCurrencyChange(e.target.value as Currency)}
+              className="bg-transparent text-tea-text-sec text-sm font-medium border-none outline-none cursor-pointer appearance-none pr-1 pb-1"
+              style={{ backgroundImage: 'none' }}
+            >
+              {Object.entries(CURRENCY_LABELS).filter(([k]) => k !== 'UNK').map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="0"
+              value={priceAmount ?? ''}
+              onChange={handlePriceInput}
+              className="flex-1 min-w-0 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="w-px h-6 bg-tea-border/30 shrink-0" />
+
+        {/* Grams half */}
+        <div className="flex-1 min-w-0">
+          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1">
+            Grams
+          </label>
           <input
             type="number"
-            inputMode="decimal"
-            placeholder="0"
-            value={priceAmount ?? ''}
-            onChange={handlePriceInput}
-            className="flex-1 bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
+            inputMode="numeric"
+            placeholder={form ? String(DEFAULT_GRAMS[form]) : '100'}
+            value={pricePerUnitGrams ?? ''}
+            onChange={handleGramsInput}
+            className="w-full bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors text-right"
           />
-        </div>
-        <div className="flex gap-1 flex-wrap">
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              onClick={() => onCurrencyChange(c.value)}
-              className={priceCurrency === c.value ? 'pill-active' : 'pill'}
-            >
-              {c.label}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Grams row */}
-      <div className="space-y-1.5">
-        <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
-          Grams
-        </label>
-        <input
-          type="number"
-          inputMode="numeric"
-          placeholder={form ? String(DEFAULT_GRAMS[form]) : '100'}
-          value={pricePerUnitGrams ?? ''}
-          onChange={handleGramsInput}
-          className="w-full bg-transparent text-tea-text border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 text-base num transition-colors"
-        />
-        <div className="flex gap-1 flex-wrap">
-          {presets.map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => onGramsChange(g)}
-              className={pricePerUnitGrams === g ? 'pill-active' : 'pill'}
-            >
-              {g}g
-            </button>
-          ))}
-        </div>
+      {/* Gram presets */}
+      <div className="flex gap-1 flex-wrap">
+        {presets.map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => onGramsChange(g)}
+            className={pricePerUnitGrams === g ? 'pill-active' : 'pill'}
+          >
+            {g}g
+          </button>
+        ))}
       </div>
     </div>
   );

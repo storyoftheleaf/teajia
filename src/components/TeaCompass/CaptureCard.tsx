@@ -8,7 +8,9 @@ import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import type { TeaType, TeaForm, Season, Storage, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
-import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS } from './types';
+import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
+import { AutocompleteInput } from './AutocompleteInput';
+import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
 import { DetailsRow } from './DetailsRow';
 import { PriceGrams } from './PriceGrams';
@@ -84,6 +86,55 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [formPopoverOpen, setFormPopoverOpen] = useState(false);
   const typePopoverRef = useRef<HTMLDivElement>(null);
   const formPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Products from database — for autocomplete suggestions
+  const productsRef = useRef<any[]>([]);
+  const [productNames, setProductNames] = useState<string[]>([]);
+  const [productNameMap, setProductNameMap] = useState<Record<string, any>>({});
+  const [availableRegions, setAvailableRegions] = useState<string[]>(COMMON_REGIONS);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.products.listPublic();
+        const products = data.products || data || [];
+        if (cancelled) return;
+        productsRef.current = products;
+
+        // Build name suggestions + map
+        const nameMap: Record<string, any> = {};
+        const names: string[] = [];
+        for (const p of products) {
+          const name = p.given_name || p.givenName || '';
+          if (name && !nameMap[name]) {
+            nameMap[name] = p;
+            names.push(name);
+          }
+        }
+        setProductNames(names);
+        setProductNameMap(nameMap);
+
+        // Build region list: COMMON_REGIONS + DB regions, deduplicated
+        const dbRegions = products
+          .map((p: any) => p.origin_region || p.originRegion || '')
+          .filter(Boolean);
+        const allRegions = [...new Set([...COMMON_REGIONS, ...dbRegions])];
+        setAvailableRegions(allRegions);
+      } catch {
+        // Offline or error — no DB suggestions, use COMMON_REGIONS only
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Also include compass entry names in suggestions
+  const allNameSuggestions = useMemo(() => {
+    const compassNames = allEntries
+      .filter((e) => e.id !== entryId && e.name.trim().length > 0)
+      .map((e) => e.name);
+    return [...new Set([...productNames, ...compassNames])];
+  }, [productNames, allEntries, entryId]);
 
   // Build fuse index from other entries (exclude current)
   const fuseIndex = useMemo(() => {
@@ -421,6 +472,31 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     update({ vendorDetails: details });
   };
 
+  const handleNameAutocompleteSelect = (product: any) => {
+    if (!entry) return;
+    const updates: Record<string, unknown> = {};
+    const type = product.type || product.product_type;
+    const form = product.form;
+    const year = product.year;
+    const region = product.origin_region || product.originRegion;
+    const chineseName = product.chinese_name || product.chineseName;
+
+    if (type && !entry.type) updates.type = type;
+    if (form && !entry.form) {
+      updates.form = form;
+      if (!entry.pricePerUnitGrams && DEFAULT_GRAMS[form as keyof typeof DEFAULT_GRAMS]) {
+        updates.pricePerUnitGrams = DEFAULT_GRAMS[form as keyof typeof DEFAULT_GRAMS];
+      }
+    }
+    if (year && !entry.year) updates.year = year;
+    if (region && !entry.originRegion) updates.originRegion = region;
+    if (chineseName && !entry.chineseName) updates.chineseName = chineseName;
+
+    if (Object.keys(updates).length > 0) {
+      updateEntry(entryId, updates);
+    }
+  };
+
   /* ─── Tasting overlay handlers ─── */
 
   const openTastingOverlay = () => {
@@ -600,12 +676,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
       {/* 2. Name input (large, underlined) + PhotoCapture inline right */}
       <div className="flex items-center gap-2">
-        <input
-          type="text"
+        <AutocompleteInput
           value={entry.name}
-          onChange={(e) => update({ name: e.target.value })}
+          onChange={(val) => update({ name: val })}
+          suggestions={allNameSuggestions}
           placeholder="What are you tasting?"
-          className="flex-1 bg-transparent text-tea-text text-lg font-display placeholder:text-tea-text-dim border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 transition-colors min-w-0"
+          className="w-full bg-transparent text-tea-text text-lg font-display placeholder:text-tea-text-dim border-b border-tea-border/60 focus:border-tea-gold outline-none pb-1 transition-colors min-w-0"
+          onSelect={handleNameAutocompleteSelect}
+          itemData={productNameMap}
         />
         <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
       </div>
@@ -773,6 +851,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           chineseName={entry.chineseName}
           tasting={entry.tasting}
           hasTasting={!!hasTasting}
+          availableRegions={availableRegions}
           onYearChange={(year) => { userTapped.current.add('year'); update({ year }); }}
           onSeasonChange={(season) => { userTapped.current.add('season'); update({ season }); }}
           onStorageChange={(storage) => { userTapped.current.add('storage'); update({ storage }); }}
