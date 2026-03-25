@@ -865,7 +865,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 onMouseEnter={() => setHovered("cart")}
                 onMouseLeave={() => setHovered(null)}
                 style={{
-                  flex: 1, height: "38px", boxSizing: "border-box",
+                  flex: 1, height: "34px", boxSizing: "border-box",
                   fontFamily: "var(--font-sans)",
                   fontSize: "12px", fontWeight: 700,
                   letterSpacing: "0.08em", textTransform: "uppercase",
