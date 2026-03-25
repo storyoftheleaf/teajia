@@ -152,7 +152,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             className="overflow-hidden"
           >
             <div className="bg-tea-elevated rounded-lg px-4 py-3 space-y-3">
-              <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] font-serif">
+              <p className="text-[11px] text-tea-text-dim uppercase tracking-wider">
                 How much?
               </p>
 
@@ -175,7 +175,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                                border-none outline-none
                                [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  <span className="text-tea-text-sec text-xs font-serif">
+                  <span className="text-tea-text-sec text-xs">
                     {unitBased ? (quantity === 1 ? 'unit' : 'units') : 'g'}
                   </span>
                 </div>

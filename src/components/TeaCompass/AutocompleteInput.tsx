@@ -142,7 +142,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                   e.preventDefault();
                   handleSelect(suggestion);
                 }}
-                className="text-[12px] text-tea-text-sec bg-tea-surface/60 hover:bg-tea-surface px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+                className="text-[11px] text-tea-text-sec bg-tea-surface/60 hover:bg-tea-surface px-2.5 py-1 rounded-full transition-colors cursor-pointer"
               >
                 {renderHighlighted(suggestion)}
               </button>
