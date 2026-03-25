@@ -8,6 +8,7 @@ import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import type { TeaType, TeaForm, Season, Storage, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra } from './types';
 import { DEFAULT_GRAMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS } from './types';
 import { VendorStrip } from './VendorStrip';
+import { VendorHistory } from './VendorHistory';
 import { TypeGrid } from './TypeGrid';
 import { FormRow } from './FormRow';
 import { DetailsRow } from './DetailsRow';
@@ -42,6 +43,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
+  const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
+  const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
+  const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
 
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
@@ -211,6 +216,24 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
     setLastVendor(null, null);
   };
 
+  const handleBuyAgain = useCallback(
+    (reorder: { name: string; type?: string; form?: string; priceAmount?: number; priceCurrency: string; pricePerUnitGrams?: number }) => {
+      const newId = startNewCapture(reorder.type === 'Teaware' ? 'teaware' : 'tea');
+      const updates: Record<string, unknown> = {
+        name: reorder.name,
+        status: 'buying',
+        priceCurrency: reorder.priceCurrency,
+      };
+      if (reorder.type) updates.type = reorder.type;
+      if (reorder.form) updates.form = reorder.form;
+      if (reorder.priceAmount != null) updates.priceAmount = reorder.priceAmount;
+      if (reorder.pricePerUnitGrams != null) updates.pricePerUnitGrams = reorder.pricePerUnitGrams;
+      updateEntry(newId, updates);
+      setActiveEntry(newId);
+    },
+    [startNewCapture, updateEntry, setActiveEntry]
+  );
+
   /* ─── Tasting overlay handlers ─── */
 
   const openTastingOverlay = () => {
@@ -276,6 +299,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
           onVendorChange={handleVendorChange}
           onClear={handleVendorClear}
         />
+
+        {/* 2b. Vendor history — previous items from this vendor */}
+        {entry.vendorName && (
+          <VendorHistory
+            vendorId={entry.vendorId || lastVendorId || undefined}
+            vendorName={entry.vendorName || lastVendorName || undefined}
+            onBuyAgain={handleBuyAgain}
+          />
+        )}
 
         {/* 3. Description / name */}
         <input
@@ -436,6 +468,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
         onVendorChange={handleVendorChange}
         onClear={handleVendorClear}
       />
+
+      {/* 1b. Vendor history — previous items from this vendor */}
+      {entry.vendorName && (
+        <VendorHistory
+          vendorId={entry.vendorId || lastVendorId || undefined}
+          vendorName={entry.vendorName || lastVendorName || undefined}
+          onBuyAgain={handleBuyAgain}
+        />
+      )}
 
       {/* 2. Name input — primary, large */}
       <input

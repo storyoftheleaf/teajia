@@ -463,6 +463,20 @@ export const api = {
     return handleResponse(res);
   },
 
+  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'recording.webm');
+    const token = getToken();
+    const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    return handleResponse(res);
+  },
+
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

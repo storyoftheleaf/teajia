@@ -9,6 +9,7 @@ import { OrderBar } from './OrderBar';
 import { OrderSummary } from './OrderSummary';
 import { CaptureCard } from './CaptureCard';
 import { BrowseView } from './BrowseView';
+import { VoiceRecorder } from './VoiceRecorder';
 
 interface TeaCompassProps {
   onBack?: () => void;
@@ -83,6 +84,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
   const handleCloseOrder = useCallback(() => {
     setOrderOpen(false);
   }, []);
+
+  const handleVoiceTranscript = useCallback(
+    (text: string) => {
+      if (!activeEntryId || !activeEntry) return;
+      const currentNotes = activeEntry.notes || '';
+      const delimiter = '\n\n';
+      const updated = currentNotes.trim()
+        ? currentNotes.trim() + delimiter + text
+        : text;
+      updateEntry(activeEntryId, { notes: updated });
+    },
+    [activeEntryId, activeEntry, updateEntry]
+  );
 
   return (
     <div className="flex flex-col h-full relative">
@@ -177,6 +191,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack }) => {
         <div className="px-4 pb-3 lg:pb-3 pb-[calc(0.75rem+49px+env(safe-area-inset-bottom,0px))] lg:pb-3">
           <OrderBar buyingCount={buyingEntries.length} onViewOrder={handleViewOrder} />
         </div>
+      )}
+
+      {/* ── Voice recorder (capture mode only) ── */}
+      {isCaptureMode && (
+        <VoiceRecorder onTranscript={handleVoiceTranscript} />
       )}
 
       {/* ── Floating + button ── */}

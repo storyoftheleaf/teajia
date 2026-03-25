@@ -5,6 +5,7 @@ interface Env {
   JWT_SECRET: string;
   ANTHROPIC_API_KEY: string;
   GEMINI_API_KEY: string;
+  GROQ_API_KEY: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -1549,6 +1550,46 @@ const handleGenerateWisdom: Handler = async (request, env) => {
   return json(toolUse.input);
 };
 
+// ── Audio Transcription (Groq Whisper) ──
+const handleTranscribe: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  if (!env.GROQ_API_KEY) {
+    return json({ error: 'GROQ_API_KEY not configured' }, 503);
+  }
+
+  const contentType = request.headers.get('Content-Type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
+
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No audio file provided' }, 400);
+
+  // Forward to Groq Whisper API
+  const groqForm = new FormData();
+  groqForm.append('file', file, file.name || 'recording.webm');
+  groqForm.append('model', 'whisper-large-v3-turbo');
+
+  const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+    },
+    body: groqForm,
+  });
+
+  if (!groqRes.ok) {
+    const errText = await groqRes.text();
+    return json({ error: `Groq API error: ${groqRes.status} — ${errText}` }, 502);
+  }
+
+  const result = await groqRes.json() as { text: string };
+  return json({ text: result.text });
+};
+
 // ── Migrate Tasting Data (AI-assisted) ──
 const TASTING_TAXONOMY_TERMS = `Flavor: floral, orchid, jasmine, osmanthus, rose, honeysuckle, honey, caramel, brown-sugar, vanilla, stone-fruit, peach, apricot, lychee, dried-fruit, citrus, plum, chestnut, almond, toasted-rice, roasted-grain, charcoal, toasted, cocoa, dark-chocolate, baked, camphor, sandalwood, cedar, pine, woody, earthy, mushroom, leather, smoky, mineral, stony, iron, slate, fresh-grass, herbaceous, seaweed, vegetal, bitter, astringent, savory, umami, medicinal, aged, hay
 Body: light, medium, full, silky, smooth, crisp, oily, dry
@@ -3066,6 +3107,7 @@ const routes: [string, string, Handler][] = [
   // AI
   ['POST', '/api/extract-from-image', handleExtractFromImage],
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
+  ['POST', '/api/transcribe', handleTranscribe],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 
   // Events — Public
