@@ -38,7 +38,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const centerLongPress = useLongPress({
     delay: 500,
     onLongPress: () => {
-      if (!auth.isAdmin) return;
       if ('vibrate' in navigator) { navigator.vibrate?.(30); }
       setThemeFlash(true);
       setTimeout(() => setThemeFlash(false), 400);
@@ -88,7 +87,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             {cartItemCount > 0 && (
               <motion.span
                 key={cartItemCount}
-                className="absolute top-1 right-2 min-w-[16px] h-4 px-0.5 rounded-full bg-tea-gold text-white text-[9px] font-bold flex items-center justify-center leading-none pointer-events-none"
+                className="absolute top-1 right-2 min-w-[16px] h-4 px-0.5 rounded-full bg-tea-gold text-white text-[10px] font-bold flex items-center justify-center leading-none pointer-events-none"
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: [1.3, 1], opacity: 1 }}
                 exit={{ scale: 0.5, opacity: 0 }}
@@ -104,7 +103,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         {/* Text-only label */}
         <span
           className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${
-            isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec/80 group-hover:text-tea-text-sec'
+            isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
           }`}
           style={{ fontFamily: 'var(--font-display)' }}
         >
@@ -119,12 +118,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
       <nav
         aria-label="Main navigation"
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 h-[49px] pb-[env(safe-area-inset-bottom)] ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 border-t border-tea-border ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
-          background: 'rgba(var(--tea-surface-rgb), 0.82)',
-          boxShadow: '0 -1px 0 rgba(var(--tea-gold-rgb), 0.06)',
+          background: 'rgba(var(--tea-surface-rgb), 0.92)',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
+          height: 'calc(49px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
         <div className="flex items-center w-full px-0 h-full">
@@ -154,7 +156,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <LogoText
                 size="sm"
                 color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
-                className={`transition-all duration-300 pointer-events-none ${activeSection !== 'HOME' ? 'opacity-60' : ''}`}
+                className="transition-all duration-300 pointer-events-none"
               />
             </button>
           </div>

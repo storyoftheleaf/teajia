@@ -312,13 +312,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               </button>
             )}
 
-            {/* Bottom text overlay */}
+            {/* Bottom text overlay — always light text on dark scrim */}
             <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-              <h3 className="font-serif text-[17px] md:text-[21px] text-tea-text leading-[1.15] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
+              <h3 className="font-serif text-[17px] md:text-[21px] text-neutral-100 leading-[1.15] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">
                 {title}
               </h3>
               {description && (
-                <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] font-sans line-clamp-1 lg:line-clamp-none">
+                <p className="text-[10px] text-neutral-400 uppercase tracking-[0.2em] font-sans line-clamp-1 lg:line-clamp-none">
                   {description}
                 </p>
               )}

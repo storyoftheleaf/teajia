@@ -126,16 +126,16 @@ const CharacterRevealCapture: React.FC = () => {
             }}
           >
             <p
-              className="text-[12px] md:text-[13px] tracking-[0.08em] italic"
+              className="text-[15px] md:text-[16px] tracking-[0.06em] italic text-tea-text-sec"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              <span className="font-semibold not-italic">tea</span> &middot; leaf and water
+              <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
             </p>
             <p
-              className="text-[11px] md:text-[12px] tracking-[0.08em] italic -mt-[1px]"
+              className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              <span className="font-semibold not-italic">jiā</span> &middot; one sound, three pillars...
+              <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars...
             </p>
           </div>
 
@@ -151,13 +151,13 @@ const CharacterRevealCapture: React.FC = () => {
             >
               <span
                 className="text-[69px] leading-none"
-                style={{ fontFamily: "'Ma Shan Zheng', cursive", color: '#a8874d' }}
+                style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}
               >
                 佳
               </span>
               <p
-                className="flex flex-col items-center text-[13px] md:text-[14px] tracking-[0.04em] font-light mt-3 leading-[1.4]"
-                style={{ fontFamily: 'var(--font-display)', color: '#b5a892' }}
+                className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
                 <span>beauty</span>
                 <span>excellence</span>
@@ -174,13 +174,13 @@ const CharacterRevealCapture: React.FC = () => {
             >
               <span
                 className="text-[69px] leading-none"
-                style={{ fontFamily: "'Ma Shan Zheng', cursive", color: '#a8874d' }}
+                style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}
               >
                 家
               </span>
               <p
-                className="flex flex-col items-center text-[13px] md:text-[14px] tracking-[0.04em] font-light mt-3 leading-[1.4]"
-                style={{ fontFamily: 'var(--font-display)', color: '#b5a892' }}
+                className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
                 <span>home</span>
                 <span>devotion</span>
@@ -197,13 +197,13 @@ const CharacterRevealCapture: React.FC = () => {
             >
               <span
                 className="text-[69px] leading-none"
-                style={{ fontFamily: "'Ma Shan Zheng', cursive", color: '#a8874d' }}
+                style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}
               >
                 嘉
               </span>
               <p
-                className="flex flex-col items-center text-[13px] md:text-[14px] tracking-[0.04em] font-light mt-3 leading-[1.4]"
-                style={{ fontFamily: 'var(--font-display)', color: '#b5a892' }}
+                className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
                 <span>praise</span>
                 <span>celebration</span>
@@ -220,14 +220,14 @@ const CharacterRevealCapture: React.FC = () => {
             }}
           >
             <p
-              className="text-base italic font-light text-tea-text-sec/50"
+              className="text-base italic font-light text-tea-text-dim"
               style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
             >
               stay connected
             </p>
             <p
-              className="text-base italic font-light mt-1"
-              style={{ fontFamily: 'var(--font-display)', color: '#d4c4a8', letterSpacing: '0.04em' }}
+              className="text-base italic font-light mt-1 text-tea-text-sec"
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
             >
               it's nothing without you
             </p>
@@ -241,25 +241,24 @@ const CharacterRevealCapture: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your email"
-                className="w-full bg-transparent text-base font-light text-center outline-none pb-2.5 pl-7 pr-7 transition-colors placeholder:italic placeholder:text-tea-text-sec/50"
+                className="w-full bg-transparent text-base font-light text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim"
                 style={{
                   fontFamily: 'var(--font-display)',
-                  color: '#ede4d4',
                   border: 'none',
-                  borderBottom: '1px solid rgba(184,146,78,0.2)',
+                  borderBottom: '1px solid rgba(var(--tea-gold-rgb),0.25)',
                   borderRadius: 0,
                   letterSpacing: '0.04em',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'rgba(184,146,78,0.45)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'rgba(184,146,78,0.2)'; }}
+                onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'rgba(var(--tea-gold-rgb),0.5)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'rgba(var(--tea-gold-rgb),0.25)'; }}
               />
               <button
                 type="submit"
-                className="absolute right-0 bottom-2.5 bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-gold/40 hover:text-tea-gold/80"
-                aria-label="Submit"
+                className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold"
+                aria-label="Submit email"
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </form>
@@ -272,6 +271,7 @@ const CharacterRevealCapture: React.FC = () => {
 
 export const HomePage: React.FC<HomePageProps> = ({
   onNavigateToSection,
+  onAccountClick,
 }) => {
   const shouldAnimate = !hasAnimated;
   const mountRef = useRef(false);
@@ -282,14 +282,19 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const initial = (vals: Record<string, any>) => shouldAnimate ? vals : false;
 
-  // Scroll-driven fade-out for Act 1
+  // Scroll-driven fade-out for Act 1 + glow position
   const [fadeOpacity, setFadeOpacity] = useState(1);
+  const [glowY, setGlowY] = useState(1); // 1 = bottom, 0 = top
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
+      const vh = window.innerHeight;
       // Fade out over the first 40% of viewport height
-      const fadeEnd = window.innerHeight * 0.4;
+      const fadeEnd = vh * 0.4;
       setFadeOpacity(Math.max(0, 1 - scrollY / fadeEnd));
+      // Glow travels from bottom to top over the first 60% of viewport scroll
+      const glowEnd = vh * 0.6;
+      setGlowY(Math.max(0, 1 - scrollY / glowEnd));
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
@@ -303,10 +308,29 @@ export const HomePage: React.FC<HomePageProps> = ({
         <meta name="description" content="Every culture brings wisdom to the table. Teajia is where it is served." />
       </Helmet>
 
+      {/* Act 1 bottom glow — fixed to viewport bottom, fades out on scroll */}
+      <div
+        className="fixed bottom-0 left-0 w-screen h-[200px] pointer-events-none z-[2]"
+        style={{
+          background: 'radial-gradient(ellipse 70% 100% at 50% 100%, rgba(168,135,77,0.18) 0%, rgba(168,135,77,0.05) 50%, transparent 100%)',
+          opacity: glowY,
+        }}
+      />
+
+      {/* Scroll-driven glow — rises to top of viewport as you enter Act 2 */}
+      <div
+        className="fixed left-0 w-screen h-[200px] pointer-events-none z-[2]"
+        style={{
+          top: 0,
+          background: 'radial-gradient(ellipse 70% 100% at 50% 0%, rgba(168,135,77,0.18) 0%, rgba(168,135,77,0.05) 50%, transparent 100%)',
+          opacity: Math.max(0, 1 - glowY),
+        }}
+      />
+
       {/* ── Act 1: Above the fold ── */}
       <div
-        className="flex flex-col items-center justify-between px-8"
-        style={{ minHeight: 'calc(100dvh - 70px)', opacity: fadeOpacity }}
+        className="relative flex flex-col items-center justify-between px-8"
+        style={{ minHeight: '100dvh', opacity: fadeOpacity }}
       >
 
         {/* Top spacer */}
@@ -332,11 +356,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                 transform: 'translate(-50%, -50%)',
               }}
             />
-            <LogoEmblem
-              size={76}
-              color="var(--tea-gold)"
-              className="opacity-70"
-            />
+            <button
+              onClick={() => onAccountClick?.()}
+              className="bg-transparent border-none cursor-default p-0"
+              aria-label="Home"
+              tabIndex={-1}
+            >
+              <LogoEmblem
+                size={76}
+                color="var(--tea-gold)"
+                className="opacity-70"
+              />
+            </button>
           </motion.div>
 
           {/* Statement */}
@@ -366,36 +397,37 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={item.section}
                 onClick={() => onNavigateToSection(item.section)}
-                className="text-tea-text-sec hover:text-tea-gold transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] leading-[1.7] tracking-[0.005em]"
+                className="text-tea-text-sec/90 hover:text-tea-gold transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] leading-[1.7] tracking-[0.005em]"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
-                <span className="font-semibold" style={{ animation: 'teaserBreath 4s ease-in-out infinite' }}>{item.accent}</span>{item.rest}
+                <span className="font-semibold text-tea-gold">{item.accent}</span>{item.rest}
               </button>
             ))}
           </motion.div>
         </div>
 
-        {/* Teaser — sits at bottom of viewport via justify-between, scrolls normally */}
+        {/* Teaser — the cliffhanger that invites scrolling */}
         <motion.div
-          className="flex flex-col items-center pb-[25px]"
+          className="flex flex-col items-center pb-[calc(49px+env(safe-area-inset-bottom,0px)+18px)] lg:pb-[18px]"
           style={{ animation: 'teaserBreath 4s ease-in-out infinite' }}
           initial={initial({ opacity: 0 })}
           animate={{ opacity: 1 }}
           transition={shouldAnimate ? { duration: 0.6, delay: 1.2 } : { duration: 0 }}
         >
           <p
-            className="text-[12px] md:text-[13px] tracking-[0.08em] italic"
+            className="text-[15px] md:text-[16px] tracking-[0.06em] italic text-tea-text-sec"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            <span className="font-semibold not-italic">tea</span> &middot; leaf and water
+            <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
           </p>
           <p
-            className="text-[11px] md:text-[12px] tracking-[0.08em] italic -mt-[1px]"
+            className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec"
             style={{ fontFamily: 'var(--font-body)' }}
           >
-            <span className="font-semibold not-italic">jiā</span> &middot; one sound, three pillars...
+            <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars...
           </p>
         </motion.div>
+
       </div>
 
       {/* ── Act 2: Character reveal + email capture ── */}

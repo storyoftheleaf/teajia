@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon } from 'lucide-react';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon, MoreHorizontal } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,6 +75,7 @@ const AdminContent = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [inventoryOptionsOpen, setInventoryOptionsOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
 
@@ -98,10 +99,12 @@ const AdminContent = () => {
   // Regular users can browse catalog but not manage inventory
   const isLoggedIn = isAuthenticated || isDevAdmin;
 
-  // Redirect when entering admin at root
+  // Redirect when entering admin at root, or prompt login if not authenticated
   useEffect(() => {
     if (isLoggedIn && location.pathname === '/admin') {
       navigate('/admin/inventory');
+    } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
+      setIsLoginOpen(true);
     }
   }, [isLoggedIn, isAdmin, navigate, location.pathname]);
 
@@ -252,9 +255,17 @@ const AdminContent = () => {
              </select>
              <ChevronDown size={8} className="absolute right-1 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
            </div>
+           {isOnInventory && (
+             <button
+               onClick={() => setInventoryOptionsOpen(!inventoryOptionsOpen)}
+               className="w-8 h-8 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-md shrink-0"
+             >
+               <MoreHorizontal size={17} />
+             </button>
+           )}
         </div>
 
-        <div className="flex-1 overflow-auto relative pb-16 md:pb-0">
+        <div className="flex-1 relative pb-16 md:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />
@@ -273,6 +284,8 @@ const AdminContent = () => {
                       onRefresh={refetchProducts}
                       externalCategory={inventoryCategory}
                       externalSearchQuery={inventorySearchQuery}
+                      externalShowOptions={inventoryOptionsOpen}
+                      onOptionsToggle={setInventoryOptionsOpen}
                     />
                   </PageTransition>
                 </ProtectedRoute>

@@ -66,11 +66,11 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           aria-current={active ? 'page' : undefined}
           aria-label={tab.label}
           className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-          style={{ animationDelay: `${index * 50}ms` }}
+          style={{ animationDelay: `${index * 50}ms`, WebkitTapHighlightColor: 'transparent' }}
         >
           <span
             className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${
-              active ? 'text-tea-gold font-bold' : 'text-tea-text-sec/80 group-hover:text-tea-text-sec'
+              active ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
             }`}
             style={{ fontFamily: 'var(--font-display)' }}
           >
@@ -95,10 +95,13 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
       {/* Bottom Tab Bar — identical structure to home page BottomTabBar */}
       <nav
         aria-label="Admin navigation"
-        className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 h-[49px] pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 md:hidden border-t border-tea-border"
         style={{
-          background: 'rgba(40,33,26,0.65)',
-          boxShadow: '0 -1px 0 rgba(166,132,80,0.06)',
+          background: 'rgba(var(--tea-surface-rgb), 0.92)',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
+          height: 'calc(49px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
         <div className="flex items-center w-full px-0 h-full">

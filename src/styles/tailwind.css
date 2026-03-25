@@ -7,6 +7,9 @@
    Dark mode (default) and Light mode
    ============================================ */
 
+/* Kill browser tap highlight globally */
+button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+
 :root {
   color-scheme: dark;
   --tea-bg: #18130e;
@@ -45,20 +48,20 @@
   color-scheme: light;
   --tea-bg: #f4ece0;
   --tea-bg-rgb: 244 236 224;
-  --tea-surface: #e6dbcc;
-  --tea-surface-rgb: 230 219 204;
+  --tea-surface: #e4ddd3;
+  --tea-surface-rgb: 228 221 211;
   --tea-elevated: #d5c8b4;
   --tea-elevated-rgb: 213 200 180;
   --tea-text: #18130e;
   --tea-text-rgb: 24 19 14;
-  --tea-text-sec: #5e5342;
-  --tea-text-sec-rgb: 94 83 66;
-  --tea-text-dim: #9a8c78;
-  --tea-text-dim-rgb: 154 140 120;
-  --tea-gold: #806538;
-  --tea-gold-rgb: 128 101 56;
-  --tea-gold-lt: #9a7c48;
-  --tea-gold-lt-rgb: 154 124 72;
+  --tea-text-sec: #4a3f30;
+  --tea-text-sec-rgb: 74 63 48;
+  --tea-text-dim: #857662;
+  --tea-text-dim-rgb: 133 118 98;
+  --tea-gold: #6b4f28;
+  --tea-gold-rgb: 107 79 40;
+  --tea-gold-lt: #7a5c2e;
+  --tea-gold-lt-rgb: 122 92 46;
   --tea-border: rgba(24,19,14,0.1);
   --tea-accent-sub: rgba(128,101,56,0.07);
 }
@@ -354,6 +357,28 @@ p {
 @keyframes teaserBreath {
   0%, 100% { color: var(--tea-text-dim); opacity: 0.7; }
   50% { color: var(--tea-text-sec); opacity: 0.85; }
+}
+
+@keyframes glowDrift {
+  0% { transform: translateY(-8px); opacity: 0.5; }
+  60% { transform: translateY(12px); opacity: 1; }
+  100% { transform: translateY(-8px); opacity: 0.5; }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.2; }
+  40%, 60% { opacity: 0.8; }
+}
+
+@keyframes scrollHint {
+  0%, 100% { opacity: 0.4; transform: translateY(0); }
+  50% { opacity: 0.7; transform: translateY(4px); }
+}
+
+@keyframes scrollLine {
+  0% { transform: translateY(-100%); }
+  50% { transform: translateY(200%); }
+  100% { transform: translateY(-100%); }
 }
 
 @keyframes brushStroke {

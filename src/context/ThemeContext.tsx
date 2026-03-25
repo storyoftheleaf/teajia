@@ -16,10 +16,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved === 'light' || saved === 'dark') {
       return saved;
     }
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return prefersDark ? 'dark' : 'light';
-    }
+    // Default to dark — only go light if explicitly chosen
     return 'dark';
   });
 
@@ -54,22 +51,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [theme]);
 
-  // Listen to system preference changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = (e: MediaQueryListEvent) => {
-        const saved = localStorage.getItem('teajia_theme');
-        if (!saved) {
-          setTheme(e.matches ? 'dark' : 'light');
-        }
-      };
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-      }
-    }
-  }, []);
+  // No system preference listener — dark is always the default.
+  // Users can toggle manually; their choice persists in localStorage.
 
   const toggleTheme = useCallback((e?: React.MouseEvent) => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';

@@ -44,9 +44,11 @@ const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; classNa
 };
 
 const VIEW_FILTER_LABELS: Record<string, string> = {
+  ForSale: 'For Sale',
+  Drafts: 'Drafts',
   Alerts: 'Needs Attention',
   Unpublished: 'Unpublished',
-  Unverified: 'Stock Unverified',
+  Unverified: 'Stock Check',
   Samples: 'Samples',
   Personal: 'Personal Collection',
   Archived: 'Archived',
@@ -221,6 +223,9 @@ interface InventoryViewProps {
   externalCategory?: 'tea' | 'teaware';
   /** Search query controlled from parent top bar */
   externalSearchQuery?: string;
+  /** Options menu controlled from parent top bar */
+  externalShowOptions?: boolean;
+  onOptionsToggle?: (open: boolean) => void;
 }
 
 // --- GHOST INPUT COMPONENT ---
@@ -663,6 +668,7 @@ const ImageManager = ({ product, onUpdate }: {
 export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, isError, error, onImportClick, onAddClick, onRefresh,
   externalCategory = 'tea', externalSearchQuery = '',
+  externalShowOptions, onOptionsToggle,
 }) => {
   const { showToast } = useToast();
 
@@ -687,7 +693,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const inventoryCategory: InventoryCategory = externalCategory;
   const searchQuery = externalSearchQuery;
   const [filterType, setFilterType] = useState<string>('All');
-  const [showOptions, setShowOptions] = useState(false);
+  const [showOptionsInternal, setShowOptionsInternal] = useState(false);
+  const showOptions = externalShowOptions ?? showOptionsInternal;
+  const setShowOptions = (v: boolean) => { setShowOptionsInternal(v); onOptionsToggle?.(v); };
+  useEffect(() => { if (externalShowOptions !== undefined) setShowOptionsInternal(externalShowOptions); }, [externalShowOptions]);
   const [showMobileSort, setShowMobileSort] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
 
@@ -903,14 +912,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const pendingCount = useMemo(() => localProducts.filter(p => p.lore && !p.showWisdom).length, [localProducts]);
 
-  // Stock verification stats (scoped to current category)
+  // Stock verification stats (scoped to current category — counts all non-archived)
   const verificationStats = useMemo(() => {
     const categoryProducts = inventoryCategory === 'teaware'
       ? localProducts.filter(p => p.type === 'Teaware')
       : localProducts.filter(p => p.type !== 'Teaware');
-    const active = categoryProducts.filter(p => p.status === 'Active');
-    const verified = active.filter(p => !!p.stockVerifiedAt).length;
-    return { total: active.length, verified, remaining: active.length - verified };
+    const countable = categoryProducts.filter(p => p.status !== 'Archived');
+    const verified = countable.filter(p => !!p.stockVerifiedAt).length;
+    return { total: countable.length, verified, remaining: countable.length - verified };
   }, [localProducts, inventoryCategory]);
 
   // Initialize review drafts when switching to Pending filter or when pending products change
@@ -1636,7 +1645,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       )}
 
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
-      <div className={`md:hidden sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
+      <div className={`md:hidden sticky top-[37px] z-20 bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         <div className="flex items-center px-2 py-1.5 gap-0.5">
           {/* View tabs — text then icons */}
           {(() => {
@@ -1735,17 +1744,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
               </>
             )}
-            <button
-              onClick={() => { setShowOptions(!showOptions); setShowMobileSort(false); }}
-              className="w-9 h-9 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-md"
-            >
-              <MoreHorizontal size={17} />
-            </button>
             {showOptions && (
               <>
               <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }} />
               <div
-                className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col max-h-[calc(100vh-100px)] overflow-y-auto"
+                className="fixed right-2 top-[40px] w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col max-h-[calc(100vh-100px)] overflow-y-auto"
                 role="menu"
                 onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }}
                 tabIndex={-1}
@@ -2081,43 +2084,45 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* STOCK VERIFICATION BANNER */}
         {filterType === 'Unverified' && (
           <div className="max-w-7xl mx-auto px-4 md:px-0 pt-4 pb-2">
-            <div className="flex items-center gap-4 bg-tea-surface border border-tea-border rounded-xl px-4 py-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <CheckSquare size={14} className="text-emerald-400" />
-                  <span className="text-xs font-medium text-tea-text">Stock Verification</span>
-                  <span className="text-[10px] text-tea-text-sec">
-                    {verificationStats.verified}/{verificationStats.total} checked
-                  </span>
-                  {verificationStats.remaining === 0 && verificationStats.total > 0 && (
-                    <span className="text-[10px] text-emerald-400 font-medium ml-1">All done!</span>
+            <div className="bg-tea-surface rounded-xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em]">
+                  Confirm each tea's stock matches your shelf
+                </span>
+                <div className="flex items-center gap-3">
+                  {verificationStats.remaining === 0 && verificationStats.total > 0 ? (
+                    <span className="text-[10px] text-emerald-400 font-medium uppercase tracking-[0.15em]">All verified</span>
+                  ) : (
+                    <span className="text-[10px] text-tea-text-dim tabular-nums">
+                      {verificationStats.verified} of {verificationStats.total}
+                    </span>
+                  )}
+                  {verificationStats.verified > 0 && (
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm(`Reset all ${verificationStats.verified} verification checkmarks? This lets you start a fresh inventory check.`)) return;
+                        try {
+                          await api.rpc.resetStockVerification();
+                          setLocalProducts(prev => prev.map(p => ({ ...p, stockVerifiedAt: null })));
+                          onRefresh();
+                          showToast('Verification reset — ready for a new stock check', 'success');
+                        } catch (err: any) {
+                          showToast(`Reset failed: ${err.message}`, 'error');
+                        }
+                      }}
+                      className="text-[10px] text-tea-text-dim hover:text-amber-400 transition-colors uppercase tracking-[0.12em]"
+                    >
+                      Reset
+                    </button>
                   )}
                 </div>
-                <div className="w-full bg-tea-bg rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500 ease-out bg-emerald-500/70"
-                    style={{ width: `${verificationStats.total > 0 ? (verificationStats.verified / verificationStats.total) * 100 : 0}%` }}
-                  />
-                </div>
               </div>
-              {verificationStats.verified > 0 && (
-                <button
-                  onClick={async () => {
-                    if (!window.confirm(`Reset all ${verificationStats.verified} verification checkmarks? This lets you start a fresh inventory check.`)) return;
-                    try {
-                      await api.rpc.resetStockVerification();
-                      setLocalProducts(prev => prev.map(p => ({ ...p, stockVerifiedAt: null })));
-                      onRefresh();
-                      showToast('Verification reset — ready for a new stock check', 'success');
-                    } catch (err: any) {
-                      showToast(`Reset failed: ${err.message}`, 'error');
-                    }
-                  }}
-                  className="flex-shrink-0 text-[10px] text-tea-text-sec hover:text-amber-400 transition-colors px-2 py-1 rounded border border-tea-border hover:bg-amber-400/5"
-                >
-                  Reset All
-                </button>
-              )}
+              <div className="w-full bg-tea-bg rounded-full h-1 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500 ease-out bg-emerald-500/70"
+                  style={{ width: `${verificationStats.total > 0 ? (verificationStats.verified / verificationStats.total) * 100 : 0}%` }}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -145,6 +145,7 @@ const AppContent = () => {
     }
     isNavClick.current = true;
     setIsSectionTransitioning(true);
+    setShowAccountModal(false);
     setTimeout(() => {
       navigate(sectionToPath(section));
       setViewState('BROWSE');
