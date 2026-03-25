@@ -113,7 +113,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
       {/* Panel — slide in from right, z-[55] above bottom nav */}
       <motion.div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full z-[55] shadow-2xl flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full z-[55] shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-bg'

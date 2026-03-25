@@ -101,7 +101,7 @@ const CharacterRevealCapture: React.FC = () => {
       {/* Fixed overlay — viewport-locked, immune to overflow/layout issues */}
       {isVisible && (
         <div
-          className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none"
+          className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(49px+env(safe-area-inset-bottom,0px))]"
         >
           {/* Logo — drops from top, lands above the teaser lines */}
           <div
@@ -150,7 +150,7 @@ const CharacterRevealCapture: React.FC = () => {
               }}
             >
               <span
-                className="text-[69px] leading-none"
+                className="text-[48px] sm:text-[69px] leading-none"
                 style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}
               >
                 佳
@@ -173,7 +173,7 @@ const CharacterRevealCapture: React.FC = () => {
               }}
             >
               <span
-                className="text-[69px] leading-none"
+                className="text-[48px] sm:text-[69px] leading-none"
                 style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}
               >
                 家
@@ -196,7 +196,7 @@ const CharacterRevealCapture: React.FC = () => {
               }}
             >
               <span
-                className="text-[69px] leading-none"
+                className="text-[48px] sm:text-[69px] leading-none"
                 style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}
               >
                 嘉
@@ -213,7 +213,7 @@ const CharacterRevealCapture: React.FC = () => {
 
           {/* Email capture — input then statement */}
           <div
-            className="flex flex-col items-center mt-12 pointer-events-auto w-full max-w-[280px]"
+            className="flex flex-col items-center mt-6 sm:mt-12 pointer-events-auto w-full max-w-[280px]"
             style={{
               opacity: emailP,
               transform: `translateY(${(1 - emailP) * 20}px)`,
@@ -372,7 +372,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Statement */}
           <motion.h1
-            className="text-tea-text max-w-[380px] text-[28px] md:text-[34px] leading-[1.35] tracking-[0.01em] font-normal mt-[48px]"
+            className="text-tea-text max-w-[380px] text-[28px] md:text-[34px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
             style={{ fontFamily: 'var(--font-display)' }}
             initial={initial({ opacity: 0, y: 10 })}
             animate={{ opacity: 1, y: 0 }}
@@ -383,7 +383,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Grounding lines */}
           <motion.div
-            className="flex flex-col items-center mt-[48px]"
+            className="flex flex-col items-center mt-6 sm:mt-12"
             initial={initial({ opacity: 0, y: 6 })}
             animate={{ opacity: 1, y: 0 }}
             transition={shouldAnimate ? { duration: 0.6, delay: 0.75 } : { duration: 0 }}

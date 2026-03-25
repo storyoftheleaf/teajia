@@ -277,7 +277,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       </PageHeader>
 
       {/* Tab Content */}
-      <div className="mt-8 mb-24">
+      <div className="mt-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

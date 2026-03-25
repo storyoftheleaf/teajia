@@ -190,7 +190,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
         className="fixed inset-0 z-50 bg-tea-surface overflow-y-auto animate-[fadeIn_0.3s_ease-out]"
       >
         {/* Sticky Header - Elevated with touch targets */}
-        <div className="sticky top-0 z-20 bg-tea-bg/95/95 backdrop-blur-md border-b border-tea-text/5 ">
+        <div className="sticky top-0 z-20 bg-tea-bg/95 backdrop-blur-md border-b border-tea-text/5 ">
           <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
             <button
               onClick={onBack}
