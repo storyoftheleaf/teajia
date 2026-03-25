@@ -25,7 +25,7 @@ const SEGMENT_COLORS = [
   'color-mix(in srgb, var(--tea-text-dim, #a0a0a0) 10%, transparent)',   // Other
 ];
 
-const SELECTED_FILL = 'rgba(var(--tea-gold-rgb, 184, 146, 78), 0.25)';
+const SELECTED_FILL = 'rgb(var(--tea-gold-rgb) / 0.25)';
 
 /** Get flavor groups from the taxonomy */
 function getFlavorGroups() {

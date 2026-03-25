@@ -122,7 +122,7 @@ export const HapticSlider: React.FC<HapticSliderProps> = ({
             height: thumbSize,
             borderRadius: '50%',
             background: 'var(--tea-gold)',
-            boxShadow: '0 1px 3px rgba(var(--tea-bg-rgb, 24,19,14),0.4)',
+            boxShadow: '0 1px 3px rgb(var(--tea-bg-rgb) / 0.4)',
             transition: 'left 0.075s ease',
           }}
         />

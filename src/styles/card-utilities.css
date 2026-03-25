@@ -586,17 +586,17 @@
 }
 
 .pill:hover {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.05);
+  background: rgb(var(--tea-gold-rgb) / 0.05);
 }
 
 .pill-active {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.18);
+  background: rgb(var(--tea-gold-rgb) / 0.18);
   color: var(--tea-gold);
   font-weight: 700;
 }
 
 .pill-active:hover {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.24);
+  background: rgb(var(--tea-gold-rgb) / 0.24);
 }
 
 /* Amber variant (warnings, stock alerts) */
@@ -626,17 +626,17 @@
 }
 
 .badge-status-gold {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.10);
+  background: rgb(var(--tea-gold-rgb) / 0.10);
   color: var(--tea-gold);
 }
 
 .badge-status-muted {
-  background: rgba(var(--tea-text-sec-rgb, 181, 168, 146), 0.10);
+  background: rgb(var(--tea-text-sec-rgb) / 0.10);
   color: var(--tea-text-sec);
 }
 
 .badge-status-default {
-  background: rgba(var(--tea-text-rgb, 237, 228, 212), 0.10);
+  background: rgb(var(--tea-text-rgb) / 0.10);
   color: var(--tea-text);
 }
 
@@ -665,7 +665,7 @@
   border-radius: 9999px;
   border: none;
   font-size: 11px;
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.12);
+  background: rgb(var(--tea-gold-rgb) / 0.12);
   color: var(--tea-gold);
 }
 
@@ -685,12 +685,12 @@
 }
 
 .tag-selectable-active {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.15);
+  background: rgb(var(--tea-gold-rgb) / 0.15);
   color: var(--tea-gold);
 }
 
 .tag-selectable:hover:not(.tag-selectable-active) {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.05);
+  background: rgb(var(--tea-gold-rgb) / 0.05);
 }
 
 /* --- Format Badge (media types: book, podcast, article, etc.) --- */
@@ -820,12 +820,12 @@
 }
 
 .badge-role-owner {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.15);
+  background: rgb(var(--tea-gold-rgb) / 0.15);
   color: var(--tea-gold);
 }
 
 .badge-role-admin {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.10);
+  background: rgb(var(--tea-gold-rgb) / 0.10);
   color: var(--tea-gold);
 }
 
@@ -846,12 +846,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 150ms ease;
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.10);
+  background: rgb(var(--tea-gold-rgb) / 0.10);
   color: var(--tea-gold);
 }
 
 .pill-action:hover {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.20);
+  background: rgb(var(--tea-gold-rgb) / 0.20);
 }
 
 /* Light mode adjustments */
@@ -1483,7 +1483,7 @@
 .reader-progress-track {
   position: relative;
   height: 2px;
-  background: rgba(var(--tea-text-rgb, 237, 228, 212), 0.08);
+  background: rgb(var(--tea-text-rgb) / 0.08);
   overflow: visible;
 }
 
@@ -2051,8 +2051,8 @@
 }
 
 @keyframes tastingSelectPulse {
-  0% { box-shadow: 0 0 0 0 rgba(var(--tea-gold-rgb, 184, 146, 78), 0.4); }
-  100% { box-shadow: 0 0 0 8px rgba(var(--tea-gold-rgb, 184, 146, 78), 0); }
+  0% { box-shadow: 0 0 0 0 rgb(var(--tea-gold-rgb) / 0.4); }
+  100% { box-shadow: 0 0 0 8px rgb(var(--tea-gold-rgb) / 0); }
 }
 
 .tag-selectable-pulse {
@@ -2168,12 +2168,12 @@
 
 .tasting-tab:hover {
   color: var(--tea-text-sec);
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.04);
+  background: rgb(var(--tea-gold-rgb) / 0.04);
 }
 
 .tasting-tab-active {
   color: var(--tea-gold);
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.08);
+  background: rgb(var(--tea-gold-rgb) / 0.08);
 }
 
 .tasting-tab-dot {
@@ -2232,7 +2232,7 @@
 }
 
 .tasting-weight-option-active {
-  background: rgba(var(--tea-gold-rgb, 184, 146, 78), 0.15);
+  background: rgb(var(--tea-gold-rgb) / 0.15);
   color: var(--tea-gold);
 }
 

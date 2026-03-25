@@ -114,8 +114,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
-          background: 'rgba(var(--tea-bg-rgb, 24,19,14), 0.95)',
-          boxShadow: '0 -6px 20px rgba(var(--tea-bg-rgb, 24,19,14),0.25), 0 -1px 4px rgba(var(--tea-bg-rgb, 24,19,14),0.15)',
+          background: 'rgb(var(--tea-bg-rgb) / 0.95)',
+          boxShadow: '0 -6px 20px rgb(var(--tea-bg-rgb) / 0.25), 0 -1px 4px rgb(var(--tea-bg-rgb) / 0.15)',
           height: 'calc(49px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           WebkitTapHighlightColor: 'transparent',

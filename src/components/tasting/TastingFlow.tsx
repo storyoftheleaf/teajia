@@ -239,7 +239,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                   fontSize: '13px',
                   letterSpacing: '0.04em',
                   background: isActive
-                    ? 'radial-gradient(ellipse 100% 80% at 50% 30%, rgba(var(--tea-gold-rgb, 184,146,78), 0.08) 0%, transparent 70%)'
+                    ? 'radial-gradient(ellipse 100% 80% at 50% 30%, rgb(var(--tea-gold-rgb) / 0.08) 0%, transparent 70%)'
                     : 'transparent',
                 }}
               >
@@ -263,7 +263,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                     layoutId="tasting-section-indicator"
                     className="absolute md:left-0 md:top-1.5 md:bottom-1.5 md:w-[2px] md:h-auto bottom-0 left-3 right-3 h-[2px] md:rounded-r-full rounded-full"
                     style={{
-                      background: 'linear-gradient(180deg, rgba(var(--tea-gold-rgb, 184,146,78), 0.6), rgba(var(--tea-gold-rgb, 184,146,78), 0.3))',
+                      background: 'linear-gradient(180deg, rgb(var(--tea-gold-rgb) / 0.6), rgb(var(--tea-gold-rgb) / 0.3))',
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />

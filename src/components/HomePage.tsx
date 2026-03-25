@@ -245,12 +245,12 @@ const CharacterRevealCapture: React.FC = () => {
                 style={{
                   fontFamily: 'var(--font-display)',
                   border: 'none',
-                  borderBottom: '1px solid rgba(var(--tea-gold-rgb),0.25)',
+                  borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)',
                   borderRadius: 0,
                   letterSpacing: '0.04em',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'rgba(var(--tea-gold-rgb),0.5)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'rgba(var(--tea-gold-rgb),0.25)'; }}
+                onFocus={(e) => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.5)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.25)'; }}
               />
               <button
                 type="submit"
@@ -312,7 +312,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <div
         className="fixed bottom-0 left-0 w-screen h-[200px] pointer-events-none z-[2]"
         style={{
-          background: 'radial-gradient(ellipse 70% 100% at 50% 100%, rgba(var(--tea-gold-rgb, 184,146,78),0.18) 0%, rgba(var(--tea-gold-rgb, 184,146,78),0.05) 50%, transparent 100%)',
+          background: 'radial-gradient(ellipse 70% 100% at 50% 100%, rgb(var(--tea-gold-rgb) / 0.18) 0%, rgb(var(--tea-gold-rgb) / 0.05) 50%, transparent 100%)',
           opacity: glowY,
         }}
       />
@@ -322,7 +322,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         className="fixed left-0 w-screen h-[200px] pointer-events-none z-[2]"
         style={{
           top: 0,
-          background: 'radial-gradient(ellipse 70% 100% at 50% 0%, rgba(var(--tea-gold-rgb, 184,146,78),0.18) 0%, rgba(var(--tea-gold-rgb, 184,146,78),0.05) 50%, transparent 100%)',
+          background: 'radial-gradient(ellipse 70% 100% at 50% 0%, rgb(var(--tea-gold-rgb) / 0.18) 0%, rgb(var(--tea-gold-rgb) / 0.05) 50%, transparent 100%)',
           opacity: Math.max(0, 1 - glowY),
         }}
       />
@@ -348,7 +348,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div
               className="absolute pointer-events-none"
               style={{
-                background: 'radial-gradient(circle at 50% 50%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, rgba(var(--tea-gold-rgb, 184,146,78),0.03) 40%, transparent 70%)',
+                background: 'radial-gradient(circle at 50% 50%, rgb(var(--tea-gold-rgb) / 0.08) 0%, rgb(var(--tea-gold-rgb) / 0.03) 40%, transparent 70%)',
                 width: '200px',
                 height: '200px',
                 top: '50%',

@@ -230,7 +230,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
                   bg-tea-bg/80 backdrop-blur-md text-tea-gold
                   text-[11px] uppercase tracking-[0.08em] font-medium
                   px-5 py-3 rounded-full
-                  shadow-[0_2px_12px_rgba(var(--tea-bg-rgb,24,19,14),0.25),0_0_0_1px_rgba(var(--tea-gold-rgb,184,146,78),0.12)]
+                  shadow-[0_2px_12px_rgb(var(--tea-bg-rgb)/0.25),0_0_0_1px_rgb(var(--tea-gold-rgb)/0.12)]
                   hover:bg-tea-bg/95 active:scale-[0.97]
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
       style={{ fontFamily: 'var(--font-sans)' }}

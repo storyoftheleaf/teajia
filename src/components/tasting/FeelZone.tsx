@@ -125,7 +125,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
               style={{
                 fontFamily: 'var(--font-body)',
                 background: selectedWeight === w.id
-                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgba(var(--tea-gold-rgb, 184,146,78), 0.12) 0%, rgba(var(--tea-gold-rgb, 184,146,78), 0.04) 70%)'
+                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.12) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
                   : 'transparent',
               }}
             >
@@ -191,7 +191,7 @@ const FeelZoneInner: React.FC<FeelZoneProps> = ({ flow }) => {
               style={{
                 fontFamily: 'var(--font-body)',
                 background: selectedDuration === d.id
-                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgba(var(--tea-gold-rgb, 184,146,78), 0.12) 0%, rgba(var(--tea-gold-rgb, 184,146,78), 0.04) 70%)'
+                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.12) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
                   : 'transparent',
               }}
             >

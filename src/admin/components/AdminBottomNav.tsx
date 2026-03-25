@@ -97,7 +97,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
         aria-label="Admin navigation"
         className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 md:hidden border-t border-tea-border"
         style={{
-          background: 'rgba(var(--tea-surface-rgb), 0.92)',
+          background: 'rgb(var(--tea-surface-rgb) / 0.92)',
           boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
           height: 'calc(49px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
