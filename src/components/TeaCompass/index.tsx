@@ -205,7 +205,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 pb-[calc(80px+env(safe-area-inset-bottom,0px))]" role="tabpanel">
+      <div className="flex-1 overflow-y-auto px-4 py-3 pb-[calc(120px+env(safe-area-inset-bottom,0px))]" role="tabpanel">
         <AnimatePresence mode="wait">
           {mode === 'capture' ? (
             <motion.div

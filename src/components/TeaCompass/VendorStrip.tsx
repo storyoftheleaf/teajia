@@ -391,7 +391,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           <button
             type="button"
             onClick={() => setDetailsOpen((o) => !o)}
-            className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1"
+            className="flex items-center gap-1 text-xs text-tea-text-sec hover:text-tea-gold transition-colors mt-1"
           >
             <ChevronDown
               size={10}
