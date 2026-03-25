@@ -45,12 +45,13 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
   return (
     <div className="space-y-2">
       <input
+        key={photos.length === 0 ? 'camera' : 'gallery'}
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFileChange}
         className="hidden"
+        {...(photos.length === 0 ? { capture: 'environment' } : {})}
       />
 
       {photos.length > 0 ? (
