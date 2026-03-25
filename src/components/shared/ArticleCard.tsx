@@ -229,7 +229,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`cursor-pointer group transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] relative ${isFeatured ? 'article-card-hero' : ''} ${className}`}
+      className={`cursor-pointer group transition-all duration-300 hover:-translate-y-[3px] hover:scale-[1.01] active:scale-[0.98] relative ${isFeatured ? 'article-card-hero' : ''} ${className}`}
       {...longPressHandlers}
     >
       <CardContainer className="p-0 overflow-hidden">
@@ -249,26 +249,28 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                   </div>
                 )}
 
-                <img
-                  src={imageUrl}
-                  alt={title}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:saturate-100 group-hover:contrast-100"
-                  style={{
-                    // Blur-up progressive loading: start blurred+desaturated, reveal on load
-                    filter: imageLoaded
-                      ? 'saturate(0.88) contrast(1.03) blur(0px)'
-                      : 'saturate(0) contrast(1) blur(12px)',
-                    transform: imageLoaded ? 'scale(1)' : 'scale(1.05)',
-                    transition: 'filter 0.6s ease, transform 0.6s ease',
-                    willChange: 'filter, transform',
-                  }}
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => {
-                    setImageLoaded(true);
-                    setImageError(true);
-                  }}
-                />
+                <div className="w-full h-full transition-transform duration-700 ease-out group-hover:scale-[1.06]">
+                  <img
+                    src={imageUrl}
+                    alt={title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:saturate-100 group-hover:contrast-100"
+                    style={{
+                      // Blur-up progressive loading: start blurred+desaturated, reveal on load
+                      filter: imageLoaded
+                        ? 'saturate(0.88) contrast(1.03) blur(0px)'
+                        : 'saturate(0) contrast(1) blur(12px)',
+                      transform: imageLoaded ? 'scale(1)' : 'scale(1.05)',
+                      transition: 'filter 0.6s ease, transform 0.6s ease',
+                      willChange: 'filter, transform',
+                    }}
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => {
+                      setImageLoaded(true);
+                      setImageError(true);
+                    }}
+                  />
+                </div>
 
                 {/* Paper texture overlay */}
                 <div
