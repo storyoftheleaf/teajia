@@ -104,11 +104,11 @@ const SectionHeader: React.FC<{
     <div className="flex items-center gap-3">
       <div className="text-tea-gold">{icon}</div>
       <div>
-        <h3 className="text-xs uppercase tracking-[0.2em] text-tea-text/70 font-sans font-medium">
+        <h3 className="text-xs uppercase tracking-[0.15em] text-tea-text/70 font-sans font-medium">
           {title}
         </h3>
         {subtitle && (
-          <p className="text-sm text-tea-text/50 font-serif italic mt-0.5">{subtitle}</p>
+          <p className="text-sm text-tea-text/50 italic mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>{subtitle}</p>
         )}
       </div>
     </div>

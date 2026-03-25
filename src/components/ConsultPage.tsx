@@ -255,7 +255,7 @@ const Services: React.FC = () => (
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.label}
             </h3>
-            <span className="text-[11px] uppercase tracking-[0.06em] text-tea-gold/70 shrink-0"
+            <span className="text-[11px] uppercase tracking-[0.1em] text-tea-gold/70 shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {svc.price}
             </span>
@@ -276,7 +276,7 @@ const Services: React.FC = () => (
                           style={{ fontFamily: 'var(--font-display)' }}>
                       {o.name}
                     </span>
-                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.04em]"
+                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.1em]"
                           style={{ fontFamily: 'var(--font-sans)' }}>
                       {o.price}
                     </span>
@@ -376,7 +376,7 @@ const Testimonial: React.FC = () => {
          style={{ fontFamily: 'var(--font-display)' }}>
         "{testimonial.quote}"
       </p>
-      <p className="text-[11px] text-tea-text-dim mt-6 tracking-[0.04em]"
+      <p className="text-[11px] text-tea-text-dim mt-6 tracking-[0.1em]"
          style={{ fontFamily: 'var(--font-sans)' }}>
         {testimonial.name}<span className="text-tea-text-dim/30 mx-2">&middot;</span>{testimonial.title}
       </p>
