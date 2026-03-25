@@ -97,7 +97,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     let cancelled = false;
     (async () => {
       try {
-        const data = await api.products.listPublic();
+        // Try authenticated list first (includes drafts, personal, non-public)
+        // Fall back to public list if not logged in
+        let data: any;
+        try {
+          data = await api.products.list();
+        } catch {
+          data = await api.products.listPublic();
+        }
         const products = data.products || data || [];
         if (cancelled) return;
         productsRef.current = products;
