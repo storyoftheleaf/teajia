@@ -138,7 +138,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
       onTouchEnd={handleTouchEnd}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 md:px-8 py-5 md:py-6 bg-gradient-to-b from-black/50 to-transparent">
+      <div className="flex items-center justify-between px-6 md:px-8 py-5 md:py-6 bg-gradient-to-b from-tea-bg/50 to-transparent">
         <button
           onClick={onExit}
           className="px-4 py-2 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/15 backdrop-blur-sm text-white text-sm font-medium flex items-center gap-2 transition-colors"
@@ -195,7 +195,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
 
       {/* Caption */}
       {images[currentIndex].caption && (
-        <div className="px-6 md:px-8 py-6 text-center bg-gradient-to-t from-black/30 to-transparent">
+        <div className="px-6 md:px-8 py-6 text-center bg-gradient-to-t from-tea-bg/30 to-transparent">
           <p className="text-white/90 text-base md:text-lg font-serif leading-relaxed max-w-3xl mx-auto">
             {images[currentIndex].caption}
           </p>

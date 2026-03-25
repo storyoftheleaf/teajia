@@ -58,7 +58,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
                 alt={project.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
               {/* Status Badge */}
               {project.status === 'in-progress' && (
@@ -141,7 +141,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
                 alt={selectedProject.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
                 <span className="inline-block px-2 py-1 bg-tea-gold text-white text-[10px] uppercase tracking-wider rounded mb-3">
                   {PROJECT_TYPE_LABELS[selectedProject.projectType]}

@@ -113,7 +113,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
               >
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set'}</span>
                 <span className="w-[1px] h-3 bg-tea-text-sec/30" />
-                <span className="font-mono text-sm">{price}</span>
+                <span className="font-mono tabular-nums text-sm">{price}</span>
               </button>
             </div>
           </div>

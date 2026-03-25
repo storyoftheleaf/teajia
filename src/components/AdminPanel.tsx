@@ -762,7 +762,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                         {s.status}
                                     </span>
                                 </div>
-                                <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-black/90 to-transparent">
+                                <div className="absolute inset-0 p-4 flex flex-col justify-end bg-gradient-to-t from-tea-bg/90 to-transparent">
                                     <h3 className="text-white font-serif text-lg leading-tight line-clamp-2 mb-1">{s.title}</h3>
                                     <span className="text-[10px] uppercase text-tea-text">{s.subtitle}</span>
                                 </div>
@@ -814,7 +814,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                     </div>
 
                                     {/* Bottom Meta */}
-                                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black/80 to-transparent">
+                                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-tea-bg via-tea-bg/80 to-transparent">
                                         <h3 className="text-white font-serif text-lg leading-tight truncate mb-0.5">{s.title}</h3>
                                         <div className="flex items-center gap-2 text-[10px] uppercase text-tea-text tracking-wider">
                                             <span>{s.durationOrTime}</span>

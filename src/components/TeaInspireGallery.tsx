@@ -125,7 +125,7 @@ export const TeaInspireGallery: React.FC = () => {
               alt={featuredMoment.caption}
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 via-tea-bg/20 to-transparent" />
 
             {/* Featured Content Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
@@ -172,7 +172,7 @@ export const TeaInspireGallery: React.FC = () => {
                 />
 
                 {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/70 via-tea-bg/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
 
                 {/* Category Badge */}
                 <div className="absolute top-3 left-3 flex gap-2">

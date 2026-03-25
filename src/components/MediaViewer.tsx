@@ -47,7 +47,7 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
 );
 
 const MobileHeader: React.FC<{ title: string; onBack: () => void; transparent?: boolean }> = ({ title, onBack, transparent }) => (
-  <header className={`absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 transition-all duration-300 ${transparent ? 'bg-gradient-to-b from-black/80 to-transparent' : 'bg-tea-moss shadow-lg'}`}>
+  <header className={`absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 transition-all duration-300 ${transparent ? 'bg-gradient-to-b from-tea-bg/80 to-transparent' : 'bg-tea-moss shadow-lg'}`}>
     <button onClick={onBack} className="p-2 opacity-90 hover:opacity-100 text-tea-text">
       <Icons.Back className="w-6 h-6" />
     </button>
@@ -131,7 +131,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         </div>
         
         {/* Overlays - Hide when playing to avoid covering controls */}
-        {!isPlaying && <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90 pointer-events-none"></div>}
+        {!isPlaying && <div className="absolute inset-0 bg-gradient-to-b from-tea-bg/60 via-transparent to-tea-bg/90 pointer-events-none"></div>}
         
         <MobileHeader title={story.title} onBack={onBack} transparent />
         
@@ -147,7 +147,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
         {/* Bottom Info - Hide during play */}
         {!isPlaying && (
-            <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-tea-text pointer-events-none bg-gradient-to-t from-black/90 to-transparent">
+            <div className="absolute bottom-0 left-0 w-full p-6 pb-10 text-tea-text pointer-events-none bg-gradient-to-t from-tea-bg/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
                 <span className="px-2 py-0.5 border border-tea-gold/20 text-[9px] uppercase tracking-[0.15em] rounded-full">
                     {story.type}
@@ -167,7 +167,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
     <div className="fixed inset-0 z-modal bg-tea-bg flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
-      <main className="flex-1 relative flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] p-12">
+      <main className="flex-1 relative flex items-center justify-center p-12" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }}>
         <div className="flex flex-row h-full max-h-[80vh] w-full max-w-5xl items-center justify-center gap-12">
             
             {/* Player Frame */}
@@ -391,7 +391,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
     <div className="fixed inset-0 z-modal bg-tea-bg flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
-      <main className="flex-1 flex flex-col items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] relative overflow-hidden">
+      <main className="flex-1 flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }}>
          
          {/* Background Ambience */}
          <div className="absolute inset-0 opacity-10 pointer-events-none">

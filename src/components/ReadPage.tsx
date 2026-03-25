@@ -133,7 +133,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
               )}
 
               {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 via-tea-bg/30 to-transparent" />
 
               {/* Content */}
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-left">

@@ -267,7 +267,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
                 <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />
               </div>
             )}
-            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-tea-bg/90 to-transparent pointer-events-none" />
           </div>
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
             <h2 className="text-3xl font-serif text-tea-text mb-1">{item.name}</h2>
