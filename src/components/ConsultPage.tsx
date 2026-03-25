@@ -250,15 +250,16 @@ const Services: React.FC = () => (
       const isDesign = svc.id === 'design';
 
       return (
-        <motion.div key={svc.id}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
-          style={i < SERVICES.length - 1 ? { borderBottom: '1px solid var(--tea-border)' } : undefined}
-        >
-          <div className="flex items-baseline justify-between gap-6 mb-3">
+        <React.Fragment key={svc.id}>
+          {i > 0 && <div className="divider-warm" />}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
+          >
+            <div className="flex items-baseline justify-between gap-6 mb-3">
             <h3 className={`font-light text-tea-text leading-tight tracking-[-0.01em]
                            ${isDesign ? 'text-[1.5rem] md:text-[1.75rem]' : 'text-[1.2rem] md:text-[1.35rem]'}`}
                 style={{ fontFamily: 'var(--font-display)' }}>
@@ -276,17 +277,19 @@ const Services: React.FC = () => (
           </p>
 
           {'offerings' in svc && svc.offerings && (
-            <div className="mt-8">
+            <div className="mt-8 inset-panel" style={{ padding: 'clamp(16px, 2.5vw, 24px)' }}>
               {svc.offerings.map((o, j) => (
-                <div key={o.name} className="py-3.5"
-                     style={{ borderBottom: j < svc.offerings.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
+                <div key={o.name}
+                     className={`flex flex-col py-3.5 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-sm ${
+                       j < svc.offerings.length - 1 ? 'border-b border-tea-border/50' : ''
+                     }`}>
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-[15px] font-light text-tea-text"
                           style={{ fontFamily: 'var(--font-display)' }}>
                       {o.name}
                     </span>
-                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.1em]"
-                          style={{ fontFamily: 'var(--font-sans)' }}>
+                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.1em] tabular-nums"
+                          style={{ fontFamily: 'var(--font-mono, var(--font-sans))' }}>
                       {o.price}
                     </span>
                   </div>
@@ -300,7 +303,8 @@ const Services: React.FC = () => (
               ))}
             </div>
           )}
-        </motion.div>
+          </motion.div>
+        </React.Fragment>
       );
     })}
   </section>
@@ -415,8 +419,9 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     </h3>
     <button
       onClick={onOpenInquiry}
-      className="mt-10 text-[11px] uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
-                 font-medium transition-colors duration-300 min-h-[44px]
+      className="mt-10 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium
+                 py-2.5 px-6 hover:bg-tea-gold/90 transition-colors duration-300
+                 active:scale-95 min-h-[44px]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
       style={{ fontFamily: 'var(--font-sans)' }}
     >

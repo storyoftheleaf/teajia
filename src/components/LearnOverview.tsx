@@ -274,6 +274,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       </section>
 
 
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
+
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 3 — GLOSSARY SPOTLIGHT
           The Chinese characters are the hero at massive scale.
@@ -334,7 +337,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
                 {/* CTA */}
                 <div className="flex items-center gap-6">
-                  <span className="text-tea-gold text-[13px] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all border-b border-tea-gold pb-0.5">
+                  <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                     Explore full glossary
                     <Icons.ChevronRight className="w-4 h-4" />
                   </span>
@@ -372,6 +375,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         )}
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 4 — CURRICULUM ENTRY
@@ -423,6 +429,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       </section>
 
 
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
+
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 5 — RESOURCES & TOOLS (moved up from original position)
           Refined grid. The cards are dark, the layout is tight.
@@ -448,7 +457,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onNavigateTo(tile.id)}
               className={`text-left group ${CTA_FOCUS}`}
             >
-              <div className="h-full bg-tea-surface rounded-[1px] border border-transparent hover:border-tea-gold/20 transition-colors duration-300" style={{ padding: 'clamp(14px, 2vw, 24px)' }}>
+              <div className="h-full bg-tea-surface rounded-md border border-tea-border hover:border-tea-gold/30 transition-colors duration-200" style={{ padding: 'clamp(14px, 2vw, 24px)' }}>
                 <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
@@ -464,6 +473,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 6 — ATLAS & PLACES
@@ -489,7 +501,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               onClick={() => onStoryClick(geographyLesson)}
               className={`text-left w-full group ${CTA_FOCUS}`}
             >
-              <div className="relative overflow-hidden rounded-[1px] border border-transparent hover:border-tea-gold/15 transition-colors duration-300">
+              <div className="relative overflow-hidden rounded-[1px] border border-tea-border hover:border-tea-gold/30 transition-colors duration-200">
                 {/* Location placeholder */}
                 <InkWashPlaceholder label={pin.name} aspectRatio="4/3" mood={i % 2 === 0 ? 'warm' : 'cool'} />
 
@@ -510,6 +522,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </SwipeCarousel>
       </section>
 
+
+      {/* warm divider */}
+      <div className="divider-warm mb-[clamp(5rem,8vw,7rem)]" />
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 7 — TEA SPACE TEASER
@@ -539,7 +554,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <p className="italic text-sm text-tea-text/50 leading-relaxed mb-4 max-w-md" style={{ fontFamily: 'var(--font-body)' }}>
                 {featuredSpace.description}
               </p>
-              <span className="text-tea-gold text-sm font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+              <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                 See all {counts.spaces} spaces
                 <Icons.ChevronRight className="w-4 h-4" />
               </span>
@@ -568,7 +583,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             {onNavigateToConsult ? (
               <button
                 onClick={onNavigateToConsult}
-                className={`inline-flex items-center gap-1.5 text-tea-gold text-[13px] font-sans tracking-[0.08em] hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+                className={`inline-flex items-center gap-1.5 text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans hover:gap-2.5 transition-all ${CTA_FOCUS}`}
               >
                 Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
               </button>
