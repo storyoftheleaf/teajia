@@ -35,19 +35,19 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
   mood = 'neutral',
 }) => {
   const gradients: Record<string, string> = {
-    warm: `radial-gradient(ellipse at 20% 50%, rgba(201,148,58,0.12) 0%, transparent 60%),
-           radial-gradient(ellipse at 80% 30%, rgba(139,90,43,0.08) 0%, transparent 50%),
-           radial-gradient(ellipse at 50% 80%, rgba(201,148,58,0.06) 0%, transparent 40%),
-           linear-gradient(160deg, rgba(245,240,230,1) 0%, rgba(235,225,210,1) 100%)`,
-    cool: `radial-gradient(ellipse at 70% 20%, rgba(120,140,120,0.10) 0%, transparent 50%),
-           radial-gradient(ellipse at 30% 70%, rgba(100,120,100,0.08) 0%, transparent 50%),
-           linear-gradient(160deg, rgba(240,242,238,1) 0%, rgba(230,235,225,1) 100%)`,
-    neutral: `radial-gradient(ellipse at 40% 40%, rgba(201,148,58,0.08) 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 70%, rgba(180,160,140,0.06) 0%, transparent 50%),
-              linear-gradient(160deg, rgba(245,242,235,1) 0%, rgba(238,232,222,1) 100%)`,
-    dark: `radial-gradient(ellipse at 30% 30%, rgba(201,148,58,0.08) 0%, transparent 50%),
-           radial-gradient(ellipse at 70% 60%, rgba(201,148,58,0.05) 0%, transparent 40%),
-           linear-gradient(160deg, rgba(35,32,28,1) 0%, rgba(28,25,22,1) 100%)`,
+    warm: `radial-gradient(ellipse at 20% 50%, rgba(var(--tea-gold-rgb, 184,146,78),0.12) 0%, transparent 60%),
+           radial-gradient(ellipse at 80% 30%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, transparent 50%),
+           radial-gradient(ellipse at 50% 80%, rgba(var(--tea-gold-rgb, 184,146,78),0.06) 0%, transparent 40%),
+           linear-gradient(160deg, rgba(var(--tea-surface-rgb, 244,236,224),1) 0%, rgba(var(--tea-surface-rgb, 244,236,224),0.9) 100%)`,
+    cool: `radial-gradient(ellipse at 70% 20%, rgba(var(--tea-gold-rgb, 184,146,78),0.06) 0%, transparent 50%),
+           radial-gradient(ellipse at 30% 70%, rgba(var(--tea-gold-rgb, 184,146,78),0.04) 0%, transparent 50%),
+           linear-gradient(160deg, rgba(var(--tea-surface-rgb, 244,236,224),1) 0%, rgba(var(--tea-surface-rgb, 244,236,224),0.92) 100%)`,
+    neutral: `radial-gradient(ellipse at 40% 40%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 70%, rgba(var(--tea-gold-rgb, 184,146,78),0.06) 0%, transparent 50%),
+              linear-gradient(160deg, rgba(var(--tea-surface-rgb, 244,236,224),1) 0%, rgba(var(--tea-surface-rgb, 244,236,224),0.92) 100%)`,
+    dark: `radial-gradient(ellipse at 30% 30%, rgba(var(--tea-gold-rgb, 184,146,78),0.08) 0%, transparent 50%),
+           radial-gradient(ellipse at 70% 60%, rgba(var(--tea-gold-rgb, 184,146,78),0.05) 0%, transparent 40%),
+           linear-gradient(160deg, rgba(var(--tea-bg-rgb, 24,19,14),1) 0%, rgba(var(--tea-bg-rgb, 24,19,14),0.95) 100%)`,
   };
 
   return (

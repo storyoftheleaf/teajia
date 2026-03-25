@@ -118,7 +118,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
               <>
                <div className="absolute inset-0 opacity-[0.07] mix-blend-overlay pointer-events-none z-10"
                  style={{
-                   backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")'
+                   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
                  }}
                />
 
@@ -142,7 +142,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                  onError={() => setImageLoading(false)}
                />
 
-               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500"></div>
+               <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/95 via-tea-bg/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500"></div>
 
                {/* Desktop hover excerpt overlay */}
                {story.description && (
@@ -166,7 +166,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                         <Icons.Play className="w-4 h-4 text-tea-text fill-tea-text ml-0.5" />
                     </div>
 
-                    <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black/90 to-transparent">
+                    <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-tea-bg/90 to-transparent">
                         <div className="flex justify-between items-end text-tea-text">
                            <div className="flex items-center gap-2">
                               <Icons.Audio className="w-3 h-3 opacity-90" />
