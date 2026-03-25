@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon, MoreHorizontal } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
@@ -27,12 +27,22 @@ import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { TeaCompass } from '../components/TeaCompass';
+import type { CompassMode } from '../components/TeaCompass';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
 import { CsvImportModal } from './components/CsvImportModal';
 import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
+
+/** Reads ?tab= query param and passes initialMode to TeaCompass */
+const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const [params] = useSearchParams();
+  const tab = params.get('tab');
+  const initialMode: CompassMode | undefined =
+    tab === 'ledger' ? 'ledger' : tab === 'capture' ? 'capture' : tab === 'browse' ? 'browse' : undefined;
+  return <TeaCompass onBack={onBack} initialMode={initialMode} />;
+};
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div

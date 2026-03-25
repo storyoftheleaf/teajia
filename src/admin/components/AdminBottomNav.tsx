@@ -3,12 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
-  BarChart3,
   ClipboardList,
   Users,
   ShoppingCart,
   BookOpen,
-  Camera,
   Sparkles,
   X,
 } from 'lucide-react';
