@@ -365,7 +365,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                     {secondTerm.term}
                   </span>
-                  <span className="text-xs text-tea-text/30 ml-2">
+                  <span className="text-xs text-tea-text/60 ml-2">
                     {secondTerm.definition.slice(0, 50)}...
                   </span>
                 </div>
@@ -406,18 +406,18 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   <div className="flex items-baseline justify-between gap-4 mb-2">
                     <h4 className={`leading-[1.2] tracking-[0.01em] transition-colors ${
                       isNext ? 'text-tea-text group-hover:text-tea-gold' :
-                      isDone ? 'text-tea-text/30' :
-                      'text-tea-text/55 group-hover:text-tea-gold/80'
+                      isDone ? 'text-tea-text/60' :
+                      'text-tea-text/70 group-hover:text-tea-gold/80'
                     }`} style={{ fontSize: 'clamp(15px, 1.5vw + 8px, 19px)', fontFamily: 'var(--font-display)' }}>
                       {mod.title}
                     </h4>
                     <Icons.ChevronRight className={`w-4 h-4 flex-shrink-0 transition-all ${
                       isNext ? 'text-tea-gold/40 group-hover:text-tea-gold group-hover:translate-x-0.5' :
-                      'text-tea-text/10 group-hover:text-tea-gold/40'
+                      'text-tea-text/30 group-hover:text-tea-gold/40'
                     }`} />
                   </div>
                   <p className={`font-light italic leading-[1.8] ${
-                    isDone ? 'text-tea-text-sec/50' : 'text-tea-text-sec'
+                    isDone ? 'text-tea-text-sec/80' : 'text-tea-text-sec'
                   }`} style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)', fontFamily: 'var(--font-body)' }}>
                     {mod.description}
                   </p>
@@ -512,7 +512,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   <h4 className="text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                     {pin.name}
                   </h4>
-                  <p className="text-[11px] text-tea-text/35 font-sans">
+                  <p className="text-[11px] text-tea-text/60 font-sans">
                     {pin.location}
                   </p>
                 </div>
@@ -551,7 +551,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <h4 className="text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight" style={{ fontSize: 'clamp(16px, 1.5vw + 8px, 20px)', fontFamily: 'var(--font-display)' }}>
                 {featuredSpace.title}
               </h4>
-              <p className="italic text-sm text-tea-text/50 leading-relaxed mb-4 max-w-md" style={{ fontFamily: 'var(--font-body)' }}>
+              <p className="italic text-sm text-tea-text/70 leading-relaxed mb-4 max-w-md" style={{ fontFamily: 'var(--font-body)' }}>
                 {featuredSpace.description}
               </p>
               <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
@@ -577,7 +577,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         <div className="inset-panel" style={{ padding: 'clamp(28px, 4vw, 48px)' }}>
           <div className="text-center max-w-sm mx-auto">
-            <p className="text-[17px] text-tea-text/40 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-[17px] text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
               This archive grows with every session, every conversation, every cup.
             </p>
             {onNavigateToConsult ? (
@@ -593,7 +593,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
             <div className="mt-8 flex items-center justify-center gap-2.5">
               <div className="w-6 h-px bg-tea-gold/15" />
-              <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/15">
+              <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/40">
                 Teajia
               </span>
               <div className="w-6 h-px bg-tea-gold/15" />

@@ -346,7 +346,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
                   style={{ fontFamily: 'var(--font-body)' }}>
               {project.name}
             </span>
-            <span className="text-[11px] text-tea-text-dim/70 shrink-0"
+            <span className="text-[11px] text-tea-text-sec shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {project.location}
             </span>
