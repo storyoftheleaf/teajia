@@ -177,14 +177,23 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         {/* 2. SERVICES */}
         <Services />
 
+        {/* warm divider */}
+        <div className="divider-warm my-16 md:my-20" />
+
         {/* 3. PORTFOLIO */}
         <ProjectsPreview
           onSelectProject={(id) => navigateTo('project-detail', id)}
           onViewAll={() => navigateTo('projects')}
         />
 
+        {/* warm divider */}
+        <div className="divider-warm my-16 md:my-20" />
+
         {/* 4. TESTIMONIAL */}
         <Testimonial />
+
+        {/* warm divider */}
+        <div className="divider-warm my-16 md:my-20" />
 
         {/* 5. CLOSE */}
         <ClosingCTA onOpenInquiry={() => openInquiry('')} />
