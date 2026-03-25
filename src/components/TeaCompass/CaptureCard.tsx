@@ -532,9 +532,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const hasTeawareName = (entry.name || '').trim().length > 0;
 
     return (
-      <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-3">
+      <div className="bg-tea-surface rounded-lg p-3 space-y-3">
         {/* Panel 1: Identity — Photo + Name */}
-        <div className="bg-tea-surface/40 rounded-lg p-3 space-y-3">
+        <div className="rounded-lg space-y-3">
           <TeawarePhotos
             photos={entry.photos}
             onPhotosChange={handleTeawarePhotosChange}
@@ -554,13 +554,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="What is it?"
-            className="w-full bg-tea-bg/50 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-surface/60 text-tea-text text-sm rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
           />
         </div>
 
         {/* Panel 2: Price */}
-        <div className="bg-tea-surface/40 rounded-lg p-3 space-y-1.5">
-          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1.5">Price</label>
+        <div className="rounded-lg space-y-1.5">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
           <input
             type="number"
             inputMode="decimal"
@@ -570,7 +570,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ priceAmount: val === '' ? undefined : Number(val) });
             }}
-            className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums"
+            className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
           />
           <div className="flex gap-1 flex-wrap pt-1">
             {CURRENCIES.map((c) => (
@@ -605,10 +605,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               className="overflow-hidden space-y-3"
             >
               {/* Panel 3: Category & Material */}
-              <div className="bg-tea-surface/40 rounded-lg p-3 space-y-3">
+              <div className="rounded-lg space-y-3">
               {/* Category */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Category</label>
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Category</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {TEAWARE_CATEGORIES.map((cat) => (
                     <button
@@ -631,7 +631,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
               {/* Material */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Material</label>
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Material</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {materials.map((mat) => (
                     <button
@@ -648,7 +648,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </div>
 
               {/* Panel 4: Notes */}
-              <div className="bg-tea-surface/40 rounded-lg p-3">
+              <div className="rounded-lg">
               <NotesField
                 notes={entry.notes}
                 onNotesChange={(notes) => update({ notes })}
@@ -675,11 +675,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Tea card layout — progressive disclosure ────────────────────────
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-3">
+    <div className="bg-tea-surface rounded-lg p-3 space-y-3">
       {/* ─── LAYER 1: Always visible ─── */}
 
       {/* Panel 1: Identity — vendor + name + photo */}
-      <div className="bg-tea-surface/40 rounded-lg p-3 space-y-3">
+      <div className="rounded-lg space-y-3">
         <VendorStrip
           vendorName={entry.vendorName}
           vendorId={entry.vendorId}
@@ -695,7 +695,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-bg/50 text-tea-text text-lg rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            className="w-full bg-tea-surface/60 text-tea-text text-sm rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -739,7 +739,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       </AnimatePresence>
 
       {/* Panel 2: Price & Grams */}
-      <div className="bg-tea-surface/40 rounded-lg p-3">
+      <div className="rounded-lg">
         <PriceGrams
           priceAmount={entry.priceAmount}
           priceCurrency={entry.priceCurrency}
@@ -770,7 +770,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             className="overflow-hidden space-y-3"
           >
             {/* Panel 3: Type & Form */}
-            <div className="bg-tea-surface/40 rounded-lg p-3">
+            <div className="rounded-lg">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Type chip */}
               <div className="relative" ref={typePopoverRef}>
@@ -851,7 +851,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </div>
 
             {/* Panel 4: Notes */}
-            <div className="bg-tea-surface/40 rounded-lg p-3">
+            <div className="rounded-lg">
               <NotesField
                 notes={entry.notes}
                 onNotesChange={(notes) => update({ notes })}
@@ -989,7 +989,7 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
             <div className="space-y-3 pt-2">
               {/* Capacity */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Capacity (ml)</label>
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Capacity (ml)</label>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -999,13 +999,13 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
                     const val = e.target.value;
                     onCapacityChange(val === '' ? undefined : Number(val));
                   }}
-                  className="w-24 bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
+                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
                 />
               </div>
 
               {/* Era */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Era</label>
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Era</label>
                 <div className="flex gap-1.5 flex-wrap">
                   {TEAWARE_ERAS.map((e) => (
                     <button
@@ -1022,7 +1022,7 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
 
               {/* Quantity stepper */}
               <div className="space-y-1.5">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">Quantity</label>
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Quantity</label>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"

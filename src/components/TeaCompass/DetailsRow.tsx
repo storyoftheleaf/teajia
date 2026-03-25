@@ -108,7 +108,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
             <div className="space-y-3 pt-2">
               {/* Year */}
               <div className="space-y-1">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
                   Year
                 </label>
                 <input
@@ -118,13 +118,13 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   value={year ?? ''}
                   onChange={handleYearInput}
                   maxLength={4}
-                  className="w-24 bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
+                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
                 />
               </div>
 
               {/* Season */}
               <div className="space-y-1">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
                   Season
                 </label>
                 <div className="flex gap-1.5">
@@ -144,7 +144,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
               {/* Storage (conditional) */}
               {showStorage(teaType) && (
                 <div className="space-y-1">
-                  <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+                  <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
                     Storage
                   </label>
                   <div className="flex gap-1.5 flex-wrap">
@@ -164,7 +164,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
 
               {/* Region */}
               <div className="space-y-1">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
                   Region
                 </label>
                 <AutocompleteInput
@@ -172,13 +172,13 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   onChange={(val) => onRegionChange(val || undefined)}
                   suggestions={availableRegions}
                   placeholder="e.g. Alishan, Yiwu..."
-                  className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm"
                 />
               </div>
 
               {/* Chinese name — optional, at the bottom of details */}
               <div className="space-y-1">
-                <label className="text-[11px] text-tea-text-dim uppercase tracking-wider">
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
                   Chinese name (optional)
                 </label>
                 <input
@@ -186,7 +186,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   value={chineseName || ''}
                   onChange={(e) => onChineseNameChange(e.target.value)}
                   placeholder="e.g. \u5927\u7D05\u888D"
-                  className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm placeholder:text-tea-text-dim/50"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm placeholder:text-tea-text-dim/50"
                 />
               </div>
 

@@ -10,9 +10,9 @@ interface SessionStackProps {
 
 const STATUS_DOT: Record<string, string> = {
   logged: 'bg-tea-text-dim',
-  want: 'bg-amber-400',
+  want: 'bg-tea-gold',
   buying: 'bg-tea-gold',
-  bought: 'bg-emerald-500',
+  bought: 'bg-tea-gold-lt',
 };
 
 export const SessionStack: React.FC<SessionStackProps> = ({

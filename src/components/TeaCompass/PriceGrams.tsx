@@ -61,7 +61,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
       <div className="flex gap-4 items-end">
         {/* Price half */}
         <div className="flex-1 min-w-0">
-          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1.5">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">
             Price
           </label>
           <div className="flex items-center gap-1">
@@ -82,7 +82,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               value={priceAmount ?? ''}
               onChange={handlePriceInput}
               style={noSpinnerStyle}
-              className="flex-1 min-w-0 bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+              className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums
                          placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
@@ -90,7 +90,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
 
         {/* Grams half */}
         <div className="flex-1 min-w-0">
-          <label className="text-[11px] text-tea-text-dim uppercase tracking-wider block mb-1.5">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">
             Grams
           </label>
           <input
@@ -100,7 +100,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             value={pricePerUnitGrams ?? ''}
             onChange={handleGramsInput}
             style={noSpinnerStyle}
-            className="w-full bg-tea-bg/50 text-tea-text rounded-md px-3 py-2 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums text-right
+            className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums text-right
                        placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>

@@ -128,11 +128,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
             <button
               key={opt.value}
               onClick={() => setBrowseGrouping(opt.value)}
-              className={`px-3 py-1.5 text-[11px] uppercase tracking-wider rounded transition-colors ${
-                browseGrouping === opt.value
-                  ? 'bg-tea-gold/15 text-tea-gold'
-                  : 'text-tea-text-sec/50 hover:text-tea-text-sec'
-              }`}
+              className={browseGrouping === opt.value ? 'pill-active' : 'pill'}
             >
               {opt.label}
             </button>
@@ -143,11 +139,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
             <button
               key={opt.value}
               onClick={() => setBrowseFilter(opt.value)}
-              className={`px-3 py-1.5 text-[11px] uppercase tracking-wider rounded transition-colors ${
-                browseFilter === opt.value
-                  ? 'bg-tea-gold/15 text-tea-gold'
-                  : 'text-tea-text-sec/50 hover:text-tea-text-sec'
-              }`}
+              className={browseFilter === opt.value ? 'pill-active' : 'pill'}
             >
               {opt.label}{opt.count > 0 ? ` (${opt.count})` : ''}
             </button>

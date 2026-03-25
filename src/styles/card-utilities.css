@@ -39,6 +39,25 @@
   letter-spacing: 0.01em;
 }
 
+/* Hide number input spinners globally */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================
    Unified Card Grid Item Styles
    Single source of truth for Tea & Teaware cards
@@ -198,12 +217,11 @@
 
 .inset-panel {
   background:
-    radial-gradient(ellipse 80% 40% at 70% 0%, rgba(200, 170, 120, 0.04), transparent),
-    rgba(0, 0, 0, 0.15);
+    radial-gradient(ellipse 80% 40% at 70% 0%, rgba(200, 170, 120, 0.03), transparent),
+    rgba(0, 0, 0, 0.10);
   box-shadow:
-    inset 0 1px 0 rgba(200, 170, 120, 0.06),
-    inset 0 -1px 0 rgba(200, 170, 120, 0.03),
-    0 -1px 0 rgba(200, 170, 120, 0.05);
+    inset 0 1px 0 rgba(200, 170, 120, 0.03),
+    inset 0 -1px 0 rgba(200, 170, 120, 0.02);
   border-radius: 6px;
   position: relative;
 }
@@ -222,12 +240,11 @@
 /* Light mode: softer inset */
 .light .inset-panel {
   background:
-    radial-gradient(ellipse 80% 40% at 70% 0%, rgba(142, 109, 46, 0.03), transparent),
-    rgba(0, 0, 0, 0.04);
+    radial-gradient(ellipse 80% 40% at 70% 0%, rgba(142, 109, 46, 0.02), transparent),
+    rgba(0, 0, 0, 0.03);
   box-shadow:
-    inset 0 1px 0 rgba(142, 109, 46, 0.08),
-    inset 0 -1px 0 rgba(142, 109, 46, 0.04),
-    0 -1px 0 rgba(142, 109, 46, 0.06);
+    inset 0 1px 0 rgba(142, 109, 46, 0.04),
+    inset 0 -1px 0 rgba(142, 109, 46, 0.02);
 }
 
 /* ============================================
@@ -590,24 +607,26 @@
 }
 
 .pill-active {
-  background: rgb(var(--tea-gold-rgb) / 0.18);
+  background: transparent;
   color: var(--tea-gold);
-  font-weight: 700;
+  font-weight: 600;
+  box-shadow: inset 0 -1px 0 var(--tea-gold);
 }
 
 .pill-active:hover {
-  background: rgb(var(--tea-gold-rgb) / 0.24);
+  background: rgb(var(--tea-gold-rgb) / 0.06);
 }
 
 /* Amber variant (warnings, stock alerts) */
 .pill-active-amber {
-  background: rgba(251, 191, 36, 0.18);
+  background: transparent;
   color: #fbbf24;
-  font-weight: 700;
+  font-weight: 600;
+  box-shadow: inset 0 -1px 0 #fbbf24;
 }
 
 .pill-active-amber:hover {
-  background: rgba(251, 191, 36, 0.24);
+  background: rgba(251, 191, 36, 0.06);
 }
 
 /* --- Status Badge (read-only labels) --- */

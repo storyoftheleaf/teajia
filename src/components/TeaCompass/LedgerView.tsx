@@ -59,19 +59,19 @@ const LineItemRow: React.FC<{
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
-    <div className="py-3 border-b border-tea-border last:border-b-0">
+    <div className="py-3 border-b border-tea-border/15 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {item.chineseName && (
-            <p className="text-tea-text text-lg font-serif tracking-wide leading-tight">
+            <p className="text-tea-text text-lg font-serif tracking-wide leading-[1.3]">
               {item.chineseName}
             </p>
           )}
-          <p className="text-tea-text font-serif text-sm">
+          <p className="text-tea-text font-serif text-[13px]">
             {item.name || 'Unnamed'}
           </p>
           {(item.type || item.form || item.year) && (
-            <p className="text-tea-text-sec text-[10px] mt-0.5 num">
+            <p className="text-tea-text-sec text-[11px] mt-0.5 num">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -82,7 +82,8 @@ const LineItemRow: React.FC<{
           <button
             type="button"
             onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
+            aria-label="Decrease quantity"
+            className="w-10 h-10 rounded-full bg-tea-surface flex items-center justify-center
                        text-tea-text-sec active:bg-tea-elevated transition-colors"
           >
             <Minus size={14} />
@@ -90,17 +91,18 @@ const LineItemRow: React.FC<{
           <input
             type="number"
             value={currentQty}
+            aria-label={isUnitBased ? 'Number of units' : 'Quantity in grams'}
             onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
-            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+            onWheel={(e) => (e.target as HTMLElement).blur()}
             className="w-14 text-center text-tea-text text-sm font-medium bg-transparent num
-                       border-none outline-none py-0.5
-                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                       border-none outline-none py-0.5"
           />
           <span className="text-tea-text-sec text-[10px] num w-3">{isUnitBased ? '×' : 'g'}</span>
           <button
             type="button"
             onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}
-            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center
+            aria-label="Increase quantity"
+            className="w-10 h-10 rounded-full bg-tea-surface flex items-center justify-center
                        text-tea-text-sec active:bg-tea-elevated transition-colors"
           >
             <Plus size={14} />
@@ -113,7 +115,7 @@ const LineItemRow: React.FC<{
         <button
           type="button"
           onClick={onRemove}
-          className="text-tea-text-sec hover:text-tea-text transition-colors text-[10px] uppercase tracking-wider flex items-center gap-1"
+          className="text-tea-text-sec active:text-tea-text transition-colors text-xs uppercase tracking-[0.08em] flex items-center gap-1.5 py-2 px-3 -ml-3 rounded-lg active:bg-tea-elevated/50"
         >
           <Trash2 size={10} />
           Remove
@@ -161,12 +163,13 @@ const TransactionCard: React.FC<{
   }, [tx.id, isPurchase, removeTransaction]);
 
   return (
-    <div className="bg-tea-surface rounded-lg overflow-hidden transition-colors border border-tea-border">
+    <div className="inset-panel overflow-hidden transition-colors">
       {/* Header — always visible */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-tea-elevated transition-colors"
+        aria-expanded={isExpanded}
+        className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-tea-elevated active:bg-tea-surface transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${isExpanded ? 'bg-tea-elevated/30' : ''}`}
       >
         <DirectionIcon
           size={16}
@@ -176,7 +179,7 @@ const TransactionCard: React.FC<{
           <p className="text-tea-text text-sm font-serif truncate">
             {tx.counterpartyName || 'Unnamed'}
           </p>
-          <p className="text-tea-text-sec text-[10px] uppercase tracking-wider">
+          <p className="text-tea-text-sec text-[11px] uppercase tracking-[0.08em]">
             {directionLabel} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
           </p>
         </div>
@@ -210,7 +213,7 @@ const TransactionCard: React.FC<{
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 border-t border-tea-border">
+            <div className="px-3 pb-3 border-t border-tea-border/20">
               {/* Line items */}
               {tx.items.length === 0 ? (
                 <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">No items yet</p>
@@ -227,16 +230,16 @@ const TransactionCard: React.FC<{
 
               {/* Grand total */}
               {tx.items.length > 0 && (
-                <div className="flex items-baseline justify-between pt-3 mt-1">
-                  <span className="text-tea-text-sec text-[10px] uppercase tracking-[0.15em] font-serif">Total</span>
-                  <span className="text-tea-text text-xl font-serif font-semibold num">
+                <div className="flex items-baseline justify-between pt-3 border-t border-tea-border/15" aria-label="Grand total">
+                  <span className="text-tea-text-sec text-[11px] uppercase tracking-[0.15em]">Total</span>
+                  <span className="text-tea-text text-lg font-serif font-semibold num">
                     {fmtPrice(total, tx.currency)}
                   </span>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-2 mt-3">
                 {isDraft && tx.items.length > 0 && (
                   <AnimatePresence mode="wait">
                     {justConfirmed ? (
@@ -244,7 +247,7 @@ const TransactionCard: React.FC<{
                         key="confirmed"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/15 text-tea-gold text-sm font-medium"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/20 text-tea-gold text-sm font-medium"
                       >
                         <Check size={16} />
                         Confirmed
@@ -255,7 +258,7 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={handleConfirm}
                         whileTap={{ scale: 0.98 }}
-                        className="flex-1 py-2.5 rounded-lg bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.15em] transition-opacity"
+                        className="flex-1 py-2.5 rounded-lg bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] shadow-[0_2px_8px_rgba(184,146,78,0.3)] active:shadow-[0_1px_4px_rgba(184,146,78,0.2)] transition-all"
                       >
                         {isPurchase ? 'Confirm Purchase' : 'Confirm Sale'}
                       </motion.button>
@@ -266,7 +269,7 @@ const TransactionCard: React.FC<{
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="p-2.5 rounded-lg text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+                  className="p-3 rounded-lg text-tea-text-sec active:text-tea-text active:bg-tea-elevated transition-colors"
                   aria-label="Delete transaction"
                 >
                   <Trash2 size={16} />
@@ -293,7 +296,8 @@ interface LedgerViewProps {
 export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // All transactions expanded by default
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<LedgerFilter>('all');
 
   const counts = useMemo(() => ({
@@ -322,24 +326,24 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
 
   if (transactions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 animate-[fadeIn_0.3s_ease-out]">
-        <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-          <ShoppingBag className="w-7 h-7 text-tea-gold/40" />
+      <div className="flex flex-col items-center justify-center py-10 animate-[fadeIn_0.3s_ease-out]">
+        <div className="w-16 h-16 rounded-full bg-tea-gold/15 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(184,146,78,0.1)]">
+          <ShoppingBag className="w-7 h-7 text-tea-gold/60" />
         </div>
-        <h3 className="font-serif text-lg text-tea-text mb-2">No transactions yet</h3>
+        <h3 className="font-serif text-lg text-tea-text mb-3">No transactions yet</h3>
         <p className="text-sm text-tea-text-sec font-serif text-center max-w-[260px] leading-relaxed mb-6">
           Mark items as "Buy" in the Compass, or start a new purchase or sale here.
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => createTransaction('purchase', '', 'NT')}
-            className="px-5 py-2.5 bg-tea-gold text-tea-bg text-[10px] font-bold uppercase tracking-[0.2em] transition-colors"
+            className="px-5 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors"
           >
             New Purchase
           </button>
           <button
             onClick={() => createTransaction('sale', '', 'USD')}
-            className="px-5 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-bold uppercase tracking-[0.2em] border border-tea-border transition-colors hover:text-tea-text"
+            className="px-5 py-3 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
           >
             New Sale
           </button>
@@ -349,17 +353,19 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
   }
 
   return (
-    <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+    <div className="space-y-5 animate-[fadeIn_0.3s_ease-out]">
       {/* Filter row */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1">
+      <div className="flex items-center">
+        <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
           {filterOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
+              aria-label={`Filter: ${opt.label}, ${opt.count} transactions`}
+              aria-pressed={filter === opt.value}
               className={filter === opt.value ? 'pill-active' : 'pill'}
             >
-              {opt.label}{opt.count > 0 ? ` (${opt.count})` : ''}
+              <>{opt.label}{opt.count > 0 && <span className="num ml-1 opacity-70">{opt.count}</span>}</>
             </button>
           ))}
         </div>
@@ -378,8 +384,12 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
             >
               <TransactionCard
                 tx={tx}
-                isExpanded={expandedId === tx.id}
-                onToggle={() => setExpandedId(expandedId === tx.id ? null : tx.id)}
+                isExpanded={!collapsedIds.has(tx.id)}
+                onToggle={() => setCollapsedIds(prev => {
+                  const next = new Set(prev);
+                  if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
+                  return next;
+                })}
               />
             </motion.div>
           ))}
@@ -387,23 +397,21 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
       </div>
 
       {/* Quick create buttons */}
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2 pt-4 border-t border-tea-border/15">
         <button
           onClick={() => {
-            const id = createTransaction('purchase', '', 'NT');
-            setExpandedId(id);
+            createTransaction('purchase', '', 'NT');
           }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[10px] font-bold uppercase tracking-[0.15em] border border-tea-border hover:text-tea-text transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
         >
           <ArrowDownLeft size={14} />
           New Purchase
         </button>
         <button
           onClick={() => {
-            const id = createTransaction('sale', '', 'USD');
-            setExpandedId(id);
+            createTransaction('sale', '', 'USD');
           }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[10px] font-bold uppercase tracking-[0.15em] border border-tea-border hover:text-tea-text transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
         >
           <ArrowUpRight size={14} />
           New Sale

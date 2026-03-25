@@ -31,8 +31,8 @@ export const SyncIndicator: React.FC = () => {
           syncing
             ? 'bg-tea-gold animate-pulse'
             : isPending
-              ? 'bg-amber-500'
-              : 'bg-emerald-500'
+              ? 'bg-tea-gold'
+              : 'bg-tea-gold-lt'
         }`}
       />
     </button>

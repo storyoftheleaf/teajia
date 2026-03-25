@@ -35,11 +35,11 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
   const hasPrev = offset > 0;
 
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+    <div className="inset-panel p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Stock History</h4>
+        <h4 className="text-[13px] uppercase tracking-[0.1em] text-tea-text-sec font-medium">Stock History</h4>
         {onClose && (
-          <button onClick={onClose} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
+          <button onClick={onClose} className="text-xs text-tea-text-sec active:text-tea-text transition-colors py-1.5 px-3 -mr-3 rounded-lg">Close</button>
         )}
       </div>
       <p className="text-sm text-tea-text font-serif mb-3">{productName}</p>
@@ -50,25 +50,25 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
         <div className="py-6 text-center text-tea-text-sec text-xs font-serif italic">No stock movements recorded.</div>
       ) : (
         <>
-          <div className="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar">
+          <div className="space-y-1.5 max-h-[40vh] overflow-y-auto custom-scrollbar">
             {entries.map((entry: any) => {
               const isPositive = entry.delta > 0;
               return (
                 <div key={entry.id} className="flex items-center gap-2 py-1.5 border-b border-tea-border/50 last:border-0">
-                  <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-green-500' : 'text-red-400'}`}>
+                  <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-tea-gold' : 'text-tea-text-sec'}`}>
                     {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                    <span className="text-xs num font-medium">
+                    <span className="text-[11px] num font-medium">
                       {isPositive ? '+' : ''}{entry.delta}g
                     </span>
                   </div>
-                  <span className="text-[10px] text-tea-text-sec num w-14 shrink-0">{entry.balance_after}g</span>
-                  <span className="badge-status badge-status-default text-[9px]">
+                  <span className="text-[11px] text-tea-text-sec num w-14 shrink-0">{entry.balance_after}g</span>
+                  <span className="badge-status badge-status-default text-[11px]">
                     {REASON_LABELS[entry.reason] || entry.reason}
                   </span>
                   {entry.source_invoice_number && (
                     <span className="text-[10px] text-tea-text-sec num truncate">{entry.source_invoice_number}</span>
                   )}
-                  <span className="text-[10px] text-tea-text-sec/50 ml-auto shrink-0">
+                  <span className="text-[11px] text-tea-text-sec/50 ml-auto shrink-0">
                     {new Date(entry.created_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -79,19 +79,19 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
           {/* Pagination */}
           {total > limit && (
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-tea-border">
-              <span className="text-[10px] text-tea-text-sec">{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
+              <span className="text-xs text-tea-text-sec">{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
               <div className="flex gap-1">
                 <button
                   onClick={() => setOffset(Math.max(0, offset - limit))}
                   disabled={!hasPrev}
-                  className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                  className="p-2.5 text-tea-text-sec hover:text-tea-text disabled:opacity-50 transition-colors"
                 >
                   <ChevronLeft size={14} />
                 </button>
                 <button
                   onClick={() => setOffset(offset + limit)}
                   disabled={!hasNext}
-                  className="p-1 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                  className="p-2.5 text-tea-text-sec hover:text-tea-text disabled:opacity-50 transition-colors"
                 >
                   <ChevronRight size={14} />
                 </button>
