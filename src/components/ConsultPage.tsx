@@ -251,7 +251,7 @@ const Services: React.FC = () => (
 
       return (
         <React.Fragment key={svc.id}>
-          {i > 0 && <div className="divider-warm" />}
+          {i > 0 && <div className="h-px bg-tea-border/20" />}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -271,18 +271,16 @@ const Services: React.FC = () => (
             </span>
           </div>
 
-          <p className="text-[14px] text-tea-text-sec leading-[1.8]"
+          <p className="text-[14px] text-tea-text/80 leading-[1.8]"
              style={{ fontFamily: 'var(--font-body)' }}>
             {svc.desc}
           </p>
 
           {'offerings' in svc && svc.offerings && (
-            <div className="mt-8 inset-panel" style={{ padding: 'clamp(16px, 2.5vw, 24px)' }}>
+            <div className="mt-8 pt-4">
               {svc.offerings.map((o, j) => (
                 <div key={o.name}
-                     className={`flex flex-col py-3.5 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-sm ${
-                       j < svc.offerings.length - 1 ? 'border-b border-tea-border/50' : ''
-                     }`}>
+                     className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-sm">
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-[15px] font-light text-tea-text"
                           style={{ fontFamily: 'var(--font-display)' }}>
@@ -294,7 +292,7 @@ const Services: React.FC = () => (
                     </span>
                   </div>
                   {'desc' in o && (
-                    <p className="text-[12px] text-tea-text-dim mt-1.5 leading-relaxed"
+                    <p className="text-[12px] text-tea-text-sec mt-1.5 leading-relaxed"
                        style={{ fontFamily: 'var(--font-sans)' }}>
                       {o.desc}
                     </p>
@@ -389,9 +387,9 @@ const Testimonial: React.FC = () => {
          style={{ fontFamily: 'var(--font-display)' }}>
         "{testimonial.quote}"
       </p>
-      <p className="text-[11px] text-tea-text-dim mt-6 tracking-[0.1em]"
+      <p className="text-[11px] text-tea-text-sec mt-6 tracking-[0.1em]"
          style={{ fontFamily: 'var(--font-sans)' }}>
-        {testimonial.name}<span className="text-tea-text-dim/30 mx-2">&middot;</span>{testimonial.title}
+        {testimonial.name}<span className="text-tea-text-sec/40 mx-2">&middot;</span>{testimonial.title}
       </p>
     </motion.section>
   );

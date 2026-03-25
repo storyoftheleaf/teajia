@@ -259,7 +259,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                   >
                     <span style={{ fontFamily: 'var(--font-display)' }}>{term.term}</span>
                     {term.chineseCharacters && <span className="text-tea-gold/30 ml-2">{term.chineseCharacters}</span>}
-                    <span className="text-tea-text/30 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
+                    <span className="text-tea-text/60 ml-2 text-xs">{term.definition.slice(0, 50)}...</span>
                   </button>
                 ))}
               </div>
@@ -267,7 +267,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           </div>
         )}
         {searchResults === 'empty' && (
-          <p className="mt-4 text-sm text-tea-text/35 italic" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="mt-4 text-sm text-tea-text/60 italic" style={{ fontFamily: 'var(--font-body)' }}>
             Nothing found for &ldquo;{searchQuery}&rdquo;
           </p>
         )}
