@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Minus, Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { TeaCompassEntry, TeaForm } from './types';
-import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
+import { GRAM_PRESETS, DEFAULT_GRAMS, compassEntryToProductDraft } from './types';
+import { api, isConfigured, hasToken } from '../../lib/api';
 import type { Currency } from '../../admin/types';
 
 interface OrderSummaryProps {
@@ -295,7 +296,9 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
   // Common currency (all items should share one)
   const currency = buyingEntries[0]?.priceCurrency ?? 'NT';
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
+    // First, update all entries to 'bought' status with quantities
+    const updatedEntries: TeaCompassEntry[] = [];
     for (const entry of buyingEntries) {
       const qty = quantities[entry.id] ?? 1;
       const total = getLinePrice(entry, qty);
@@ -312,8 +315,29 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
         updates.buyQuantityGrams = qty;
       }
       updateEntry(entry.id, updates);
+      updatedEntries.push({ ...entry, ...updates });
     }
+
     setConfirmed(true);
+
+    // Then, attempt to create draft products in the background (non-blocking)
+    if (isConfigured && hasToken()) {
+      for (const entry of updatedEntries) {
+        if (entry.draftProductId) continue; // Already has a draft
+        try {
+          const payload = compassEntryToProductDraft(entry);
+          const created = await api.products.create(payload);
+          if (created?.id) {
+            updateEntry(entry.id, { draftProductId: created.id });
+          }
+        } catch (err) {
+          // Draft creation failed (offline, auth, etc.) — that's fine.
+          // Entry is still 'bought' locally. Draft can be created later.
+          console.debug('Draft product creation failed for compass entry:', entry.id, err);
+        }
+      }
+    }
+
     setTimeout(() => {
       onClose();
     }, 1200);

@@ -40,7 +40,25 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const triggerRef = useRef<HTMLElement | null>(null);
 
   const [isVisible, setIsVisible] = useState(false);
-  const [panelView, setPanelView] = useState<PanelView>('main');
+  const PERSISTABLE_VIEWS: PanelView[] = ['main', 'tea-compass', 'collection', 'tasting-journal', 'saved-stories', 'reading-history'];
+  const STORAGE_KEY = 'teajia-account-view';
+
+  const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) as PanelView | null;
+      if (saved && PERSISTABLE_VIEWS.includes(saved)) return saved;
+    } catch {}
+    return 'main';
+  });
+
+  const setPanelView = (view: PanelView) => {
+    setPanelViewRaw(view);
+    try {
+      if (PERSISTABLE_VIEWS.includes(view)) {
+        localStorage.setItem(STORAGE_KEY, view);
+      }
+    } catch {}
+  };
 
   // Auth form state
   const [email, setEmail] = useState('');

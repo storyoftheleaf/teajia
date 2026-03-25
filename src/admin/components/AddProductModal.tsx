@@ -648,7 +648,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     name="type" value={formData.type} onChange={handleChange}
                     className={selectStyle}
                   >
-                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
+                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
                   </select>
                </div>
                <div>

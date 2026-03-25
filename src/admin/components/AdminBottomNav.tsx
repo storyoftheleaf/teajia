@@ -7,11 +7,12 @@ import {
   ClipboardList,
   Users,
   ShoppingCart,
-  Calendar,
+  BookOpen,
   Camera,
   Sparkles,
   X,
 } from 'lucide-react';
+import { useLedgerStore } from '../../lib/ledgerStore';
 import { LogoEmblem, LogoText } from '../../components/Logos';
 
 interface AdminBottomNavProps {
@@ -30,7 +31,7 @@ const leftTabs = [
 
 const rightTabs = [
   { id: 'people', label: 'People', icon: Users, path: '/admin/people' },
-  { id: 'events', label: 'Events', icon: Calendar, path: '/admin/events' },
+  { id: 'ledger', label: 'Ledger', icon: BookOpen, path: '/admin/compass?tab=ledger' },
 ] as const;
 
 const moreItems = [
@@ -49,15 +50,22 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   const location = useLocation();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
+  const draftItemCount = useLedgerStore((s) =>
+    s.getDraftTransactions().reduce((sum, tx) => sum + tx.items.length, 0)
+  );
+
   const isActive = (path: string) => {
     if (path === '/') return false;
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    // Strip query params for path matching
+    const basePath = path.split('?')[0];
+    return location.pathname === basePath || location.pathname.startsWith(basePath + '/');
   };
 
   const isHome = location.pathname === '/admin' || location.pathname === '/admin/';
 
   const renderTab = (tab: { id: string; label: string; icon: React.ComponentType<any>; path: string }, index: number) => {
     const active = isActive(tab.path);
+    const showBadge = tab.id === 'ledger' && draftItemCount > 0;
 
     return (
       <div key={tab.id} className="flex items-center h-full flex-1">
@@ -76,6 +84,11 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           >
             {tab.label.toLowerCase()}
           </span>
+          {showBadge && (
+            <span className="absolute top-1.5 right-1/2 translate-x-[calc(50%+16px)] min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-tea-gold text-tea-bg font-bold text-[9px] px-1">
+              {draftItemCount}
+            </span>
+          )}
         </button>
       </div>
     );

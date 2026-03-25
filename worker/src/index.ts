@@ -1837,7 +1837,7 @@ Return ONLY a valid JSON object with these fields (omit any you can't determine)
   "givenName": "The tea's name in English (translate if needed)",
   "chineseName": "Chinese characters if visible",
   "productName": "Cultivar or botanical name if identifiable (e.g. Da Hong Pao, Tie Guan Yin)",
-  "type": "One of: Green, Yellow, White, Oolong, Red, Dark, Sheng, Shou, Herbal, Matcha, Flower, Teaware, Misc",
+  "type": "One of: Green, Yellow, White, Oolong, Red, Dark, Sheng, Shou, Herbal, Teaware, Misc",
   "form": "One of: Loose Leaf, Cake, Tuo, Brick, Rolled, Ball, Powder, Bag, Other",
   "year": 2024,
   "originCountry": "Country of origin",
@@ -3037,6 +3037,142 @@ const handleGetTeawareCategories: Handler = async (request, env) => {
   return json(result.results);
 };
 
+// ── Tea Compass ──
+
+const handleGetCompassEntries: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status');
+  const vendorId = url.searchParams.get('vendor_id');
+
+  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ?';
+  const binds: any[] = [userId];
+
+  if (status) {
+    query += ' AND status = ?';
+    binds.push(status);
+  }
+  if (vendorId) {
+    query += ' AND vendor_id = ?';
+    binds.push(vendorId);
+  }
+  query += ' ORDER BY created_at DESC';
+
+  const result = await env.DB.prepare(query).bind(...binds).all();
+  return json({ entries: result.results });
+};
+
+const handleCreateCompassEntry: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+  const body = await request.json() as Record<string, any>;
+
+  const id = body.id || crypto.randomUUID();
+  const cols = [
+    'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+    'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
+    'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+    'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'draft_product_id', 'created_at', 'updated_at',
+  ];
+  const present = cols.filter(c => body[c] !== undefined);
+  const placeholders = ['id', 'user_id', ...present].map(() => '?').join(', ');
+  const colNames = ['id', 'user_id', ...present].join(', ');
+
+  await env.DB.prepare(
+    `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
+  ).bind(id, userId, ...present.map(c => body[c] ?? null)).run();
+
+  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(id).first();
+  return json(created, 201);
+};
+
+const handleUpdateCompassEntry: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+  const body = await request.json() as Record<string, any>;
+
+  // Don't allow updating id or user_id
+  delete body.id;
+  delete body.user_id;
+
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, userId).run();
+
+  const updated = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(params.id).first();
+  return json(updated);
+};
+
+const handleDeleteCompassEntry: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+
+  await env.DB.prepare(
+    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ?'
+  ).bind(params.id, userId).run();
+
+  return json({ success: true });
+};
+
+const handleSyncCompassEntries: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+  const body = await request.json() as { entries: Record<string, any>[] };
+
+  if (!Array.isArray(body.entries)) {
+    return json({ error: 'entries array required' }, 400);
+  }
+
+  const allCols = [
+    'id', 'user_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+    'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
+    'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+    'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'draft_product_id', 'created_at', 'updated_at',
+  ];
+  const placeholders = allCols.map(() => '?').join(', ');
+  const colNames = allCols.join(', ');
+
+  const stmts = body.entries.map(entry => {
+    const values = allCols.map(c => {
+      if (c === 'user_id') return userId;
+      return entry[c] ?? null;
+    });
+    return env.DB.prepare(
+      `INSERT OR REPLACE INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
+    ).bind(...values);
+  });
+
+  if (stmts.length > 0) {
+    await env.DB.batch(stmts);
+  }
+
+  return json({ synced: stmts.length });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -3171,6 +3307,13 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/teaware/:id/photos', handleAddTeawarePhoto],
   ['PUT', '/api/admin/teaware/:id/photos/:photoId', handleUpdateTeawarePhoto],
   ['DELETE', '/api/admin/teaware/:id/photos/:photoId', handleDeleteTeawarePhoto],
+
+  // Tea Compass
+  ['GET', '/api/compass/entries', handleGetCompassEntries],
+  ['POST', '/api/compass/entries', handleCreateCompassEntry],
+  ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],
+  ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
+  ['POST', '/api/compass/sync', handleSyncCompassEntries],
 ];
 
 export default {

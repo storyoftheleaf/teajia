@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Pencil, Trash2, Store } from 'lucide-react';
+import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2 } from 'lucide-react';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { compassEntryToProductDraft } from './types';
+import { api, isConfigured, hasToken } from '../../lib/api';
 import type { TeaCompassEntry } from './types';
 
 export interface BrowseCardProps {
@@ -86,7 +88,35 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
   onToggleExpand,
 }) => {
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
+  const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const statusConfig = getStatusConfig(entry.status);
+
+  const [draftState, setDraftState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleCreateDraft = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isConfigured || !hasToken()) {
+      setDraftState('error');
+      setTimeout(() => setDraftState('idle'), 2000);
+      return;
+    }
+    setDraftState('loading');
+    try {
+      const payload = compassEntryToProductDraft(entry);
+      const created = await api.products.create(payload);
+      if (created?.id) {
+        updateEntry(entry.id, { draftProductId: created.id });
+        setDraftState('success');
+      } else {
+        setDraftState('error');
+        setTimeout(() => setDraftState('idle'), 2000);
+      }
+    } catch (err) {
+      console.debug('Draft creation failed:', err);
+      setDraftState('error');
+      setTimeout(() => setDraftState('idle'), 2000);
+    }
+  }, [entry, updateEntry]);
   const hasName = entry.name.trim().length > 0;
 
   const hasTasting = entry.tasting && (
@@ -229,17 +259,59 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(entry.id);
-                  }}
-                  className="pill-active flex items-center gap-1.5"
-                >
-                  <Pencil size={12} />
-                  Edit
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(entry.id);
+                    }}
+                    className="pill-active flex items-center gap-1.5"
+                  >
+                    <Pencil size={12} />
+                    Edit
+                  </button>
+
+                  {/* Draft pipeline actions for bought entries */}
+                  {entry.status === 'bought' && !entry.draftProductId && (
+                    <button
+                      type="button"
+                      onClick={handleCreateDraft}
+                      disabled={draftState === 'loading'}
+                      className="pill flex items-center gap-1.5 text-tea-text-sec"
+                    >
+                      {draftState === 'loading' ? (
+                        <>
+                          <Loader2 size={12} className="animate-spin" />
+                          Creating...
+                        </>
+                      ) : draftState === 'success' ? (
+                        <>
+                          <Check size={12} />
+                          Draft created
+                        </>
+                      ) : draftState === 'error' ? (
+                        <span className="text-red-400">Failed</span>
+                      ) : (
+                        <>
+                          <PackagePlus size={12} />
+                          Create Draft
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {entry.status === 'bought' && entry.draftProductId && (
+                    <a
+                      href="/admin/inventory"
+                      onClick={(e) => e.stopPropagation()}
+                      className="pill flex items-center gap-1.5 text-tea-gold"
+                    >
+                      <ExternalLink size={12} />
+                      View in Inventory
+                    </a>
+                  )}
+                </div>
 
                 <button
                   type="button"

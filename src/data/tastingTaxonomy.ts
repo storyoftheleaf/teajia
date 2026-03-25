@@ -153,8 +153,6 @@ export const TEA_TYPE_SUGGESTIONS: Record<string, string[]> = {
   'Sheng': ['floral', 'honey', 'bitter', 'astringent', 'camphor'],
   'Shou': ['earthy', 'woody', 'aged', 'cocoa', 'mushroom'],
   'Herbal': ['floral', 'herbaceous', 'honey', 'citrus', 'vanilla'],
-  'Matcha': ['vegetal', 'umami', 'fresh-grass', 'savory'],
-  'Flower': ['floral', 'jasmine', 'rose', 'osmanthus', 'honeysuckle'],
 };
 
 /** Flatten a TastingData object into an ordered list of term IDs (flavor first, then body, finish, feeling, liquor-color) */

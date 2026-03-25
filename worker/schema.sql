@@ -1,6 +1,9 @@
 -- Teajia D1 Schema (SQLite)
 -- Converted from Postgres db_setup.sql
 
+-- TODO: Migrate existing Matcha and Flower products to Herbal
+-- UPDATE products SET type = 'Herbal' WHERE type IN ('Matcha', 'Flower');
+
 -- 1. Products Table
 CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -196,3 +199,42 @@ CREATE TABLE IF NOT EXISTS teaware_photos (
 
 CREATE INDEX IF NOT EXISTS idx_teaware_collection_category ON teaware_collection(category);
 CREATE INDEX IF NOT EXISTS idx_teaware_photos_teaware_id ON teaware_photos(teaware_id);
+
+-- 9. Tea Compass Entries (localStorage-first, synced to D1)
+CREATE TABLE IF NOT EXISTS tea_compass_entries (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL DEFAULT 'admin',
+  name TEXT,
+  chinese_name TEXT,
+  type TEXT,
+  form TEXT,
+  year INTEGER,
+  season TEXT,
+  storage TEXT,
+  origin_region TEXT,
+  price_amount REAL,
+  price_currency TEXT DEFAULT 'NT',
+  price_per_unit_grams REAL,
+  category TEXT DEFAULT 'tea',
+  teaware_category TEXT,
+  material TEXT,
+  capacity_ml INTEGER,
+  quantity INTEGER DEFAULT 1,
+  era TEXT,
+  vendor_id TEXT,
+  vendor_name TEXT,
+  notes TEXT,
+  tasting TEXT,
+  photos TEXT,
+  audio_clips TEXT,
+  status TEXT DEFAULT 'logged',
+  buy_quantity_grams REAL,
+  buy_quantity_units INTEGER,
+  buy_total REAL,
+  draft_product_id TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_compass_user_id ON tea_compass_entries(user_id);
+CREATE INDEX IF NOT EXISTS idx_compass_status ON tea_compass_entries(status);

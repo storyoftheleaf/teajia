@@ -42,7 +42,7 @@ interface QuickCaptureProps {
   rates?: any;
 }
 
-const TEA_TYPES: ProductType[] = ['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'];
+const TEA_TYPES: ProductType[] = ['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'];
 const CURRENCIES: Currency[] = ['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD', 'UNK'];
 
 export const QuickCapture: React.FC<QuickCaptureProps> = ({

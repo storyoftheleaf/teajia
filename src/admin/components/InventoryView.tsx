@@ -2067,10 +2067,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onScroll={(e) => filterType !== 'Pending' && setScrollTop(e.currentTarget.scrollTop)}
       >
 
-        {/* ACTIVE FILTER LABEL — shows for icon-only views */}
+        {/* ACTIVE FILTER LABEL — shows for icon-only views, sticky within scroll container */}
         {VIEW_FILTER_LABELS[filterType] && (
-          <div className="px-4 md:px-0 pt-4 pb-2 max-w-7xl mx-auto">
-            <div className="flex items-center gap-2.5">
+          <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-md px-4 md:px-6 pt-3 pb-2">
+            <div className="flex items-center gap-2.5 max-w-7xl mx-auto">
               {(() => {
                 const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
                 const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
@@ -3064,7 +3064,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               handleProductUpdate(panelProduct.id, 'type', val);
                               setPanelProduct(prev => prev ? { ...prev, type: val as any } : null);
                             }}
-                            options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Misc']}
+                            options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']}
                             className="text-xs text-tea-text"
                           />
                         </div>

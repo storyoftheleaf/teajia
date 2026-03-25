@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 
-const TEA_TYPES = ['All', 'Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal', 'Matcha', 'Flower'];
+const TEA_TYPES = ['All', 'Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal'];
 
 interface ShopSearchProps {
   searchQuery: string;

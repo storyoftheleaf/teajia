@@ -273,7 +273,7 @@ export interface InventoryItem {
 }
 
 // Public-safe product type (no cost/vendor fields)
-export type PublicProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Matcha' | 'Flower' | 'Teaware' | 'Misc';
+export type PublicProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware' | 'Misc';
 
 export interface PublicProduct {
   id: string;

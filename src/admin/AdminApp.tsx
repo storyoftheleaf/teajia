@@ -171,7 +171,7 @@ const AdminContent = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
+    <div className="flex h-screen overflow-hidden bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
       {/* Mobile hamburger — hidden since bottom nav handles navigation */}
 
@@ -188,8 +188,8 @@ const AdminContent = () => {
         onOpenCart={() => setIsCartOpen(true)}
       />
 
-      <main className="flex-1 relative flex flex-col min-w-0">
-        <div className="sticky top-0 z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
+      <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
+        <div className="z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -311,11 +311,11 @@ const AdminContent = () => {
                 </ProtectedRoute>
               } />
 
-              {/* Tea Compass — full page */}
+              {/* Tea Compass + Ledger — full page */}
               <Route path="compass" element={
                 <ProtectedRoute isAdmin={isAdmin}>
                   <PageTransition>
-                    <TeaCompass onBack={() => navigate('/admin/inventory')} />
+                    <CompassWithMode onBack={() => navigate('/admin/inventory')} />
                   </PageTransition>
                 </ProtectedRoute>
               } />

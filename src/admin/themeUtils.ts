@@ -9,8 +9,6 @@ export const getThemeColor = (type: string) => {
     case 'Shou': return '#5C544E';
     case 'Sheng': return '#98A67B';
     case 'Herbal': return '#BFA09E';
-    case 'Matcha': return '#6F8C60';
-    case 'Flower': return '#B596A6';
     default: return '#737373';
   }
 };

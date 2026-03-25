@@ -288,8 +288,6 @@ export const TEA_TYPE_COLORS = {
   Shou:    { card: '#5C544E', vivid: '#78716c' },
   Sheng:   { card: '#98A67B', vivid: '#bef264' },
   Herbal:  { card: '#BFA09E', vivid: '#f9a8d4' },
-  Matcha:  { card: '#6F8C60', vivid: '#4ade80' },
-  Flower:  { card: '#B596A6', vivid: '#e879f9' },
   Teaware: { card: '#C4A484', vivid: '#fdba74' },
   Misc:    { card: '#737373', vivid: '#a3a3a3' },
 } as const;

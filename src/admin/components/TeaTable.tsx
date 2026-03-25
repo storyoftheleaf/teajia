@@ -38,7 +38,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Product; direction: 'asc' | 'desc' }>({ key: 'productName', direction: 'asc' });
 
-  const teaTypes: ProductType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal', 'Matcha', 'Flower', 'Misc'];
+  const teaTypes: ProductType[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Sheng', 'Shou', 'Dark', 'Herbal', 'Misc'];
 
   const activeProducts = useMemo(() => {
     if (showAll) return products;

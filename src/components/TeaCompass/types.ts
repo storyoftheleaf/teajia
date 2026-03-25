@@ -14,6 +14,17 @@ export type TeawareEra = 'Modern' | '90s' | '80s' | '70s' | 'Pre-70s' | 'Republi
 export type BrowseGrouping = 'date' | 'vendor';
 export type BrowseFilter = 'all' | 'want' | 'bought';
 
+export interface VendorDetails {
+  businessCardUrl?: string;
+  storefrontUrl?: string;
+  lat?: number;
+  lng?: number;
+  phone?: string;
+  whatsapp?: string;
+  wechat?: string;
+  line?: string;
+}
+
 export interface TeaCompassEntry {
   id: string;
 
@@ -45,6 +56,7 @@ export interface TeaCompassEntry {
   // Vendor
   vendorId?: string;
   vendorName?: string;
+  vendorDetails?: VendorDetails;
 
   // Content
   notes: string;
@@ -119,6 +131,78 @@ export const COMMON_REGIONS = [
   'Menghai', 'Lincang', 'Phoenix', 'Dong Ding', 'Nantou',
   'Darjeeling', 'Assam', 'Uji', 'Shizuoka',
 ];
+
+/**
+ * Maps a Tea Compass entry to a product draft payload matching the API's expected format.
+ * Used when promoting a "bought" compass entry to a Draft product in inventory.
+ */
+export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<string, any> {
+  const captureDate = new Date(entry.createdAt).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // Build description: notes + field notes attribution
+  const descParts: string[] = [];
+  if (entry.notes?.trim()) descParts.push(entry.notes.trim());
+  descParts.push(`---\nField notes from Tea Compass capture on ${captureDate}`);
+  const description = descParts.join('\n\n');
+
+  // Determine stock: grams for tea, units for teaware
+  let stockGrams = 0;
+  let quantityPurchased = 0;
+  if (entry.category === 'teaware') {
+    quantityPurchased = entry.buyQuantityUnits ?? entry.quantity ?? 1;
+    stockGrams = 0;
+  } else if (['Cake', 'Brick', 'Tuo'].includes(entry.form || '')) {
+    quantityPurchased = entry.buyQuantityUnits ?? 1;
+    stockGrams = entry.buyQuantityGrams ?? 0;
+  } else {
+    stockGrams = entry.buyQuantityGrams ?? 0;
+    quantityPurchased = 0;
+  }
+
+  // Build tasting data if present
+  const tastingData = entry.tasting
+    ? Object.fromEntries(Object.entries(entry.tasting).filter(([, v]) => v && (Array.isArray(v) ? v.length > 0 : true)))
+    : undefined;
+
+  return {
+    type: entry.category === 'teaware' ? 'Teaware' : (entry.type || 'Misc'),
+    form: entry.form || null,
+    given_name: entry.name || '',
+    chinese_name: entry.chineseName || '',
+    product_name: entry.name || '',
+    year: entry.year || null,
+    origin_country: '',
+    origin_region: entry.originRegion || '',
+    stock_grams: stockGrams,
+    quantity_purchased: quantityPurchased,
+    cost_amount: entry.buyTotal ?? entry.priceAmount ?? 0,
+    cost_currency: entry.priceCurrency || 'NT',
+    vendor: entry.vendorName || '',
+    status: 'Draft',
+    is_public: false,
+    is_personal: false,
+    can_reorder: true,
+    description,
+    tasting_notes: entry.tasting?.flavor || [],
+    tasting: tastingData && Object.keys(tastingData).length > 0 ? tastingData : undefined,
+    image_url: entry.photos?.[0] || null,
+    mood: '',
+    experience: '',
+    lore: '',
+    processing_notes: '',
+    terroir: '',
+    // Teaware-specific
+    ...(entry.category === 'teaware' ? {
+      teaware_category: entry.teawareCategory || null,
+      material: entry.material || null,
+      capacity_ml: entry.capacityMl || null,
+    } : {}),
+  };
+}
 
 export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: { vendorName?: string; vendorId?: string; priceCurrency?: Currency }): TeaCompassEntry {
   const now = new Date().toISOString();

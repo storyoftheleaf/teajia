@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Droplets, Minus, Plus, X } from 'lucide-react';
+import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
-import type { TeaType, TeaForm, Season, Storage, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra } from './types';
+import type { TeaType, TeaForm, Season, Storage, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
 import { DEFAULT_GRAMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS } from './types';
 import { VendorStrip } from './VendorStrip';
 import { VendorHistory } from './VendorHistory';
@@ -18,6 +19,10 @@ import { StatusActions } from './StatusActions';
 import { TastingFlow } from '../tasting/TastingFlow';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { parseTeaInput } from './InputParser';
+import { PhotoCapture } from './PhotoCapture';
+import type { ExtractedTeaData } from './PhotoCapture';
+import { TeawarePhotos } from './TeawarePhotos';
+import { DuplicateNudge } from './DuplicateNudge';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -34,11 +39,13 @@ const CURRENCIES: { value: Currency; label: string }[] = [
 
 interface CaptureCardProps {
   entryId: string;
+  /** Called when user adds an item to the ledger, to switch to ledger tab */
+  onSwitchToLedger?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
@@ -56,6 +63,28 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
   const [parsedTokens, setParsedTokens] = useState<Partial<Record<ParseableField, string>>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevNameRef = useRef<string>('');
+
+  // Photo extraction confirmation
+  const [extractionSummary, setExtractionSummary] = useState<string | null>(null);
+  const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Duplicate detection state
+  const allEntries = useTeaCompassStore((s) => s.entries);
+  const [duplicateMatch, setDuplicateMatch] = useState<TeaCompassEntry | null>(null);
+  const [showDuplicateNudge, setShowDuplicateNudge] = useState(false);
+  const duplicateDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissedDuplicateRef = useRef<string | null>(null);
+
+  // Build fuse index from other entries (exclude current)
+  const fuseIndex = useMemo(() => {
+    const others = allEntries.filter((e) => e.id !== entryId && e.name.trim().length > 0);
+    return new Fuse(others, {
+      keys: ['name'],
+      threshold: 0.3,
+      distance: 100,
+      includeScore: true,
+    });
+  }, [allEntries, entryId]);
 
   const update = useCallback(
     (updates: Record<string, unknown>) => {
@@ -149,6 +178,134 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
     };
   }, [entry?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Debounced duplicate detection — runs on name changes
+  useEffect(() => {
+    if (!entry) return;
+    if (duplicateDebounceRef.current) clearTimeout(duplicateDebounceRef.current);
+
+    // Don't search if name is too short or only one entry exists
+    if (entry.name.trim().length < 3 || allEntries.length <= 1) {
+      setDuplicateMatch(null);
+      setShowDuplicateNudge(false);
+      return;
+    }
+
+    duplicateDebounceRef.current = setTimeout(() => {
+      const results = fuseIndex.search(entry.name.trim());
+      if (results.length > 0 && results[0].score != null && results[0].score < 0.3) {
+        let best = results[0].item;
+        // Prefer matches from the same vendor if vendor is set
+        if (entry.vendorName) {
+          const sameVendor = results.find(
+            (r) => r.score != null && r.score < 0.3 && r.item.vendorName === entry.vendorName
+          );
+          if (sameVendor) best = sameVendor.item;
+        }
+        // Don't re-show if user already dismissed this specific match
+        if (dismissedDuplicateRef.current === best.id) return;
+        setDuplicateMatch(best);
+        setShowDuplicateNudge(true);
+      } else {
+        setDuplicateMatch(null);
+        setShowDuplicateNudge(false);
+      }
+    }, 1000);
+
+    return () => {
+      if (duplicateDebounceRef.current) clearTimeout(duplicateDebounceRef.current);
+    };
+  }, [entry?.name, entry?.vendorName, fuseIndex, allEntries.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle photo extraction results — auto-fill empty fields only
+  const handleExtracted = useCallback(
+    (data: ExtractedTeaData) => {
+      if (!entry) return;
+      const updates: Record<string, unknown> = {};
+      const summaryParts: string[] = [];
+
+      if (data.chineseName && !entry.chineseName) {
+        updates.chineseName = data.chineseName;
+        summaryParts.push(data.chineseName);
+      }
+      if (data.name && !entry.name) {
+        updates.name = data.name;
+        summaryParts.push(data.name);
+      } else if (data.chineseName) {
+        // Already added above
+      }
+      if (data.type && !entry.type && !userTapped.current.has('type')) {
+        updates.type = data.type;
+        summaryParts.push(data.type);
+      }
+      if (data.form && !entry.form && !userTapped.current.has('form')) {
+        updates.form = data.form;
+        if (!entry.pricePerUnitGrams) {
+          const formKey = data.form as keyof typeof DEFAULT_GRAMS;
+          if (DEFAULT_GRAMS[formKey]) updates.pricePerUnitGrams = DEFAULT_GRAMS[formKey];
+        }
+        summaryParts.push(data.form);
+      }
+      if (data.year && !entry.year && !userTapped.current.has('year')) {
+        updates.year = data.year;
+        summaryParts.push(String(data.year));
+      }
+      if (data.season && !entry.season && !userTapped.current.has('season')) {
+        updates.season = data.season;
+        summaryParts.push(data.season);
+      }
+      if (data.region && !entry.originRegion && !userTapped.current.has('region')) {
+        updates.originRegion = data.region;
+        summaryParts.push(data.region);
+      }
+      if (data.price != null && !entry.priceAmount) {
+        updates.priceAmount = data.price;
+      }
+      if (data.grams != null && !entry.pricePerUnitGrams) {
+        updates.pricePerUnitGrams = data.grams;
+      }
+      if (data.extraNotes) {
+        const existing = entry.notes?.trim();
+        updates.notes = existing ? `${existing}\n${data.extraNotes}` : data.extraNotes;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updateEntry(entryId, updates);
+      }
+
+      // Show confirmation summary
+      if (summaryParts.length > 0) {
+        if (extractionTimerRef.current) clearTimeout(extractionTimerRef.current);
+        setExtractionSummary(`Found: ${summaryParts.join(' · ')}`);
+        extractionTimerRef.current = setTimeout(() => setExtractionSummary(null), 3000);
+      }
+    },
+    [entry, entryId, updateEntry]
+  );
+
+  const handlePhotoTaken = useCallback(
+    (url: string) => {
+      if (!entry) return;
+      updateEntry(entryId, { photos: [...entry.photos, url] });
+    },
+    [entry, entryId, updateEntry]
+  );
+
+  // Handle teaware photos change
+  const handleTeawarePhotosChange = useCallback(
+    (photos: string[]) => {
+      updateEntry(entryId, { photos });
+    },
+    [entryId, updateEntry]
+  );
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (extractionTimerRef.current) clearTimeout(extractionTimerRef.current);
+      if (duplicateDebounceRef.current) clearTimeout(duplicateDebounceRef.current);
+    };
+  }, []);
+
   if (!entry) return null;
 
   const isTeaware = entry.category === 'teaware';
@@ -200,20 +357,18 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
     setLastCurrency(currency);
   };
 
-  const handleVendorChange = () => {
-    // Future: open vendor picker modal
-    // For now, prompt-style set
-    const name = window.prompt('Vendor name:', entry.vendorName || '');
-    if (name !== null) {
-      const trimmed = name.trim();
-      update({ vendorName: trimmed || undefined, vendorId: undefined });
-      setLastVendor(null, trimmed || null);
-    }
+  const handleVendorSelect = (vendorId: string | undefined, vendorName: string) => {
+    update({ vendorName, vendorId });
+    setLastVendor(vendorId || null, vendorName);
   };
 
   const handleVendorClear = () => {
-    update({ vendorName: undefined, vendorId: undefined });
+    update({ vendorName: undefined, vendorId: undefined, vendorDetails: undefined });
     setLastVendor(null, null);
+  };
+
+  const handleVendorDetailsChange = (details: VendorDetails) => {
+    update({ vendorDetails: details });
   };
 
   const handleBuyAgain = useCallback(
@@ -256,48 +411,52 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
     update({ tasting: newTasting });
   };
 
+  /* ─── Duplicate nudge handlers ─── */
+
+  const handleSameTea = useCallback(() => {
+    if (!duplicateMatch) return;
+    const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const existingNotes = duplicateMatch.notes?.trim();
+    const retasteNote = `Retasted on ${now}`;
+    updateEntry(duplicateMatch.id, {
+      notes: existingNotes ? `${existingNotes}\n${retasteNote}` : retasteNote,
+    });
+    setShowDuplicateNudge(false);
+    setDuplicateMatch(null);
+  }, [duplicateMatch, updateEntry]);
+
+  const handleDifferentTea = useCallback(() => {
+    if (duplicateMatch) dismissedDuplicateRef.current = duplicateMatch.id;
+    setShowDuplicateNudge(false);
+    setDuplicateMatch(null);
+  }, [duplicateMatch]);
+
+  const handleDismissDuplicate = useCallback(() => {
+    if (duplicateMatch) dismissedDuplicateRef.current = duplicateMatch.id;
+    setShowDuplicateNudge(false);
+    setDuplicateMatch(null);
+  }, [duplicateMatch]);
+
   // ── Teaware card layout ──────────────────────────────────────────────
   if (isTeaware) {
     const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
 
     return (
       <div className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-4">
-        {/* 1. Photo area */}
-        <div className="space-y-2">
-          {entry.photos.length > 0 ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {entry.photos.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={`Photo ${i + 1}`}
-                  className="w-20 h-20 rounded-lg object-cover shrink-0"
-                />
-              ))}
-              <button
-                type="button"
-                className="pill w-20 h-20 flex flex-col items-center justify-center shrink-0 rounded-lg"
-              >
-                <Camera size={18} className="text-tea-text-dim" />
-                <span className="text-[10px] text-tea-text-dim mt-1">Add</span>
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="pill w-full py-8 flex flex-col items-center justify-center rounded-lg"
-            >
-              <Camera size={24} className="text-tea-text-dim mb-1.5" />
-              <span className="text-xs text-tea-text-dim">Tap to add photos</span>
-            </button>
-          )}
-        </div>
+        {/* 1. Photo area — multi-photo with upload */}
+        <TeawarePhotos
+          photos={entry.photos}
+          onPhotosChange={handleTeawarePhotosChange}
+        />
 
         {/* 2. Vendor strip */}
         <VendorStrip
           vendorName={entry.vendorName}
-          onVendorChange={handleVendorChange}
+          vendorId={entry.vendorId}
+          vendorDetails={entry.vendorDetails}
+          onVendorSelect={handleVendorSelect}
           onClear={handleVendorClear}
+          onDetailsChange={handleVendorDetailsChange}
         />
 
         {/* 2b. Vendor history — previous items from this vendor */}
@@ -454,6 +613,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
         <StatusActions
           status={entry.status}
           onStatusChange={(status: CompassStatus) => update({ status })}
+          entry={entry}
+          onAddedToLedger={onSwitchToLedger}
         />
       </div>
     );
@@ -465,8 +626,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
       {/* 1. Vendor strip — persistent at top */}
       <VendorStrip
         vendorName={entry.vendorName}
-        onVendorChange={handleVendorChange}
+        vendorId={entry.vendorId}
+        vendorDetails={entry.vendorDetails}
+        onVendorSelect={handleVendorSelect}
         onClear={handleVendorClear}
+        onDetailsChange={handleVendorDetailsChange}
       />
 
       {/* 1b. Vendor history — previous items from this vendor */}
@@ -478,16 +642,54 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId }) => {
         />
       )}
 
-      {/* 2. Name input — primary, large */}
-      <input
-        type="text"
-        value={entry.name}
-        onChange={(e) => update({ name: e.target.value })}
-        placeholder="What are you tasting?"
-        className="w-full bg-transparent text-tea-text text-lg font-display placeholder:text-tea-text-dim border-none outline-none py-1"
-      />
+      {/* 2. Name input with photo capture — primary, large */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={entry.name}
+          onChange={(e) => update({ name: e.target.value })}
+          placeholder="What are you tasting?"
+          className="flex-1 bg-transparent text-tea-text text-lg font-display placeholder:text-tea-text-dim border-none outline-none py-1 min-w-0"
+        />
+        <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+      </div>
 
-      {/* 2b. Parsed token chips */}
+      {/* 2a. Duplicate nudge */}
+      <AnimatePresence>
+        {showDuplicateNudge && duplicateMatch && (
+          <DuplicateNudge
+            matchedEntry={{
+              id: duplicateMatch.id,
+              name: duplicateMatch.name,
+              vendorName: duplicateMatch.vendorName,
+              createdAt: duplicateMatch.createdAt,
+              type: duplicateMatch.type,
+            }}
+            onSameTea={handleSameTea}
+            onDifferentTea={handleDifferentTea}
+            onDismiss={handleDismissDuplicate}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 2b. Extraction confirmation */}
+      <AnimatePresence>
+        {extractionSummary && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden -mt-2"
+          >
+            <p className="text-[11px] text-tea-gold tracking-wide truncate">
+              {extractionSummary}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 2c. Parsed token chips */}
       {hasTokens && (
         <div className="flex flex-wrap gap-1.5 -mt-2">
           {(Object.entries(parsedTokens) as [ParseableField, string][]).map(([field, value]) => (

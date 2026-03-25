@@ -18,8 +18,6 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
       case 'Shou': return '#78716c'; // stone-500
       case 'Sheng': return '#bef264'; // lime-300
       case 'Herbal': return '#f9a8d4'; // pink-300
-      case 'Matcha': return '#4ade80'; // green-400
-      case 'Flower': return '#e879f9'; // fuchsia-400
       case 'Teaware': return '#fdba74'; // orange-300
       default: return '#d4d4d8';
     }
@@ -71,31 +69,6 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
                 <path d="M100 140 L 120 120" opacity="0.5"/>
             </g>
         );
-      case 'Matcha':
-         return (
-             <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">
-                 {/* Bowl */}
-                 <path d="M40 100 Q 40 160 100 160 Q 160 160 160 100" />
-                 <path d="M35 100 L 165 100" />
-                 {/* Whisk top */}
-                 <path d="M85 100 L 85 60 L 115 60 L 115 100" opacity="0.8" />
-                 <path d="M100 60 L 100 40" strokeWidth="2" />
-                 {/* Froth */}
-                 <circle cx="70" cy="85" r="4" opacity="0.4" fill={color} stroke="none" />
-                 <circle cx="130" cy="90" r="3" opacity="0.4" fill={color} stroke="none" />
-             </g>
-         );
-       case 'Flower':
-         return (
-             <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">
-                 {/* Stylized Lotus */}
-                 <path d="M100 100 Q 60 60 100 20 Q 140 60 100 100" />
-                 <path d="M100 100 Q 140 140 180 100 Q 140 60 100 100" />
-                 <path d="M100 100 Q 140 140 100 180 Q 60 140 100 100" />
-                 <path d="M100 100 Q 60 60 20 100 Q 60 140 100 100" />
-                 <circle cx="100" cy="100" r="4" fill={color} opacity="0.6" stroke="none" />
-             </g>
-         );
        case 'Teaware':
          return (
              <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">

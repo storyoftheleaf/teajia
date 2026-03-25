@@ -35,7 +35,7 @@ interface TeaInventoryProps {
 }
 
 // Preferred display order for tea types — any types not listed here appear at the end
-const TYPE_ORDER = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Black', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower'];
+const TYPE_ORDER = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Black', 'Dark', 'Sheng', 'Shou', 'Herbal'];
 
 // Extract feeling terms from the canonical tasting taxonomy
 const FEELING_TERMS = (() => {

@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import fs from 'fs';
 
 export default defineConfig(({ mode }) => {
@@ -18,6 +19,39 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/teajia-api\.lightcodes\.workers\.dev\/api\//,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'api-cache',
+                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/media\.teajia\.co\//,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'media-cache',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'font-cache',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              },
+            },
+          ],
+        },
+        manifest: false,
+      }),
       {
         name: 'copy-cloudflare-files',
         writeBundle() {

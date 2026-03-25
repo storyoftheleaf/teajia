@@ -23,8 +23,6 @@ const teaColors: Record<string, string> = {
   Shou:    '#5C544E',
   Sheng:   '#98A67B',
   Herbal:  '#BFA09E',
-  Matcha:  '#6F8C60',
-  Flower:  '#B596A6',
   Teaware: '#A89880',
   Misc:    '#737373',
 };
@@ -149,40 +147,6 @@ function HerbalScatter({ color }: { color: string }) {
   );
 }
 
-// A whisk (chasen) — ceremonial
-function MatchaWhisk({ color }: { color: string }) {
-  return (
-    <g>
-      <path d="M50 70 L50 45" stroke={color} strokeWidth="2" opacity="0.5" strokeLinecap="round" />
-      <path d="M42 30 C42 40, 50 45, 50 45 C50 45, 58 40, 58 30" fill="none" stroke={color} strokeWidth="1.2" opacity="0.4" />
-      <path d="M44 31 C44 38, 50 43, 50 43" fill="none" stroke={color} strokeWidth="0.8" opacity="0.3" />
-      <path d="M56 31 C56 38, 50 43, 50 43" fill="none" stroke={color} strokeWidth="0.8" opacity="0.3" />
-      <path d="M46 30 C46 36, 50 41, 50 41" fill="none" stroke={color} strokeWidth="0.6" opacity="0.25" />
-      <path d="M54 30 C54 36, 50 41, 50 41" fill="none" stroke={color} strokeWidth="0.6" opacity="0.25" />
-      <line x1="41" y1="29" x2="59" y2="29" stroke={color} strokeWidth="1" opacity="0.35" />
-    </g>
-  );
-}
-
-// A bloom — soft, open
-function FlowerBloom({ color }: { color: string }) {
-  return (
-    <g>
-      {[0, 60, 120, 180, 240, 300].map((angle) => (
-        <ellipse
-          key={angle}
-          cx="50" cy="38"
-          rx="4" ry="10"
-          fill="none" stroke={color} strokeWidth="1" opacity="0.35"
-          transform={`rotate(${angle} 50 50)`}
-        />
-      ))}
-      <circle cx="50" cy="50" r="5" fill={color} opacity="0.12" />
-      <circle cx="50" cy="50" r="5" fill="none" stroke={color} strokeWidth="1" opacity="0.3" />
-    </g>
-  );
-}
-
 // A vessel — gaiwan/teapot silhouette
 function TeawareVessel({ color }: { color: string }) {
   return (
@@ -221,8 +185,6 @@ function getIllustration(type: string, color: string) {
     case 'Shou':    return <ShouCake color={color} />;
     case 'Sheng':   return <ShengLeaf color={color} />;
     case 'Herbal':  return <HerbalScatter color={color} />;
-    case 'Matcha':  return <MatchaWhisk color={color} />;
-    case 'Flower':  return <FlowerBloom color={color} />;
     case 'Teaware': return <TeawareVessel color={color} />;
     default:        return <MiscCircle color={color} />;
   }

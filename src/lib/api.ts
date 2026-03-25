@@ -739,6 +739,50 @@ export const api = {
     return handleResponse(res);
   },
 
+  compass: {
+    list: async (params?: { status?: string; vendor_id?: string }) => {
+      const qp = new URLSearchParams();
+      if (params?.status) qp.set('status', params.status);
+      if (params?.vendor_id) qp.set('vendor_id', params.vendor_id);
+      const qs = qp.toString();
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries${qs ? `?${qs}` : ''}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (entry: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(entry),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, updates: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(updates),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    sync: async (entries: Record<string, any>[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/sync`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ entries }),
+      });
+      return handleResponse(res);
+    },
+  },
+
   favorites: {
     get: async (): Promise<{ favorites: string[] }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {

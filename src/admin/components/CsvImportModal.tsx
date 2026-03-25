@@ -271,9 +271,11 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     // Sanitize and Prepare Data
     const preparedRows = rowsToInsert.map(r => {
         // 1. Handle Types
-        const validTypes = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Matcha', 'Flower', 'Teaware', 'Misc'];
-        let typeToSave = r.type;
-        const matchedType = validTypes.find(t => t.toLowerCase() === (r.type || '').toLowerCase());
+        const validTypes = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'];
+        // Remap retired types to Herbal
+        const retiredToHerbal = ['matcha', 'flower'];
+        let typeToSave = retiredToHerbal.includes((r.type || '').toLowerCase()) ? 'Herbal' : r.type;
+        const matchedType = validTypes.find(t => t.toLowerCase() === (typeToSave || '').toLowerCase());
         if (matchedType) typeToSave = matchedType;
         else if (!typeToSave) typeToSave = 'Misc'; // Default to Misc if missing, logically safer than erroring
 

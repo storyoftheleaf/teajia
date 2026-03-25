@@ -183,7 +183,6 @@ export const TastingNotesView: React.FC<TastingNotesViewProps> = ({ products, is
       Green: '#6b8e4e', White: '#c4b089', Yellow: '#c9a84c',
       Oolong: '#b07d3a', Red: '#a04040', Dark: '#5c4033',
       Sheng: '#7a8b3a', Shou: '#4a3728', Herbal: '#7b9e87',
-      Matcha: '#5a7a3a', Flower: '#c47a9a',
     };
     return colors[type] || '#888';
   };
