@@ -28,7 +28,7 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
   --tea-gold-lt-rgb: 191 160 106;
-  --tea-border: rgba(181,168,146,0.14);
+  --tea-border: rgba(139,110,68,0.28);
   --tea-accent-sub: rgba(168,135,77,0.1);
 
   /* Font Families */
@@ -62,7 +62,7 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
   --tea-gold-rgb: 107 79 40;
   --tea-gold-lt: #7a5c2e;
   --tea-gold-lt-rgb: 122 92 46;
-  --tea-border: rgba(24,19,14,0.1);
+  --tea-border: rgba(107,82,44,0.2);
   --tea-accent-sub: rgba(128,101,56,0.07);
 }
 

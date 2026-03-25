@@ -118,7 +118,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   value={year ?? ''}
                   onChange={handleYearInput}
                   maxLength={4}
-                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/10 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
+                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
                 />
               </div>
 
@@ -172,7 +172,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   onChange={(val) => onRegionChange(val || undefined)}
                   suggestions={availableRegions}
                   placeholder="e.g. Alishan, Yiwu..."
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/10 focus:border-tea-gold/50 outline-none transition-colors text-sm"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm"
                 />
               </div>
 
@@ -186,7 +186,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   value={chineseName || ''}
                   onChange={(e) => onChineseNameChange(e.target.value)}
                   placeholder="e.g. \u5927\u7D05\u888D"
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/10 focus:border-tea-gold/50 outline-none transition-colors text-sm placeholder:text-tea-text-dim/50"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-1.5 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm placeholder:text-tea-text-dim/50"
                 />
               </div>
 
