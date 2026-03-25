@@ -93,7 +93,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Pages Sidebar - Only for Articles */}
                 {tab === 'CANVAS' && !isMedia && (
-                    <div className="hidden md:flex w-28 bg-tea-bg border-r border-tea-border flex-col overflow-y-auto no-scrollbar py-4 gap-4 items-center shrink-0 z-10">
+                    <div className="hidden md:flex w-28 bg-tea-bg border-r border-tea-border flex-col overflow-y-auto hide-scrollbar py-4 gap-4 items-center shrink-0 z-10">
                         {pages.map((p, i) => (
                             <div key={p.id} onClick={() => setIdx(i)} className={`relative w-20 h-[26.6px] shrink-0 border transition-all cursor-pointer ${i === idx ? 'border-tea-gold shadow-[0_0_10px_rgba(140,63,63,0.3)]' : 'border-transparent hover:border-tea-border'}`}>
                                 <div className="absolute inset-0 bg-tea-bg overflow-hidden pointer-events-none">
@@ -697,7 +697,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
              </div>
 
              {/* Nav Links */}
-             <div className="flex flex-row md:flex-col p-2 md:p-4 gap-1 overflow-x-auto no-scrollbar">
+             <div className="flex flex-row md:flex-col p-2 md:p-4 gap-1 overflow-x-auto hide-scrollbar">
                  <button onClick={() => setSection('JOURNAL')} className={`flex items-center gap-3 px-4 py-3 rounded-sm text-xs uppercase tracking-wider transition-colors ${section === 'JOURNAL' ? 'bg-tea-bg text-white' : 'text-tea-text hover:text-white'}`}>
                      <Icons.Book className="w-4 h-4" />
                      <span className="whitespace-nowrap">Journal</span>

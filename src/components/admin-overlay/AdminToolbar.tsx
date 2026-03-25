@@ -43,7 +43,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
       transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
     >
       {/* Stats */}
-      <div className="flex items-center gap-4 flex-1 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-4 flex-1 overflow-x-auto hide-scrollbar">
         <button
           onClick={() => navigate('/admin/orders')}
           className="flex items-center gap-1.5 shrink-0 group"

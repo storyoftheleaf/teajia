@@ -257,7 +257,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
             <div className="w-16 h-16 bg-tea-text/5 rounded-full flex items-center justify-center mb-4">
               <Icons.Grid className="w-8 h-8 text-tea-text/40" />
             </div>
-            <p className="font-serif text-lg text-tea-text/60">
+            <p className="text-lg text-tea-text/60" style={{ fontFamily: 'var(--font-display)' }}>
               {activeTab === 'community' ? 'No community members found' : 'No resources in this category yet'}
             </p>
             <p className="text-sm text-tea-text/40 mt-2">

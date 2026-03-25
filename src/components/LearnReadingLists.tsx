@@ -24,7 +24,7 @@ export const LearnReadingLists: React.FC = () => {
   return (
     <div>
       {/* List selector pills */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4">
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-4">
         {CURATED_LISTS.map(list => (
           <button
             key={list.id}

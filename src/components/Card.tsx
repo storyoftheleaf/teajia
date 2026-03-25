@@ -66,7 +66,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
   return (
     <div
       ref={parallaxRef}
-      className={`cursor-pointer group relative transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] md:hover:shadow-xl md:hover:shadow-black/10 dark:md:hover:shadow-black/30 ${watchedStyle}`}
+      className={`cursor-pointer group relative transition-all duration-300 hover:-translate-y-[3px] hover:scale-[1.01] active:scale-[0.98] md:hover:shadow-xl md:hover:shadow-black/10 dark:md:hover:shadow-black/30 ${watchedStyle}`}
       style={{ transform: `translateY(${offset}px)` }}
       {...longPressHandlers}
     >

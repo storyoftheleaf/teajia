@@ -151,7 +151,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
         {/* Logbook filters row */}
         {activeTab === 'logs' && (
           <div className="px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2 flex-wrap">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
               {ACTION_TYPES.map(at => (
                 <button
                   key={at.value}

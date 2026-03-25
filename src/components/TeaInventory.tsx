@@ -505,7 +505,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
         <div className="mt-10 px-3 md:px-4 lg:px-6">
           <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
             {recentlyViewedItems.map(item => (
               <button
                 key={item.id}

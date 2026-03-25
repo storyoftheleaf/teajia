@@ -119,7 +119,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
       </div>
 
       {/* Category Filters — refined pills */}
-      <div className="relative z-0 mb-5 overflow-x-auto no-scrollbar">
+      <div className="relative z-0 mb-5 overflow-x-auto hide-scrollbar">
         <div className="flex gap-1.5 pb-1">
           {categoryButtons.map((cat) => (
             <button
@@ -138,7 +138,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
       {/* Alphabetical Index */}
       {isFullView && (
-        <div className="relative z-0 mb-8 overflow-x-auto no-scrollbar">
+        <div className="relative z-0 mb-8 overflow-x-auto hide-scrollbar">
           <div className="flex gap-0.5 pb-1">
             <button
               onClick={() => setActiveLetter(null)}

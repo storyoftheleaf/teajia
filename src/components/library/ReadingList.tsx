@@ -38,7 +38,7 @@ export const ReadingList: React.FC<ReadingListProps> = ({ onBack }) => {
       </p>
 
       {/* Category pills */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4">
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-4">
         {READING_LIST_CATEGORIES.map(cat => (
           <button
             key={cat}

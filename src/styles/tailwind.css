@@ -107,14 +107,7 @@ input[type="number"] { -moz-appearance: textfield; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Custom scrollbar for reader */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+/* Scrollbar utilities consolidated in card-utilities.css (.hide-scrollbar, .hide-scrollbar-always) */
 
 /* ============================================
    Base Typography — Plus Jakarta Sans for UI, Lora for reading
@@ -246,7 +239,7 @@ p {
   .texture-overlay,
   .wood-texture,
   nav,
-  .no-scrollbar,
+  .hide-scrollbar,
   button,
   [role="slider"],
   .hide-scrollbar-always { display: none !important; }

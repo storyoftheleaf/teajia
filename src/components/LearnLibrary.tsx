@@ -161,7 +161,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
           title="Picked for You"
           subtitle={hasProgress ? 'Based on your learning progress' : 'Great starting points for your journey'}
         />
-        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
           {pickedForYou.map(item => (
             <div key={item.id} className="min-w-[200px] max-w-[240px] shrink-0 cursor-pointer">
               <CardContainer variant="dark" className="hover:-translate-y-0.5 transition-all h-full">

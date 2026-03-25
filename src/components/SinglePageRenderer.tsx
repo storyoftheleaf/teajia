@@ -1119,7 +1119,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`${FOLIO_CLASS}`}>Issue 03</span>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto no-scrollbar">
+                        <div className="flex-1 overflow-y-auto hide-scrollbar">
                             <div className="flex flex-col">
                                 {recommendations?.map((story, i) => (
                                     <div
@@ -1156,7 +1156,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <h2 className={`${TYPE.caption} uppercase tracking-[0.25em] opacity-60`}>Curated Reads</h2>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
+                        <div className="flex-1 overflow-y-auto hide-scrollbar space-y-6">
                             {links.length > 0 ? links.map((link, i) => (
                                 <a
                                     key={i}

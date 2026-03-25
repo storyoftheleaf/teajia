@@ -292,7 +292,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           <SubPageHeader title="Community Wisdom" subtitle="Reflections, tips, and rituals from tea lovers" />
 
           {/* Filter pills */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar mb-5">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-5">
             {(['all', 'reflection', 'tip', 'ritual'] as const).map(filter => (
               <button
                 key={filter}

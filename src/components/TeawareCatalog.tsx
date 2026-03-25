@@ -127,7 +127,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
         {/* Category filter chips — matching tea's type chips */}
         <div className="mb-4 space-y-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
             <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
             <button
               onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory('All'); }}

@@ -260,14 +260,14 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
     return (
       <div className="fixed inset-0 bg-tea-bg z-modal flex flex-col overflow-y-auto">
          <MobileHeader title={story.title} onBack={onBack} />
-         
+
          {/* Player */}
          <div className="w-full aspect-video bg-black relative shrink-0">
              {renderPlayer()}
          </div>
 
          {/* Content */}
-         <div className="p-6 text-tea-text flex-1">
+         <div className="p-6 pb-[calc(49px+env(safe-area-inset-bottom,0px)+24px)] lg:pb-6 text-tea-text flex-1">
             <div className="flex justify-between items-start mb-2">
                 <span className="text-[10px] tracking-[0.15em] uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
                 <div className="flex gap-4">
@@ -344,7 +344,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          </div>
 
          {/* Controls */}
-         <div className="bg-gradient-to-t from-tea-bg via-tea-bg to-transparent pt-12 px-8 pb-12 z-20">
+         <div className="bg-gradient-to-t from-tea-bg via-tea-bg to-transparent pt-12 px-8 pb-[calc(49px+env(safe-area-inset-bottom,0px)+12px)] lg:pb-12 z-20">
              <div className="flex justify-between items-end mb-8">
                 <div className="flex-1 pr-4">
                     <h2 className="text-3xl font-serif text-tea-text mb-2 leading-tight">{story.title}</h2>

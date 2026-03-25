@@ -52,16 +52,16 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
 
         {/* Info */}
         <div className="relative z-10 max-w-sm">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-light/60 block mb-3">
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-light/60 block mb-3">
               {person.role}
             </span>
-            <h2 className="text-3xl font-serif text-tea-text mb-6 leading-tight">
+            <h2 className="text-3xl text-tea-text mb-6 leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
               {person.name}
             </h2>
             
             <div className="w-8 h-[1px] bg-tea-gold/50 mx-auto mb-6"></div>
 
-            <p className="font-serif text-lg leading-relaxed text-tea-text-light/90 italic">
+            <p className="text-lg leading-relaxed text-tea-text-light/90 italic" style={{ fontFamily: 'var(--font-body)' }}>
               {person.bio}
             </p>
         </div>

@@ -82,7 +82,7 @@ export const TeaInspireGallery: React.FC = () => {
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       {/* Header */}
       <div className="mb-8 md:mb-10">
-        <h2 className="font-serif text-3xl md:text-4xl text-tea-text mb-3">
+        <h2 className="text-3xl md:text-4xl text-tea-text mb-3" style={{ fontFamily: 'var(--font-display)' }}>
           Tea Moments
         </h2>
         <p className="text-tea-text/70 text-base md:text-lg leading-relaxed max-w-2xl">
@@ -91,7 +91,7 @@ export const TeaInspireGallery: React.FC = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-8 overflow-x-auto no-scrollbar">
+      <div className="mb-8 overflow-x-auto hide-scrollbar">
         <div className="flex gap-2 pb-2">
           {filterButtons.map((filter) => (
             <button
@@ -139,7 +139,7 @@ export const TeaInspireGallery: React.FC = () => {
                   {CATEGORY_CONFIG[featuredMoment.category].label}
                 </span>
               </div>
-              <p className="text-white text-lg md:text-2xl font-serif leading-relaxed max-w-2xl">
+              <p className="text-white text-lg md:text-2xl leading-relaxed max-w-2xl" style={{ fontFamily: 'var(--font-display)' }}>
                 {featuredMoment.caption}
               </p>
               {featuredMoment.location && (

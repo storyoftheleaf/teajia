@@ -229,7 +229,7 @@ export const Shop: React.FC<ShopProps> = ({
           <div className="w-16 h-16 border border-tea-border rounded-full flex items-center justify-center mb-4">
             <Icons.Box className="w-6 h-6 text-tea-text/50" />
           </div>
-          <p className="font-serif italic text-base text-tea-text/60">No sets available.</p>
+          <p className="italic text-base text-tea-text/60" style={{ fontFamily: 'var(--font-body)' }}>No sets available.</p>
         </div>
       ) : (
         <>
