@@ -106,9 +106,9 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
       {/* Bottom Tab Bar — identical structure to home page BottomTabBar */}
       <nav
         aria-label="Admin navigation"
-        className="flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 md:hidden border-t border-tea-border"
+        className="flex lg:hidden fixed bottom-0 left-0 right-0 z-[40] animate-[slideUp_0.4s_ease-out] transition-all duration-200 md:hidden border-t border-tea-border"
         style={{
-          background: 'rgb(var(--tea-surface-rgb, 30, 26, 21) / 0.96)',
+          background: 'rgb(var(--tea-bg-rgb, 24, 19, 14))',
           boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
           height: 'calc(44px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
