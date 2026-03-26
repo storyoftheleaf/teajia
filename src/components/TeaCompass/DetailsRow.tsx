@@ -54,7 +54,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const hasValues = season || storage || originRegion || chineseName;
+  const hasValues = storage || originRegion;
 
   return (
     <div>
@@ -74,10 +74,8 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
         {!expanded && hasValues && (
           <span className="text-tea-text-dim ml-1">
             {[
-              season,
               storage,
               originRegion,
-              chineseName,
             ]
               .filter(Boolean)
               .join(' / ')}
@@ -95,25 +93,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
             className="overflow-hidden"
           >
             <div className="space-y-3 pt-2">
-              {/* Season */}
-              <div className="space-y-1">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-                  Season
-                </label>
-                <div className="flex gap-1.5">
-                  {SEASONS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => onSeasonChange(season === s ? undefined : s)}
-                      className={season === s ? 'pill-active' : 'pill'}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Storage (conditional) */}
               {showStorage(teaType) && (
                 <div className="space-y-1">
@@ -146,20 +125,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   suggestions={availableRegions}
                   placeholder="e.g. Alishan, Yiwu..."
                   className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base"
-                />
-              </div>
-
-              {/* Chinese name — optional, at the bottom of details */}
-              <div className="space-y-1">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-                  Chinese name (optional)
-                </label>
-                <input
-                  type="text"
-                  value={chineseName || ''}
-                  onChange={(e) => onChineseNameChange(e.target.value)}
-                  placeholder="e.g. \u5927\u7D05\u888D"
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base placeholder:text-tea-text-dim/50"
                 />
               </div>
 

@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, X, Search, Plus, Camera, Check, Phone,
-  MessageCircle, ChevronDown, ExternalLink, Loader2,
+  MapPin, X, Plus, Camera, Check, Phone,
+  MessageCircle, ExternalLink, Loader2,
   Contact, Image,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
@@ -119,13 +119,11 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [contactMenuOpen, setContactMenuOpen] = useState(false);
-  const [query, setQuery] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [creatingNew, setCreatingNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const searchRef = useRef<HTMLInputElement>(null);
   const newNameRef = useRef<HTMLInputElement>(null);
   const contactMenuRef = useRef<HTMLDivElement>(null);
   const businessCardRef = useRef<HTMLInputElement>(null);
@@ -146,7 +144,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
 
   // Fetch vendor list from API (customers with tag containing 'vendor')
   useEffect(() => {
-    if (!pickerOpen) return;
     if (vendors.length > 0) return;
     if (!hasToken()) return;
 
@@ -160,14 +157,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       })
       .catch(() => {})
       .finally(() => setLoadingVendors(false));
-  }, [pickerOpen]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-focus search when picker opens
-  useEffect(() => {
-    if (pickerOpen) {
-      setTimeout(() => searchRef.current?.focus(), 100);
-    }
-  }, [pickerOpen]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-focus new name input
   useEffect(() => {
@@ -175,14 +165,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       setTimeout(() => newNameRef.current?.focus(), 50);
     }
   }, [creatingNew]);
-
-  const filteredVendors = query.trim()
-    ? vendors.filter((v) => v.name.toLowerCase().includes(query.toLowerCase()))
-    : vendors;
-
-  const filteredRecent = query.trim()
-    ? recentVendors.filter((v) => v.name.toLowerCase().includes(query.toLowerCase()))
-    : recentVendors;
 
   const handleSelectVendor = (id: string | undefined, name: string) => {
     onVendorSelect(id, name);
@@ -367,19 +349,54 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             </button>
           </>
         ) : (
-          <button
-            type="button"
-            onClick={() => setPickerOpen((o) => !o)}
-            className="text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
+          <select
+            value=""
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '__new__') {
+                setCreatingNew(true);
+                setPickerOpen(true);
+                return;
+              }
+              if (!val) return;
+              const apiVendor = vendors.find((v) => v.id === val);
+              if (apiVendor) {
+                handleSelectVendor(apiVendor.id, apiVendor.name);
+                return;
+              }
+              const recent = recentVendors.find((v) => v.name === val);
+              if (recent) {
+                handleSelectVendor(recent.id || undefined, recent.name);
+                return;
+              }
+              handleSelectVendor(undefined, val);
+            }}
+            className="flex-1 bg-transparent text-tea-text-dim text-sm py-1 outline-none appearance-none cursor-pointer"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
-            Tap to select vendor
-          </button>
+            <option value="" disabled>Select vendor...</option>
+            {recentVendors.length > 0 && (
+              <optgroup label="Recent">
+                {recentVendors.map((v) => (
+                  <option key={`recent-${v.name}`} value={v.id || v.name}>{v.name}</option>
+                ))}
+              </optgroup>
+            )}
+            {vendors.length > 0 && (
+              <optgroup label="All Vendors">
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </optgroup>
+            )}
+            <option value="__new__">+ New vendor...</option>
+          </select>
         )}
       </div>
 
-      {/* ── Vendor picker panel ── */}
+      {/* ── New vendor input (only when creating) ── */}
       <AnimatePresence>
-        {pickerOpen && (
+        {pickerOpen && creatingNew && (
           <motion.div
             initial={PANEL_INITIAL}
             animate={PANEL_ANIMATE}
@@ -387,87 +404,33 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             transition={PANEL_TRANSITION}
             className="overflow-hidden"
           >
-            <div className="pt-2 pb-1 space-y-2">
-              {/* Native select — triggers iOS wheel picker on mobile */}
-              <select
-                value={vendorId || vendorName || ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '__new__') {
-                    setCreatingNew(true);
-                    return;
-                  }
-                  if (!val) return;
-                  // Check API vendors first, then recent
-                  const apiVendor = vendors.find((v) => v.id === val);
-                  if (apiVendor) {
-                    handleSelectVendor(apiVendor.id, apiVendor.name);
-                    return;
-                  }
-                  const recent = recentVendors.find((v) => v.name === val);
-                  if (recent) {
-                    handleSelectVendor(recent.id || undefined, recent.name);
-                    return;
-                  }
-                  handleSelectVendor(undefined, val);
-                }}
-                className="w-full bg-tea-surface text-tea-text text-base rounded-lg px-3 py-3 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors appearance-none cursor-pointer"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-              >
-                <option value="" disabled>Select a vendor...</option>
-                {recentVendors.length > 0 && (
-                  <optgroup label="Recent">
-                    {recentVendors.map((v) => (
-                      <option key={`recent-${v.name}`} value={v.id || v.name}>{v.name}</option>
-                    ))}
-                  </optgroup>
-                )}
-                {vendors.length > 0 && (
-                  <optgroup label="All Vendors">
-                    {vendors.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </optgroup>
-                )}
-                <option value="__new__">+ New vendor...</option>
-              </select>
-
-              {loadingVendors && (
-                <div className="flex items-center justify-center py-2 text-tea-text-dim">
-                  <Loader2 size={14} className="animate-spin" />
-                  <span className="text-xs ml-2">Loading vendors...</span>
-                </div>
-              )}
-
-              {/* New vendor */}
-              {creatingNew && (
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={newNameRef}
-                    type="text"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
-                    placeholder="Vendor name"
-                    className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border border-tea-border outline-none focus:border-tea-gold/50"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateVendor}
-                    disabled={!newName.trim()}
-                    className="bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] px-4 py-2.5 rounded-lg disabled:opacity-40 transition-opacity"
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setCreatingNew(false); setNewName(''); }}
-                    className="text-tea-text-dim p-2"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
+            <div className="pt-2 pb-1">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={newNameRef}
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
+                  placeholder="Vendor name"
+                  className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border border-tea-border outline-none focus:border-tea-gold/50"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateVendor}
+                  disabled={!newName.trim()}
+                  className="bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] px-4 py-2.5 rounded-lg disabled:opacity-40 transition-opacity"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCreatingNew(false); setNewName(''); setPickerOpen(false); }}
+                  className="text-tea-text-dim p-2"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

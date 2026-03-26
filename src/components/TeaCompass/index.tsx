@@ -39,7 +39,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     .reduce((sum, tx) => sum + tx.items.length, 0);
 
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
-  const [mode, setMode] = useState<CompassMode>(initialMode || (activeEntryId ? 'capture' : 'browse'));
+  const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
 
   // When activeEntryId changes externally, switch to capture mode
   useEffect(() => {
@@ -47,6 +47,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
       setMode('capture');
     }
   }, [activeEntryId]);
+
+  // Auto-start a tea capture when opening in capture mode with no active entry
+  useEffect(() => {
+    if (mode === 'capture' && !activeEntryId) {
+      startNewCapture('tea');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sessionEntries = getSessionEntries();
   const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;

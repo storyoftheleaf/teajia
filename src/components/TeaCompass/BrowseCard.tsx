@@ -1,11 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Droplets } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { compassEntryToProductDraft } from './types';
+import { useLedgerStore } from '../../lib/ledgerStore';
+import { compassEntryToProductDraft, GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import { api, isConfigured, hasToken } from '../../lib/api';
-import type { TeaCompassEntry } from './types';
+import type { TeaCompassEntry, TeaForm } from './types';
+import type { Currency } from '../../admin/types';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
@@ -90,9 +92,20 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
 }) => {
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
+  const addLineItem = useLedgerStore((s) => s.addLineItem);
   const statusConfig = getStatusConfig(entry.status);
 
   const [draftState, setDraftState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [showBuyPrompt, setShowBuyPrompt] = useState(false);
+  const [buyAmount, setBuyAmount] = useState('');
+  const buyInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showBuyPrompt && buyInputRef.current) {
+      buyInputRef.current.focus();
+    }
+  }, [showBuyPrompt]);
 
   const handleCreateDraft = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -118,6 +131,48 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
       setTimeout(() => setDraftState('idle'), 2000);
     }
   }, [entry, updateEntry]);
+
+  const handleConfirmBuy = useCallback((grams: number) => {
+    if (grams <= 0) return;
+    const isTeaware = entry.category === 'teaware';
+    updateEntry(entry.id, {
+      status: 'buying',
+      ...(isTeaware
+        ? { buyQuantityUnits: grams }
+        : { buyQuantityGrams: grams }),
+      buyTotal: entry.priceAmount && entry.pricePerUnitGrams
+        ? (grams / entry.pricePerUnitGrams) * entry.priceAmount
+        : undefined,
+    });
+
+    // Add to ledger transaction if vendor is known
+    if (entry.vendorName) {
+      const currency = (entry.priceCurrency || 'NT') as Currency;
+      const txId = getOrCreatePurchaseTransaction(entry.vendorName, currency, entry.vendorId);
+      const pricePerUnit = entry.pricePerUnitGrams || (entry.priceAmount || 0);
+      const priceIsPerGram = !!entry.pricePerUnitGrams;
+      addLineItem(txId, {
+        name: entry.name || 'Untitled',
+        chineseName: entry.chineseName,
+        type: entry.type,
+        form: entry.form,
+        year: entry.year,
+        ...(isTeaware
+          ? { quantityUnits: grams, pricePerUnit: entry.priceAmount || 0, priceIsPerGram: false }
+          : { quantityGrams: grams, pricePerUnit, priceIsPerGram }),
+        currency,
+        compassEntryId: entry.id,
+      });
+    }
+
+    setShowBuyPrompt(false);
+    setBuyAmount('');
+  }, [entry, updateEntry, getOrCreatePurchaseTransaction, addLineItem]);
+
+  const gramPresets = entry.form
+    ? GRAM_PRESETS[entry.form as TeaForm] || GRAM_PRESETS.Loose
+    : GRAM_PRESETS.Loose;
+
   const hasName = entry.name.trim().length > 0;
 
   const hasTasting = entry.tasting && (
@@ -186,6 +241,11 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
 
           <span className={`${statusConfig.className} shrink-0 text-[11px]`}>
             {statusConfig.label}
+            {(entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityGrams
+              ? ` ${entry.buyQuantityGrams}g`
+              : (entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityUnits
+                ? ` ×${entry.buyQuantityUnits}`
+                : ''}
           </span>
 
           {entry.priceAmount != null && entry.priceAmount > 0 && (
@@ -289,19 +349,85 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    updateEntry(entry.id, { status: entry.status === 'buying' ? 'logged' : 'buying' });
+                    setShowBuyPrompt(!showBuyPrompt);
                   }}
                   className={`flex-1 text-sm font-semibold rounded-lg text-center py-3 transition-all ${
                     entry.status === 'buying'
                       ? 'bg-tea-gold text-tea-bg shadow-[0_2px_8px_rgba(184,146,78,0.3)]'
                       : entry.status === 'bought'
                         ? 'bg-tea-gold/20 text-tea-gold shadow-[0_2px_8px_rgba(184,146,78,0.15)]'
-                        : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+                        : showBuyPrompt
+                          ? 'bg-tea-gold/30 text-tea-gold'
+                          : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
                   }`}
                 >
-                  {entry.status === 'bought' ? 'Bought' : 'Buy'}
+                  {entry.status === 'bought' ? 'Bought' : entry.status === 'buying' ? 'Buying' : 'Buy'}
                 </button>
               </div>
+
+              {/* Buy quantity prompt */}
+              <AnimatePresence>
+                {showBuyPrompt && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2 space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-tea-text-sec">
+                        {entry.category === 'teaware' ? 'How many?' : 'How many grams?'}
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(entry.category !== 'teaware' ? gramPresets : [1, 2, 3]).map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConfirmBuy(val);
+                            }}
+                            className={`px-3 py-2 text-xs rounded-md transition-all min-h-[36px] ${
+                              'bg-tea-surface text-tea-text-sec active:bg-tea-elevated hover:text-tea-text'
+                            }`}
+                          >
+                            {entry.category === 'teaware' ? val : `${val}g`}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          ref={buyInputRef}
+                          type="number"
+                          inputMode="numeric"
+                          value={buyAmount}
+                          onChange={(e) => setBuyAmount(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && Number(buyAmount) > 0) {
+                              handleConfirmBuy(Number(buyAmount));
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder={entry.category === 'teaware' ? 'Units' : 'Grams'}
+                          className="flex-1 bg-tea-surface text-tea-text text-base rounded-lg px-3 py-2 outline-none placeholder-tea-text-dim/50 focus:ring-1 focus:ring-tea-gold/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (Number(buyAmount) > 0) handleConfirmBuy(Number(buyAmount));
+                          }}
+                          disabled={!buyAmount || Number(buyAmount) <= 0}
+                          className="px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-1">
