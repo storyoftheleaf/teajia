@@ -39,7 +39,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     .reduce((sum, tx) => sum + tx.items.length, 0);
 
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
-  const [mode, setMode] = useState<CompassMode>(initialMode || 'browse');
+  const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
 
   // When activeEntryId changes externally, switch to capture mode
   useEffect(() => {
