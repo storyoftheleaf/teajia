@@ -110,8 +110,8 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
         style={{
           background: 'rgb(var(--tea-bg-rgb, 24, 19, 14))',
           boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
-          height: 'calc(44px + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          height: 'calc(40px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) * 0.45)',
           WebkitTapHighlightColor: 'transparent',
         }}
       >
