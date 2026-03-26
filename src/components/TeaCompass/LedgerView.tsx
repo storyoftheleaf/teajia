@@ -9,6 +9,7 @@ import {
   Trash2,
   Check,
   ShoppingBag,
+  Share2,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
@@ -139,6 +140,35 @@ const TransactionCard: React.FC<{
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleSharePdf = useCallback(async () => {
+    setPdfLoading(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      const { LedgerPdf } = await import('./LedgerPdf');
+      const doc = React.createElement(LedgerPdf, { transaction: tx });
+      const blob = await pdf(doc).toBlob();
+      const fileName = `teajia-${tx.direction}-${tx.counterpartyName || 'order'}-${tx.id.slice(0, 6)}.pdf`.replace(/\s+/g, '-');
+
+      // Use Web Share API if available (mobile), otherwise download
+      if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        await navigator.share({ files: [file], title: `Teajia ${tx.direction === 'purchase' ? 'Purchase' : 'Sale'} Order` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.debug('PDF generation failed:', err);
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [tx]);
 
   const total = useMemo(
     () => tx.items.reduce((sum, item) => sum + lineTotal(item), 0),
@@ -265,6 +295,16 @@ const TransactionCard: React.FC<{
                     )}
                   </AnimatePresence>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleSharePdf}
+                  disabled={pdfLoading || tx.items.length === 0}
+                  className="p-3 rounded-lg text-tea-text-sec active:text-tea-gold active:bg-tea-elevated transition-colors disabled:opacity-30"
+                  aria-label="Share as PDF"
+                >
+                  <Share2 size={16} className={pdfLoading ? 'animate-pulse' : ''} />
+                </button>
 
                 <button
                   type="button"
