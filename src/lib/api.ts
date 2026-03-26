@@ -2,15 +2,23 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const REQUEST_TIMEOUT_MS = 30_000;
 
 function getToken(): string | null {
-  return localStorage.getItem('teajia_token');
+  return localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token');
 }
 
 export function setToken(token: string) {
-  localStorage.setItem('teajia_token', token);
+  const remember = localStorage.getItem('teajia_remember_me') === 'true';
+  if (remember) {
+    localStorage.setItem('teajia_token', token);
+    sessionStorage.removeItem('teajia_token');
+  } else {
+    sessionStorage.setItem('teajia_token', token);
+    localStorage.removeItem('teajia_token');
+  }
 }
 
 export function clearToken() {
   localStorage.removeItem('teajia_token');
+  sessionStorage.removeItem('teajia_token');
 }
 
 export function hasToken(): boolean {

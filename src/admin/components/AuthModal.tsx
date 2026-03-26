@@ -8,6 +8,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('teajia_remember_me') === 'true');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setDevAdmin } = useAppStore();
@@ -48,6 +49,11 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
         result = await api.auth.signup(email, password, name);
       }
       setToken(result.token);
+      if (rememberMe) {
+        localStorage.setItem('teajia_remember_me', 'true');
+      } else {
+        localStorage.removeItem('teajia_remember_me');
+      }
       resetForm();
       onAuthSuccess?.();
       onClose();
@@ -81,6 +87,17 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Password</label>
              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-base text-tea-text outline-none focus:border-tea-text-sec transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
           </div>
+          {mode === 'login' && (
+            <label className="flex items-center gap-2.5 cursor-pointer py-1">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4.5 h-4.5 rounded border-tea-border bg-tea-surface text-tea-accent accent-tea-accent cursor-pointer"
+              />
+              <span className="text-sm text-tea-text-sec">Keep me logged in</span>
+            </label>
+          )}
           {error && <div className="p-3 bg-tea-accent/10 border border-tea-accent-sub text-tea-accent text-sm rounded-lg">{error}</div>}
           <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-accent/10">
             {loading ? <Loader2 className="animate-spin" /> : mode === 'login' ? 'Sign In' : 'Create Account'}

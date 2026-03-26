@@ -109,23 +109,27 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={handleWant}
-          className={`flex-1 text-sm rounded-lg text-center py-3 normal-case tracking-normal ${status === 'want' ? 'pill-active-amber' : 'pill'}`}
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 transition-all ${
+            status === 'want'
+              ? 'bg-amber-500/20 text-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
+              : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+          }`}
         >
           Want
         </button>
         <button
           type="button"
           onClick={handleBuyClick}
-          className={`flex-1 text-sm rounded-lg text-center py-3 normal-case tracking-normal ${
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             isInLedger
-              ? 'pill-active flex items-center justify-center gap-1.5'
+              ? 'bg-tea-gold/20 text-tea-gold shadow-[0_2px_8px_rgba(184,146,78,0.15)]'
               : status === 'buying'
-                ? 'pill-active'
-                : 'pill'
+                ? 'bg-tea-gold text-tea-bg shadow-[0_2px_8px_rgba(184,146,78,0.3)]'
+                : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
           }`}
         >
           {isInLedger ? (

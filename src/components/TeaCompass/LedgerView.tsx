@@ -353,7 +353,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
   }
 
   return (
-    <div className="space-y-5 animate-[fadeIn_0.3s_ease-out]">
+    <div className="space-y-5 pb-8 animate-[fadeIn_0.3s_ease-out]">
       {/* Filter row */}
       <div className="flex items-center">
         <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">

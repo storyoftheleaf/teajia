@@ -554,24 +554,48 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="What is it?"
-            className="w-full bg-tea-surface/60 text-tea-text text-sm rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
           />
         </div>
 
-        {/* Panel 2: Price */}
+        {/* Panel 2: Price + Size */}
         <div className="rounded-lg space-y-1.5">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="0"
-            value={entry.priceAmount ?? ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              update({ priceAmount: val === '' ? undefined : Number(val) });
-            }}
-            className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
-          />
+          <div className="flex gap-4 items-end">
+            {/* Price half */}
+            <div className="flex-1 min-w-0">
+              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder="0"
+                value={entry.priceAmount ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  update({ priceAmount: val === '' ? undefined : Number(val) });
+                }}
+                className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+                           [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+              />
+            </div>
+            {/* Size (ml) half */}
+            <div className="flex-1 min-w-0">
+              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Size (ml)</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="e.g. 120"
+                value={entry.capacityMl ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  update({ capacityMl: val === '' ? undefined : Number(val) });
+                }}
+                className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+                           [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+              />
+            </div>
+          </div>
           <div className="flex gap-1 flex-wrap pt-1">
             {CURRENCIES.map((c) => (
               <button
@@ -661,10 +685,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         {/* Layer 3: Collapsible details — Capacity, Era, Quantity */}
         {hasTeawareName && (
           <TeawareDetailsCollapsible
-            capacityMl={entry.capacityMl}
             era={entry.era}
             quantity={entry.quantity}
-            onCapacityChange={(capacityMl) => update({ capacityMl })}
             onEraChange={(era) => update({ era })}
             onQuantityChange={(quantity) => update({ quantity })}
           />
@@ -695,7 +717,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-surface/60 text-tea-text text-sm rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -737,6 +759,28 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Year — always visible at top level */}
+      <div className="flex gap-4 items-end">
+        <div className="min-w-0">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Year</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="e.g. 2024"
+            value={entry.year ?? ''}
+            onChange={(e) => {
+              userTapped.current.add('year');
+              const val = e.target.value;
+              update({ year: val === '' ? undefined : Number(val) });
+            }}
+            maxLength={4}
+            className="w-28 bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+          />
+        </div>
+      </div>
 
       {/* Panel 2: Price & Grams */}
       <div className="rounded-lg">
@@ -930,24 +974,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 /* ─── Teaware Details Collapsible (Layer 3 for teaware) ─── */
 
 interface TeawareDetailsCollapsibleProps {
-  capacityMl?: number;
   era?: TeawareEra;
   quantity?: number;
-  onCapacityChange: (val: number | undefined) => void;
   onEraChange: (val: TeawareEra | undefined) => void;
   onQuantityChange: (val: number) => void;
 }
 
 const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
-  capacityMl,
   era,
   quantity,
-  onCapacityChange,
   onEraChange,
   onQuantityChange,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const hasValues = capacityMl || era || (quantity && quantity > 1);
+  const hasValues = era || (quantity && quantity > 1);
 
   return (
     <div>
@@ -967,7 +1007,6 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
         {!expanded && hasValues && (
           <span className="text-tea-text-dim ml-1">
             {[
-              capacityMl ? `${capacityMl}ml` : null,
               era,
               quantity && quantity > 1 ? `\u00D7${quantity}` : null,
             ]
@@ -987,22 +1026,6 @@ const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
             className="overflow-hidden"
           >
             <div className="space-y-3 pt-2">
-              {/* Capacity */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Capacity (ml)</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 120"
-                  value={capacityMl ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    onCapacityChange(val === '' ? undefined : Number(val));
-                  }}
-                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
-                />
-              </div>
-
               {/* Era */}
               <div className="space-y-1.5">
                 <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Era</label>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Droplets } from 'lucide-react';
 import {
@@ -37,7 +37,6 @@ const showStorage = (type?: TeaType) =>
   type === 'Sheng' || type === 'Shou' || type === 'Dark';
 
 export const DetailsRow: React.FC<DetailsRowProps> = ({
-  year,
   season,
   storage,
   originRegion,
@@ -46,7 +45,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   tasting,
   hasTasting,
   availableRegions = COMMON_REGIONS,
-  onYearChange,
   onSeasonChange,
   onStorageChange,
   onRegionChange,
@@ -56,15 +54,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const handleYearInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      onYearChange(val === '' ? undefined : Number(val));
-    },
-    [onYearChange]
-  );
-
-  const hasValues = year || season || storage || originRegion || chineseName;
+  const hasValues = season || storage || originRegion || chineseName;
 
   return (
     <div>
@@ -84,7 +74,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
         {!expanded && hasValues && (
           <span className="text-tea-text-dim ml-1">
             {[
-              year,
               season,
               storage,
               originRegion,
@@ -106,22 +95,6 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
             className="overflow-hidden"
           >
             <div className="space-y-3 pt-2">
-              {/* Year */}
-              <div className="space-y-1">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-                  Year
-                </label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 2024"
-                  value={year ?? ''}
-                  onChange={handleYearInput}
-                  maxLength={4}
-                  className="w-24 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums"
-                />
-              </div>
-
               {/* Season */}
               <div className="space-y-1">
                 <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
@@ -172,7 +145,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   onChange={(val) => onRegionChange(val || undefined)}
                   suggestions={availableRegions}
                   placeholder="e.g. Alishan, Yiwu..."
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base"
                 />
               </div>
 
@@ -186,7 +159,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   value={chineseName || ''}
                   onChange={(e) => onChineseNameChange(e.target.value)}
                   placeholder="e.g. \u5927\u7D05\u888D"
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm placeholder:text-tea-text-dim/50"
+                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base placeholder:text-tea-text-dim/50"
                 />
               </div>
 

@@ -82,7 +82,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               value={priceAmount ?? ''}
               onChange={handlePriceInput}
               style={noSpinnerStyle}
-              className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums
+              className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
                          placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
@@ -100,7 +100,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             value={pricePerUnitGrams ?? ''}
             onChange={handleGramsInput}
             style={noSpinnerStyle}
-            className="w-full bg-tea-surface/60 text-tea-text rounded-md px-2.5 py-1 border border-tea-border/30 focus:border-tea-gold/50 outline-none transition-colors text-sm tabular-nums text-right
+            className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums text-right
                        placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
