@@ -1751,7 +1751,7 @@ const handleGetActivityLogs: Handler = async (request, env) => {
 
 // ── Image Upload (R2) ──
 const handleUploadImage: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
 
   if (!env.MEDIA_BUCKET) {
