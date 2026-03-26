@@ -1616,7 +1616,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }
 
   return (
-    <div className={`h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
+    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
       {/* --- VENDOR FILTER BANNER --- */}
       {vendorFilter && (
@@ -1749,7 +1749,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <>
               <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }} />
               <div
-                className="fixed right-2 top-[40px] w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col max-h-[calc(100vh-100px)] overflow-y-auto"
+                className="fixed right-2 top-[40px] w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 flex flex-col max-h-[calc(100dvh-100px)] overflow-y-auto"
                 role="menu"
                 onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }}
                 tabIndex={-1}

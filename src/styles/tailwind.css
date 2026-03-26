@@ -67,6 +67,15 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
 }
 
 /* ============================================
+   Safari in-app browser viewport fix
+   100vh in Safari WebViews includes browser chrome;
+   100dvh adapts to the actual visible area.
+   ============================================ */
+@supports (height: 100dvh) {
+  .h-screen-safe { height: 100dvh !important; }
+}
+
+/* ============================================
    Card & Scrollbar Styles
    ============================================ */
 

@@ -11,7 +11,7 @@ export const SettingsView: React.FC = () => {
   const currentUserRole = claims?.role || (isDevAdmin ? 'owner' : 'user');
 
   return (
-    <div className="h-[calc(100vh-64px)] overflow-auto custom-scrollbar bg-tea-bg p-6">
+    <div className="h-full overflow-auto custom-scrollbar bg-tea-bg p-6">
       <div className="max-w-4xl mx-auto space-y-8">
 
         {/* Header */}
