@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Droplets } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { useLedgerStore } from '../../lib/ledgerStore';
 import { compassEntryToProductDraft, GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import { api, isConfigured, hasToken } from '../../lib/api';
 import type { TeaCompassEntry, TeaForm } from './types';
+import type { Currency } from '../../admin/types';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
@@ -90,6 +92,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
 }) => {
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
+  const addLineItem = useLedgerStore((s) => s.addLineItem);
   const statusConfig = getStatusConfig(entry.status);
 
   const [draftState, setDraftState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -140,9 +144,30 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         ? (grams / entry.pricePerUnitGrams) * entry.priceAmount
         : undefined,
     });
+
+    // Add to ledger transaction if vendor is known
+    if (entry.vendorName) {
+      const currency = (entry.priceCurrency || 'NT') as Currency;
+      const txId = getOrCreatePurchaseTransaction(entry.vendorName, currency, entry.vendorId);
+      const pricePerUnit = entry.pricePerUnitGrams || (entry.priceAmount || 0);
+      const priceIsPerGram = !!entry.pricePerUnitGrams;
+      addLineItem(txId, {
+        name: entry.name || 'Untitled',
+        chineseName: entry.chineseName,
+        type: entry.type,
+        form: entry.form,
+        year: entry.year,
+        ...(isTeaware
+          ? { quantityUnits: grams, pricePerUnit: entry.priceAmount || 0, priceIsPerGram: false }
+          : { quantityGrams: grams, pricePerUnit, priceIsPerGram }),
+        currency,
+        compassEntryId: entry.id,
+      });
+    }
+
     setShowBuyPrompt(false);
     setBuyAmount('');
-  }, [entry, updateEntry]);
+  }, [entry, updateEntry, getOrCreatePurchaseTransaction, addLineItem]);
 
   const gramPresets = entry.form
     ? GRAM_PRESETS[entry.form as TeaForm] || GRAM_PRESETS.Loose
@@ -324,12 +349,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (entry.status === 'buying') {
-                      updateEntry(entry.id, { status: 'logged', buyQuantityGrams: undefined, buyQuantityUnits: undefined, buyTotal: undefined });
-                      setShowBuyPrompt(false);
-                    } else {
-                      setShowBuyPrompt(!showBuyPrompt);
-                    }
+                    setShowBuyPrompt(!showBuyPrompt);
                   }}
                   className={`flex-1 text-sm font-semibold rounded-lg text-center py-3 transition-all ${
                     entry.status === 'buying'
@@ -390,7 +410,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                           }}
                           onClick={(e) => e.stopPropagation()}
                           placeholder={entry.category === 'teaware' ? 'Units' : 'Grams'}
-                          className="flex-1 bg-tea-surface text-tea-text text-sm rounded-lg px-3 py-2 outline-none placeholder-tea-text-dim/50 focus:ring-1 focus:ring-tea-gold/40"
+                          className="flex-1 bg-tea-surface text-tea-text text-base rounded-lg px-3 py-2 outline-none placeholder-tea-text-dim/50 focus:ring-1 focus:ring-tea-gold/40"
                         />
                         <button
                           type="button"

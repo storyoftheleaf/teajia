@@ -48,6 +48,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     }
   }, [activeEntryId]);
 
+  // Auto-start a tea capture when opening in capture mode with no active entry
+  useEffect(() => {
+    if (mode === 'capture' && !activeEntryId) {
+      startNewCapture('tea');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const sessionEntries = getSessionEntries();
   const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;
   const activeCategory: CompassCategory = activeEntry?.category || 'tea';
