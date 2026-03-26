@@ -153,7 +153,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   };
 
   return (
-    <div className={`${inline ? '' : 'h-[calc(100vh-64px)] overflow-hidden'} flex flex-col bg-tea-bg`}>
+    <div className={`${inline ? '' : 'h-full overflow-hidden'} flex flex-col bg-tea-bg`}>
 
       {/* Header */}
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">

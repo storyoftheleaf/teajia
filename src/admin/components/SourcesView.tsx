@@ -661,7 +661,7 @@ export const SourcesView = () => {
   }
 
   return (
-    <div className={`h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
+    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
       {/* --- SAVED VIEWS TAB BAR --- */}
       <div className="flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar">

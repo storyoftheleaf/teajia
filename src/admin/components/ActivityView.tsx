@@ -21,7 +21,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
   ];
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
+    <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
         <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">

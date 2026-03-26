@@ -127,7 +127,7 @@ const AdminContent = () => {
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
     return (
-      <div className="flex min-h-screen bg-tea-bg text-tea-text items-center justify-center p-6">
+      <div className="flex min-h-[100dvh] bg-tea-bg text-tea-text items-center justify-center p-6">
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-accent/50"></div>
             <div className="mb-6 flex justify-center">
@@ -181,7 +181,9 @@ const AdminContent = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
+    <div className="flex h-[100dvh] overflow-hidden bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
       {/* Mobile hamburger — hidden since bottom nav handles navigation */}
 
@@ -276,7 +278,7 @@ const AdminContent = () => {
            )}
         </div>
 
-        <div className="flex-1 relative pb-16 md:pb-0">
+        <div className="flex-1 relative overflow-hidden pb-[calc(49px+env(safe-area-inset-bottom,0px))] md:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />

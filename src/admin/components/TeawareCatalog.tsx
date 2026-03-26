@@ -126,7 +126,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-tea-bg">
+    <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* --- HEADER CONTROLS (matches InventoryView) --- */}
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
