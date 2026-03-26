@@ -231,7 +231,21 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     <div className="space-y-0">
       {/* ── Strip row ── */}
       <div className="flex items-center gap-2 text-sm text-tea-text-sec py-1">
-        <MapPin size={14} className="text-tea-text-dim flex-shrink-0" />
+        {/* Details icon — far left, only when vendor is selected */}
+        {vendorName && !pickerOpen ? (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((o) => !o)}
+            className={`flex-shrink-0 p-1 transition-colors ${
+              detailsOpen || hasDetails ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+            }`}
+            aria-label={hasDetails ? 'Vendor details' : 'Add vendor details'}
+          >
+            <MapPin size={14} />
+          </button>
+        ) : (
+          <MapPin size={14} className="text-tea-text-dim flex-shrink-0" />
+        )}
         {vendorName ? (
           <>
             <button
@@ -356,129 +370,115 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── "Add details" expandable ── */}
+      {/* ── Vendor details expandable (triggered by MapPin icon in strip row) ── */}
       {vendorName && !pickerOpen && (
-        <>
-          <button
-            type="button"
-            onClick={() => setDetailsOpen((o) => !o)}
-            className="flex items-center gap-1 text-xs text-tea-text-sec hover:text-tea-gold transition-colors mt-1"
-          >
-            <ChevronDown
-              size={10}
-              className={`transition-transform ${detailsOpen ? 'rotate-180' : ''}`}
-            />
-            <span>{hasDetails ? 'Vendor details' : 'Add details'}</span>
-          </button>
+        <AnimatePresence>
+          {detailsOpen && (
+            <motion.div
+              initial={PANEL_INITIAL}
+              animate={PANEL_ANIMATE}
+              exit={PANEL_EXIT}
+              transition={PANEL_TRANSITION}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 pb-1 space-y-3">
+                {/* Business card photo */}
+                <PhotoButton
+                  label="Business card"
+                  url={vendorDetails?.businessCardUrl}
+                  onCapture={(url) => updateDetail('businessCardUrl', url)}
+                />
 
-          <AnimatePresence>
-            {detailsOpen && (
-              <motion.div
-                initial={PANEL_INITIAL}
-            animate={PANEL_ANIMATE}
-            exit={PANEL_EXIT}
-            transition={PANEL_TRANSITION}
-                className="overflow-hidden"
-              >
-                <div className="pt-2 pb-1 space-y-3">
-                  {/* Business card photo */}
-                  <PhotoButton
-                    label="Business card"
-                    url={vendorDetails?.businessCardUrl}
-                    onCapture={(url) => updateDetail('businessCardUrl', url)}
-                  />
+                {/* Storefront photo */}
+                <PhotoButton
+                  label="Storefront"
+                  url={vendorDetails?.storefrontUrl}
+                  onCapture={(url) => updateDetail('storefrontUrl', url)}
+                />
 
-                  {/* Storefront photo */}
-                  <PhotoButton
-                    label="Storefront"
-                    url={vendorDetails?.storefrontUrl}
-                    onCapture={(url) => updateDetail('storefrontUrl', url)}
-                  />
-
-                  {/* Map pin */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleGeoPin}
-                      disabled={geoState === 'loading'}
-                      className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
-                        geoState === 'loading' ? 'animate-pulse text-tea-text-dim' :
-                        geoState === 'done' ? 'text-tea-gold' :
-                        geoState === 'error' ? 'text-red-400' :
-                        'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
+                {/* Map pin */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGeoPin}
+                    disabled={geoState === 'loading'}
+                    className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
+                      geoState === 'loading' ? 'animate-pulse text-tea-text-dim' :
+                      geoState === 'done' ? 'text-tea-gold' :
+                      geoState === 'error' ? 'text-red-400' :
+                      'text-tea-text-dim hover:text-tea-text-sec'
+                    }`}
+                  >
+                    {geoState === 'done' ? <Check size={12} /> :
+                     geoState === 'loading' ? <Loader2 size={12} className="animate-spin" /> :
+                     <MapPin size={12} strokeWidth={1.5} />}
+                    <span>
+                      {geoState === 'done' ? 'Saved' :
+                       geoState === 'loading' ? 'Getting location...' :
+                       geoState === 'error' ? 'Failed' :
+                       vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}
+                    </span>
+                  </button>
+                  {vendorDetails?.lat != null && vendorDetails?.lng != null && (
+                    <a
+                      href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
                     >
-                      {geoState === 'done' ? <Check size={12} /> :
-                       geoState === 'loading' ? <Loader2 size={12} className="animate-spin" /> :
-                       <MapPin size={12} strokeWidth={1.5} />}
-                      <span>
-                        {geoState === 'done' ? 'Saved' :
-                         geoState === 'loading' ? 'Getting location...' :
-                         geoState === 'error' ? 'Failed' :
-                         vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}
-                      </span>
-                    </button>
-                    {vendorDetails?.lat != null && vendorDetails?.lng != null && (
-                      <a
-                        href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
-                      >
-                        <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
-                        <ExternalLink size={9} />
-                      </a>
-                    )}
-                  </div>
+                      <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
+                      <ExternalLink size={9} />
+                    </a>
+                  )}
+                </div>
 
-                  {/* Contact fields */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Phone size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="tel"
-                        value={vendorDetails?.phone || ''}
-                        onChange={(e) => updateDetail('phone', e.target.value || undefined)}
-                        placeholder="Phone"
-                        className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="text"
-                        value={vendorDetails?.whatsapp || ''}
-                        onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
-                        placeholder="WhatsApp"
-                        className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="text"
-                        value={vendorDetails?.wechat || ''}
-                        onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
-                        placeholder="WeChat"
-                        className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="text"
-                        value={vendorDetails?.line || ''}
-                        onChange={(e) => updateDetail('line', e.target.value || undefined)}
-                        placeholder="LINE"
-                        className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
+                {/* Contact fields */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Phone size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="tel"
+                      value={vendorDetails?.phone || ''}
+                      onChange={(e) => updateDetail('phone', e.target.value || undefined)}
+                      placeholder="Phone"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={vendorDetails?.whatsapp || ''}
+                      onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
+                      placeholder="WhatsApp"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={vendorDetails?.wechat || ''}
+                      onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
+                      placeholder="WeChat"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={vendorDetails?.line || ''}
+                      onChange={(e) => updateDetail('line', e.target.value || undefined)}
+                      placeholder="LINE"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
     </div>
   );

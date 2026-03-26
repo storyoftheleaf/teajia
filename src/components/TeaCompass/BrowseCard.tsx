@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2 } from 'lucide-react';
+import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Droplets } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { compassEntryToProductDraft } from './types';
@@ -258,8 +258,19 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                 </div>
               )}
 
-              {/* Want / Buy buttons */}
-              <div className="flex items-center gap-3">
+              {/* Taste / Want / Buy buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(entry.id);
+                  }}
+                  className="flex-1 text-sm font-semibold rounded-lg text-center py-3 transition-all bg-tea-surface text-tea-text-sec active:bg-tea-elevated flex items-center justify-center gap-1.5"
+                >
+                  <Droplets size={14} />
+                  Taste
+                </button>
                 <button
                   type="button"
                   onClick={(e) => {

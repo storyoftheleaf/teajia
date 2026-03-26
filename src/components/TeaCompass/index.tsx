@@ -58,25 +58,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   }, [startNewCapture, activeCategory]);
 
   const handleCategorySwitch = useCallback((category: CompassCategory) => {
-    if (activeEntryId && activeEntry) {
-      const updates: Record<string, unknown> = { category };
-      if (category === 'teaware') {
-        updates.type = undefined;
-        updates.form = undefined;
-        updates.season = undefined;
-        updates.storage = undefined;
-      } else {
-        updates.teawareCategory = undefined;
-        updates.material = undefined;
-        updates.capacityMl = undefined;
-        updates.era = undefined;
-      }
-      updateEntry(activeEntryId, updates);
-    } else {
-      startNewCapture(category);
-      setMode('capture');
-    }
-  }, [activeEntryId, activeEntry, updateEntry, startNewCapture]);
+    // Always start a fresh capture — only vendor carries over
+    startNewCapture(category);
+    setMode('capture');
+  }, [startNewCapture]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {

@@ -29,7 +29,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter, lastVendorId, lastVendorName } = useTeaCompassStore();
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
 
   const handleBuyAgain = useCallback((item: {
     name: string;
@@ -171,9 +171,14 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
                     <BrowseCard
                       entry={entry}
                       onEdit={onEditEntry}
-                      expanded={expandedId === entry.id}
+                      expanded={!collapsedIds.has(entry.id)}
                       onToggleExpand={() =>
-                        setExpandedId(expandedId === entry.id ? null : entry.id)
+                        setCollapsedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(entry.id)) next.delete(entry.id);
+                          else next.add(entry.id);
+                          return next;
+                        })
                       }
                     />
                   </motion.div>

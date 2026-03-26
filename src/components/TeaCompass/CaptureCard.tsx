@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, ChevronDown, Droplets, Minus, Plus, X } from 'lucide-react';
+import { Camera, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -653,9 +653,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 </div>
               </div>
 
-              {/* Material */}
+              {/* Material / Clay type */}
               <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Material</label>
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
+                  {entry.teawareCategory === 'Teapot' || entry.teawareCategory === 'Gaiwan' ? 'Clay / Material' : 'Material'}
+                </label>
                 <div className="flex gap-1.5 flex-wrap">
                   {materials.map((mat) => (
                     <button
@@ -668,6 +670,35 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Era / Age */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Age / Era</label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {TEAWARE_ERAS.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => update({ era: entry.era === e ? undefined : e })}
+                      className={entry.era === e ? 'tag-selectable-active' : 'tag-selectable'}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Origin */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Origin</label>
+                <AutocompleteInput
+                  value={entry.originRegion || ''}
+                  onChange={(val) => update({ originRegion: val || undefined })}
+                  suggestions={availableRegions}
+                  placeholder="e.g. Yixing, Jingdezhen..."
+                  className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors"
+                />
               </div>
               </div>
 
@@ -682,14 +713,30 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
         </AnimatePresence>
 
-        {/* Layer 3: Collapsible details — Capacity, Era, Quantity */}
+        {/* Quantity stepper — only if name is entered */}
         {hasTeawareName && (
-          <TeawareDetailsCollapsible
-            era={entry.era}
-            quantity={entry.quantity}
-            onEraChange={(era) => update({ era })}
-            onQuantityChange={(quantity) => update({ quantity })}
-          />
+          <div className="space-y-1.5">
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Quantity</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
+                className="pill w-9 h-9 flex items-center justify-center rounded-lg"
+              >
+                <Minus size={16} />
+              </button>
+              <span className="text-tea-text text-lg font-medium tabular-nums min-w-[2ch] text-center">
+                {entry.quantity || 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
+                className="pill w-9 h-9 flex items-center justify-center rounded-lg"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -720,6 +767,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
+          />
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="Year"
+            value={entry.year ?? ''}
+            onChange={(e) => {
+              userTapped.current.add('year');
+              const val = e.target.value;
+              update({ year: val === '' ? undefined : Number(val) });
+            }}
+            className="w-20 shrink-0 bg-tea-surface/60 text-tea-text text-base rounded-md px-2 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors tabular-nums text-center
+                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
           <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
         </div>
@@ -759,28 +820,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Year — always visible at top level */}
-      <div className="flex gap-4 items-end">
-        <div className="min-w-0">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Year</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="e.g. 2024"
-            value={entry.year ?? ''}
-            onChange={(e) => {
-              userTapped.current.add('year');
-              const val = e.target.value;
-              update({ year: val === '' ? undefined : Number(val) });
-            }}
-            maxLength={4}
-            className="w-28 bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
-                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-          />
-        </div>
-      </div>
 
       {/* Panel 2: Price & Grams */}
       <div className="rounded-lg">
@@ -963,109 +1002,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onChange={setLocalTasting}
                 teaType={entry.type}
               />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-/* ─── Teaware Details Collapsible (Layer 3 for teaware) ─── */
-
-interface TeawareDetailsCollapsibleProps {
-  era?: TeawareEra;
-  quantity?: number;
-  onEraChange: (val: TeawareEra | undefined) => void;
-  onQuantityChange: (val: number) => void;
-}
-
-const TeawareDetailsCollapsible: React.FC<TeawareDetailsCollapsibleProps> = ({
-  era,
-  quantity,
-  onEraChange,
-  onQuantityChange,
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const hasValues = era || (quantity && quantity > 1);
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors w-full py-1"
-      >
-        <motion.span
-          animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="inline-flex"
-        >
-          <ChevronDown size={14} />
-        </motion.span>
-        <span>Details</span>
-        {!expanded && hasValues && (
-          <span className="text-tea-text-dim ml-1">
-            {[
-              era,
-              quantity && quantity > 1 ? `\u00D7${quantity}` : null,
-            ]
-              .filter(Boolean)
-              .join(' / ')}
-          </span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-3 pt-2">
-              {/* Era */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Era</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {TEAWARE_ERAS.map((e) => (
-                    <button
-                      key={e}
-                      type="button"
-                      onClick={() => onEraChange(era === e ? undefined : e)}
-                      className={era === e ? 'tag-selectable-active' : 'tag-selectable'}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quantity stepper */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Quantity</label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => onQuantityChange(Math.max(1, (quantity || 1) - 1))}
-                    className="pill w-9 h-9 flex items-center justify-center rounded-lg"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <span className="text-tea-text text-lg font-medium tabular-nums min-w-[2ch] text-center">
-                    {quantity || 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onQuantityChange((quantity || 1) + 1)}
-                    className="pill w-9 h-9 flex items-center justify-center rounded-lg"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
             </div>
           </motion.div>
         )}
