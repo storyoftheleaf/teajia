@@ -230,32 +230,46 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   return (
     <div className="space-y-0">
       {/* ── Strip row ── */}
-      <div className="flex items-center gap-2 text-xs text-tea-text-sec">
-        <MapPin size={12} className="text-tea-text-dim flex-shrink-0" />
+      <div className="flex items-center gap-2 text-sm text-tea-text-sec py-1">
+        {/* Details icon — far left, only when vendor is selected */}
+        {vendorName && !pickerOpen ? (
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((o) => !o)}
+            className={`flex-shrink-0 p-1 transition-colors ${
+              detailsOpen || hasDetails ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+            }`}
+            aria-label={hasDetails ? 'Vendor details' : 'Add vendor details'}
+          >
+            <MapPin size={14} />
+          </button>
+        ) : (
+          <MapPin size={14} className="text-tea-text-dim flex-shrink-0" />
+        )}
         {vendorName ? (
           <>
             <button
               type="button"
               onClick={() => setPickerOpen((o) => !o)}
-              className="truncate hover:text-tea-gold transition-colors"
+              className="truncate hover:text-tea-gold transition-colors py-1"
             >
               {vendorName}
             </button>
             <button
               type="button"
               onClick={onClear}
-              className="text-tea-text-dim hover:text-tea-text-sec transition-colors flex-shrink-0"
+              className="text-tea-text-dim hover:text-tea-text-sec transition-colors flex-shrink-0 p-1"
             >
-              <X size={12} />
+              <X size={14} />
             </button>
           </>
         ) : (
           <button
             type="button"
             onClick={() => setPickerOpen((o) => !o)}
-            className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
           >
-            No vendor
+            Tap to select vendor
           </button>
         )}
       </div>
@@ -271,79 +285,59 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             className="overflow-hidden"
           >
             <div className="pt-2 pb-1 space-y-2">
-              {/* Search input */}
-              <div className="flex items-center gap-2 bg-tea-surface rounded-md px-2 py-1.5">
-                <Search size={13} className="text-tea-text-dim shrink-0" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search vendors..."
-                  className="flex-1 bg-transparent text-tea-text text-xs placeholder:text-tea-text-dim border-none outline-none"
-                />
-                {query && (
-                  <button type="button" onClick={() => setQuery('')} className="text-tea-text-dim">
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
-              {/* Results */}
-              <div className="max-h-44 overflow-y-auto space-y-0.5">
-                {/* Recent vendors */}
-                {filteredRecent.length > 0 && !query.trim() && (
-                  <div className="pb-1">
-                    <span className="text-[10px] text-tea-text-dim uppercase tracking-wider px-1">Recent</span>
-                    {filteredRecent.map((v) => (
-                      <button
-                        key={`recent-${v.name}`}
-                        type="button"
-                        onClick={() => handleSelectVendor(v.id || undefined, v.name)}
-                        className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors ${
-                          vendorName === v.name
-                            ? 'bg-tea-elevated text-tea-gold'
-                            : 'bg-tea-surface hover:bg-tea-elevated text-tea-text-sec'
-                        }`}
-                      >
-                        {v.name}
-                      </button>
+              {/* Native select — triggers iOS wheel picker on mobile */}
+              <select
+                value={vendorId || vendorName || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '__new__') {
+                    setCreatingNew(true);
+                    return;
+                  }
+                  if (!val) return;
+                  // Check API vendors first, then recent
+                  const apiVendor = vendors.find((v) => v.id === val);
+                  if (apiVendor) {
+                    handleSelectVendor(apiVendor.id, apiVendor.name);
+                    return;
+                  }
+                  const recent = recentVendors.find((v) => v.name === val);
+                  if (recent) {
+                    handleSelectVendor(recent.id || undefined, recent.name);
+                    return;
+                  }
+                  handleSelectVendor(undefined, val);
+                }}
+                className="w-full bg-tea-surface text-tea-text text-base rounded-lg px-3 py-3 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors appearance-none cursor-pointer"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+              >
+                <option value="" disabled>Select a vendor...</option>
+                {recentVendors.length > 0 && (
+                  <optgroup label="Recent">
+                    {recentVendors.map((v) => (
+                      <option key={`recent-${v.name}`} value={v.id || v.name}>{v.name}</option>
                     ))}
-                  </div>
+                  </optgroup>
                 )}
-
-                {/* API vendors */}
-                {loadingVendors ? (
-                  <div className="flex items-center justify-center py-3 text-tea-text-dim">
-                    <Loader2 size={14} className="animate-spin" />
-                  </div>
-                ) : filteredVendors.length > 0 ? (
-                  <div className="pb-1">
-                    {query.trim() ? null : (
-                      <span className="text-[10px] text-tea-text-dim uppercase tracking-wider px-1">All vendors</span>
-                    )}
-                    {filteredVendors.map((v) => (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => handleSelectVendor(v.id, v.name)}
-                        className={`w-full text-left text-xs px-2 py-1.5 rounded transition-colors ${
-                          vendorId === v.id
-                            ? 'bg-tea-elevated text-tea-gold'
-                            : 'bg-tea-surface hover:bg-tea-elevated text-tea-text-sec'
-                        }`}
-                      >
-                        {v.name}
-                      </button>
+                {vendors.length > 0 && (
+                  <optgroup label="All Vendors">
+                    {vendors.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
                     ))}
-                  </div>
-                ) : query.trim() ? (
-                  <p className="text-[11px] text-tea-text-dim px-2 py-2">No matches</p>
-                ) : null}
-              </div>
+                  </optgroup>
+                )}
+                <option value="__new__">+ New vendor...</option>
+              </select>
+
+              {loadingVendors && (
+                <div className="flex items-center justify-center py-2 text-tea-text-dim">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-xs ml-2">Loading vendors...</span>
+                </div>
+              )}
 
               {/* New vendor */}
-              {creatingNew ? (
+              {creatingNew && (
                 <div className="flex items-center gap-2">
                   <input
                     ref={newNameRef}
@@ -352,162 +346,139 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
                     placeholder="Vendor name"
-                    className="flex-1 bg-tea-surface text-tea-text text-xs rounded-md px-2 py-1.5 placeholder:text-tea-text-dim border-none outline-none"
+                    className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border border-tea-border outline-none focus:border-tea-gold/50"
                   />
                   <button
                     type="button"
                     onClick={handleCreateVendor}
                     disabled={!newName.trim()}
-                    className="pill text-[11px] px-2 py-1 text-tea-gold disabled:text-tea-text-dim"
+                    className="bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] px-4 py-2.5 rounded-lg disabled:opacity-40 transition-opacity"
                   >
                     Add
                   </button>
                   <button
                     type="button"
                     onClick={() => { setCreatingNew(false); setNewName(''); }}
-                    className="text-tea-text-dim"
+                    className="text-tea-text-dim p-2"
                   >
-                    <X size={12} />
+                    <X size={14} />
                   </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCreatingNew(true)}
-                  className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors px-1"
-                >
-                  <Plus size={12} />
-                  <span>New vendor</span>
-                </button>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── "Add details" expandable ── */}
+      {/* ── Vendor details expandable (triggered by MapPin icon in strip row) ── */}
       {vendorName && !pickerOpen && (
-        <>
-          <button
-            type="button"
-            onClick={() => setDetailsOpen((o) => !o)}
-            className="flex items-center gap-1 text-xs text-tea-text-sec hover:text-tea-gold transition-colors mt-1"
-          >
-            <ChevronDown
-              size={10}
-              className={`transition-transform ${detailsOpen ? 'rotate-180' : ''}`}
-            />
-            <span>{hasDetails ? 'Vendor details' : 'Add details'}</span>
-          </button>
+        <AnimatePresence>
+          {detailsOpen && (
+            <motion.div
+              initial={PANEL_INITIAL}
+              animate={PANEL_ANIMATE}
+              exit={PANEL_EXIT}
+              transition={PANEL_TRANSITION}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 pb-1 space-y-3">
+                {/* Business card photo */}
+                <PhotoButton
+                  label="Business card"
+                  url={vendorDetails?.businessCardUrl}
+                  onCapture={(url) => updateDetail('businessCardUrl', url)}
+                />
 
-          <AnimatePresence>
-            {detailsOpen && (
-              <motion.div
-                initial={PANEL_INITIAL}
-            animate={PANEL_ANIMATE}
-            exit={PANEL_EXIT}
-            transition={PANEL_TRANSITION}
-                className="overflow-hidden"
-              >
-                <div className="pt-2 pb-1 space-y-3">
-                  {/* Business card photo */}
-                  <PhotoButton
-                    label="Business card"
-                    url={vendorDetails?.businessCardUrl}
-                    onCapture={(url) => updateDetail('businessCardUrl', url)}
-                  />
+                {/* Storefront photo */}
+                <PhotoButton
+                  label="Storefront"
+                  url={vendorDetails?.storefrontUrl}
+                  onCapture={(url) => updateDetail('storefrontUrl', url)}
+                />
 
-                  {/* Storefront photo */}
-                  <PhotoButton
-                    label="Storefront"
-                    url={vendorDetails?.storefrontUrl}
-                    onCapture={(url) => updateDetail('storefrontUrl', url)}
-                  />
-
-                  {/* Map pin */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleGeoPin}
-                      disabled={geoState === 'loading'}
-                      className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
-                        geoState === 'loading' ? 'animate-pulse text-tea-text-dim' :
-                        geoState === 'done' ? 'text-tea-gold' :
-                        geoState === 'error' ? 'text-red-400' :
-                        'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
+                {/* Map pin */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGeoPin}
+                    disabled={geoState === 'loading'}
+                    className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
+                      geoState === 'loading' ? 'animate-pulse text-tea-text-dim' :
+                      geoState === 'done' ? 'text-tea-gold' :
+                      geoState === 'error' ? 'text-red-400' :
+                      'text-tea-text-dim hover:text-tea-text-sec'
+                    }`}
+                  >
+                    {geoState === 'done' ? <Check size={12} /> :
+                     geoState === 'loading' ? <Loader2 size={12} className="animate-spin" /> :
+                     <MapPin size={12} strokeWidth={1.5} />}
+                    <span>
+                      {geoState === 'done' ? 'Saved' :
+                       geoState === 'loading' ? 'Getting location...' :
+                       geoState === 'error' ? 'Failed' :
+                       vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}
+                    </span>
+                  </button>
+                  {vendorDetails?.lat != null && vendorDetails?.lng != null && (
+                    <a
+                      href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
                     >
-                      {geoState === 'done' ? <Check size={12} /> :
-                       geoState === 'loading' ? <Loader2 size={12} className="animate-spin" /> :
-                       <MapPin size={12} strokeWidth={1.5} />}
-                      <span>
-                        {geoState === 'done' ? 'Saved' :
-                         geoState === 'loading' ? 'Getting location...' :
-                         geoState === 'error' ? 'Failed' :
-                         vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}
-                      </span>
-                    </button>
-                    {vendorDetails?.lat != null && vendorDetails?.lng != null && (
-                      <a
-                        href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
-                      >
-                        <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
-                        <ExternalLink size={9} />
-                      </a>
-                    )}
-                  </div>
+                      <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
+                      <ExternalLink size={9} />
+                    </a>
+                  )}
+                </div>
 
-                  {/* Contact fields */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Phone size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="tel"
-                        value={vendorDetails?.phone || ''}
-                        onChange={(e) => updateDetail('phone', e.target.value || undefined)}
-                        placeholder="Phone"
-                        className="flex-1 bg-tea-surface text-tea-text text-[11px] rounded px-2 py-1 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="text"
-                        value={vendorDetails?.whatsapp || ''}
-                        onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
-                        placeholder="WhatsApp"
-                        className="flex-1 bg-tea-surface text-tea-text text-[11px] rounded px-2 py-1 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="text"
-                        value={vendorDetails?.wechat || ''}
-                        onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
-                        placeholder="WeChat"
-                        className="flex-1 bg-tea-surface text-tea-text text-[11px] rounded px-2 py-1 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
-                      <input
-                        type="text"
-                        value={vendorDetails?.line || ''}
-                        onChange={(e) => updateDetail('line', e.target.value || undefined)}
-                        placeholder="LINE"
-                        className="flex-1 bg-tea-surface text-tea-text text-[11px] rounded px-2 py-1 placeholder:text-tea-text-dim border-none outline-none"
-                      />
-                    </div>
+                {/* Contact fields */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Phone size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="tel"
+                      value={vendorDetails?.phone || ''}
+                      onChange={(e) => updateDetail('phone', e.target.value || undefined)}
+                      placeholder="Phone"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={vendorDetails?.whatsapp || ''}
+                      onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
+                      placeholder="WhatsApp"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={vendorDetails?.wechat || ''}
+                      onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
+                      placeholder="WeChat"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={vendorDetails?.line || ''}
+                      onChange={(e) => updateDetail('line', e.target.value || undefined)}
+                      placeholder="LINE"
+                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                    />
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
     </div>
   );

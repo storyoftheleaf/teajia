@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2 } from 'lucide-react';
+import { ChevronDown, Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Droplets } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { compassEntryToProductDraft } from './types';
@@ -257,6 +257,51 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                   <span>{entry.vendorName}</span>
                 </div>
               )}
+
+              {/* Taste / Want / Buy buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(entry.id);
+                  }}
+                  className="flex-1 text-sm font-semibold rounded-lg text-center py-3 transition-all bg-tea-surface text-tea-text-sec active:bg-tea-elevated flex items-center justify-center gap-1.5"
+                >
+                  <Droplets size={14} />
+                  Taste
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateEntry(entry.id, { status: entry.status === 'want' ? 'logged' : 'want' });
+                  }}
+                  className={`flex-1 text-sm font-semibold rounded-lg text-center py-3 transition-all ${
+                    entry.status === 'want'
+                      ? 'bg-amber-500/20 text-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
+                      : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+                  }`}
+                >
+                  Want
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateEntry(entry.id, { status: entry.status === 'buying' ? 'logged' : 'buying' });
+                  }}
+                  className={`flex-1 text-sm font-semibold rounded-lg text-center py-3 transition-all ${
+                    entry.status === 'buying'
+                      ? 'bg-tea-gold text-tea-bg shadow-[0_2px_8px_rgba(184,146,78,0.3)]'
+                      : entry.status === 'bought'
+                        ? 'bg-tea-gold/20 text-tea-gold shadow-[0_2px_8px_rgba(184,146,78,0.15)]'
+                        : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+                  }`}
+                >
+                  {entry.status === 'bought' ? 'Bought' : 'Buy'}
+                </button>
+              </div>
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-1">
