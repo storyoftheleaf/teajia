@@ -480,12 +480,9 @@ export const api = {
   uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const token = localStorage.getItem('adminToken');
     const res = await fetchWithTimeout(`${API_URL}/api/upload-image`, {
       method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: authHeaders(),
       body: formData,
     });
     const data = await handleResponse(res);
