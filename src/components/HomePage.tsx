@@ -101,7 +101,7 @@ const CharacterRevealCapture: React.FC = () => {
       {/* Fixed overlay — viewport-locked, immune to overflow/layout issues */}
       {isVisible && (
         <div
-          className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(49px+env(safe-area-inset-bottom,0px))]"
+          className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(44px+env(safe-area-inset-bottom,0px))]"
         >
           {/* Logo — drops from top, lands above the teaser lines */}
           <div
@@ -330,7 +330,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* ── Act 1: Above the fold ── */}
       <div
         className="relative flex flex-col items-center justify-between px-8"
-        style={{ minHeight: '100dvh', opacity: fadeOpacity }}
+        style={{ minHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px))', opacity: fadeOpacity }}
       >
 
         {/* Top spacer */}
@@ -408,7 +408,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Teaser — the cliffhanger that invites scrolling */}
         <motion.div
-          className="flex flex-col items-center pb-[calc(49px+env(safe-area-inset-bottom,0px)+18px)] lg:pb-[18px]"
+          className="flex flex-col items-center pb-4 lg:pb-[18px]"
           style={{ animation: 'teaserBreath 4s ease-in-out infinite' }}
           initial={initial({ opacity: 0 })}
           animate={{ opacity: 1 }}

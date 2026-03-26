@@ -267,7 +267,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
           whileTap={{ scale: 0.95 }}
           className="fixed right-5 z-30 w-12 h-12 rounded-full bg-tea-gold text-tea-bg
                      shadow-lg flex items-center justify-center
-                     bottom-[calc(1rem+49px+env(safe-area-inset-bottom,0px))]
+                     bottom-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]
                      lg:bottom-5"
           aria-label="New capture"
         >

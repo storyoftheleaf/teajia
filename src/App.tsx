@@ -418,7 +418,7 @@ const AppContent = () => {
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14' : 'lg:ml-56'} transition-[margin] duration-300 ${showAdminBar ? 'pt-9' : ''}`}>
 
-      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(49px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full max-w-7xl mx-auto flex-1 transition-opacity duration-300">
+      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full max-w-7xl mx-auto flex-1 transition-opacity duration-300">
           <AnimatePresence mode="wait">
           {isSectionTransitioning ? (
             <SectionSkeleton key="skeleton" variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
@@ -640,7 +640,7 @@ const AppContent = () => {
         onDismiss={dismissCartToast}
       />
 
-      <div role="status" aria-live="polite" className={`fixed bottom-[calc(49px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+      <div role="status" aria-live="polite" className={`fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>

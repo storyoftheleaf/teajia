@@ -278,7 +278,7 @@ const AdminContent = () => {
            )}
         </div>
 
-        <div className="flex-1 relative overflow-hidden pb-[calc(49px+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <div className="flex-1 relative overflow-hidden pb-[calc(44px+env(safe-area-inset-bottom,0px))] md:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Navigate to="inventory" replace />} />

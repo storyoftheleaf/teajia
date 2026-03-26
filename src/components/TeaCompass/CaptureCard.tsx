@@ -618,16 +618,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onAddedToLedger={onSwitchToLedger}
         />
 
-        {/* Layer 2: Category, Material, Notes (when name has content) */}
-        <AnimatePresence>
-          {hasTeawareName && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="overflow-hidden space-y-3"
-            >
+        {/* Layer 2: Category, Material, Notes */}
+            <div className="space-y-3">
               {/* Panel 3: Category & Material */}
               <div className="rounded-lg space-y-3">
               {/* Category */}
@@ -709,12 +701,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onNotesChange={(notes) => update({ notes })}
               />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
 
-        {/* Quantity stepper — only if name is entered */}
-        {hasTeawareName && (
+        {/* Quantity stepper */}
           <div className="space-y-1.5">
             <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Quantity</label>
             <div className="flex items-center gap-3">
@@ -737,12 +726,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             </div>
           </div>
-        )}
       </div>
     );
   }
 
-  // ── Tea card layout — progressive disclosure ────────────────────────
+  // ── Tea card layout ────────────────────────
   return (
     <div className="bg-tea-surface rounded-lg p-3 space-y-3">
       {/* ─── LAYER 1: Always visible ─── */}
@@ -842,16 +830,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         onAddedToLedger={onSwitchToLedger}
       />
 
-      {/* ─── LAYER 2: Reveals when name has content ─── */}
-      <AnimatePresence>
-        {hasName && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden space-y-3"
-          >
+      {/* ─── LAYER 2: Type, Form, Notes ─── */}
+          <div className="space-y-3">
             {/* Panel 3: Type & Form */}
             <div className="rounded-lg">
             <div className="flex items-center gap-2 flex-wrap">
@@ -940,12 +920,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onNotesChange={(notes) => update({ notes })}
               />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
 
       {/* ─── LAYER 3: Details collapsible ─── */}
-      {hasName && (
         <DetailsRow
           year={entry.year}
           season={entry.season}
@@ -964,7 +941,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onOpenTasting={openTastingOverlay}
           onTastingStripRemove={handleTastingStripRemove}
         />
-      )}
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>
