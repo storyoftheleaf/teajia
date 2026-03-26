@@ -13,9 +13,9 @@
 
 ## MANDATORY: Bottom Navigation Clearance
 
-**No modal, overlay, drawer, or floating element may overlap the bottom navigation bar.** The bottom tab bar is `h-[49px]` plus `env(safe-area-inset-bottom)`. Any full-screen or bottom-anchored UI must account for this:
-- Use `calc(100dvh - 49px - env(safe-area-inset-bottom, 0px))` for full-height modals on mobile
-- Use `bottom-[49px]` or equivalent for sticky/fixed bottom elements on mobile (below `lg:` breakpoint)
+**No modal, overlay, drawer, or floating element may overlap the bottom navigation bar.** The bottom tab bar is `h-[44px]` plus `env(safe-area-inset-bottom)`. Any full-screen or bottom-anchored UI must account for this:
+- Use `calc(100dvh - 44px - env(safe-area-inset-bottom, 0px))` for full-height modals on mobile
+- Use `bottom-[44px]` or equivalent for sticky/fixed bottom elements on mobile (below `lg:` breakpoint)
 - The bottom nav only renders below `lg:` — on desktop (`lg:` and up) this clearance is not needed
 
 ## MANDATORY: Centralized Component Styles

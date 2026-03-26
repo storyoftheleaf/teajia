@@ -2946,7 +2946,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed inset-0 bottom-[calc(49px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-30 bg-tea-bg flex flex-col panel-sidebar"
+              className="fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-30 bg-tea-bg flex flex-col panel-sidebar"
             >
               {/* Panel Header — Row 1: Nav */}
               <div className="flex items-center justify-between px-4 pt-3 pb-1 bg-tea-surface/30">
@@ -3599,7 +3599,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
             </motion.div>
             {/* Mobile backdrop — stop above bottom nav */}
-            <div className="fixed inset-0 bottom-[calc(49px+env(safe-area-inset-bottom))] z-20 bg-tea-text/50 md:hidden" onClick={() => setPanelProduct(null)} />
+            <div className="fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] z-20 bg-tea-text/50 md:hidden" onClick={() => setPanelProduct(null)} />
           </>
           );
         })()}

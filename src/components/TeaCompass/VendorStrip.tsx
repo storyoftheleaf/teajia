@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, X, Search, Plus, Camera, Check, Phone,
   MessageCircle, ChevronDown, ExternalLink, Loader2,
+  Contact, Image,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -117,6 +118,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [contactMenuOpen, setContactMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(false);
@@ -125,6 +127,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const searchRef = useRef<HTMLInputElement>(null);
   const newNameRef = useRef<HTMLInputElement>(null);
+  const contactMenuRef = useRef<HTMLDivElement>(null);
+  const businessCardRef = useRef<HTMLInputElement>(null);
+  const storefrontRef = useRef<HTMLInputElement>(null);
 
   // Recent vendors from compass store
   const entries = useTeaCompassStore((s) => s.entries);
@@ -221,6 +226,43 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     );
   };
 
+  // Close contact menu on outside click
+  useEffect(() => {
+    if (!contactMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (contactMenuRef.current && !contactMenuRef.current.contains(e.target as Node)) {
+        setContactMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [contactMenuOpen]);
+
+  const handleContactPhoto = async (
+    inputRef: React.RefObject<HTMLInputElement | null>,
+    key: 'businessCardUrl' | 'storefrontUrl'
+  ) => {
+    inputRef.current?.click();
+  };
+
+  const handleContactFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    key: 'businessCardUrl' | 'storefrontUrl'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const compressed = await compressImage(file, 1200, 0.7);
+      const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
+      const imageUrl = await api.uploadImage(compressedFile);
+      if (imageUrl) {
+        updateDetail(key, imageUrl);
+      }
+    } catch { /* ignore */ }
+    setContactMenuOpen(false);
+  };
+
   const hasDetails = vendorDetails && (
     vendorDetails.businessCardUrl || vendorDetails.storefrontUrl ||
     vendorDetails.lat != null || vendorDetails.phone ||
@@ -231,18 +273,79 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     <div className="space-y-0">
       {/* ── Strip row ── */}
       <div className="flex items-center gap-2 text-sm text-tea-text-sec py-1">
-        {/* Details icon — far left, only when vendor is selected */}
+        {/* Contact button — far left, only when vendor is selected */}
         {vendorName && !pickerOpen ? (
-          <button
-            type="button"
-            onClick={() => setDetailsOpen((o) => !o)}
-            className={`flex-shrink-0 p-1 transition-colors ${
-              detailsOpen || hasDetails ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-            }`}
-            aria-label={hasDetails ? 'Vendor details' : 'Add vendor details'}
-          >
-            <MapPin size={14} />
-          </button>
+          <div className="relative flex-shrink-0" ref={contactMenuRef}>
+            <button
+              type="button"
+              onClick={() => setContactMenuOpen((o) => !o)}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                contactMenuOpen || hasDetails ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-surface text-tea-text-dim hover:text-tea-text-sec'
+              }`}
+              aria-label="Vendor contact options"
+            >
+              <Contact size={16} strokeWidth={1.5} />
+            </button>
+
+            {/* Contact popover menu */}
+            <AnimatePresence>
+              {contactMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-1.5 shadow-lg border border-tea-border/30 min-w-[180px]"
+                >
+                  {/* Hidden file inputs */}
+                  <input ref={businessCardRef} type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={(e) => handleContactFileChange(e, 'businessCardUrl')} />
+                  <input ref={storefrontRef} type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={(e) => handleContactFileChange(e, 'storefrontUrl')} />
+
+                  <button
+                    type="button"
+                    onClick={() => businessCardRef.current?.click()}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                  >
+                    <Camera size={14} strokeWidth={1.5} />
+                    <span className="text-[13px]">{vendorDetails?.businessCardUrl ? 'Update business card' : 'Business card'}</span>
+                    {vendorDetails?.businessCardUrl && <Check size={12} className="ml-auto text-tea-gold" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => storefrontRef.current?.click()}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                  >
+                    <Image size={14} strokeWidth={1.5} />
+                    <span className="text-[13px]">{vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
+                    {vendorDetails?.storefrontUrl && <Check size={12} className="ml-auto text-tea-gold" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { handleGeoPin(); setContactMenuOpen(false); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                  >
+                    <MapPin size={14} strokeWidth={1.5} />
+                    <span className="text-[13px]">{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
+                    {vendorDetails?.lat != null && <Check size={12} className="ml-auto text-tea-gold" />}
+                  </button>
+                  <div className="h-px bg-tea-border/30 my-1" />
+                  <button
+                    type="button"
+                    onClick={() => { setDetailsOpen((o) => !o); setContactMenuOpen(false); }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                  >
+                    <Phone size={14} strokeWidth={1.5} />
+                    <span className="text-[13px]">Contact details</span>
+                    {(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) && (
+                      <Check size={12} className="ml-auto text-tea-gold" />
+                    )}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         ) : (
           <MapPin size={14} className="text-tea-text-dim flex-shrink-0" />
         )}
@@ -382,55 +485,29 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               className="overflow-hidden"
             >
               <div className="pt-2 pb-1 space-y-3">
-                {/* Business card photo */}
-                <PhotoButton
-                  label="Business card"
-                  url={vendorDetails?.businessCardUrl}
-                  onCapture={(url) => updateDetail('businessCardUrl', url)}
-                />
-
-                {/* Storefront photo */}
-                <PhotoButton
-                  label="Storefront"
-                  url={vendorDetails?.storefrontUrl}
-                  onCapture={(url) => updateDetail('storefrontUrl', url)}
-                />
-
-                {/* Map pin */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleGeoPin}
-                    disabled={geoState === 'loading'}
-                    className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
-                      geoState === 'loading' ? 'animate-pulse text-tea-text-dim' :
-                      geoState === 'done' ? 'text-tea-gold' :
-                      geoState === 'error' ? 'text-red-400' :
-                      'text-tea-text-dim hover:text-tea-text-sec'
-                    }`}
-                  >
-                    {geoState === 'done' ? <Check size={12} /> :
-                     geoState === 'loading' ? <Loader2 size={12} className="animate-spin" /> :
-                     <MapPin size={12} strokeWidth={1.5} />}
-                    <span>
-                      {geoState === 'done' ? 'Saved' :
-                       geoState === 'loading' ? 'Getting location...' :
-                       geoState === 'error' ? 'Failed' :
-                       vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}
-                    </span>
-                  </button>
-                  {vendorDetails?.lat != null && vendorDetails?.lng != null && (
-                    <a
-                      href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
-                    >
-                      <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
-                      <ExternalLink size={9} />
-                    </a>
-                  )}
-                </div>
+                {/* Photos & location summary (if any) */}
+                {(vendorDetails?.businessCardUrl || vendorDetails?.storefrontUrl || vendorDetails?.lat != null) && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {vendorDetails?.businessCardUrl && (
+                      <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-10 h-10 rounded object-cover" />
+                    )}
+                    {vendorDetails?.storefrontUrl && (
+                      <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-10 h-10 rounded object-cover" />
+                    )}
+                    {vendorDetails?.lat != null && vendorDetails?.lng != null && (
+                      <a
+                        href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
+                      >
+                        <MapPin size={10} />
+                        <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
+                        <ExternalLink size={9} />
+                      </a>
+                    )}
+                  </div>
+                )}
 
                 {/* Contact fields */}
                 <div className="space-y-1.5">

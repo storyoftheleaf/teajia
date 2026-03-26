@@ -71,7 +71,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={product?.productName || 'Tea details'}
-      className="fixed inset-0 bottom-[calc(49px+env(safe-area-inset-bottom))] lg:bottom-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] lg:bottom-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
       onClick={onClose}
     >
       {/* Scrollbar + responsive card height styles */}
@@ -83,9 +83,9 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .alcove-modal-card { height: calc(100dvh - 49px - env(safe-area-inset-bottom)); height: calc(100vh - 49px); }
+        .alcove-modal-card { height: calc(100dvh - 44px - env(safe-area-inset-bottom)); height: calc(100vh - 44px); }
         @supports (height: 100dvh) {
-          .alcove-modal-card { height: calc(100dvh - 49px - env(safe-area-inset-bottom)); }
+          .alcove-modal-card { height: calc(100dvh - 44px - env(safe-area-inset-bottom)); }
         }
         @media (min-width: 768px) {
           .alcove-modal-card { height: min(90vh, 720px); }

@@ -224,8 +224,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
           {/* On desktop, constrain size */}
           <style>{`
             [data-alcove-card-wrapper] {
-              height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
-              max-height: calc(100dvh - 49px - env(safe-area-inset-bottom, 0px));
+              height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
+              max-height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
             }
             @media (min-width: 768px) {
               [data-alcove-card-wrapper] {
