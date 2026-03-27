@@ -5,10 +5,8 @@ interface TiltValues {
   rotateY: number;
 }
 
-export function useGyroscopeTilt(): TiltValues & { requestPermission: () => void; needsPermission: boolean } {
+export function useGyroscopeTilt(): TiltValues {
   const [tilt, setTilt] = useState<TiltValues>({ rotateX: 0, rotateY: 0 });
-  const [needsPermission, setNeedsPermission] = useState(false);
-  const [permissionGranted, setPermissionGranted] = useState(false);
 
   const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val));
 
@@ -28,35 +26,23 @@ export function useGyroscopeTilt(): TiltValues & { requestPermission: () => void
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const DOE = DeviceOrientationEvent as any;
     if (typeof DOE.requestPermission === 'function') {
-      setNeedsPermission(true);
-      return;
+      // iOS 13+ — silently try on first user interaction
+      const tryPermission = async () => {
+        try {
+          const result = await DOE.requestPermission();
+          if (result === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+          }
+        } catch { /* denied or unavailable */ }
+        document.removeEventListener('touchstart', tryPermission, { capture: true });
+      };
+      document.addEventListener('touchstart', tryPermission, { once: true, capture: true });
+      return () => document.removeEventListener('touchstart', tryPermission, { capture: true } as EventListenerOptions);
     }
 
     window.addEventListener('deviceorientation', handleOrientation, true);
     return () => window.removeEventListener('deviceorientation', handleOrientation, true);
   }, [handleOrientation]);
 
-  useEffect(() => {
-    if (!permissionGranted) return;
-    window.addEventListener('deviceorientation', handleOrientation, true);
-    return () => window.removeEventListener('deviceorientation', handleOrientation, true);
-  }, [permissionGranted, handleOrientation]);
-
-  const requestPermission = useCallback(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const DOE = DeviceOrientationEvent as any;
-    if (typeof DOE.requestPermission === 'function') {
-      try {
-        const result = await DOE.requestPermission();
-        if (result === 'granted') {
-          setNeedsPermission(false);
-          setPermissionGranted(true);
-        }
-      } catch {
-        // Permission denied or unavailable
-      }
-    }
-  }, []);
-
-  return { ...tilt, requestPermission, needsPermission };
+  return tilt;
 }

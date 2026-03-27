@@ -304,16 +304,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             {/* Gold accent line — grows on hover */}
             <div className="article-card-accent" />
 
-            {/* iOS gyroscope permission button — only shown when needed */}
-            {needsPermission && (
-              <button
-                onClick={(e) => { e.stopPropagation(); requestPermission(); }}
-                className="absolute bottom-3 left-3 z-20 px-2 py-1 text-[10px] rounded-sm bg-tea-surface/70 text-tea-text-sec backdrop-blur-sm transition-opacity duration-200 opacity-60 hover:opacity-100"
-              >
-                Enable tilt
-              </button>
-            )}
-
             {/* Bottom text overlay — always light text on dark scrim */}
             <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
               <h3 className="font-serif text-[17px] md:text-[21px] text-neutral-100 leading-[1.15] tracking-[0.01em] line-clamp-2 mb-1 group-hover:text-tea-gold transition-colors duration-500">

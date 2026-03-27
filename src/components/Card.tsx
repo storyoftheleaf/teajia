@@ -28,7 +28,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, onToggleSave, onShare }) => {
   const { ref: parallaxRef, offset } = useParallax(0.02);
-  const { rotateX, rotateY, requestPermission, needsPermission } = useGyroscopeTilt();
+  const { rotateX, rotateY } = useGyroscopeTilt();
   const [quickAction, setQuickAction] = React.useState<{ x: number; y: number } | null>(null);
 
   const longPressHandlers = useLongPress({
@@ -154,16 +154,6 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                      {story.description}
                    </p>
                  </div>
-               )}
-
-               {/* Enable tilt prompt (iOS) */}
-               {needsPermission && (
-                 <button
-                   onClick={(e) => { e.stopPropagation(); requestPermission(); }}
-                   className="absolute top-2 right-2 z-30 text-[8px] uppercase tracking-wider text-tea-text/40 font-sans bg-tea-bg/50 backdrop-blur-sm px-1.5 py-0.5 rounded-sm"
-                 >
-                   Enable tilt
-                 </button>
                )}
 
                {/* Category Badge */}
