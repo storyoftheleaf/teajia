@@ -255,31 +255,30 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     <div className="space-y-0">
       {/* ── Strip row ── */}
       <div className="flex items-center gap-2 text-sm text-tea-text-sec py-1">
-        {/* Contact button — far left, only when vendor is selected */}
-        {vendorName && !pickerOpen ? (
-          <div className="relative flex-shrink-0" ref={contactMenuRef}>
-            <button
-              type="button"
-              onClick={() => setContactMenuOpen((o) => !o)}
-              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
-                contactMenuOpen || hasDetails ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-surface text-tea-text-dim hover:text-tea-text-sec'
-              }`}
-              aria-label="Vendor contact options"
-            >
-              <Contact size={16} strokeWidth={1.5} />
-            </button>
+        {/* Contact button — always visible */}
+        <div className="relative flex-shrink-0" ref={contactMenuRef}>
+          <button
+            type="button"
+            onClick={() => setContactMenuOpen((o) => !o)}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+              contactMenuOpen || hasDetails ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-surface text-tea-text-dim hover:text-tea-text-sec'
+            }`}
+            aria-label="Vendor contact options"
+          >
+            <Contact size={16} strokeWidth={1.5} />
+          </button>
 
-            {/* Contact popover menu */}
-            <AnimatePresence>
-              {contactMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-1.5 shadow-lg border border-tea-border/30 min-w-[180px]"
-                >
-                  {/* Hidden file inputs */}
+          {/* Contact popover menu */}
+          <AnimatePresence>
+            {contactMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-1.5 shadow-lg border border-tea-border/30 min-w-[180px]"
+              >
+                {/* Hidden file inputs */}
                   <input ref={businessCardRef} type="file" accept="image/*" capture="environment" className="hidden"
                     onChange={(e) => handleContactFileChange(e, 'businessCardUrl')} />
                   <input ref={storefrontRef} type="file" accept="image/*" capture="environment" className="hidden"
@@ -325,12 +324,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     )}
                   </button>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ) : (
-          <MapPin size={14} className="text-tea-text-dim flex-shrink-0" />
-        )}
+            )}
+          </AnimatePresence>
+        </div>
         {vendorName ? (
           <>
             <button
@@ -436,8 +432,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── Vendor details expandable (triggered by MapPin icon in strip row) ── */}
-      {vendorName && !pickerOpen && (
+      {/* ── Vendor details expandable (triggered by contact icon) ── */}
+      {!pickerOpen && (
         <AnimatePresence>
           {detailsOpen && (
             <motion.div
