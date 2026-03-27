@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 
 const DEFAULT_PHONE = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
@@ -15,11 +16,6 @@ interface ProductInquiryProps {
 type InquiryChannel = 'choose' | 'whatsapp' | 'email';
 
 const INPUT_CLASS = 'w-full bg-tea-surface border border-tea-border p-3 text-tea-text text-base outline-none focus:border-tea-gold rounded-sm';
-
-function buildWhatsAppUrl(productName: string, phone: string): string {
-  const message = `Hi, I'd like to inquire about: ${productName}\n\nPlease let me know about availability and details. Thank you!`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-}
 
 export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone = DEFAULT_PHONE }) => {
   useScrollLock(isOpen);
@@ -43,7 +39,8 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
   };
 
   const handleWhatsApp = () => {
-    window.open(buildWhatsAppUrl(productName, phone), '_blank');
+    const message = `Hi, I'd like to inquire about: ${productName}\n\nPlease let me know about availability and details. Thank you!`;
+    window.open(buildWhatsAppUrl(phone, message), '_blank');
     handleClose();
   };
 

@@ -441,7 +441,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center justify-center gap-2 py-4 rounded-lg bg-green-600/20 text-green-400"
+                  className="flex items-center justify-center gap-2 py-4 rounded-lg bg-tea-gold/15 text-tea-gold"
                 >
                   <Check size={20} />
                   <span className="text-base font-medium uppercase tracking-wider">Purchase confirmed</span>

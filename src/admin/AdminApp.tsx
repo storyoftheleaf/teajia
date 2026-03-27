@@ -68,8 +68,8 @@ const AdminContent = () => {
 
   // Zustand Store
   const {
-    cart, isCartOpen, currency, isDevAdmin,
-    addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart
+    cart, isCartOpen, currency, isDevAdmin, cartDirection,
+    addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart, openPurchaseOrder
   } = useAppStore();
 
   const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
@@ -198,6 +198,7 @@ const AdminContent = () => {
         setIsMobileOpen={setIsMobileOpen}
         cartItemCount={cart.length}
         onOpenCart={() => setIsCartOpen(true)}
+        onOpenPurchase={() => openPurchaseOrder()}
       />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
@@ -361,7 +362,7 @@ const AdminContent = () => {
                 >
                     <div className="flex items-center gap-2 font-bold text-sm">
                         <span className="bg-tea-bg text-tea-accent w-5 h-5 rounded-full flex items-center justify-center text-[10px]">{cart.length}</span>
-                        <span className="uppercase tracking-[0.2em] text-xs">View Registry</span>
+                        <span className="uppercase tracking-[0.2em] text-xs">{cartDirection === 'purchase' ? 'View Order' : 'View Registry'}</span>
                     </div>
                     <ArrowRight size={16} />
                 </button>

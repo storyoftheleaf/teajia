@@ -375,7 +375,7 @@ const CustomerDetail = ({
                                 placeholder="Search teas..."
                                 value={linkSearch}
                                 onChange={e => setLinkSearch(e.target.value)}
-                                className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none"
+                                className="w-full input-warm rounded-lg px-3 py-1.5 text-xs outline-none"
                                 autoFocus
                               />
                             </div>

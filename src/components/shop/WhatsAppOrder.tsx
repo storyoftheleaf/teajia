@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 
 const DEFAULT_PHONE = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
@@ -8,13 +9,6 @@ interface WhatsAppOrderProps {
   productName?: string;
   cartItems?: { name: string; quantity: string }[];
   phone?: string;
-}
-
-function buildWhatsAppUrl(items: string[], phone: string): string {
-  let message = "Hi, I'd like to order:\n\n";
-  items.forEach(item => { message += `- ${item}\n`; });
-  message += "\nPlease let me know about pickup/delivery. Thank you!";
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
 
 export const WhatsAppOrder: React.FC<WhatsAppOrderProps> = ({
@@ -30,7 +24,10 @@ export const WhatsAppOrder: React.FC<WhatsAppOrderProps> = ({
         : [];
 
     if (items.length === 0) return;
-    window.open(buildWhatsAppUrl(items, phone), '_blank');
+    let message = "Hi, I'd like to order:\n\n";
+    items.forEach(item => { message += `- ${item}\n`; });
+    message += "\nPlease let me know about pickup/delivery. Thank you!";
+    window.open(buildWhatsAppUrl(phone, message), '_blank');
   };
 
   return (

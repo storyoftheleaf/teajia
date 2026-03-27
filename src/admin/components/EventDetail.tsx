@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Check, Link2, MessageCircle, Lock, Edit3, Loader2, Users, Clock, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useEvent, useAttendees } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { EventForm } from './EventForm';
@@ -64,7 +65,7 @@ export const EventDetail: React.FC = () => {
 
   const eventUrl = `${window.location.origin}/event/${event.slug}`;
   const goldenUrl = `${eventUrl}?access=golden`;
-  const whatsappLink = `https://wa.me/?text=${encodeURIComponent(`You're invited to ${event.title}!\n\n${eventUrl}`)}`;
+  const whatsappLink = buildWhatsAppUrl('', `You're invited to ${event.title}!\n\n${eventUrl}`);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {

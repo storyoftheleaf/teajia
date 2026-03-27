@@ -271,7 +271,7 @@ const GhostTextarea = ({
             onBlur={handleBlur}
             placeholder={placeholder}
             rows={rows}
-            className={`w-full bg-transparent border border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
 };
@@ -329,7 +329,7 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
 };
@@ -342,7 +342,7 @@ const GhostSelect = ({ value, onSave, options, className = '' }: {
         <select
             value={value}
             onChange={(e) => onSave(e.target.value)}
-            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-none py-0 px-0 pr-4 outline-none transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
         >
             {options.map(opt => (
                 <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
@@ -556,7 +556,7 @@ const TagInput = ({ suggestions, value, onSave, multiple = true, placeholder = '
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
-                className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none transition-all text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
             />
             {showDropdown && input && filtered.length > 0 && (
                 <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-md shadow-lg max-h-32 overflow-y-auto">
@@ -2864,7 +2864,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="w-full pt-4">
                         <input 
                             type="text" 
-                            className="w-full bg-tea-surface border border-tea-accent-sub rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
+                            className="w-full input-warm rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
                             value={resetInput}
                             onChange={(e) => setResetInput(e.target.value)}
                             placeholder='Type "delete" to confirm'
@@ -3124,7 +3124,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             handleProductUpdate(panelProduct.id, 'vendor', val);
                             setPanelProduct(prev => prev ? { ...prev, vendor: val } : null);
                           }}
-                          className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-surface/30 rounded-none py-0 px-0 outline-none transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                          className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
                       </div>
                     </div>

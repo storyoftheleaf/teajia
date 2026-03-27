@@ -37,6 +37,7 @@ export const validateInventoryItem = (item: any): InventoryItem | null => {
   const multiplier = typeof item.multiplier === 'number' && item.multiplier > 0 ? item.multiplier : 3;
 
   // Validate price fields based on category
+  // For tea: price_per_gram is per-gram price. For teaware: price_50g is actually per-unit price (name is legacy).
   const priceField = item.category === 'tea' ? 'price_per_gram' : 'price_50g';
   const price = validatePrice(item[priceField]);
 

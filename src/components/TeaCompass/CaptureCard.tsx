@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Minus, Plus, X } from 'lucide-react';
+import { Camera, Check, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -41,6 +41,8 @@ interface CaptureCardProps {
   entryId: string;
   /** Called when user adds an item to the ledger, to switch to ledger tab */
   onSwitchToLedger?: () => void;
+  /** Called when user commits/finalizes an entry */
+  onCommit?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -51,9 +53,10 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -432,6 +435,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setDuplicateMatch(null);
   }, [duplicateMatch]);
 
+  const handleCommit = useCallback(() => {
+    commitEntry(entryId);
+    onCommit?.();
+  }, [commitEntry, entryId, onCommit]);
+
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
   if (!entry) return null;
@@ -554,7 +562,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="What is it?"
-            className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors placeholder:text-tea-text-dim"
           />
         </div>
 
@@ -573,7 +581,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   const val = e.target.value;
                   update({ priceAmount: val === '' ? undefined : Number(val) });
                 }}
-                className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors text-base tabular-nums
                            [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 style={{ MozAppearance: 'textfield' } as React.CSSProperties}
               />
@@ -590,7 +598,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   const val = e.target.value;
                   update({ capacityMl: val === '' ? undefined : Number(val) });
                 }}
-                className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base tabular-nums
+                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors text-base tabular-nums
                            [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 style={{ MozAppearance: 'textfield' } as React.CSSProperties}
               />
@@ -689,7 +697,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   onChange={(val) => update({ originRegion: val || undefined })}
                   suggestions={availableRegions}
                   placeholder="e.g. Yixing, Jingdezhen..."
-                  className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors"
+                  className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors"
                 />
               </div>
               </div>
@@ -726,6 +734,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             </div>
           </div>
+
+        {/* Done — commit entry */}
+        {hasTeawareName && (
+          <button
+            type="button"
+            onClick={handleCommit}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
+                       bg-tea-surface/60 text-tea-text-sec text-sm font-medium
+                       hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                       transition-all mt-1"
+          >
+            <Check size={15} strokeWidth={2} />
+            Done
+          </button>
+        )}
       </div>
     );
   }
@@ -752,7 +775,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-surface/60 text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors min-w-0 placeholder:text-tea-text-sec/50"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -766,7 +789,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className="w-20 shrink-0 bg-tea-surface/60 text-tea-text text-base rounded-md px-2 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors tabular-nums text-center
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-2 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors tabular-nums text-center
                        [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
@@ -941,6 +964,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onOpenTasting={openTastingOverlay}
           onTastingStripRemove={handleTastingStripRemove}
         />
+
+      {/* Done — commit entry */}
+      {hasName && (
+        <button
+          type="button"
+          onClick={handleCommit}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
+                     bg-tea-surface/60 text-tea-text-sec text-sm font-medium
+                     hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                     transition-all"
+        >
+          <Check size={15} strokeWidth={2} />
+          Done
+        </button>
+      )}
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

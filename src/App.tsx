@@ -28,6 +28,7 @@ const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const GuestManagement = lazy(() => import('./components/events/GuestManagement'));
 const ProductPage = lazy(() => import('./pages/ProductPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
 
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
@@ -39,6 +40,7 @@ import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
+import { CartIndicator } from './components/shared/CartIndicator';
 import { LearnHub } from './components/LearnHub';
 import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
@@ -246,10 +248,24 @@ const AppContent = () => {
   }, [stories]);
 
   const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
-    // Trigger fly animation from center of screen to cart icon
+    if (item.stock_g !== undefined && item.stock_g <= 0) {
+      setCartToast({ itemName: `${item.name} is sold out`, cartCount: useAppStore.getState().publicCart.length });
+      return;
+    }
+
+    // Use click origin if available, fall back to screen center
+    let originX = window.innerWidth / 2 - 24;
+    let originY = window.innerHeight / 2;
+    const active = document.activeElement as HTMLElement;
+    if (active && active !== document.body) {
+      const rect = active.getBoundingClientRect();
+      originX = rect.left + rect.width / 2;
+      originY = rect.top + rect.height / 2;
+    }
+
     setFlyAnimation({
-      x: window.innerWidth / 2 - 24,
-      y: window.innerHeight / 2,
+      x: originX,
+      y: originY,
       image: item.image,
     });
 
@@ -498,6 +514,7 @@ const AppContent = () => {
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestManagement /></Suspense></ErrorBoundary>} />
+                <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><OrderStatusPage /></Suspense></ErrorBoundary>} />
                 <Route path="/reset-password" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ResetPasswordPage /></Suspense></ErrorBoundary>} />
                 {/* 404 Page */}
                 <Route path="*" element={
@@ -576,6 +593,9 @@ const AppContent = () => {
          <ShareModal story={sharingStory} onClose={() => setSharingStory(null)} />
       )}
 
+      {/* Floating cart indicator — mobile only, all pages */}
+      <CartIndicator itemCount={cart.length} onOpen={handleOpenCart} />
+
       <CartPanel
          mode="public"
          isOpen={isCartOpen}
@@ -583,6 +603,7 @@ const AppContent = () => {
          cart={cart}
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
+         onAddItem={addToPublicCart}
       />
 
       {/* --- GLOBAL SEARCH --- */}
@@ -647,7 +668,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={false} onAccountClick={handleOpenAccount} />
+      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} hidden={false} onAccountClick={handleOpenAccount} />
 
       </div>
     </div>

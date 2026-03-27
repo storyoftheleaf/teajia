@@ -584,6 +584,23 @@ input[type="number"]::-webkit-outer-spin-button {
    comes from background tint + text color only.
    ============================================ */
 
+/* --- Warm Input Field --- */
+/* Use on: text inputs, textareas, selects across public-facing UI */
+.input-warm {
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.15);
+  border-radius: 6px;
+  color: var(--tea-text);
+  outline: none;
+  transition: border-color 150ms ease;
+}
+.input-warm:focus {
+  border-color: rgb(var(--tea-gold-rgb) / 0.40);
+}
+.input-warm::placeholder {
+  color: var(--tea-text-dim);
+}
+
 /* --- Toggle Pill (on/off switches) --- */
 /* Use on: sidebar toggle buttons, filter chips, boolean flags */
 .pill {
@@ -660,8 +677,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .badge-status-green {
-  background: rgba(34, 197, 94, 0.10);
-  color: #4ade80;
+  background: rgba(184, 146, 78, 0.12);
+  color: var(--tea-gold-lt, #c9b17a);
 }
 
 .badge-status-red {

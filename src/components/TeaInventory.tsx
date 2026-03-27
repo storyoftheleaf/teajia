@@ -184,6 +184,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                 const aFeat = a.isFeatured ? 1 : 0;
                 const bFeat = b.isFeatured ? 1 : 0;
                 if (aFeat !== bFeat) return bFeat - aFeat;
+                // Tea uses price_per_gram; teaware/misc uses price_50g (which is actually per-unit price — legacy field name)
                 const priceA = parseFloat(a.price_per_gram || a.price_50g || '0');
                 const priceB = parseFloat(b.price_per_gram || b.price_50g || '0');
                 return priceA - priceB;

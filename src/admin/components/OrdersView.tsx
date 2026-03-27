@@ -546,6 +546,11 @@ export const OrdersView = () => {
                 </div>
               ))}
             </div>
+            {confirmState.invoice?.status === 'Pending' && (
+              <p className="text-xs text-tea-text-sec italic mt-2">
+                Stock was reserved when this order was created. Fulfilling will finalize the deduction.
+              </p>
+            )}
           </div>
         )}
       </ConfirmModal>

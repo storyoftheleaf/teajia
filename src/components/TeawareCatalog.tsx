@@ -215,6 +215,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           priceDisplay={
                             <span className="card-grid-price">
                               <span className="num">{fmtPrice(parseFloat(item.price_50g))}</span>
+                              <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                             </span>
                           }
                         />
@@ -249,6 +250,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     priceDisplay={
                       <span className="card-grid-price">
                         <span className="num">{fmtPrice(parseFloat(item.price_50g))}</span>
+                        <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                       </span>
                     }
                   />
@@ -343,6 +345,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             )}
                             <div className="text-right">
                               <span className="num text-sm text-tea-gold">{fmtPrice(unitPrice)}</span>
+                              <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                             </div>
                             <Icons.Next className="w-4 h-4 text-tea-text/20 shrink-0" />
                           </div>

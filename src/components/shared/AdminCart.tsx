@@ -2,14 +2,47 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink } from 'lucide-react';
+import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
+import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { TeaIllustration } from '../../admin/components/TeaIllustration';
 import { useCustomers } from '../../admin/hooks/useAdminData';
+import { useAppStore } from '../../lib/store';
+
+// ── String similarity (Levenshtein-based) ────────────────────────────────────
+
+function similarity(a: string, b: string): number {
+  const al = a.toLowerCase().trim();
+  const bl = b.toLowerCase().trim();
+  if (al === bl) return 1;
+  if (!al || !bl) return 0;
+  const longer = al.length > bl.length ? al : bl;
+  const shorter = al.length > bl.length ? bl : al;
+  if (longer.length === 0) return 1;
+  const costs: number[] = [];
+  for (let i = 0; i <= shorter.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= longer.length; j++) {
+      if (i === 0) { costs[j] = j; continue; }
+      if (j > 0) {
+        let newValue = costs[j - 1];
+        if (shorter[i - 1] !== longer[j - 1]) {
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        }
+        costs[j - 1] = lastValue;
+        lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[longer.length] = lastValue;
+  }
+  return (longer.length - costs[longer.length]) / longer.length;
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+export type TransactionDirection = 'sale' | 'purchase';
 
 export interface AdminCartProps {
   cart: AdminCartItem[];
@@ -26,10 +59,16 @@ export interface AdminCartProps {
 export const AdminCart: React.FC<AdminCartProps> = ({
   cart, setCart, onClearCart, onSuccess, onClose, rates, showToast,
 }) => {
+  // ── Direction (sale vs purchase) ──────────────────────────────────────
+  const direction = useAppStore((s) => s.cartDirection);
+  const storeVendorName = useAppStore((s) => s.cartVendorName);
+  const setCartDirection = useAppStore((s) => s.setCartDirection);
+  const isPurchase = direction === 'purchase';
+
   // ── State ──────────────────────────────────────────────────────────────
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState(isPurchase ? storeVendorName : '');
   const [customerPhone, setCustomerPhone] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
@@ -48,6 +87,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [validationError, setValidationError] = useState('');
   const [lastInvoice, setLastInvoice] = useState<any>(null);
   const [transactionComplete, setTransactionComplete] = useState(false);
+  const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
 
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -61,6 +101,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     setCustomerName(value);
     setValidationError('');
     setSelectedCustomerId(null);
+    setDedupSuggestion(null);
 
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
@@ -111,20 +152,98 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     setUndoState({ prevCart, label: removed.product.givenName, timeout });
   };
 
-  // ── Invoice creation ──────────────────────────────────────────────────
+  // ── Purchase order message generation ─────────────────────────────────
+
+  const generatePurchaseMessage = (): string => {
+    const date = new Date().toLocaleDateString();
+    let msg = `PURCHASE ORDER [TEAJIA]\nDate: ${date}\nVendor: ${customerName}\n\nITEMS:\n`;
+    cart.forEach(item => {
+      const unit = item.product.type === 'Teaware' ? 'units' : 'g';
+      msg += `- ${item.product.givenName} (${item.product.productName}): ${item.quantity}${unit} @ ${formatCurrency(item.priceAtSale, displayCurrency, rates)}\n`;
+    });
+    msg += `\nSUBTOTAL: ${formatCurrency(subtotalUSD, displayCurrency, rates)}`;
+    if (shippingCostUSD > 0) msg += `\nSHIPPING: ${formatCurrency(shippingCostUSD, displayCurrency, rates)}`;
+    msg += `\nTOTAL: ${formatCurrency(totalUSD, displayCurrency, rates)}`;
+    msg += `\n\nPlease confirm availability and pricing.`;
+    return msg;
+  };
+
+  // ── Invoice creation / Purchase order ──────────────────────────────
 
   const handleCompleteSale = async () => {
     setValidationError('');
     if (!customerName.trim()) {
       setValidationError('Name required');
-      showToast('Customer name is required', 'error');
+      showToast(isPurchase ? 'Vendor name is required' : 'Customer name is required', 'error');
       return;
     }
     if (cart.length === 0) return;
+
+    // ── Purchase direction: generate message, no DB write ──────────
+    if (isPurchase) {
+      setIsProcessing(true);
+      const message = generatePurchaseMessage();
+      const phone = customerPhone.replace(/[^\d+]/g, '').replace(/^\+/, '');
+
+      // Build purchase receipt
+      const purchaseRef = `PO-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+
+      // Persist purchase order to database
+      let poId: string | null = null;
+      try {
+        const po = await api.purchaseOrders.create({
+          po_number: purchaseRef,
+          vendor_name: customerName,
+          vendor_contact: customerPhone || undefined,
+          items_json: JSON.stringify(cart.map(item => ({
+            productId: item.productId,
+            name: item.product.givenName,
+            productName: item.product.productName,
+            quantity: item.quantity,
+            priceAtSale: item.priceAtSale,
+            type: item.product.type,
+          }))),
+          total_usd: totalUSD,
+          display_currency: displayCurrency,
+          status: 'draft',
+          message_text: message,
+        });
+        if (po?.id) poId = po.id;
+      } catch {
+        // Non-critical — PO text was already generated
+      }
+
+      setLastInvoice({
+        id: poId,
+        invoice_number: purchaseRef,
+        customer_name: customerName,
+        items: cart,
+        _purchaseMessage: message,
+        _vendorPhone: phone,
+      });
+      setTransactionComplete(true);
+      showToast('Purchase order ready', 'success');
+      setIsProcessing(false);
+      return;
+    }
+
+    // ── Sale direction: create DB invoice (existing behavior) ─────
     setIsProcessing(true);
 
     let custId = selectedCustomerId;
     if (!custId && customerName.trim()) {
+      // Check for fuzzy matches to prevent duplicates
+      const fuzzyMatch = allCustomers.find(c =>
+        similarity(c.name, customerName) > 0.75 && similarity(c.name, customerName) < 1
+      );
+      if (fuzzyMatch && !dedupSuggestion) {
+        setDedupSuggestion({ name: fuzzyMatch.name, id: fuzzyMatch.id });
+        setValidationError(`Similar customer exists: "${fuzzyMatch.name}". Click again to create new, or select the existing one.`);
+        setIsProcessing(false);
+        return;
+      }
+      // If user confirmed (clicked again after seeing warning), or no fuzzy match, proceed
+      if (dedupSuggestion) setDedupSuggestion(null);
       try {
         const result = await api.customers.create({
           name: customerName.trim(),
@@ -162,6 +281,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         setIsProcessing(false);
         return;
       }
+      // Reserve stock immediately on order creation
+      try {
+        await api.rpc.reserveStock(invoiceData.id);
+      } catch {
+        showToast('Stock reservation pending — verify before fulfilling', 'info');
+      }
       onSuccess();
       showToast('Order submitted successfully', 'success');
       setLastInvoice({ ...invoiceData, items: cart });
@@ -185,17 +310,22 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
   const generateWhatsAppLink = () => {
     if (!lastInvoice) return '#';
-    let message = `*Teajia Order*\n\n*Invoice:* ${lastInvoice.invoice_number}\n*Customer:* ${lastInvoice.customer_name}\n*Date:* ${new Date().toLocaleDateString()}\n\n*Items:*\n`;
-    cart.forEach(item => {
-      const unit = item.product.type === 'Teaware' ? 'units' : 'g';
-      message += `• ${item.product.givenName} - ${item.quantity}${unit} @ ${formatCurrency(item.priceAtSale, displayCurrency, rates)} = ${formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}\n`;
+    const message = buildOrderMessage({
+      type: 'invoice',
+      ref: lastInvoice.invoice_number,
+      customerName: lastInvoice.customer_name,
+      items: cart.map(item => ({
+        name: item.product.givenName,
+        quantity: item.quantity,
+        unit: item.product.type === 'Teaware' ? 'units' : 'g',
+        price: formatCurrency(item.priceAtSale, displayCurrency, rates),
+        total: formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates),
+      })),
+      subtotal: formatCurrency(subtotalUSD, displayCurrency, rates),
+      shipping: shippingCostUSD > 0 ? formatCurrency(shippingCostUSD, displayCurrency, rates) : undefined,
+      total: formatCurrency(totalUSD, displayCurrency, rates),
     });
-    message += `\n*Subtotal:* ${formatCurrency(subtotalUSD, displayCurrency, rates)}\n`;
-    if (shippingCostUSD > 0) message += `*Shipping:* ${formatCurrency(shippingCostUSD, displayCurrency, rates)}\n`;
-    message += `*Total:* ${formatCurrency(totalUSD, displayCurrency, rates)}`;
-    const phone = customerPhone.replace(/[^\d+]/g, '').replace(/^\+/, '');
-    if (phone.length < 7) return '#';
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    return buildWhatsAppUrl(customerPhone, message);
   };
 
   // ── Derived ────────────────────────────────────────────────────────────
@@ -210,7 +340,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     return (
       <div className="flex flex-col h-full bg-tea-bg overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-tea-border bg-tea-surface/50">
-          <h2 className="text-xl font-serif text-tea-text tracking-wide">Order Submitted</h2>
+          <h2 className="text-xl font-serif text-tea-text tracking-wide">{isPurchase ? 'Purchase Order Ready' : 'Order Submitted'}</h2>
           <button onClick={onClose} className="nav-control p-1.5">
             <X size={18} />
           </button>
@@ -225,16 +355,22 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-gold/20 print:hidden">
               <Clock size={32} />
             </div>
-            <h2 className="text-2xl font-serif text-tea-text mb-2 print:text-black">Order Submitted</h2>
+            <h2 className="text-2xl font-serif text-tea-text mb-2 print:text-black">{isPurchase ? 'Purchase Order Ready' : 'Order Submitted'}</h2>
             <p className="text-tea-text-sec mb-6 text-xs print:text-gray-600 print:mb-4">
-              Invoice #{lastInvoice.invoice_number} • {new Date().toLocaleDateString()}
+              {lastInvoice.invoice_number} • {new Date().toLocaleDateString()}
             </p>
-            <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
-              Status: <strong className="font-sans not-italic">Pending Fulfillment</strong>.<br />
-              Stock has not been deducted yet. Mark as "Filled" in Orders view when packing.
-            </div>
+            {isPurchase ? (
+              <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
+                Send this order to your vendor via WhatsApp, copy, or print.
+              </div>
+            ) : (
+              <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
+                Status: <strong className="font-sans not-italic">Pending Fulfillment</strong>.<br />
+                Stock has not been deducted yet. Mark as "Filled" in Orders view when packing.
+              </div>
+            )}
             <div className="hidden print:block mb-8">
-              <p className="text-sm text-gray-500 uppercase">Customer</p>
+              <p className="text-sm text-gray-500 uppercase">{isPurchase ? 'Vendor' : 'Customer'}</p>
               <p className="text-lg font-bold text-black">{lastInvoice.customer_name}</p>
             </div>
             <div className="bg-tea-bg p-4 rounded-lg border border-tea-border mb-6 text-left print:bg-white print:border-none">
@@ -272,31 +408,46 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               </div>
             </div>
             <div className="space-y-3 print:hidden">
-              {customerPhone ? (
+              {isPurchase && lastInvoice._purchaseMessage && (
+                <button
+                  onClick={() => { navigator.clipboard.writeText(lastInvoice._purchaseMessage); showToast('Order copied to clipboard', 'success'); }}
+                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors"
+                >
+                  <Share2 size={16} /> Copy Order Text
+                </button>
+              )}
+              {isPurchase && lastInvoice._vendorPhone && lastInvoice._vendorPhone.length >= 7 ? (
+                <a href={buildWhatsAppUrl(lastInvoice._vendorPhone, lastInvoice._purchaseMessage || '')} target="_blank" rel="noreferrer"
+                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
+                  <Share2 size={16} /> Send to Vendor via WhatsApp
+                </a>
+              ) : !isPurchase && customerPhone ? (
                 <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer"
                   className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
                   <Share2 size={16} /> Share on WhatsApp
                 </a>
-              ) : (
+              ) : !isPurchase ? (
                 <div className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-bg text-tea-text-sec border border-tea-border cursor-not-allowed">
                   <Share2 size={16} /> Share on WhatsApp
                 </div>
-              )}
+              ) : null}
               <button onClick={() => window.print()}
                 className="flex w-full bg-tea-bg border border-tea-border text-tea-text py-3 rounded-lg font-medium hover:bg-tea-surface transition-colors items-center justify-center gap-2 text-sm">
-                <Printer size={16} /> Print Receipt
+                <Printer size={16} /> {isPurchase ? 'Print Order' : 'Print Receipt'}
               </button>
               <div className="h-px bg-tea-border my-4" />
-              <button onClick={handleStartNewSale}
+              <button onClick={() => { handleStartNewSale(); if (isPurchase) setCartDirection('sale'); }}
                 className="w-full bg-tea-gold text-tea-bg py-3 rounded-lg font-medium hover:bg-tea-gold/90 transition-colors flex items-center justify-center gap-2 text-sm">
-                <RefreshCcw size={16} /> Start New Sale
+                <RefreshCcw size={16} /> {isPurchase ? 'Done' : 'Start New Sale'}
               </button>
-              <button
-                onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(lastInvoice.invoice_number)}`); }}
-                className="w-full bg-transparent border border-tea-border text-tea-text-sec py-2.5 rounded-lg font-medium hover:text-tea-text hover:bg-tea-surface transition-colors flex items-center justify-center gap-2 text-xs mt-2"
-              >
-                <ExternalLink size={14} /> View in Orders
-              </button>
+              {!isPurchase && (
+                <button
+                  onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(lastInvoice.invoice_number)}`); }}
+                  className="w-full bg-transparent border border-tea-border text-tea-text-sec py-2.5 rounded-lg font-medium hover:text-tea-text hover:bg-tea-surface transition-colors flex items-center justify-center gap-2 text-xs mt-2"
+                >
+                  <ExternalLink size={14} /> View in Orders
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -311,10 +462,32 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       {/* Header */}
       <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface/50">
         <div>
-          <h2 className="text-xl font-serif text-tea-text tracking-wide">Registry Manifest</h2>
-          <p className="text-[10px] text-tea-text-sec uppercase tracking-widest mt-0.5">Pending Items</p>
+          <div className="flex items-center gap-2">
+            {isPurchase ? (
+              <ArrowDownLeft size={16} className="text-tea-gold" />
+            ) : (
+              <ArrowUpRight size={16} className="text-tea-gold-lt" />
+            )}
+            <h2 className="text-xl font-serif text-tea-text tracking-wide">
+              {isPurchase ? 'Purchase Order' : 'Registry Manifest'}
+            </h2>
+          </div>
+          <p className="text-[10px] text-tea-text-sec uppercase tracking-widest mt-0.5">
+            {isPurchase ? 'Ordering from vendor' : 'Pending Items'}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Direction toggle */}
+          {isEmpty && (
+            <button
+              onClick={() => setCartDirection(isPurchase ? 'sale' : 'purchase')}
+              className="text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1.5 hover:bg-tea-surface rounded border border-tea-border"
+              title={isPurchase ? 'Switch to Sale' : 'Switch to Purchase'}
+            >
+              {isPurchase ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
+              {isPurchase ? 'Sale' : 'Purchase'}
+            </button>
+          )}
           {!isEmpty && (
             <button onClick={onClearCart}
               className="text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1 hover:bg-tea-surface rounded">
@@ -351,10 +524,14 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
         {isEmpty ? (
           <div className="h-full flex flex-col items-center justify-center text-tea-text-sec space-y-4 min-h-[300px]">
-            <Package size={40} strokeWidth={1} className="opacity-50" />
+            {isPurchase ? (
+              <ArrowDownLeft size={40} strokeWidth={1} className="opacity-50" />
+            ) : (
+              <Package size={40} strokeWidth={1} className="opacity-50" />
+            )}
             <div className="text-center">
-              <p className="font-serif italic text-base mb-1">Registry Empty</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70">Select items from catalog</p>
+              <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
             </div>
           </div>
         ) : (
@@ -394,13 +571,15 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                       {formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}
                     </span>
                   </div>
-                  {/* Stock availability */}
-                  <div className="flex items-center justify-between mt-1">
-                    <span className={`text-[9px] num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
-                      {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
-                      {item.quantity > item.product.stockGrams && ' — exceeds stock'}
-                    </span>
-                  </div>
+                  {/* Stock availability — only relevant for sales */}
+                  {!isPurchase && (
+                    <div className="flex items-center justify-between mt-1">
+                      <span className={`text-[9px] num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
+                        {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
+                        {item.quantity > item.product.stockGrams && ' — exceeds stock'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -448,7 +627,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none transition-colors placeholder-tea-text-sec/50 ${
                 validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
               }`}
-              placeholder="Client Name *"
+              placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
             />
             {selectedCustomerId && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-green-400 uppercase tracking-wider">Linked</span>
@@ -481,12 +660,28 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               </div>
             )}
           </div>
+          {dedupSuggestion && (
+            <div className="flex items-center justify-between bg-tea-gold/10 rounded-lg px-3 py-2 text-xs">
+              <span className="text-tea-gold font-serif italic">
+                Did you mean "{dedupSuggestion.name}"?
+              </span>
+              <button
+                onClick={() => {
+                  selectCustomer(allCustomers.find(c => c.id === dedupSuggestion.id)!);
+                  setDedupSuggestion(null);
+                }}
+                className="text-tea-gold font-semibold uppercase tracking-wider text-[10px] ml-2 hover:text-tea-gold/80"
+              >
+                Use This
+              </button>
+            </div>
+          )}
           <input
             type="text"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
             className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec placeholder-tea-text-sec/50"
-            placeholder="WhatsApp (Optional)"
+            placeholder={isPurchase ? 'Vendor Contact (Optional)' : 'WhatsApp (Optional)'}
           />
         </div>
         <div>
@@ -505,7 +700,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'
             }`}
           >
-            {isProcessing ? <Loader2 className="animate-spin" size={14} /> : 'Create Invoice'}
+            {isProcessing ? <Loader2 className="animate-spin" size={14} /> : isPurchase ? 'Send Purchase Order' : 'Create Invoice'}
           </button>
         </div>
       </div>

@@ -184,7 +184,8 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const currentQuantity = selectedQuantities[item.id] || defaultQuantity;
   const totalPrice = getQuantityPrice(item, currentQuantity);
 
-  const purchaseControls = showQuantityControls && onAddToCart && (
+  // Hide purchase controls entirely when onAddToCart is not provided
+  const purchaseControls = onAddToCart && showQuantityControls && (
     <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgba(0,0,0,0.2)' }}>
       {itemType === 'tea' ? (
         <>
