@@ -65,10 +65,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   }, [startNewCapture, activeCategory]);
 
   const handleCategorySwitch = useCallback((category: CompassCategory) => {
-    // Always start a fresh capture — only vendor carries over
+    // If the current entry is still empty, just switch its category instead of creating a new one
+    if (activeEntryId) {
+      const current = getEntry(activeEntryId);
+      if (current && !current.name && !current.notes && !current.type && current.photos.length === 0 && current.status === 'logged') {
+        updateEntry(activeEntryId, { category });
+        return;
+      }
+    }
     startNewCapture(category);
     setMode('capture');
-  }, [startNewCapture]);
+  }, [startNewCapture, activeEntryId, getEntry, updateEntry]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -85,6 +92,23 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     },
     [setActiveEntry]
   );
+
+  const handleCommitEntry = useCallback(() => {
+    // After commit removes the entry from session, check if there are remaining session entries
+    const remaining = getSessionEntries().filter(
+      (e) => e.id !== activeEntryId &&
+        (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'logged')
+    );
+    if (remaining.length > 0) {
+      // Switch to the most recent remaining session entry
+      setActiveEntry(remaining[0].id);
+    } else {
+      // Start a fresh capture
+      startNewCapture(
+        activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
+      );
+    }
+  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
     if (newMode !== 'capture') {
@@ -214,24 +238,32 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               />
 
               {/* Tea / Teaware tab toggle */}
-              <div className="flex gap-2 mb-3">
+              <div className="flex gap-2 mb-3 rounded-lg bg-tea-surface/40 p-1">
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch('tea')}
-                  className={`flex-1 text-center py-2 text-sm ${activeCategory === 'tea' ? 'pill-active' : 'pill'}`}
+                  className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-all ${
+                    activeCategory === 'tea'
+                      ? 'bg-tea-surface text-tea-text shadow-sm'
+                      : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
                 >
                   Tea
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch('teaware')}
-                  className={`flex-1 text-center py-2 text-sm ${activeCategory === 'teaware' ? 'pill-active' : 'pill'}`}
+                  className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-all ${
+                    activeCategory === 'teaware'
+                      ? 'bg-tea-surface text-tea-text shadow-sm'
+                      : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
                 >
                   Teaware
                 </button>
               </div>
 
-              <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} />
+              <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} onCommit={handleCommitEntry} />
             </motion.div>
           ) : mode === 'browse' ? (
             <motion.div

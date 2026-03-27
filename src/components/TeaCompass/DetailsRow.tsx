@@ -52,7 +52,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   onOpenTasting,
   onTastingStripRemove,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const hasValues = storage || originRegion;
 
@@ -124,7 +124,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                   onChange={(val) => onRegionChange(val || undefined)}
                   suggestions={availableRegions}
                   placeholder="e.g. Alishan, Yiwu..."
-                  className="w-full bg-tea-surface/60 text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/50 outline-none transition-colors text-base"
+                  className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none transition-colors text-base"
                 />
               </div>
 

@@ -409,7 +409,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
                   placeholder="Vendor name"
-                  className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border border-tea-border outline-none focus:border-tea-gold/50"
+                  className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
                 />
                 <button
                   type="button"
@@ -477,7 +477,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.phone || ''}
                       onChange={(e) => updateDetail('phone', e.target.value || undefined)}
                       placeholder="Phone"
-                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -487,7 +487,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.whatsapp || ''}
                       onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
                       placeholder="WhatsApp"
-                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -497,7 +497,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.wechat || ''}
                       onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
                       placeholder="WeChat"
-                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -507,7 +507,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.line || ''}
                       onChange={(e) => updateDetail('line', e.target.value || undefined)}
                       placeholder="LINE"
-                      className="flex-1 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim border-none outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
                     />
                   </div>
                 </div>

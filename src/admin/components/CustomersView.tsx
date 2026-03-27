@@ -375,7 +375,7 @@ const CustomerDetail = ({
                                 placeholder="Search teas..."
                                 value={linkSearch}
                                 onChange={e => setLinkSearch(e.target.value)}
-                                className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none"
+                                className="w-full input-warm rounded-lg px-3 py-1.5 text-xs outline-none"
                                 autoFocus
                               />
                             </div>
@@ -671,13 +671,13 @@ export const CustomersView = () => {
               placeholder="Search contacts..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
+              className="input-warm rounded-lg pl-10 pr-4 py-2 text-sm outline-none transition-colors"
             />
           </div>
           <select
             value={filterTag}
             onChange={e => setFilterTag(e.target.value as CustomerTag | '')}
-            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
+            className="input-warm rounded-lg px-3 py-2 text-sm outline-none transition-colors"
           >
             <option value="">All Tags</option>
             {TAG_OPTIONS.map(tag => <option key={tag} value={tag}>{tag}</option>)}
@@ -685,7 +685,7 @@ export const CustomersView = () => {
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as any)}
-            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
+            className="input-warm rounded-lg px-3 py-2 text-sm outline-none transition-colors"
           >
             <option value="name">Sort: Name</option>
             <option value="recent">Sort: Recent</option>
