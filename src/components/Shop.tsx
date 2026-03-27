@@ -87,8 +87,8 @@ export const Shop: React.FC<ShopProps> = ({
     await new Promise(resolve => setTimeout(resolve, 300));
     set.items.forEach(({ itemId }) => {
       const item = allInventory.find(inv => inv.id === itemId);
-      if (item) {
-        const defaultQty = item.category === 'tea' ? 50 : 1;
+      if (item && item.stock_g > 0) {
+        const defaultQty = item.category === 'tea' ? 25 : 1;
         const pricePerUnit = item.category === 'tea'
           ? parseFloat(item.price_per_gram || '0')
           : parseFloat(item.price_50g || '0');
@@ -109,7 +109,7 @@ export const Shop: React.FC<ShopProps> = ({
         name: item?.name || itemId,
         type,
         itemId,
-        quantity: quantity || (type === 'tea' ? 50 : 1),
+        quantity: quantity || (type === 'tea' ? 25 : 1),
         unit: type === 'tea' ? 'g' : '',
       };
     });
@@ -121,7 +121,7 @@ export const Shop: React.FC<ShopProps> = ({
       const item = allInventory.find(inv => inv.id === itemId);
       if (item) {
         if (type === 'tea') {
-          total += parseFloat(item.price_per_gram || '0') * 50;
+          total += parseFloat(item.price_per_gram || '0') * 25;
         } else {
           total += parseFloat(item.price_50g || '0');
         }
@@ -336,7 +336,7 @@ export const Shop: React.FC<ShopProps> = ({
                   <div
                     key={item.id}
                     className="flex-shrink-0 snap-start w-28 cursor-pointer group"
-                    onClick={() => onAddToCart(item, item.category === 'tea' ? 50 : 1, parseFloat(item.category === 'tea' ? (item.price_per_gram || '0') : (item.price_50g || '0')) * (item.category === 'tea' ? 50 : 1))}
+                    onClick={() => onAddToCart(item, item.category === 'tea' ? 25 : 1, parseFloat(item.category === 'tea' ? (item.price_per_gram || '0') : (item.price_50g || '0')) * (item.category === 'tea' ? 25 : 1))}
                   >
                     <div className="w-28 h-28 bg-tea-surface rounded-lg overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
                       {item.image ? (

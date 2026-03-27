@@ -247,6 +247,11 @@ const AppContent = () => {
   }, [stories]);
 
   const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
+    if (item.stock_g !== undefined && item.stock_g <= 0) {
+      setCartToast({ itemName: `${item.name} is sold out`, cartCount: useAppStore.getState().publicCart.length });
+      return;
+    }
+
     // Trigger fly animation from center of screen to cart icon
     setFlyAnimation({
       x: window.innerWidth / 2 - 24,

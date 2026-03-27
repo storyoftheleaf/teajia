@@ -26,6 +26,7 @@ const ItemCard: React.FC<{
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const priceUnit = parseFloat(item.price_50g || '0');
   const isTea = item.category === 'tea';
+  const isSoldOut = item.stock_g <= 0;
   const notes = item.tags || [];
   const accent = 'var(--tea-gold)';
 
@@ -136,15 +137,21 @@ const ItemCard: React.FC<{
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (isSoldOut) return;
                 if (isTea) {
                   onAddToCart(item, 25, Math.round(pricePerGram * 25 * 100) / 100);
                 } else {
                   onAddToCart(item, 1, priceUnit);
                 }
               }}
-              className="ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm bg-tea-gold hover:bg-tea-gold-lt text-tea-bg transition-all active:scale-95 min-h-[44px]"
+              disabled={isSoldOut}
+              className={`ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
+                isSoldOut
+                  ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
+                  : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
+              }`}
             >
-              {isTea ? 'Add 25g' : 'Add to Cart'}
+              {isSoldOut ? 'Sold Out' : isTea ? 'Add 25g' : 'Add to Cart'}
             </button>
           </div>
         </div>
