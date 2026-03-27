@@ -253,10 +253,19 @@ const AppContent = () => {
       return;
     }
 
-    // Trigger fly animation from center of screen to cart icon
+    // Use click origin if available, fall back to screen center
+    let originX = window.innerWidth / 2 - 24;
+    let originY = window.innerHeight / 2;
+    const active = document.activeElement as HTMLElement;
+    if (active && active !== document.body) {
+      const rect = active.getBoundingClientRect();
+      originX = rect.left + rect.width / 2;
+      originY = rect.top + rect.height / 2;
+    }
+
     setFlyAnimation({
-      x: window.innerWidth / 2 - 24,
-      y: window.innerHeight / 2,
+      x: originX,
+      y: originY,
       image: item.image,
     });
 

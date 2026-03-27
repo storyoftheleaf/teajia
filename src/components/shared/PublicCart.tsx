@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { fmtPrice } from '../../utils/formatNumber';
+import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
@@ -102,19 +103,24 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.totalPrice, 0), [cart]);
   const isEmpty = cart.length === 0;
 
-  const orderMessage = useMemo(() => {
-    const date = new Date().toLocaleDateString();
-    let msg = `ORDER INQUIRY [TEAJIA]\nRef: ${orderRef}\nDate: ${date}\n\n`;
-    msg += `CUSTOMER:\nName: ${details.name}\nContact: ${details.contact}\nShipping To: ${details.location}\n`;
-    if (details.notes) msg += `Notes: ${details.notes}\n`;
-    msg += `\nITEMS:\n`;
-    cart.forEach(item => {
-      const qtyLabel = item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`;
-      msg += `- ${item.name} (${item.variant}): ${qtyLabel} @ $${fmtPrice(item.totalPrice)}\n`;
-    });
-    msg += `\nTOTAL ESTIMATE: ${fmtPrice(subtotal)}\n\nPlease confirm availability and shipping costs.`;
-    return msg;
-  }, [cart, details, subtotal, orderRef]);
+  const orderMessage = useMemo(() => buildOrderMessage({
+    type: 'inquiry',
+    ref: orderRef,
+    customerName: details.name,
+    customerContact: details.contact,
+    customerLocation: details.location,
+    notes: details.notes,
+    items: cart.map(item => ({
+      name: item.name,
+      variant: item.variant,
+      quantity: item.quantityGrams,
+      unit: item.category === 'tea' ? 'g' : '\u00d7',
+      price: `$${fmtPrice(item.pricePerGram)}`,
+      total: `$${fmtPrice(item.totalPrice)}`,
+    })),
+    subtotal: fmtPrice(subtotal),
+    total: fmtPrice(subtotal),
+  }), [cart, details, subtotal, orderRef]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -157,10 +163,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const handleWhatsApp = () => {
-    const clean = String(TEAJIA_WHATSAPP_NUMBER).replace(/\D/g, '');
-    window.open(clean && clean !== '1234567890'
-      ? `https://wa.me/${clean}?text=${encodeURIComponent(orderMessage)}`
-      : `https://wa.me/?text=${encodeURIComponent(orderMessage)}`);
+    window.open(buildWhatsAppUrl(String(TEAJIA_WHATSAPP_NUMBER), orderMessage));
     showSuccess('whatsapp');
     persistInquiry('whatsapp');
   };

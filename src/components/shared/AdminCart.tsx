@@ -6,6 +6,7 @@ import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, Extern
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
+import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { TeaIllustration } from '../../admin/components/TeaIllustration';
 import { useCustomers } from '../../admin/hooks/useAdminData';
 import { useAppStore } from '../../lib/store';
@@ -276,17 +277,22 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
   const generateWhatsAppLink = () => {
     if (!lastInvoice) return '#';
-    let message = `*Teajia Order*\n\n*Invoice:* ${lastInvoice.invoice_number}\n*Customer:* ${lastInvoice.customer_name}\n*Date:* ${new Date().toLocaleDateString()}\n\n*Items:*\n`;
-    cart.forEach(item => {
-      const unit = item.product.type === 'Teaware' ? 'units' : 'g';
-      message += `• ${item.product.givenName} - ${item.quantity}${unit} @ ${formatCurrency(item.priceAtSale, displayCurrency, rates)} = ${formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}\n`;
+    const message = buildOrderMessage({
+      type: 'invoice',
+      ref: lastInvoice.invoice_number,
+      customerName: lastInvoice.customer_name,
+      items: cart.map(item => ({
+        name: item.product.givenName,
+        quantity: item.quantity,
+        unit: item.product.type === 'Teaware' ? 'units' : 'g',
+        price: formatCurrency(item.priceAtSale, displayCurrency, rates),
+        total: formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates),
+      })),
+      subtotal: formatCurrency(subtotalUSD, displayCurrency, rates),
+      shipping: shippingCostUSD > 0 ? formatCurrency(shippingCostUSD, displayCurrency, rates) : undefined,
+      total: formatCurrency(totalUSD, displayCurrency, rates),
     });
-    message += `\n*Subtotal:* ${formatCurrency(subtotalUSD, displayCurrency, rates)}\n`;
-    if (shippingCostUSD > 0) message += `*Shipping:* ${formatCurrency(shippingCostUSD, displayCurrency, rates)}\n`;
-    message += `*Total:* ${formatCurrency(totalUSD, displayCurrency, rates)}`;
-    const phone = customerPhone.replace(/[^\d+]/g, '').replace(/^\+/, '');
-    if (phone.length < 7) return '#';
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    return buildWhatsAppUrl(customerPhone, message);
   };
 
   // ── Derived ────────────────────────────────────────────────────────────
