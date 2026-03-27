@@ -5,6 +5,7 @@ import { fmtPrice } from '../../utils/formatNumber';
 import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
+import { api } from '../../lib/api';
 
 const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
 
@@ -138,23 +139,43 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     setSuccessMessage({ show: true, type });
   };
 
+  const persistInquiry = async (source: 'whatsapp' | 'email' | 'copy') => {
+    try {
+      await api.inquiries.create({
+        ref_number: orderRef,
+        customer_name: details.name,
+        customer_contact: details.contact,
+        customer_location: details.location,
+        notes: details.notes || undefined,
+        items_json: JSON.stringify(cart),
+        total_estimate_usd: subtotal,
+        source,
+      });
+    } catch {
+      // Non-critical — inquiry still sent via WhatsApp/email
+    }
+  };
+
   const handleWhatsApp = () => {
     const clean = String(TEAJIA_WHATSAPP_NUMBER).replace(/\D/g, '');
     window.open(clean && clean !== '1234567890'
       ? `https://wa.me/${clean}?text=${encodeURIComponent(orderMessage)}`
       : `https://wa.me/?text=${encodeURIComponent(orderMessage)}`);
     showSuccess('whatsapp');
+    persistInquiry('whatsapp');
   };
 
   const handleEmail = () => {
     const subject = `Tea Order Inquiry - ${details.name}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(orderMessage)}`);
     showSuccess('email');
+    persistInquiry('email');
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(orderMessage);
     showSuccess('copy');
+    persistInquiry('copy');
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -428,6 +449,13 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   >
                     <Icons.Close className="w-3 h-3" />
                   </button>
+                </div>
+              )}
+
+              {successMessage?.show && (
+                <div className="mt-3 text-center">
+                  <p className="text-xs text-tea-text-sec mb-1">Track your order:</p>
+                  <a href={`/order/${orderRef}`} className="text-sm text-tea-gold underline font-mono">{orderRef}</a>
                 </div>
               )}
 

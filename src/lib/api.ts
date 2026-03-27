@@ -788,6 +788,41 @@ export const api = {
     },
   },
 
+  inquiries: {
+    create: async (data: {
+      ref_number: string;
+      customer_name: string;
+      customer_contact: string;
+      customer_location: string;
+      notes?: string;
+      items_json: string;
+      total_estimate_usd: number;
+      source: 'whatsapp' | 'email' | 'copy';
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+
+    getByRef: async (ref: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/inquiries/${encodeURIComponent(ref)}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  },
+
   favorites: {
     get: async (): Promise<{ favorites: string[] }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/user/favorites`, {
