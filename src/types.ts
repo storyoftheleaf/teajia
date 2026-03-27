@@ -249,7 +249,8 @@ export interface InventoryItem {
   cost_currency?: CostCurrency; // Currency the cost was entered in (default: USD)
   multiplier?: number; // Multiplier for price calculation (default: 1)
   price_per_gram?: string; // Price per gram for tea items
-  price_50g?: string; // Base price (per 50g or per unit) for teaware - calculated in USD
+  price_50g?: string; // For tea: price per 50g (derived from price_per_gram * 50). For teaware/misc: price per unit. Field name is historical — comes from the API.
+  pricePerUnit?: string; // Semantic alias for teaware/misc items: same value as price_50g but clarifies it means "per unit", not "per 50 grams"
   description: string;
   tags: string[];
   image: string;

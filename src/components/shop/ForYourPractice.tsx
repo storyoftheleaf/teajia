@@ -77,7 +77,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
         const defaultQty = item.category === 'tea' ? 50 : 1;
         const pricePerUnit = item.category === 'tea'
           ? parseFloat(item.price_per_gram || '0')
-          : parseFloat(item.price_50g || '0');
+          : parseFloat(item.price_50g || '0'); // price_50g is per-unit price for teaware/misc (legacy field name)
         const total = pricePerUnit * defaultQty;
         onAddToCart(item, defaultQty, total);
       }
@@ -172,7 +172,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
                     <span className="card-grid-badge">{item.variant}</span>
                   </div>
                 }
-                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')}</span>}
+                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')} <span className="text-tea-text-sec text-[10px]">each</span></span>}
                 descriptionComponent={<p className="card-grid-description">{item.description}</p>}
               />
             ))}
@@ -192,7 +192,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
                     <span className="card-grid-badge">{item.variant}</span>
                   </div>
                 }
-                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')}</span>}
+                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')} <span className="text-tea-text-sec text-[10px]">each</span></span>}
                 descriptionComponent={<p className="card-grid-description">{item.description}</p>}
               />
             ))}

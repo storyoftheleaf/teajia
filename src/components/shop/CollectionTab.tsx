@@ -24,6 +24,7 @@ const ItemCard: React.FC<{
   onToggleSave?: (id: string) => void;
 }> = ({ item, onView, onAddToCart, isSaved, onToggleSave }) => {
   const pricePerGram = parseFloat(item.price_per_gram || '0');
+  // For teaware/misc: price_50g is actually per-unit price (legacy field name)
   const priceUnit = parseFloat(item.price_50g || '0');
   const isTea = item.category === 'tea';
   const isSoldOut = item.stock_g <= 0;
@@ -131,7 +132,10 @@ const ItemCard: React.FC<{
                   <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
                 </>
               ) : (
-                <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
+                <>
+                  <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
+                  <span className="text-tea-text-sec text-xs ml-1">each</span>
+                </>
               )}
             </div>
             <button

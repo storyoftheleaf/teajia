@@ -89,6 +89,7 @@ export const Shop: React.FC<ShopProps> = ({
       const item = allInventory.find(inv => inv.id === itemId);
       if (item && item.stock_g > 0) {
         const defaultQty = item.category === 'tea' ? 50 : 1;
+        // For tea: price_per_gram is per-gram. For teaware: price_50g is per-unit (legacy name).
         const pricePerUnit = item.category === 'tea'
           ? parseFloat(item.price_per_gram || '0')
           : parseFloat(item.price_50g || '0');
@@ -123,6 +124,7 @@ export const Shop: React.FC<ShopProps> = ({
         if (type === 'tea') {
           total += parseFloat(item.price_per_gram || '0') * 50;
         } else {
+          // price_50g is per-unit price for teaware (legacy field name)
           total += parseFloat(item.price_50g || '0');
         }
       }
@@ -351,7 +353,7 @@ export const Shop: React.FC<ShopProps> = ({
                     <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
                       {item.category === 'tea'
                         ? `$${parseFloat(item.price_per_gram || '0').toFixed(2)}/g`
-                        : `$${parseFloat(item.price_50g || '0').toFixed(2)}`}
+                        : `$${parseFloat(item.price_50g || '0').toFixed(2)} each`}
                     </p>
                   </div>
                 ))}

@@ -49,6 +49,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
 
   const isSoldOut = (item.stock_g || 0) <= 0;
   const maxStock = Math.max(1, Math.floor(item.stock_g || 1));
+  // price_50g is per-unit price for teaware (legacy field name)
   const unitPrice = parseFloat(item.price_50g || '0');
   const total = fmtNum(unitPrice * quantity);
 

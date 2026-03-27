@@ -128,6 +128,7 @@ export const productToInventoryItem = (product: Product): InventoryItem => {
     // Use fixed retail price (locked override) if set, otherwise formula-based retail
     price_per_gram: isTeaware ? undefined : String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD),
     price_50g: isTeaware ? String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) : undefined,
+    pricePerUnit: isTeaware ? String(product.fixedRetailPriceUSD ?? product.pricePerGramUSD) : undefined, // Semantic alias for teaware per-unit price
     description: product.description,
     tags: product.tastingNotes || [],
     image: product.imageUrl,

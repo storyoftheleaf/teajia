@@ -18,6 +18,8 @@ export function publicProductToInventoryItem(p: PublicProduct): InventoryItem {
     cost_price: '0',
     price_per_gram: isTea ? String(p.pricePerGramUSD) : undefined,
     price_50g: !isTea ? String(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) : undefined,
+    // For teaware/misc, pricePerUnit is the same value as price_50g but with clearer semantics
+    pricePerUnit: !isTea ? String(p.fixedRetailPriceUSD ?? p.pricePerGramUSD) : undefined,
     description: p.description,
     tags: p.tastingNotes,
     image: p.imageUrl,

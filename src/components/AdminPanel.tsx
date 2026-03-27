@@ -543,6 +543,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
           cost_price: '0',
           cost_currency: 'USD',
           multiplier: 3,
+          // For teaware/misc: price_50g is actually per-unit price (legacy field name)
           ...(isTeaItem ? { price_per_gram: '0' } : { price_50g: '0' }),
           description: '',
           tags: [],
