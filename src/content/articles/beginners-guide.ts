@@ -15,11 +15,11 @@ export const beginnersGuide: ReadableStory = {
   tags: ['Brewing', 'Tasting', 'Teaching'],
   startHere: true,
   content: [
-    ":::COVER_PHOTO_INSET:::Your First Cup|A Beginner's Guide to Real Tea|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop",
+    ":::COVER_PHOTO_INSET:::Your First Cup|A Beginner's Guide to Real Tea|https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&h=1200&fit=crop",
 
     ":::TEXT_DROP_CAP:::If you are reading this, you have probably already had thousands of cups of tea in your life. Tea bags at breakfast, iced tea at restaurants, a cup of chamomile before bed. And all of that is fine. But somewhere along the way, you encountered something different — a cup that stopped you mid-sip, that tasted like nothing you had filed under the word 'tea.'",
 
-    ":::TEXT_SIDEBAR_IMAGE:::Maybe it was a friend's gongfu session, a sample at a specialty shop, or a cup served at a restaurant that took tea seriously. Whatever it was, it opened a door. This guide is for the person standing in that doorway, curious but uncertain. You do not need to memorize anything. You do not need expensive equipment. You need only three things: leaves, water, and the willingness to pay attention.|A welcoming cup of tea|https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop",
+    ":::TEXT_SIDEBAR_IMAGE:::Maybe it was a friend's gongfu session, a sample at a specialty shop, or a cup served at a restaurant that took tea seriously. Whatever it was, it opened a door. This guide is for the person standing in that doorway, curious but uncertain. You do not need to memorize anything. You do not need expensive equipment. You need only three things: leaves, water, and the willingness to pay attention.|A welcoming cup of tea|https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1200&fit=crop",
 
     ":::TEXT_SINGLE_COL:::The first thing to understand is that all 'real' tea — green, white, yellow, oolong, black, and dark — comes from a single plant species: Camellia sinensis. This evergreen shrub, native to the borderlands of China, Myanmar, and India, is one of the most versatile crop plants on earth.",
 

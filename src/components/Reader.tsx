@@ -176,7 +176,7 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scal
           height: BASE_HEIGHT,
           transform: `scale(${effectiveScale})`,
           transformOrigin: 'center center',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(24,19,14,0.1)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(0,0,0,0.1)',
           contain: 'layout style paint',
           willChange: 'transform',
           backfaceVisibility: 'hidden',
@@ -976,19 +976,17 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             >
               {(() => {
                 const totalPages = pages.length;
-                // For spread: show even-indexed left, odd-indexed right
-                // Calculate which pair to show
                 const leftIdx = currentPageIndex % 2 === 0 ? currentPageIndex : currentPageIndex - 1;
                 const rightIdx = leftIdx + 1;
                 const leftPage = pages[leftIdx];
                 const rightPage = rightIdx < totalPages ? pages[rightIdx] : null;
 
                 return (
-                  <div className="flex h-full items-center justify-center gap-0">
-                    {/* Left page */}
-                    <div className="h-full flex-1 relative">
+                  <div className="flex items-center justify-center h-full" style={{ gap: '2px' }}>
+                    {/* Left page — fixed aspect container */}
+                    <div className="h-full" style={{ aspectRatio: '800/1067' }}>
                       {leftPage && (
-                        <ScaledPage isActive={currentPageIndex === leftIdx} scaleOverride={0.8}>
+                        <ScaledPage isActive={currentPageIndex === leftIdx}>
                           <SinglePageRenderer
                             page={leftPage}
                             storyTitle={story.title}
@@ -1000,19 +998,10 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                       )}
                     </div>
 
-                    {/* Central gutter shadow */}
-                    <div
-                      className="shrink-0 w-8 h-full pointer-events-none"
-                      style={{
-                        background: 'linear-gradient(to right, var(--tea-bg) 0%, transparent 40%, transparent 60%, var(--tea-bg) 100%)',
-                        boxShadow: 'inset 4px 0 12px var(--tea-accent-sub), inset -4px 0 12px var(--tea-accent-sub)'
-                      }}
-                    />
-
-                    {/* Right page */}
-                    <div className="h-full flex-1 relative">
+                    {/* Right page — fixed aspect container */}
+                    <div className="h-full" style={{ aspectRatio: '800/1067' }}>
                       {rightPage ? (
-                        <ScaledPage isActive={currentPageIndex === rightIdx} scaleOverride={0.8}>
+                        <ScaledPage isActive={currentPageIndex === rightIdx}>
                           <SinglePageRenderer
                             page={rightPage}
                             storyTitle={story.title}
@@ -1022,7 +1011,6 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                           />
                         </ScaledPage>
                       ) : (
-                        /* Last single page centred */
                         <div className="w-full h-full" />
                       )}
                     </div>

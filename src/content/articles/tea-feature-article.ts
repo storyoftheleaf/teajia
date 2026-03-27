@@ -52,7 +52,7 @@ export const teaFeatureArticle: ReadableStory = {
 
     ":::IMG_WITH_CAPTION_BOTTOM:::The wet leaf after six infusions — note the intact bud-and-two-leaf sets, evidence of careful hand-picking|https://images.unsplash.com/photo-1563911892437-1feda0179e1b?w=800&h=1200&fit=crop",
 
-    ":::TEXT_SIDEBAR_LEFT:::Sourcing Notes|Our Laoshan Green comes from a family-operated garden on the eastern slope of Mount Lao, at approximately 500 meters elevation. The garden owner, Mr. Zhang, is a second-generation tea farmer. The cultivar is a Laoshan-adapted descendant of Huangshan Zhong. Mr. Zhang picks only the spring flush — typically a two-week window in late April — and processes the tea himself using a wood-fired wok. His annual production is less than 200 kilograms.|https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop",
+    ":::TEXT_SIDEBAR_LEFT:::Sourcing Notes|Our Laoshan Green comes from a family-operated garden on the eastern slope of Mount Lao, at approximately 500 meters elevation. The garden owner, Mr. Zhang, is a second-generation tea farmer. The cultivar is a Laoshan-adapted descendant of Huangshan Zhong. Mr. Zhang picks only the spring flush — typically a two-week window in late April — and processes the tea himself using a wood-fired wok. His annual production is less than 200 kilograms.|https://images.unsplash.com/photo-1563822249366-7b0d8e7295cf?w=800&h=1200&fit=crop",
 
     ":::STAT_BIG_NUMBER:::80,000|Individual hand-plucks required to produce one kilogram of finished Laoshan Green",
 

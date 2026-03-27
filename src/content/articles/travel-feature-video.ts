@@ -32,7 +32,7 @@ export const travelFeatureVideo: ReadableStory = {
 
     ":::QUOTE_BIG:::The mountain does not make the tea. The mountain makes the conditions. The tea makes itself. — Master Zhou Yu",
 
-    ":::IMG_FULL_BLEED:::The misty ravines of Wuyi|https://images.unsplash.com/photo-1464982326199-86f32f81b211?w=800&h=1200&fit=crop",
+    ":::IMG_FULL_BLEED:::The misty ravines of Wuyi|https://images.unsplash.com/photo-1545069122-7236651d5c7e?w=800&h=1200&fit=crop",
 
     ":::TEXT_WITH_VIDEO:::The charcoal roasting stage is where Wuyi oolong diverges most dramatically from other Chinese teas. Zhou maintains a roasting room with a sunken pit filled with longan wood charcoal covered in rice ash. The temperature is controlled not by thermometer but by palm. Each session lasts six to eight hours, during which Zhou rotates bamboo baskets, occasionally pressing his face into the warm leaves to read their progress through scent. 'Roasting is a conversation,' he tells us. 'The fire speaks, and the tea answers.'|dQw4w9WgXcQ|The art of charcoal roasting in Wuyi|Master Zhou demonstrates the traditional hongbei roasting method passed down through three generations.",
 
@@ -42,7 +42,7 @@ export const travelFeatureVideo: ReadableStory = {
 
     ":::TEXT_JUSTIFIED_NARROW:::Standing below them, I feel the weight of the mythology that sustains this industry. Every Da Hong Pao sold today is a cutting descended from these six plants. The original flavor exists now only in memory and legend. What remains is the aspiration toward it, carried forward in every carefully roasted batch.",
 
-    ":::IMG_CIRCLE_MASK:::Master Zhou Yu at the entrance to Huiyuan Keng|https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop",
+    ":::IMG_CIRCLE_MASK:::Master Zhou Yu at the entrance to Huiyuan Keng|https://images.unsplash.com/photo-1563822249548-9a72b6353cd1?w=800&h=1200&fit=crop",
 
     ":::RECIPE_CARD:::Wuyi Yancha Gongfu Method|Vessel: 110ml gaiwan or Yixing clay pot.|Leaf: 8g (fill vessel 2/3 with dry leaf).|Water: 100°C — full boil, always.|Rinse: One quick wash, discard.|Steep 1-3: 10 seconds each.|Steep 4-6: 15 seconds each.|Steep 7+: Add 10 seconds per round.|Expect 8-12 quality steeps from true zhengyan material.",
 
@@ -52,7 +52,7 @@ export const travelFeatureVideo: ReadableStory = {
 
     ":::TEXT_DOUBLE_COL:::The Economics|True zhengyan Wuyi oolong occupies a peculiar market position. Premium Niulan Keng Rou Gui can exceed 10,000 RMB per jin ($1,400 USD). Zhou is unusual in selling directly to a small network, cutting out middlemen. 'I produce less than 40 kilograms per year,' he explains. 'I will not sell it to someone who will blend it with flatland tea.'\n\nThe Future|Zhou's daughter studied agriculture at Fujian Normal University and has returned to help. She brings scientific rigor — soil testing, weather monitoring, controlled experiments — while her father contributes intuitive knowledge. 'The mountain does not change,' he says. 'But we must learn to speak its language in new ways.'",
 
-    ":::IMG_FULL_BLEED:::The Nine Bend River winds through Wuyi|https://images.unsplash.com/photo-1464982326199-86f32f81b211?w=800&h=1200&fit=crop",
+    ":::IMG_FULL_BLEED:::The Nine Bend River winds through Wuyi|https://images.unsplash.com/photo-1545069122-7236651d5c7e?w=800&h=1200&fit=crop",
 
     ":::TEXT_SINGLE_COL:::On our final morning, we hike to the summit of Tianyou Peak. The entire Wuyi landscape unfolds beneath us: the dark ribbon of the Nine Bend River, the terraced tea gardens, the scattered farmhouses sending up threads of smoke.",
 
