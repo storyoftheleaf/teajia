@@ -171,7 +171,7 @@ export const useAppStore = create<AppState>()(
               ),
             };
           }
-          return { publicCart: [...state.publicCart, item] };
+          return { publicCart: [...state.publicCart, { ...item, totalPrice: item.pricePerGram * item.quantityGrams }] };
         }),
 
       removeFromPublicCart: (id) =>
