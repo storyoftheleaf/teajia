@@ -1,8 +1,11 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { fmtPrice } from '../../utils/formatNumber';
 import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
+import { useAppStore } from '../../lib/store';
+import { formatCurrency } from '../../admin/utils';
+import { useRates } from '../../admin/hooks/useAdminData';
 import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
@@ -35,6 +38,18 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
   // Undo state for removed items
   const [undoItem, setUndoItem] = useState<{ item: PublicCartItem; timeout: ReturnType<typeof setTimeout> } | null>(null);
+
+  // Multi-currency support
+  const currency = useAppStore(s => s.currency);
+  const setCurrency = useAppStore(s => s.setCurrency);
+  const { data: rates = [] } = useRates();
+
+  const displayPrice = useCallback((usd: number) => {
+    if (rates.length > 0 && currency !== 'USD') {
+      return formatCurrency(usd, currency, rates);
+    }
+    return fmtPrice(usd);
+  }, [currency, rates]);
 
   const orderRef = useMemo(() => {
     const d = new Date();
@@ -423,12 +438,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                         {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
                       </span>
                     </div>
-                    <span className="num text-tea-text">{fmtPrice(item.totalPrice)}</span>
+                    <span className="num text-tea-text">{displayPrice(item.totalPrice)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 border-t border-tea-border">
                   <span className="text-sm font-medium text-tea-text">Total Estimate</span>
-                  <span className="num text-lg font-serif text-tea-gold">{fmtPrice(subtotal)}</span>
+                  <span className="num text-lg font-serif text-tea-gold">{displayPrice(subtotal)}</span>
                 </div>
               </div>
 
@@ -509,9 +524,23 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </p>
               </div>
             )}
+            {rates.length > 0 && (
+              <div className="flex items-center justify-end gap-2 mb-2">
+                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Currency</span>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as any)}
+                  className="bg-tea-surface border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none"
+                >
+                  {rates.map(r => (
+                    <option key={r.currency} value={r.currency}>{r.currency}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="flex justify-between items-center font-serif text-xl text-tea-text">
               <span>Total</span>
-              <span className="num">{fmtPrice(subtotal)}</span>
+              <span className="num">{displayPrice(subtotal)}</span>
             </div>
             <Button
               onClick={() => !isEmpty && setStep('INQUIRY')}
@@ -528,7 +557,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center font-serif text-lg text-tea-text">
               <span>Total</span>
-              <span className="num">{fmtPrice(subtotal)}</span>
+              <span className="num">{displayPrice(subtotal)}</span>
             </div>
             <Button
               type="submit"

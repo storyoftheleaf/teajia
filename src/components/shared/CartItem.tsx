@@ -3,6 +3,9 @@ import React from 'react';
 import { CartItem as PublicCartItemType } from '../../types';
 import { Icons } from '../Icons';
 import { fmtPrice } from '../../utils/formatNumber';
+import { useAppStore } from '../../lib/store';
+import { formatCurrency } from '../../admin/utils';
+import { useRates } from '../../admin/hooks/useAdminData';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +18,15 @@ interface CartItemProps {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity }) => {
+  const currency = useAppStore(s => s.currency);
+  const { data: rates = [] } = useRates();
+
+  const displayPrice = (usd: number) => {
+    if (rates.length > 0 && currency !== 'USD') {
+      return formatCurrency(usd, currency, rates);
+    }
+    return fmtPrice(usd);
+  };
   const step = item.category === 'tea' ? 10 : 1;
 
   return (
@@ -70,7 +82,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
               aria-label="Increase quantity"
             >+</button>
           </div>
-          <span className="num text-sm text-tea-text font-medium">{fmtPrice(item.totalPrice)}</span>
+          <span className="num text-sm text-tea-text font-medium">{displayPrice(item.totalPrice)}</span>
         </div>
       </div>
     </div>
