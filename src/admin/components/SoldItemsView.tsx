@@ -108,41 +108,41 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4 flex-wrap">
+      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
+        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Archive size={16} className="text-tea-accent" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
               System Records
             </h2>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 ml-4">
+          {/* Tabs — compact on mobile */}
+          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 md:ml-4">
             <button
               onClick={() => setActiveTab('archive')}
-              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+              className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
             >
-              <Archive size={12} /> Archive
+              <Archive size={12} /> <span className="hidden md:inline">Archive</span><span className="md:hidden">Arch</span>
             </button>
             <button
               onClick={() => setActiveTab('logs')}
-              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+              className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
             >
-              <ScrollText size={12} /> Logbook
+              <ScrollText size={12} /> Log
             </button>
             <button
               onClick={() => setActiveTab('ledger')}
-              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+              className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
             >
-              <BarChart3 size={12} /> Stock Ledger
+              <BarChart3 size={12} /> <span className="hidden md:inline">Stock Ledger</span><span className="md:hidden">Ledger</span>
             </button>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             {activeTab === 'archive' && (
-              <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
-                <Download size={14} /> Export CSV
+              <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
               </button>
             )}
           </div>
@@ -150,8 +150,8 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
         {/* Logbook filters row */}
         {activeTab === 'logs' && (
-          <div className="px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2 flex-wrap">
-            <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
+          <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
               {ACTION_TYPES.map(at => (
                 <button
                   key={at.value}
@@ -162,11 +162,11 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 </button>
               ))}
             </div>
-            <form onSubmit={handleLogSearch} className="relative w-40 ml-auto">
+            <form onSubmit={handleLogSearch} className="relative w-28 md:w-40 shrink-0">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
               <input
                 type="text"
-                placeholder="Search details..."
+                placeholder="Search..."
                 value={logSearchInput}
                 onChange={(e) => setLogSearchInput(e.target.value)}
                 className="w-full bg-transparent border-b border-tea-border rounded-none pl-7 pr-3 py-1 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"

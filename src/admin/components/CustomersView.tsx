@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -651,132 +651,251 @@ export const CustomersView = () => {
     source: c.source || '',
   });
 
+  // Mobile sort/filter menus
+  const [showMobileSort, setShowMobileSort] = useState(false);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
+
   if (isLoading) return <div className="p-12 text-center text-tea-text-sec flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-tea-border pb-6">
-        <div>
-          <h2 className="text-2xl font-serif text-tea-text">Customers & Sources</h2>
-          <p className="text-tea-text-sec text-sm mt-1">
-            {nonVendorCustomers.length} contact{nonVendorCustomers.length !== 1 ? 's' : ''} on file
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={16} />
-            <input
-              type="text"
-              placeholder="Search contacts..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="bg-tea-surface border border-tea-border rounded-lg pl-10 pr-4 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
-            />
+    <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
+
+      {/* --- STICKY HEADER --- */}
+      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
+        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <Users size={16} className="text-tea-accent" />
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Customers</h2>
+            <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
+              — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
+            </span>
           </div>
-          <select
-            value={filterTag}
-            onChange={e => setFilterTag(e.target.value as CustomerTag | '')}
-            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
-          >
-            <option value="">All Tags</option>
-            {TAG_OPTIONS.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-          </select>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as any)}
-            className="bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec transition-colors"
-          >
-            <option value="name">Sort: Name</option>
-            <option value="recent">Sort: Recent</option>
-            <option value="spent">Sort: Top Spent</option>
-            <option value="orders">Sort: Most Orders</option>
-          </select>
-          <button
-            onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-            className="flex items-center gap-2 bg-tea-accent text-tea-bg px-4 py-2 rounded-lg text-sm font-medium hover:bg-tea-accent/90 transition-colors"
-          >
-            <Plus size={16} /> Add
-          </button>
+
+          {/* Tag filter pills — scrollable on mobile */}
+          <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar md:ml-2">
+            <button
+              onClick={() => setFilterTag('')}
+              className={filterTag === '' ? 'pill-active' : 'pill'}
+            >
+              All
+              <span className="text-[9px] opacity-70 ml-0.5">{nonVendorCustomers.length}</span>
+            </button>
+            {TAG_OPTIONS.map(tag => {
+              const count = nonVendorCustomers.filter(c => c.tags.includes(tag)).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={tag}
+                  onClick={() => setFilterTag(tag === filterTag ? '' : tag)}
+                  className={filterTag === tag ? 'pill-active' : 'pill'}
+                >
+                  {tag}
+                  <span className="text-[9px] opacity-70 ml-0.5">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right controls */}
+          <div className="flex items-center gap-1 ml-auto shrink-0">
+            {/* Sort (mobile dropdown, desktop inline) */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileFilter(false); }}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md md:hidden ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <ArrowUpDown size={15} />
+              </button>
+              {/* Desktop sort dropdown */}
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                className="hidden md:block bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-text-sec transition-colors py-1 pr-6 cursor-pointer"
+              >
+                <option value="name">Name</option>
+                <option value="recent">Recent</option>
+                <option value="spent">Top Spent</option>
+                <option value="orders">Most Orders</option>
+              </select>
+              {/* Mobile sort dropdown */}
+              {showMobileSort && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
+                  <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                    {([
+                      { key: 'name', label: 'Name' },
+                      { key: 'recent', label: 'Recent' },
+                      { key: 'spent', label: 'Top Spent' },
+                      { key: 'orders', label: 'Most Orders' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => { setSortBy(opt.key); setShowMobileSort(false); }}
+                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${sortBy === opt.key ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                      >
+                        {opt.label}
+                        {sortBy === opt.key && <Check size={12} className="ml-auto" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-32 md:w-48">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              />
+            </div>
+
+            {/* Add button */}
+            <button
+              onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
+              className="w-9 h-9 flex items-center justify-center text-tea-text-sec hover:text-tea-accent transition-colors rounded-md md:hidden"
+              title="Add customer"
+            >
+              <Plus size={16} />
+            </button>
+            <button
+              onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
+              className="hidden md:flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+            >
+              <Plus size={14} /> New
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Customer Cards Grid */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 text-tea-text-sec">
-          <p className="font-serif text-lg mb-2">No customers found</p>
-          {search && !filterTag ? (
-            <div className="space-y-3">
-              <p className="text-sm">No match for "{search}"</p>
-              <button
-                onClick={() => {
-                  setEditingCustomer(null);
-                  setIsModalOpen(true);
-                }}
-                className="inline-flex items-center gap-2 bg-tea-accent text-tea-bg px-4 py-2 rounded-lg text-sm font-medium hover:bg-tea-accent/90 transition-colors"
-              >
-                <Plus size={16} /> Add "{search}" as new customer
+      {/* --- CONTENT --- */}
+      <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
+
+        {/* Empty state */}
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
+            <Users size={32} strokeWidth={1} className="opacity-40" />
+            <span className="font-serif italic">{search || filterTag ? 'No matching customers' : 'No customers yet'}</span>
+            {(search || filterTag) && (
+              <button onClick={() => { setSearch(''); setFilterTag(''); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
+                Clear filters
               </button>
+            )}
+            {search && !filterTag && (
+              <button
+                onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
+                className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors mt-1"
+              >
+                Add "{search}" as new customer
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* MOBILE LIST — compact rows like OrdersView */}
+            <div className="md:hidden pb-24">
+              {filtered.map((customer, idx) => (
+                <button
+                  key={customer.id}
+                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                  onClick={() => setViewingCustomer(customer)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-tea-text text-sm font-serif truncate">{customer.name}</span>
+                      {customer.tags.length > 0 && (
+                        <span className={`text-[9px] px-1.5 py-0 rounded-full ${TAG_COLORS[customer.tags[0]]}`}>
+                          {customer.tags[0]}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                      {customer.company && <span className="truncate">{customer.company}</span>}
+                      {customer.company && customer.country && <span className="opacity-40">·</span>}
+                      {customer.country && (
+                        <span className="flex items-center gap-0.5"><MapPin size={8} /> {customer.country}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-xs text-tea-text tabular-nums">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
+                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
+                      {customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+
+                  {/* Contact icons */}
+                  <div className="flex flex-col items-center gap-0.5 text-tea-text-sec/40 flex-shrink-0">
+                    {customer.email && <Mail size={10} />}
+                    {customer.phone && <Phone size={10} />}
+                    {customer.whatsapp && <MessageCircle size={10} />}
+                  </div>
+                </button>
+              ))}
             </div>
-          ) : (
-            <p className="text-sm">{filterTag ? 'Try adjusting your search or filter.' : 'Add your first customer to get started.'}</p>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(customer => (
-            <div
-              key={customer.id}
-              onClick={() => setViewingCustomer(customer)}
-              className="bg-tea-surface border border-tea-border rounded-xl p-5 cursor-pointer hover:border-tea-text-sec/50 hover:bg-tea-surface/80 transition-all group"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-tea-text font-medium group-hover:text-tea-accent transition-colors">{customer.name}</h3>
-                  {customer.company && <p className="text-tea-text-sec text-xs">{customer.company}</p>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={e => { e.stopPropagation(); openEdit(customer); }}
-                    className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors opacity-0 group-hover:opacity-100"
+
+            {/* DESKTOP CARD GRID */}
+            <div className="hidden md:block py-6 max-w-7xl mx-auto">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filtered.map(customer => (
+                  <div
+                    key={customer.id}
+                    onClick={() => setViewingCustomer(customer)}
+                    className="bg-tea-surface border border-tea-border rounded-xl p-5 cursor-pointer hover:border-tea-text-sec/50 hover:bg-tea-surface/80 transition-all group"
                   >
-                    <Edit3 size={14} />
-                  </button>
-                </div>
-              </div>
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-tea-text font-medium group-hover:text-tea-accent transition-colors">{customer.name}</h3>
+                        {customer.company && <p className="text-tea-text-sec text-xs">{customer.company}</p>}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={e => { e.stopPropagation(); openEdit(customer); }}
+                          className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                      </div>
+                    </div>
 
-              {/* Tags */}
-              {customer.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {customer.tags.map(tag => (
-                    <span key={tag} className={`text-[10px] px-2 py-0.5 rounded-full border ${TAG_COLORS[tag]}`}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+                    {customer.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {customer.tags.map(tag => (
+                          <span key={tag} className={`text-[10px] px-2 py-0.5 rounded-full border ${TAG_COLORS[tag]}`}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
-              {/* Contact icons */}
-              <div className="flex items-center gap-3 text-tea-text-sec mb-3">
-                {customer.email && <Mail size={12} />}
-                {customer.phone && <Phone size={12} />}
-                {customer.whatsapp && <MessageCircle size={12} />}
-                {customer.country && (
-                  <span className="text-xs flex items-center gap-1">
-                    <MapPin size={10} /> {customer.country}
-                  </span>
-                )}
-              </div>
+                    <div className="flex items-center gap-3 text-tea-text-sec mb-3">
+                      {customer.email && <Mail size={12} />}
+                      {customer.phone && <Phone size={12} />}
+                      {customer.whatsapp && <MessageCircle size={12} />}
+                      {customer.country && (
+                        <span className="text-xs flex items-center gap-1">
+                          <MapPin size={10} /> {customer.country}
+                        </span>
+                      )}
+                    </div>
 
-              {/* Stats row */}
-              <div className="flex justify-between items-center text-xs text-tea-text-sec border-t border-tea-border pt-3 mt-auto">
-                <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
-                <span className="font-medium text-tea-text">${(customer.totalSpentUSD || 0).toFixed(0)} spent</span>
+                    <div className="flex justify-between items-center text-xs text-tea-text-sec border-t border-tea-border pt-3 mt-auto">
+                      <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                      <span className="font-medium text-tea-text">${(customer.totalSpentUSD || 0).toFixed(0)} spent</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {/* Add/Edit Modal */}
       <CustomerModal

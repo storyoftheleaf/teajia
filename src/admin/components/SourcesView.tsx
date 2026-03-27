@@ -238,6 +238,7 @@ export const SourcesView = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [showMobileSort, setShowMobileSort] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Customer | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -664,7 +665,7 @@ export const SourcesView = () => {
     <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
       {/* --- SAVED VIEWS TAB BAR --- */}
-      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
         {savedViews.map(view => (
           <button
             key={view.id}
@@ -725,8 +726,107 @@ export const SourcesView = () => {
         )}
       </div>
 
-      {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      {/* --- MOBILE CONTROL BAR --- */}
+      <div className={`md:hidden sticky top-0 z-30 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
+        <div className="flex items-center px-2 py-1.5 gap-1">
+          <Users size={14} className="text-tea-accent shrink-0 ml-1" />
+          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
+            {processedSources.length}
+          </span>
+
+          <div className="flex-1" />
+
+          {/* Search */}
+          <div className="relative w-28">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-tea-text-sec" size={12} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-6 pr-2 py-1 text-[11px] text-tea-text outline-none focus:border-tea-text-sec placeholder-tea-text-sec/50 transition-colors"
+            />
+          </div>
+
+          {/* Sort */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
+              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+            >
+              <ArrowUpDown size={15} />
+            </button>
+            {showMobileSort && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
+                <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                  {([
+                    { key: 'name' as SourceSortKey, label: 'Name' },
+                    { key: 'company' as SourceSortKey, label: 'Company' },
+                    { key: 'country' as SourceSortKey, label: 'Country' },
+                    { key: 'teaCount' as SourceSortKey, label: 'Tea Count' },
+                    { key: 'created' as SourceSortKey, label: 'Added' },
+                  ]).map(opt => {
+                    const current = sortConfig[0];
+                    const isActive = current?.key === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          if (isActive) {
+                            setSortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                          } else {
+                            setSortConfig([{ key: opt.key, direction: 'asc' }]);
+                          }
+                          setShowMobileSort(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                      >
+                        {opt.label}
+                        {isActive && (
+                          <span className="ml-auto">
+                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Options (New, Export, Edit) */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowOptions(!showOptions); setShowMobileSort(false); }}
+              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showOptions ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+            >
+              <MoreHorizontal size={15} />
+            </button>
+            {showOptions && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
+                <div className="absolute right-0 top-9 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1">
+                  <button onClick={() => { setEditingSource(null); setIsModalOpen(true); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                    <Plus size={13} /> New Source
+                  </button>
+                  <button onClick={() => { setIsEditMode(!isEditMode); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                    {isEditMode ? <Check size={13} /> : <Pencil size={13} />}
+                    {isEditMode ? 'Done Editing' : 'Edit Mode'}
+                  </button>
+                  <button onClick={() => { handleExport(); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                    <Download size={13} /> Export CSV
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* --- DESKTOP HEADER CONTROLS --- */}
+      <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
