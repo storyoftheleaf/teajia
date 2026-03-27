@@ -52,7 +52,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
   onOpenTasting,
   onTastingStripRemove,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const hasValues = storage || originRegion;
 

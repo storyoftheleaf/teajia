@@ -65,10 +65,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   }, [startNewCapture, activeCategory]);
 
   const handleCategorySwitch = useCallback((category: CompassCategory) => {
-    // Always start a fresh capture — only vendor carries over
+    // If the current entry is still empty, just switch its category instead of creating a new one
+    if (activeEntryId) {
+      const current = getEntry(activeEntryId);
+      if (current && !current.name && !current.notes && !current.type && current.photos.length === 0 && current.status === 'logged') {
+        updateEntry(activeEntryId, { category });
+        return;
+      }
+    }
     startNewCapture(category);
     setMode('capture');
-  }, [startNewCapture]);
+  }, [startNewCapture, activeEntryId, getEntry, updateEntry]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -214,18 +221,26 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               />
 
               {/* Tea / Teaware tab toggle */}
-              <div className="flex gap-2 mb-3">
+              <div className="flex gap-2 mb-3 rounded-lg bg-tea-surface/40 p-1">
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch('tea')}
-                  className={`flex-1 text-center py-2 text-sm ${activeCategory === 'tea' ? 'pill-active' : 'pill'}`}
+                  className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-all ${
+                    activeCategory === 'tea'
+                      ? 'bg-tea-surface text-tea-text shadow-sm'
+                      : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
                 >
                   Tea
                 </button>
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch('teaware')}
-                  className={`flex-1 text-center py-2 text-sm ${activeCategory === 'teaware' ? 'pill-active' : 'pill'}`}
+                  className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-all ${
+                    activeCategory === 'teaware'
+                      ? 'bg-tea-surface text-tea-text shadow-sm'
+                      : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
                 >
                   Teaware
                 </button>

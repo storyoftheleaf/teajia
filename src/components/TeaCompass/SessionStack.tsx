@@ -20,8 +20,12 @@ export const SessionStack: React.FC<SessionStackProps> = ({
   activeEntryId,
   onSelectEntry,
 }) => {
-  // Filter out the active entry — it's shown as the full CaptureCard below
-  const stackEntries = sessionEntries.filter((e) => e.id !== activeEntryId);
+  // Filter out the active entry and empty/untouched entries
+  const stackEntries = sessionEntries.filter(
+    (e) =>
+      e.id !== activeEntryId &&
+      (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'logged')
+  );
 
   if (stackEntries.length === 0) return null;
 

@@ -116,7 +116,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
           className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 transition-all ${
             status === 'want'
               ? 'bg-amber-500/20 text-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
-              : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+              : 'bg-tea-surface/80 text-tea-text-sec active:bg-tea-elevated hover:bg-tea-surface'
           }`}
         >
           Want
@@ -129,7 +129,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
               ? 'bg-tea-gold/20 text-tea-gold shadow-[0_2px_8px_rgba(184,146,78,0.15)]'
               : status === 'buying'
                 ? 'bg-tea-gold text-tea-bg shadow-[0_2px_8px_rgba(184,146,78,0.3)]'
-                : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+                : 'bg-tea-gold/8 text-tea-text-sec active:bg-tea-gold/15 hover:bg-tea-gold/12'
           }`}
         >
           {isInLedger ? (
