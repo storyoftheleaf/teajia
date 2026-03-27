@@ -29,6 +29,7 @@ interface TeaCompassState {
 
   // Session
   startNewCapture: (category?: CompassCategory) => string; // returns new entry ID
+  commitEntry: (id: string) => void; // finalize entry: remove from session, keep in entries
 
   // Vendor
   setLastVendor: (vendorId: string | null, vendorName: string | null) => void;
@@ -91,6 +92,12 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         }));
         return entry.id;
       },
+
+      commitEntry: (id) =>
+        set((state) => ({
+          sessionEntryIds: state.sessionEntryIds.filter((sid) => sid !== id),
+          activeEntryId: state.activeEntryId === id ? null : state.activeEntryId,
+        })),
 
       setLastVendor: (vendorId, vendorName) =>
         set({ lastVendorId: vendorId, lastVendorName: vendorName }),

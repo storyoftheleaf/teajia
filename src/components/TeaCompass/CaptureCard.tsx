@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Minus, Plus, X } from 'lucide-react';
+import { Camera, Check, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -41,6 +41,8 @@ interface CaptureCardProps {
   entryId: string;
   /** Called when user adds an item to the ledger, to switch to ledger tab */
   onSwitchToLedger?: () => void;
+  /** Called when user commits/finalizes an entry */
+  onCommit?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -51,9 +53,10 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -432,6 +435,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setDuplicateMatch(null);
   }, [duplicateMatch]);
 
+  const handleCommit = useCallback(() => {
+    commitEntry(entryId);
+    onCommit?.();
+  }, [commitEntry, entryId, onCommit]);
+
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
   if (!entry) return null;
@@ -726,6 +734,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             </div>
           </div>
+
+        {/* Done — commit entry */}
+        {hasTeawareName && (
+          <button
+            type="button"
+            onClick={handleCommit}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
+                       bg-tea-surface/60 text-tea-text-sec text-sm font-medium
+                       hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                       transition-all mt-1"
+          >
+            <Check size={15} strokeWidth={2} />
+            Done
+          </button>
+        )}
       </div>
     );
   }
@@ -941,6 +964,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onOpenTasting={openTastingOverlay}
           onTastingStripRemove={handleTastingStripRemove}
         />
+
+      {/* Done — commit entry */}
+      {hasName && (
+        <button
+          type="button"
+          onClick={handleCommit}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
+                     bg-tea-surface/60 text-tea-text-sec text-sm font-medium
+                     hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                     transition-all"
+        >
+          <Check size={15} strokeWidth={2} />
+          Done
+        </button>
+      )}
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

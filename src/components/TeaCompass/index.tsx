@@ -93,6 +93,23 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     [setActiveEntry]
   );
 
+  const handleCommitEntry = useCallback(() => {
+    // After commit removes the entry from session, check if there are remaining session entries
+    const remaining = getSessionEntries().filter(
+      (e) => e.id !== activeEntryId &&
+        (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'logged')
+    );
+    if (remaining.length > 0) {
+      // Switch to the most recent remaining session entry
+      setActiveEntry(remaining[0].id);
+    } else {
+      // Start a fresh capture
+      startNewCapture(
+        activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
+      );
+    }
+  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry]);
+
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
     if (newMode !== 'capture') {
       setActiveEntry(null);
@@ -246,7 +263,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
                 </button>
               </div>
 
-              <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} />
+              <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} onCommit={handleCommitEntry} />
             </motion.div>
           ) : mode === 'browse' ? (
             <motion.div
