@@ -10,6 +10,35 @@ import { TeaIllustration } from '../../admin/components/TeaIllustration';
 import { useCustomers } from '../../admin/hooks/useAdminData';
 import { useAppStore } from '../../lib/store';
 
+// ── String similarity (Levenshtein-based) ────────────────────────────────────
+
+function similarity(a: string, b: string): number {
+  const al = a.toLowerCase().trim();
+  const bl = b.toLowerCase().trim();
+  if (al === bl) return 1;
+  if (!al || !bl) return 0;
+  const longer = al.length > bl.length ? al : bl;
+  const shorter = al.length > bl.length ? bl : al;
+  if (longer.length === 0) return 1;
+  const costs: number[] = [];
+  for (let i = 0; i <= shorter.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= longer.length; j++) {
+      if (i === 0) { costs[j] = j; continue; }
+      if (j > 0) {
+        let newValue = costs[j - 1];
+        if (shorter[i - 1] !== longer[j - 1]) {
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        }
+        costs[j - 1] = lastValue;
+        lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[longer.length] = lastValue;
+  }
+  return (longer.length - costs[longer.length]) / longer.length;
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type TransactionDirection = 'sale' | 'purchase';
@@ -57,6 +86,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [validationError, setValidationError] = useState('');
   const [lastInvoice, setLastInvoice] = useState<any>(null);
   const [transactionComplete, setTransactionComplete] = useState(false);
+  const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
 
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -70,6 +100,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     setCustomerName(value);
     setValidationError('');
     setSelectedCustomerId(null);
+    setDedupSuggestion(null);
 
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
@@ -173,6 +204,18 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
     let custId = selectedCustomerId;
     if (!custId && customerName.trim()) {
+      // Check for fuzzy matches to prevent duplicates
+      const fuzzyMatch = allCustomers.find(c =>
+        similarity(c.name, customerName) > 0.75 && similarity(c.name, customerName) < 1
+      );
+      if (fuzzyMatch && !dedupSuggestion) {
+        setDedupSuggestion({ name: fuzzyMatch.name, id: fuzzyMatch.id });
+        setValidationError(`Similar customer exists: "${fuzzyMatch.name}". Click again to create new, or select the existing one.`);
+        setIsProcessing(false);
+        return;
+      }
+      // If user confirmed (clicked again after seeing warning), or no fuzzy match, proceed
+      if (dedupSuggestion) setDedupSuggestion(null);
       try {
         const result = await api.customers.create({
           name: customerName.trim(),
@@ -578,6 +621,22 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               </div>
             )}
           </div>
+          {dedupSuggestion && (
+            <div className="flex items-center justify-between bg-tea-gold/10 rounded-lg px-3 py-2 text-xs">
+              <span className="text-tea-gold font-serif italic">
+                Did you mean "{dedupSuggestion.name}"?
+              </span>
+              <button
+                onClick={() => {
+                  selectCustomer(allCustomers.find(c => c.id === dedupSuggestion.id)!);
+                  setDedupSuggestion(null);
+                }}
+                className="text-tea-gold font-semibold uppercase tracking-wider text-[10px] ml-2 hover:text-tea-gold/80"
+              >
+                Use This
+              </button>
+            </div>
+          )}
           <input
             type="text"
             value={customerPhone}
