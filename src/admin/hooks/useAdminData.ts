@@ -5,11 +5,12 @@ import { INITIAL_RATES } from '../constants';
 import { fetchLiveRates } from '../utils';
 
 // Fetch Products
-export const useProducts = () => {
+export const useProducts = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['products'],
     staleTime: 1000 * 60 * 5,   // 5 min — prevents background refetch from overwriting inline edits
     refetchOnWindowFocus: false, // window focus should not clobber optimistic updates
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const data = await api.products.list();
 
