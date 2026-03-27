@@ -15,6 +15,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
+import { api } from '../../lib/api';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -181,11 +182,40 @@ const TransactionCard: React.FC<{
   const DirectionIcon = isPurchase ? ArrowDownLeft : ArrowUpRight;
   const directionLabel = isPurchase ? 'Purchasing from' : 'Selling to';
 
-  const handleConfirm = useCallback(() => {
+  const [poSaved, setPoSaved] = useState(false);
+
+  const handleConfirm = useCallback(async () => {
     confirmTransaction(tx.id);
     setJustConfirmed(true);
     setTimeout(() => setJustConfirmed(false), 1500);
-  }, [tx.id, confirmTransaction]);
+
+    // Persist purchase order to database (fire-and-forget)
+    if (tx.direction === 'purchase') {
+      try {
+        const totalAmount = tx.items.reduce((sum, item) => sum + lineTotal(item), 0);
+        await api.purchaseOrders.create({
+          po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
+          vendor_name: tx.counterpartyName || 'Unknown',
+          items_json: JSON.stringify(tx.items.map(item => ({
+            name: item.name,
+            chineseName: item.chineseName,
+            type: item.type,
+            form: item.form,
+            year: item.year,
+            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
+            pricePerUnit: item.pricePerUnit,
+            priceIsPerGram: item.priceIsPerGram,
+          }))),
+          total_usd: totalAmount,
+          display_currency: tx.currency,
+          status: 'confirmed',
+        });
+        setPoSaved(true);
+      } catch {
+        // Non-critical — PO exists locally in ledger store
+      }
+    }
+  }, [tx, confirmTransaction]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -315,6 +345,23 @@ const TransactionCard: React.FC<{
                 >
                   <Trash2 size={16} />
                 </button>
+
+                {isPurchase && !isDraft && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await api.purchaseOrders.updateStatus(tx.id.slice(0, 8).toUpperCase(), 'sent');
+                        setPoSaved(true);
+                      } catch {
+                        // Status update failed silently
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-tea-surface text-tea-text text-[11px] font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
+                  >
+                    <Check size={14} /> {poSaved ? 'Sent' : 'Mark as Sent'}
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

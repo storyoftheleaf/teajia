@@ -254,6 +254,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         setIsProcessing(false);
         return;
       }
+      // Reserve stock immediately on order creation
+      try {
+        await api.rpc.reserveStock(invoiceData.id);
+      } catch {
+        // Non-critical — stock will be fully deducted on fulfill anyway
+      }
       onSuccess();
       showToast('Order submitted successfully', 'success');
       setLastInvoice({ ...invoiceData, items: cart });

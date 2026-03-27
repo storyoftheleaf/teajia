@@ -420,6 +420,60 @@ export const api = {
       });
       return handleResponse(res);
     },
+    reserveStock: async (invoiceId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/reserve-stock`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      return handleResponse(res);
+    },
+    releaseStock: async (invoiceId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/release-stock`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  purchaseOrders: {
+    create: async (data: {
+      po_number: string;
+      vendor_name: string;
+      vendor_contact?: string;
+      items_json: string;
+      total_usd: number;
+      display_currency: string;
+      status: 'draft' | 'sent' | 'confirmed' | 'received';
+      message_text?: string;
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+
+    updateStatus: async (id: string, status: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      return handleResponse(res);
+    },
   },
 
   activityLogs: {
