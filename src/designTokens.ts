@@ -233,9 +233,9 @@ export const Z_INDEX = {
 
 export const COLORS = {
   dark: {
-    bg:        '#0a0a0a',                  // True black — page background
-    surface:   '#161616',                  // Primary surface — cards, panels
-    elevated:  '#222222',                  // Elevated surfaces — modals, popovers
+    bg:        '#18130e',                  // Rich espresso — page background
+    surface:   '#28211a',                  // Primary surface — cards, panels
+    elevated:  '#3a3126',                  // Elevated surfaces — modals, popovers
     text:      '#ede4d4',                  // Primary text — cream white
     textSec:   '#b5a892',                  // Secondary text — warm gray
     textDim:   '#80735f',                  // Dimmed text — labels, captions
@@ -317,7 +317,7 @@ export const getTeaVividColor = (type: string): string =>
  */
 
 export const ALCOVE_COLORS = {
-  bg:            '#0a0a0a',   // --tea-bg
+  bg:            '#18130e',   // --tea-bg
   title:         '#ede4d4',   // --tea-text
   subtitle:      '#80735f',   // --tea-text-dim
   body:          '#b5a892',   // --tea-text-sec
