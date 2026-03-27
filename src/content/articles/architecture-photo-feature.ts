@@ -8,7 +8,7 @@ export const architecturePhotoFeature: ReadableStory = {
   status: 'published',
   title: 'The Urban Tea House',
   subtitle: 'Architecture of Stillness',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1464982326199-86f32f81b211?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&h=1200&fit=crop',
   durationOrTime: '17 Pages',
   origin: 'In-house',
   description: 'How architects in Shanghai, Taipei, and Tokyo are building spaces of silence in the world\'s loudest cities.',

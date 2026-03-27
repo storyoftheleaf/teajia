@@ -8,7 +8,7 @@ export const recipeAndPairing: ReadableStory = {
   status: 'published',
   title: 'Tea in the Kitchen',
   subtitle: 'Recipes & Pairings',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1200&fit=crop',
   durationOrTime: '18 Pages',
   origin: 'In-house',
   description: 'Lapsang-smoked duck, hojicha panna cotta, and a jasmine gimlet — tea belongs in the kitchen.',

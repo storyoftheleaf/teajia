@@ -8,7 +8,7 @@ export const travelFeatureVideo: ReadableStory = {
   status: 'published',
   title: 'Into the Wuyi Mountains',
   subtitle: 'A Tea Pilgrimage to Fujian',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1523920290228-4f321a939b4c?w=800&h=1200&fit=crop',
   durationOrTime: '18 Pages',
   origin: 'In-house',
   description: 'A pilgrimage to the birthplace of rock oolong, following Master Zhou through Fujian\'s ancient ravines.',

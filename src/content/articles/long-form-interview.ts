@@ -8,7 +8,7 @@ export const longFormInterview: ReadableStory = {
   status: 'published',
   title: 'A Conversation with Master Lin',
   subtitle: 'The Yixing Potter',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800&h=1200&fit=crop',
   durationOrTime: '20 Pages',
   origin: 'In-house',
   description: 'Sixty years of clay and fire — the Yixing master on craft, patience, and the pots that remember.',

@@ -8,7 +8,7 @@ export const darkModeProcess: ReadableStory = {
   status: 'published',
   title: 'The Midnight Kiln',
   subtitle: 'Three Nights of Fire',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=800&h=1200&fit=crop',
   durationOrTime: '21 Pages',
   origin: 'In-house',
   description: 'Inside a seventy-two-hour anagama firing — where clay, ash, and patience become art.',
