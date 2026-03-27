@@ -1,6 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { AnimatePresence, motion } from 'framer-motion';
+
 import { Check, Loader2 } from 'lucide-react';
 import { InventoryItem } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
@@ -17,7 +17,7 @@ import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useRates } from '../admin/hooks/useAdminData';
 import { ToastProvider } from '../admin/components/Toast';
 import { useAppStore } from '../lib/store';
-import { fmtPrice } from '../utils/formatNumber';
+
 import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
 
@@ -61,13 +61,7 @@ export const Shop: React.FC<ShopProps> = ({
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
 
-  const publicCart = useAppStore(state => state.publicCart);
   const recentlyViewed = useAppStore(state => state.recentlyViewed);
-
-  const formatTotalPrice = () => {
-    const total = publicCart.reduce((sum, item) => sum + item.pricePerGram * item.quantityGrams, 0);
-    return fmtPrice(total);
-  };
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -367,31 +361,7 @@ export const Shop: React.FC<ShopProps> = ({
         })()}
       </div>
 
-      {/* #29 — Sticky cart CTA bar */}
-      <AnimatePresence>
-        {publicCart.length > 0 && (
-          <motion.div
-            className="fixed bottom-[56px] lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-80 z-30"
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          >
-            <button
-              onClick={() => onCartClick?.()}
-              className="w-full bg-tea-gold text-white flex items-center justify-between px-5 py-3.5 rounded-xl shadow-lg font-sans text-sm font-medium"
-            >
-              <span className="flex items-center gap-2">
-                <span className="bg-white/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                  {publicCart.length}
-                </span>
-                View Cart
-              </span>
-              <span className="font-mono tabular-nums">{formatTotalPrice()}</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Cart access is now handled by the global CartIndicator in App.tsx */}
 
 
 

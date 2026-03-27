@@ -14,15 +14,20 @@ interface InventoryViewConfig {
 }
 
 interface AppState {
-  // Admin Cart (for invoice builder)
+  // Admin Cart / Transaction Builder (for invoice builder + purchase orders)
   cart: AdminCartItem[];
   isCartOpen: boolean;
+  cartDirection: 'sale' | 'purchase';
+  cartVendorName: string;
   addToCart: (product: Product, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   setCart: (cart: AdminCartItem[]) => void;
   setIsCartOpen: (isOpen: boolean) => void;
+  setCartDirection: (direction: 'sale' | 'purchase') => void;
+  setCartVendorName: (name: string) => void;
+  openPurchaseOrder: (vendorName?: string) => void;
 
   // Public Cart (for customer checkout)
   publicCart: PublicCartItem[];
@@ -95,9 +100,11 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      // Admin Cart
+      // Admin Cart / Transaction Builder
       cart: [],
       isCartOpen: false,
+      cartDirection: 'sale' as 'sale' | 'purchase',
+      cartVendorName: '',
 
       addToCart: (product, quantity) =>
         set((state) => {
@@ -139,6 +146,13 @@ export const useAppStore = create<AppState>()(
       clearCart: () => set({ cart: [] }),
       setCart: (cart) => set({ cart }),
       setIsCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
+      setCartDirection: (direction) => set({ cartDirection: direction }),
+      setCartVendorName: (name) => set({ cartVendorName: name }),
+      openPurchaseOrder: (vendorName) => set({
+        cartDirection: 'purchase',
+        cartVendorName: vendorName || '',
+        isCartOpen: true,
+      }),
 
       // Public Cart
       publicCart: [],
@@ -286,6 +300,8 @@ export const useAppStore = create<AppState>()(
       name: 'teajia-storage',
       partialize: (state) => ({
         cart: state.cart,
+        cartDirection: state.cartDirection,
+        cartVendorName: state.cartVendorName,
         publicCart: state.publicCart,
         currency: state.currency,
         aiPromptTemplate: state.aiPromptTemplate,

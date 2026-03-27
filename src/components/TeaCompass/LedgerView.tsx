@@ -14,6 +14,7 @@ import {
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
+import { useAppStore } from '../../lib/store';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -336,6 +337,7 @@ interface LedgerViewProps {
 export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
+  const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
   // All transactions expanded by default
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<LedgerFilter>('all');
@@ -374,19 +376,28 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
         <p className="text-sm text-tea-text-sec font-serif text-center max-w-[260px] leading-relaxed mb-6">
           Mark items as "Buy" in the Compass, or start a new purchase or sale here.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 w-full max-w-xs">
           <button
-            onClick={() => createTransaction('purchase', '', 'NT')}
-            className="px-5 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors"
+            onClick={() => openPurchaseOrder()}
+            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
           >
-            New Purchase
+            <ShoppingBag size={14} />
+            Purchase Order Builder
           </button>
-          <button
-            onClick={() => createTransaction('sale', '', 'USD')}
-            className="px-5 py-3 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
-          >
-            New Sale
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => createTransaction('purchase', '', 'NT')}
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+            >
+              Quick Note
+            </button>
+            <button
+              onClick={() => createTransaction('sale', '', 'USD')}
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+            >
+              Quick Sale
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -437,24 +448,33 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
       </div>
 
       {/* Quick create buttons */}
-      <div className="flex gap-2 pt-4 border-t border-tea-border/15">
+      <div className="flex flex-col gap-2 pt-4 border-t border-tea-border/15">
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              createTransaction('purchase', '', 'NT');
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+          >
+            <ArrowDownLeft size={14} />
+            Quick Note
+          </button>
+          <button
+            onClick={() => {
+              createTransaction('sale', '', 'USD');
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+          >
+            <ArrowUpRight size={14} />
+            Quick Sale
+          </button>
+        </div>
         <button
-          onClick={() => {
-            createTransaction('purchase', '', 'NT');
-          }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+          onClick={() => openPurchaseOrder()}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
         >
-          <ArrowDownLeft size={14} />
-          New Purchase
-        </button>
-        <button
-          onClick={() => {
-            createTransaction('sale', '', 'USD');
-          }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
-        >
-          <ArrowUpRight size={14} />
-          New Sale
+          <ShoppingBag size={14} />
+          Full Purchase Order Builder
         </button>
       </div>
     </div>

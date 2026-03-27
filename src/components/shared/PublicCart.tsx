@@ -14,6 +14,7 @@ export interface PublicCartProps {
   cart: PublicCartItem[];
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, grams: number) => void;
+  onAddItem: (item: PublicCartItem) => void;
   isOpen: boolean;
 }
 
@@ -21,7 +22,7 @@ type CheckoutStep = 'CART' | 'INQUIRY' | 'CONFIRM';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, isOpen }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen }) => {
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -128,7 +129,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const handleUndo = () => {
     if (!undoItem) return;
     clearTimeout(undoItem.timeout);
-    onUpdateQuantity(undoItem.item.id, undoItem.item.quantityGrams);
+    onAddItem(undoItem.item);
     setUndoItem(null);
   };
 

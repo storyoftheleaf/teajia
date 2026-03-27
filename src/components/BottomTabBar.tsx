@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
+import { LayoutGroup } from 'framer-motion';
 import { Icons } from './Icons';
 import { LogoEmblem, LogoText } from './Logos';
 import { Section } from '../types';
@@ -13,7 +13,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 interface BottomTabBarProps {
   activeSection: Section;
   onNavigate: (section: Section) => void;
-  cartItemCount?: number;
   hidden?: boolean;
   onAccountClick?: () => void;
 }
@@ -21,7 +20,6 @@ interface BottomTabBarProps {
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
-  cartItemCount = 0,
   hidden = false,
   onAccountClick
 }) => {
@@ -73,25 +71,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
       >
-        {/* Cart badge */}
-        {section.id === 'SHOP' && (
-          <AnimatePresence mode="wait">
-            {cartItemCount > 0 && (
-              <motion.span
-                key={cartItemCount}
-                className="absolute top-1 right-2 min-w-[16px] h-4 px-0.5 rounded-full bg-tea-gold text-white text-[10px] font-bold flex items-center justify-center leading-none pointer-events-none"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: [1.3, 1], opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'backOut' }}
-                aria-label={`${cartItemCount} item${cartItemCount !== 1 ? 's' : ''} in cart`}
-              >
-                {cartItemCount}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        )}
-
         {/* Text-only label */}
         <span
           className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${

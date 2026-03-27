@@ -39,6 +39,7 @@ import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
+import { CartIndicator } from './components/shared/CartIndicator';
 import { LearnHub } from './components/LearnHub';
 import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
@@ -576,6 +577,9 @@ const AppContent = () => {
          <ShareModal story={sharingStory} onClose={() => setSharingStory(null)} />
       )}
 
+      {/* Floating cart indicator — mobile only, all pages */}
+      <CartIndicator itemCount={cart.length} onOpen={handleOpenCart} />
+
       <CartPanel
          mode="public"
          isOpen={isCartOpen}
@@ -583,6 +587,7 @@ const AppContent = () => {
          cart={cart}
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
+         onAddItem={addToPublicCart}
       />
 
       {/* --- GLOBAL SEARCH --- */}
@@ -647,7 +652,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} cartItemCount={cart.length} hidden={false} onAccountClick={handleOpenAccount} />
+      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} hidden={false} onAccountClick={handleOpenAccount} />
 
       </div>
     </div>
