@@ -187,7 +187,34 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
       // Build purchase receipt
       const purchaseRef = `PO-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
+
+      // Persist purchase order to database
+      let poId: string | null = null;
+      try {
+        const po = await api.purchaseOrders.create({
+          po_number: purchaseRef,
+          vendor_name: customerName,
+          vendor_contact: customerPhone || undefined,
+          items_json: JSON.stringify(cart.map(item => ({
+            productId: item.productId,
+            name: item.product.givenName,
+            productName: item.product.productName,
+            quantity: item.quantity,
+            priceAtSale: item.priceAtSale,
+            type: item.product.type,
+          }))),
+          total_usd: totalUSD,
+          display_currency: displayCurrency,
+          status: 'draft',
+          message_text: message,
+        });
+        if (po?.id) poId = po.id;
+      } catch {
+        // Non-critical — PO text was already generated
+      }
+
       setLastInvoice({
+        id: poId,
         invoice_number: purchaseRef,
         customer_name: customerName,
         items: cart,
@@ -258,7 +285,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       try {
         await api.rpc.reserveStock(invoiceData.id);
       } catch {
-        // Non-critical — stock will be fully deducted on fulfill anyway
+        showToast('Stock reservation pending — verify before fulfilling', 'info');
       }
       onSuccess();
       showToast('Order submitted successfully', 'success');
@@ -390,7 +417,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 </button>
               )}
               {isPurchase && lastInvoice._vendorPhone && lastInvoice._vendorPhone.length >= 7 ? (
-                <a href={`https://wa.me/${lastInvoice._vendorPhone}?text=${encodeURIComponent(lastInvoice._purchaseMessage || '')}`} target="_blank" rel="noreferrer"
+                <a href={buildWhatsAppUrl(lastInvoice._vendorPhone, lastInvoice._purchaseMessage || '')} target="_blank" rel="noreferrer"
                   className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
                   <Share2 size={16} /> Send to Vendor via WhatsApp
                 </a>

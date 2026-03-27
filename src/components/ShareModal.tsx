@@ -4,6 +4,7 @@ import { Story, ContentType } from '../types';
 import { Icons } from './Icons';
 import { LogoEmblem } from './Logos';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { buildWhatsAppUrl } from '../lib/whatsapp';
 
 interface ShareModalProps {
   story: Story;
@@ -139,7 +140,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         handleNativeShare();
     } else {
         // Desktop fallback: Text link
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`, '_blank');
+        window.open(buildWhatsAppUrl('', shareText + ' ' + shareUrl), '_blank');
     }
   };
 
