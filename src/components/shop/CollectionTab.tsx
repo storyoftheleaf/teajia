@@ -127,8 +127,8 @@ const ItemCard: React.FC<{
             <div>
               {isTea ? (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 25)}</span>
-                  <span className="text-tea-text-sec text-xs ml-1">/ 25g</span>
+                  <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 50)}</span>
+                  <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
                 </>
               ) : (
                 <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
@@ -139,7 +139,7 @@ const ItemCard: React.FC<{
                 e.stopPropagation();
                 if (isSoldOut) return;
                 if (isTea) {
-                  onAddToCart(item, 25, Math.round(pricePerGram * 25 * 100) / 100);
+                  onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
                 } else {
                   onAddToCart(item, 1, priceUnit);
                 }
@@ -151,7 +151,7 @@ const ItemCard: React.FC<{
                   : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
               }`}
             >
-              {isSoldOut ? 'Sold Out' : isTea ? 'Add 25g' : 'Add to Cart'}
+              {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
             </button>
           </div>
         </div>

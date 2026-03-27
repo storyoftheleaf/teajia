@@ -74,7 +74,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
     set.items.forEach(({ itemId }) => {
       const item = allInventory.find(inv => inv.id === itemId);
       if (item && item.stock_g > 0) {
-        const defaultQty = item.category === 'tea' ? 25 : 1;
+        const defaultQty = item.category === 'tea' ? 50 : 1;
         const pricePerUnit = item.category === 'tea'
           ? parseFloat(item.price_per_gram || '0')
           : parseFloat(item.price_50g || '0');
