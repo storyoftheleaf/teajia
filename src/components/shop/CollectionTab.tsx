@@ -24,8 +24,10 @@ const ItemCard: React.FC<{
   onToggleSave?: (id: string) => void;
 }> = ({ item, onView, onAddToCart, isSaved, onToggleSave }) => {
   const pricePerGram = parseFloat(item.price_per_gram || '0');
+  // For teaware/misc: price_50g is actually per-unit price (legacy field name)
   const priceUnit = parseFloat(item.price_50g || '0');
   const isTea = item.category === 'tea';
+  const isSoldOut = item.stock_g <= 0;
   const notes = item.tags || [];
   const accent = 'var(--tea-gold)';
 
@@ -126,25 +128,34 @@ const ItemCard: React.FC<{
             <div>
               {isTea ? (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 25)}</span>
-                  <span className="text-tea-text-sec text-xs ml-1">/ 25g</span>
+                  <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 50)}</span>
+                  <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
                 </>
               ) : (
-                <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
+                <>
+                  <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
+                  <span className="text-tea-text-sec text-xs ml-1">each</span>
+                </>
               )}
             </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (isSoldOut) return;
                 if (isTea) {
-                  onAddToCart(item, 25, Math.round(pricePerGram * 25 * 100) / 100);
+                  onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
                 } else {
                   onAddToCart(item, 1, priceUnit);
                 }
               }}
-              className="ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm bg-tea-gold hover:bg-tea-gold-lt text-tea-bg transition-all active:scale-95 min-h-[44px]"
+              disabled={isSoldOut}
+              className={`ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
+                isSoldOut
+                  ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
+                  : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
+              }`}
             >
-              {isTea ? 'Add 25g' : 'Add to Cart'}
+              {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
             </button>
           </div>
         </div>

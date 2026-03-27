@@ -14,6 +14,8 @@ import {
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
+import { useAppStore } from '../../lib/store';
+import { api } from '../../lib/api';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -180,11 +182,40 @@ const TransactionCard: React.FC<{
   const DirectionIcon = isPurchase ? ArrowDownLeft : ArrowUpRight;
   const directionLabel = isPurchase ? 'Purchasing from' : 'Selling to';
 
-  const handleConfirm = useCallback(() => {
+  const [poSaved, setPoSaved] = useState(false);
+
+  const handleConfirm = useCallback(async () => {
     confirmTransaction(tx.id);
     setJustConfirmed(true);
     setTimeout(() => setJustConfirmed(false), 1500);
-  }, [tx.id, confirmTransaction]);
+
+    // Persist purchase order to database (fire-and-forget)
+    if (tx.direction === 'purchase') {
+      try {
+        const totalAmount = tx.items.reduce((sum, item) => sum + lineTotal(item), 0);
+        await api.purchaseOrders.create({
+          po_number: `PO-${tx.id.slice(0, 8).toUpperCase()}`,
+          vendor_name: tx.counterpartyName || 'Unknown',
+          items_json: JSON.stringify(tx.items.map(item => ({
+            name: item.name,
+            chineseName: item.chineseName,
+            type: item.type,
+            form: item.form,
+            year: item.year,
+            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
+            pricePerUnit: item.pricePerUnit,
+            priceIsPerGram: item.priceIsPerGram,
+          }))),
+          total_usd: totalAmount,
+          display_currency: tx.currency,
+          status: 'confirmed',
+        });
+        setPoSaved(true);
+      } catch {
+        // Non-critical — PO exists locally in ledger store
+      }
+    }
+  }, [tx, confirmTransaction]);
 
   const handleDelete = useCallback(() => {
     if (window.confirm(`Remove this ${isPurchase ? 'purchase' : 'sale'} order?`)) {
@@ -314,6 +345,23 @@ const TransactionCard: React.FC<{
                 >
                   <Trash2 size={16} />
                 </button>
+
+                {isPurchase && !isDraft && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await api.purchaseOrders.updateStatus(tx.id.slice(0, 8).toUpperCase(), 'sent');
+                        setPoSaved(true);
+                      } catch {
+                        // Status update failed silently
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-tea-surface text-tea-text text-[11px] font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
+                  >
+                    <Check size={14} /> {poSaved ? 'Sent' : 'Mark as Sent'}
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
@@ -336,6 +384,7 @@ interface LedgerViewProps {
 export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
+  const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
   // All transactions expanded by default
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<LedgerFilter>('all');
@@ -374,19 +423,28 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
         <p className="text-sm text-tea-text-sec font-serif text-center max-w-[260px] leading-relaxed mb-6">
           Mark items as "Buy" in the Compass, or start a new purchase or sale here.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 w-full max-w-xs">
           <button
-            onClick={() => createTransaction('purchase', '', 'NT')}
-            className="px-5 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors"
+            onClick={() => openPurchaseOrder()}
+            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
           >
-            New Purchase
+            <ShoppingBag size={14} />
+            Purchase Order Builder
           </button>
-          <button
-            onClick={() => createTransaction('sale', '', 'USD')}
-            className="px-5 py-3 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
-          >
-            New Sale
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => createTransaction('purchase', '', 'NT')}
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+            >
+              Quick Note
+            </button>
+            <button
+              onClick={() => createTransaction('sale', '', 'USD')}
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+            >
+              Quick Sale
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -437,24 +495,33 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
       </div>
 
       {/* Quick create buttons */}
-      <div className="flex gap-2 pt-4 border-t border-tea-border/15">
+      <div className="flex flex-col gap-2 pt-4 border-t border-tea-border/15">
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              createTransaction('purchase', '', 'NT');
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+          >
+            <ArrowDownLeft size={14} />
+            Quick Note
+          </button>
+          <button
+            onClick={() => {
+              createTransaction('sale', '', 'USD');
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+          >
+            <ArrowUpRight size={14} />
+            Quick Sale
+          </button>
+        </div>
         <button
-          onClick={() => {
-            createTransaction('purchase', '', 'NT');
-          }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+          onClick={() => openPurchaseOrder()}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
         >
-          <ArrowDownLeft size={14} />
-          New Purchase
-        </button>
-        <button
-          onClick={() => {
-            createTransaction('sale', '', 'USD');
-          }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
-        >
-          <ArrowUpRight size={14} />
-          New Sale
+          <ShoppingBag size={14} />
+          Full Purchase Order Builder
         </button>
       </div>
     </div>

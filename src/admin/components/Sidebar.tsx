@@ -84,7 +84,8 @@ export const Sidebar = ({
   isMobileOpen,
   setIsMobileOpen,
   cartItemCount,
-  onOpenCart
+  onOpenCart,
+  onOpenPurchase
 }: {
   isAdmin: boolean;
   isLoggedIn: boolean;
@@ -94,6 +95,7 @@ export const Sidebar = ({
   setIsMobileOpen: (v: boolean) => void;
   cartItemCount: number;
   onOpenCart: () => void;
+  onOpenPurchase?: () => void;
 }) => {
   const location = useLocation();
   const currentPath = location.pathname;

@@ -1,10 +1,15 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { fmtPrice } from '../../utils/formatNumber';
+import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
+import { useAppStore } from '../../lib/store';
+import { formatCurrency } from '../../admin/utils';
+import { useRates } from '../../admin/hooks/useAdminData';
 import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
+import { api } from '../../lib/api';
 
 const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
 
@@ -14,6 +19,7 @@ export interface PublicCartProps {
   cart: PublicCartItem[];
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, grams: number) => void;
+  onAddItem: (item: PublicCartItem) => void;
   isOpen: boolean;
 }
 
@@ -21,7 +27,7 @@ type CheckoutStep = 'CART' | 'INQUIRY' | 'CONFIRM';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, isOpen }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen }) => {
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -32,6 +38,18 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
   // Undo state for removed items
   const [undoItem, setUndoItem] = useState<{ item: PublicCartItem; timeout: ReturnType<typeof setTimeout> } | null>(null);
+
+  // Multi-currency support
+  const currency = useAppStore(s => s.currency);
+  const setCurrency = useAppStore(s => s.setCurrency);
+  const { data: rates = [] } = useRates();
+
+  const displayPrice = useCallback((usd: number) => {
+    if (rates.length > 0 && currency !== 'USD') {
+      return formatCurrency(usd, currency, rates);
+    }
+    return fmtPrice(usd);
+  }, [currency, rates]);
 
   const orderRef = useMemo(() => {
     const d = new Date();
@@ -100,19 +118,24 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + item.totalPrice, 0), [cart]);
   const isEmpty = cart.length === 0;
 
-  const orderMessage = useMemo(() => {
-    const date = new Date().toLocaleDateString();
-    let msg = `ORDER INQUIRY [TEAJIA]\nRef: ${orderRef}\nDate: ${date}\n\n`;
-    msg += `CUSTOMER:\nName: ${details.name}\nContact: ${details.contact}\nShipping To: ${details.location}\n`;
-    if (details.notes) msg += `Notes: ${details.notes}\n`;
-    msg += `\nITEMS:\n`;
-    cart.forEach(item => {
-      const qtyLabel = item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`;
-      msg += `- ${item.name} (${item.variant}): ${qtyLabel} @ $${fmtPrice(item.totalPrice)}\n`;
-    });
-    msg += `\nTOTAL ESTIMATE: ${fmtPrice(subtotal)}\n\nPlease confirm availability and shipping costs.`;
-    return msg;
-  }, [cart, details, subtotal, orderRef]);
+  const orderMessage = useMemo(() => buildOrderMessage({
+    type: 'inquiry',
+    ref: orderRef,
+    customerName: details.name,
+    customerContact: details.contact,
+    customerLocation: details.location,
+    notes: details.notes,
+    items: cart.map(item => ({
+      name: item.name,
+      variant: item.variant,
+      quantity: item.quantityGrams,
+      unit: item.category === 'tea' ? 'g' : '\u00d7',
+      price: `$${fmtPrice(item.pricePerGram)}`,
+      total: `$${fmtPrice(item.totalPrice)}`,
+    })),
+    subtotal: fmtPrice(subtotal),
+    total: fmtPrice(subtotal),
+  }), [cart, details, subtotal, orderRef]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -128,7 +151,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const handleUndo = () => {
     if (!undoItem) return;
     clearTimeout(undoItem.timeout);
-    onUpdateQuantity(undoItem.item.id, undoItem.item.quantityGrams);
+    onAddItem(undoItem.item);
     setUndoItem(null);
   };
 
@@ -137,23 +160,40 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     setSuccessMessage({ show: true, type });
   };
 
+  const persistInquiry = async (source: 'whatsapp' | 'email' | 'copy') => {
+    try {
+      await api.inquiries.create({
+        ref_number: orderRef,
+        customer_name: details.name,
+        customer_contact: details.contact,
+        customer_location: details.location,
+        notes: details.notes || undefined,
+        items_json: JSON.stringify(cart),
+        total_estimate_usd: subtotal,
+        source,
+      });
+    } catch {
+      // Non-critical — inquiry still sent via WhatsApp/email
+    }
+  };
+
   const handleWhatsApp = () => {
-    const clean = String(TEAJIA_WHATSAPP_NUMBER).replace(/\D/g, '');
-    window.open(clean && clean !== '1234567890'
-      ? `https://wa.me/${clean}?text=${encodeURIComponent(orderMessage)}`
-      : `https://wa.me/?text=${encodeURIComponent(orderMessage)}`);
+    window.open(buildWhatsAppUrl(String(TEAJIA_WHATSAPP_NUMBER), orderMessage));
     showSuccess('whatsapp');
+    persistInquiry('whatsapp');
   };
 
   const handleEmail = () => {
     const subject = `Tea Order Inquiry - ${details.name}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(orderMessage)}`);
     showSuccess('email');
+    persistInquiry('email');
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(orderMessage);
     showSuccess('copy');
+    persistInquiry('copy');
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -398,12 +438,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                         {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
                       </span>
                     </div>
-                    <span className="num text-tea-text">{fmtPrice(item.totalPrice)}</span>
+                    <span className="num text-tea-text">{displayPrice(item.totalPrice)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 border-t border-tea-border">
                   <span className="text-sm font-medium text-tea-text">Total Estimate</span>
-                  <span className="num text-lg font-serif text-tea-gold">{fmtPrice(subtotal)}</span>
+                  <span className="num text-lg font-serif text-tea-gold">{displayPrice(subtotal)}</span>
                 </div>
               </div>
 
@@ -427,6 +467,13 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   >
                     <Icons.Close className="w-3 h-3" />
                   </button>
+                </div>
+              )}
+
+              {successMessage?.show && (
+                <div className="mt-3 text-center">
+                  <p className="text-xs text-tea-text-sec mb-1">Track your order:</p>
+                  <a href={`/order/${orderRef}`} className="text-sm text-tea-gold underline font-mono">{orderRef}</a>
                 </div>
               )}
 
@@ -477,9 +524,23 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </p>
               </div>
             )}
+            {rates.length > 0 && (
+              <div className="flex items-center justify-end gap-2 mb-2">
+                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Currency</span>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as any)}
+                  className="bg-tea-surface border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none"
+                >
+                  {rates.map(r => (
+                    <option key={r.currency} value={r.currency}>{r.currency}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="flex justify-between items-center font-serif text-xl text-tea-text">
               <span>Total</span>
-              <span className="num">{fmtPrice(subtotal)}</span>
+              <span className="num">{displayPrice(subtotal)}</span>
             </div>
             <Button
               onClick={() => !isEmpty && setStep('INQUIRY')}
@@ -496,7 +557,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center font-serif text-lg text-tea-text">
               <span>Total</span>
-              <span className="num">{fmtPrice(subtotal)}</span>
+              <span className="num">{displayPrice(subtotal)}</span>
             </div>
             <Button
               type="submit"

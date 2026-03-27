@@ -46,7 +46,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
   const isTea = item.category === 'tea';
   const pricePerUnit = isTea
     ? parseFloat(item.price_per_gram || '0')
-    : parseFloat(item.price_50g || '0');
+    : parseFloat(item.price_50g || '0'); // price_50g is per-unit price for teaware (legacy field name)
   const total = pricePerUnit * quantity;
   const maxQty = isTea ? Math.min(item.stock_g, 500) : Math.min(item.stock_g, 10);
 
@@ -159,6 +159,15 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Price per unit label */}
+          <div className="flex items-center justify-between text-xs text-tea-text-sec">
+            <span>
+              {isTea
+                ? `${fmtPrice(pricePerUnit)} / g`
+                : `${fmtPrice(pricePerUnit)} each`}
+            </span>
           </div>
 
           {/* Add to Cart */}

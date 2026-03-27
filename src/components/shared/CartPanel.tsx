@@ -27,6 +27,7 @@ type PublicProps = {
   cart: PublicCartItem[];
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, grams: number) => void;
+  onAddItem: (item: PublicCartItem) => void;
 };
 
 type CartPanelProps = { isOpen: boolean; onClose: () => void } & (AdminProps | PublicProps);
@@ -164,6 +165,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               cart={props.cart}
               onRemoveItem={props.onRemoveItem}
               onUpdateQuantity={props.onUpdateQuantity}
+              onAddItem={props.onAddItem}
               isOpen={isOpen}
             />
           </div>
