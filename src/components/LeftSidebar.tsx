@@ -179,7 +179,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   return (
     <LayoutGroup>
     <aside
-      className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-56'} text-tea-text fixed left-0 overflow-y-auto hide-scrollbar transition-all duration-300 z-sticky top-0 h-screen`}
+      className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-56'} text-tea-text fixed left-0 overflow-y-auto hide-scrollbar transition-all duration-300 z-sticky top-0 h-screen select-none`}
       style={{
         background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgb(var(--tea-bg-rgb) / 0.95) 100%)',
         boxShadow: 'inset -1px 0 0 var(--tea-accent-sub), 1px 0 8px rgb(var(--tea-bg-rgb) / 0.15)'
