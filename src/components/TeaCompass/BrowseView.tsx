@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronDown, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { BrowseCard } from './BrowseCard';
 import { VendorHistory } from './VendorHistory';
+import { VendorInfoPanel } from './VendorInfoPanel';
 import { CompassIcon } from './CompassIcon';
-import type { TeaCompassEntry, BrowseGrouping, BrowseFilter, TeaType, TeaForm } from './types';
+import type { TeaCompassEntry, BrowseGrouping, BrowseFilter, TeaType, TeaForm, VendorDetails } from './types';
 import type { Currency } from '../../admin/types';
 
 interface BrowseViewProps {
@@ -30,6 +31,32 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
+
+  // Get vendor details from the most recent entry for a given vendor name
+  const getVendorDetailsForGroup = useCallback((vendorNameKey: string): { details?: VendorDetails; vendorId?: string } => {
+    // Find the most recent entry with vendorDetails for this vendor
+    for (const e of entries) {
+      if ((e.vendorName || 'No Vendor') === vendorNameKey && e.vendorDetails) {
+        const hasInfo = e.vendorDetails.businessCardUrl || e.vendorDetails.storefrontUrl ||
+          e.vendorDetails.lat != null || e.vendorDetails.phone ||
+          e.vendorDetails.whatsapp || e.vendorDetails.wechat || e.vendorDetails.line;
+        if (hasInfo) return { details: e.vendorDetails, vendorId: e.vendorId };
+      }
+    }
+    // Return vendorId even if no details
+    const withId = entries.find((e) => (e.vendorName || 'No Vendor') === vendorNameKey && e.vendorId);
+    return { details: undefined, vendorId: withId?.vendorId };
+  }, [entries]);
+
+  // Update vendor details across all entries for this vendor
+  const handleVendorDetailsChange = useCallback((vendorNameKey: string, details: VendorDetails) => {
+    for (const e of entries) {
+      if ((e.vendorName || 'No Vendor') === vendorNameKey) {
+        updateEntry(e.id, { vendorDetails: details });
+      }
+    }
+  }, [entries, updateEntry]);
 
   const handleBuyAgain = useCallback((item: {
     name: string;
@@ -148,16 +175,71 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       </div>
 
       <div className="space-y-5">
-        {groups.map(([groupName, groupEntries]) => (
+        {groups.map(([groupName, groupEntries]) => {
+          const isVendorGrouping = browseGrouping === 'vendor';
+          const vendorExpanded = expandedVendors.has(groupName);
+          const vendorInfo = isVendorGrouping ? getVendorDetailsForGroup(groupName) : null;
+
+          return (
           <div key={groupName}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">
-                {groupName}
-              </span>
-              <span className="text-[10px] text-tea-text-sec">
-                {groupEntries.length} {groupEntries.length === 1 ? 'entry' : 'entries'}
-              </span>
-            </div>
+            {isVendorGrouping && groupName !== 'No Vendor' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setExpandedVendors((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(groupName)) next.delete(groupName);
+                    else next.add(groupName);
+                    return next;
+                  })}
+                  className="flex items-center justify-between w-full mb-2 group"
+                >
+                  <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-tea-text-sec group-hover:text-tea-gold transition-colors">
+                    <Store size={11} />
+                    {groupName}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-tea-text-sec">
+                      {groupEntries.length} {groupEntries.length === 1 ? 'entry' : 'entries'}
+                    </span>
+                    <motion.span
+                      animate={{ rotate: vendorExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-tea-text-dim"
+                    >
+                      <ChevronDown size={12} />
+                    </motion.span>
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {vendorExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden mb-3"
+                    >
+                      <VendorInfoPanel
+                        vendorName={groupName}
+                        vendorId={vendorInfo?.vendorId}
+                        vendorDetails={vendorInfo?.details}
+                        onDetailsChange={(details) => handleVendorDetailsChange(groupName, details)}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : (
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">
+                  {groupName}
+                </span>
+                <span className="text-[10px] text-tea-text-sec">
+                  {groupEntries.length} {groupEntries.length === 1 ? 'entry' : 'entries'}
+                </span>
+              </div>
+            )}
             <div className="space-y-1.5">
               <AnimatePresence initial={false}>
                 {groupEntries.map((entry) => (
@@ -186,7 +268,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
               </AnimatePresence>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

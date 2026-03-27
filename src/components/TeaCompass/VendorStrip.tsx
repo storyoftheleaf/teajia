@@ -166,11 +166,34 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     }
   }, [creatingNew]);
 
-  const handleSelectVendor = (id: string | undefined, name: string) => {
+  // Load vendor details from customers API when selecting a known vendor
+  const handleSelectVendor = async (id: string | undefined, name: string) => {
     onVendorSelect(id, name);
     setPickerOpen(false);
-    setQuery('');
     setCreatingNew(false);
+
+    // Pre-populate vendor details from customer record
+    if (id && hasToken()) {
+      try {
+        const customer = await api.customers.get(id);
+        if (customer) {
+          const loaded: VendorDetails = {};
+          if (customer.business_card_photo) loaded.businessCardUrl = customer.business_card_photo;
+          if (customer.storefront_photo) loaded.storefrontUrl = customer.storefront_photo;
+          if (customer.latitude != null) loaded.lat = customer.latitude;
+          if (customer.longitude != null) loaded.lng = customer.longitude;
+          if (customer.phone) loaded.phone = customer.phone;
+          if (customer.whatsapp) loaded.whatsapp = customer.whatsapp;
+          if (customer.wechat) loaded.wechat = customer.wechat;
+          if (customer.line) loaded.line = customer.line;
+          // Only apply if we got any data and current details are empty
+          const hasLoaded = Object.values(loaded).some((v) => v != null);
+          if (hasLoaded) {
+            onDetailsChange({ ...loaded, ...vendorDetails });
+          }
+        }
+      } catch { /* offline or no record — fine */ }
+    }
   };
 
   const handleCreateVendor = () => {
@@ -186,6 +209,34 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     },
     [vendorDetails, onDetailsChange]
   );
+
+  // Debounced save of vendor details to customers API
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!vendorId || !hasToken() || !vendorDetails) return;
+    const hasInfo = vendorDetails.businessCardUrl || vendorDetails.storefrontUrl ||
+      vendorDetails.lat != null || vendorDetails.phone ||
+      vendorDetails.whatsapp || vendorDetails.wechat || vendorDetails.line;
+    if (!hasInfo) return;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const payload: Record<string, any> = {};
+      if (vendorDetails.businessCardUrl) payload.business_card_photo = vendorDetails.businessCardUrl;
+      if (vendorDetails.storefrontUrl) payload.storefront_photo = vendorDetails.storefrontUrl;
+      if (vendorDetails.lat != null) payload.latitude = vendorDetails.lat;
+      if (vendorDetails.lng != null) payload.longitude = vendorDetails.lng;
+      if (vendorDetails.phone) payload.phone = vendorDetails.phone;
+      if (vendorDetails.whatsapp) payload.whatsapp = vendorDetails.whatsapp;
+      if (vendorDetails.wechat) payload.wechat = vendorDetails.wechat;
+      if (vendorDetails.line) payload.line = vendorDetails.line;
+      api.customers.update(vendorId, payload).catch(() => {});
+    }, 2000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [vendorId, vendorDetails]);
 
   const handleGeoPin = () => {
     if (!navigator.geolocation) return;
@@ -239,7 +290,26 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile);
       if (imageUrl) {
-        updateDetail(key, imageUrl);
+        // For storefront photos, auto-capture GPS if we don't already have coordinates
+        if (key === 'storefrontUrl' && vendorDetails?.lat == null && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              onDetailsChange({
+                ...vendorDetails,
+                [key]: imageUrl,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              });
+            },
+            () => {
+              // GPS failed — still save the photo
+              updateDetail(key, imageUrl);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        } else {
+          updateDetail(key, imageUrl);
+        }
       }
     } catch { /* ignore */ }
     setContactMenuOpen(false);
