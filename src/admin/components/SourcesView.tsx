@@ -46,7 +46,7 @@ const SourceModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md shadow-2xl">
+      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center p-6 border-b border-tea-border">
           <h3 className="text-lg font-serif text-tea-text">{isEditing ? 'Edit Source' : 'New Source'}</h3>
           <button type="button" onClick={onClose} className="text-tea-text-sec hover:text-tea-text"><XIcon size={20} /></button>
@@ -664,8 +664,8 @@ export const SourcesView = () => {
   return (
     <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
-      {/* --- SAVED VIEWS TAB BAR --- */}
-      <div className="flex items-center gap-1 px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
+      {/* --- SAVED VIEWS TAB BAR (desktop only — mobile uses options menu) --- */}
+      <div className="hidden md:flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
         {savedViews.map(view => (
           <button
             key={view.id}
@@ -738,13 +738,13 @@ export const SourcesView = () => {
 
           {/* Search */}
           <div className="relative w-28">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-tea-text-sec" size={12} />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-b border-tea-border rounded-none pl-6 pr-2 py-1 text-[11px] text-tea-text outline-none focus:border-tea-text-sec placeholder-tea-text-sec/50 transition-colors"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
             />
           </div>
 
@@ -807,7 +807,26 @@ export const SourcesView = () => {
             {showOptions && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                <div className="absolute right-0 top-9 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1">
+                <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
+                  {/* Saved views */}
+                  <div className="px-3 py-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
+                  {savedViews.map(view => (
+                    <button
+                      key={view.id}
+                      onClick={() => {
+                        setActiveViewId(view.id);
+                        setVisibleColumns(view.columns);
+                        setSortConfig(view.sortConfig);
+                        setGroupBy(view.groupBy);
+                        setShowOptions(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                    >
+                      {view.name}
+                      {activeViewId === view.id && <Check size={11} className="ml-auto" />}
+                    </button>
+                  ))}
+                  <div className="h-px bg-tea-border/30 my-1" />
                   <button onClick={() => { setEditingSource(null); setIsModalOpen(true); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
                     <Plus size={13} /> New Source
                   </button>

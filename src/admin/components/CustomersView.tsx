@@ -9,12 +9,12 @@ import { Customer, CustomerTag } from '../types';
 const TAG_OPTIONS: CustomerTag[] = ['wholesale', 'retail', 'friend', 'vendor', 'vip', 'inactive'];
 
 const TAG_COLORS: Record<CustomerTag, string> = {
-  wholesale: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-  retail: 'bg-green-500/10 text-green-400 border-green-500/30',
-  friend: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-  vendor: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-  vip: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-  inactive: 'bg-tea-text-sec/10 text-tea-text-sec border-tea-text-sec/30',
+  wholesale: 'bg-blue-500/10 text-blue-400',
+  retail: 'bg-green-500/10 text-green-400',
+  friend: 'bg-purple-500/10 text-purple-400',
+  vendor: 'bg-orange-500/10 text-orange-400',
+  vip: 'bg-yellow-500/10 text-yellow-400',
+  inactive: 'bg-tea-text-sec/10 text-tea-text-sec',
 };
 
 interface CustomerFormData {
@@ -272,7 +272,7 @@ const CustomerDetail = ({
           {customer.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {customer.tags.map(tag => (
-                <span key={tag} className={`text-xs px-2.5 py-1 rounded-full border ${TAG_COLORS[tag]}`}>
+                <span key={tag} className={`text-xs px-2.5 py-1 rounded-full ${TAG_COLORS[tag]}`}>
                   {tag}
                 </span>
               ))}
@@ -867,7 +867,7 @@ export const CustomersView = () => {
                     {customer.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {customer.tags.map(tag => (
-                          <span key={tag} className={`text-[10px] px-2 py-0.5 rounded-full border ${TAG_COLORS[tag]}`}>
+                          <span key={tag} className={`text-[10px] px-2 py-0.5 rounded-full ${TAG_COLORS[tag]}`}>
                             {tag}
                           </span>
                         ))}
