@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const scientificReference: ReadableStory = {
   id: 'template-scientific',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Scientific Reference Layout',
   subtitle: 'Camellia Sinensis Atlas',
   thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',

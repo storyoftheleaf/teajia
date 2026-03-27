@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const templateShowcase: ReadableStory = {
   id: 'template-showcase',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Layout Template Showcase',
   subtitle: 'Every layout variant, demonstrated',
   thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',

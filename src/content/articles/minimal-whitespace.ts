@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const minimalWhitespace: ReadableStory = {
   id: 'template-minimal',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Minimal White Space',
   subtitle: 'The Art of Less',
   thumbnailUrl: 'https://images.unsplash.com/photo-1464982326199-86f32f81b211?w=800&h=1200&fit=crop',

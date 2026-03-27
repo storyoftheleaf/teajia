@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const artistInterview: ReadableStory = {
   id: 'template-artist-interview',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Artist Interview',
   subtitle: 'The Ceramicist',
   thumbnailUrl: 'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop',

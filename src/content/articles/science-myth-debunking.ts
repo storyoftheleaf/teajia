@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const scienceMythDebunking: ReadableStory = {
   id: 'template-science-myth',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Science Myth-Debunking',
   subtitle: 'Caffeine in Tea',
   thumbnailUrl: 'https://images.unsplash.com/photo-1563911892437-1feda0179e1b?w=800&h=1200&fit=crop',

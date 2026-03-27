@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const interviewWithImages: ReadableStory = {
   id: 'template-interview-images',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Interview with Images',
   subtitle: 'The Tea Farmer',
   thumbnailUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop',

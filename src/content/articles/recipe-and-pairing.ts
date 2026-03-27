@@ -6,21 +6,21 @@ export const recipeAndPairing: ReadableStory = {
   id: 'template-recipe',
   type: ContentType.Article,
   status: 'published',
-  title: 'Recipe & Pairing Template',
-  subtitle: 'Tea in the Kitchen',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop',
+  title: 'Tea in the Kitchen',
+  subtitle: 'Recipes & Pairings',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1200&fit=crop',
   durationOrTime: '18 Pages',
   origin: 'In-house',
-  description: 'A culinary feature combining tea-infused recipes with pairing guides and tasting notes.',
+  description: 'Lapsang-smoked duck, hojicha panna cotta, and a jasmine gimlet — tea belongs in the kitchen.',
   tags: ['Tasting'],
   content: [
-    ":::COVER_MASTHEAD:::Recipe & Pairing Template|Tea in the Kitchen|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop",
+    ":::COVER_MASTHEAD:::Tea in the Kitchen|Recipes & Pairings|https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1200&fit=crop",
 
     ":::TEXT_DROP_CAP:::For most of its four-thousand-year history, tea was food before it was beverage. The earliest records from Yunnan describe tea leaves pounded with garlic, salt, and chili into a paste eaten with rice — a practice that survives today in the lahpet thoke of Myanmar and the miang of northern Thailand. Tang dynasty preparation involved grinding compressed tea cakes into powder and boiling the result with salt, dried orange peel, and ginger.",
 
     ":::TEXT_SIDEBAR_IMAGE:::This method would horrify modern purists but understood something essential: tea is a culinary ingredient of extraordinary versatility. Its bitterness balances fat. Its tannins cut richness. Its aromatics — floral, fruity, smoky, marine — can complement or contrast with virtually any flavor profile. The recipes that follow are explorations of tea's oldest identity: as something you eat, drink, cook with, and share at a table where the line between food and tea dissolves entirely.|Tea leaves and aromatics|https://images.unsplash.com/photo-1563911892437-1feda0179e1b?w=800&h=1200&fit=crop",
 
-    ":::IMG_FULL_BLEED:::Mise en place: tea leaves, aromatics, and seasonal ingredients|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop",
+    ":::IMG_FULL_BLEED:::Mise en place: tea leaves, aromatics, and seasonal ingredients|https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&h=1200&fit=crop",
 
     ":::TEXT_DOUBLE_COL:::The Principles|Cooking with tea requires understanding a few fundamental principles. First, extraction time matters enormously. Tea releases its compounds in a predictable sequence: amino acids and light aromatics in the first thirty seconds, catechins and body in the next two minutes, heavy tannins and bitterness after three minutes. A broth steeped for sixty seconds will taste completely different from one steeped for five minutes.\n\nFat and Heat|Second, fat is tea's best friend. The aromatic compounds in tea are largely fat-soluble, meaning they bind more readily to butter, oil, and cream than to water. Infusing tea into a fat produces flavors of startling intensity. Third, heat destroys delicacy. The most nuanced aromatics in a fine tea are volatile compounds that evaporate at high temperatures. For dishes where subtlety matters, add tea at the end of cooking or use it in cold preparations.",
 
@@ -36,19 +36,19 @@ export const recipeAndPairing: ReadableStory = {
 
     ":::TEXT_SINGLE_COL:::The result is a duck breast with the depth of a twelve-hour barbecue achieved in under thirty minutes. Serve with wilted greens dressed in sesame oil and a scatter of toasted pine nuts to echo the piney smoke of the tea.",
 
-    ":::IMG_GRID_2x2:::Clockwise from top left: scoring the skin, the smoking setup, rendering in the pan, the finished slice|https://images.unsplash.com/photo-1563911892437-1feda0179e1b?w=800&h=1200&fit=crop|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop|https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop",
+    ":::IMG_GRID_2x2:::Clockwise from top left: scoring the skin, the smoking setup, rendering in the pan, the finished slice|https://images.unsplash.com/photo-1563911892437-1feda0179e1b?w=800&h=1200&fit=crop|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop|https://images.unsplash.com/photo-1544432415-6f4ee803d572?w=800&h=1200&fit=crop|https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop",
 
     ":::RECIPE_CARD:::Hojicha Panna Cotta with Yuzu Curd|Panna Cotta:|1. Heat 400ml heavy cream to just below simmer.|2. Remove from heat, add 20g loose hojicha leaves. Steep 7 minutes.|3. Strain, return to pan. Add 60g sugar, stir to dissolve.|4. Bloom 5g gelatin in 30ml cold water, then stir into warm cream until dissolved.|5. Pour into 4 ramekins. Refrigerate at least 4 hours.|Yuzu Curd:|1. Whisk 3 egg yolks, 80g sugar, 60ml yuzu juice, zest of 2 yuzu.|2. Cook over double boiler, stirring constantly, until thick enough to coat spoon.|3. Remove from heat, whisk in 40g cold butter.|4. Cool, then spoon over set panna cotta.",
 
     ":::TEXT_SINGLE_COL:::The marriage of hojicha and yuzu is one of those pairings that feels inevitable once you taste it. Hojicha's roasting process eliminates the grassy astringency of green tea and replaces it with a toasty, almost chocolatey warmth — think caramelized sugar, roasted barley, and a hint of tobacco.",
 
-    ":::TEXT_SIDEBAR_IMAGE:::Yuzu, with its electric citrus acidity and floral complexity, cuts through the richness of the cream while amplifying the tea's aromatic depth. The panna cotta itself should tremble on the spoon — just barely set, so that the first touch of the tongue causes it to collapse into silk. The hojicha flavor should be present but not aggressive: a warm background note that emerges more fully as the cream warms to body temperature. If the tea flavor is too faint, increase steeping to ten minutes. If too bitter, reduce to five.|Hojicha and yuzu — a natural pairing|https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=800&h=1200&fit=crop",
+    ":::TEXT_SIDEBAR_IMAGE:::Yuzu, with its electric citrus acidity and floral complexity, cuts through the richness of the cream while amplifying the tea's aromatic depth. The panna cotta itself should tremble on the spoon — just barely set, so that the first touch of the tongue causes it to collapse into silk. The hojicha flavor should be present but not aggressive: a warm background note that emerges more fully as the cream warms to body temperature. If the tea flavor is too faint, increase steeping to ten minutes. If too bitter, reduce to five.|Hojicha and yuzu — a natural pairing|https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1200&fit=crop",
 
     ":::LIST_CHECKLIST:::Tea Dessert Pantry Essentials|Ceremonial-grade matcha (for vivid color and clean bitterness)|Hojicha powder (for baking — more forgiving than leaf)|Jasmine pearls (for infusing into cream and syrup)|Lapsang Souchong (for chocolate pairings and smoking)|Aged shou puer (for caramel and dark fruit desserts)|Osmanthus oolong (for stone fruit and honey desserts)|White peony (for delicate custards and ice cream)",
 
     ":::RECIPE_CARD:::Jasmine Gimlet|1. Prepare jasmine tea syrup: steep 15g jasmine pearl tea in 200ml hot water (80°C) for 3 minutes. Strain. Dissolve 200g sugar into the warm tea. Cool completely.|2. In a shaker with ice: 60ml London dry gin, 30ml fresh lime juice, 20ml jasmine tea syrup.|3. Shake hard for 15 seconds.|4. Double strain into a chilled coupe glass.|5. Garnish with a single jasmine pearl floated on the surface.",
 
-    ":::IMG_WITH_CAPTION_BOTTOM:::The jasmine gimlet — where the cocktail hour meets the tea ceremony|https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop",
+    ":::IMG_WITH_CAPTION_BOTTOM:::The jasmine gimlet — where the cocktail hour meets the tea ceremony|https://images.unsplash.com/photo-1544432415-6f4ee803d572?w=800&h=1200&fit=crop",
 
     ":::QUOTE_MINIMAL:::The best tea pairing is the one that makes you forget you are drinking tea and eating food separately. — Chen Wei",
 

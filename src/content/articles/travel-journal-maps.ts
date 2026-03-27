@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const travelJournalMaps: ReadableStory = {
   id: 'template-travel-journal',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Travel Journal with Maps',
   subtitle: 'Ancient Tea Routes',
   thumbnailUrl: 'https://images.unsplash.com/photo-1582793988951-9aed5509eb97?w=800&h=1200&fit=crop',

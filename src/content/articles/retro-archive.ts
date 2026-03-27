@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const retroArchive: ReadableStory = {
   id: 'template-retro',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Retro Archive Template',
   subtitle: 'Tea Culture, 1980',
   thumbnailUrl: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800&h=1200&fit=crop',

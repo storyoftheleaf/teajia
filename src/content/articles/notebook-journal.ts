@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const notebookJournal: ReadableStory = {
   id: 'template-notebook',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Notebook Journal Layout',
   subtitle: 'Field Notes',
   thumbnailUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop',

@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const technicalAnalysis: ReadableStory = {
   id: 'template-technical',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Technical Analysis',
   subtitle: 'Anatomy of a Cup',
   thumbnailUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop',

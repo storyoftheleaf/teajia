@@ -4,7 +4,7 @@ import { PEOPLE } from '../people';
 export const thePottersWeek: Story = {
   id: 'essay-6',
   type: ContentType.PhotoEssay,
-  status: 'published',
+  status: 'vault',
   title: 'The Potter\'s Week',
   subtitle: 'Seven Days',
   thumbnailUrl: 'https://images.unsplash.com/photo-1578365746405-da4f83b81b3b?w=1200&h=800&fit=crop',

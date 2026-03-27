@@ -4,6 +4,7 @@ import { Story, ContentType, StoryCategory } from '../types';
 import { Icons } from './Icons';
 import { CardContainer } from './shared/CardContainer';
 import { useParallax } from '../hooks/useParallax';
+import { useGyroscopeTilt } from '../hooks/useGyroscopeTilt';
 import { useLongPress } from '../hooks/useLongPress';
 import { QuickActionMenu } from './shared/QuickActionMenu';
 
@@ -27,6 +28,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, onToggleSave, onShare }) => {
   const { ref: parallaxRef, offset } = useParallax(0.02);
+  const { rotateX, rotateY } = useGyroscopeTilt();
   const [quickAction, setQuickAction] = React.useState<{ x: number; y: number } | null>(null);
 
   const longPressHandlers = useLongPress({
@@ -138,6 +140,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                  alt={story.title}
                  loading="lazy"
                  className={`w-full h-full object-cover sepia-[0.15] brightness-[0.9] contrast-[1.05] saturate-[0.8] group-hover:sepia-0 group-hover:brightness-100 group-hover:contrast-100 group-hover:saturate-100 group-hover:scale-[1.06] transition-all duration-700 ease-out ${imageLoading ? 'blur-sm scale-105' : 'blur-0 scale-100'}`}
+                 style={{ transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)` }}
                  onLoad={() => setImageLoading(false)}
                  onError={() => setImageLoading(false)}
                />

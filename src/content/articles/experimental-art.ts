@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const experimentalArt: ReadableStory = {
   id: 'template-experimental',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Experimental Art Layout',
   subtitle: 'Fluid Dynamics',
   thumbnailUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop',

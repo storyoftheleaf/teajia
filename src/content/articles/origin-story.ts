@@ -8,7 +8,7 @@ export const originStory: ReadableStory = {
   status: 'published',
   title: 'Origin Story',
   subtitle: 'The Creation of Teajia',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1200&fit=crop',
   durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'The founding story of Teajia magazine, told through personal narrative and behind-the-scenes imagery.',
@@ -35,7 +35,7 @@ export const originStory: ReadableStory = {
 
     ":::QUOTE_BIG:::I wanted to build the magazine I wished existed when I first fell in love with tea — the one that would have saved me years of confusion and misinformation.",
 
-    ":::IMG_POLAROID_SCATTER:::Early sketches of Teajia's design system|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop|First prototype of the reading interface|https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop|Notes from the founding brainstorm session|https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop",
+    ":::IMG_POLAROID_SCATTER:::Early sketches of Teajia's design system|https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=800&h=1200&fit=crop|First prototype of the reading interface|https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop|Notes from the founding brainstorm session|https://images.unsplash.com/photo-1523920290228-4f321a939b4c?w=800&h=1200&fit=crop",
 
     ":::TEXT_SINGLE_COL:::The design philosophy emerged from a single conviction: tea content deserved the same visual respect as the tea itself. If a farmer spent decades perfecting the craft of a single oolong, the writing and design that presented that oolong to the world should reflect a comparable level of care.",
 
@@ -43,7 +43,7 @@ export const originStory: ReadableStory = {
 
     ":::CHAPTER_MINIMAL:::The Bali Principle",
 
-    ":::IMG_FULL_BLEED:::The Bali landscape that inspired Teajia's founding|https://images.unsplash.com/photo-1464982326199-86f32f81b211?w=800&h=1200&fit=crop",
+    ":::IMG_FULL_BLEED:::The Bali landscape that inspired Teajia's founding|https://images.unsplash.com/photo-1523920290228-4f321a939b4c?w=800&h=1200&fit=crop",
 
     ":::TEXT_CENTER_NARROW:::There is a concept in Balinese Hinduism called 'Tri Hita Karana' — the three causes of well-being. Harmony with other people. Harmony with nature. Harmony with the spiritual world. I am not Balinese, and I do not practice Hinduism, but this framework resonated deeply with what I felt tea could be.",
 

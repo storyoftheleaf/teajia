@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const timelineOverview: ReadableStory = {
   id: 'template-timeline',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Timeline Overview',
   subtitle: 'Five Thousand Years of Tea',
   thumbnailUrl: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800&h=1200&fit=crop',

@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const darkAtmospheric: ReadableStory = {
   id: 'template-dark-atmospheric',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Dark Atmospheric Meditation',
   subtitle: 'Night Session',
   thumbnailUrl: 'https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop',
