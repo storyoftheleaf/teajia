@@ -12,18 +12,18 @@ button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
 
 :root {
   color-scheme: dark;
-  --tea-bg: #0a0a0a;
-  --tea-bg-rgb: 10 10 10;
-  --tea-surface: #161616;
-  --tea-surface-rgb: 22 22 22;
-  --tea-elevated: #222222;
-  --tea-elevated-rgb: 34 34 34;
-  --tea-text: #e8e0d0;
-  --tea-text-rgb: 232 224 208;
-  --tea-text-sec: #a89e8c;
-  --tea-text-sec-rgb: 168 158 140;
-  --tea-text-dim: #7a6e58;
-  --tea-text-dim-rgb: 122 110 88;
+  --tea-bg: #18130e;
+  --tea-bg-rgb: 24 19 14;
+  --tea-surface: #28211a;
+  --tea-surface-rgb: 40 33 26;
+  --tea-elevated: #3a3126;
+  --tea-elevated-rgb: 58 49 38;
+  --tea-text: #ede4d4;
+  --tea-text-rgb: 237 228 212;
+  --tea-text-sec: #b5a892;
+  --tea-text-sec-rgb: 181 168 146;
+  --tea-text-dim: #917a55;
+  --tea-text-dim-rgb: 145 122 85;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
