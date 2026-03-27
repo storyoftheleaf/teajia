@@ -8,7 +8,7 @@ export const originStory: ReadableStory = {
   status: 'published',
   title: 'Origin Story',
   subtitle: 'The Creation of Teajia',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1545579133-99bb5ab189bd?w=800&h=1200&fit=crop',
   durationOrTime: '16 Pages',
   origin: 'In-house',
   description: 'The founding story of Teajia magazine, told through personal narrative and behind-the-scenes imagery.',

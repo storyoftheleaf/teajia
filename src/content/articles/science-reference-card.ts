@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const scienceReferenceCard: ReadableStory = {
   id: 'template-science-ref',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Science Reference Card',
   subtitle: 'Water Temperature',
   thumbnailUrl: 'https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&h=1200&fit=crop',

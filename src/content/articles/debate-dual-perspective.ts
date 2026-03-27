@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const debateDualPerspective: ReadableStory = {
   id: 'template-debate',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Debate / Dual Perspective',
   subtitle: 'East Meets West',
   thumbnailUrl: 'https://images.unsplash.com/photo-1545579133-99bb5ab189bd?w=800&h=1200&fit=crop',

@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const poetryCollection: ReadableStory = {
   id: 'template-poetry',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Poetry Collection',
   subtitle: 'Whispered Verse',
   thumbnailUrl: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&h=1200&fit=crop',

@@ -1,13 +1,11 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Story, ContentType } from '../types';
-import { Tag, getArticleTags } from '../data/tags';
+import { getArticleTags } from '../data/tags';
 import { ReadArticle, toReadArticle } from '../types/read';
 import { Card } from './Card';
 import { PageHeader } from './shared/PageHeader';
-import { TagFilter } from './read/TagFilter';
-import { ReadableCard } from './read/ReadableCard';
-import EmailCapture from './EmailCapture';
-import Footer from './Footer';
+import { EmailCapture } from './EmailCapture';
+import Footer from './shared/Footer';
 
 interface ReadPageProps {
   stories: Story[];
@@ -32,10 +30,9 @@ const ReadPage: React.FC<ReadPageProps> = ({
   onAccountClick,
   cartItemCount = 0,
 }) => {
-  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
-  const newToYouRef = useRef<HTMLDivElement>(null);
+  const essaysRef = useRef<HTMLDivElement>(null);
 
-  // Build ReadArticle list: published articles + photo essays merged with tag metadata
+  // Build ReadArticle list: published articles + photo essays
   const allArticles: ReadArticle[] = useMemo(() => {
     return stories
       .filter(s =>
@@ -53,18 +50,10 @@ const ReadPage: React.FC<ReadPageProps> = ({
       });
   }, [stories]);
 
-  // Featured article
+  // Featured article (hero)
   const featuredArticle = useMemo(
     () => allArticles.find(a => a.featured),
     [allArticles]
-  );
-
-  // New To You: unread articles (not watched), limited to 10
-  const newToYouArticles = useMemo(
-    () => allArticles
-      .filter(a => !watchedStoryIds[a.id] && !a.startHere)
-      .slice(0, 10),
-    [allArticles, watchedStoryIds]
   );
 
   // Start Here: foundational articles
@@ -73,35 +62,32 @@ const ReadPage: React.FC<ReadPageProps> = ({
     [allArticles]
   );
 
-  // The Collection: all articles, filtered by selected tags
-  const collectionArticles = useMemo(() => {
-    if (selectedTags.length === 0) return allArticles;
-    return allArticles.filter(a =>
-      a.tags.some(t => selectedTags.includes(t))
-    );
-  }, [allArticles, selectedTags]);
+  // Feature articles: not featured hero, not start-here, articles only
+  const featureArticles = useMemo(
+    () => allArticles.filter(a =>
+      a.type === ContentType.Article &&
+      !a.featured &&
+      !a.startHere &&
+      a.id !== featuredArticle?.id
+    ),
+    [allArticles, featuredArticle]
+  );
 
-  const handleTagToggle = useCallback((tag: Tag) => {
-    setSelectedTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
-  }, []);
+  // Photo essays
+  const photoEssays = useMemo(
+    () => allArticles.filter(a => a.type === ContentType.PhotoEssay),
+    [allArticles]
+  );
 
-  const handleClearTags = useCallback(() => {
-    setSelectedTags([]);
-  }, []);
-
-  // Horizontal scroll for New To You
+  // Scroll handlers for photo essays
   const handleScrollLeft = () => {
-    if (newToYouRef.current) {
-      newToYouRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    if (essaysRef.current) {
+      essaysRef.current.scrollBy({ left: -340, behavior: 'smooth' });
     }
   };
   const handleScrollRight = () => {
-    if (newToYouRef.current) {
-      newToYouRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    if (essaysRef.current) {
+      essaysRef.current.scrollBy({ left: 340, behavior: 'smooth' });
     }
   };
 
@@ -114,42 +100,57 @@ const ReadPage: React.FC<ReadPageProps> = ({
         cartItemCount={cartItemCount}
       />
 
-      <div className="mt-4 mb-24 space-y-12">
-        {/* ===== Section 1: Featured Story ===== */}
+      <div className="mt-4 mb-24">
+
+        {/* ===== HERO: Featured Story ===== */}
         {featuredArticle && (
-          <section className="px-4 md:px-6">
+          <section className="px-4 md:px-6 mb-16 md:mb-20">
             <button
               onClick={() => onCardClick(featuredArticle)}
               className="w-full group relative overflow-hidden bg-tea-elevated rounded-sm"
-              style={{ aspectRatio: '16/7' }}
+              style={{ aspectRatio: '16/9' }}
             >
-              {/* Background Image */}
               {featuredArticle.thumbnailUrl && (
                 <img
                   src={featuredArticle.thumbnailUrl}
                   alt={featuredArticle.title}
-                  className="absolute inset-0 w-full h-full object-cover sepia-[0.1] brightness-[0.6] group-hover:brightness-[0.7] group-hover:scale-[1.02] transition-all duration-700"
+                  className="absolute inset-0 w-full h-full object-cover sepia-[0.08] brightness-[0.5] group-hover:brightness-[0.6] group-hover:scale-[1.03] transition-all duration-1000 ease-out"
                 />
               )}
 
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 via-tea-bg/30 to-transparent" />
+              {/* Layered gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-tea-bg via-tea-bg/40 to-transparent opacity-90" />
+              <div className="absolute inset-0 bg-gradient-to-r from-tea-bg/30 to-transparent" />
 
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-left">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text/50 font-sans mb-3">
-                  Featured
-                </p>
-                <h2 className="font-serif text-3xl md:text-5xl lg:text-6xl text-tea-text font-light leading-[1.1] mb-3 group-hover:text-tea-gold transition-colors duration-500">
+              {/* Content — editorial layout */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 lg:p-16 text-left">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-[1px] bg-tea-gold/40" />
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold/70 font-sans">
+                    Featured
+                  </p>
+                </div>
+                <h2
+                  className="text-4xl md:text-6xl lg:text-7xl text-tea-text font-light leading-[1.05] mb-4 group-hover:text-tea-gold transition-colors duration-700"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
                   {featuredArticle.title}
                 </h2>
-                <p className="font-sans text-sm md:text-base text-tea-text/70 max-w-lg leading-relaxed mb-4">
+                {featuredArticle.subtitle && (
+                  <p
+                    className="text-lg md:text-xl text-tea-text/50 font-light italic mb-5 max-w-md"
+                    style={{ fontFamily: 'var(--font-body)' }}
+                  >
+                    {featuredArticle.subtitle}
+                  </p>
+                )}
+                <p className="font-sans text-sm text-tea-text/60 max-w-lg leading-relaxed mb-6 hidden md:block">
                   {featuredArticle.description}
                 </p>
-                <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-tea-text/60 font-sans group-hover:text-tea-gold transition-colors">
-                  Read
-                  <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <span className="inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-tea-text/50 font-sans group-hover:text-tea-gold/80 transition-colors duration-500">
+                  Read the story
+                  <svg className="w-4 h-4 group-hover:translate-x-2 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </span>
               </div>
@@ -157,82 +158,28 @@ const ReadPage: React.FC<ReadPageProps> = ({
           </section>
         )}
 
-        {/* ===== Section 2: New To You ===== */}
-        {newToYouArticles.length > 0 ? (
-          <section>
-            <div className="flex items-center justify-between px-4 md:px-6 mb-4">
-              <h3 className="font-serif text-xl md:text-2xl text-tea-text font-normal">
-                New To You
-              </h3>
-              {/* Scroll arrows for desktop */}
-              <div className="hidden md:flex items-center gap-1">
-                <button
-                  onClick={handleScrollLeft}
-                  className="p-1.5 text-tea-text/40 hover:text-tea-text transition-colors"
-                  aria-label="Scroll left"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleScrollRight}
-                  className="p-1.5 text-tea-text/40 hover:text-tea-text transition-colors"
-                  aria-label="Scroll right"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+        {/* ===== SECTION DIVIDER ===== */}
+        <div className="flex items-center justify-center gap-4 mb-16 md:mb-20 px-4">
+          <div className="flex-1 h-[1px] bg-tea-border/30" />
+          <div className="w-1.5 h-1.5 rotate-45 border border-tea-gold/30" />
+          <div className="flex-1 h-[1px] bg-tea-border/30" />
+        </div>
 
-            <div
-              ref={newToYouRef}
-              className="flex gap-4 overflow-x-auto px-4 md:px-6 pb-2 scrollbar-hide"
-              style={{ scrollSnapType: 'x mandatory' }}
-            >
-              {newToYouArticles.map(article => (
-                <div
-                  key={article.id}
-                  className="flex-shrink-0 w-[160px] md:w-[200px]"
-                  style={{ scrollSnapAlign: 'start' }}
-                >
-                  <Card
-                    story={article}
-                    onClick={onCardClick}
-                    isSaved={savedStoryIds[article.id]}
-                    isWatched={false}
-                    onToggleSave={onToggleSave}
-                    onShare={onShare}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : (
-          /* All caught up state */
-          <section className="px-4 md:px-6">
-            <div className="flex items-center gap-3 py-6 border-y border-tea-text/5 ">
-              <div className="w-8 h-8 rounded-full bg-tea-green/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-tea-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <p className="text-sm font-sans text-tea-text/50">
-                You're all caught up
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* ===== Section 3: Start Here ===== */}
+        {/* ===== START HERE ===== */}
         {startHereArticles.length > 0 && (
-          <section className="px-4 md:px-6">
-            <h3 className="font-serif text-xl md:text-2xl text-tea-text font-normal mb-4">
-              Start Here
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <section className="px-4 md:px-6 mb-16 md:mb-20">
+            <div className="text-center mb-8">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold/60 font-sans mb-2">
+                New to tea?
+              </p>
+              <h3
+                className="text-2xl md:text-3xl text-tea-text font-light"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Begin Your Journey
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-2xl mx-auto">
               {startHereArticles.map(article => (
                 <Card
                   key={article.id}
@@ -248,74 +195,186 @@ const ReadPage: React.FC<ReadPageProps> = ({
           </section>
         )}
 
-        {/* ===== Section 4: The Collection ===== */}
-        <section className="px-4 md:px-6">
-          <div className="flex items-start justify-between mb-4">
-            <h3 className="font-serif text-xl md:text-2xl text-tea-text font-normal">
-              The Collection
-            </h3>
-            <TagFilter
-              selectedTags={selectedTags}
-              onTagToggle={handleTagToggle}
-              onClear={handleClearTags}
-            />
-          </div>
+        {/* ===== SECTION DIVIDER ===== */}
+        <div className="flex items-center justify-center gap-4 mb-16 md:mb-20 px-4">
+          <div className="flex-1 h-[1px] bg-tea-border/30" />
+          <div className="w-1.5 h-1.5 rotate-45 border border-tea-gold/30" />
+          <div className="flex-1 h-[1px] bg-tea-border/30" />
+        </div>
 
-          {/* Selected tags pills */}
-          {selectedTags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {selectedTags.map(tag => (
+        {/* ===== FEATURES: Editorial Grid ===== */}
+        {featureArticles.length > 0 && (
+          <section className="px-4 md:px-6 mb-16 md:mb-20">
+            <div className="text-center mb-8">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold/60 font-sans mb-2">
+                From the editors
+              </p>
+              <h3
+                className="text-2xl md:text-3xl text-tea-text font-light"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Features
+              </h3>
+            </div>
+
+            {/* Asymmetric editorial grid */}
+            <div className="max-w-5xl mx-auto">
+              {/* Row 1: One large card + one small card */}
+              {featureArticles.length >= 2 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+                  <div className="col-span-2">
+                    <Card
+                      story={featureArticles[0]}
+                      onClick={onCardClick}
+                      isSaved={savedStoryIds[featureArticles[0].id]}
+                      isWatched={watchedStoryIds[featureArticles[0].id]}
+                      onToggleSave={onToggleSave}
+                      onShare={onShare}
+                    />
+                  </div>
+                  <div className="hidden md:block">
+                    <Card
+                      story={featureArticles[1]}
+                      onClick={onCardClick}
+                      isSaved={savedStoryIds[featureArticles[1].id]}
+                      isWatched={watchedStoryIds[featureArticles[1].id]}
+                      onToggleSave={onToggleSave}
+                      onShare={onShare}
+                    />
+                  </div>
+                  {/* Mobile: show second card in row */}
+                  <div className="md:hidden col-span-2">
+                    <Card
+                      story={featureArticles[1]}
+                      onClick={onCardClick}
+                      isSaved={savedStoryIds[featureArticles[1].id]}
+                      isWatched={watchedStoryIds[featureArticles[1].id]}
+                      onToggleSave={onToggleSave}
+                      onShare={onShare}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Row 2+: Remaining articles in clean grid */}
+              {featureArticles.length > 2 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                  {featureArticles.slice(2).map(article => (
+                    <Card
+                      key={article.id}
+                      story={article}
+                      onClick={onCardClick}
+                      isSaved={savedStoryIds[article.id]}
+                      isWatched={watchedStoryIds[article.id]}
+                      onToggleSave={onToggleSave}
+                      onShare={onShare}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ===== PHOTO ESSAYS: Cinematic Strip ===== */}
+        {photoEssays.length > 0 && (
+          <section className="mb-16 md:mb-20">
+            {/* Section divider */}
+            <div className="flex items-center justify-center gap-4 mb-16 md:mb-20 px-4">
+              <div className="flex-1 h-[1px] bg-tea-border/30" />
+              <div className="w-1.5 h-1.5 rotate-45 border border-tea-gold/30" />
+              <div className="flex-1 h-[1px] bg-tea-border/30" />
+            </div>
+
+            <div className="px-4 md:px-6 mb-8">
+              <div className="flex items-center justify-between">
+                <div className="text-center flex-1">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold/60 font-sans mb-2">
+                    Through the lens
+                  </p>
+                  <h3
+                    className="text-2xl md:text-3xl text-tea-text font-light"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    Visual Stories
+                  </h3>
+                </div>
+                {/* Desktop scroll arrows */}
+                <div className="hidden md:flex items-center gap-1 absolute right-6">
+                  <button
+                    onClick={handleScrollLeft}
+                    className="p-2 text-tea-text/30 hover:text-tea-gold transition-colors"
+                    aria-label="Scroll left"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleScrollRight}
+                    className="p-2 text-tea-text/30 hover:text-tea-gold transition-colors"
+                    aria-label="Scroll right"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Horizontal scroll of photo essays */}
+            <div
+              ref={essaysRef}
+              className="flex gap-4 md:gap-6 overflow-x-auto px-4 md:px-6 pb-4 scrollbar-hide"
+              style={{ scrollSnapType: 'x mandatory' }}
+            >
+              {photoEssays.map(essay => (
                 <button
-                  key={tag}
-                  onClick={() => handleTagToggle(tag)}
-                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-wider font-sans bg-tea-gold/10 text-tea-gold border border-tea-gold/20 hover:bg-tea-gold/20 transition-colors"
+                  key={essay.id}
+                  onClick={() => onCardClick(essay)}
+                  className="flex-shrink-0 w-[280px] md:w-[340px] group relative overflow-hidden rounded-sm bg-tea-elevated"
+                  style={{ scrollSnapAlign: 'start' }}
                 >
-                  {tag}
-                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <div className="relative aspect-[4/5] overflow-hidden">
+                    {essay.thumbnailUrl && (
+                      <img
+                        src={essay.thumbnailUrl}
+                        alt={essay.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover sepia-[0.1] brightness-[0.75] group-hover:brightness-[0.85] group-hover:scale-[1.04] transition-all duration-700 ease-out"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/90 via-transparent to-transparent" />
+
+                    {/* Photo essay badge */}
+                    <div className="absolute top-4 left-4">
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text/50 font-sans bg-tea-bg/40 backdrop-blur-sm px-2 py-1 rounded-sm">
+                        Photo Essay
+                      </span>
+                    </div>
+
+                    {/* Content overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <h4
+                        className="text-xl text-tea-text font-light leading-tight mb-1 group-hover:text-tea-gold transition-colors duration-500"
+                        style={{ fontFamily: 'var(--font-display)' }}
+                      >
+                        {essay.title}
+                      </h4>
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text/40 font-sans">
+                        {essay.subtitle} &middot; {essay.durationOrTime}
+                      </p>
+                    </div>
+                  </div>
                 </button>
               ))}
-              <button
-                onClick={handleClearTags}
-                className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-sans text-tea-text/40 hover:text-tea-gold transition-colors"
-              >
-                Clear
-              </button>
             </div>
-          )}
+          </section>
+        )}
 
-          {collectionArticles.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {collectionArticles.map(article => (
-                <ReadableCard
-                  key={article.id}
-                  article={article}
-                  isRead={!!watchedStoryIds[article.id]}
-                  isSaved={savedStoryIds[article.id]}
-                  onClick={onCardClick}
-                  onToggleSave={onToggleSave}
-                  onShare={onShare}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20">
-              <p className="font-serif text-lg text-tea-text/40 mb-2">
-                No articles match these tags
-              </p>
-              <button
-                onClick={handleClearTags}
-                className="text-xs uppercase tracking-[0.15em] font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
-              >
-                Clear filters
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Email capture */}
-        <section className="px-4 md:px-6">
+        {/* ===== EMAIL CAPTURE ===== */}
+        <section className="px-4 md:px-6 mb-8">
           <EmailCapture heading="Want more?" subtitle="Get notified when new stories drop" />
         </section>
       </div>

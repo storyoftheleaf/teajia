@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const geometricBauhaus: ReadableStory = {
   id: 'template-geometric',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Geometric Bauhaus Layout',
   subtitle: 'Form Follows Function',
   thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',

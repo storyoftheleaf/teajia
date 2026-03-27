@@ -6,7 +6,7 @@ import { templateShowcase } from './template-showcase';
 export const allPages: ReadableStory = {
   id: 'all-pages',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'All Pages',
   subtitle: 'Every layout in the Teajia reader',
   thumbnailUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop',

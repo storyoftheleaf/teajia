@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const dataInfographic: ReadableStory = {
   id: 'template-data',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Data-Driven Infographic',
   subtitle: 'Terroir in Numbers',
   thumbnailUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop',

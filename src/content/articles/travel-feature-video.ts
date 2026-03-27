@@ -6,15 +6,15 @@ export const travelFeatureVideo: ReadableStory = {
   id: 'template-travel-video',
   type: ContentType.Article,
   status: 'published',
-  title: 'Travel Feature with Video',
-  subtitle: 'Wuyi Mountains, Fujian',
+  title: 'Into the Wuyi Mountains',
+  subtitle: 'A Tea Pilgrimage to Fujian',
   thumbnailUrl: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop',
   durationOrTime: '18 Pages',
   origin: 'In-house',
-  description: 'A multi-media travelogue featuring embedded video, atmospheric photography, and reportage from the Wuyi tea mountains.',
+  description: 'A pilgrimage to the birthplace of rock oolong, following Master Zhou through Fujian\'s ancient ravines.',
   tags: ['Oolong', 'China', 'Fujian', 'Sourcing'],
   content: [
-    ":::COVER_MAIN:::Travel Feature with Video|Wuyi Mountains, Fujian|https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop",
+    ":::COVER_MAIN:::Into the Wuyi Mountains|A Tea Pilgrimage to Fujian|https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=1200&fit=crop",
 
     ":::TEXT_DROP_CAP:::The overnight train from Fuzhou arrives at Wuyishan North Station just before dawn. Outside the window, the landscape has already changed — limestone karsts rise from the river valley like the petrified fingers of some ancient hand. The air carries a dampness that feels botanical, thick with the exhalations of ten thousand species of fern and moss and lichen.",
 

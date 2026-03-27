@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const teaFeatureProcess: ReadableStory = {
   id: 'template-tea-process',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Tea Feature with Process',
   subtitle: 'Oriental Beauty',
   thumbnailUrl: 'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop',

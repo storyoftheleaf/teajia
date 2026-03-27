@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const cinematicPhotoSequence: ReadableStory = {
   id: 'template-cinematic',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Cinematic Photo Sequence',
   subtitle: 'The Slow Pour',
   thumbnailUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop',

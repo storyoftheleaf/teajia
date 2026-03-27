@@ -6,15 +6,15 @@ export const darkModeProcess: ReadableStory = {
   id: 'template-dark-process',
   type: ContentType.Article,
   status: 'published',
-  title: 'Dark Mode Process Feature',
-  subtitle: 'The Midnight Kiln',
+  title: 'The Midnight Kiln',
+  subtitle: 'Three Nights of Fire',
   thumbnailUrl: 'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop',
   durationOrTime: '21 Pages',
   origin: 'In-house',
-  description: 'A richly atmospheric article using dark mode to explore the nocturnal world of traditional kiln firing.',
+  description: 'Inside a seventy-two-hour anagama firing — where clay, ash, and patience become art.',
   tags: ['Pottery', 'Teaware', 'Brewing'],
   content: [
-    ":::COVER_MAIN:::$$dark$$Dark Mode Process Feature|The Midnight Kiln|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop",
+    ":::COVER_MAIN:::$$dark$$The Midnight Kiln|Three Nights of Fire|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop",
 
     ":::TEXT_DROP_CAP:::$$dark$$The fire begins at dusk. Not because tradition demands it — though tradition does — but because the kiln must reach peak temperature in the dead of night, when the air is coolest and the draft pulls strongest through the chamber. Master Lin stands at the mouth of the anagama, a forty-foot tunnel of brick and earth that has been loaded over the past three days with two hundred pieces of raw stoneware.",
 

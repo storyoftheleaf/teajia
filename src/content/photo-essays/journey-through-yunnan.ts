@@ -4,7 +4,7 @@ import { PEOPLE } from '../people';
 export const journeyThroughYunnan: Story = {
   id: 'essay-5',
   type: ContentType.PhotoEssay,
-  status: 'published',
+  status: 'vault',
   title: 'Journey Through Yunnan',
   subtitle: 'Mountains & Tea',
   thumbnailUrl: 'https://images.unsplash.com/photo-1545069122-7236651d5c7e?w=1200&h=800&fit=crop',

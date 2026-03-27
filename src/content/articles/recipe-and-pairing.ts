@@ -6,15 +6,15 @@ export const recipeAndPairing: ReadableStory = {
   id: 'template-recipe',
   type: ContentType.Article,
   status: 'published',
-  title: 'Recipe & Pairing Template',
-  subtitle: 'Tea in the Kitchen',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop',
+  title: 'Tea in the Kitchen',
+  subtitle: 'Recipes & Pairings',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=800&h=1200&fit=crop',
   durationOrTime: '18 Pages',
   origin: 'In-house',
-  description: 'A culinary feature combining tea-infused recipes with pairing guides and tasting notes.',
+  description: 'Lapsang-smoked duck, hojicha panna cotta, and a jasmine gimlet — tea belongs in the kitchen.',
   tags: ['Tasting'],
   content: [
-    ":::COVER_MASTHEAD:::Recipe & Pairing Template|Tea in the Kitchen|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop",
+    ":::COVER_MASTHEAD:::Tea in the Kitchen|Recipes & Pairings|https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&h=1200&fit=crop",
 
     ":::TEXT_DROP_CAP:::For most of its four-thousand-year history, tea was food before it was beverage. The earliest records from Yunnan describe tea leaves pounded with garlic, salt, and chili into a paste eaten with rice — a practice that survives today in the lahpet thoke of Myanmar and the miang of northern Thailand. Tang dynasty preparation involved grinding compressed tea cakes into powder and boiling the result with salt, dried orange peel, and ginger.",
 

@@ -6,15 +6,15 @@ export const longFormInterview: ReadableStory = {
   id: 'template-interview',
   type: ContentType.Article,
   status: 'published',
-  title: 'Long-Form Interview',
-  subtitle: 'A Conversation with Master Lin',
-  thumbnailUrl: 'https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop',
+  title: 'A Conversation with Master Lin',
+  subtitle: 'The Yixing Potter',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1597318181409-cf64d0b5d8a2?w=800&h=1200&fit=crop',
   durationOrTime: '20 Pages',
   origin: 'In-house',
-  description: 'An in-depth interview template featuring portraits, pull quotes, and extended Q&A format.',
+  description: 'Sixty years of clay and fire — the Yixing master on craft, patience, and the pots that remember.',
   tags: ['Pottery', 'Teaware', 'Philosophy'],
   content: [
-    ":::COVER_PHOTO_INSET:::Long-Form Interview|A Conversation with Master Lin|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop",
+    ":::COVER_PHOTO_INSET:::A Conversation with Master Lin|The Yixing Potter|https://images.unsplash.com/photo-1530968033775-2c92736b131e?w=800&h=1200&fit=crop",
 
     ":::TEXT_SINGLE_COL:::Master Lin's studio sits at the end of a dirt road on the outskirts of Dingshu, the pottery town that has been the center of Yixing purple clay teaware production for over five hundred years. The building is unremarkable from outside — a single-story concrete structure with a corrugated metal roof, indistinguishable from the dozens of small workshops that line the roads of this district.",
 

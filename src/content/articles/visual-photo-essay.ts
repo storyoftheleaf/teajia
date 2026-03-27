@@ -5,7 +5,7 @@ import { PEOPLE } from '../people';
 export const visualPhotoEssay: ReadableStory = {
   id: 'template-visual-essay',
   type: ContentType.Article,
-  status: 'published',
+  status: 'vault',
   title: 'Visual Photo Essay',
   subtitle: 'Seasonal Rhythms',
   thumbnailUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=800&h=1200&fit=crop',
