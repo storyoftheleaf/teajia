@@ -95,8 +95,9 @@ const AdminContent = () => {
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const isOnInventory = location.pathname.includes('/admin/inventory');
 
-  // React Query Hooks
-  const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts();
+  // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
+  const isLoggedIn = isAuthenticated || isDevAdmin;
+  const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts({ enabled: isLoggedIn });
   const { data: rates = [], refetch: refetchRates } = useRates();
 
   // Pull-to-refresh (mobile)
@@ -106,9 +107,6 @@ const AdminContent = () => {
   });
 
   const loading = productsLoading;
-
-  // Regular users can browse catalog but not manage inventory
-  const isLoggedIn = isAuthenticated || isDevAdmin;
 
   // Redirect when entering admin at root, or prompt login if not authenticated
   useEffect(() => {
@@ -391,7 +389,7 @@ const AdminContent = () => {
           rates={rates}
         />
 
-        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onAuthSuccess={() => setIsAuthenticated(true)} />
+        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onAuthSuccess={() => { setIsAuthenticated(true); refetchProducts(); refetchRates(); }} />
         <CsvImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onComplete={refetchProducts} />
 
         <AddProductModal
