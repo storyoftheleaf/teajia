@@ -37,6 +37,8 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const mappedInitial = initialTab === 'log' ? 'logs' : (initialTab || 'archive');
+  // When hosted by ActivityView (initialTab provided), hide redundant internal tabs
+  const isHosted = !!initialTab;
   const [activeTab, setActiveTab] = useState<'archive' | 'logs' | 'ledger'>(mappedInitial as any);
   const soldOutProducts = products.filter(p => p.status === 'Sold Out');
 
@@ -107,74 +109,115 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2 shrink-0">
-            <Archive size={16} className="text-tea-accent" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
-              System Records
-            </h2>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 ml-4">
-            <button
-              onClick={() => setActiveTab('archive')}
-              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
-            >
-              <Archive size={12} /> Archive
-            </button>
-            <button
-              onClick={() => setActiveTab('logs')}
-              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
-            >
-              <ScrollText size={12} /> Logbook
-            </button>
-            <button
-              onClick={() => setActiveTab('ledger')}
-              className={`px-3 py-1.5 rounded-md text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
-            >
-              <BarChart3 size={12} /> Stock Ledger
-            </button>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            {activeTab === 'archive' && (
-              <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
-                <Download size={14} /> Export CSV
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Logbook filters row */}
-        {activeTab === 'logs' && (
-          <div className="px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2 flex-wrap">
-            <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
-              {ACTION_TYPES.map(at => (
-                <button
-                  key={at.value}
-                  onClick={() => { setLogAction(at.value); setLogOffset(0); }}
-                  className={logAction === at.value ? 'pill-active' : 'pill'}
-                >
-                  {at.label}
-                </button>
-              ))}
+      {/* Header — when hosted by ActivityView, skip the redundant tab bar and only show contextual controls */}
+      {isHosted ? (
+        /* Slim contextual header: just the action controls for the active tab */
+        (activeTab === 'logs' || activeTab === 'archive') ? (
+          <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2 flex-shrink-0">
+            <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2">
+              {activeTab === 'logs' && (
+                <>
+                  <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
+                    {ACTION_TYPES.map(at => (
+                      <button
+                        key={at.value}
+                        onClick={() => { setLogAction(at.value); setLogOffset(0); }}
+                        className={logAction === at.value ? 'pill-active' : 'pill'}
+                      >
+                        {at.label}
+                      </button>
+                    ))}
+                  </div>
+                  <form onSubmit={handleLogSearch} className="relative w-28 md:w-40 shrink-0">
+                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={logSearchInput}
+                      onChange={(e) => setLogSearchInput(e.target.value)}
+                      className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+                    />
+                  </form>
+                </>
+              )}
+              {activeTab === 'archive' && (
+                <div className="ml-auto">
+                  <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                    <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
+                  </button>
+                </div>
+              )}
             </div>
-            <form onSubmit={handleLogSearch} className="relative w-40 ml-auto">
-              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
-              <input
-                type="text"
-                placeholder="Search details..."
-                value={logSearchInput}
-                onChange={(e) => setLogSearchInput(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-7 pr-3 py-1 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
-              />
-            </form>
           </div>
-        )}
-      </div>
+        ) : null /* Ledger tab has no contextual controls */
+      ) : (
+        /* Standalone mode: full header with tab bar */
+        <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
+          <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+              <Archive size={16} className="text-tea-accent" />
+              <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
+                System Records
+              </h2>
+            </div>
+
+            <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 md:ml-4">
+              <button
+                onClick={() => setActiveTab('archive')}
+                className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+              >
+                <Archive size={12} /> <span className="hidden md:inline">Archive</span><span className="md:hidden">Arch</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('logs')}
+                className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+              >
+                <ScrollText size={12} /> Log
+              </button>
+              <button
+                onClick={() => setActiveTab('ledger')}
+                className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+              >
+                <BarChart3 size={12} /> <span className="hidden md:inline">Stock Ledger</span><span className="md:hidden">Ledger</span>
+              </button>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              {activeTab === 'archive' && (
+                <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                  <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {activeTab === 'logs' && (
+            <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
+                {ACTION_TYPES.map(at => (
+                  <button
+                    key={at.value}
+                    onClick={() => { setLogAction(at.value); setLogOffset(0); }}
+                    className={logAction === at.value ? 'pill-active' : 'pill'}
+                  >
+                    {at.label}
+                  </button>
+                ))}
+              </div>
+              <form onSubmit={handleLogSearch} className="relative w-28 md:w-40 shrink-0">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={logSearchInput}
+                  onChange={(e) => setLogSearchInput(e.target.value)}
+                  className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+                />
+              </form>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
@@ -406,7 +449,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     ))}
                     {/* Mobile pagination */}
                     {logsTotal > PAGE_SIZE && (
-                      <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border">
                         <span className="text-[10px] text-tea-text-sec">{logOffset + 1}–{Math.min(logOffset + PAGE_SIZE, logsTotal)} of {logsTotal}</span>
                         <div className="flex gap-1">
                           <button onClick={() => setLogOffset(Math.max(0, logOffset - PAGE_SIZE))} disabled={logOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
@@ -553,7 +596,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                       );
                     })}
                     {ledgerTotal > PAGE_SIZE && (
-                      <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border">
                         <span className="text-[10px] text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
                         <div className="flex gap-1">
                           <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>

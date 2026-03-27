@@ -136,17 +136,17 @@ export const OrdersView = () => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4 flex-wrap">
+      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
+        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <History size={16} className="text-tea-accent" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
               Orders
             </h2>
           </div>
 
-          {/* Pipeline Summary */}
-          <div className="flex items-center gap-1">
+          {/* Pipeline Summary — scrollable on mobile */}
+          <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
             {(['all', 'Pending', 'Filled', 'Void'] as StatusFilter[]).map(status => {
               const count = status === 'all' ? orders.length
                 : status === 'Pending' ? summary.pending
@@ -171,14 +171,14 @@ export const OrdersView = () => {
             </span>
           )}
 
-          <div className="relative w-48 ml-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
+          <div className="relative w-28 md:w-48 ml-auto shrink-0">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
             <input
               type="text"
-              placeholder="Search orders..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 md:pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
             />
           </div>
         </div>
