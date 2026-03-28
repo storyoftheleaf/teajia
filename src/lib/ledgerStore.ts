@@ -40,6 +40,9 @@ export interface LedgerTransaction {
   // Line items
   items: LedgerLineItem[];
 
+  // Photos (receipts, product shots, etc.)
+  photos: string[];
+
   // State
   status: 'draft' | 'confirmed';
   currency: Currency;
@@ -62,6 +65,8 @@ interface LedgerState {
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
   updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status'>>) => void;
+  addPhoto: (transactionId: string, url: string) => void;
+  removePhoto: (transactionId: string, index: number) => void;
   removeTransaction: (transactionId: string) => void;
   confirmTransaction: (transactionId: string) => void;
   setActiveTransaction: (id: string | null) => void;
@@ -89,6 +94,7 @@ export const useLedgerStore = create<LedgerState>()(
           counterpartyName,
           counterpartyId,
           items: [],
+          photos: [],
           status: 'draft',
           currency,
           createdAt: now,
@@ -151,6 +157,26 @@ export const useLedgerStore = create<LedgerState>()(
           transactions: s.transactions.map((tx) =>
             tx.id === transactionId
               ? { ...tx, ...updates, updatedAt: new Date().toISOString() }
+              : tx
+          ),
+        }));
+      },
+
+      addPhoto: (transactionId, url) => {
+        set((s) => ({
+          transactions: s.transactions.map((tx) =>
+            tx.id === transactionId
+              ? { ...tx, photos: [...(tx.photos || []), url], updatedAt: new Date().toISOString() }
+              : tx
+          ),
+        }));
+      },
+
+      removePhoto: (transactionId, index) => {
+        set((s) => ({
+          transactions: s.transactions.map((tx) =>
+            tx.id === transactionId
+              ? { ...tx, photos: (tx.photos || []).filter((_, i) => i !== index), updatedAt: new Date().toISOString() }
               : tx
           ),
         }));
