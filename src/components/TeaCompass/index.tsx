@@ -48,10 +48,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     }
   }, [activeEntryId]);
 
-  // Auto-start a tea capture when opening in capture mode with no active entry
+  // Auto-start a capture when opening in capture mode with no active entry
   useEffect(() => {
     if (mode === 'capture' && !activeEntryId) {
-      startNewCapture('tea');
+      startNewCapture(activeCategory);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -111,11 +111,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
-    if (newMode !== 'capture') {
-      setActiveEntry(null);
-    }
     setMode(newMode);
-  }, [setActiveEntry]);
+  }, []);
 
   // ── Auto-sync & hydration ──
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -297,8 +294,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
         <VoiceRecorder onTranscript={handleVoiceTranscript} />
       )}
 
-      {/* ── Floating + button (capture & browse modes) ── */}
-      {mode !== 'ledger' && (
+      {/* ── Floating + button (capture mode only — browse has its own inline button) ── */}
+      {mode === 'capture' && (
         <motion.button
           type="button"
           onClick={() => handleNewCapture()}

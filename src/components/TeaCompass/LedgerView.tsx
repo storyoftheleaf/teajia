@@ -123,7 +123,7 @@ const LineItemRow: React.FC<{
         <button
           type="button"
           onClick={onRemove}
-          className="text-tea-text-sec active:text-tea-text transition-colors text-xs uppercase tracking-[0.08em] flex items-center gap-1.5 py-2 px-3 -ml-3 rounded-lg active:bg-tea-elevated/50"
+          className="pill flex items-center gap-1"
         >
           <Trash2 size={10} />
           Remove
@@ -501,19 +501,21 @@ const TransactionCard: React.FC<{
                   type="button"
                   onClick={handleSharePdf}
                   disabled={pdfLoading || tx.items.length === 0}
-                  className="p-3 rounded-lg text-tea-text-sec active:text-tea-gold active:bg-tea-elevated transition-colors disabled:opacity-30"
+                  className="pill flex items-center gap-1 disabled:opacity-30"
                   aria-label="Share as PDF"
                 >
-                  <Share2 size={16} className={pdfLoading ? 'animate-pulse' : ''} />
+                  <Share2 size={12} className={pdfLoading ? 'animate-pulse' : ''} />
+                  PDF
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="p-3 rounded-lg text-tea-text-sec active:text-tea-text active:bg-tea-elevated transition-colors"
+                  className="pill flex items-center gap-1"
                   aria-label="Delete transaction"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={12} />
+                  Delete
                 </button>
 
                 {isPurchase && !isDraft && (
