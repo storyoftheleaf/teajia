@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, PenLine, LayoutGrid, BookOpen } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useLedgerStore } from '../../lib/ledgerStore';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { hasToken } from '../../lib/api';
 import type { CompassCategory } from './types';
@@ -31,12 +30,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
-
-  // Ledger draft count for badge
-  const transactions = useLedgerStore((s) => s.transactions);
-  const draftItemCount = transactions
-    .filter((tx) => tx.status === 'draft')
-    .reduce((sum, tx) => sum + tx.items.length, 0);
 
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
@@ -159,7 +152,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
     { id: 'browse', label: 'Browse', icon: LayoutGrid },
-    { id: 'ledger', label: 'Ledger', icon: BookOpen, badge: draftItemCount > 0 ? draftItemCount : undefined },
+    { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
   return (
