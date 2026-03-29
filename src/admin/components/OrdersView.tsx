@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, History, Scissors, Pencil, Package, MoreHorizontal, Clock } from 'lucide-react';
+import { openWhatsAppStatus } from '../../lib/whatsapp';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, History, Scissors, Pencil, Package, MoreHorizontal, Clock, MessageCircle } from 'lucide-react';
 import { useRates, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
@@ -102,6 +103,22 @@ export const OrdersView = () => {
         await api.rpc.fulfillInvoice(confirmState.invoice.id);
         showToast('Order fulfilled. Stock deducted.', 'success');
         queryClient.invalidateQueries({ queryKey: ['products'] });
+        // Offer WhatsApp status notification
+        const inv = confirmState.invoice;
+        if (inv.customer_phone) {
+          const items = (inv.items || []).map((it: any) => ({
+            name: it.product?.givenName || it.product_name || 'Item',
+            quantity: it.quantity,
+            unit: it.product?.type === 'Teaware' ? 'u' : 'g',
+            price: '', total: '',
+          }));
+          openWhatsAppStatus(inv.customer_phone, {
+            status: 'filled',
+            ref: inv.invoice_number,
+            customerName: inv.customer_name,
+            items,
+          });
+        }
       } else if (confirmState.type === 'void') {
         await api.rpc.voidInvoice(confirmState.invoice.id);
         showToast('Order voided.', 'success');
@@ -499,6 +516,33 @@ export const OrdersView = () => {
                             <PackageCheck size={18} /> Confirm Order & Deduct Stock
                         </button>
                      </div>
+                )}
+
+                {/* WhatsApp status notification — available for Pending/Filled orders with phone */}
+                {viewingInvoice.customer_phone && viewingInvoice.status !== 'Void' && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        const items = (viewingInvoice.items || []).map((it: any) => ({
+                          name: it.product?.givenName || it.product_name || 'Item',
+                          quantity: it.quantity,
+                          unit: it.product?.type === 'Teaware' ? 'u' : 'g',
+                          price: '', total: '',
+                        }));
+                        const total = ((viewingInvoice.items || []).reduce((sum: number, it: any) => sum + (it.quantity * it.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2);
+                        openWhatsAppStatus(viewingInvoice.customer_phone, {
+                          status: viewingInvoice.status === 'Filled' ? 'filled' : 'confirmed',
+                          ref: viewingInvoice.invoice_number,
+                          customerName: viewingInvoice.customer_name,
+                          items,
+                          total: `$${total} USD`,
+                        });
+                      }}
+                      className="w-full py-3 border border-tea-border rounded-lg text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
+                    >
+                      <MessageCircle size={14} /> Notify Customer via WhatsApp
+                    </button>
+                  </div>
                 )}
             </div>
         </div>

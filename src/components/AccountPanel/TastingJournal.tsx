@@ -218,7 +218,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors"
                             >
                               <ShoppingCart size={12} />
-                              Order
+                              Buy Again
                             </button>
                           )}
                           <button

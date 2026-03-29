@@ -206,6 +206,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     vendor: '',
     description: '',
     imageUrl: '',
+    additionalImages: [] as string[],
     status: 'Active',
     fixedRetailPriceUSD: '', // Override
     isPersonal: false,
@@ -261,6 +262,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         vendor: initialData.vendor || '',
         description: initialData.description,
         imageUrl: initialData.imageUrl || '',
+        additionalImages: initialData.additionalImages || [],
         status: initialData.status,
         fixedRetailPriceUSD: initialData.fixedRetailPriceUSD ? initialData.fixedRetailPriceUSD.toString() : '',
         isPersonal: initialData.isPersonal || false,
@@ -299,6 +301,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         vendor: '',
         description: '',
         imageUrl: '',
+        additionalImages: [],
         status: 'Active',
         fixedRetailPriceUSD: '',
         isPersonal: false,
@@ -477,6 +480,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             vendor: formData.vendor,
             description: formData.description,
             image_url: formData.imageUrl || null,
+            additional_images: formData.additionalImages.length > 0 ? formData.additionalImages : null,
             status: formData.status,
             fixed_retail_price_usd: formData.fixedRetailPriceUSD ? parseFloat(formData.fixedRetailPriceUSD) : null,
             is_personal: formData.isPersonal,
@@ -875,6 +879,52 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     </div>
                 )}
             </div>
+
+            {/* ADDITIONAL PHOTOS — carousel preview */}
+            {formData.imageUrl && (
+              <div>
+                <label className={labelStyle}><ImageIcon size={9} /> Additional Photos ({formData.additionalImages.length})</label>
+                <div className="flex gap-2 flex-wrap mt-1">
+                  {formData.additionalImages.map((url, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border border-tea-border group">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          additionalImages: prev.additionalImages.filter((_, i) => i !== idx),
+                        }))}
+                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                      >
+                        <Trash2 size={12} className="text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="w-16 h-16 rounded border border-dashed border-tea-border flex items-center justify-center cursor-pointer hover:bg-tea-accent/5 transition-colors">
+                    <Upload size={14} className="text-tea-text-sec" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await api.uploadImage(file);
+                          setFormData(prev => ({
+                            ...prev,
+                            additionalImages: [...prev.additionalImages, url],
+                          }));
+                        } catch (err: any) {
+                          showToast(`Upload failed: ${err.message}`, 'error');
+                        }
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* DESCRIPTION */}
             <div>

@@ -35,6 +35,7 @@ import { Story, ContentType, ViewState, Person, InventoryItem, Section } from '.
 import { useAppStore } from './lib/store';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
+import { useOfflineSync } from './hooks/useOfflineSync';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
@@ -88,6 +89,7 @@ const AppContent = () => {
   } = useAppStore();
   const { isAdmin, isAuthenticated } = useAuth();
   useFavoritesSync(isAuthenticated);
+  useOfflineSync(isAuthenticated);
   const showAdminBar = false;
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
