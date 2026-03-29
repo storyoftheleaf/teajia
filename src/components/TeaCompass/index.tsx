@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Plus, PenLine, LayoutGrid, BookOpen } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useLedgerStore } from '../../lib/ledgerStore';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { hasToken } from '../../lib/api';
 import type { CompassCategory } from './types';
@@ -32,12 +31,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
 
-  // Ledger draft count for badge
-  const transactions = useLedgerStore((s) => s.transactions);
-  const draftItemCount = transactions
-    .filter((tx) => tx.status === 'draft')
-    .reduce((sum, tx) => sum + tx.items.length, 0);
-
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
 
@@ -48,10 +41,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
     }
   }, [activeEntryId]);
 
-  // Auto-start a tea capture when opening in capture mode with no active entry
+  // Auto-start a capture when opening in capture mode with no active entry
   useEffect(() => {
     if (mode === 'capture' && !activeEntryId) {
-      startNewCapture('tea');
+      startNewCapture(activeCategory);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -111,11 +104,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
-    if (newMode !== 'capture') {
-      setActiveEntry(null);
-    }
     setMode(newMode);
-  }, [setActiveEntry]);
+  }, []);
 
   // ── Auto-sync & hydration ──
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -162,7 +152,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
     { id: 'browse', label: 'Browse', icon: LayoutGrid },
-    { id: 'ledger', label: 'Ledger', icon: BookOpen, badge: draftItemCount > 0 ? draftItemCount : undefined },
+    { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
   return (
@@ -297,8 +287,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
         <VoiceRecorder onTranscript={handleVoiceTranscript} />
       )}
 
-      {/* ── Floating + button (capture & browse modes) ── */}
-      {mode !== 'ledger' && (
+      {/* ── Floating + button (capture mode only — browse has its own inline button) ── */}
+      {mode === 'capture' && (
         <motion.button
           type="button"
           onClick={() => handleNewCapture()}

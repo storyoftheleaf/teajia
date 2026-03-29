@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Plus, ChevronDown, Store } from 'lucide-react';
+import { ChevronDown, Store, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { BrowseCard } from './BrowseCard';
@@ -30,7 +30,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter, lastVendorId, lastVendorName } = useTeaCompassStore();
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  // collapsedIds kept for potential future use but no longer drives UI
+
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
 
   // Get vendor details from the most recent entry for a given vendor name
@@ -150,6 +151,14 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       )}
 
       <div className="space-y-3">
+        <button
+          onClick={onNewCapture}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
+        >
+          <Plus size={14} />
+          New Capture
+        </button>
+
         <div className="flex gap-1">
           {groupingOptions.map((opt) => (
             <button
@@ -253,15 +262,6 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
                     <BrowseCard
                       entry={entry}
                       onEdit={onEditEntry}
-                      expanded={!collapsedIds.has(entry.id)}
-                      onToggleExpand={() =>
-                        setCollapsedIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(entry.id)) next.delete(entry.id);
-                          else next.add(entry.id);
-                          return next;
-                        })
-                      }
                     />
                   </motion.div>
                 ))}

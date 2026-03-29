@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDownLeft,
@@ -10,12 +10,17 @@ import {
   Check,
   ShoppingBag,
   Share2,
+  Camera,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
+import { compressImage } from '../../lib/imageCompressor';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
@@ -118,7 +123,7 @@ const LineItemRow: React.FC<{
         <button
           type="button"
           onClick={onRemove}
-          className="text-tea-text-sec active:text-tea-text transition-colors text-xs uppercase tracking-[0.08em] flex items-center gap-1.5 py-2 px-3 -ml-3 rounded-lg active:bg-tea-elevated/50"
+          className="pill flex items-center gap-1"
         >
           <Trash2 size={10} />
           Remove
@@ -128,6 +133,167 @@ const LineItemRow: React.FC<{
         </span>
       </div>
     </div>
+  );
+};
+
+// ─── Photo Gallery (inline within transaction card) ─────────────────────────
+
+const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId, photos }) => {
+  const addPhoto = useLedgerStore((s) => s.addPhoto);
+  const removePhoto = useLedgerStore((s) => s.removePhoto);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+  const handleCapture = () => {
+    if (uploading) return;
+    inputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
+      const url = await api.uploadImage(compressedFile);
+      if (url) addPhoto(txId, url);
+    } catch (err) {
+      console.error('Ledger photo upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      <input
+        key={photos.length === 0 ? 'camera' : 'gallery'}
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+        {...(photos.length === 0 ? { capture: 'environment' } : {})}
+      />
+
+      <div className="pt-2">
+        {photos.length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {photos.map((url, i) => (
+              <div key={i} className="relative shrink-0">
+                <img
+                  src={url}
+                  alt={`Photo ${i + 1}`}
+                  className="w-16 h-16 rounded-lg object-cover cursor-pointer"
+                  onClick={() => setViewerIndex(i)}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removePhoto(txId, i);
+                  }}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-tea-surface text-tea-text-dim"
+                >
+                  <X size={10} strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleCapture}
+              disabled={uploading}
+              className={`w-16 h-16 flex flex-col items-center justify-center shrink-0 rounded-lg bg-tea-surface ${
+                uploading ? 'animate-pulse' : ''
+              }`}
+            >
+              <Plus size={16} className="text-tea-text-dim" />
+              <span className="text-[9px] text-tea-text-dim mt-0.5">
+                {uploading ? '...' : 'Add'}
+              </span>
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleCapture}
+            disabled={uploading}
+            className={`flex items-center gap-1.5 py-2 px-3 rounded-lg bg-tea-surface text-tea-text-dim text-[11px] transition-colors active:text-tea-text-sec ${
+              uploading ? 'animate-pulse' : ''
+            }`}
+          >
+            <Camera size={14} />
+            {uploading ? 'Uploading...' : 'Add photo'}
+          </button>
+        )}
+      </div>
+
+      {/* Fullscreen photo viewer */}
+      <AnimatePresence>
+        {viewerIndex !== null && photos[viewerIndex] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9999] bg-tea-bg/95 flex flex-col items-center justify-center"
+            onClick={() => setViewerIndex(null)}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setViewerIndex(null)}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-tea-surface/80 text-tea-text z-10"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Counter */}
+            <p className="absolute top-5 left-1/2 -translate-x-1/2 text-tea-text-sec text-xs num z-10">
+              {viewerIndex + 1} / {photos.length}
+            </p>
+
+            {/* Image */}
+            <img
+              src={photos[viewerIndex]}
+              alt={`Photo ${viewerIndex + 1}`}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {/* Nav arrows */}
+            {photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewerIndex((viewerIndex - 1 + photos.length) % photos.length);
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-tea-surface/60 text-tea-text"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewerIndex((viewerIndex + 1) % photos.length);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-tea-surface/60 text-tea-text"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -242,6 +408,7 @@ const TransactionCard: React.FC<{
           </p>
           <p className="text-tea-text-sec text-[11px] uppercase tracking-[0.08em]">
             {directionLabel} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
+            {(tx.photos?.length ?? 0) > 0 && ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}`}
           </p>
         </div>
 
@@ -289,6 +456,9 @@ const TransactionCard: React.FC<{
                 ))
               )}
 
+              {/* Photos */}
+              <TransactionPhotos txId={tx.id} photos={tx.photos || []} />
+
               {/* Grand total */}
               {tx.items.length > 0 && (
                 <div className="flex items-baseline justify-between pt-3 border-t border-tea-border/15" aria-label="Grand total">
@@ -331,19 +501,21 @@ const TransactionCard: React.FC<{
                   type="button"
                   onClick={handleSharePdf}
                   disabled={pdfLoading || tx.items.length === 0}
-                  className="p-3 rounded-lg text-tea-text-sec active:text-tea-gold active:bg-tea-elevated transition-colors disabled:opacity-30"
+                  className="pill flex items-center gap-1 disabled:opacity-30"
                   aria-label="Share as PDF"
                 >
-                  <Share2 size={16} className={pdfLoading ? 'animate-pulse' : ''} />
+                  <Share2 size={12} className={pdfLoading ? 'animate-pulse' : ''} />
+                  PDF
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="p-3 rounded-lg text-tea-text-sec active:text-tea-text active:bg-tea-elevated transition-colors"
+                  className="pill flex items-center gap-1"
                   aria-label="Delete transaction"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={12} />
+                  Delete
                 </button>
 
                 {isPurchase && !isDraft && (
