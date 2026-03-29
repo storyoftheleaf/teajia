@@ -75,15 +75,15 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           style={{ animationDelay: `${index * 50}ms`, WebkitTapHighlightColor: 'transparent', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         >
           <span
-            className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${
+            className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 pointer-events-none select-none ${
               active ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
             }`}
-            style={{ fontFamily: 'var(--font-display)' }}
+            style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           >
             {tab.label.toLowerCase()}
           </span>
           {showBadge && (
-            <span className="absolute top-1.5 right-1/2 translate-x-[calc(50%+16px)] min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-tea-gold text-tea-bg font-bold text-[9px] px-1">
+            <span className="absolute top-1.5 right-1/2 translate-x-[calc(50%+16px)] min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-tea-gold text-tea-bg font-bold text-[9px] px-1 pointer-events-none select-none">
               {draftItemCount}
             </span>
           )}

@@ -73,10 +73,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         {/* Text-only label */}
         <span
-          className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${
+          className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 pointer-events-none select-none ${
             isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
           }`}
-          style={{ fontFamily: 'var(--font-display)' }}
+          style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           {section.label.toLowerCase()}
         </span>
