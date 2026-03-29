@@ -8,7 +8,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('teajia_remember_me') === 'true');
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('teajia_remember_me') !== 'false');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setDevAdmin } = useAppStore();

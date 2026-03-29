@@ -10,6 +10,17 @@
 /* Kill browser tap highlight globally */
 button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
 
+/* Prevent long-press context menu and text selection on bottom nav bars */
+nav[aria-label="Main navigation"],
+nav[aria-label="Admin navigation"],
+nav[aria-label="Main navigation"] *,
+nav[aria-label="Admin navigation"] * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
 :root {
   color-scheme: dark;
   --tea-bg: #18130e;

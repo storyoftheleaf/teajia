@@ -65,8 +65,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-        style={{ animationDelay: `${index * 50}ms` }}
+        className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
@@ -120,6 +120,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 animationDelay: `${leftSections.length * 50}ms`,
                 WebkitTouchCallout: 'none',
                 WebkitUserSelect: 'none',
+                touchAction: 'manipulation',
               }}
               title="Home · Long press for admin"
               aria-label="Return to home, long press to toggle admin"

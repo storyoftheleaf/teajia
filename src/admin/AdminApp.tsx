@@ -56,8 +56,12 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-const ProtectedRoute = ({ isAdmin, children }: { isAdmin: boolean; children: React.ReactNode }) => {
-  if (!isAdmin) return <div className="p-12 text-center text-tea-text-sec font-serif">Access Restricted</div>;
+const ProtectedRoute = ({ isAdmin, isLoggingIn, children }: { isAdmin: boolean; isLoggingIn?: boolean; children: React.ReactNode }) => {
+  if (!isAdmin) {
+    // Don't flash "Access Restricted" when the login modal is about to open or is open
+    if (isLoggingIn) return null;
+    return <div className="p-12 text-center text-tea-text-sec font-serif">Access Restricted</div>;
+  }
   return <>{children}</>;
 };
 
@@ -284,7 +288,7 @@ const AdminContent = () => {
 
               {/* Core admin views */}
               <Route path="inventory" element={
-                <ProtectedRoute isAdmin={isAdmin}>
+                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <InventoryView
                       products={products}
@@ -302,13 +306,13 @@ const AdminContent = () => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="activity" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
-              <Route path="people" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
-              <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="people" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
 
               {/* Quick Capture — Intake Hub */}
               <Route path="capture" element={
-                <ProtectedRoute isAdmin={isAdmin}>
+                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <QuickCapture
                       products={products}
@@ -324,7 +328,7 @@ const AdminContent = () => {
 
               {/* Tea Compass + Ledger — full page */}
               <Route path="compass" element={
-                <ProtectedRoute isAdmin={isAdmin}>
+                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate('/admin/inventory')} />
                   </PageTransition>
@@ -332,9 +336,9 @@ const AdminContent = () => {
               } />
 
               {/* Supplementary views */}
-              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
-              <Route path="events" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
-              <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
+              <Route path="events" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />

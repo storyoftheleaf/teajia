@@ -6,14 +6,9 @@ function getToken(): string | null {
 }
 
 export function setToken(token: string) {
-  const remember = localStorage.getItem('teajia_remember_me') === 'true';
-  if (remember) {
-    localStorage.setItem('teajia_token', token);
-    sessionStorage.removeItem('teajia_token');
-  } else {
-    sessionStorage.setItem('teajia_token', token);
-    localStorage.removeItem('teajia_token');
-  }
+  // Always persist to localStorage so sessions survive browser restarts and deploys
+  localStorage.setItem('teajia_token', token);
+  sessionStorage.removeItem('teajia_token');
 }
 
 export function clearToken() {

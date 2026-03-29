@@ -71,8 +71,8 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           onClick={() => navigate(tab.path)}
           aria-current={active ? 'page' : undefined}
           aria-label={tab.label}
-          className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-          style={{ animationDelay: `${index * 50}ms`, WebkitTapHighlightColor: 'transparent' }}
+          className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+          style={{ animationDelay: `${index * 50}ms`, WebkitTapHighlightColor: 'transparent', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         >
           <span
             className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 ${
@@ -129,7 +129,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
             <button
               onClick={() => navigate('/')}
               className="flex-1 h-full flex items-center justify-center relative transition-all duration-300 select-none"
-              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
               title="Home"
               aria-label="Return to home"
             >
