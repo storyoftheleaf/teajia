@@ -3,6 +3,17 @@ import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { CartItem as PublicCartItem, CustomerTasting } from '../types';
 
+export interface InvoiceTemplate {
+  id: string;
+  name: string;
+  customerId?: string;
+  customerName: string;
+  items: { productId: string; quantity: number }[];
+  shippingCost?: number;
+  currency?: Currency;
+  createdAt: string;
+}
+
 interface InventoryViewConfig {
   id: string;
   name: string;
@@ -95,6 +106,11 @@ interface AppState {
   // Draft Product (auto-save for AddProductModal)
   draftProduct: Partial<Product> | null;
   setDraftProduct: (draft: Partial<Product> | null) => void;
+
+  // Invoice Templates — saved customer + item presets for quick invoicing
+  invoiceTemplates: InvoiceTemplate[];
+  saveInvoiceTemplate: (template: InvoiceTemplate) => void;
+  deleteInvoiceTemplate: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -295,6 +311,19 @@ export const useAppStore = create<AppState>()(
       // Draft Product
       draftProduct: null,
       setDraftProduct: (draft) => set({ draftProduct: draft }),
+
+      // Invoice Templates
+      invoiceTemplates: [],
+      saveInvoiceTemplate: (template) =>
+        set((state) => ({
+          invoiceTemplates: state.invoiceTemplates.some((t) => t.id === template.id)
+            ? state.invoiceTemplates.map((t) => (t.id === template.id ? template : t))
+            : [...state.invoiceTemplates, template],
+        })),
+      deleteInvoiceTemplate: (id) =>
+        set((state) => ({
+          invoiceTemplates: state.invoiceTemplates.filter((t) => t.id !== id),
+        })),
     }),
     {
       name: 'teajia-storage',
@@ -315,6 +344,7 @@ export const useAppStore = create<AppState>()(
         inventoryGroupBy: state.inventoryGroupBy,
         inventorySortConfig: state.inventorySortConfig,
         draftProduct: state.draftProduct,
+        invoiceTemplates: state.invoiceTemplates,
       }),
     }
   )

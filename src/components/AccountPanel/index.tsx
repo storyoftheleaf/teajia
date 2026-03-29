@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Icons, SealIcon } from '../Icons';
 import { LogoEmblem } from '../Logos/LogoEmblem';
 import { useTheme } from '../../context/ThemeContext';
@@ -32,6 +33,7 @@ const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
 ];
 
 export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory }) => {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const { favoriteTeas, currency, setCurrency, publicCart, tastingJournal } = useAppStore();
@@ -670,7 +672,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
             {/* ============ TASTING JOURNAL SUB-VIEW ============ */}
             {panelView === 'tasting-journal' && (
-              <TastingJournal onBack={() => setPanelView('main')} />
+              <TastingJournal
+                onBack={() => setPanelView('main')}
+                onOrderTea={(teaId) => {
+                  onClose();
+                  navigate(`/shop/product/${teaId}`);
+                }}
+              />
             )}
 
             {/* ============ TEA COMPASS SUB-VIEW ============ */}

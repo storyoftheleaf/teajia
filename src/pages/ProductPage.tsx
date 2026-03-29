@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useInventory } from '../context/InventoryContext';
 import { useAppStore } from '../lib/store';
 import { Icons } from '../components/Icons';
@@ -91,8 +92,42 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     }
   };
 
+  // JSON-LD structured data for SEO (Product + Offer schema)
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: item.name,
+    description: introduction || mainStory || `${item.type} tea from ${item.origin}`,
+    image: item.image || undefined,
+    brand: { '@type': 'Brand', name: 'Teajia' },
+    category: item.category === 'ware' ? 'Teaware' : `${item.type} Tea`,
+    ...(item.origin && { countryOfOrigin: { '@type': 'Country', name: item.origin } }),
+    offers: {
+      '@type': 'Offer',
+      price: (pricePerGram * 50).toFixed(2), // Price per 50g serving
+      priceCurrency: 'USD',
+      availability: isSoldOut
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+      seller: { '@type': 'Organization', name: 'Teajia' },
+      url: `${window.location.origin}/shop/product/${item.id}`,
+    },
+  };
+
   return (
     <div className="max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-out]">
+      <Helmet>
+        <title>{item.name} — Teajia</title>
+        <meta name="description" content={(introduction || mainStory || `${item.type} tea from ${item.origin}`).slice(0, 160)} />
+        <meta property="og:title" content={`${item.name} — Teajia`} />
+        <meta property="og:description" content={(introduction || mainStory || '').slice(0, 160)} />
+        {item.image && <meta property="og:image" content={item.image} />}
+        <meta property="og:type" content="product" />
+        <meta property="product:price:amount" content={(pricePerGram * 50).toFixed(2)} />
+        <meta property="product:price:currency" content="USD" />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      </Helmet>
+
       {/* Back link */}
       <div className="mb-6">
         <button

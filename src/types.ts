@@ -264,6 +264,8 @@ export interface InventoryItem {
   mood?: string;
   experience?: string;
   additionalImages?: string[];
+  /** URL to a short audio guide (origin story, brewing tips) */
+  audioGuideUrl?: string;
   material?: string;
   capacityMl?: number;
   isFeatured?: boolean;
