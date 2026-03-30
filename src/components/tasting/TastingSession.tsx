@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { X, Check, ShoppingCart, Leaf } from 'lucide-react';
+import { X, Check, ShoppingCart, Leaf, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import type { TastingData, CustomerTasting, InventoryItem } from '../../types';
 import { TastingFlow } from './TastingFlow';
+import { TastingCapture } from './TastingCapture';
 import { useAppStore } from '../../lib/store';
 import {
   flattenTastingNotes,
@@ -52,6 +53,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [noteExpanded, setNoteExpanded] = useState(false);
 
+  // Use the new single-page capture for customer mode
+  const useCapture = true;
+
   // Drag-to-dismiss state
   const dragY = useMotionValue(0);
   const modalOpacity = useTransform(dragY, [0, 200], [1, 0.5]);
@@ -60,11 +64,23 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
   // Previous tasting for this tea
   const previousTasting = tastingJournal.find(t => t.teaId === item.id);
 
-  const hasNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
+  const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
+  const hasCaptureData = tastingData.quality != null || tastingData.cleanliness != null ||
+    tastingData.patience != null || tastingData.mood != null || tastingData.huiGan != null ||
+    (tastingData.voiceNote?.trim()?.length ?? 0) > 0;
+  const hasNotes = hasArrayNotes || hasCaptureData;
 
   const handleSave = useCallback(() => {
     if (saveState !== 'idle') return;
     setSaveState('saving');
+
+    // In capture mode, voice note serves as personal note and quality serves as rating
+    const note = useCapture
+      ? (tastingData.voiceNote?.trim() || personalNote.trim() || undefined)
+      : (personalNote.trim() || undefined);
+    const entryRating = useCapture
+      ? (tastingData.quality ?? tastingData.rating)
+      : tastingData.rating;
 
     const entry: CustomerTasting = {
       id: crypto.randomUUID(),
@@ -73,8 +89,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
       teaType: item.type || '',
       teaImage: item.image || undefined,
       tasting: tastingData,
-      personalNote: personalNote.trim() || undefined,
-      rating: tastingData.rating,
+      personalNote: note,
+      rating: entryRating,
       createdAt: new Date().toISOString(),
     };
     addTasting(entry);
@@ -83,7 +99,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
     setTimeout(() => {
       setPhase('saved');
     }, 400);
-  }, [item, tastingData, personalNote, addTasting, saveState]);
+  }, [item, tastingData, personalNote, addTasting, saveState, useCapture]);
 
   const allNotes = hasNotes ? flattenTastingNotes(tastingData) : [];
 
@@ -189,67 +205,79 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
               exit={{ opacity: 0 }}
               className="flex-1 overflow-auto flex flex-col min-h-0"
             >
-              {/* Tasting flow content area */}
+              {/* Tasting content area */}
               <div className="flex-1 overflow-auto px-5 py-4">
-                {/* Previous tasting comparison */}
-                {previousTasting && previousTasting.tasting && (
-                  <div className="mb-4 px-3 py-2.5 rounded-lg bg-tea-surface/60">
-                    <div
-                      className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-1.5 font-medium"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      Previous session
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {flattenTastingNotes(previousTasting.tasting).map(termId => (
-                        <span
-                          key={termId}
-                          className="tag"
-                          style={{ opacity: 0.45 }}
+                {useCapture ? (
+                  <TastingCapture
+                    value={tastingData}
+                    onChange={setTastingData}
+                    teaType={item.type}
+                  />
+                ) : (
+                  <>
+                    {/* Previous tasting comparison */}
+                    {previousTasting && previousTasting.tasting && (
+                      <div className="mb-4 px-3 py-2.5 rounded-lg bg-tea-surface/60">
+                        <div
+                          className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-1.5 font-medium"
+                          style={{ fontFamily: 'var(--font-display)' }}
                         >
-                          {resolveTermLabel(termId)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                          Previous session
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {flattenTastingNotes(previousTasting.tasting).map(termId => (
+                            <span
+                              key={termId}
+                              className="tag"
+                              style={{ opacity: 0.45 }}
+                            >
+                              {resolveTermLabel(termId)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                <TastingFlow
-                  mode="customer"
-                  value={tastingData}
-                  onChange={setTastingData}
-                  teaType={item.type}
-                />
+                    <TastingFlow
+                      mode="customer"
+                      value={tastingData}
+                      onChange={setTastingData}
+                      teaType={item.type}
+                    />
+                  </>
+                )}
               </div>
 
-              {/* Sticky bottom bar: personal note + save */}
+              {/* Sticky bottom bar: save */}
               <div className="px-5 py-3 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
-                {/* Expandable note input */}
-                <div className="mb-3">
-                  {noteExpanded ? (
-                    <textarea
-                      value={personalNote}
-                      onChange={e => setPersonalNote(e.target.value)}
-                      onBlur={() => {
-                        if (!personalNote.trim()) setNoteExpanded(false);
-                      }}
-                      placeholder="How was this session? Any thoughts to remember..."
-                      rows={3}
-                      autoFocus
-                      className="w-full px-3 py-2 bg-tea-bg rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none resize-none"
-                      style={{ fontFamily: 'var(--font-body)' }}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setNoteExpanded(true)}
-                      className="w-full px-3 py-2 text-left text-sm text-tea-text-dim/60 bg-tea-bg rounded-lg hover:text-tea-text-dim transition-colors truncate"
-                      style={{ fontFamily: 'var(--font-body)' }}
-                    >
-                      {personalNote.trim() || 'Add note...'}
-                    </button>
-                  )}
-                </div>
+                {/* Personal note — only in legacy mode (capture mode has voice note built in) */}
+                {!useCapture && (
+                  <div className="mb-3">
+                    {noteExpanded ? (
+                      <textarea
+                        value={personalNote}
+                        onChange={e => setPersonalNote(e.target.value)}
+                        onBlur={() => {
+                          if (!personalNote.trim()) setNoteExpanded(false);
+                        }}
+                        placeholder="How was this session? Any thoughts to remember..."
+                        rows={3}
+                        autoFocus
+                        className="w-full px-3 py-2 bg-tea-bg rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none resize-none"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setNoteExpanded(true)}
+                        className="w-full px-3 py-2 text-left text-sm text-tea-text-dim/60 bg-tea-bg rounded-lg hover:text-tea-text-dim transition-colors truncate"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        {personalNote.trim() || 'Add note...'}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Save button with state transitions */}
                 <button
@@ -329,16 +357,84 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                 </div>
                 <div className="text-xs text-tea-text-dim">Added to your tasting journal</div>
 
-                {/* Rating display as filled tea leaves */}
-                {tastingData.rating && tastingData.rating > 0 && (
+                {/* Quality score display */}
+                {tastingData.quality != null && (
+                  <div className="mt-2 flex justify-center">
+                    <span className="text-tea-gold text-lg font-semibold num" style={{ fontFamily: 'var(--font-mono)' }}>
+                      {tastingData.quality}
+                    </span>
+                    <span className="text-tea-text-dim text-xs ml-1 self-end mb-0.5">/10</span>
+                  </div>
+                )}
+                {/* Legacy rating display */}
+                {!tastingData.quality && tastingData.rating != null && tastingData.rating > 0 && (
                   <div className="mt-2 flex justify-center">
                     <TeaLeafRating rating={tastingData.rating} />
                   </div>
                 )}
               </div>
 
-              {/* Summary terms grouped by category */}
-              {groupedSavedNotes.length > 0 && (
+              {/* Capture-mode summary */}
+              {useCapture && (tastingData.cleanliness != null || tastingData.patience != null || tastingData.mood || tastingData.huiGan) && (
+                <div className="rounded-xl p-4 mb-4 bg-tea-surface/50 space-y-2">
+                  {/* Score row */}
+                  <div className="flex gap-4 text-[12px]" style={{ fontFamily: 'var(--font-body)' }}>
+                    {tastingData.cleanliness != null && (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="tasting-capture-label">Clean</span>
+                        <span className="text-tea-gold font-semibold num">{tastingData.cleanliness}</span>
+                      </div>
+                    )}
+                    {tastingData.patience != null && (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="tasting-capture-label">Patient</span>
+                        <span className="text-tea-gold font-semibold num">{tastingData.patience}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Mood + Hui Gan */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {tastingData.mood && (
+                      <span className="tag" style={{ textTransform: 'capitalize' }}>{tastingData.mood}</span>
+                    )}
+                    {tastingData.body?.length ? tastingData.body.map(b => (
+                      <span key={b} className="tag" style={{ textTransform: 'capitalize' }}>{b}</span>
+                    )) : null}
+                    {tastingData.huiGan && (
+                      <span className="tag">
+                        <Sparkles size={10} className="shrink-0 text-tea-gold" />
+                        Hui Gan
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Flavor terms */}
+              {(tastingData.flavor?.length ?? 0) > 0 && (
+                <div className="rounded-xl p-4 mb-4 bg-tea-surface/50">
+                  <div
+                    className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    Taste
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tastingData.flavor!.map(termId => {
+                      const Icon = resolveTermIcon(termId);
+                      return (
+                        <span key={termId} className="tag">
+                          <Icon size={11} className="shrink-0 text-tea-gold" style={{ opacity: 0.7 }} />
+                          {resolveTermLabel(termId)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Legacy grouped notes (for old-style flow) */}
+              {!useCapture && groupedSavedNotes.length > 0 && (
                 <div className="rounded-xl p-4 mb-4 bg-tea-surface/50 space-y-3">
                   {groupedSavedNotes.map(group => (
                     <div key={group.categoryId}>
@@ -374,13 +470,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                 </div>
               )}
 
-              {/* Personal note display */}
-              {personalNote.trim() && (
+              {/* Voice note / personal note display */}
+              {(tastingData.voiceNote?.trim() || personalNote.trim()) && (
                 <div
                   className="text-xs text-tea-text-dim italic mb-4 px-2"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
-                  &ldquo;{personalNote.trim()}&rdquo;
+                  &ldquo;{(tastingData.voiceNote?.trim() || personalNote.trim())}&rdquo;
                 </div>
               )}
 
