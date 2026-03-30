@@ -49,7 +49,7 @@ const BookmarkFold: React.FC<BookmarkFoldProps> = ({
     <button
       onClick={handleToggle}
       aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
-      className="absolute top-0 right-0 w-12 h-12 overflow-hidden focus:outline-none z-10"
+      className="absolute top-0 right-0 w-12 h-12 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg z-10"
       style={{ background: 'transparent', border: 'none', padding: 0 }}
     >
       <motion.div

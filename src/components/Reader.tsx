@@ -812,7 +812,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                 localStorage.setItem(`teajia_notes_${story.id}`, e.target.value);
               }}
               placeholder="Your notes for this story…"
-              className="flex-1 bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text text-sm resize-none placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/40 transition-colors"
+              className="flex-1 bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text text-sm resize-none placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/40 transition-colors"
             />
           </div>
         </div>

@@ -173,7 +173,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     className="w-16 text-center text-tea-text text-2xl font-semibold bg-transparent num
-                               border-none outline-none"
+                               border-none outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                   />
                   <span className="text-tea-text-sec text-xs">
                     {unitBased ? (quantity === 1 ? 'unit' : 'units') : 'g'}

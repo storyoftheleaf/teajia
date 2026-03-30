@@ -403,7 +403,7 @@ const GuestManagement: React.FC = () => {
                   value={plusOneName}
                   onChange={(e) => setPlusOneName(e.target.value)}
                   placeholder="Guest's name"
-                  className="flex-1 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="flex-1 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
                 {plusOneName !== (attendee.plusOneName || '') && (
                   <button

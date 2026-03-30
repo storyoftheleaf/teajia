@@ -31,7 +31,7 @@ export const LoginScreen: React.FC<{ onLogin: () => void; onClose: () => void }>
                             onChange={e => setPwd(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && checkLogin()}
                             placeholder="Passkey"
-                            className="w-full bg-tea-surface border border-tea-gold/15 p-3 text-center text-tea-text tracking-[0.2em] outline-none focus:border-tea-gold rounded-sm mb-4 placeholder:text-tea-text/30"
+                            className="w-full bg-tea-surface border border-tea-gold/15 p-3 text-center text-tea-text tracking-[0.2em] outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-sm mb-4 placeholder:text-tea-text/30"
                         />
                         <button onClick={checkLogin} className="w-full bg-tea-gold text-tea-bg py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-tea-gold-lt transition-colors rounded-sm mb-6">Enter</button>
 

@@ -72,7 +72,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                   const val = parseInt(e.target.value);
                   if (isNaN(val) || val < 1) onUpdateQuantity(item.id, 1);
                 }}
-                className="w-12 bg-transparent num text-xs text-tea-text border-b border-tea-border focus:outline-none focus:border-tea-gold text-center"
+                className="w-12 bg-transparent num text-xs text-tea-text border-b border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold text-center"
               />
               {item.category === 'tea' && <span className="num text-xs text-tea-text-sec">g</span>}
             </div>

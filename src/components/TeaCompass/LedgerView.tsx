@@ -103,7 +103,7 @@ const LineItemRow: React.FC<{
             onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
             onWheel={(e) => (e.target as HTMLElement).blur()}
             className="w-14 text-center text-tea-text text-sm font-medium bg-transparent num
-                       border-none outline-none py-0.5"
+                       border-none outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg py-0.5"
           />
           <span className="text-tea-text-sec text-[10px] num w-3">{isUnitBased ? '×' : 'g'}</span>
           <button

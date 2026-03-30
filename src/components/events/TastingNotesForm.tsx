@@ -144,7 +144,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                   value={note.impression}
                   onChange={(e) => updateNote(item.id, 'impression', e.target.value)}
                   placeholder="One-line impression..."
-                  className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                   style={{ fontFamily: 'var(--font-body)' }}
                 />
               </div>

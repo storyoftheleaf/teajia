@@ -161,7 +161,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   onChange={(e) => updateField('fullName', e.target.value)}
                   placeholder="Your name"
                   required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
@@ -176,7 +176,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   onChange={(e) => updateField('phoneNumber', e.target.value)}
                   placeholder="+62 812 3456 7890"
                   required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
@@ -190,7 +190,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   value={formData.email || ''}
                   onChange={(e) => updateField('email', e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
@@ -223,7 +223,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                       value={formData.plusOneName || ''}
                       onChange={(e) => updateField('plusOneName', e.target.value)}
                       placeholder="Guest's name"
-                      className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                      className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                     />
                   </div>
                 )}
@@ -268,7 +268,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                   value={formData.bringingTea || ''}
                   onChange={(e) => updateField('bringingTea', e.target.value)}
                   placeholder="e.g. 2005 Aged Oolong from Nantou"
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 

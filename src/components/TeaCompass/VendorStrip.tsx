@@ -437,7 +437,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               }
               handleSelectVendor(undefined, val);
             }}
-            className="flex-1 bg-transparent text-tea-text-dim text-sm py-1 outline-none appearance-none cursor-pointer"
+            className="flex-1 bg-transparent text-tea-text-dim text-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none cursor-pointer"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
             <option value="" disabled>Select vendor...</option>
@@ -479,7 +479,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateVendor()}
                   placeholder="Vendor name"
-                  className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
+                  className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                 />
                 <button
                   type="button"
@@ -547,7 +547,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.phone || ''}
                       onChange={(e) => updateDetail('phone', e.target.value || undefined)}
                       placeholder="Phone"
-                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -557,7 +557,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.whatsapp || ''}
                       onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
                       placeholder="WhatsApp"
-                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -567,7 +567,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.wechat || ''}
                       onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
                       placeholder="WeChat"
-                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -577,7 +577,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       value={vendorDetails?.line || ''}
                       onChange={(e) => updateDetail('line', e.target.value || undefined)}
                       placeholder="LINE"
-                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     />
                   </div>
                 </div>
