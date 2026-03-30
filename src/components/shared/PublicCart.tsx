@@ -303,7 +303,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onChange={(e) => handleFieldChange('name', e.target.value)}
                       onBlur={() => handleFieldBlur('name')}
                       aria-invalid={touched.name && !!errors.name}
-                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
+                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
                         touched.name && errors.name ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="Your full name"
@@ -331,7 +331,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onChange={(e) => handleFieldChange('contact', e.target.value)}
                       onBlur={() => handleFieldBlur('contact')}
                       aria-invalid={touched.contact && !!errors.contact}
-                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
+                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
                         touched.contact && errors.contact ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="Phone or email"
@@ -359,7 +359,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onChange={(e) => handleFieldChange('location', e.target.value)}
                       onBlur={() => handleFieldBlur('location')}
                       aria-invalid={touched.location && !!errors.location}
-                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
+                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
                         touched.location && errors.location ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="City, Country"
@@ -382,7 +382,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                     name="notes"
                     value={details.notes}
                     onChange={(e) => setDetails(d => ({ ...d, notes: e.target.value }))}
-                    className="w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none focus:border-tea-gold font-serif text-base h-20 resize-none placeholder:text-tea-text/20 min-h-[44px]"
+                    className="w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold font-serif text-base h-20 resize-none placeholder:text-tea-text/20 min-h-[44px]"
                     placeholder="Any special requests..."
                   />
                 </div>
@@ -530,7 +530,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as any)}
-                  className="bg-tea-surface border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none"
+                  className="bg-tea-surface border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                 >
                   {rates.map(r => (
                     <option key={r.currency} value={r.currency}>{r.currency}</option>
