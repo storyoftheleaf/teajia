@@ -6,9 +6,17 @@ export interface TastingData {
   feeling?: string[];
   'liquor-color'?: string[];
   brewing?: string[];
-  rating?: number;           // 1-5 overall rating
+  rating?: number;           // 1-5 overall rating (legacy) or 1-10
   primaryNotes?: string[];   // Emphasized notes (shown larger/first)
   overallImpression?: string; // Quick one-word impression
+
+  // ── Capture-mode fields ──
+  quality?: number;          // 1-10 overall quality
+  cleanliness?: number;      // 1-10 how clean/pure the liquor tastes
+  patience?: number;         // 1-10 how many steepings it rewards (耐泡度)
+  huiGan?: boolean;          // Returning sweetness (回甘)
+  mood?: string;             // Single energy descriptor (e.g. "calm", "focused")
+  voiceNote?: string;        // Transcribed voice note
 }
 
 export interface CustomerTasting {

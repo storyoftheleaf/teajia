@@ -2401,3 +2401,223 @@ input[type="number"]::-webkit-outer-spin-button {
   font-style: italic;
   opacity: 0.85;
 }
+
+/* ============================================
+   Tasting Capture — Single-page tasting flow
+   ============================================ */
+
+/* ── Slider track ── */
+.tasting-slider-track {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tea-border);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.tasting-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgb(var(--tea-gold-rgb) / 0.4), var(--tea-gold));
+  pointer-events: none;
+  transition: width 60ms ease-out;
+}
+
+.tasting-slider-thumb {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--tea-gold);
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 3px rgb(var(--tea-gold-rgb) / 0.12);
+  transition: box-shadow 150ms ease;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tasting-slider-thumb:active {
+  cursor: grabbing;
+  box-shadow:
+    0 1px 6px rgba(0, 0, 0, 0.4),
+    0 0 0 5px rgb(var(--tea-gold-rgb) / 0.18);
+}
+
+.tasting-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  margin-top: 6px;
+}
+
+.tasting-slider-tick {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 9px;
+  color: var(--tea-text-dim);
+  opacity: 0.5;
+  width: 14px;
+  text-align: center;
+}
+
+.tasting-slider-tick-active {
+  opacity: 1;
+  color: var(--tea-gold);
+}
+
+.light .tasting-slider-track {
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+}
+
+.light .tasting-slider-thumb {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.15),
+    0 0 0 3px rgb(var(--tea-gold-rgb) / 0.1);
+}
+
+/* ── Capture section label ── */
+.tasting-capture-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--tea-text-dim);
+}
+
+/* ── Mood pill (single-select) ── */
+.tasting-mood-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: none;
+  font-size: 13px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+  color: var(--tea-text-sec);
+}
+
+.tasting-mood-pill:hover:not(.tasting-mood-pill-active) {
+  background: rgb(var(--tea-gold-rgb) / 0.04);
+}
+
+.tasting-mood-pill-active {
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+  color: var(--tea-gold);
+}
+
+.light .tasting-mood-pill-active {
+  background: rgb(var(--tea-gold-rgb) / 0.1);
+}
+
+/* ── Hui Gan toggle ── */
+.tasting-huigan-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  font-size: 13px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+  color: var(--tea-text-sec);
+}
+
+.tasting-huigan-toggle-active {
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+  color: var(--tea-gold);
+}
+
+/* ── Flavor family card ── */
+.tasting-flavor-family {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+  color: var(--tea-text-sec);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.tasting-flavor-family:hover:not(.tasting-flavor-family-active) {
+  background: rgb(var(--tea-gold-rgb) / 0.03);
+}
+
+.tasting-flavor-family-active {
+  background: rgb(var(--tea-gold-rgb) / 0.10);
+  color: var(--tea-gold);
+}
+
+.light .tasting-flavor-family-active {
+  background: rgb(var(--tea-gold-rgb) / 0.08);
+}
+
+/* ── Voice note field ── */
+.tasting-voice-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  background: var(--tea-surface);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 150ms ease;
+}
+
+.tasting-voice-field:focus-within {
+  box-shadow: 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.2);
+}
+
+.tasting-voice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--tea-text-dim);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.tasting-voice-btn:hover {
+  color: var(--tea-text);
+}
+
+.tasting-voice-btn-recording {
+  color: var(--tea-gold);
+}
+
+/* ── Sub-terms expansion ── */
+.tasting-subterms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  background: rgb(var(--tea-gold-rgb) / 0.03);
+  border-radius: 0 0 8px 8px;
+  margin-top: -4px;
+}
+
+.light .tasting-subterms {
+  background: rgb(var(--tea-gold-rgb) / 0.02);
+}
