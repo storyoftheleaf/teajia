@@ -6,11 +6,11 @@ interface SectionSkeletonProps {
 }
 
 const ShimmerBar: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`relative overflow-hidden bg-tea-text/5 rounded-sm ${className}`}>
+  <div className={`relative overflow-hidden shimmer-warm ${className}`}>
     <div
       className="absolute inset-0 animate-shimmer"
       style={{
-        background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)',
+        background: 'linear-gradient(90deg, transparent, rgb(var(--tea-gold-rgb, 168 135 77) / 0.08), transparent)',
       }}
     />
   </div>

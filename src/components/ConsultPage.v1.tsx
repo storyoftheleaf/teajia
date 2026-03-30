@@ -305,7 +305,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
 
   return (
     <div
-      className={`fixed bottom-0 inset-x-0 z-[35] md:hidden transition-transform duration-300 ${
+      className={`fixed bottom-0 inset-x-0 z-drawer md:hidden transition-transform duration-300 ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
     >

@@ -130,7 +130,7 @@ const useShakeDetector = (onShake: () => void) => {
 // - Math.min() ensures the limiting dimension controls scale (preserves 3:4 ratio)
 // - transformOrigin: 'center center' keeps it centered
 //
-const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scaleOverride?: number }> = ({ children, isActive, scaleOverride }) => {
+const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scaleOverride?: number; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, scaleOverride, pageWeight }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -182,7 +182,11 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scal
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden'
         }}
-        className="shrink-0 bg-tea-bg page-vignette relative"
+        className={`shrink-0 bg-tea-bg relative ${
+          pageWeight === 'image-heavy' ? 'page-vignette-strong' :
+          pageWeight === 'text-heavy' ? 'page-vignette-none' :
+          'page-vignette'
+        }`}
       >
         {children}
       </div>
@@ -200,7 +204,7 @@ const ReaderProgressBar: React.FC<{ currentPage: number; totalPages: number }> =
   }, [progress, springProgress]);
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-[60] reader-progress-track">
+    <div className="absolute top-0 left-0 right-0 z-priority reader-progress-track">
       <motion.div
         className="reader-progress-fill"
         style={{ width: springProgress.get() + '%' }}
@@ -671,7 +675,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] bg-tea-text/40 backdrop-blur-sm"
+            className="fixed inset-0 z-priority bg-tea-text/40 backdrop-blur-sm"
             onClick={() => setShowChapterDrawer(false)}
           />
           <motion.div
@@ -680,7 +684,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[160] bg-tea-elevated border-t border-tea-border rounded-t-2xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-2xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-tea-border rounded-full mx-auto mb-6" />
@@ -748,7 +752,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-48 left-1/2 -translate-x-1/2 z-[300] bg-tea-elevated border border-tea-border rounded-xl shadow-xl px-5 py-4 flex items-center gap-4"
+          className="fixed bottom-48 left-1/2 -translate-x-1/2 z-priority bg-tea-elevated border border-tea-border rounded-xl shadow-xl px-5 py-4 flex items-center gap-4"
         >
           <span className="text-tea-text text-sm">Return to start?</span>
           <button
@@ -808,7 +812,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                 localStorage.setItem(`teajia_notes_${story.id}`, e.target.value);
               }}
               placeholder="Your notes for this story…"
-              className="flex-1 bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text text-sm resize-none placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/40 transition-colors"
+              className="flex-1 bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text text-sm resize-none placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/40 transition-colors"
             />
           </div>
         </div>
@@ -831,7 +835,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             transition={{ duration: 0.3 }}
             className="w-full h-full"
           >
-            <ScaledPage isActive>
+            <ScaledPage isActive pageWeight={page.pageWeight}>
               <SinglePageRenderer
                 page={page}
                 storyTitle={story.title}
@@ -986,7 +990,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                     {/* Left page — fixed aspect container */}
                     <div className="h-full" style={{ aspectRatio: '800/1067' }}>
                       {leftPage && (
-                        <ScaledPage isActive={currentPageIndex === leftIdx}>
+                        <ScaledPage isActive={currentPageIndex === leftIdx} pageWeight={leftPage.pageWeight}>
                           <SinglePageRenderer
                             page={leftPage}
                             storyTitle={story.title}
@@ -1001,7 +1005,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                     {/* Right page — fixed aspect container */}
                     <div className="h-full" style={{ aspectRatio: '800/1067' }}>
                       {rightPage ? (
-                        <ScaledPage isActive={currentPageIndex === rightIdx}>
+                        <ScaledPage isActive={currentPageIndex === rightIdx} pageWeight={rightPage.pageWeight}>
                           <SinglePageRenderer
                             page={rightPage}
                             storyTitle={story.title}
@@ -1046,7 +1050,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                           transition: 'opacity 200ms ease'
                         }}
                       >
-                        <ScaledPage isActive={isActive}>
+                        <ScaledPage isActive={isActive} pageWeight={page.pageWeight}>
                           <SinglePageRenderer
                             page={page}
                             storyTitle={story.title}

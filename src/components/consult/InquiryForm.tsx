@@ -164,7 +164,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className={`fixed inset-0 z-[45] flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
+      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
     >
       <div
         ref={focusTrapRef}
@@ -349,7 +349,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
 
   const sharedClass = `
     w-full bg-transparent border-0 border-b font-sans text-base pt-5 pb-2 px-0
-    outline-none transition-colors duration-200
+    outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-200
     text-tea-text
     ${focused ? 'border-tea-gold' : 'border-tea-border'}
   `;

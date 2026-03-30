@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, FileQuestion, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface StagingRow {
   id: string;
@@ -58,6 +59,7 @@ const getSafeValue = (row: any, keys: string[]) => {
 
 export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolean; onClose: () => void; onComplete: () => void }) => {
   const { showToast } = useToast();
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
   const [stage, setStage] = useState<'upload' | 'staging' | 'uploading'>('upload');
   const [stagingData, setStagingData] = useState<StagingRow[]>([]);
   const [validationSummary, setValidationSummary] = useState({ valid: 0, drafts: 0 });
@@ -384,7 +386,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4">
-      <div role="dialog" aria-modal="true" aria-label="CSV import" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-7xl h-[85vh] flex flex-col shadow-lg relative">
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="CSV import" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-7xl h-[85vh] flex flex-col shadow-lg relative">
         <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface rounded-t-xl">
           <div>
             <h3 className="text-2xl font-serif text-tea-text">Import Inventory</h3>

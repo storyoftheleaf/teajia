@@ -1,10 +1,10 @@
 import React from 'react';
-import { LayoutGroup } from 'framer-motion';
+import { LayoutGroup, motion } from 'framer-motion';
 import { Icons } from './Icons';
-import { LogoEmblem, LogoText } from './Logos';
+import { LogoText } from './Logos';
 import { Section } from '../types';
 
-import { getNavIcon, getIconScale } from './navIconConfig';
+import { getNavIcon } from './navIconConfig';
 import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -53,6 +53,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   const renderTabButton = (section: { id: Section; label: string }, index: number) => {
     const isActive = activeSection === section.id;
+    const IconComponent = getNavIcon(section.id);
 
     return (
       <button
@@ -65,31 +66,48 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-1 min-w-0 h-full flex flex-col items-center justify-center gap-0.5 relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
       >
-        {/* Text-only label */}
+        {/* Icon */}
+        {IconComponent && (
+          <IconComponent
+            className={`w-[18px] h-[18px] transition-all duration-300 pointer-events-none ${
+              isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+            }`}
+            strokeWidth={isActive ? 2.2 : 1.8}
+          />
+        )}
+        {/* Label */}
         <span
-          className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 pointer-events-none select-none ${
-            isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
+          className={`text-[10px] tracking-[0.06em] lowercase transition-all duration-300 pointer-events-none select-none ${
+            isActive ? 'text-tea-gold font-semibold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
           }`}
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           {section.label.toLowerCase()}
         </span>
+        {/* Active dot indicator */}
+        {isActive && (
+          <motion.div
+            layoutId="bottomtab-indicator"
+            className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-tea-gold"
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          />
+        )}
       </button>
     );
   };
 
   return (
     <LayoutGroup>
-      {/* Navigation Tab Bar - 3 left + center OFFERINGS + 3 right */}
+      {/* Navigation Tab Bar */}
       <nav
         aria-label="Main navigation"
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-[40] animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-modal animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
@@ -107,7 +125,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <div className="flex items-center h-full flex-1">
                 {renderTabButton(section, index)}
               </div>
-              <div className="w-px h-3 bg-tea-gold/10" />
+              <div className="w-px h-5 bg-tea-border/30" />
             </React.Fragment>
           ))}
 
@@ -136,7 +154,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {/* Right sections */}
           {rightSections.map((section, index) => (
             <React.Fragment key={section.id}>
-              <div className="w-px h-3 bg-tea-gold/10" />
+              <div className="w-px h-5 bg-tea-border/30" />
               <div className="flex items-center h-full flex-1">
                 {renderTabButton(section, index + leftSections.length + 1)}
               </div>

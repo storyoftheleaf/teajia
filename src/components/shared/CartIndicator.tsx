@@ -18,7 +18,7 @@ export const CartIndicator: React.FC<CartIndicatorProps> = ({ itemCount, onOpen 
       {itemCount > 0 && (
         <motion.button
           onClick={onOpen}
-          className="fixed right-4 z-[39] lg:hidden"
+          className="fixed right-4 z-drawer lg:hidden"
           style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
           initial={{ scale: 0.8, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}

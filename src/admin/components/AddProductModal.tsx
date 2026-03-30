@@ -9,6 +9,7 @@ import { TastingFlow } from '../../components/tasting/TastingFlow';
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -181,6 +182,7 @@ const VendorPicker = ({
 export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onSuccess, initialData, rates = [] }) => {
   const { showToast } = useToast();
   const { data: customers = [] } = useCustomers();
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -549,13 +551,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   // Reusable input styles — warm tones only, zero grey
-  const inputStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec/50";
-  const selectStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec/50";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
-  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors font-sans";
+  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors font-sans";
 
   return (
     <div
+        ref={focusTrapRef}
         role="dialog"
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
@@ -677,7 +680,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <label className={labelStyle}>Status</label>
                   <select
                     name="status" value={formData.status} onChange={handleChange}
-                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none text-sm font-bold bg-transparent cursor-pointer font-sans ${
+                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm font-bold bg-transparent cursor-pointer font-sans ${
                         formData.status === 'Draft' ? 'text-tea-text-sec border-tea-text-sec/30' :
                         formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-text-sec/30' :
                         'text-tea-accent border-tea-accent-sub'
@@ -740,7 +743,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-gold/40 transition-colors">
                               <select
                                   name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                  className="bg-transparent appearance-none rounded-none text-xs text-tea-accent font-bold outline-none cursor-pointer uppercase"
+                                  className="bg-transparent appearance-none rounded-none text-xs text-tea-accent font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase"
                               >
                                   <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
                                   <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
@@ -751,7 +754,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                               </select>
                               <input
                                   name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
-                                  className="w-24 bg-transparent text-right text-tea-text outline-none placeholder-tea-text-sec/40 tabular-nums" placeholder="0.00"
+                                  className="w-24 bg-transparent text-right text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 tabular-nums" placeholder="0.00"
                                   inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                               />
                           </div>
@@ -760,7 +763,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Weight (g)</label>
                           <input
                               name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
                               inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                           />
                       </div>
@@ -768,7 +771,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Ship (USD/kg)</label>
                           <input
                               name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="10.00"
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="10.00"
                               inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                           />
                       </div>
@@ -806,7 +809,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                               }
                               setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
                           }}
-                          className={`flex-1 bg-transparent text-lg num outline-none text-right ${
+                          className={`flex-1 bg-transparent text-lg num outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-right ${
                               formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
                               ? 'text-tea-accent font-bold' : 'text-tea-text'
                           }`}
@@ -821,7 +824,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Current Stock</label>
                           <input
                               name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
                               inputMode="numeric"
                           />
                       </div>

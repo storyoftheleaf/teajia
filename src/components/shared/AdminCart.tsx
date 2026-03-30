@@ -561,7 +561,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                         type="number"
                         value={item.quantity}
                         onChange={(e) => updateQuantity(idx, Number(e.target.value))}
-                        className="w-8 bg-transparent text-center text-xs outline-none num text-tea-text"
+                        className="w-8 bg-transparent text-center text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num text-tea-text"
                       />
                       <span className="text-[9px] text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
                         {item.product.type === 'Teaware' ? 'u' : 'g'}
@@ -596,7 +596,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               <select
                 value={displayCurrency}
                 onChange={(e) => setDisplayCurrency(e.target.value as Currency)}
-                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none cursor-pointer"
+                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer"
               >
                 {rates.map(r => <option key={r.currency} value={r.currency}>{r.currency}</option>)}
               </select>
@@ -610,7 +610,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 min={0}
                 value={shippingCostUSD}
                 onChange={(e) => setShippingCostUSD(Math.max(0, Number(e.target.value) || 0))}
-                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none num"
+                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num"
               />
             </div>
           </div>
@@ -624,7 +624,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               onChange={(e) => handleCustomerSearch(e.target.value)}
               onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none transition-colors placeholder-tea-text-sec/50 ${
+              className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
                 validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
               }`}
               placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
@@ -680,7 +680,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             type="text"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
-            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-text-sec placeholder-tea-text-sec/50"
+            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec placeholder-tea-text-sec/50"
             placeholder={isPurchase ? 'Vendor Contact (Optional)' : 'WhatsApp (Optional)'}
           />
         </div>

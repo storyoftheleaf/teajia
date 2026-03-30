@@ -15,7 +15,7 @@ interface ProductInquiryProps {
 
 type InquiryChannel = 'choose' | 'whatsapp' | 'email';
 
-const INPUT_CLASS = 'w-full bg-tea-surface border border-tea-border p-3 text-tea-text text-base outline-none focus:border-tea-gold rounded-sm';
+const INPUT_CLASS = 'w-full bg-tea-surface border border-tea-border p-3 text-tea-text text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-sm';
 
 export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone = DEFAULT_PHONE }) => {
   useScrollLock(isOpen);

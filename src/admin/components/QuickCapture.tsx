@@ -543,7 +543,7 @@ const Field: React.FC<{
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full mt-0.5 px-2 py-1.5 text-sm bg-tea-bg rounded-md border border-tea-border text-tea-text focus:outline-none focus:border-tea-gold/50 transition-colors"
+      className="w-full mt-0.5 px-2 py-1.5 text-sm bg-tea-bg rounded-md border border-tea-border text-tea-text focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
     />
   </div>
 );
@@ -559,7 +559,7 @@ const SelectField: React.FC<{
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full mt-0.5 px-2 py-1.5 text-sm bg-tea-bg rounded-md border border-tea-border text-tea-text focus:outline-none focus:border-tea-gold/50 transition-colors"
+      className="w-full mt-0.5 px-2 py-1.5 text-sm bg-tea-bg rounded-md border border-tea-border text-tea-text focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
     >
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>

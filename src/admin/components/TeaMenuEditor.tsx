@@ -180,7 +180,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
                   <input
                     type="text"
                     placeholder="Add description..."
-                    className="w-full border-b border-transparent hover:border-tea-border focus:border-tea-gold bg-transparent outline-none text-xs text-tea-text-sec py-1 mt-0.5 transition-colors"
+                    className="w-full border-b border-transparent hover:border-tea-border focus:border-tea-gold bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-xs text-tea-text-sec py-1 mt-0.5 transition-colors"
                     onBlur={(e) => {
                       if (e.target.value) handleUpdateDescription(item, e.target.value);
                     }}
@@ -199,7 +199,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
                     type="datetime-local"
                     value={item.revealDate ? item.revealDate.slice(0, 16) : ''}
                     onChange={(e) => handleUpdateRevealDate(item, e.target.value)}
-                    className="border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-[11px] text-tea-text-sec py-0.5"
+                    className="border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-[11px] text-tea-text-sec py-0.5"
                   />
                 </div>
               </div>
@@ -243,7 +243,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-1 placeholder:text-tea-text-sec/50"
+                className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-1 placeholder:text-tea-text-sec/50"
                 placeholder="Search inventory..."
                 autoFocus
               />
@@ -290,7 +290,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
             type="text"
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
-            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
+            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
             placeholder="Tea name"
             autoFocus
           />
@@ -298,7 +298,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
             type="text"
             value={customDescription}
             onChange={(e) => setCustomDescription(e.target.value)}
-            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
+            className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
             placeholder="Description (optional)"
           />
           <button

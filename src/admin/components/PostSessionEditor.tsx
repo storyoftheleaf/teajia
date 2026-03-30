@@ -125,7 +125,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
         <textarea
           value={teaLedger}
           onChange={(e) => setTeaLedger(e.target.value)}
-          className="w-full border border-tea-border bg-tea-bg rounded-md p-3 text-xs text-tea-text font-mono outline-none focus:border-tea-gold min-h-[120px] resize-y"
+          className="w-full border border-tea-border bg-tea-bg rounded-md p-3 text-xs text-tea-text font-mono outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[120px] resize-y"
           placeholder='{"teas": [{"name": "Dancong", "grams": 5, "steeps": 8}]}'
           spellCheck={false}
         />
@@ -140,7 +140,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
           type="text"
           value={playlistUrl}
           onChange={(e) => setPlaylistUrl(e.target.value)}
-          className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
+          className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
           placeholder="https://open.spotify.com/playlist/..."
         />
         {embedUrl && (
@@ -206,7 +206,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
         <textarea
           value={sessionNotes}
           onChange={(e) => setSessionNotes(e.target.value)}
-          className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+          className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
           placeholder="Notes about the session, observations, highlights..."
         />
       </div>

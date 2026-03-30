@@ -103,7 +103,7 @@ const LineItemRow: React.FC<{
             onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
             onWheel={(e) => (e.target as HTMLElement).blur()}
             className="w-14 text-center text-tea-text text-sm font-medium bg-transparent num
-                       border-none outline-none py-0.5"
+                       border-none outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg py-0.5"
           />
           <span className="text-tea-text-sec text-[10px] num w-3">{isUnitBased ? '×' : 'g'}</span>
           <button
@@ -240,7 +240,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[9999] bg-tea-bg/95 flex flex-col items-center justify-center"
+            className="fixed inset-0 z-priority bg-tea-bg/95 flex flex-col items-center justify-center"
             onClick={() => setViewerIndex(null)}
           >
             {/* Close button */}

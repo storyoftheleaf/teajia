@@ -233,7 +233,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search teas, articles, and more..."
-            className="flex-1 bg-transparent text-tea-text placeholder:text-tea-text-sec text-sm outline-none font-sans"
+            className="flex-1 bg-transparent text-tea-text placeholder:text-tea-text-sec text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-sans"
             autoComplete="off"
             spellCheck={false}
           />
@@ -261,7 +261,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           {groupedResults.map(group => (
             <div key={group.label}>
               <div className="px-4 pt-3 pb-1">
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-sans">
+                <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-sans font-medium">
                   {group.label}
                 </span>
               </div>
@@ -303,7 +303,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
 
                     {/* Category badge */}
                     {item.category && (
-                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${typeBadgeColor(item.type)}`}>
+                      <span className={`text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${typeBadgeColor(item.type)}`}>
                         {item.category}
                       </span>
                     )}
@@ -316,7 +316,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
 
         {/* Footer hint */}
         {results.length > 0 && (
-          <div className="px-4 py-2 border-t border-tea-border flex items-center gap-4 text-[10px] text-tea-text-sec font-sans">
+          <div className="px-4 py-2 border-t border-tea-border flex items-center gap-4 text-[11px] text-tea-text-sec font-sans">
             <span className="flex items-center gap-1">
               <kbd className="px-1 py-0.5 border border-tea-border rounded font-mono">↑↓</kbd> navigate
             </span>

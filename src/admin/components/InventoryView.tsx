@@ -271,7 +271,7 @@ const GhostTextarea = ({
             onBlur={handleBlur}
             placeholder={placeholder}
             rows={rows}
-            className={`w-full bg-transparent border border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
 };
@@ -329,7 +329,7 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
 };
@@ -342,7 +342,7 @@ const GhostSelect = ({ value, onSave, options, className = '' }: {
         <select
             value={value}
             onChange={(e) => onSave(e.target.value)}
-            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
         >
             {options.map(opt => (
                 <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
@@ -556,7 +556,7 @@ const TagInput = ({ suggestions, value, onSave, multiple = true, placeholder = '
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
-                className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none transition-all text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
             />
             {showDropdown && input && filtered.length > 0 && (
                 <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-md shadow-lg max-h-32 overflow-y-auto">
@@ -1853,7 +1853,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   }
                 }}
                 placeholder="View name..."
-                className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none w-24 py-0.5 px-1"
+                className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-24 py-0.5 px-1"
               />
               <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
             </div>
@@ -2159,7 +2159,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const isRegenerating = regeneratingId === product.id;
               const loreExtras = [draft.terroir, draft.processingNotes].filter(Boolean).join(' ');
               const storyPreview = (draft.lore || '') + (loreExtras ? ' ' + loreExtras : '');
-              const fieldClass = "w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-accent transition-colors py-1";
+              const fieldClass = "w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors py-1";
 
               return (
                 <div key={product.id} className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
@@ -2190,7 +2190,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         value={draft.lore || ''}
                         onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], lore: e.target.value } }))}
                         rows={3}
-                        className="w-full bg-transparent border-b border-tea-border text-sm text-tea-text font-serif outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
+                        className="w-full bg-transparent border-b border-tea-border text-sm text-tea-text font-serif outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
                       />
                     </div>
 
@@ -2226,7 +2226,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         value={draft.experience || ''}
                         onChange={e => setReviewDrafts(prev => ({ ...prev, [product.id]: { ...prev[product.id], experience: e.target.value } }))}
                         rows={2}
-                        className="w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
+                        className="w-full bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors resize-none leading-relaxed py-1"
                       />
                     </div>
                   </div>
@@ -2864,7 +2864,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="w-full pt-4">
                         <input 
                             type="text" 
-                            className="w-full input-warm rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus:border-tea-accent transition-colors"
+                            className="w-full input-warm rounded-lg p-3 text-center text-tea-accent num text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors"
                             value={resetInput}
                             onChange={(e) => setResetInput(e.target.value)}
                             placeholder='Type "delete" to confirm'
@@ -2992,7 +2992,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       handleProductUpdate(panelProduct.id, 'status', e.target.value);
                       setPanelProduct(prev => prev ? { ...prev, status: e.target.value as any } : null);
                     }}
-                    className="text-[11px] uppercase tracking-[0.08em] px-2.5 py-1.5 rounded-md bg-tea-surface text-tea-text-sec appearance-none cursor-pointer outline-none"
+                    className="text-[11px] uppercase tracking-[0.08em] px-2.5 py-1.5 rounded-md bg-tea-surface text-tea-text-sec appearance-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                     style={{ borderColor: statusColor, color: statusColor, border: '1px solid' }}
                   >
                     {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -3124,7 +3124,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             handleProductUpdate(panelProduct.id, 'vendor', val);
                             setPanelProduct(prev => prev ? { ...prev, vendor: val } : null);
                           }}
-                          className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                          className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
                       </div>
                     </div>
@@ -3295,7 +3295,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 handleProductUpdate(panelProduct.id, 'costCurrency', newCurrency);
                                 setPanelProduct(prev => prev ? { ...prev, costCurrency: newCurrency as any } : null);
                               }}
-                              className="bg-transparent text-[10px] text-tea-text-sec font-medium uppercase outline-none cursor-pointer appearance-none border-none"
+                              className="bg-transparent text-[10px] text-tea-text-sec font-medium uppercase outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer appearance-none border-none"
                             >
                               <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
                               <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
@@ -3619,7 +3619,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <select
               value={bulkField}
               onChange={(e) => { setBulkField(e.target.value); setBulkValue(''); }}
-              className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none"
+              className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
             >
               {BULK_EDIT_FIELDS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
             </select>
@@ -3627,14 +3627,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const fieldDef = BULK_EDIT_FIELDS.find(f => f.key === bulkField);
               if (fieldDef?.type === 'select') {
                 return (
-                  <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none">
+                  <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg">
                     <option value="">Select...</option>
                     {fieldDef.options.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 );
               } else if (fieldDef?.type === 'boolean') {
                 return (
-                  <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none">
+                  <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-xs text-tea-text px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg">
                     <option value="">Select...</option>
                     <option value="true">Yes</option>
                     <option value="false">No</option>

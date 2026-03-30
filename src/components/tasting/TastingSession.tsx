@@ -136,7 +136,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center"
+      className="fixed inset-0 z-priority flex items-end md:items-center justify-center"
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -263,7 +263,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                         placeholder="How was this session? Any thoughts to remember..."
                         rows={3}
                         autoFocus
-                        className="w-full px-3 py-2 bg-tea-bg rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none resize-none"
+                        className="w-full px-3 py-2 bg-tea-bg rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg resize-none"
                         style={{ fontFamily: 'var(--font-body)' }}
                       />
                     ) : (

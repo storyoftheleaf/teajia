@@ -8,7 +8,7 @@ export const ScrollProgressBar: React.FC = () => {
 
   return (
     <motion.div
-      className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[2px] bg-tea-gold/80 origin-left z-[60]"
+      className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[2px] bg-tea-gold/80 origin-left z-priority"
       style={{ scaleX }}
     />
   );

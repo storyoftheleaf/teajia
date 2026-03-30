@@ -184,7 +184,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                                         type="number"
                                         value={currentItem.stock_g}
                                         onChange={e => setCurrentItem({...currentItem, stock_g: parseFloat(e.target.value) || 0})}
-                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none"
+                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                     />
                                     <span className="text-xs text-tea-text font-medium flex-shrink-0">g</span>
                                 </div>
@@ -199,7 +199,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                                         step="0.01"
                                         value={currentItem.cost_price}
                                         onChange={e => handleCostChange(e.target.value)}
-                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none"
+                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                     />
                                     <span className="text-xs text-tea-text font-medium whitespace-nowrap flex-shrink-0">{getDetectedCurrency()}/g</span>
                                 </div>
@@ -214,7 +214,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                                         step="0.1"
                                         value={currentItem.multiplier || 1}
                                         onChange={e => handleMultiplierChange(e.target.value)}
-                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none"
+                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                     />
                                     <span className="text-xs text-tea-text font-medium flex-shrink-0">×</span>
                                 </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency } from '../utils';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface AddToCartModalProps { 
   isOpen: boolean; 
@@ -15,6 +16,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   isOpen, onClose, onConfirm, product, currency, rates
 }) => {
   const [quantity, setQuantity] = useState<string>('');
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   useEffect(() => {
     if (isOpen) setQuantity('');
@@ -37,7 +39,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Add to order" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Add to order" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-2xl font-serif text-tea-text mb-2">Add to Order</h3>
         <p className="text-tea-text-sec text-sm mb-6 font-serif italic">{product.givenName} <span className="text-tea-border mx-2">•</span> {product.productName}</p>
 
@@ -49,7 +51,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
               inputMode="numeric"
               onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-              className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text focus:border-tea-text-sec outline-none text-lg transition-colors placeholder-tea-text-sec/50"
+              className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text focus:border-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-lg transition-colors placeholder-tea-text-sec/50"
               placeholder="0"
             />
             {product.type !== 'Teaware' && (

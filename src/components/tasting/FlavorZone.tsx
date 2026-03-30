@@ -209,7 +209,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
                             }
                           }}
                           placeholder="Custom term..."
-                          className="text-xs bg-tea-bg text-tea-text px-2.5 py-1.5 rounded outline-none w-28"
+                          className="text-xs bg-tea-bg text-tea-text px-2.5 py-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-28"
                           style={{ fontFamily: 'var(--font-body)' }}
                         />
                       </form>

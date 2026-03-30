@@ -237,7 +237,7 @@ export const TastingNotesView: React.FC<TastingNotesViewProps> = ({ products, is
                   placeholder="Search teas..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-tea-surface rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim focus:outline-none"
+                  className="w-full pl-9 pr-3 py-2.5 bg-tea-surface rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                   style={{ fontFamily: 'var(--font-body)' }}
                 />
                 {search && (

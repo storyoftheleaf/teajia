@@ -98,7 +98,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
           onChange={(e) => onSearchChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onKeyDown={handleKeyDown}
-          className="w-full pl-6 pr-8 py-2 bg-transparent border-b border-tea-text/10 focus:border-tea-gold outline-none font-serif italic text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-text/30 transition-colors"
+          className="w-full pl-6 pr-8 py-2 bg-transparent border-b border-tea-text/10 focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif italic text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-text/30 transition-colors"
         />
         {searchQuery && (
           <button

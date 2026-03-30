@@ -157,13 +157,13 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                 ) : (
                     <div className="flex-1 p-8 overflow-y-auto bg-tea-bg">
                         <div className="max-w-md mx-auto space-y-6">
-                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Title</label><input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold" value={currentStory.title} onChange={e => setCurrentStory({...currentStory, title: e.target.value})} /></div>
-                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Subtitle</label><input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold" value={currentStory.subtitle} onChange={e => setCurrentStory({...currentStory, subtitle: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Title</label><input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold" value={currentStory.title} onChange={e => setCurrentStory({...currentStory, title: e.target.value})} /></div>
+                            <div><label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Subtitle</label><input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold" value={currentStory.subtitle} onChange={e => setCurrentStory({...currentStory, subtitle: e.target.value})} /></div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Status</label>
-                                    <select value={currentStory.status} onChange={e => setCurrentStory({...currentStory, status: e.target.value as StoryStatus})} className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
+                                    <select value={currentStory.status} onChange={e => setCurrentStory({...currentStory, status: e.target.value as StoryStatus})} className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold text-xs uppercase">
                                         <option value="draft">Draft</option>
                                         <option value="published">Published</option>
                                         <option value="vault">Vault (Media)</option>
@@ -171,7 +171,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                 </div>
                                 <div>
                                     <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Type</label>
-                                    <select value={currentStory.type} onChange={e => setCurrentStory({...currentStory, type: e.target.value as ContentType})} className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
+                                    <select value={currentStory.type} onChange={e => setCurrentStory({...currentStory, type: e.target.value as ContentType})} className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold text-xs uppercase">
                                         {Object.values(ContentType).map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
                                 </div>
@@ -183,19 +183,19 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                      <h3 className="text-xs uppercase tracking-[0.15em] text-tea-gold mb-2">Media Configuration</h3>
                                      <div>
                                         <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Duration</label>
-                                        <input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
+                                        <input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold" placeholder="e.g. 12:30" value={currentStory.durationOrTime} onChange={e => setCurrentStory({...currentStory, durationOrTime: e.target.value})} />
                                      </div>
                                      <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Platform</label>
-                                            <select value={currentStory.platform} onChange={e => setCurrentStory({...currentStory, platform: e.target.value as any})} className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold text-xs uppercase">
+                                            <select value={currentStory.platform} onChange={e => setCurrentStory({...currentStory, platform: e.target.value as any})} className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold text-xs uppercase">
                                                 <option value="YouTube">YouTube</option>
                                                 <option value="Instagram">Instagram</option>
                                             </select>
                                         </div>
                                         <div>
                                             <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">External ID</label>
-                                            <input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus:border-tea-gold" placeholder="Video ID" value={currentStory.externalId || ''} onChange={e => setCurrentStory({...currentStory, externalId: e.target.value})} />
+                                            <input className="w-full bg-tea-bg border border-tea-border p-2 text-white outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold" placeholder="Video ID" value={currentStory.externalId || ''} onChange={e => setCurrentStory({...currentStory, externalId: e.target.value})} />
                                         </div>
                                      </div>
                                 </div>
@@ -231,7 +231,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
                                     value={templateSearch}
                                     onChange={(e) => setTemplateSearch(e.target.value)}
                                     placeholder="Search templates..."
-                                    className="w-full bg-tea-surface border border-tea-border rounded-sm px-4 py-2 text-sm text-white placeholder:text-tea-text-sec outline-none focus:border-tea-gold transition-colors"
+                                    className="w-full bg-tea-surface border border-tea-border rounded-sm px-4 py-2 text-sm text-white placeholder:text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors"
                                     autoFocus
                                 />
                                 {templateSearch && (

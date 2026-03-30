@@ -72,6 +72,7 @@
    Vignette overlay (page-vignette pseudo-element)
    ───────────────────────────────────────── */
 
+/* Default vignette — subtle edge darkening */
 .page-vignette::after {
   content: '';
   position: absolute;
@@ -79,6 +80,21 @@
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(24,19,14,0.12) 100%);
   z-index: 1;
+}
+
+/* Stronger vignette for image-heavy pages (full-bleed photos) */
+.page-vignette-strong::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(24,19,14,0.22) 100%);
+  z-index: 1;
+}
+
+/* No vignette for text-heavy pages — avoids dimming text at margins */
+.page-vignette-none::after {
+  display: none;
 }
 
 /* ─────────────────────────────────────────
@@ -257,4 +273,36 @@
   color: var(--tea-text-dim);
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   Reduced Motion — disable all Reader animations
+   for users with vestibular disorders
+   ───────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-page-active="true"] .ken-burns-hero,
+  [data-page-active="true"] .ken-burns-zoom,
+  [data-page-active="true"] .ken-burns-pan {
+    animation: none !important;
+  }
+
+  .reader-chapter-drawer,
+  .reader-chapter-drawer-exit {
+    animation: none !important;
+  }
+
+  .reader-image-reveal {
+    animation: none !important;
+  }
+
+  .reader-peek-strip {
+    transition: none !important;
+  }
+
+  /* Disable blur-up transitions on images */
+  .reader-image-blur-up {
+    filter: none !important;
+    transition: none !important;
+  }
 }
