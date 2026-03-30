@@ -496,7 +496,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       {expandedImageUrl && (
         <div
           onClick={() => setExpandedImageUrl(null)}
-          className="fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer animate-[fadeIn_0.3s_ease-out]"
+          className="fixed inset-0 z-priority flex items-center justify-center cursor-pointer animate-[fadeIn_0.3s_ease-out]"
           style={{ background: 'var(--tea-bg)' }}
         >
           <img

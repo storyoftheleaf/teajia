@@ -263,7 +263,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       <div className="max-w-full mx-auto px-1 md:px-2 lg:px-4 pt-4">
 
          {/* Filter bar — two dropdown buttons */}
-         <div ref={filterRef} className="mb-3 relative z-[35]">
+         <div ref={filterRef} className="mb-3 relative z-drawer">
             <div className="flex items-center justify-between">
                {/* Type button */}
                <button

@@ -57,15 +57,17 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Fade transition when view changes
+  // Crossfade transition when view changes — no blank flash
   useEffect(() => {
     if (prevView.current !== currentView) {
       if (!reducedMotion) {
         setIsTransitioning(true);
-        const timer = setTimeout(() => {
-          setIsTransitioning(false);
-        }, 50); // Brief flash then fade in
-        return () => clearTimeout(timer);
+        // Use requestAnimationFrame to ensure new content is rendered before fading in
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setIsTransitioning(false);
+          });
+        });
       }
       prevView.current = currentView;
     }
@@ -121,12 +123,15 @@ export const LearnHub: React.FC<LearnHubProps> = ({
         <PageHeader title="Learn" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}
 
+      {/* Always reserve breadcrumb height to prevent layout shift */}
+      <div className={`${isSubView ? 'mt-8' : 'mt-0'} min-h-[32px]`}>
+        {isSubView && <Breadcrumb segments={breadcrumbSegments} />}
+      </div>
       <div
-        className={`${isSubView ? 'mt-8' : 'mt-0'} max-w-[1400px] mx-auto transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+        className={`max-w-[1400px] mx-auto transition-opacity ${reducedMotion ? '' : 'duration-300'} ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
       >
         {isSubView ? (
           <>
-            <Breadcrumb segments={breadcrumbSegments} />
             {renderSubView()}
           </>
         ) : (

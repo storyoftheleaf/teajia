@@ -245,7 +245,7 @@ const CharacterRevealCapture: React.FC = () => {
                 style={{
                   fontFamily: 'var(--font-display)',
                   border: 'none',
-                  borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)',
+                  borderBottom: '2px solid rgb(var(--tea-gold-rgb) / 0.25)',
                   borderRadius: 0,
                   letterSpacing: '0.04em',
                 }}
@@ -257,8 +257,8 @@ const CharacterRevealCapture: React.FC = () => {
                 className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold"
                 aria-label="Submit email"
               >
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </form>
@@ -365,7 +365,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               <LogoEmblem
                 size={76}
                 color="var(--tea-gold)"
-                className="opacity-70"
               />
             </button>
           </motion.div>

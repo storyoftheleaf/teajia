@@ -76,6 +76,18 @@ const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTra
 
 // Create an inner component to use the context
 const AppContent = () => {
+  // Track click/tap position for cart fly animation (activeElement unreliable on mobile)
+  useEffect(() => {
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const point = 'touches' in e ? e.touches[0] : e;
+      if (point) {
+        (window as any).__teajia_last_click = { x: point.clientX, y: point.clientY };
+      }
+    };
+    window.addEventListener('pointerdown', handler as EventListener, { passive: true });
+    return () => window.removeEventListener('pointerdown', handler as EventListener);
+  }, []);
+
   const { stories } = useStories();
   const { inventory, isLoading: inventoryLoading, isError: inventoryError, error: inventoryErrorObj, refetch: refetchInventory } = useInventory();
   const {
@@ -255,14 +267,21 @@ const AppContent = () => {
       return;
     }
 
-    // Use click origin if available, fall back to screen center
+    // Use the most recent click/tap position for fly origin, fall back to screen center
     let originX = window.innerWidth / 2 - 24;
     let originY = window.innerHeight / 2;
-    const active = document.activeElement as HTMLElement;
-    if (active && active !== document.body) {
-      const rect = active.getBoundingClientRect();
-      originX = rect.left + rect.width / 2;
-      originY = rect.top + rect.height / 2;
+    // Try the click event target first (works reliably on mobile tap)
+    const lastClick = (window as any).__teajia_last_click as { x: number; y: number } | undefined;
+    if (lastClick) {
+      originX = lastClick.x;
+      originY = lastClick.y;
+    } else {
+      const active = document.activeElement as HTMLElement;
+      if (active && active !== document.body) {
+        const rect = active.getBoundingClientRect();
+        originX = rect.left + rect.width / 2;
+        originY = rect.top + rect.height / 2;
+      }
     }
 
     setFlyAnimation({
@@ -417,7 +436,7 @@ const AppContent = () => {
       <AnimatePresence>
         {isSectionTransitioning && (
           <motion.div
-            className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[2px] z-[9999] origin-left"
+            className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[2px] z-priority origin-left"
             style={{ background: 'linear-gradient(90deg, var(--tea-gold), var(--tea-gold-lt))' }}
             initial={{ scaleX: 0, opacity: 1 }}
             animate={{ scaleX: 0.85, opacity: 1 }}

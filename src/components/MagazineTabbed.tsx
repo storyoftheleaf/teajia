@@ -226,18 +226,21 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   };
 
   const renderEmptyState = (type: string) => {
+    const otherTab = type === 'articles' ? 'visual' : 'articles';
     const emptyStateContent = {
       articles: {
         icon: <Icons.Book className="w-8 h-8 text-tea-text/40" />,
         title: 'No Articles Yet',
         message: 'Long-form stories about tea culture, origins, and brewing traditions are coming soon.',
-        suggestion: 'Try exploring Visual while you wait.'
+        suggestion: 'Explore Visual',
+        switchTab: 'visual' as MagazineTab,
       },
       'visual': {
         icon: <Icons.Grid className="w-8 h-8 text-tea-text/40" />,
         title: 'No Visual Yet',
         message: 'Visual stories celebrating the artistry and beauty of tea are in the works.',
-        suggestion: 'Check out Articles in the meantime.'
+        suggestion: 'Browse Articles',
+        switchTab: 'articles' as MagazineTab,
       }
     };
 
@@ -245,18 +248,21 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
     return (
       <div className="flex flex-col items-center justify-center py-32 px-4">
-        <div className="w-20 h-20 bg-tea-gold/5 border border-tea-text/10  rounded-full flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-tea-gold/5 border border-tea-text/10 rounded-full flex items-center justify-center mb-6">
           {content.icon}
         </div>
         <p className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>
           {content.title}
         </p>
-        <p className="text-tea-text/60 text-sm max-w-md text-center mb-4">
+        <p className="text-tea-text-sec text-sm max-w-md text-center mb-6">
           {content.message}
         </p>
-        <p className="text-tea-gold text-xs uppercase tracking-wider">
-          {content.suggestion}
-        </p>
+        <button
+          onClick={() => handleTabChange(content.switchTab)}
+          className="text-tea-gold text-xs uppercase tracking-wider hover:text-tea-gold/70 transition-colors duration-300 min-h-[44px] px-4 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+        >
+          {content.suggestion} <span className="ml-1">&rarr;</span>
+        </button>
       </div>
     );
   };

@@ -135,7 +135,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                       placeholder="Search..."
                       value={logSearchInput}
                       onChange={(e) => setLogSearchInput(e.target.value)}
-                      className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+                      className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
                     />
                   </form>
                 </>
@@ -211,7 +211,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   placeholder="Search..."
                   value={logSearchInput}
                   onChange={(e) => setLogSearchInput(e.target.value)}
-                  className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+                  className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
                 />
               </form>
             </div>

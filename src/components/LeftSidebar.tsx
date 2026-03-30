@@ -40,7 +40,7 @@ const NavButton: React.FC<{
       <div className={`transition-all duration-300 shrink-0 ${
         isActive
           ? 'text-tea-gold scale-110'
-          : 'text-tea-text-sec group-hover:text-tea-text group-hover:scale-105'
+          : 'text-tea-text-sec group-hover:text-tea-text group-hover:scale-110'
       }`}>
         {item.icon}
       </div>
@@ -71,7 +71,7 @@ const NavButton: React.FC<{
     </>
   );
 
-  const className = `relative flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
+  const className = `relative flex items-center ${collapsed ? 'justify-center px-2 min-h-[44px]' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
     isActive ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
   }`;
 
@@ -228,7 +228,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
       {/* Browse Navigation */}
       <nav className={`flex flex-col py-6 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
-        {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Browse</span>}
+        {!collapsed && <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold px-4 py-2">Browse</span>}
         {browseItems.map((item, index) => (
           <NavButton
             key={item.id}
@@ -244,7 +244,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       {/* Admin Navigation — visible only for admin users */}
       {auth.isAuthenticated && auth.isAdmin && (
         <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          {!collapsed && <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>}
+          {!collapsed && <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold px-4 py-2">Admin</span>}
           {adminItems.map((item, index) => {
             const hasChildren = !collapsed && item.children && item.children.length > 0;
             const isExpanded = expandedGroups[item.id] || isChildActive(item.children);

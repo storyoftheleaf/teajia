@@ -224,7 +224,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
   return (
     <button
       onClick={onOpenInquiry}
-      className={`fixed z-[35] right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))]
+      className={`fixed z-drawer right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))]
                   transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
                   ${visible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95 pointer-events-none'}
                   bg-tea-bg/80 backdrop-blur-md text-tea-gold
@@ -319,6 +319,8 @@ interface ProjectsPreviewProps {
 
 const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onViewAll }) => {
   const projects = consultProjects.filter(p => p.featured).slice(0, 3);
+
+  if (projects.length === 0) return null;
 
   return (
     <motion.section

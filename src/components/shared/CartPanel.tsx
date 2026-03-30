@@ -101,9 +101,9 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     <AnimatePresence>
       {isOpen && (
       <>
-      {/* Backdrop with blur fade — z-[55] to render above bottom nav (z-50) */}
+      {/* Backdrop with blur fade — z-toast to render above bottom nav */}
       <motion.div
-        className="fixed inset-0 z-[55] bg-tea-text/80 backdrop-blur-sm"
+        className="fixed inset-0 z-toast bg-tea-text/80 backdrop-blur-sm"
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -111,10 +111,10 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         transition={{ duration: 0.3 }}
       />
 
-      {/* Panel — slide in from right, z-[55] above bottom nav */}
+      {/* Panel — slide in from right, z-toast above bottom nav */}
       <motion.div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full z-[55] shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] ${
+        className={`fixed top-0 right-0 h-full w-full z-toast shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] glass-grain ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-bg'
@@ -147,8 +147,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
           <div className="surface-warm flex flex-col h-full">
             {/* Public header */}
             <div className="flex flex-col relative z-10">
-              <div data-drag-handle className="md:hidden flex justify-center py-3 bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
-                <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-bg/20 w-12'}`} />
+              <div data-drag-handle className="md:hidden flex justify-center py-4 bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
+                <div className={`h-1.5 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-12'}`} />
               </div>
               <div className="flex items-center justify-between p-6 border-b border-tea-border bg-tea-surface">
                 <div className="w-[44px]" />

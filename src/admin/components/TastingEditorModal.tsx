@@ -126,7 +126,7 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-end md:items-center justify-center"
+        className="fixed inset-0 z-priority flex items-end md:items-center justify-center"
       >
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -180,7 +180,7 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
                           placeholder="Search teas..."
                           value={copySearch}
                           onChange={e => setCopySearch(e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs bg-tea-bg text-tea-text placeholder:text-tea-text-dim rounded-lg focus:outline-none"
+                          className="w-full px-2.5 py-1.5 text-xs bg-tea-bg text-tea-text placeholder:text-tea-text-dim rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                           autoFocus
                         />
                       </div>

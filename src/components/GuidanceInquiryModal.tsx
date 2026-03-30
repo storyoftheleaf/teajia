@@ -120,7 +120,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none transition-colors duration-300"
+                    className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                     placeholder="Your name"
                   />
                 </div>
@@ -136,7 +136,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none transition-colors duration-300"
+                    className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                     placeholder="your@email.com"
                   />
                 </div>
@@ -153,7 +153,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                   value={formData.vision}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none transition-colors duration-300 resize-none h-24"
+                  className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300 resize-none h-24"
                   placeholder={
                     formData.serviceType === 'design'
                       ? "Describe the tea space you're imagining..."
@@ -322,7 +322,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none transition-colors duration-300"
+                        className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                         placeholder="Your phone number"
                       />
                     </div>

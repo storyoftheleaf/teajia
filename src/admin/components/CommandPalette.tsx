@@ -54,7 +54,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
             <Command.Input 
                 autoFocus
                 placeholder="Type a command or search..." 
-                className="w-full bg-transparent border-none py-4 text-tea-text placeholder:text-tea-text-sec/50 focus:outline-none focus:ring-0 text-lg font-serif"
+                className="w-full bg-transparent border-none py-4 text-tea-text placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:ring-0 text-lg font-serif"
             />
           </div>
 

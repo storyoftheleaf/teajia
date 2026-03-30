@@ -148,7 +148,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
               <div>
@@ -159,7 +159,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   step={0.01}
                   value={shippingCost}
                   onChange={(e) => setShippingCost(Number(e.target.value) || 0)}
-                  className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
+                  className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors num"
                 />
               </div>
             </div>
@@ -171,7 +171,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/50 transition-colors resize-none"
+                className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors resize-none"
                 placeholder="Optional notes..."
               />
             </div>
@@ -198,7 +198,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       placeholder="Search products..."
-                      className="w-full bg-tea-bg border border-tea-border rounded-lg pl-7 pr-3 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
+                      className="w-full bg-tea-bg border border-tea-border rounded-lg pl-7 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                       autoFocus
                     />
                   </div>
@@ -238,7 +238,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                           min={0}
                           value={item.quantity}
                           onChange={(e) => updateItem(index, 'quantity', Number(e.target.value) || 0)}
-                          className="w-full bg-tea-bg border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none num"
+                          className="w-full bg-tea-bg border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num"
                         />
                       </div>
                       <div className="flex-1">
@@ -249,7 +249,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                           step={0.01}
                           value={item.price_at_sale}
                           onChange={(e) => updateItem(index, 'price_at_sale', Number(e.target.value) || 0)}
-                          className="w-full bg-tea-bg border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none num"
+                          className="w-full bg-tea-bg border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num"
                         />
                       </div>
                       <div className="w-16 text-right">

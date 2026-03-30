@@ -240,7 +240,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[9999] bg-tea-bg/95 flex flex-col items-center justify-center"
+            className="fixed inset-0 z-priority bg-tea-bg/95 flex flex-col items-center justify-center"
             onClick={() => setViewerIndex(null)}
           >
             {/* Close button */}

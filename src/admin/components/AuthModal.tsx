@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { api, setToken } from '../../lib/api';
 import { useAppStore } from '../store';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean; onClose: () => void; onAuthSuccess?: () => void }) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -12,6 +13,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setDevAdmin } = useAppStore();
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   if (!isOpen) return null;
 
@@ -64,7 +66,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
+    <div ref={focusTrapRef} className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg" role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Sign in' : 'Create account'}>
       <div className="w-full max-w-sm px-8">
         <h3 className="text-2xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>
           {mode === 'login' ? 'Welcome Back' : 'Create Account'}
@@ -76,16 +78,16 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           {mode === 'signup' && (
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
             </div>
           )}
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
-             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none transition-colors placeholder-tea-text-sec/50" placeholder="you@example.com" required />
+             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="you@example.com" required />
           </div>
           <div>
              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Password</label>
-             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full input-warm rounded-lg p-3 text-base outline-none transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
+             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
           </div>
           {mode === 'login' && (
             <label className="flex items-center gap-2.5 cursor-pointer py-1">
