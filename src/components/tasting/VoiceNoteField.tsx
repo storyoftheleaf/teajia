@@ -109,7 +109,7 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="flex-1 px-3 py-2.5 bg-transparent text-sm text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none"
+        className="flex-1 px-3 py-2.5 bg-transparent text-sm text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg resize-none"
         style={{ fontFamily: 'var(--font-body)' }}
       />
       <button

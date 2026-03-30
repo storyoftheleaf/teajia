@@ -192,7 +192,7 @@ const BrewingZoneInner: React.FC<BrewingZoneProps> = ({ flow, mode }) => {
                           }
                         }}
                         placeholder="Custom term..."
-                        className="text-xs bg-tea-surface text-tea-text px-2 py-1 rounded w-24 outline-none"
+                        className="text-xs bg-tea-surface text-tea-text px-2 py-1 rounded w-24 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                         style={{ fontFamily: 'var(--font-body)' }}
                       />
                     </form>
