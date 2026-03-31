@@ -70,11 +70,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label={section.label}
       >
         <span
-          className={`text-sm font-semibold transition-colors duration-200 pointer-events-none select-none ${
-            isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+          className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 pointer-events-none select-none ${
+            isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
           }`}
+          style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
-          {section.label}
+          {section.label.toLowerCase()}
         </span>
         {isActive && (
           <motion.div
