@@ -107,6 +107,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       {/* Navigation Tab Bar */}
       <nav
         aria-label="Main navigation"
+        onContextMenu={(e) => e.preventDefault()}
         className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-modal animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
@@ -116,6 +117,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           height: 'calc(44px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           WebkitTapHighlightColor: 'transparent',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
         }}
       >
         <div className="flex items-center w-full px-0 h-full">
