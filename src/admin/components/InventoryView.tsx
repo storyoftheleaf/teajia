@@ -820,6 +820,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const fuse = useMemo(() => new Fuse(localProducts, {
     keys: ['givenName', 'productName', 'chineseName', 'originRegion', 'vendor'],
     threshold: 0.3,
+    ignoreLocation: true,
   }), [localProducts]);
 
   // Active column defs based on category

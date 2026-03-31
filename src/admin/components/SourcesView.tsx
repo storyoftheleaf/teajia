@@ -289,6 +289,7 @@ export const SourcesView = () => {
   const fuse = useMemo(() => new Fuse(allSources, {
     keys: ['name', 'company', 'country', 'email'],
     threshold: 0.3,
+    ignoreLocation: true,
   }), [allSources]);
 
   // Processed (searched, sorted) sources

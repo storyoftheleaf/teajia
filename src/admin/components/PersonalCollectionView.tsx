@@ -23,6 +23,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
   const fuse = useMemo(() => new Fuse(personalProducts, {
     keys: ['givenName', 'productName', 'year', 'vendor', 'originRegion'],
     threshold: 0.3,
+    ignoreLocation: true,
   }), [personalProducts]);
 
   const filteredProducts = useMemo(() => {

@@ -74,6 +74,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
   const fuse = useMemo(() => new Fuse(teaware, {
     keys: ['givenName', 'productName', 'material', 'teawareCategory', 'originRegion', 'description'],
     threshold: 0.3,
+    ignoreLocation: true,
   }), [teaware]);
 
   const filtered = useMemo(() => {
