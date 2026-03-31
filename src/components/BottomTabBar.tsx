@@ -1,10 +1,8 @@
 import React from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
-import { Icons } from './Icons';
 import { LogoText } from './Logos';
 import { Section } from '../types';
 
-import { getNavIcon } from './navIconConfig';
 import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -53,7 +51,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   const renderTabButton = (section: { id: Section; label: string }, index: number) => {
     const isActive = activeSection === section.id;
-    const IconComponent = getNavIcon(section.id);
 
     return (
       <button
@@ -66,35 +63,23 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-1 min-w-0 h-full flex flex-col items-center justify-center gap-0.5 relative transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
       >
-        {/* Icon */}
-        {IconComponent && (
-          <IconComponent
-            className={`w-[18px] h-[18px] transition-all duration-300 pointer-events-none ${
-              isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-            }`}
-            strokeWidth={isActive ? 2.2 : 1.8}
-          />
-        )}
-        {/* Label */}
         <span
-          className={`text-[10px] tracking-[0.06em] lowercase transition-all duration-300 pointer-events-none select-none ${
-            isActive ? 'text-tea-gold font-semibold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
+          className={`text-sm font-semibold transition-colors duration-200 pointer-events-none select-none ${
+            isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
           }`}
-          style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
-          {section.label.toLowerCase()}
+          {section.label}
         </span>
-        {/* Active dot indicator */}
         {isActive && (
           <motion.div
             layoutId="bottomtab-indicator"
-            className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-tea-gold"
+            className="absolute bottom-1 w-1 h-1 rounded-full bg-tea-gold"
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
         )}
