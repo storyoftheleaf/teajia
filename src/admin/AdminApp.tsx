@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon, MoreHorizontal } from 'lucide-react';
+import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon, MoreHorizontal, MapPin } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -97,6 +97,8 @@ const AdminContent = () => {
   // Inventory top-bar controls (lifted from InventoryView)
   const [inventoryCategory, setInventoryCategory] = useState<'tea' | 'teaware'>('tea');
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/inventory');
 
   // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
@@ -111,6 +113,37 @@ const AdminContent = () => {
   });
 
   const loading = productsLoading;
+
+  // Extract unique vendors with tea counts for source suggestions
+  const vendorSuggestions = useMemo(() => {
+    const vendorMap = new Map<string, number>();
+    for (const p of products) {
+      if (p.vendor && p.status !== 'Archived') {
+        vendorMap.set(p.vendor, (vendorMap.get(p.vendor) || 0) + 1);
+      }
+    }
+    return Array.from(vendorMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [products]);
+
+  // Filter vendors matching the search query
+  const matchingVendors = useMemo(() => {
+    if (!inventorySearchQuery || inventorySearchQuery.length < 2) return [];
+    const q = inventorySearchQuery.toLowerCase();
+    return vendorSuggestions.filter(v => v.name.toLowerCase().includes(q)).slice(0, 5);
+  }, [inventorySearchQuery, vendorSuggestions]);
+
+  // Close suggestions on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSourceSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Redirect when entering admin at root, or prompt login if not authenticated
   useEffect(() => {
@@ -204,7 +237,7 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        <div className="z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
+        <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -230,22 +263,46 @@ const AdminContent = () => {
                    Wares
                  </button>
                </div>
-               <div className="relative flex-1 min-w-0">
+               <div className="relative flex-1 min-w-0" ref={searchContainerRef}>
                  <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" size={13} />
                  <input
                    type="text"
-                   placeholder={inventoryCategory === 'tea' ? 'Search tea…' : 'Search teaware…'}
+                   placeholder={inventoryCategory === 'tea' ? 'Search tea or source…' : 'Search teaware…'}
                    value={inventorySearchQuery}
-                   onChange={(e) => setInventorySearchQuery(e.target.value)}
+                   onChange={(e) => { setInventorySearchQuery(e.target.value); setShowSourceSuggestions(true); }}
+                   onFocus={() => setShowSourceSuggestions(true)}
                    className="w-full bg-transparent pl-5 pr-7 py-1 text-xs text-tea-text outline-none font-serif italic placeholder-tea-text-sec/50 transition-colors"
                  />
                  {inventorySearchQuery && (
                    <button
-                     onClick={() => setInventorySearchQuery('')}
+                     onClick={() => { setInventorySearchQuery(''); setShowSourceSuggestions(false); }}
                      className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text p-0.5"
                    >
                      <XIcon size={12} />
                    </button>
+                 )}
+                 {/* Source/vendor suggestions dropdown */}
+                 {showSourceSuggestions && matchingVendors.length > 0 && (
+                   <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden z-priority">
+                     <div className="px-3 py-1.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border/50">
+                       Sources
+                     </div>
+                     {matchingVendors.map(v => (
+                       <button
+                         key={v.name}
+                         onClick={() => {
+                           setInventorySearchQuery('');
+                           setShowSourceSuggestions(false);
+                           navigate(`/admin/inventory?vendor=${encodeURIComponent(v.name)}`);
+                         }}
+                         className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-tea-bg/60 transition-colors"
+                       >
+                         <MapPin size={12} className="text-tea-gold flex-shrink-0" />
+                         <span className="text-xs text-tea-text font-serif truncate">{v.name}</span>
+                         <span className="text-[10px] text-tea-text-dim ml-auto flex-shrink-0">{v.count} tea{v.count !== 1 ? 's' : ''}</span>
+                       </button>
+                     ))}
+                   </div>
                  )}
                </div>
              </>

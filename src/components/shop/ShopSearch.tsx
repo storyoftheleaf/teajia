@@ -44,6 +44,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
       ],
       threshold: 0.35,
       includeScore: true,
+      ignoreLocation: true,
     }),
     [items]
   );

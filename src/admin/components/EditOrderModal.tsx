@@ -37,6 +37,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const fuse = useMemo(() => new Fuse(products, {
     keys: ['givenName', 'productName', 'type'],
     threshold: 0.3,
+    ignoreLocation: true,
   }), [products]);
 
   const searchResults = useMemo(() => {

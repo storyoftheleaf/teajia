@@ -52,6 +52,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
   const fuse = useMemo(() => new Fuse(activeProducts, {
     keys: ['givenName', 'productName', 'originRegion', 'originCountry', 'year', 'tastingNotes'],
     threshold: 0.3,
+    ignoreLocation: true,
   }), [activeProducts]);
 
   const filteredProducts = useMemo(() => {

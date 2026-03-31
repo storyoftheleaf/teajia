@@ -152,7 +152,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     return new Fuse(others, {
       keys: ['name'],
       threshold: 0.3,
-      distance: 100,
+      ignoreLocation: true,
       includeScore: true,
     });
   }, [allEntries, entryId]);

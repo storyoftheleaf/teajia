@@ -88,6 +88,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         ],
         threshold: 0.35,
         includeScore: true,
+        ignoreLocation: true,
       }),
     [inventory]
   );
@@ -102,6 +103,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         ],
         threshold: 0.35,
         includeScore: true,
+        ignoreLocation: true,
       }),
     [publishedStories]
   );
