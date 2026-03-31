@@ -23,13 +23,6 @@ const NavButton: React.FC<{
 }> = ({ item, isActive, onClick, animationDelay = 0 }) => {
   const content = (
     <>
-      <div className={`transition-colors duration-200 shrink-0 ${
-        isActive
-          ? 'text-tea-gold scale-110'
-          : 'text-tea-text-sec group-hover:text-tea-text'
-      }`}>
-        {item.icon}
-      </div>
       <span className={`text-sm font-semibold transition-colors duration-200 ${
         isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}>

@@ -237,7 +237,7 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        <div className="z-30 bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none">
+        <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -283,7 +283,7 @@ const AdminContent = () => {
                  )}
                  {/* Source/vendor suggestions dropdown */}
                  {showSourceSuggestions && matchingVendors.length > 0 && (
-                   <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden z-50">
+                   <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden z-priority">
                      <div className="px-3 py-1.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border/50">
                        Sources
                      </div>
