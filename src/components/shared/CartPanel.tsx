@@ -45,12 +45,15 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
   const panelControls = useAnimationControls();
 
   useEffect(() => {
-    if (isOpen && !localStorage.getItem('cart-swipe-hint-shown')) {
-      const timer = setTimeout(() => {
-        panelControls.start({ x: [0, 20, 0], transition: { duration: 0.4, ease: 'easeInOut' } });
-        localStorage.setItem('cart-swipe-hint-shown', '1');
-      }, 500);
-      return () => clearTimeout(timer);
+    if (isOpen) {
+      panelControls.start({ x: 0 });
+      if (!localStorage.getItem('cart-swipe-hint-shown')) {
+        const timer = setTimeout(() => {
+          panelControls.start({ x: [0, 20, 0], transition: { duration: 0.4, ease: 'easeInOut' } });
+          localStorage.setItem('cart-swipe-hint-shown', '1');
+        }, 500);
+        return () => clearTimeout(timer);
+      }
     }
   }, [isOpen, panelControls]);
 
