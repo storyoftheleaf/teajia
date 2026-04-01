@@ -888,9 +888,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         const aVal = a[key];
         const bVal = b[key];
         if (aVal === bVal) continue;
-        if (aVal === null || aVal === undefined) return 1;
-        if (bVal === null || bVal === undefined) return -1;
-        const comparison = aVal < bVal ? -1 : 1;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        const comparison = typeof aVal === 'number' && typeof bVal === 'number'
+          ? aVal - bVal
+          : String(aVal).localeCompare(String(bVal));
         const result = sort.direction === 'asc' ? comparison : -comparison;
         if (result !== 0) return result;
       }
