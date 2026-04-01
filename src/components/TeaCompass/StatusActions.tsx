@@ -115,7 +115,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
           onClick={handleWant}
           className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 transition-all border ${
             status === 'want'
-              ? 'bg-amber-500/20 text-amber-400 border-amber-400/25 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
+              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
               : 'bg-tea-surface/80 text-tea-text-sec border-tea-border/40 active:bg-tea-elevated hover:bg-tea-surface hover:border-tea-border/60'
           }`}
         >
@@ -126,9 +126,9 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
           onClick={handleBuyClick}
           className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all border ${
             isInLedger
-              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25 shadow-[0_2px_8px_rgba(184,146,78,0.15)]'
+              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
               : status === 'buying'
-                ? 'bg-tea-gold text-tea-bg border-tea-gold/40 shadow-[0_2px_8px_rgba(184,146,78,0.3)]'
+                ? 'bg-tea-gold text-tea-bg border-tea-gold/40'
                 : 'bg-tea-gold/8 text-tea-text-sec border-tea-border/40 active:bg-tea-gold/15 hover:bg-tea-gold/12 hover:border-tea-gold/30'
           }`}
         >
@@ -197,7 +197,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                       key={g}
                       type="button"
                       onClick={() => setQuantity(g)}
-                      className={quantity === g ? 'pill-active' : 'pill'}
+                      className={`${quantity === g ? 'tag-selectable-active' : 'tag-selectable'} text-[11px]`}
                     >
                       {g}g
                     </button>

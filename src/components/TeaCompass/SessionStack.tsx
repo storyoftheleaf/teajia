@@ -57,14 +57,14 @@ export const SessionStack: React.FC<SessionStackProps> = ({
 
             {/* Type badge */}
             {entry.type && (
-              <span className="pill text-[10px] px-1.5 py-0 leading-4 shrink-0">
+              <span className="badge-status badge-status-muted text-[10px] shrink-0">
                 {entry.type}
               </span>
             )}
 
             {/* Teaware indicator */}
             {entry.category === 'teaware' && !entry.type && (
-              <span className="pill text-[10px] px-1.5 py-0 leading-4 shrink-0">
+              <span className="badge-status badge-status-muted text-[10px] shrink-0">
                 Teaware
               </span>
             )}

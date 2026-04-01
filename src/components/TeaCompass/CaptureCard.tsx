@@ -568,7 +568,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         {/* Panel 2: Price + Size */}
         <div className="rounded-lg space-y-1.5">
-          <div className="flex gap-4 items-end">
+          <div className="flex gap-3 items-end">
             {/* Price half */}
             <div className="flex-1 min-w-0">
               <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
@@ -610,7 +610,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 key={c.value}
                 type="button"
                 onClick={() => handleCurrencyChange(c.value)}
-                className={entry.priceCurrency === c.value ? 'pill-active' : 'pill'}
+                className={`${entry.priceCurrency === c.value ? 'tag-selectable-active' : 'tag-selectable'} text-[11px]`}
               >
                 {c.label}
               </button>
@@ -741,8 +741,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             type="button"
             onClick={handleCommit}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                       bg-tea-surface/60 text-tea-text-sec text-sm font-medium
-                       hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                       bg-tea-gold/10 text-tea-gold text-sm font-semibold
+                       border border-tea-gold/20
+                       hover:bg-tea-gold/15 active:bg-tea-gold/20
                        transition-all mt-1"
           >
             <Check size={15} strokeWidth={2} />
@@ -775,7 +776,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -922,7 +923,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onClick={openTastingOverlay}
                 className="tag-selectable flex items-center gap-1.5 text-xs"
               >
-                <Droplets size={13} strokeWidth={1.5} />
+                <Droplets size={14} strokeWidth={1.5} />
                 {hasTasting ? 'Edit tasting' : 'Record tasting'}
               </button>
 
@@ -969,8 +970,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           type="button"
           onClick={handleCommit}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                     bg-tea-surface/60 text-tea-text-sec text-sm font-medium
-                     hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                     bg-tea-gold/10 text-tea-gold text-sm font-semibold
+                     border border-tea-gold/20
+                     hover:bg-tea-gold/15 active:bg-tea-gold/20
                      transition-all"
         >
           <Check size={15} strokeWidth={2} />

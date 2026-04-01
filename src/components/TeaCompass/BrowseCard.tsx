@@ -249,7 +249,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         <button
           type="button"
           onClick={() => onEdit(entry.id)}
-          className="flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all bg-tea-surface text-tea-text-sec active:bg-tea-elevated flex items-center justify-center gap-1.5"
+          className="flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all bg-tea-surface text-tea-text-sec border border-tea-border/40 active:bg-tea-elevated hover:border-tea-border/60 flex items-center justify-center gap-1.5"
         >
           <Droplets size={14} />
           Taste
@@ -257,10 +257,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         <button
           type="button"
           onClick={() => updateEntry(entry.id, { status: entry.status === 'want' ? 'logged' : 'want' })}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all ${
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all border ${
             entry.status === 'want'
-              ? 'bg-amber-500/20 text-amber-400 shadow-[0_2px_8px_rgba(245,158,11,0.15)]'
-              : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
+              : 'bg-tea-surface text-tea-text-sec border-tea-border/40 active:bg-tea-elevated hover:border-tea-border/60'
           }`}
         >
           Want
@@ -268,14 +268,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         <button
           type="button"
           onClick={() => setShowBuyPrompt(!showBuyPrompt)}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all ${
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all border ${
             entry.status === 'buying'
-              ? 'bg-tea-gold text-tea-bg shadow-[0_2px_8px_rgba(184,146,78,0.3)]'
+              ? 'bg-tea-gold text-tea-bg border-tea-gold/40'
               : entry.status === 'bought'
-                ? 'bg-tea-gold/20 text-tea-gold shadow-[0_2px_8px_rgba(184,146,78,0.15)]'
+                ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
                 : showBuyPrompt
-                  ? 'bg-tea-gold/30 text-tea-gold'
-                  : 'bg-tea-surface text-tea-text-sec active:bg-tea-elevated'
+                  ? 'bg-tea-gold/30 text-tea-gold border-tea-gold/30'
+                  : 'bg-tea-surface text-tea-text-sec border-tea-border/40 active:bg-tea-elevated hover:border-tea-border/60'
           }`}
         >
           {entry.status === 'bought' ? 'Bought' : entry.status === 'buying' ? 'Buying' : 'Buy'}
@@ -321,7 +321,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     }
                   }}
                   placeholder={entry.category === 'teaware' ? 'Units' : 'Grams'}
-                  className="flex-1 bg-tea-surface text-tea-text text-base rounded-lg px-3 py-2 outline-none placeholder-tea-text-dim/50 focus:ring-1 focus:ring-tea-gold/40"
+                  className="flex-1 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
                   type="button"

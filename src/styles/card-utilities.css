@@ -630,9 +630,15 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .input-warm:focus {
   border-color: rgb(var(--tea-gold-rgb) / 0.40);
+  background: rgb(var(--tea-gold-rgb) / 0.03);
 }
 .input-warm::placeholder {
   color: var(--tea-text-dim);
+}
+
+/* Focus background shift for Compass inputs (subtle depth on focus) */
+.bg-tea-gold\/\[0\.06\]:focus {
+  background-color: rgb(var(--tea-gold-rgb) / 0.03);
 }
 
 /* --- Toggle Pill (on/off switches) --- */

@@ -75,7 +75,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
   return (
     <div className="space-y-2">
       {/* Price (with currency dropdown) + Grams — one line */}
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-3 items-end">
         {/* Price half */}
         <div className="flex-1 min-w-0">
           <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">
@@ -100,7 +100,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               onChange={handlePriceInput}
               style={noSpinnerStyle}
               className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
-                         placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                         placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -160,7 +160,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               onChange={handleGramsInput}
               style={noSpinnerStyle}
               className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums text-right
-                         placeholder:text-tea-text-sec/50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                         placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
         </div>
