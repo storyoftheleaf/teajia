@@ -693,6 +693,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    sendEmailInvites: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/send-emails`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
     getCustomerJourney: async (customerId: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/customers/${customerId}/journey`, {
         headers: authHeaders(),
