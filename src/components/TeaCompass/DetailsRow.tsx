@@ -133,7 +133,11 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                 <button
                   type="button"
                   onClick={onOpenTasting}
-                  className="pill flex items-center gap-1.5 text-xs text-tea-text-sec"
+                  className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-md transition-colors ${
+                    hasTasting
+                      ? 'pill text-tea-text-sec'
+                      : 'bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/12'
+                  }`}
                 >
                   <Droplets size={14} strokeWidth={1.5} />
                   {hasTasting ? 'Edit tasting' : 'Record tasting'}

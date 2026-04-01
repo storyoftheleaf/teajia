@@ -176,91 +176,112 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
   // Year + region line
   const yearRegion = [entry.year && String(entry.year), entry.originRegion].filter(Boolean).join(' · ');
 
+  const typeColor = entry.type ? getTeaColor(entry.type) : null;
+  const hasPhoto = entry.photos.length > 0;
+
   return (
-    <div className="bg-tea-surface/40 rounded-lg overflow-hidden px-3 py-2.5 space-y-2">
-      {/* Line 1: Name + date */}
-      <div className="flex items-center gap-2">
-        <span
-          className={`flex-1 min-w-0 truncate text-sm font-sans ${
-            hasName ? 'text-tea-text' : 'text-tea-text-dim italic'
-          }`}
-        >
-          {hasName ? entry.name : 'Untitled'}
-        </span>
-        <span className="text-[11px] text-tea-text-dim shrink-0 tabular-nums">
-          {formatRelativeDate(entry.createdAt)}
-        </span>
-      </div>
-
-      {/* Line 2: Type + status + year/region + price */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {entry.type && (
-          <span
-            className="badge-status shrink-0 text-[11px]"
-            style={getTeaTypeBadgeStyle(entry.type)}
-          >
-            {entry.type}
-          </span>
-        )}
-        {entry.category === 'teaware' && !entry.type && (
-          <span className="badge-status badge-status-muted shrink-0 text-[11px]">Teaware</span>
+    <div
+      className="bg-tea-surface/40 rounded-lg overflow-hidden space-y-0 relative"
+      style={typeColor ? { borderLeft: `2.5px solid ${typeColor}40` } : undefined}
+    >
+      {/* Main content area */}
+      <div className="flex gap-3 px-3 py-2.5">
+        {/* Photo thumbnail */}
+        {hasPhoto && (
+          <img
+            src={entry.photos[0]}
+            alt=""
+            className="w-11 h-11 rounded-md object-cover shrink-0 mt-0.5"
+          />
         )}
 
-        <span className={`${statusConfig.className} shrink-0 text-[11px]`}>
-          {statusConfig.label}
-          {(entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityGrams
-            ? ` ${entry.buyQuantityGrams}g`
-            : (entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityUnits
-              ? ` ×${entry.buyQuantityUnits}`
-              : ''}
-        </span>
+        {/* Text content */}
+        <div className="flex-1 min-w-0 space-y-1">
+          {/* Line 1: Name + date */}
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex-1 min-w-0 truncate text-sm font-serif ${
+                hasName ? 'text-tea-text' : 'text-tea-text-dim italic'
+              }`}
+            >
+              {hasName ? entry.name : 'Untitled'}
+            </span>
+            <span className="text-[10px] text-tea-text-dim shrink-0 tabular-nums">
+              {formatRelativeDate(entry.createdAt)}
+            </span>
+          </div>
 
-        {yearRegion && (
-          <span className="text-[11px] text-tea-text-sec shrink-0">{yearRegion}</span>
-        )}
+          {/* Chinese name — promoted above metadata when present */}
+          {entry.chineseName && (
+            <p className="text-[13px] text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
+          )}
 
-        {entry.priceAmount != null && entry.priceAmount > 0 && (
-          <span className="text-[11px] num text-tea-gold shrink-0">
-            {formatPrice(entry.priceAmount, entry.priceCurrency)}
-          </span>
-        )}
-      </div>
+          {/* Line 2: Type + status + year/region + price */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {entry.type && (
+              <span
+                className="badge-status shrink-0 text-[10px]"
+                style={getTeaTypeBadgeStyle(entry.type)}
+              >
+                {entry.type}
+              </span>
+            )}
+            {entry.category === 'teaware' && !entry.type && (
+              <span className="badge-status badge-status-muted shrink-0 text-[10px]">Teaware</span>
+            )}
 
-      {/* Chinese name */}
-      {entry.chineseName && (
-        <p className="text-sm text-tea-text-sec font-chinese">{entry.chineseName}</p>
-      )}
+            <span className={`${statusConfig.className} shrink-0 text-[10px]`}>
+              {statusConfig.label}
+              {(entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityGrams
+                ? ` ${entry.buyQuantityGrams}g`
+                : (entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityUnits
+                  ? ` ×${entry.buyQuantityUnits}`
+                  : ''}
+            </span>
 
-      {/* Notes preview */}
-      {entry.notes.trim().length > 0 && (
-        <p className="text-xs text-tea-text-sec leading-relaxed line-clamp-2">{entry.notes}</p>
-      )}
+            {yearRegion && (
+              <span className="text-[10px] text-tea-text-sec shrink-0">{yearRegion}</span>
+            )}
 
-      {/* Vendor */}
-      {entry.vendorName && (
-        <div className="flex items-center gap-1.5 text-xs text-tea-text-dim">
-          <Store size={12} />
-          <span>{entry.vendorName}</span>
+            {entry.priceAmount != null && entry.priceAmount > 0 && (
+              <span className="text-[10px] num text-tea-gold shrink-0 ml-auto">
+                {formatPrice(entry.priceAmount, entry.priceCurrency)}
+              </span>
+            )}
+          </div>
+
+          {/* Notes preview */}
+          {entry.notes.trim().length > 0 && (
+            <p className="text-[11px] text-tea-text-dim leading-relaxed line-clamp-1">{entry.notes}</p>
+          )}
+
+          {/* Vendor */}
+          {entry.vendorName && (
+            <div className="flex items-center gap-1 text-[10px] text-tea-text-dim">
+              <Store size={10} />
+              <span>{entry.vendorName}</span>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Taste / Want / Buy — always visible */}
-      <div className="flex items-center gap-2">
+      {/* Compact Taste / Want / Buy row */}
+      <div className="flex items-center border-t border-tea-border/10 divide-x divide-tea-border/10">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}
-          className="flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all bg-tea-surface text-tea-text-sec border border-tea-border/40 active:bg-tea-elevated hover:border-tea-border/60 flex items-center justify-center gap-1.5"
+          className="flex-1 text-[11px] font-semibold text-center py-2 transition-all text-tea-text-sec active:bg-tea-elevated flex items-center justify-center gap-1"
         >
-          <Droplets size={14} />
+          <Droplets size={12} />
           Taste
         </button>
         <button
           type="button"
           onClick={() => updateEntry(entry.id, { status: entry.status === 'want' ? 'logged' : 'want' })}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all border ${
+          className={`flex-1 text-[11px] font-semibold text-center py-2 transition-all ${
             entry.status === 'want'
-              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
-              : 'bg-tea-surface text-tea-text-sec border-tea-border/40 active:bg-tea-elevated hover:border-tea-border/60'
+              ? 'bg-tea-gold/10 text-tea-gold'
+              : 'text-tea-text-sec active:bg-tea-elevated'
           }`}
         >
           Want
@@ -268,14 +289,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         <button
           type="button"
           onClick={() => setShowBuyPrompt(!showBuyPrompt)}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-2.5 transition-all border ${
+          className={`flex-1 text-[11px] font-semibold text-center py-2 transition-all ${
             entry.status === 'buying'
-              ? 'bg-tea-gold text-tea-bg border-tea-gold/40'
+              ? 'bg-tea-gold/15 text-tea-gold'
               : entry.status === 'bought'
-                ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
+                ? 'bg-tea-gold/10 text-tea-gold'
                 : showBuyPrompt
-                  ? 'bg-tea-gold/30 text-tea-gold border-tea-gold/30'
-                  : 'bg-tea-surface text-tea-text-sec border-tea-border/40 active:bg-tea-elevated hover:border-tea-border/60'
+                  ? 'bg-tea-gold/10 text-tea-gold'
+                  : 'text-tea-text-sec active:bg-tea-elevated'
           }`}
         >
           {entry.status === 'bought' ? 'Bought' : entry.status === 'buying' ? 'Buying' : 'Buy'}
@@ -292,7 +313,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="pt-1 space-y-2">
+            <div className="px-3 py-2 space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-tea-text-sec">
                 {entry.category === 'teaware' ? 'How many?' : 'How many grams?'}
               </label>
@@ -302,7 +323,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     key={val}
                     type="button"
                     onClick={() => handleConfirmBuy(val)}
-                    className="px-3 py-2 text-xs rounded-md transition-all min-h-[36px] bg-tea-surface text-tea-text-sec active:bg-tea-elevated hover:text-tea-text"
+                    className="px-3 py-1.5 text-xs rounded-md transition-all bg-tea-surface text-tea-text-sec active:bg-tea-elevated hover:text-tea-text"
                   >
                     {entry.category === 'teaware' ? val : `${val}g`}
                   </button>
@@ -321,7 +342,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     }
                   }}
                   placeholder={entry.category === 'teaware' ? 'Units' : 'Grams'}
-                  className="flex-1 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="flex-1 bg-tea-surface text-tea-text text-sm rounded-lg px-3 py-1.5 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
                   type="button"
@@ -329,7 +350,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     if (Number(buyAmount) > 0) handleConfirmBuy(Number(buyAmount));
                   }}
                   disabled={!buyAmount || Number(buyAmount) <= 0}
-                  className="px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
+                  className="px-4 py-1.5 text-xs font-bold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
                 >
                   Confirm
                 </button>
@@ -339,53 +360,44 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Actions row */}
-      <div className="flex items-center gap-2 pt-1 border-t border-tea-border/15">
+      {/* Actions row — compact pill strip */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-tea-border/10">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}
-          className="pill flex items-center gap-1.5"
+          className="pill flex items-center gap-1"
         >
-          <Pencil size={12} />
+          <Pencil size={10} />
           Edit
         </button>
 
-        {/* Draft pipeline actions for bought entries */}
         {entry.status === 'bought' && !entry.draftProductId && (
           <button
             type="button"
             onClick={handleCreateDraft}
             disabled={draftState === 'loading'}
-            className="pill flex items-center gap-1.5"
+            className="pill flex items-center gap-1"
           >
             {draftState === 'loading' ? (
-              <>
-                <Loader2 size={12} className="animate-spin" />
-                Creating...
-              </>
+              <Loader2 size={10} className="animate-spin" />
             ) : draftState === 'success' ? (
-              <>
-                <Check size={12} />
-                Draft created
-              </>
+              <Check size={10} />
             ) : draftState === 'error' ? (
-              <span className="text-red-400">Failed</span>
+              <span className="text-red-400 text-[10px]">Failed</span>
             ) : (
-              <>
-                <PackagePlus size={12} />
-                Create Draft
-              </>
+              <PackagePlus size={10} />
             )}
+            {draftState === 'idle' ? 'Draft' : draftState === 'loading' ? '...' : draftState === 'success' ? 'Done' : ''}
           </button>
         )}
 
         {entry.status === 'bought' && entry.draftProductId && (
           <a
             href="/admin/inventory"
-            className="pill flex items-center gap-1.5 text-tea-gold"
+            className="pill flex items-center gap-1 text-tea-gold"
           >
-            <ExternalLink size={12} />
-            View in Inventory
+            <ExternalLink size={10} />
+            Inventory
           </a>
         )}
 
@@ -396,10 +408,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
               removeEntry(entry.id);
             }
           }}
-          className="pill flex items-center gap-1 ml-auto"
+          className="pill flex items-center gap-1 ml-auto text-tea-text-dim"
         >
-          <Trash2 size={11} />
-          Delete
+          <Trash2 size={10} />
         </button>
       </div>
     </div>

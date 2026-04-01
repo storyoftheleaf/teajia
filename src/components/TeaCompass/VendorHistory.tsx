@@ -207,34 +207,36 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
         {items.map((item) => {
           const cfg = STATUS_CONFIG[item.status];
           const isExpanded = expandedId === item.id;
+          const typeColor = item.type ? TEA_TYPE_COLORS[item.type as keyof typeof TEA_TYPE_COLORS]?.card : null;
 
           return (
             <div
               key={item.id}
-              className="min-w-[140px] max-w-[160px] shrink-0 flex flex-col"
+              className="min-w-[130px] max-w-[155px] shrink-0 flex flex-col"
             >
               {/* Card */}
               <button
                 type="button"
                 onClick={() => handleItemTap(item)}
-                className="bg-tea-surface rounded-lg p-2 text-left transition-colors hover:bg-tea-elevated w-full"
+                className="bg-tea-surface rounded-lg p-2.5 text-left transition-colors hover:bg-tea-elevated w-full"
+                style={typeColor ? { borderTop: `2px solid ${typeColor}35` } : undefined}
               >
                 {/* Name */}
-                <p className="text-tea-text text-xs font-medium truncate leading-tight">
+                <p className="text-tea-text text-[12px] font-serif truncate leading-tight">
                   {item.name}
                 </p>
 
                 {/* Type badge + status row */}
-                <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="flex items-center gap-1.5 mt-2">
                   {item.type && (
                     <span
-                      className="text-[9px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                      className="text-[8px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider"
                       style={getTypeBadgeStyle(item.type)}
                     >
                       {item.type}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-[10px] text-tea-text-dim ml-auto">
+                  <span className="flex items-center gap-1 text-[9px] text-tea-text-dim ml-auto">
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ backgroundColor: cfg.dotColor }}
@@ -246,9 +248,9 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
 
               {/* Expanded detail / buy again */}
               {isExpanded && (
-                <div className="bg-tea-surface rounded-b-lg px-2 pb-2 -mt-1 pt-1 space-y-1.5">
+                <div className="bg-tea-surface rounded-b-lg px-2.5 pb-2.5 -mt-1 pt-1.5 space-y-1.5">
                   {item.priceAmount != null && (
-                    <p className="text-[10px] text-tea-text-sec">
+                    <p className="text-[10px] text-tea-text-sec num">
                       {item.priceCurrency === 'USD' ? '$' : item.priceCurrency + ' '}
                       {item.priceAmount}
                       {item.pricePerUnitGrams ? ` / ${item.pricePerUnitGrams}g` : ''}
@@ -260,7 +262,7 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
                   <button
                     type="button"
                     onClick={() => handleBuyAgain(item)}
-                    className="pill-active flex items-center gap-1 text-[10px] w-full justify-center py-1"
+                    className="pill-active flex items-center gap-1 text-[10px] w-full justify-center py-1.5"
                   >
                     <RotateCcw size={10} />
                     Add to order
