@@ -95,6 +95,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   // Debounce timer ref for customer search
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Auto-focus vendor/customer name when drawer opens
+  useEffect(() => {
+    const timer = setTimeout(() => customerInputRef.current?.focus(), 350);
+    return () => clearTimeout(timer);
+  }, []);
+
   // ── Customer search with 300ms debounce ────────────────────────────────
 
   const handleCustomerSearch = useCallback((value: string) => {
@@ -334,6 +340,15 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const totalUSD = subtotalUSD + shippingCostUSD;
   const isEmpty = cart.length === 0;
 
+  // ── Auto-copy PO text when purchase receipt appears ─────────────────────
+  useEffect(() => {
+    if (transactionComplete && lastInvoice && isPurchase && lastInvoice._purchaseMessage) {
+      navigator.clipboard.writeText(lastInvoice._purchaseMessage).then(() => {
+        showToast('Order text copied to clipboard', 'success');
+      }).catch(() => { /* clipboard not available */ });
+    }
+  }, [transactionComplete, lastInvoice, isPurchase, showToast]);
+
   // ── Receipt screen ─────────────────────────────────────────────────────
 
   if (transactionComplete && lastInvoice) {
@@ -473,7 +488,9 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </h2>
           </div>
           <p className="text-[10px] text-tea-text-sec uppercase tracking-widest mt-0.5">
-            {isPurchase ? 'Ordering from vendor' : 'Pending Items'}
+            {customerName.trim()
+              ? <>{isPurchase ? 'From' : 'For'} <span className="text-tea-gold/80 normal-case tracking-normal">{customerName}</span></>
+              : isPurchase ? 'Ordering from vendor' : 'Pending Items'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -602,7 +619,13 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             )}
             <div className="text-center">
               <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
+              <button
+                onClick={() => { onClose(); navigate('/admin/inventory'); }}
+                className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-lg hover:bg-tea-surface border border-tea-border"
+              >
+                <Package size={12} /> Browse Inventory
+              </button>
             </div>
           </div>
         ) : (
