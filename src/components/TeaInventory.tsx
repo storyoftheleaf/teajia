@@ -348,9 +348,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         onClick={clearTastingFilter}
                         className="tag cursor-pointer hover:opacity-80 transition-opacity"
                      >
-                        <Icon size={10} />
+                        <Icon size={11} />
                         <span>{resolveTermLabel(tastingFilter.termId)}</span>
-                        <X size={10} />
+                        <X size={11} />
                      </button>
                   </div>
                );

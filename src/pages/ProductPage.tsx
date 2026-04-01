@@ -394,7 +394,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <div className="flex items-baseline justify-between mb-1 px-0.5">
                 <span className="font-mono text-sm text-tea-text">{fmtPrice(total)}</span>
                 <span className="font-mono text-xs text-tea-text-sec">
-                  {grams}<span className="text-[9px] text-tea-text-sec ml-0.5">g</span>
+                  {grams}<span className="text-[11px] text-tea-text-sec ml-0.5">g</span>
                 </span>
               </div>
               <HapticSlider
