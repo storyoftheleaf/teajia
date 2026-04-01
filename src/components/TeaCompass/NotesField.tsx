@@ -108,7 +108,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
                   onClick={() => startEdit(i)}
                   className="pl-3 border-l-2 border-tea-border py-1 cursor-pointer hover:border-tea-gold transition-colors group"
                 >
-                  <p className="text-sm text-tea-text-sec whitespace-pre-wrap leading-relaxed group-hover:text-tea-text transition-colors">
+                  <p className="text-sm text-tea-gold-lt whitespace-pre-wrap leading-relaxed group-hover:text-tea-text transition-colors">
                     {entry}
                   </p>
                 </div>
