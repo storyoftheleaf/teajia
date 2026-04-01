@@ -4,7 +4,7 @@ import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, 
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isConfigured, hasToken, clearToken, getTokenClaims } from '../lib/api';
+import { isConfigured, hasToken, clearToken, getTokenClaims, isTokenExpired, SESSION_EXPIRED_EVENT } from '../lib/api';
 import { Product } from './types';
 import { useProducts, useRates } from './hooks/useAdminData';
 import { useAppStore } from './store';
@@ -76,13 +76,31 @@ const AdminContent = () => {
     addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart, openPurchaseOrder
   } = useAppStore();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // On mount, check that the token exists AND isn't expired
+    if (!hasToken()) return false;
+    if (isTokenExpired()) {
+      clearToken();
+      return false;
+    }
+    return true;
+  });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   // currencyOpen state removed — currency selector moved to InventoryView options menu
 
   const claims = getTokenClaims();
   const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
   const isAdmin = (isAuthenticated && (userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
+
+  // Listen for session expiry (401 responses clear the token in api.ts)
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setIsAuthenticated(false);
+      setIsLoginOpen(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   // Modals
   const [isLoginOpen, setIsLoginOpen] = useState(false);
