@@ -32,10 +32,19 @@ export const useEvents = () => {
         status: e.status || 'draft',
         sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
         playlistUrl: e.playlist_url || undefined,
+        // V2 fields
+        briefingCards: e.briefing_cards
+          ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
+          : undefined,
+        areaHint: e.area_hint || undefined,
+        moodHints: e.mood_hints
+          ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
+          : undefined,
         createdAt: e.created_at,
         updatedAt: e.updated_at,
         confirmedCount: Number(e.confirmed_count) || 0,
         waitlistCount: Number(e.waitlist_count) || 0,
+        requestedCount: Number(e.requested_count) || 0,
         seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
       })) as TeaEvent[];
     },
@@ -74,10 +83,19 @@ export const useEvent = (id: string) => {
         status: e.status || 'draft',
         sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
         playlistUrl: e.playlist_url || undefined,
+        // V2 fields
+        briefingCards: e.briefing_cards
+          ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
+          : undefined,
+        areaHint: e.area_hint || undefined,
+        moodHints: e.mood_hints
+          ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
+          : undefined,
         createdAt: e.created_at,
         updatedAt: e.updated_at,
         confirmedCount: Number(e.confirmed_count) || 0,
         waitlistCount: Number(e.waitlist_count) || 0,
+        requestedCount: Number(e.requested_count) || 0,
         seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
       } as TeaEvent;
     },

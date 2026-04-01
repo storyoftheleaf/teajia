@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Copy, Check, Link2, MessageCircle, Download, Loader2, Send } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { buildWhatsAppUrl } from '../../lib/whatsapp';
@@ -70,16 +70,13 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
 
   const handleDownloadQR = () => {
     if (!qrRef.current) return;
-    const svg = qrRef.current.querySelector('svg');
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(svgBlob);
+    const canvas = qrRef.current.querySelector('canvas');
+    if (!canvas) return;
+    const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${event.slug}-qr.svg`;
+    a.download = `${event.slug}-qr.png`;
     a.click();
-    URL.revokeObjectURL(url);
     showToast('QR downloaded', 'success');
   };
 
@@ -230,7 +227,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
                 ref={qrRef}
                 className="inline-flex items-center justify-center bg-white rounded-md p-3"
               >
-                <QRCodeSVG
+                <QRCodeCanvas
                   value={eventUrl}
                   size={120}
                   level="M"
