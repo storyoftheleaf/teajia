@@ -562,7 +562,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="What is it?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
           />
         </div>
 
@@ -581,7 +581,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   const val = e.target.value;
                   update({ priceAmount: val === '' ? undefined : Number(val) });
                 }}
-                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
+                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
                            [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 style={{ MozAppearance: 'textfield' } as React.CSSProperties}
               />
@@ -598,7 +598,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   const val = e.target.value;
                   update({ capacityMl: val === '' ? undefined : Number(val) });
                 }}
-                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
+                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
                            [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 style={{ MozAppearance: 'textfield' } as React.CSSProperties}
               />
@@ -697,7 +697,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   onChange={(val) => update({ originRegion: val || undefined })}
                   suggestions={availableRegions}
                   placeholder="e.g. Yixing, Jingdezhen..."
-                  className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors"
+                  className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors"
                 />
               </div>
               </div>
@@ -777,7 +777,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -791,7 +791,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-2 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-2 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center
                        [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
@@ -913,7 +913,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
                 suggestions={availableRegions}
                 placeholder="e.g. Alishan, Yiwu..."
-                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base"
+                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base"
               />
             </div>
 
