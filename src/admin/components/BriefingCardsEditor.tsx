@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Plus, Trash2, ArrowUp, ArrowDown, Upload, Loader2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
 import { BriefingCard } from '../../types/events';
 
@@ -50,7 +51,8 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
     if (!file) return;
     setUploadingIdx(idx);
     try {
-      const url = await api.uploadImage(file);
+      const compressed = await compressImage(file);
+      const url = await api.uploadImage(compressed);
       updateCard(idx, { imageUrl: url });
       showToast('Photo uploaded', 'success');
     } catch (err: any) {

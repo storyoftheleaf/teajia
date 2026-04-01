@@ -2452,6 +2452,7 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.timezone || 'Asia/Taipei',
     body.status || 'draft',
     body.session_flow ? (typeof body.session_flow === 'string' ? body.session_flow : JSON.stringify(body.session_flow)) : null,
+    body.playlist_url || null,
     body.location_id || null
   ).run();
 
