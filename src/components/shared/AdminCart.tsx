@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight, FileDown } from 'lucide-react';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
@@ -89,11 +89,19 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [transactionComplete, setTransactionComplete] = useState(false);
   const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
 
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
 
   // Debounce timer ref for customer search
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-focus vendor/customer name when drawer opens
+  useEffect(() => {
+    const timer = setTimeout(() => customerInputRef.current?.focus(), 350);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ── Customer search with 300ms debounce ────────────────────────────────
 
@@ -188,6 +196,14 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       // Build purchase receipt
       const purchaseRef = `PO-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
+      // Link vendor to customers table if selected (optional)
+      let vendorId = selectedCustomerId;
+      if (!vendorId && customerName.trim() && allCustomers.length > 0) {
+        // Check for existing vendor by exact name match — don't force creation
+        const exactMatch = allCustomers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
+        if (exactMatch) vendorId = exactMatch.id;
+      }
+
       // Persist purchase order to database
       let poId: string | null = null;
       try {
@@ -195,6 +211,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           po_number: purchaseRef,
           vendor_name: customerName,
           vendor_contact: customerPhone || undefined,
+          vendor_id: vendorId || undefined,
           items_json: JSON.stringify(cart.map(item => ({
             productId: item.productId,
             name: item.product.givenName,
@@ -328,11 +345,71 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     return buildWhatsAppUrl(customerPhone, message);
   };
 
+  // ── PDF generation ─────────────────────────────────────────────────────
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!lastInvoice) return;
+    setPdfLoading(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      if (isPurchase) {
+        const { PurchaseOrderPdfDocument } = await import('../../admin/components/PurchaseOrderPdf');
+        const doc = React.createElement(PurchaseOrderPdfDocument, {
+          poNumber: lastInvoice.invoice_number,
+          vendorName: lastInvoice.customer_name,
+          vendorContact: customerPhone || undefined,
+          cart, rates, currency: displayCurrency, shipping: shippingCostUSD,
+        });
+        const blob = await pdf(doc).toBlob();
+        const fileName = `teajia-po-${lastInvoice.customer_name}-${lastInvoice.invoice_number}.pdf`.replace(/\s+/g, '-');
+        if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
+          await navigator.share({ files: [new File([blob], fileName, { type: 'application/pdf' })], title: `Teajia Purchase Order` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = fileName; a.click();
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        const { InvoicePdfDocument } = await import('../../admin/components/InvoicePdf');
+        const doc = React.createElement(InvoicePdfDocument, {
+          invoiceNumber: lastInvoice.invoice_number,
+          customerName: lastInvoice.customer_name,
+          cart, rates, currency: displayCurrency, shipping: shippingCostUSD,
+        });
+        const blob = await pdf(doc).toBlob();
+        const fileName = `teajia-invoice-${lastInvoice.invoice_number}.pdf`.replace(/\s+/g, '-');
+        if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
+          await navigator.share({ files: [new File([blob], fileName, { type: 'application/pdf' })], title: `Teajia Invoice` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = fileName; a.click();
+          URL.revokeObjectURL(url);
+        }
+      }
+    } catch (err) {
+      console.debug('PDF generation failed:', err);
+      showToast('PDF generation failed', 'error');
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [lastInvoice, isPurchase, cart, rates, displayCurrency, shippingCostUSD, customerPhone, showToast]);
+
   // ── Derived ────────────────────────────────────────────────────────────
 
   const subtotalUSD = useMemo(() => cart.reduce((acc, item) => acc + item.quantity * item.priceAtSale, 0), [cart]);
   const totalUSD = subtotalUSD + shippingCostUSD;
   const isEmpty = cart.length === 0;
+
+  // ── Auto-copy PO text when purchase receipt appears ─────────────────────
+  useEffect(() => {
+    if (transactionComplete && lastInvoice && isPurchase && lastInvoice._purchaseMessage) {
+      navigator.clipboard.writeText(lastInvoice._purchaseMessage).then(() => {
+        showToast('Order text copied to clipboard', 'success');
+      }).catch(() => { /* clipboard not available */ });
+    }
+  }, [transactionComplete, lastInvoice, isPurchase, showToast]);
 
   // ── Receipt screen ─────────────────────────────────────────────────────
 
@@ -431,9 +508,13 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   <Share2 size={16} /> Share on WhatsApp
                 </div>
               ) : null}
-              <button onClick={() => window.print()}
-                className="flex w-full bg-tea-bg border border-tea-border text-tea-text py-3 rounded-lg font-medium hover:bg-tea-surface transition-colors items-center justify-center gap-2 text-sm">
-                <Printer size={16} /> {isPurchase ? 'Print Order' : 'Print Receipt'}
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-surface hover:bg-tea-elevated/50 text-tea-text border border-tea-border transition-colors"
+              >
+                {pdfLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+                {pdfLoading ? 'Generating...' : isPurchase ? 'Download PO as PDF' : 'Download Invoice PDF'}
               </button>
               <div className="h-px bg-tea-border my-4" />
               <button onClick={() => { handleStartNewSale(); if (isPurchase) setCartDirection('sale'); }}
@@ -460,7 +541,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   return (
     <>
       {/* Header */}
-      <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface/50">
+      <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface/50 flex-shrink-0">
         <div>
           <div className="flex items-center gap-2">
             {isPurchase ? (
@@ -473,7 +554,9 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </h2>
           </div>
           <p className="text-[10px] text-tea-text-sec uppercase tracking-widest mt-0.5">
-            {isPurchase ? 'Ordering from vendor' : 'Pending Items'}
+            {customerName.trim()
+              ? <>{isPurchase ? 'From' : 'For'} <span className="text-tea-gold/80 normal-case tracking-normal">{customerName}</span></>
+              : isPurchase ? 'Ordering from vendor' : 'Pending Items'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -503,119 +586,8 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto relative custom-scrollbar px-6 py-4">
-        {/* Undo toast */}
-        {undoState && (
-          <div className="mb-4 animate-[slideUp_0.3s_ease-out]">
-            <div className="flex items-center justify-between bg-tea-surface text-tea-text border border-tea-border px-4 py-3 rounded-lg">
-              <span className="text-xs font-sans">{undoState.label} removed</span>
-              <button
-                onClick={() => {
-                  clearTimeout(undoState.timeout);
-                  setCart(undoState.prevCart);
-                  setUndoState(null);
-                }}
-                className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors"
-              >
-                Undo
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isEmpty ? (
-          <div className="h-full flex flex-col items-center justify-center text-tea-text-sec space-y-4 min-h-[300px]">
-            {isPurchase ? (
-              <ArrowDownLeft size={40} strokeWidth={1} className="opacity-50" />
-            ) : (
-              <Package size={40} strokeWidth={1} className="opacity-50" />
-            )}
-            <div className="text-center">
-              <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {cart.map((item, idx) => (
-              <div key={item.productId} className="group bg-tea-surface border border-tea-border rounded-xl p-3 hover:border-tea-text-sec/50 transition-colors flex gap-3">
-                <div className="w-12 h-12 bg-tea-bg rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-tea-border">
-                  {item.product.imageUrl ? (
-                    <img src={item.product.imageUrl} className="w-full h-full object-cover opacity-70" alt="" />
-                  ) : (
-                    <div className="p-2">
-                      <TeaIllustration type={item.product.type} className="w-full h-full" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <h4 className="text-sm font-serif text-tea-text truncate pr-2">{item.product.givenName}</h4>
-                    <button onClick={() => removeItem(idx)} className="text-tea-text-sec hover:text-tea-gold p-0.5 transition-colors">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-tea-text-sec truncate mb-2 font-serif italic">{item.product.productName}</p>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 bg-tea-bg rounded-lg border border-tea-border px-1.5 py-0.5">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantity(idx, Number(e.target.value))}
-                        className="w-8 bg-transparent text-center text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num text-tea-text"
-                      />
-                      <span className="text-[9px] text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
-                        {item.product.type === 'Teaware' ? 'u' : 'g'}
-                      </span>
-                    </div>
-                    <span className="num text-xs text-tea-text">
-                      {formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}
-                    </span>
-                  </div>
-                  {/* Stock availability — only relevant for sales */}
-                  {!isPurchase && (
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`text-[9px] num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
-                        {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
-                        {item.quantity > item.product.stockGrams && ' — exceeds stock'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="bg-tea-surface border-t border-tea-border p-6 space-y-5 z-20" style={{ boxShadow: '0 -10px 40px var(--tea-accent-sub)' }}>
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Currency</label>
-            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
-              <select
-                value={displayCurrency}
-                onChange={(e) => setDisplayCurrency(e.target.value as Currency)}
-                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer"
-              >
-                {rates.map(r => <option key={r.currency} value={r.currency}>{r.currency}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex-1">
-            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Shipping (USD)</label>
-            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
-              <input
-                type="number"
-                min={0}
-                value={shippingCostUSD}
-                onChange={(e) => setShippingCostUSD(Math.max(0, Number(e.target.value) || 0))}
-                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="space-y-2">
+        {/* Vendor / Customer name — prominent at top */}
+        <div className="space-y-2 mb-4">
           <div className="relative">
             <input
               ref={customerInputRef}
@@ -624,7 +596,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               onChange={(e) => handleCustomerSearch(e.target.value)}
               onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
+              className={`w-full bg-tea-bg border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
                 validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
               }`}
               placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
@@ -683,6 +655,125 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec placeholder-tea-text-sec/50"
             placeholder={isPurchase ? 'Vendor Contact (Optional)' : 'WhatsApp (Optional)'}
           />
+        </div>
+
+        {/* Undo toast */}
+        {undoState && (
+          <div className="mb-4 animate-[slideUp_0.3s_ease-out]">
+            <div className="flex items-center justify-between bg-tea-surface text-tea-text border border-tea-border px-4 py-3 rounded-lg">
+              <span className="text-xs font-sans">{undoState.label} removed</span>
+              <button
+                onClick={() => {
+                  clearTimeout(undoState.timeout);
+                  setCart(undoState.prevCart);
+                  setUndoState(null);
+                }}
+                className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors"
+              >
+                Undo
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isEmpty ? (
+          <div className="h-full flex flex-col items-center justify-center text-tea-text-sec space-y-4 min-h-[300px]">
+            {isPurchase ? (
+              <ArrowDownLeft size={40} strokeWidth={1} className="opacity-50" />
+            ) : (
+              <Package size={40} strokeWidth={1} className="opacity-50" />
+            )}
+            <div className="text-center">
+              <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
+              <button
+                onClick={() => { onClose(); navigate('/admin/inventory'); }}
+                className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-lg hover:bg-tea-surface border border-tea-border"
+              >
+                <Package size={12} /> Browse Inventory
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {cart.map((item, idx) => (
+              <div key={item.productId} className="group bg-tea-surface border border-tea-border rounded-xl p-3 hover:border-tea-text-sec/50 transition-colors flex gap-3">
+                <div className="w-12 h-12 bg-tea-bg rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-tea-border">
+                  {item.product.imageUrl ? (
+                    <img src={item.product.imageUrl} className="w-full h-full object-cover opacity-70" alt="" />
+                  ) : (
+                    <div className="p-2">
+                      <TeaIllustration type={item.product.type} className="w-full h-full" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <h4 className="text-sm font-serif text-tea-text truncate pr-2">{item.product.givenName}</h4>
+                    <button onClick={() => removeItem(idx)} className="text-tea-text-sec hover:text-tea-gold p-0.5 transition-colors">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-tea-text-sec truncate mb-2 font-serif italic">{item.product.productName}</p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2 bg-tea-bg rounded-lg border border-tea-border px-1.5 py-0.5">
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateQuantity(idx, Number(e.target.value))}
+                        className="w-8 bg-transparent text-center text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num text-tea-text"
+                      />
+                      <span className="text-[9px] text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
+                        {item.product.type === 'Teaware' ? 'u' : 'g'}
+                      </span>
+                    </div>
+                    <span className="num text-xs text-tea-text">
+                      {formatCurrency(item.quantity * item.priceAtSale, displayCurrency, rates)}
+                    </span>
+                  </div>
+                  {/* Stock availability — only relevant for sales */}
+                  {!isPurchase && (
+                    <div className="flex items-center justify-between mt-1">
+                      <span className={`text-[9px] num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
+                        {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
+                        {item.quantity > item.product.stockGrams && ' — exceeds stock'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-tea-surface border-t border-tea-border p-6 space-y-4 z-20 flex-shrink-0" style={{ boxShadow: '0 -10px 40px var(--tea-accent-sub)' }}>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Currency</label>
+            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+              <select
+                value={displayCurrency}
+                onChange={(e) => setDisplayCurrency(e.target.value as Currency)}
+                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer"
+              >
+                {rates.map(r => <option key={r.currency} value={r.currency}>{r.currency}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex-1">
+            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Shipping (USD)</label>
+            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+              <input
+                type="number"
+                min={0}
+                value={shippingCostUSD}
+                onChange={(e) => setShippingCostUSD(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num"
+              />
+            </div>
+          </div>
         </div>
         <div>
           <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border/50">

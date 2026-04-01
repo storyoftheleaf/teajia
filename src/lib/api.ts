@@ -438,6 +438,7 @@ export const api = {
       po_number: string;
       vendor_name: string;
       vendor_contact?: string;
+      vendor_id?: string;
       items_json: string;
       total_usd: number;
       display_currency: string;
