@@ -1585,6 +1585,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </td>
         );
       }
+      case 'vendor':
+        return (
+          <td className="px-4 align-middle overflow-hidden">
+            {product.vendor ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }}
+                className="text-xs text-tea-text-sec hover:text-tea-accent transition-colors truncate block text-left"
+              >
+                {product.vendor}
+              </button>
+            ) : <span className="text-xs text-tea-text-dim">—</span>}
+          </td>
+        );
       default:
         return <td className="px-4 align-middle text-xs text-tea-text-sec">-</td>;
     }
@@ -2508,10 +2521,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     {product.givenName || product.chineseName || '—'}
                                   </span>
                                   {product.vendor && (
-                                    <span className="text-[11px] text-tea-text-dim truncate shrink-0 flex items-center gap-1">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }}
+                                      className="text-[11px] text-tea-text-dim hover:text-tea-accent truncate shrink-0 flex items-center gap-1 transition-colors"
+                                    >
                                       <MapPin size={9} className="opacity-50" />
                                       {product.vendor}
-                                    </span>
+                                    </button>
                                   )}
                                 </div>
 

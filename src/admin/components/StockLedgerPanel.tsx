@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Loader2, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from 'lucide-react';
@@ -20,6 +21,7 @@ const REASON_LABELS: Record<string, string> = {
 export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
   productId, productName, onClose,
 }) => {
+  const navigate = useNavigate();
   const [offset, setOffset] = useState(0);
   const limit = 20;
 
@@ -66,7 +68,12 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                     {REASON_LABELS[entry.reason] || entry.reason}
                   </span>
                   {entry.source_invoice_number && (
-                    <span className="text-[10px] text-tea-text-sec num truncate">{entry.source_invoice_number}</span>
+                    <button
+                      onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
+                      className="text-[10px] text-tea-text-sec hover:text-tea-accent num truncate transition-colors"
+                    >
+                      {entry.source_invoice_number}
+                    </button>
                   )}
                   <span className="text-[11px] text-tea-text-sec/50 ml-auto shrink-0">
                     {new Date(entry.created_at).toLocaleDateString()}

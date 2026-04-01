@@ -54,7 +54,13 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
                         {item.productType}
                       </span>
                     )}
-                    <h5 className="font-serif text-base text-tea-text mt-0.5">{item.customName || item.productName}</h5>
+                    {item.productId ? (
+                      <a href={`/shop?tea=${encodeURIComponent(item.productId)}`} className="font-serif text-base text-tea-text hover:text-tea-accent mt-0.5 block transition-colors">
+                        {item.customName || item.productName}
+                      </a>
+                    ) : (
+                      <h5 className="font-serif text-base text-tea-text mt-0.5">{item.customName || item.productName}</h5>
+                    )}
                   </div>
                 </div>
                 {item.customDescription && (

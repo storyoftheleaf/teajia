@@ -393,7 +393,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
 
         {entry.status === 'bought' && entry.draftProductId && (
           <a
-            href="/admin/inventory"
+            href={`/admin/inventory?panel=${encodeURIComponent(entry.draftProductId)}`}
             className="pill flex items-center gap-1 text-tea-gold"
           >
             <ExternalLink size={10} />
