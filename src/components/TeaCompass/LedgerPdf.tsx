@@ -28,27 +28,27 @@ function lineTotal(item: LedgerLineItem): number {
 const s = StyleSheet.create({
   page: {
     padding: 50,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f4ece0',
     fontFamily: 'Plus Jakarta Sans',
     fontSize: 10,
-    color: '#1a1a1a',
+    color: '#2a2218',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#d4c9b8',
     paddingBottom: 16,
   },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
-  subtitle: { fontSize: 9, color: '#666666', textTransform: 'uppercase', letterSpacing: 2 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 4, color: '#2a2218' },
+  subtitle: { fontSize: 9, color: '#8b7b65', textTransform: 'uppercase', letterSpacing: 2 },
   meta: { textAlign: 'right' as const },
-  metaLine: { fontSize: 9, color: '#666', marginBottom: 2 },
+  metaLine: { fontSize: 9, color: '#8b7b65', marginBottom: 2 },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: '#2a2218',
     paddingBottom: 6,
     marginBottom: 6,
     fontWeight: 'bold',
@@ -60,24 +60,24 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e4dace',
   },
   colName: { flex: 3 },
   colQty: { flex: 1, textAlign: 'right' as const },
   colPrice: { flex: 1, textAlign: 'right' as const },
   colTotal: { flex: 1, textAlign: 'right' as const },
-  itemName: { fontSize: 10 },
-  itemSub: { fontSize: 8, color: '#888', marginTop: 1 },
+  itemName: { fontSize: 10, color: '#2a2218' },
+  itemSub: { fontSize: 8, color: '#8b7b65', marginTop: 1 },
   totalRow: {
     flexDirection: 'row',
     borderTopWidth: 2,
-    borderTopColor: '#1a1a1a',
+    borderTopColor: '#2a2218',
     paddingTop: 10,
     marginTop: 10,
   },
   totalLabel: { flex: 5, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 11, paddingRight: 8 },
   totalValue: { flex: 1, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 13 },
-  footer: { marginTop: 40, fontSize: 8, color: '#999', textAlign: 'center' as const },
+  footer: { marginTop: 40, fontSize: 8, color: '#b5a892', textAlign: 'center' as const },
 });
 
 interface LedgerPdfProps {
@@ -110,7 +110,7 @@ export const LedgerPdf: React.FC<LedgerPdfProps> = ({ transaction }) => {
             <Text style={s.metaLine}>
               Status: {transaction.status === 'confirmed' ? 'Confirmed' : 'Draft'}
             </Text>
-            <Text style={{ ...s.metaLine, fontSize: 7, color: '#aaa' }}>
+            <Text style={{ ...s.metaLine, fontSize: 7, color: '#b5a892' }}>
               #{transaction.id.slice(0, 8)}
             </Text>
           </View>

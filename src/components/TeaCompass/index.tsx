@@ -158,27 +158,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   return (
     <div className="flex flex-col h-full relative surface-warm">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         <button
           type="button"
           onClick={onBack}
-          className="p-2 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+          className="p-2 -ml-1 text-tea-text-dim hover:text-tea-text transition-colors"
           aria-label="Back"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} strokeWidth={1.5} />
         </button>
 
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <CompassIcon className="w-5 h-5 text-tea-gold shrink-0" filled={mode === 'capture'} />
-          <h2 className="text-tea-text font-serif text-base truncate">Tea Compass</h2>
-          <SyncIndicator />
+          <h2 className="text-tea-text font-serif text-[15px] tracking-wide truncate">Tea Compass</h2>
         </div>
+        <SyncIndicator />
       </div>
 
       {/* ── Mode tabs ── */}
-      <div className="flex border-b border-tea-border px-4" role="tablist">
+      <div className="flex border-b border-tea-border/50 px-4" role="tablist">
         {tabs.map((tab) => {
           const active = mode === tab.id;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.id}
@@ -186,12 +187,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               onClick={() => handleSwitchMode(tab.id)}
               role="tab"
               aria-selected={active}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] uppercase tracking-[0.08em] font-bold transition-colors relative ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors relative ${
                 active
                   ? 'text-tea-gold'
-                  : 'text-tea-text-sec hover:text-tea-text'
+                  : 'text-tea-text-dim hover:text-tea-text-sec'
               }`}
             >
+              <Icon size={13} strokeWidth={active ? 2 : 1.5} />
               {tab.label}
               {tab.badge != null && (
                 <span className="badge-status badge-status-gold ml-1">
@@ -201,7 +203,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               {active && (
                 <motion.div
                   layoutId="compass-tab-indicator"
-                  className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-tea-gold rounded-full shadow-[0_0_6px_rgba(184,146,78,0.4)]"
+                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-tea-gold rounded-full shadow-[0_0_8px_rgba(184,146,78,0.3)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -228,14 +230,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
               />
 
               {/* Tea / Teaware tab toggle */}
-              <div className="flex gap-2 mb-3 rounded-lg bg-tea-surface/40 p-1">
+              <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
+                <motion.div
+                  className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
+                  animate={{ left: activeCategory === 'tea' ? '2px' : '50%', right: activeCategory === 'teaware' ? '2px' : '50%' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                />
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch('tea')}
-                  className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-all ${
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
                     activeCategory === 'tea'
-                      ? 'bg-tea-surface text-tea-text shadow-sm'
-                      : 'text-tea-text-sec hover:text-tea-text'
+                      ? 'text-tea-text'
+                      : 'text-tea-text-dim hover:text-tea-text-sec'
                   }`}
                 >
                   Tea
@@ -243,10 +250,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
                 <button
                   type="button"
                   onClick={() => handleCategorySwitch('teaware')}
-                  className={`flex-1 text-center py-2 text-sm font-medium rounded-md transition-all ${
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
                     activeCategory === 'teaware'
-                      ? 'bg-tea-surface text-tea-text shadow-sm'
-                      : 'text-tea-text-sec hover:text-tea-text'
+                      ? 'text-tea-text'
+                      : 'text-tea-text-dim hover:text-tea-text-sec'
                   }`}
                 >
                   Teaware
@@ -293,14 +300,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
           type="button"
           onClick={() => handleNewCapture()}
           whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="fixed right-5 z-30 w-12 h-12 rounded-full bg-tea-gold text-tea-bg
-                     shadow-lg flex items-center justify-center
+          whileTap={{ scale: 0.92 }}
+          className="fixed right-5 z-30 w-11 h-11 rounded-full bg-tea-gold text-tea-bg
+                     shadow-[0_2px_12px_rgba(184,146,78,0.35)] flex items-center justify-center
                      bottom-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]
                      lg:bottom-5"
           aria-label="New capture"
         >
-          <Plus size={22} strokeWidth={2.5} />
+          <Plus size={20} strokeWidth={2.5} />
         </motion.button>
       )}
     </div>
