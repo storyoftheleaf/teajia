@@ -460,7 +460,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   return (
     <>
       {/* Header */}
-      <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface/50">
+      <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface/50 flex-shrink-0">
         <div>
           <div className="flex items-center gap-2">
             {isPurchase ? (
@@ -503,6 +503,77 @@ export const AdminCart: React.FC<AdminCartProps> = ({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto relative custom-scrollbar px-6 py-4">
+        {/* Vendor / Customer name — prominent at top */}
+        <div className="space-y-2 mb-4">
+          <div className="relative">
+            <input
+              ref={customerInputRef}
+              type="text"
+              value={customerName}
+              onChange={(e) => handleCustomerSearch(e.target.value)}
+              onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              className={`w-full bg-tea-bg border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
+                validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
+              }`}
+              placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
+            />
+            {selectedCustomerId && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-green-400 uppercase tracking-wider">Linked</span>
+            )}
+
+            {showSuggestions && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-tea-bg border border-tea-border rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto">
+                {customerSuggestions.map(c => (
+                  <button
+                    key={c.id}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => selectCustomer(c)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-tea-surface transition-colors flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="text-tea-text">{c.name}</span>
+                      {c.company && <span className="text-tea-text-sec text-xs ml-2">{c.company}</span>}
+                    </div>
+                    {c.tags?.length > 0 && (
+                      <span className="text-[9px] text-tea-text-sec uppercase">{c.tags[0]}</span>
+                    )}
+                  </button>
+                ))}
+                {customerSuggestions.length === 0 && customerName.trim() && (
+                  <div className="px-3 py-2 text-xs text-tea-text-sec">
+                    <span className="italic">New contact — will be saved automatically</span>
+                    <span className="block mt-1 text-tea-accent/70">Tip: Add full details in Customers & Sources after checkout</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {dedupSuggestion && (
+            <div className="flex items-center justify-between bg-tea-gold/10 rounded-lg px-3 py-2 text-xs">
+              <span className="text-tea-gold font-serif italic">
+                Did you mean "{dedupSuggestion.name}"?
+              </span>
+              <button
+                onClick={() => {
+                  selectCustomer(allCustomers.find(c => c.id === dedupSuggestion.id)!);
+                  setDedupSuggestion(null);
+                }}
+                className="text-tea-gold font-semibold uppercase tracking-wider text-[10px] ml-2 hover:text-tea-gold/80"
+              >
+                Use This
+              </button>
+            </div>
+          )}
+          <input
+            type="text"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec placeholder-tea-text-sec/50"
+            placeholder={isPurchase ? 'Vendor Contact (Optional)' : 'WhatsApp (Optional)'}
+          />
+        </div>
+
         {/* Undo toast */}
         {undoState && (
           <div className="mb-4 animate-[slideUp_0.3s_ease-out]">
@@ -588,7 +659,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="bg-tea-surface border-t border-tea-border p-6 space-y-5 z-20" style={{ boxShadow: '0 -10px 40px var(--tea-accent-sub)' }}>
+      <div className="bg-tea-surface border-t border-tea-border p-6 space-y-4 z-20 flex-shrink-0" style={{ boxShadow: '0 -10px 40px var(--tea-accent-sub)' }}>
         <div className="flex gap-4">
           <div className="flex-1">
             <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Currency</label>
@@ -614,75 +685,6 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               />
             </div>
           </div>
-        </div>
-        <div className="space-y-2">
-          <div className="relative">
-            <input
-              ref={customerInputRef}
-              type="text"
-              value={customerName}
-              onChange={(e) => handleCustomerSearch(e.target.value)}
-              onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className={`w-full bg-tea-bg border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
-                validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
-              }`}
-              placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
-            />
-            {selectedCustomerId && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-green-400 uppercase tracking-wider">Linked</span>
-            )}
-
-            {showSuggestions && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-tea-bg border border-tea-border rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto">
-                {customerSuggestions.map(c => (
-                  <button
-                    key={c.id}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => selectCustomer(c)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-tea-surface transition-colors flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="text-tea-text">{c.name}</span>
-                      {c.company && <span className="text-tea-text-sec text-xs ml-2">{c.company}</span>}
-                    </div>
-                    {c.tags?.length > 0 && (
-                      <span className="text-[9px] text-tea-text-sec uppercase">{c.tags[0]}</span>
-                    )}
-                  </button>
-                ))}
-                {customerSuggestions.length === 0 && customerName.trim() && (
-                  <div className="px-3 py-2 text-xs text-tea-text-sec">
-                    <span className="italic">New contact — will be saved automatically</span>
-                    <span className="block mt-1 text-tea-accent/70">Tip: Add full details in Customers & Sources after checkout</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          {dedupSuggestion && (
-            <div className="flex items-center justify-between bg-tea-gold/10 rounded-lg px-3 py-2 text-xs">
-              <span className="text-tea-gold font-serif italic">
-                Did you mean "{dedupSuggestion.name}"?
-              </span>
-              <button
-                onClick={() => {
-                  selectCustomer(allCustomers.find(c => c.id === dedupSuggestion.id)!);
-                  setDedupSuggestion(null);
-                }}
-                className="text-tea-gold font-semibold uppercase tracking-wider text-[10px] ml-2 hover:text-tea-gold/80"
-              >
-                Use This
-              </button>
-            </div>
-          )}
-          <input
-            type="text"
-            value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
-            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec placeholder-tea-text-sec/50"
-            placeholder={isPurchase ? 'Vendor Contact (Optional)' : 'WhatsApp (Optional)'}
-          />
         </div>
         <div>
           <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border/50">

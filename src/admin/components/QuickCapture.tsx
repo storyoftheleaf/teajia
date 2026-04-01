@@ -283,7 +283,6 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                   ref={cameraInputRef}
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   className="hidden"
                   onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
                   multiple
