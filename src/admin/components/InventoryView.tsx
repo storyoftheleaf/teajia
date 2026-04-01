@@ -682,6 +682,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     aiPromptTemplate,
     currency,
     setCurrency,
+    addToCart,
+    setIsCartOpen,
   } = useAppStore();
 
   // --- STATE ---
@@ -2888,7 +2890,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         product={detailsProduct}
         isOpen={!!detailsProduct}
         onClose={() => setDetailsProduct(null)}
-        onAdd={() => {}}
+        onAdd={(product, quantity) => {
+          addToCart(product, quantity);
+          setIsCartOpen(true);
+          showToast('Added to registry', 'success');
+        }}
         currency={currency}
         rates={rates}
         isAdmin={true}
