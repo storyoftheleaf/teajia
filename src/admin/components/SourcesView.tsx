@@ -4,7 +4,8 @@ import {
   Search, Plus, Trash2, Edit3, Loader2, ChevronDown, ChevronUp,
   ChevronRight, Leaf, MapPin, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, X as XIcon, Pencil, Check, Columns, Layers,
-  MoreHorizontal, Save, Download, Square, CheckSquare, Users
+  MoreHorizontal, Save, Download, Square, CheckSquare, Users,
+  Clock, TrendingUp, ShoppingBag, Eye, Palette, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -15,6 +16,7 @@ import { api } from '../../lib/api';
 import { Customer, CustomerTag, Product } from '../types';
 import { useAppStore } from '../store';
 import { TeaTable } from './TeaTable';
+import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { Currency } from '../types';
@@ -1662,6 +1664,364 @@ export const SourcesView = () => {
                         )}
                       </div>
                     )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Flavor Profile ── */}
+              {(() => {
+                const sourceProducts = allProducts.filter(
+                  (p) => p.vendorId === panelSource.id || (p.vendor && p.vendor.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                // Aggregate tasting terms across all products from this vendor
+                const termCounts: Record<string, number> = {};
+                let tastingsCount = 0;
+                const moods: string[] = [];
+                const liquorColors: string[] = [];
+
+                for (const p of sourceProducts) {
+                  if (p.tasting) {
+                    tastingsCount++;
+                    const terms = flattenTastingNotes(p.tasting);
+                    for (const t of terms) {
+                      termCounts[t] = (termCounts[t] || 0) + 1;
+                    }
+                    if (p.tasting['liquor-color']?.length) {
+                      liquorColors.push(...p.tasting['liquor-color']);
+                    }
+                  }
+                  if (p.mood) moods.push(p.mood);
+                  // Also count plain tastingNotes (string array)
+                  if (p.tastingNotes?.length && !p.tasting) {
+                    tastingsCount++;
+                    for (const n of p.tastingNotes) {
+                      termCounts[n] = (termCounts[n] || 0) + 1;
+                    }
+                  }
+                }
+
+                // Also aggregate compass entry tastings
+                const vendorCompassEntries = compassEntries.filter(
+                  (e) => e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                for (const e of vendorCompassEntries) {
+                  if (e.tasting) {
+                    tastingsCount++;
+                    const terms = flattenTastingNotes(e.tasting);
+                    for (const t of terms) {
+                      termCounts[t] = (termCounts[t] || 0) + 1;
+                    }
+                    if (e.tasting['liquor-color']?.length) {
+                      liquorColors.push(...e.tasting['liquor-color']);
+                    }
+                  }
+                }
+
+                const topTerms = Object.entries(termCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 12);
+
+                // Unique liquor colors
+                const uniqueColors = [...new Set(liquorColors)].slice(0, 6);
+                // Unique moods
+                const uniqueMoods = [...new Set(moods)].slice(0, 4);
+
+                if (tastingsCount === 0) return null;
+
+                return (
+                  <CollapsibleSection title={`Flavor Profile (${tastingsCount})`}>
+                    {/* Liquor color swatches */}
+                    {uniqueColors.length > 0 && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <Palette size={11} className="text-tea-text-dim" />
+                        <div className="flex gap-1">
+                          {uniqueColors.map((c) => (
+                            <div
+                              key={c}
+                              className="w-5 h-5 rounded-full border border-tea-border"
+                              style={{ backgroundColor: LIQUOR_COLORS[c] || '#888' }}
+                              title={resolveTermLabel(c)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Top flavor terms */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {topTerms.map(([term, count]) => (
+                        <span
+                          key={term}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-tea-surface rounded-full text-tea-text-sec"
+                          title={`Appears in ${count} tasting${count > 1 ? 's' : ''}`}
+                        >
+                          {resolveTermLabel(term)}
+                          {count > 1 && <span className="text-tea-gold tabular-nums">{count}</span>}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Moods */}
+                    {uniqueMoods.length > 0 && (
+                      <div className="text-[10px] text-tea-text-dim">
+                        <span className="uppercase tracking-wider text-tea-text-sec/50 mr-1.5">Moods:</span>
+                        {uniqueMoods.join(' · ')}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Cost Intelligence ── */}
+              {(() => {
+                const sourceProducts = allProducts.filter(
+                  (p) => p.vendorId === panelSource.id || (p.vendor && p.vendor.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                if (sourceProducts.length === 0) return null;
+
+                const withCost = sourceProducts.filter((p) => p.costAmount > 0);
+                const totalSpend = withCost.reduce((s, p) => s + p.costAmount, 0);
+                const totalGrams = withCost.reduce((s, p) => s + (p.quantityPurchased || p.stockGrams || 0), 0);
+                const avgCostPerGram = totalGrams > 0 ? totalSpend / totalGrams : 0;
+                // Primary cost currency (most common)
+                const currCounts: Record<string, number> = {};
+                for (const p of withCost) {
+                  currCounts[p.costCurrency] = (currCounts[p.costCurrency] || 0) + 1;
+                }
+                const primaryCurrency = Object.entries(currCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
+
+                // Value ranking (cheapest cost/gram products)
+                const valueRanked = [...withCost]
+                  .filter((p) => p.costPerGramUSD > 0)
+                  .sort((a, b) => a.costPerGramUSD - b.costPerGramUSD);
+
+                // Type breakdown
+                const typeBreakdown: Record<string, { count: number; totalCost: number }> = {};
+                for (const p of sourceProducts) {
+                  if (!typeBreakdown[p.type]) typeBreakdown[p.type] = { count: 0, totalCost: 0 };
+                  typeBreakdown[p.type].count++;
+                  typeBreakdown[p.type].totalCost += p.costAmount || 0;
+                }
+
+                return (
+                  <CollapsibleSection title="Cost Intelligence">
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Total Spend</div>
+                        <div className="text-sm text-tea-text tabular-nums font-medium">
+                          {fmtPrice(totalSpend, primaryCurrency)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Avg / Gram</div>
+                        <div className="text-sm text-tea-text tabular-nums font-medium">
+                          {avgCostPerGram > 0 ? fmtPrice(avgCostPerGram, primaryCurrency) : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Total Stock</div>
+                        <div className="text-sm text-tea-text tabular-nums font-medium">
+                          {totalGrams > 0 ? `${totalGrams.toLocaleString()}g` : '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Type breakdown */}
+                    <div className="space-y-1 mb-3">
+                      {Object.entries(typeBreakdown)
+                        .sort((a, b) => b[1].count - a[1].count)
+                        .map(([type, data]) => (
+                          <div key={type} className="flex items-center justify-between text-[11px]">
+                            <span className="text-tea-text-sec uppercase tracking-wider">{type}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-tea-text tabular-nums">{data.count}</span>
+                              {data.totalCost > 0 && (
+                                <span className="text-tea-text-dim tabular-nums">{fmtPrice(data.totalCost, primaryCurrency)}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Best value */}
+                    {valueRanked.length > 0 && (
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1.5">Best Value</div>
+                        {valueRanked.slice(0, 3).map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-[11px] py-0.5">
+                            <button
+                              onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
+                              className="text-tea-text hover:text-tea-accent transition-colors truncate flex-1 mr-2 text-left"
+                            >
+                              {p.givenName || p.productName}
+                            </button>
+                            <span className="text-tea-gold tabular-nums flex-shrink-0">
+                              ${p.costPerGramUSD.toFixed(2)}/g
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Sampled, Not Bought ── */}
+              {(() => {
+                const pipeline = compassEntries.filter(
+                  (e) =>
+                    (e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())) &&
+                    (e.status === 'logged' || e.status === 'want')
+                );
+                if (pipeline.length === 0) return null;
+
+                const wants = pipeline.filter((e) => e.status === 'want');
+                const logged = pipeline.filter((e) => e.status === 'logged');
+
+                return (
+                  <CollapsibleSection title={`Pipeline (${pipeline.length})`}>
+                    {wants.length > 0 && (
+                      <div className="mb-2">
+                        <div className="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Star size={9} /> Want List
+                        </div>
+                        {wants.map((e) => (
+                          <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
+                            {e.photos?.[0] && (
+                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
+                            </div>
+                            {e.priceAmount != null && e.priceAmount > 0 && (
+                              <span className="text-[10px] text-tea-text-sec tabular-nums">{fmtPrice(e.priceAmount, e.priceCurrency)}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {logged.length > 0 && (
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Eye size={9} /> Sampled / Noted
+                        </div>
+                        {logged.map((e) => (
+                          <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
+                            {e.photos?.[0] && (
+                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
+                            </div>
+                            {e.type && <span className="text-[9px] text-tea-text-dim uppercase">{e.type}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Relationship Timeline ── */}
+              {(() => {
+                const events: { date: string; type: 'compass' | 'ledger' | 'product' | 'sale'; label: string; detail?: string; id?: string }[] = [];
+
+                // Compass entries
+                const vendorCompass = compassEntries.filter(
+                  (e) => e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                for (const e of vendorCompass) {
+                  const statusLabel = e.status === 'bought' ? 'Purchased' : e.status === 'want' ? 'Wishlisted' : 'Noted';
+                  events.push({
+                    date: e.createdAt,
+                    type: 'compass',
+                    label: `${statusLabel}: ${e.chineseName || e.name || 'tea'}`,
+                    detail: e.type ? `${e.type}${e.originRegion ? ` · ${e.originRegion}` : ''}` : undefined,
+                  });
+                }
+
+                // Ledger transactions
+                const vendorTxs = ledgerTransactions.filter(
+                  (tx) => tx.counterpartyId === panelSource.id || tx.counterpartyName.toLowerCase() === panelSource.name.toLowerCase()
+                );
+                for (const tx of vendorTxs) {
+                  const itemCount = tx.items.length;
+                  events.push({
+                    date: tx.createdAt,
+                    type: 'ledger',
+                    label: `${tx.direction === 'purchase' ? 'Bought' : 'Sold'} ${itemCount} item${itemCount !== 1 ? 's' : ''}`,
+                    detail: tx.status === 'draft' ? 'Draft' : undefined,
+                  });
+                }
+
+                // Products added from this vendor
+                const sourceProducts = allProducts.filter(
+                  (p) => p.vendorId === panelSource.id || (p.vendor && p.vendor.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                // We don't have createdAt on products client-side, so use a fallback
+                for (const p of sourceProducts) {
+                  events.push({
+                    date: '', // no date available — will sort to end
+                    type: 'product',
+                    label: `Added to inventory: ${p.givenName || p.productName}`,
+                    detail: `${p.type} · ${p.status}`,
+                    id: p.id,
+                  });
+                }
+
+                // Sort by date descending, undated items last
+                events.sort((a, b) => {
+                  if (!a.date && !b.date) return 0;
+                  if (!a.date) return 1;
+                  if (!b.date) return -1;
+                  return new Date(b.date).getTime() - new Date(a.date).getTime();
+                });
+
+                if (events.length === 0) return null;
+
+                const typeColors: Record<string, string> = {
+                  compass: 'bg-blue-400',
+                  ledger: 'bg-amber-400',
+                  product: 'bg-emerald-400',
+                  sale: 'bg-purple-400',
+                };
+
+                return (
+                  <CollapsibleSection title={`Timeline (${events.length})`}>
+                    <div className="relative pl-4">
+                      {/* Vertical line */}
+                      <div className="absolute left-[5px] top-1 bottom-1 w-px bg-tea-border" />
+
+                      <div className="space-y-2.5">
+                        {events.slice(0, 15).map((evt, i) => (
+                          <div key={i} className="relative flex items-start gap-2.5">
+                            {/* Dot */}
+                            <div className={`absolute -left-4 top-1 w-[10px] h-[10px] rounded-full border-2 border-tea-bg ${typeColors[evt.type]}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[11px] text-tea-text leading-tight">
+                                {evt.id ? (
+                                  <button
+                                    onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(evt.id!)}`)}
+                                    className="hover:text-tea-accent transition-colors text-left"
+                                  >
+                                    {evt.label}
+                                  </button>
+                                ) : evt.label}
+                              </div>
+                              <div className="flex items-center gap-2 text-[9px] text-tea-text-dim mt-0.5">
+                                {evt.date && <span>{new Date(evt.date).toLocaleDateString()}</span>}
+                                {evt.detail && <span>{evt.detail}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {events.length > 15 && (
+                        <p className="text-[10px] text-tea-text-dim mt-2 pl-1">+{events.length - 15} more events</p>
+                      )}
+                    </div>
                   </CollapsibleSection>
                 );
               })()}
