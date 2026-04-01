@@ -29,6 +29,8 @@ const GuestManagement = lazy(() => import('./components/events/GuestManagement')
 const ProductPage = lazy(() => import('./pages/ProductPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
+const JourneyPage = lazy(() => import('./pages/JourneyPage'));
+const GuestInviteClaimPage = lazy(() => import('./pages/GuestInviteClaimPage'));
 
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
@@ -537,6 +539,8 @@ const AppContent = () => {
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestManagement /></Suspense></ErrorBoundary>} />
                 <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><OrderStatusPage /></Suspense></ErrorBoundary>} />
                 <Route path="/reset-password" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ResetPasswordPage /></Suspense></ErrorBoundary>} />
+                <Route path="/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JourneyPage /></Suspense></ErrorBoundary>} />
+                <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 {/* 404 Page */}
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
