@@ -15,6 +15,9 @@ import { api } from '../../lib/api';
 import { Customer, CustomerTag, Product } from '../types';
 import { useAppStore } from '../store';
 import { TeaTable } from './TeaTable';
+import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import type { Currency } from '../types';
 
 // ── Add/Edit Source Modal ──
 const SourceModal = ({
@@ -42,7 +45,7 @@ const SourceModal = ({
     try { await onSave(form); } finally { setSaving(false); }
   };
 
-  const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
@@ -184,7 +187,7 @@ const GhostInput = ({
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
-      className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${className}`}
+      className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none text-base md:text-[length:inherit] ${className}`}
     />
   );
 };
@@ -210,6 +213,23 @@ interface SourceRow extends Customer {
   teaCount: number;
 }
 
+// ── Currency formatting ──
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', UNK: '',
+};
+
+function fmtPrice(amount: number, cur: string): string {
+  const sym = CURRENCY_SYMBOLS[cur] || '';
+  const decimals = ['NT', 'IDR', 'JPY'].includes(cur) ? 0 : 2;
+  return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+function lineTotal(item: LedgerLineItem): number {
+  return item.priceIsPerGram
+    ? item.pricePerUnit * (item.quantityGrams ?? 0)
+    : item.pricePerUnit * (item.quantityUnits ?? 1);
+}
+
 export const SourcesView = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -217,6 +237,10 @@ export const SourcesView = () => {
   const { data: allProducts = [] } = useProducts();
   const { data: rates = [] } = useRates();
   const { currency } = useAppStore();
+
+  // Ledger & Compass stores
+  const ledgerTransactions = useLedgerStore((s) => s.transactions);
+  const compassEntries = useTeaCompassStore((s) => s.entries);
 
   // Expanded source — shows inline inventory table
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
@@ -745,7 +769,7 @@ export const SourcesView = () => {
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-base md:text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
             />
           </div>
 
@@ -1384,7 +1408,7 @@ export const SourcesView = () => {
                               placeholder="Search teas..."
                               value={linkSearch}
                               onChange={e => setLinkSearch(e.target.value)}
-                              className="flex-1 bg-transparent text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                              className="flex-1 bg-transparent text-base md:text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                               autoFocus
                             />
                             <button onClick={() => { setShowLinkSearch(false); setLinkSearch(''); }} className="text-tea-text-sec hover:text-tea-text"><XIcon size={12} /></button>
@@ -1424,6 +1448,223 @@ export const SourcesView = () => {
                   </>
                 )}
               </CollapsibleSection>
+
+              {/* Ledger Transactions Section */}
+              {(() => {
+                const vendorTxs = ledgerTransactions.filter(
+                  (tx) =>
+                    tx.counterpartyId === panelSource.id ||
+                    tx.counterpartyName.toLowerCase() === panelSource.name.toLowerCase()
+                );
+                const totalsByDir = vendorTxs.reduce(
+                  (acc, tx) => {
+                    const total = tx.items.reduce((s, i) => s + lineTotal(i), 0);
+                    if (tx.direction === 'purchase') acc.purchases += total;
+                    else acc.sales += total;
+                    return acc;
+                  },
+                  { purchases: 0, sales: 0 }
+                );
+                return (
+                  <CollapsibleSection title={`Ledger (${vendorTxs.length})`}>
+                    {vendorTxs.length === 0 ? (
+                      <p className="text-xs text-tea-text-dim font-serif italic">No transactions recorded yet.</p>
+                    ) : (
+                      <>
+                        {/* Summary */}
+                        <div className="flex items-center gap-4 mb-3 text-xs text-tea-text-sec">
+                          {totalsByDir.purchases > 0 && (
+                            <span className="flex items-center gap-1">
+                              <ArrowDown size={10} className="text-amber-400" />
+                              {vendorTxs.filter(t => t.direction === 'purchase').length} purchase{vendorTxs.filter(t => t.direction === 'purchase').length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {totalsByDir.sales > 0 && (
+                            <span className="flex items-center gap-1">
+                              <ArrowUp size={10} className="text-emerald-400" />
+                              {vendorTxs.filter(t => t.direction === 'sale').length} sale{vendorTxs.filter(t => t.direction === 'sale').length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Transaction list */}
+                        <div className="space-y-2">
+                          {vendorTxs.slice(0, 10).map((tx) => {
+                            const txTotal = tx.items.reduce((s, i) => s + lineTotal(i), 0);
+                            return (
+                              <div key={tx.id} className="bg-tea-bg rounded-lg border border-tea-border p-3">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {tx.direction === 'purchase' ? (
+                                      <ArrowDown size={12} className="text-amber-400" />
+                                    ) : (
+                                      <ArrowUp size={12} className="text-emerald-400" />
+                                    )}
+                                    <span className="text-[10px] text-tea-text-sec uppercase tracking-wider">
+                                      {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}
+                                    </span>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                      {tx.status}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-tea-text tabular-nums font-medium">
+                                    {fmtPrice(txTotal, tx.currency)}
+                                  </span>
+                                </div>
+
+                                {/* Items preview */}
+                                <div className="space-y-0.5">
+                                  {tx.items.slice(0, 3).map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between text-[11px]">
+                                      <span className="text-tea-text-sec truncate flex-1 mr-2">
+                                        {item.chineseName || item.name}
+                                        {item.type && <span className="text-tea-text-dim ml-1 uppercase text-[9px]">{item.type}</span>}
+                                      </span>
+                                      <span className="text-tea-text-sec tabular-nums flex-shrink-0">
+                                        {item.priceIsPerGram ? `${item.quantityGrams}g` : `×${item.quantityUnits ?? 1}`}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {tx.items.length > 3 && (
+                                    <div className="text-[10px] text-tea-text-dim">+{tx.items.length - 3} more</div>
+                                  )}
+                                </div>
+
+                                {/* Photos */}
+                                {tx.photos && tx.photos.length > 0 && (
+                                  <div className="flex gap-1.5 mt-2">
+                                    {tx.photos.slice(0, 4).map((url, i) => (
+                                      <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" />
+                                    ))}
+                                    {tx.photos.length > 4 && (
+                                      <div className="w-10 h-10 rounded bg-tea-surface flex items-center justify-center text-[10px] text-tea-text-dim border border-tea-border">
+                                        +{tx.photos.length - 4}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                <div className="text-[10px] text-tea-text-dim mt-1.5">
+                                  {new Date(tx.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {vendorTxs.length > 10 && (
+                            <p className="text-[10px] text-tea-text-dim text-center">+{vendorTxs.length - 10} more transactions</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* Store / Tea Compass Section */}
+              {(() => {
+                const vendorEntries = compassEntries.filter(
+                  (e) =>
+                    e.vendorId === panelSource.id ||
+                    (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                // Get vendor details from the first entry that has them
+                const vendorDetails = vendorEntries.find((e) => e.vendorDetails)?.vendorDetails;
+                const totalEntries = vendorEntries.length;
+
+                if (totalEntries === 0 && !vendorDetails) return null;
+
+                return (
+                  <CollapsibleSection title={`Store${totalEntries > 0 ? ` (${totalEntries} entries)` : ''}`}>
+                    {/* Vendor details (storefront, business card, location) */}
+                    {vendorDetails && (
+                      <div className="space-y-3 mb-3">
+                        {/* Photos row */}
+                        {(vendorDetails.storefrontUrl || vendorDetails.businessCardUrl) && (
+                          <div className="flex gap-2">
+                            {vendorDetails.storefrontUrl && (
+                              <div className="flex-1">
+                                <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
+                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" />
+                              </div>
+                            )}
+                            {vendorDetails.businessCardUrl && (
+                              <div className="flex-1">
+                                <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
+                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Contact details from vendor */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {vendorDetails.wechat && (
+                            <div>
+                              <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">WeChat</div>
+                              <div className="text-tea-text">{vendorDetails.wechat}</div>
+                            </div>
+                          )}
+                          {vendorDetails.line && (
+                            <div>
+                              <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">LINE</div>
+                              <div className="text-tea-text">{vendorDetails.line}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Location */}
+                        {vendorDetails.lat != null && vendorDetails.lng != null && (
+                          <div>
+                            <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Location</div>
+                            <a
+                              href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-xs text-tea-accent hover:text-tea-text transition-colors"
+                            >
+                              <MapPin size={12} />
+                              <span className="tabular-nums">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
+                              <ExternalLink size={9} className="ml-1" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Recent compass entries from this vendor */}
+                    {vendorEntries.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Field Notes</div>
+                        {vendorEntries.slice(0, 8).map((entry) => (
+                          <div key={entry.id} className="flex items-center gap-2 py-1 text-xs">
+                            {entry.photos?.[0] && (
+                              <img src={entry.photos[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-tea-text truncate font-serif">
+                                {entry.chineseName || entry.name || 'Unnamed'}
+                              </div>
+                              <div className="text-[10px] text-tea-text-dim flex items-center gap-1">
+                                {entry.type && <span className="uppercase">{entry.type}</span>}
+                                {entry.status === 'bought' && <span className="text-emerald-400">bought</span>}
+                                {entry.status === 'want' && <span className="text-amber-400">want</span>}
+                              </div>
+                            </div>
+                            {entry.priceAmount != null && entry.priceAmount > 0 && (
+                              <span className="text-[10px] text-tea-text-sec tabular-nums flex-shrink-0">
+                                {fmtPrice(entry.priceAmount, entry.priceCurrency)}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                        {vendorEntries.length > 8 && (
+                          <p className="text-[10px] text-tea-text-dim">+{vendorEntries.length - 8} more entries</p>
+                        )}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
             </div>
 
             {/* Panel Footer */}
