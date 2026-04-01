@@ -228,41 +228,20 @@ export const useTastingNotes = (eventId: string) => {
   });
 };
 
-// V2: Fetch guest invites for an event (admin) — uses the attendees endpoint and
-// extracts the embedded guest_invite_tokens list for each attendee.
+// V2: Fetch guest invites for an event (admin).
+// TODO: A dedicated admin endpoint (e.g. GET /api/events/:id/guest-invites) is needed.
+// The attendees endpoint does NOT return guest_invite_tokens, so this hook returns
+// an empty array until that endpoint is available.
 export const useGuestInvites = (eventId: string) => {
   return useQuery({
     queryKey: ['event-guest-invites', eventId],
     staleTime: STALE_TIME,
     refetchOnWindowFocus: false,
     enabled: !!eventId,
-    queryFn: async () => {
-      const data = await api.events.getAttendees(eventId);
-      const invites: GuestInvite[] = [];
-      for (const a of (data || [])) {
-        const tokens: any[] = a.guest_invite_tokens
-          ? (typeof a.guest_invite_tokens === 'string'
-            ? JSON.parse(a.guest_invite_tokens)
-            : a.guest_invite_tokens)
-          : [];
-        for (const t of tokens) {
-          invites.push({
-            id: t.id,
-            eventId: t.event_id || eventId,
-            parentAttendeeId: t.parent_attendee_id || a.id,
-            inviteToken: t.invite_token,
-            nameHint: t.name_hint || undefined,
-            claimedByName: t.claimed_by_name || undefined,
-            claimedByPhone: t.claimed_by_phone || undefined,
-            claimedByEmail: t.claimed_by_email || undefined,
-            claimedAttendeeId: t.claimed_attendee_id || undefined,
-            status: t.status || 'pending',
-            createdAt: t.created_at,
-            claimedAt: t.claimed_at || undefined,
-          });
-        }
-      }
-      return invites;
+    queryFn: async (): Promise<GuestInvite[]> => {
+      // Backend does not yet expose guest invites on the attendees endpoint.
+      // Return empty array to avoid crashes until a dedicated endpoint is added.
+      return [];
     },
   });
 };

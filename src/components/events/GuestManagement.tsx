@@ -1,6 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronDown, Clock, AlertCircle, Copy, Check } from 'lucide-react';
+import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark } from 'lucide-react';
 import {
   useGuestManagement,
   useCancelRSVP,
@@ -176,10 +176,11 @@ const GuestManagement: React.FC = () => {
 
   // ---- STORY CARDS BRIEFING ----
   // Show on first visit after confirmation if briefing cards exist
+  const hasBriefing = Array.isArray(briefingCards) && briefingCards.length > 0;
   const shouldShowBriefing =
     status === 'confirmed' &&
     !attendee.firstVisitBriefed &&
-    (briefingCards?.length ?? 0) > 0 &&
+    hasBriefing &&
     !showBriefing; // hasn't been shown yet this session
 
   // Trigger briefing on mount (once) if needed
@@ -284,28 +285,46 @@ const GuestManagement: React.FC = () => {
               Your request has been received.
             </p>
             <p className="text-sm text-tea-text-sec leading-relaxed max-w-xs mx-auto">
-              We'll be in touch shortly to confirm your seat.
+              We typically confirm within 24 hours.
             </p>
           </div>
 
-          {attendee.guestRequests && attendee.guestRequests.length > 0 && (
-            <div className="mt-6 p-5 bg-tea-surface border border-tea-border rounded-md">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
-                Your guest request{attendee.guestRequests.length > 1 ? 's' : ''}
-              </p>
-              <ul className="space-y-1.5">
-                {attendee.guestRequests.map((g, i) => (
-                  <li key={i} className="text-sm text-tea-text-sec flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-tea-border shrink-0" />
-                    {g.nameHint}
-                    {g.approved === null && (
-                      <span className="text-xs text-tea-text-dim">(pending)</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+          {/* Submission summary */}
+          <div className="mt-6 p-5 bg-tea-surface border border-tea-border rounded-md space-y-3">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">What you submitted</p>
+            <div className="flex items-center gap-2 text-sm text-tea-text">
+              <span className="text-tea-text-sec text-xs w-16 shrink-0">Name</span>
+              <span>{attendee.fullName}</span>
             </div>
-          )}
+            <div className="flex items-center gap-2 text-sm text-tea-text">
+              <span className="text-tea-text-sec text-xs w-16 shrink-0">Contact</span>
+              <span>{attendee.phoneNumber || attendee.email || '—'}</span>
+            </div>
+            {attendee.guestRequests && attendee.guestRequests.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2 mt-1">
+                  Guest request{attendee.guestRequests.length > 1 ? 's' : ''}
+                </p>
+                <ul className="space-y-1.5">
+                  {attendee.guestRequests.map((g, i) => (
+                    <li key={i} className="text-sm text-tea-text-sec flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-tea-border shrink-0" />
+                      {g.nameHint}
+                      {g.approved === null && (
+                        <span className="text-xs text-tea-text-dim">(pending)</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Bookmark hint */}
+          <div className="mt-5 flex items-center gap-2 text-xs text-tea-text-sec justify-center">
+            <Bookmark className="w-3.5 h-3.5 shrink-0" />
+            <span>Bookmark this page to check your status.</span>
+          </div>
 
           <div className="text-center pt-8 pb-12">
             <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/50">
@@ -623,6 +642,13 @@ const GuestManagement: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Journey link */}
+        <div className="flex justify-center mb-8">
+          <a href="/journey" className="text-sm text-tea-text-sec hover:text-tea-gold transition-colors">
+            View your tea journey →
+          </a>
+        </div>
 
         {/* Cancel reservation */}
         <div className="text-center pt-6 pb-12 border-t border-tea-border">

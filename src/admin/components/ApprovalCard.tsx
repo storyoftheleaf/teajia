@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Check, Clock, Star, ChevronDown, ChevronUp, Loader2, Minus, Plus } from 'lucide-react';
+import { Check, Clock, Star, ChevronDown, ChevronUp, Loader2, Minus, Plus, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { EventAttendee } from '../../types/events';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 
 interface ApprovalCardProps {
   attendee: EventAttendee;
@@ -29,6 +30,8 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
   const [loading, setLoading] = useState<'approve' | 'deny' | 'waitlist' | null>(null);
   const [denyExpanded, setDenyExpanded] = useState(false);
   const [denyMessage, setDenyMessage] = useState('');
+  const [approvedMagicToken, setApprovedMagicToken] = useState<string | null>(null);
+  const [approvedEventTitle, setApprovedEventTitle] = useState<string | null>(null);
 
   const requestedGuests = attendee.guestRequests?.length ?? 0;
   const maxGuests = requestedGuests;
@@ -42,9 +45,13 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
   const handleApprove = async () => {
     setLoading('approve');
     try {
-      await api.events.approveAttendee(attendee.id, {
+      const result: any = await api.events.approveAttendee(attendee.id, {
         approved_guests: approvedGuestCount,
       });
+      // Store magic token + event title for WhatsApp follow-up
+      if (result?.magic_token) setApprovedMagicToken(result.magic_token);
+      if (result?.magicToken) setApprovedMagicToken(result.magicToken);
+      if (result?.event_title) setApprovedEventTitle(result.event_title);
       showToast(`${attendee.fullName} approved`, 'success');
       onRefresh();
     } catch (err: any) {
@@ -52,6 +59,15 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
     } finally {
       setLoading(null);
     }
+  };
+
+  const handleSendWhatsApp = () => {
+    const phone = attendee.phoneNumber || '';
+    const token = approvedMagicToken || attendee.magicToken;
+    const title = approvedEventTitle || 'the session';
+    const ticketUrl = token ? `${window.location.origin}/m/${token}` : window.location.origin;
+    const message = `Your seat is confirmed for ${title}! View your ticket: ${ticketUrl}`;
+    window.open(buildWhatsAppUrl(phone, message), '_blank');
   };
 
   const handleWaitlist = async () => {

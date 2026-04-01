@@ -71,7 +71,15 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
   const updateStatus = async (attendee: EventAttendee, newStatus: AttendeeStatus) => {
     setLoadingId(attendee.id);
     try {
-      await api.events.updateAttendee(attendee.id, { status: newStatus });
+      if (newStatus === 'confirmed') {
+        await api.events.approveAttendee(attendee.id);
+      } else if (newStatus === 'denied') {
+        await api.events.denyAttendee(attendee.id);
+      } else if (newStatus === 'waitlist') {
+        await api.events.waitlistAttendee(attendee.id);
+      } else {
+        await api.events.updateAttendee(attendee.id, { status: newStatus });
+      }
       showToast(
         `${attendee.fullName} ${newStatus === 'confirmed' ? 'promoted' : newStatus}`,
         'success'

@@ -144,7 +144,7 @@ export const useGuestManagement = (token: string) => {
     queryFn: async () => {
       const data = await api.rsvp.get(token);
       // Map V2 guest invites if present
-      const guestInvites: GuestInvite[] | undefined = data.guest_invites
+      const guestInvites: GuestInvite[] | undefined = data.guest_invites && Array.isArray(data.guest_invites)
         ? (data.guest_invites as any[]).map((t: any): GuestInvite => ({
             id: t.id,
             eventId: t.event_id,

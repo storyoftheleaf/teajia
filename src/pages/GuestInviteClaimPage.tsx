@@ -38,7 +38,11 @@ const GuestInviteClaimPage: React.FC = () => {
       }),
     onSuccess: (data: any) => {
       setSubmitted(true);
-      if (data?.magicToken) {
+      if (data?.redirect_url) {
+        setTimeout(() => navigate(data.redirect_url), 1500);
+      } else if (data?.magic_token) {
+        setTimeout(() => navigate('/m/' + data.magic_token), 1500);
+      } else if (data?.magicToken) {
         setTimeout(() => navigate(`/m/${data.magicToken}`), 1500);
       }
     },
