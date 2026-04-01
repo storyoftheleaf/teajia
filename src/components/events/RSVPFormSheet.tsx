@@ -1,22 +1,15 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Check, Sparkles } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
-import type { RSVPFormData, TeaPreference, RSVPResponse } from '../../types/events';
+import type { RSVPFormData, ContactMethod, RSVPResponse } from '../../types/events';
 
 interface RSVPFormSheetProps {
   slug: string;
   onClose: () => void;
 }
-
-const TEA_PREFERENCES: { id: TeaPreference; label: string; emoji: string }[] = [
-  { id: 'light_floral', label: 'Light & Floral', emoji: '\u{1F338}' },
-  { id: 'rich_roasted', label: 'Rich & Roasted', emoji: '\u{1F525}' },
-  { id: 'aged_earthy', label: 'Aged & Earthy', emoji: '\u{1FAB4}' },
-  { id: 'surprise_me', label: 'Surprise me!', emoji: '\u{2728}' },
-];
 
 const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
   const navigate = useNavigate();
@@ -26,11 +19,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
     fullName: '',
     phoneNumber: '',
     email: '',
-    plusOne: false,
-    plusOneName: '',
-    teaPreference: undefined,
-    bringingTea: '',
-    photoConsent: false,
+    contactMethod: 'whatsapp',
+    guests: [],
     notes: '',
   });
 
@@ -76,17 +66,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
 
   const submitMutation = useMutation<RSVPResponse, Error, RSVPFormData>({
     mutationFn: (data) => api.rsvp.submit(slug, data),
-    onSuccess: (result) => {
+    onSuccess: () => {
       setSubmitted(true);
-      setTimeout(() => {
-        navigate(`/m/${result.magicToken}`);
-      }, 2000);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullName.trim() || !formData.phoneNumber.trim()) return;
+    if (!isValid) return;
     submitMutation.mutate(formData);
   };
 
@@ -94,12 +81,48 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isValid = formData.fullName.trim().length > 0 && formData.phoneNumber.trim().length > 0;
+  const setContactMethod = (method: ContactMethod) => {
+    setFormData((prev) => ({
+      ...prev,
+      contactMethod: method,
+      phoneNumber: method === 'email' ? '' : prev.phoneNumber,
+      email: method === 'whatsapp' ? '' : prev.email,
+    }));
+  };
+
+  const addGuest = () => {
+    const guests = formData.guests ?? [];
+    if (guests.length >= 3) return;
+    updateField('guests', [...guests, { nameHint: '' }]);
+  };
+
+  const removeGuest = (idx: number) => {
+    const guests = (formData.guests ?? []).filter((_, i) => i !== idx);
+    updateField('guests', guests);
+  };
+
+  const updateGuest = (idx: number, nameHint: string) => {
+    const guests = (formData.guests ?? []).map((g, i) =>
+      i === idx ? { nameHint } : g
+    );
+    updateField('guests', guests);
+  };
+
+  const contactValue =
+    formData.contactMethod === 'whatsapp'
+      ? formData.phoneNumber ?? ''
+      : formData.email ?? '';
+
+  const isValid =
+    formData.fullName.trim().length > 0 && contactValue.trim().length > 0;
 
   return (
     <div
       className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Request your seat"
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-tea-text/80 backdrop-blur-sm" />
@@ -107,7 +130,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-lg md:rounded-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[90vh] md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -117,13 +140,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          aria-hidden="true"
         >
           <div className="w-10 h-1 bg-tea-text-sec/20 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border/50">
-          <h2 className="font-serif text-xl text-tea-text">Reserve Your Seat</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border/50 shrink-0">
+          <h2 className="font-serif text-xl text-tea-text">Request Your Seat</h2>
           <button
             onClick={onClose}
             className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
@@ -136,173 +160,164 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {submitted ? (
-            <div className="flex flex-col items-center justify-center py-12 animate-[fadeIn_0.5s_ease-out]">
-              <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6 animate-[scaleIn_0.5s_ease-out]">
-                <Check className="w-8 h-8 text-tea-gold" />
+            <div className="flex flex-col items-center justify-center py-16 animate-[fadeIn_0.5s_ease-out]">
+              <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6">
+                <span className="text-2xl font-serif text-tea-gold">茶</span>
               </div>
-              <h3 className="font-serif text-2xl text-tea-text mb-2">You're In</h3>
-              <p className="text-sm text-tea-text-sec text-center max-w-xs">
-                Your seat has been reserved. Redirecting to your personal event page...
+              <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">Request received.</h3>
+              <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed">
+                We'll be in touch shortly to confirm your seat.
               </p>
-              <div className="mt-6 w-32 h-0.5 bg-tea-border rounded-full overflow-hidden">
-                <div className="h-full bg-tea-gold animate-[fillBar_2s_ease-in-out]" />
-              </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               {/* Full Name */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  Full Name <span className="text-tea-gold">*</span>
+                <label
+                  htmlFor="rsvp-name"
+                  className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2"
+                >
+                  Your name
                 </label>
                 <input
+                  id="rsvp-name"
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => updateField('fullName', e.target.value)}
-                  placeholder="Your name"
+                  placeholder="Your full name"
+                  autoComplete="name"
                   required
                   className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
-              {/* Phone */}
+              {/* Contact Method Toggle + Input */}
               <div>
                 <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  WhatsApp / Phone <span className="text-tea-gold">*</span>
+                  How should we reach you?
                 </label>
-                <input
-                  type="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) => updateField('phoneNumber', e.target.value)}
-                  placeholder="+62 812 3456 7890"
-                  required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  Email <span className="text-tea-text-sec">(for calendar invite)</span>
-                </label>
-                <input
-                  type="email"
-                  value={formData.email || ''}
-                  onChange={(e) => updateField('email', e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                />
-              </div>
-
-              {/* +1 Toggle */}
-              <div className="bg-tea-surface border border-tea-border rounded-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-tea-text font-medium">Bringing a +1?</p>
-                    <p className="text-xs text-tea-text-sec mt-0.5">Reserve a second seat</p>
-                  </div>
+                <div className="flex gap-2 mb-3">
                   <button
                     type="button"
-                    onClick={() => updateField('plusOne', !formData.plusOne)}
-                    className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                      formData.plusOne ? 'bg-tea-gold' : 'bg-tea-text-sec/20'
+                    onClick={() => setContactMethod('whatsapp')}
+                    className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                      formData.contactMethod === 'whatsapp'
+                        ? 'bg-tea-gold text-white'
+                        : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
                     }`}
-                    aria-label="Toggle plus one"
                   >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${
-                        formData.plusOne ? 'translate-x-5' : ''
-                      }`}
-                    />
+                    WhatsApp / Phone
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContactMethod('email')}
+                    className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                      formData.contactMethod === 'email'
+                        ? 'bg-tea-gold text-white'
+                        : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
+                    }`}
+                  >
+                    Email
                   </button>
                 </div>
-                {formData.plusOne && (
-                  <div className="mt-3 animate-[fadeIn_0.3s_ease-out]">
+
+                {formData.contactMethod === 'whatsapp' ? (
+                  <div>
                     <input
-                      type="text"
-                      value={formData.plusOneName || ''}
-                      onChange={(e) => updateField('plusOneName', e.target.value)}
-                      placeholder="Guest's name"
-                      className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                      id="rsvp-phone"
+                      type="tel"
+                      value={formData.phoneNumber ?? ''}
+                      onChange={(e) => updateField('phoneNumber', e.target.value)}
+                      placeholder="0912-345-678"
+                      autoComplete="tel"
+                      required
+                      className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setContactMethod('email')}
+                      className="mt-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
+                    >
+                      Don't have WhatsApp? Use email instead
+                    </button>
                   </div>
+                ) : (
+                  <input
+                    id="rsvp-email"
+                    type="email"
+                    value={formData.email ?? ''}
+                    onChange={(e) => updateField('email', e.target.value)}
+                    placeholder="your@email.com"
+                    autoComplete="email"
+                    required
+                    className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                  />
                 )}
               </div>
 
-              {/* Tea Preference */}
+              {/* Guest Requests */}
               <div>
                 <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-3">
-                  Tea Preference
+                  Bringing anyone?
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {TEA_PREFERENCES.map((pref) => (
-                    <button
-                      key={pref.id}
-                      type="button"
-                      onClick={() =>
-                        updateField(
-                          'teaPreference',
-                          formData.teaPreference === pref.id ? undefined : pref.id
-                        )
-                      }
-                      className={`px-3 py-2.5 rounded-sm text-xs text-left transition-all duration-200 border ${
-                        formData.teaPreference === pref.id
-                          ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-                          : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/20'
-                      }`}
+                <div className="space-y-2">
+                  {(formData.guests ?? []).map((guest, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 animate-[fadeIn_0.25s_ease-out]"
                     >
-                      <span className="mr-1.5">{pref.emoji}</span>
-                      {pref.label}
-                    </button>
+                      <span className="text-xs text-tea-text-sec shrink-0 w-14">
+                        Guest {idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={guest.nameHint}
+                        onChange={(e) => updateGuest(idx, e.target.value)}
+                        placeholder="e.g. my partner"
+                        className="flex-1 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGuest(idx)}
+                        className="p-2 text-tea-text-sec hover:text-red-400 transition-colors"
+                        aria-label={`Remove guest ${idx + 1}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Bringing tea? */}
-              <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  Bringing tea to share? <span className="text-tea-text-sec">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.bringingTea || ''}
-                  onChange={(e) => updateField('bringingTea', e.target.value)}
-                  placeholder="e.g. 2005 Aged Oolong from Nantou"
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                />
-              </div>
-
-              {/* Photo consent */}
-              <div className="flex items-start gap-3 bg-tea-surface border border-tea-border rounded-md p-4">
-                <button
-                  type="button"
-                  onClick={() => updateField('photoConsent', !formData.photoConsent)}
-                  className={`mt-0.5 w-5 h-5 rounded-sm border shrink-0 flex items-center justify-center transition-all duration-200 ${
-                    formData.photoConsent
-                      ? 'bg-tea-gold border-tea-gold'
-                      : 'border-tea-border hover:border-tea-gold/40'
-                  }`}
-                  aria-label="Toggle photo consent"
-                >
-                  {formData.photoConsent && <Check className="w-3 h-3 text-white" />}
-                </button>
-                <div>
-                  <p className="text-sm text-tea-text">I'm okay with photos being shared</p>
-                  <p className="text-xs text-tea-text-sec mt-0.5">Photos may be posted on social media or our website</p>
-                </div>
+                {(formData.guests ?? []).length < 3 && (
+                  <button
+                    type="button"
+                    onClick={addGuest}
+                    className="mt-3 flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors py-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {(formData.guests ?? []).length === 0
+                      ? 'Add a guest'
+                      : 'Add another guest'}
+                  </button>
+                )}
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  Notes <span className="text-tea-text-sec">(optional)</span>
+                <label
+                  htmlFor="rsvp-notes"
+                  className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2"
+                >
+                  Anything we should know?{' '}
+                  <span className="normal-case tracking-normal text-tea-text-sec/70">(optional)</span>
                 </label>
                 <textarea
-                  value={formData.notes || ''}
+                  id="rsvp-notes"
+                  value={formData.notes ?? ''}
                   onChange={(e) => updateField('notes', e.target.value)}
-                  placeholder="Anything we should know? Dietary restrictions, allergies..."
+                  placeholder="Dietary restrictions, questions, anything…"
                   rows={3}
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
                 />
               </div>
 
@@ -322,12 +337,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 className="w-full py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
               >
                 {submitMutation.isPending ? (
-                  <span className="inline-block w-4 h-4 border-2 border-tea-gold/30 border-t-tea-gold rounded-full animate-spin" />
+                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Confirm My Seat
-                  </>
+                  'Request My Seat'
                 )}
               </button>
             </form>
@@ -339,14 +351,6 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
         @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-          from { transform: scale(0.5); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes fillBar {
-          from { width: 0; }
-          to { width: 100%; }
         }
       `}</style>
     </div>

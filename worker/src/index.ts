@@ -1949,14 +1949,25 @@ const handleRSVP: Handler = async (request, env, params) => {
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const body = await request.json() as Record<string, any>;
-  const { full_name, phone_number, email, plus_one, plus_one_name, photo_consent, notes, tea_preference, bringing_tea } = body;
+  const {
+    full_name, phone_number, email,
+    // V2 fields
+    guest_requests, contact_method,
+    // Legacy fields (kept for backwards compat)
+    plus_one, plus_one_name,
+    // Common fields
+    photo_consent, notes, tea_preference, bringing_tea,
+  } = body;
 
-  if (!full_name || !phone_number) return json({ error: 'full_name and phone_number are required' }, 400);
+  if (!full_name) return json({ error: 'full_name is required' }, 400);
+  if (!phone_number && !email) return json({ error: 'phone_number or email is required' }, 400);
 
-  // Check for duplicate
+  // Check for duplicate by phone or email
+  const contactField = phone_number ? 'phone_number' : 'email';
+  const contactValue = phone_number || email;
   const existing = await env.DB.prepare(
-    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND phone_number = ?`
-  ).bind(event.id, phone_number).first();
+    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
+  ).bind(event.id, contactValue).first();
 
   if (existing) {
     return json({
@@ -1967,13 +1978,15 @@ const handleRSVP: Handler = async (request, env, params) => {
     });
   }
 
-  // Golden tier detection
+  // Golden tier detection — match by phone or email
   let accessTier = 'standard';
   let customerId: string | null = null;
 
-  const customer = await env.DB.prepare(
-    `SELECT id, tags FROM customers WHERE phone = ? OR whatsapp = ?`
-  ).bind(phone_number, phone_number).first();
+  const customer = phone_number
+    ? await env.DB.prepare(`SELECT id, tags FROM customers WHERE phone = ? OR whatsapp = ?`).bind(phone_number, phone_number).first()
+    : email
+    ? await env.DB.prepare(`SELECT id, tags FROM customers WHERE email = ?`).bind(email).first()
+    : null;
 
   if (customer) {
     customerId = customer.id as string;
@@ -1983,59 +1996,70 @@ const handleRSVP: Handler = async (request, env, params) => {
         accessTier = 'golden';
       }
     } catch {}
-  }
-
-  // Capacity check
-  const count = await env.DB.prepare(
-    `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-     FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-  ).bind(event.id).first();
-
-  const confirmedTotal = (count?.total as number) || 0;
-  const seatsNeeded = 1 + (plus_one ? 1 : 0);
-  const totalCapacity = event.total_capacity as number;
-
-  let status: string;
-  let waitlistPosition: number | null = null;
-
-  if (accessTier === 'golden' && confirmedTotal + seatsNeeded <= totalCapacity) {
-    status = 'confirmed';
-  } else if (accessTier === 'standard' && confirmedTotal + seatsNeeded <= Math.floor(totalCapacity * 0.8)) {
-    status = 'confirmed';
   } else {
-    status = 'waitlist';
-    const maxPos = await env.DB.prepare(
-      `SELECT COALESCE(MAX(waitlist_position), 0) as max_pos
-       FROM event_attendees WHERE event_id = ? AND status = 'waitlist'`
-    ).bind(event.id).first();
-    waitlistPosition = ((maxPos?.max_pos as number) || 0) + 1;
+    // Auto-create customer record
+    const newCustomerId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO customers (id, name, phone, email, whatsapp, contact_preference)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(
+      newCustomerId,
+      full_name,
+      phone_number || null,
+      email || null,
+      phone_number || null,
+      contact_method || 'whatsapp'
+    ).run();
+    customerId = newCustomerId;
   }
 
+  // V2: all new RSVPs get status 'requested' — admin approves/denies
+  const status = 'requested';
   const magicToken = crypto.randomUUID();
 
-  await env.DB.prepare(
-    `INSERT INTO event_attendees
-       (id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
-        access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea, waitlist_position)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    crypto.randomUUID(),
-    event.id,
-    customerId,
-    full_name,
-    phone_number,
-    email || null,
-    plus_one ? 1 : 0,
-    plus_one_name || null,
-    accessTier,
-    status,
-    magicToken,
-    photo_consent ? 1 : 0,
-    notes || null,
-    tea_preference || null,
-    bringing_tea || null,
-    waitlistPosition
-  ).run();
+  // Normalise guest_requests: accept V2 array or fall back to legacy plus_one
+  let guestRequestsJson: string | null = null;
+  if (Array.isArray(guest_requests) && guest_requests.length > 0) {
+    const normalised = guest_requests.map((g: any) => ({
+      nameHint: g.nameHint || g.name_hint || '',
+      approved: null,
+    }));
+    guestRequestsJson = JSON.stringify(normalised);
+  } else if (plus_one) {
+    guestRequestsJson = JSON.stringify([{ nameHint: plus_one_name || 'guest', approved: null }]);
+  }
+
+  const attendeeId = crypto.randomUUID();
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO event_attendees
+         (id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
+          access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea,
+          guest_requests, contact_method, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      attendeeId,
+      event.id,
+      customerId,
+      full_name,
+      phone_number || null,
+      email || null,
+      plus_one ? 1 : 0,
+      plus_one_name || null,
+      accessTier,
+      status,
+      magicToken,
+      photo_consent ? 1 : 0,
+      notes || null,
+      tea_preference || null,
+      bringing_tea || null,
+      guestRequestsJson,
+      contact_method || 'whatsapp',
+      'direct'
+    ),
+    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId),
+  ]);
 
   return json({
     magic_token: magicToken,
@@ -2071,7 +2095,8 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
-            e.timezone, e.status as event_status, e.session_flow, e.playlist_url, e.slug
+            e.timezone, e.status as event_status, e.session_flow, e.playlist_url, e.slug,
+            e.briefing_cards, e.area_hint, e.mood_hints
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
      WHERE ea.magic_token = ?`
@@ -2079,11 +2104,26 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
-  // Parse session_flow from JSON if present
+  // Parse JSON fields
   let sessionFlow = null;
   if (attendee.session_flow) {
     try { sessionFlow = JSON.parse(attendee.session_flow as string); } catch { sessionFlow = attendee.session_flow; }
   }
+  let briefingCards = null;
+  if (attendee.briefing_cards) {
+    try { briefingCards = JSON.parse(attendee.briefing_cards as string); } catch {}
+  }
+  let moodHints = null;
+  if (attendee.mood_hints) {
+    try { moodHints = JSON.parse(attendee.mood_hints as string); } catch {}
+  }
+  let guestRequests = null;
+  if (attendee.guest_requests) {
+    try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
+  }
+
+  // Address gating: only reveal full address + map to confirmed attendees
+  const isConfirmed = attendee.status === 'confirmed';
 
   // Get revealed tea menu items
   const menu = await env.DB.prepare(
@@ -2093,6 +2133,12 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
      WHERE etm.event_id = ? AND (etm.reveal_date IS NULL OR etm.reveal_date <= datetime('now'))
      ORDER BY etm.brew_order ASC`
   ).bind(attendee.event_id).all();
+
+  // Get guest invites for this attendee
+  const guestInvites = await env.DB.prepare(
+    `SELECT id, invite_token, name_hint, claimed_by_name, status, created_at, claimed_at
+     FROM guest_invites WHERE parent_attendee_id = ?`
+  ).bind(attendee.id).all();
 
   return json({
     attendee: {
@@ -2114,6 +2160,9 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       claim_expires_at: attendee.claim_expires_at,
       attended: attendee.attended,
       created_at: attendee.created_at,
+      guest_requests: guestRequests,
+      contact_method: attendee.contact_method,
+      first_visit_briefed: attendee.first_visit_briefed,
     },
     event: {
       slug: attendee.slug,
@@ -2124,16 +2173,21 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       event_date: attendee.event_date,
       event_end_date: attendee.event_end_date,
       location_name: attendee.location_name,
-      address_text: attendee.address_text,
-      map_link: attendee.map_link,
+      // Full address + map only revealed to confirmed attendees
+      address_text: isConfirmed ? attendee.address_text : null,
+      map_link: isConfirmed ? attendee.map_link : null,
+      area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
-      venue_guide: attendee.venue_guide,
+      venue_guide: isConfirmed ? attendee.venue_guide : null,
       timezone: attendee.timezone,
       status: attendee.event_status,
       session_flow: sessionFlow,
       playlist_url: attendee.playlist_url,
+      briefing_cards: briefingCards,
+      mood_hints: moodHints,
     },
     tea_menu: menu.results,
+    guest_invites: guestInvites.results,
   });
 };
 
@@ -2348,6 +2402,7 @@ const handleGetEvents: Handler = async (request, env) => {
     SELECT e.*,
       COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
+      COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
       COUNT(ea.id) as total_attendees
     FROM events e
     LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.status != 'cancelled'
@@ -2446,7 +2501,36 @@ const handleGetAttendees: Handler = async (request, env, params) => {
      ORDER BY ea.status ASC, ea.created_at ASC`
   ).bind(params.id).all();
 
-  return json(result.results);
+  // Attach journey preview per attendee (sessions_attended + last_attended)
+  const attendeesWithJourney = await Promise.all(
+    (result.results as Record<string, any>[]).map(async (attendee) => {
+      if (!attendee.phone_number && !attendee.email) return attendee;
+      let journeyRow: Record<string, any> | null = null;
+      if (attendee.phone_number) {
+        journeyRow = await env.DB.prepare(
+          `SELECT COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
+           FROM event_attendees ea2
+           JOIN events e ON e.id = ea2.event_id
+           WHERE ea2.phone_number = ? AND ea2.status = 'confirmed' AND ea2.attended = 1`
+        ).bind(attendee.phone_number).first();
+      } else if (attendee.email) {
+        journeyRow = await env.DB.prepare(
+          `SELECT COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
+           FROM event_attendees ea2
+           JOIN events e ON e.id = ea2.event_id
+           WHERE ea2.email = ? AND ea2.status = 'confirmed' AND ea2.attended = 1`
+        ).bind(attendee.email).first();
+      }
+      return {
+        ...attendee,
+        journey_preview: journeyRow
+          ? { sessions_attended: journeyRow.sessions_attended || 0, last_attended: journeyRow.last_attended || null }
+          : { sessions_attended: 0, last_attended: null },
+      };
+    })
+  );
+
+  return json(attendeesWithJourney);
 };
 
 const handleUpdateAttendee: Handler = async (request, env, params) => {
@@ -3173,6 +3257,598 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
+// ── Event System V2 Handlers ──
+
+// PUT /api/admin/attendees/:id/approve
+const handleApproveAttendee: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const attendee = await env.DB.prepare(
+    `SELECT ea.*, e.id as event_id FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.id = ?`
+  ).bind(params.id).first();
+
+  if (!attendee) return json({ error: 'Attendee not found' }, 404);
+
+  const body = await request.json() as { approved_guests?: number; message?: string };
+  const approvedGuests = body.approved_guests ?? 0;
+  const userEmail = getUserEmail(request);
+
+  // Guard against race conditions: only update if still in 'requested' status
+  const updateResult = await env.DB.prepare(
+    `UPDATE event_attendees SET status = 'confirmed' WHERE id = ? AND status = 'requested'`
+  ).bind(params.id).run();
+
+  if (updateResult.meta.changes === 0) {
+    return json({ error: 'Attendee already processed' }, 409);
+  }
+
+  const stmts: D1PreparedStatement[] = [
+    buildActivityLog(
+      env,
+      'attendee_approved',
+      `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
+      userEmail, 'event_attendee', params.id
+    ),
+  ];
+
+  // Create guest_invites rows if approved_guests > 0
+  if (approvedGuests > 0) {
+    let guestRequests: Array<{ nameHint: string; approved: boolean | null }> = [];
+    if (attendee.guest_requests) {
+      try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
+    }
+
+    for (let i = 0; i < approvedGuests; i++) {
+      const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+      const nameHint = guestRequests[i]?.nameHint || null;
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO guest_invites (id, event_id, parent_attendee_id, invite_token, name_hint)
+           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?)`
+        ).bind(attendee.event_id, params.id, inviteToken, nameHint)
+      );
+    }
+  }
+
+  await env.DB.batch(stmts);
+
+  return json({ success: true, status: 'confirmed', approved_guests: approvedGuests });
+};
+
+// PUT /api/admin/attendees/:id/deny
+const handleDenyAttendee: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const attendee = await env.DB.prepare(
+    `SELECT id, full_name FROM event_attendees WHERE id = ?`
+  ).bind(params.id).first();
+
+  if (!attendee) return json({ error: 'Attendee not found' }, 404);
+
+  const body = await request.json() as { message?: string };
+  const userEmail = getUserEmail(request);
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE event_attendees SET status = 'denied', denial_message = ? WHERE id = ?`
+    ).bind(body.message || null, params.id),
+    buildActivityLog(
+      env,
+      'attendee_denied',
+      `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
+      userEmail, 'event_attendee', params.id
+    ),
+  ]);
+
+  return json({ success: true, status: 'denied' });
+};
+
+// PUT /api/admin/attendees/:id/waitlist
+const handleWaitlistAttendee: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const attendee = await env.DB.prepare(
+    `SELECT ea.id, ea.full_name, ea.event_id FROM event_attendees ea WHERE ea.id = ?`
+  ).bind(params.id).first();
+
+  if (!attendee) return json({ error: 'Attendee not found' }, 404);
+
+  // Find next waitlist position
+  const posRow = await env.DB.prepare(
+    `SELECT COALESCE(MAX(waitlist_position), 0) + 1 as next_pos
+     FROM event_attendees WHERE event_id = ? AND status = 'waitlist'`
+  ).bind(attendee.event_id).first();
+
+  const waitlistPosition = (posRow?.next_pos as number) || 1;
+  const userEmail = getUserEmail(request);
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE event_attendees SET status = 'waitlist', waitlist_position = ? WHERE id = ?`
+    ).bind(waitlistPosition, params.id),
+    buildActivityLog(
+      env,
+      'attendee_waitlisted',
+      `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
+      userEmail, 'event_attendee', params.id
+    ),
+  ]);
+
+  return json({ success: true, status: 'waitlist', waitlist_position: waitlistPosition });
+};
+
+// POST /api/admin/events/:id/approve-batch
+const handleApproveBatch: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as {
+    attendee_ids: string[];
+    approved_guests_map?: Record<string, number>;
+  };
+
+  if (!Array.isArray(body.attendee_ids) || body.attendee_ids.length === 0) {
+    return json({ error: 'attendee_ids must be a non-empty array' }, 400);
+  }
+
+  const approvedGuestsMap = body.approved_guests_map || {};
+  const userEmail = getUserEmail(request);
+  const stmts: D1PreparedStatement[] = [];
+
+  for (const attendeeId of body.attendee_ids) {
+    const attendee = await env.DB.prepare(
+      `SELECT id, full_name, guest_requests FROM event_attendees WHERE id = ? AND event_id = ?`
+    ).bind(attendeeId, params.id).first();
+
+    if (!attendee) continue;
+
+    stmts.push(
+      env.DB.prepare(
+        `UPDATE event_attendees SET status = 'confirmed' WHERE id = ?`
+      ).bind(attendeeId)
+    );
+
+    stmts.push(
+      buildActivityLog(
+        env,
+        'attendee_approved',
+        `Batch approved ${attendee.full_name}`,
+        userEmail, 'event_attendee', attendeeId
+      )
+    );
+
+    const approvedGuests = approvedGuestsMap[attendeeId] ?? 0;
+    if (approvedGuests > 0) {
+      let guestRequests: Array<{ nameHint: string; approved: boolean | null }> = [];
+      if (attendee.guest_requests) {
+        try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
+      }
+      for (let i = 0; i < approvedGuests; i++) {
+        const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+        const nameHint = guestRequests[i]?.nameHint || null;
+        stmts.push(
+          env.DB.prepare(
+            `INSERT INTO guest_invites (id, event_id, parent_attendee_id, invite_token, name_hint)
+             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?)`
+          ).bind(params.id, attendeeId, inviteToken, nameHint)
+        );
+      }
+    }
+  }
+
+  if (stmts.length > 0) {
+    await env.DB.batch(stmts);
+  }
+
+  return json({ success: true, approved_count: body.attendee_ids.length });
+};
+
+// GET /api/admin/events/:id/share
+const handleGetEventShareMessages: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const event = await env.DB.prepare(
+    `SELECT id, slug, title, event_date, area_hint, flyer_image_url FROM events WHERE id = ?`
+  ).bind(params.id).first();
+
+  if (!event) return json({ error: 'Event not found' }, 404);
+
+  let eventDate = 'Date TBD';
+  if (event.event_date) {
+    const parsedDate = new Date(event.event_date as string);
+    if (!isNaN(parsedDate.getTime())) {
+      eventDate = parsedDate.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      });
+    }
+  }
+
+  const eventUrl = `https://teajia.co/e/${event.slug}`;
+  const areaHint = event.area_hint || 'Taipei';
+
+  const whatsappText =
+    `*${event.title}*\n${eventDate}\n${areaHint}\n\nRequest your seat: ${eventUrl}`;
+
+  const emailSubject = event.title as string;
+
+  const emailHtml = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+  <tr><td align="center" style="padding-bottom:32px">
+    ${event.flyer_image_url ? `<img src="${event.flyer_image_url}" width="420" style="border-radius:8px;max-width:100%;display:block" alt="${event.title}">` : ''}
+  </td></tr>
+  <tr><td style="padding-bottom:8px">
+    <p style="margin:0;font-size:24px;letter-spacing:-0.02em;color:#1a1410">${event.title}</p>
+  </td></tr>
+  <tr><td style="padding-bottom:24px">
+    <p style="margin:0;font-size:13px;letter-spacing:0.05em;text-transform:uppercase;color:#7a6955">${eventDate} &bull; ${areaHint}</p>
+  </td></tr>
+  <tr><td style="padding-bottom:40px">
+    <a href="${eventUrl}" style="display:inline-block;padding:14px 32px;background:#1a1410;color:#f5f0eb;text-decoration:none;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;border-radius:2px">Request Your Seat</a>
+  </td></tr>
+</table>
+</body>
+</html>`;
+
+  return json({
+    whatsapp_text: whatsappText,
+    email_subject: emailSubject,
+    email_html: emailHtml,
+    event_url: eventUrl,
+  });
+};
+
+// POST /api/guest-invite/:token/claim
+const handleClaimGuestInvite: Handler = async (request, env, params) => {
+  const invite = await env.DB.prepare(
+    `SELECT gi.*, e.id as event_id, e.title as event_title
+     FROM guest_invites gi
+     JOIN events e ON e.id = gi.event_id
+     WHERE gi.invite_token = ?`
+  ).bind(params.token).first();
+
+  if (!invite) return json({ error: 'Invite not found' }, 404);
+  if (invite.status !== 'pending') {
+    return json({ error: `Invite already ${invite.status}` }, 409);
+  }
+
+  const body = await request.json() as { name: string; phone?: string; email?: string };
+  if (!body.name) return json({ error: 'name is required' }, 400);
+  if (!body.phone && !body.email) return json({ error: 'phone or email is required' }, 400);
+
+  const magicToken = crypto.randomUUID();
+  const newAttendeeId = crypto.randomUUID();
+  const contactMethod = body.phone ? 'whatsapp' : 'email';
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO event_attendees
+         (id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
+       VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
+    ).bind(
+      newAttendeeId,
+      invite.event_id,
+      body.name,
+      body.phone || null,
+      body.email || null,
+      contactMethod,
+      magicToken
+    ),
+    env.DB.prepare(
+      `UPDATE guest_invites
+       SET status = 'claimed', claimed_by_name = ?, claimed_by_phone = ?, claimed_by_email = ?,
+           claimed_attendee_id = ?, claimed_at = datetime('now')
+       WHERE invite_token = ?`
+    ).bind(
+      body.name,
+      body.phone || null,
+      body.email || null,
+      newAttendeeId,
+      params.token
+    ),
+    buildActivityLog(
+      env,
+      'guest_invite_claimed',
+      `${body.name} claimed guest invite for event ${invite.event_title}`,
+      null, 'event_attendee', newAttendeeId
+    ),
+  ]);
+
+  return json({ magic_token: magicToken, redirect_url: `/m/${magicToken}` }, 201);
+};
+
+// GET /api/guest-invite/:token
+const handleGetGuestInvite: Handler = async (_request, env, params) => {
+  const invite = await env.DB.prepare(
+    `SELECT gi.id, gi.invite_token, gi.name_hint, gi.status, gi.created_at, gi.claimed_at,
+            gi.claimed_by_name,
+            e.title as event_title, e.event_date, e.area_hint, e.flyer_image_url, e.slug as event_slug
+     FROM guest_invites gi
+     JOIN events e ON e.id = gi.event_id
+     WHERE gi.invite_token = ?`
+  ).bind(params.token).first();
+
+  if (!invite) return json({ error: 'Invite not found' }, 404);
+
+  return json(invite);
+};
+
+// POST /api/events/:slug/interest
+const handleEventInterest: Handler = async (request, env, params) => {
+  const event = await env.DB.prepare(
+    `SELECT id FROM events WHERE slug = ?`
+  ).bind(params.slug).first();
+
+  if (!event) return json({ error: 'Event not found' }, 404);
+
+  const body = await request.json() as { name?: string; phone?: string; email?: string };
+  const name = body.name?.trim() || '';
+  const phone = body.phone?.trim() || '';
+  const email = body.email?.trim() || '';
+
+  if (!name && !phone && !email) {
+    return json({ error: 'At least one of name, phone, or email is required' }, 400);
+  }
+
+  // Try to match existing customer
+  let customerId: string | null = null;
+  if (phone) {
+    const c = await env.DB.prepare(`SELECT id FROM customers WHERE phone = ? OR whatsapp = ?`)
+      .bind(phone, phone).first();
+    if (c) customerId = c.id as string;
+  } else if (email) {
+    const c = await env.DB.prepare(`SELECT id FROM customers WHERE email = ?`).bind(email).first();
+    if (c) customerId = c.id as string;
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO interest_signups (id, event_id, customer_id, name, phone, email)
+     VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
+  ).bind(event.id, customerId, name || null, phone || null, email || null).run();
+
+  return json({ success: true }, 201);
+};
+
+// POST /api/verify/request
+const handleVerifyRequest: Handler = async (request, env) => {
+  const body = await request.json() as { contact: string; method: 'whatsapp' | 'email' };
+  if (!body.contact) return json({ error: 'contact is required' }, 400);
+  if (!body.method || !['whatsapp', 'email'].includes(body.method)) {
+    return json({ error: 'method must be whatsapp or email' }, 400);
+  }
+
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+
+  // Find or create customer by contact
+  const isEmail = body.method === 'email';
+  const existingCustomer = isEmail
+    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ?`).bind(body.contact).first()
+    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE phone = ? OR whatsapp = ?`)
+        .bind(body.contact, body.contact).first();
+
+  // Rate limit: if a non-expired code was issued less than 60 seconds ago, reject
+  if (existingCustomer && existingCustomer.verification_code && existingCustomer.verification_expires) {
+    const expiresAt = new Date(existingCustomer.verification_expires as string);
+    const now = new Date();
+    if (expiresAt > now) {
+      // Code expires in at most 10 minutes from creation; if more than 9 minutes remain, it was issued < 60s ago
+      const msRemaining = expiresAt.getTime() - now.getTime();
+      if (msRemaining > 9 * 60 * 1000) {
+        return json({ error: 'Please wait before requesting another code' }, 429);
+      }
+    }
+  }
+
+  if (existingCustomer) {
+    await env.DB.prepare(
+      `UPDATE customers SET verification_code = ?, verification_expires = ? WHERE id = ?`
+    ).bind(code, expires, existingCustomer.id).run();
+  } else {
+    const newId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO customers (id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      newId,
+      null,
+      isEmail ? null : body.contact,
+      isEmail ? body.contact : null,
+      isEmail ? null : body.contact,
+      body.method,
+      code,
+      expires
+    ).run();
+  }
+
+  // NOTE: Actual WhatsApp/email delivery is not yet implemented.
+  // Return code in response for now — remove before production.
+  return json({ success: true, code, expires, _note: 'Delivery not yet implemented — code returned for development' });
+};
+
+// POST /api/verify/confirm
+const handleVerifyConfirm: Handler = async (request, env) => {
+  const body = await request.json() as { contact: string; code: string };
+  if (!body.contact || !body.code) return json({ error: 'contact and code are required' }, 400);
+
+  const customer = await env.DB.prepare(
+    `SELECT id, name, phone, email, verification_code, verification_expires
+     FROM customers WHERE phone = ? OR whatsapp = ? OR email = ?`
+  ).bind(body.contact, body.contact, body.contact).first();
+
+  if (!customer) return json({ error: 'No account found for this contact' }, 404);
+
+  const expires = customer.verification_expires ? new Date(customer.verification_expires as string) : null;
+  if (!expires || expires <= new Date()) {
+    return json({ error: 'Verification code has expired' }, 401);
+  }
+
+  // Parse attempt-prefixed code: stored as "N:123456" where N is fail count, or plain "123456"
+  const storedRaw = (customer.verification_code as string) || '';
+  let failCount = 0;
+  let storedCode = storedRaw;
+  const prefixMatch = storedRaw.match(/^(\d+):(.+)$/);
+  if (prefixMatch) {
+    failCount = parseInt(prefixMatch[1], 10);
+    storedCode = prefixMatch[2];
+  }
+
+  if (storedCode !== body.code) {
+    failCount += 1;
+    if (failCount >= 3) {
+      // Invalidate the code after 3 failed attempts
+      await env.DB.prepare(
+        `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
+      ).bind(customer.id).run();
+      return json({ error: 'Too many attempts. Please request a new code.' }, 429);
+    }
+    // Store incremented fail count back
+    await env.DB.prepare(
+      `UPDATE customers SET verification_code = ? WHERE id = ?`
+    ).bind(`${failCount}:${storedCode}`, customer.id).run();
+    return json({ error: 'Invalid verification code' }, 401);
+  }
+
+  // Clear the code after successful verify
+  await env.DB.prepare(
+    `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
+  ).bind(customer.id).run();
+
+  // Fetch all magic tokens for this customer's event attendees
+  const attendees = await env.DB.prepare(
+    `SELECT ea.magic_token, ea.status, ea.event_id, e.title as event_title, e.event_date
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.phone_number = ? OR ea.email = ?
+     ORDER BY e.event_date DESC`
+  ).bind(body.contact, body.contact).all();
+
+  return json({
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+    },
+    attendances: attendees.results,
+  });
+};
+
+// GET /api/journey/:phone
+const handleGetJourney: Handler = async (request, env, params) => {
+  const phone = decodeURIComponent(params.phone);
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+
+  if (!token) {
+    return json({ error: 'token is required' }, 401);
+  }
+
+  // Verify the token matches a magic_token belonging to this phone number
+  const tokenRow = await env.DB.prepare(
+    `SELECT id FROM event_attendees WHERE magic_token = ? AND phone_number = ?`
+  ).bind(token, phone).first();
+
+  if (!tokenRow) {
+    return json({ error: 'Invalid or expired token' }, 403);
+  }
+
+  const customer = await env.DB.prepare(
+    `SELECT id, name FROM customers WHERE phone = ? OR whatsapp = ?`
+  ).bind(phone, phone).first();
+
+  if (!customer) return json({ error: 'No journey found for this contact' }, 404);
+
+  // All confirmed+attended sessions
+  const sessions = await env.DB.prepare(
+    `SELECT ea.id as attendee_id, ea.event_id, e.title, e.event_date, e.flyer_image_url
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.phone_number = ? AND ea.status = 'confirmed' AND ea.attended = 1
+     ORDER BY e.event_date ASC`
+  ).bind(phone).all();
+
+  const sessionsAttended = sessions.results.length;
+  const seals = (sessions.results as Record<string, any>[]).map(s => ({
+    event_id: s.event_id,
+    title: s.title,
+    date: s.event_date,
+    flyer_url: s.flyer_image_url || null,
+  }));
+
+  // Tasting notes across all sessions
+  const eventIds = (sessions.results as Record<string, any>[]).map(s => s.event_id);
+  let teaTypeMap: Record<string, number> = {};
+  let favorites: string[] = [];
+  let impressions: Array<{ text: string; tea_name: string; event_title: string; date: string }> = [];
+  let totalTeas = 0;
+
+  if (eventIds.length > 0) {
+    // Fetch tasting notes for this attendee across all events
+    const attendeeIds = (sessions.results as Record<string, any>[]).map(s => s.attendee_id);
+    const placeholders = attendeeIds.map(() => '?').join(', ');
+
+    const notes = await env.DB.prepare(
+      `SELECT etn.impression, etn.is_favorite, etn.tea_menu_id,
+              etm.custom_name, p.given_name, p.product_name, p.type,
+              e.title as event_title, e.event_date
+       FROM event_tasting_notes etn
+       LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
+       LEFT JOIN products p ON p.id = etm.product_id
+       JOIN event_attendees ea ON ea.id = etn.attendee_id
+       JOIN events e ON e.id = ea.event_id
+       WHERE etn.attendee_id IN (${placeholders})`
+    ).bind(...attendeeIds).all();
+
+    totalTeas = notes.results.length;
+
+    for (const n of notes.results as Record<string, any>[]) {
+      const teaType = n.type as string | null;
+      if (teaType) {
+        teaTypeMap[teaType] = (teaTypeMap[teaType] || 0) + 1;
+      }
+      if (n.is_favorite) {
+        const teaName = n.custom_name || n.given_name || n.product_name || 'Unknown tea';
+        favorites.push(teaName);
+      }
+      if (n.impression) {
+        impressions.push({
+          text: n.impression,
+          tea_name: n.custom_name || n.given_name || n.product_name || 'Unknown tea',
+          event_title: n.event_title,
+          date: n.event_date,
+        });
+      }
+    }
+  }
+
+  // Compute milestones based on sessions attended
+  const milestoneMarks: Record<number, string> = { 1: '初', 3: '三', 5: '五', 7: '七', 10: '十', 20: '廿', 50: '半百' };
+  const milestones = Object.entries(milestoneMarks)
+    .filter(([count]) => sessionsAttended >= parseInt(count))
+    .map(([, mark]) => mark);
+
+  return json({
+    customer: { id: customer.id, name: customer.name },
+    sessions_attended: sessionsAttended,
+    total_teas: totalTeas,
+    tea_type_map: teaTypeMap,
+    favorites,
+    impressions,
+    milestones,
+    seals,
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -3251,6 +3927,18 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/events/:slug/rsvp', handleRSVP],
   ['GET', '/api/events/:slug/availability', handleGetEventAvailability],
   ['POST', '/api/events/:slug/find-rsvp', handleFindRSVP],
+  ['POST', '/api/events/:slug/interest', handleEventInterest],
+
+  // Guest Invites — Public
+  ['GET', '/api/guest-invite/:token', handleGetGuestInvite],
+  ['POST', '/api/guest-invite/:token/claim', handleClaimGuestInvite],
+
+  // Verification — Public
+  ['POST', '/api/verify/request', handleVerifyRequest],
+  ['POST', '/api/verify/confirm', handleVerifyConfirm],
+
+  // Journey — Public
+  ['GET', '/api/journey/:phone', handleGetJourney],
 
   // RSVP — Token-based (public)
   ['GET', '/api/rsvp/:token', handleGetRSVP],
@@ -3283,6 +3971,13 @@ const routes: [string, string, Handler][] = [
 
   // Admin — Attendees (direct by ID)
   ['PUT', '/api/admin/attendees/:id', handleUpdateAttendee],
+  ['PUT', '/api/admin/attendees/:id/approve', handleApproveAttendee],
+  ['PUT', '/api/admin/attendees/:id/deny', handleDenyAttendee],
+  ['PUT', '/api/admin/attendees/:id/waitlist', handleWaitlistAttendee],
+
+  // Admin — Event V2: batch approve + share
+  ['POST', '/api/admin/events/:id/approve-batch', handleApproveBatch],
+  ['GET', '/api/admin/events/:id/share', handleGetEventShareMessages],
 
   // Media Upload
   ['POST', '/api/upload-flyer', handleUploadFlyer],

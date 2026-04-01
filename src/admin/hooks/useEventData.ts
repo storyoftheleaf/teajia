@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote } from '../../types/events';
+import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData } from '../../types/events';
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
@@ -32,10 +32,19 @@ export const useEvents = () => {
         status: e.status || 'draft',
         sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
         playlistUrl: e.playlist_url || undefined,
+        // V2 fields
+        briefingCards: e.briefing_cards
+          ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
+          : undefined,
+        areaHint: e.area_hint || undefined,
+        moodHints: e.mood_hints
+          ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
+          : undefined,
         createdAt: e.created_at,
         updatedAt: e.updated_at,
         confirmedCount: Number(e.confirmed_count) || 0,
         waitlistCount: Number(e.waitlist_count) || 0,
+        requestedCount: Number(e.requested_count) || 0,
         seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
       })) as TeaEvent[];
     },
@@ -74,10 +83,19 @@ export const useEvent = (id: string) => {
         status: e.status || 'draft',
         sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
         playlistUrl: e.playlist_url || undefined,
+        // V2 fields
+        briefingCards: e.briefing_cards
+          ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
+          : undefined,
+        areaHint: e.area_hint || undefined,
+        moodHints: e.mood_hints
+          ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
+          : undefined,
         createdAt: e.created_at,
         updatedAt: e.updated_at,
         confirmedCount: Number(e.confirmed_count) || 0,
         waitlistCount: Number(e.waitlist_count) || 0,
+        requestedCount: Number(e.requested_count) || 0,
         seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
       } as TeaEvent;
     },
@@ -100,6 +118,12 @@ export const useAttendees = (eventId: string) => {
         fullName: a.full_name,
         phoneNumber: a.phone_number,
         email: a.email || undefined,
+        contactMethod: a.contact_method || 'whatsapp',
+        // V2: guest requests (parse JSON; fall back to legacy plus_one)
+        guestRequests: a.guest_requests
+          ? (typeof a.guest_requests === 'string' ? JSON.parse(a.guest_requests) : a.guest_requests)
+          : undefined,
+        // Legacy (kept for backwards compat)
         plusOne: !!a.plus_one,
         plusOneName: a.plus_one_name || undefined,
         accessTier: a.access_tier || 'standard',
@@ -113,6 +137,17 @@ export const useAttendees = (eventId: string) => {
         claimedAt: a.claimed_at || undefined,
         claimExpiresAt: a.claim_expires_at || undefined,
         attended: a.attended != null ? !!a.attended : undefined,
+        // V2 fields
+        firstVisitBriefed: a.first_visit_briefed != null ? !!a.first_visit_briefed : undefined,
+        cancellationNote: a.cancellation_note || undefined,
+        denialMessage: a.denial_message || undefined,
+        source: a.source || undefined,
+        // Computed from customer record
+        sessionsAttended: a.sessions_attended != null ? Number(a.sessions_attended) : undefined,
+        lastAttended: a.last_attended || undefined,
+        favoriteTypes: a.favorite_types
+          ? (typeof a.favorite_types === 'string' ? JSON.parse(a.favorite_types) : a.favorite_types)
+          : undefined,
         createdAt: a.created_at,
       })) as EventAttendee[];
     },
@@ -189,6 +224,57 @@ export const useTastingNotes = (eventId: string) => {
         attendeeName: t.attendee_name || undefined,
         teaName: t.tea_name || undefined,
       })) as TastingNote[];
+    },
+  });
+};
+
+// V2: Fetch guest invites for an event (admin).
+// TODO: A dedicated admin endpoint (e.g. GET /api/events/:id/guest-invites) is needed.
+// The attendees endpoint does NOT return guest_invite_tokens, so this hook returns
+// an empty array until that endpoint is available.
+export const useGuestInvites = (eventId: string) => {
+  return useQuery({
+    queryKey: ['event-guest-invites', eventId],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: !!eventId,
+    queryFn: async (): Promise<GuestInvite[]> => {
+      // Backend does not yet expose guest invites on the attendees endpoint.
+      // Return empty array to avoid crashes until a dedicated endpoint is added.
+      return [];
+    },
+  });
+};
+
+// V2: Fetch admin view of a customer's journey summary
+export const useCustomerJourney = (customerId: string) => {
+  return useQuery({
+    queryKey: ['customer-journey', customerId],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: !!customerId,
+    queryFn: async () => {
+      const data = await api.events.getCustomerJourney(customerId);
+      return {
+        sessionsAttended: Number(data.sessions_attended) || 0,
+        totalTeas: Number(data.total_teas) || 0,
+        teaTypeMap: data.tea_type_map
+          ? (typeof data.tea_type_map === 'string' ? JSON.parse(data.tea_type_map) : data.tea_type_map)
+          : {},
+        favorites: data.favorites
+          ? (typeof data.favorites === 'string' ? JSON.parse(data.favorites) : data.favorites)
+          : [],
+        impressions: data.impressions
+          ? (typeof data.impressions === 'string' ? JSON.parse(data.impressions) : data.impressions)
+          : [],
+        milestones: data.milestones
+          ? (typeof data.milestones === 'string' ? JSON.parse(data.milestones) : data.milestones)
+          : [],
+        seals: data.seals
+          ? (typeof data.seals === 'string' ? JSON.parse(data.seals) : data.seals)
+          : [],
+        memberSince: data.member_since || undefined,
+      } as JourneyData;
     },
   });
 };
