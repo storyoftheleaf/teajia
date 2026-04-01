@@ -741,11 +741,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             type="button"
             onClick={handleCommit}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                       bg-tea-surface/60 text-tea-text-sec text-sm font-medium
-                       hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                       bg-tea-gold/10 text-tea-gold text-sm font-semibold
+                       hover:bg-tea-gold/15 active:bg-tea-gold/20
                        transition-all mt-1"
           >
-            <Check size={15} strokeWidth={2} />
+            <Check size={15} strokeWidth={2.5} />
             Done
           </button>
         )}
@@ -971,11 +971,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           type="button"
           onClick={handleCommit}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                     bg-tea-surface/60 text-tea-text-sec text-sm font-medium
-                     hover:bg-tea-surface hover:text-tea-text active:bg-tea-elevated
+                     bg-tea-gold/10 text-tea-gold text-sm font-semibold
+                     hover:bg-tea-gold/15 active:bg-tea-gold/20
                      transition-all"
         >
-          <Check size={15} strokeWidth={2} />
+          <Check size={15} strokeWidth={2.5} />
           Done
         </button>
       )}

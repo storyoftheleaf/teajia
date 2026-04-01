@@ -587,12 +587,12 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
 
   if (transactions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 animate-[fadeIn_0.3s_ease-out]">
-        <div className="w-16 h-16 rounded-full bg-tea-gold/15 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(184,146,78,0.1)]">
-          <ShoppingBag className="w-7 h-7 text-tea-gold/60" />
+      <div className="flex flex-col items-center justify-center py-14 animate-[fadeIn_0.4s_ease-out]">
+        <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(184,146,78,0.08)]">
+          <ShoppingBag className="w-8 h-8 text-tea-gold/40" />
         </div>
-        <h3 className="font-serif text-lg text-tea-text mb-3">No transactions yet</h3>
-        <p className="text-sm text-tea-text-sec font-serif text-center max-w-[260px] leading-relaxed mb-6">
+        <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No transactions yet</h3>
+        <p className="text-[13px] text-tea-text-sec font-serif text-center max-w-[240px] leading-relaxed mb-8">
           Mark items as "Buy" in the Compass, or start a new purchase or sale here.
         </p>
         <div className="flex flex-col gap-2 w-full max-w-xs">

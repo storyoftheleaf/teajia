@@ -120,19 +120,19 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   if (entries.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 animate-[fadeIn_0.3s_ease-out]">
-        <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-          <CompassIcon className="w-7 h-7 text-tea-gold/40" />
+      <div className="flex flex-col items-center justify-center py-20 animate-[fadeIn_0.4s_ease-out]">
+        <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(184,146,78,0.08)]">
+          <CompassIcon className="w-9 h-9 text-tea-gold/30" />
         </div>
-        <h3 className="font-serif text-lg text-tea-text mb-2">No tea encounters yet</h3>
-        <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed mb-6">
-          Start capturing the teas you taste, want, and buy.
+        <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No tea encounters yet</h3>
+        <p className="text-[13px] text-tea-text-sec text-center max-w-[240px] leading-relaxed mb-8 font-serif">
+          Every tea has a story. Start capturing the ones you taste, want, and buy.
         </p>
         <button
           onClick={onNewCapture}
-          className="px-6 py-2.5 bg-tea-gold text-tea-text text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-[10px] font-bold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
         >
-          Start Capturing
+          Begin
         </button>
       </div>
     );
@@ -150,25 +150,27 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         </div>
       )}
 
-      <div className="space-y-3">
-        <button
-          onClick={onNewCapture}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
-        >
-          <Plus size={14} />
-          New Capture
-        </button>
-
-        <div className="flex gap-1">
-          {groupingOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setBrowseGrouping(opt.value)}
-              className={browseGrouping === opt.value ? 'pill-active' : 'pill'}
-            >
-              {opt.label}
-            </button>
-          ))}
+      <div className="space-y-2.5">
+        {/* Controls row: grouping + filter + new capture */}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 flex-1">
+            {groupingOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setBrowseGrouping(opt.value)}
+                className={browseGrouping === opt.value ? 'pill-active' : 'pill'}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={onNewCapture}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors hover:bg-tea-gold/15"
+          >
+            <Plus size={12} />
+            New
+          </button>
         </div>
         <div className="flex gap-1">
           {filterOptions.map((opt) => (
@@ -201,15 +203,15 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
                     else next.add(groupName);
                     return next;
                   })}
-                  className="flex items-center justify-between w-full mb-2 group"
+                  className="flex items-center justify-between w-full mb-2.5 group"
                 >
-                  <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-tea-text-sec group-hover:text-tea-gold transition-colors">
-                    <Store size={11} />
+                  <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium group-hover:text-tea-gold transition-colors">
+                    <Store size={12} className="text-tea-gold/50" />
                     {groupName}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-tea-text-sec">
-                      {groupEntries.length} {groupEntries.length === 1 ? 'entry' : 'entries'}
+                  <span className="flex items-center gap-2">
+                    <span className="text-[10px] text-tea-text-dim num">
+                      {groupEntries.length}
                     </span>
                     <motion.span
                       animate={{ rotate: vendorExpanded ? 180 : 0 }}
@@ -240,12 +242,12 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
                 </AnimatePresence>
               </>
             ) : (
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
                   {groupName}
                 </span>
-                <span className="text-[10px] text-tea-text-sec">
-                  {groupEntries.length} {groupEntries.length === 1 ? 'entry' : 'entries'}
+                <span className="text-[10px] text-tea-text-dim num">
+                  {groupEntries.length}
                 </span>
               </div>
             )}
