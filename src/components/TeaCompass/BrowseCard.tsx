@@ -314,7 +314,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
             className="overflow-hidden"
           >
             <div className="px-3 py-2 space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-tea-text-sec">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-tea-text-sec">
                 {entry.category === 'teaware' ? 'How many?' : 'How many grams?'}
               </label>
               <div className="flex flex-wrap gap-1.5">
@@ -350,7 +350,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     if (Number(buyAmount) > 0) handleConfirmBuy(Number(buyAmount));
                   }}
                   disabled={!buyAmount || Number(buyAmount) <= 0}
-                  className="px-4 py-1.5 text-xs font-bold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
+                  className="px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
                 >
                   Confirm
                 </button>
