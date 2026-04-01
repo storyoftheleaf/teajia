@@ -700,6 +700,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => { if (externalShowOptions !== undefined) setShowOptionsInternal(externalShowOptions); }, [externalShowOptions]);
   const [showMobileSort, setShowMobileSort] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
+  const [priceMode, setPriceMode] = useState<'retail' | 'cost'>('retail');
 
   // Reset glossary mode when switching categories
   useEffect(() => { setGlossaryMode(false); }, [externalCategory]);
@@ -896,7 +897,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [localProducts, searchQuery, filterType, inventorySortConfig, fuse]);
 
   // Visible columns (filtered by store, adapted to category)
-  const visibleCols = useMemo(() => activeColumnDefs.filter(col => inventoryColumns.includes(col.key)), [inventoryColumns, activeColumnDefs]);
+  const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
+    if (!inventoryColumns.includes(col.key)) return false;
+    // Price mode filtering: retail hides cost columns, cost hides retail column
+    if (priceMode === 'retail' && (col.key === 'costAmount' || col.key === 'costPerGramUSD')) return false;
+    if (priceMode === 'cost' && col.key === 'pricePerGramUSD') return false;
+    return true;
+  }), [inventoryColumns, activeColumnDefs, priceMode]);
   const colCount = visibleCols.length + 1; // +1 for actions column
   const colCountWithBulk = colCount + (isEditMode ? 1 : 0); // +1 for checkbox column in edit mode
 
@@ -1697,8 +1704,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             });
           })()}
 
-          {/* Right controls — sort + options */}
+          {/* Right controls — price toggle + sort + options */}
           <div className="flex items-center gap-0 ml-auto shrink-0 relative">
+            <button
+              onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
+              className={`flex items-center h-7 px-2 rounded-md text-[10px] uppercase tracking-[0.08em] font-semibold transition-colors ${priceMode === 'cost' ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              title={`Showing ${priceMode} prices — tap to switch`}
+            >
+              {priceMode === 'retail' ? 'Retail' : 'Cost'}
+            </button>
             <button
               onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
               className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
@@ -1928,6 +1942,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button onClick={onAddClick} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
                         <Plus size={14} /> New
                     </button>
+
+                    {/* Price Mode Toggle */}
+                    <div className="flex items-center rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setPriceMode('retail')}
+                        className={priceMode === 'retail' ? 'pill-active' : 'pill'}
+                        style={{ borderRadius: '8px 0 0 8px', fontSize: '11px', padding: '4px 10px' }}
+                      >
+                        Retail
+                      </button>
+                      <button
+                        onClick={() => setPriceMode('cost')}
+                        className={priceMode === 'cost' ? 'pill-active' : 'pill'}
+                        style={{ borderRadius: '0 8px 8px 0', fontSize: '11px', padding: '4px 10px' }}
+                      >
+                        Cost
+                      </button>
+                    </div>
 
                     {/* Columns Toggle */}
                     <div className="relative">
@@ -2497,6 +2529,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           className="num text-[13px] text-tea-text font-medium"
                                         />
                                       </div>
+                                      {priceMode === 'retail' ? (
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Retail</span>
                                         <GhostInput
@@ -2507,6 +2540,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           className="num text-[13px] text-tea-text font-medium"
                                         />
                                       </div>
+                                      ) : (
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Cost</span>
                                         <div className="flex items-center gap-1">
@@ -2520,9 +2554,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           <span className="text-[10px] text-tea-text-dim">{product.costCurrency || 'USD'}</span>
                                         </div>
                                       </div>
+                                      )}
                                     </>
                                   ) : (
                                     <>
+                                      {priceMode === 'cost' ? (
+                                      <>
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Batch</span>
                                         <div className="flex items-center gap-1">
@@ -2549,6 +2586,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           <span className="text-[10px] text-tea-text-dim">g</span>
                                         </div>
                                       </div>
+                                      </>
+                                      ) : null}
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Stock</span>
                                         <div className="flex items-center gap-1">
@@ -2562,6 +2601,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           <span className="text-[10px] text-tea-text-dim">g</span>
                                         </div>
                                       </div>
+                                      {priceMode === 'retail' ? (
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Retail/g</span>
                                         <GhostInput
@@ -2572,6 +2612,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           className={`num text-[13px] font-medium ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}
                                         />
                                       </div>
+                                      ) : null}
                                     </>
                                   )}
                                   {/* Recheck stock flag + Taste button */}

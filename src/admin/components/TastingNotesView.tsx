@@ -339,15 +339,15 @@ export const TastingNotesView: React.FC<TastingNotesViewProps> = ({ products, is
                                 return (
                                   <span
                                     key={termId}
-                                    className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold"
+                                    className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold"
                                   >
-                                    <Icon size={10} />
+                                    <Icon size={11} />
                                     {resolveTermLabel(termId)}
                                   </span>
                                 );
                               })}
                               {count > 4 && (
-                                <span className="text-[10px] px-1.5 py-0.5 text-tea-text-dim">
+                                <span className="text-[11px] px-1.5 py-0.5 text-tea-text-dim">
                                   +{count - 4} more
                                 </span>
                               )}

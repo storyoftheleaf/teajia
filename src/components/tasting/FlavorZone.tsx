@@ -144,7 +144,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
               <button
                 type="button"
                 onClick={() => flow.expandGroup(group.label)}
-                className="text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors px-2 py-1 rounded opacity-50 hover:opacity-100 hover:bg-tea-gold/5"
+                className="min-h-[44px] flex items-center justify-center text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors px-2 py-1 rounded opacity-50 hover:opacity-100 hover:bg-tea-gold/5"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 +{group.terms.length - INLINE_PREVIEW_COUNT} more
@@ -314,7 +314,7 @@ const FlavorZoneInner: React.FC<FlavorZoneProps> = ({ flow, teaType, mode }) => 
             type="button"
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowMore(true)}
-            className="flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
+            className="min-h-[44px] flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <Plus size={12} />

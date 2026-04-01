@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, MapPin, Bookmark, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
 import { TeaEvent, EventFormData, EventStatus, VenueGuideStep, SessionFlowItem, SavedLocation } from '../../types/events';
 
@@ -84,7 +85,8 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
     if (!file) return;
     setUploading(true);
     try {
-      const result = await api.events.uploadFlyer(file);
+      const compressed = await compressImage(file);
+      const result = await api.events.uploadFlyer(compressed);
       setFlyerImageUrl(result.url || result);
       showToast('Flyer uploaded', 'success');
     } catch (err: any) {
@@ -297,7 +299,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     if (!file) return;
     setUploading(true);
     try {
-      const result = await api.events.uploadFlyer(file);
+      const compressed = await compressImage(file);
+      const result = await api.events.uploadFlyer(compressed);
       updateField('flyerImageUrl', result.url || result);
       showToast('Image uploaded', 'success');
     } catch (err: any) {
@@ -374,7 +377,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     if (!file) return;
     setVenueStepUploading(idx);
     try {
-      const result = await api.events.uploadFlyer(file);
+      const compressed = await compressImage(file);
+      const result = await api.events.uploadFlyer(compressed);
       updateVenueStep(idx, 'image_url', result.url || result);
       showToast('Photo uploaded', 'success');
     } catch (err: any) {

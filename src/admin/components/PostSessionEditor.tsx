@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Save, Upload, Trash2, Loader2, Music, FileText, Image as ImageIcon, Leaf, X, GripVertical } from 'lucide-react';
 import { api } from '../../lib/api';
+import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { TastingNote } from '../../types/events';
@@ -70,7 +71,8 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     setUploading(true);
     try {
       for (const file of files) {
-        const url = await api.uploadImage(file);
+        const compressed = await compressImage(file);
+        const url = await api.uploadImage(compressed);
         setGallery(prev => [...prev, url]);
       }
       showToast(`${files.length} image${files.length > 1 ? 's' : ''} uploaded`, 'success');

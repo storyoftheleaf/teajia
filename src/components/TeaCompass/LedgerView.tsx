@@ -381,6 +381,38 @@ const TransactionCard: React.FC<{
         // Non-critical — PO exists locally in ledger store
       }
     }
+
+    // Persist sale as invoice to database (fire-and-forget)
+    if (tx.direction === 'sale') {
+      try {
+        const invoiceNumber = `INV-${new Date().getFullYear()}-${tx.id.slice(0, 8).toUpperCase()}`;
+        const lineItems = tx.items
+          .filter(item => item.productId) // Only items linked to inventory products
+          .map(item => ({
+            product_id: item.productId!,
+            quantity: item.priceIsPerGram ? (item.quantityGrams ?? 0) : (item.quantityUnits ?? 1),
+            price_at_sale: item.pricePerUnit,
+          }));
+
+        if (lineItems.length > 0) {
+          await api.invoices.create(
+            {
+              invoice_number: invoiceNumber,
+              customer_name: tx.counterpartyName || 'Unknown',
+              customer_id: tx.counterpartyId || null,
+              display_currency: tx.currency,
+              shipping_cost_usd: 0,
+              status: 'Pending',
+              notes: `Created from ledger transaction ${tx.id}`,
+            },
+            lineItems
+          );
+        }
+        setPoSaved(true);
+      } catch {
+        // Non-critical — sale exists locally in ledger store
+      }
+    }
   }, [tx, confirmTransaction]);
 
   const handleDelete = useCallback(() => {

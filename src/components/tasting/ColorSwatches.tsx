@@ -74,7 +74,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
               aria-label={term.label}
               whileTap={{ scale: 0.9 }}
               onClick={() => handleSelect(term.id)}
-              className="flex flex-col items-center gap-1.5 p-1 cursor-pointer"
+              className="flex flex-col items-center gap-1.5 p-1 cursor-pointer min-h-[44px] min-w-[44px]"
             >
               <motion.div
                 animate={{
@@ -94,7 +94,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
               />
               {/* Label always visible */}
               <span
-                className={`text-[9px] leading-tight text-center transition-colors duration-150 ${
+                className={`text-[11px] leading-tight text-center transition-colors duration-150 ${
                   isSelected ? 'text-tea-gold' : 'text-tea-text-dim'
                 }`}
                 style={{ fontFamily: 'var(--font-body)' }}

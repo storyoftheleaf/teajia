@@ -1,35 +1,19 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { X, Check, ShoppingCart, Leaf, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import type { TastingData, CustomerTasting, InventoryItem } from '../../types';
-import { TastingFlow } from './TastingFlow';
 import { TastingCapture } from './TastingCapture';
 import { useAppStore } from '../../lib/store';
 import {
-  flattenTastingNotes,
   resolveTermLabel,
   resolveTermIcon,
-  LIQUOR_COLORS,
-  TERM_MAP,
-  TASTING_CATEGORY_ORDER,
 } from '../../data/tastingTaxonomy';
-import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 
 interface TastingSessionProps {
   item: InventoryItem;
   onClose: () => void;
   onOrderTea?: (item: InventoryItem) => void;
 }
-
-/** Category display labels */
-const CATEGORY_DISPLAY_LABELS: Record<string, string> = {
-  flavor: 'Flavor',
-  body: 'Body',
-  finish: 'Finish',
-  feeling: 'Feel',
-  'liquor-color': 'Color',
-  brewing: 'Brew',
-};
 
 /** Render 1-5 tea leaf rating */
 const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
@@ -46,23 +30,24 @@ const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
 );
 
 export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, onOrderTea }) => {
-  const { addTasting, tastingJournal } = useAppStore();
+  const { addTasting } = useAppStore();
   const [tastingData, setTastingData] = useState<TastingData>({});
-  const [personalNote, setPersonalNote] = useState('');
+  const [personalNote] = useState('');
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [noteExpanded, setNoteExpanded] = useState(false);
-
-  // Use the new single-page capture for customer mode
-  const useCapture = true;
-
   // Drag-to-dismiss state
   const dragY = useMotionValue(0);
   const modalOpacity = useTransform(dragY, [0, 200], [1, 0.5]);
   const touchStartY = useRef<number | null>(null);
 
-  // Previous tasting for this tea
-  const previousTasting = tastingJournal.find(t => t.teaId === item.id);
+  // Timer ref for save timeout cleanup
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
 
   const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
   const hasCaptureData = tastingData.quality != null || tastingData.cleanliness != null ||
@@ -74,13 +59,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
     if (saveState !== 'idle') return;
     setSaveState('saving');
 
-    // In capture mode, voice note serves as personal note and quality serves as rating
-    const note = useCapture
-      ? (tastingData.voiceNote?.trim() || personalNote.trim() || undefined)
-      : (personalNote.trim() || undefined);
-    const entryRating = useCapture
-      ? (tastingData.quality ?? tastingData.rating)
-      : tastingData.rating;
+    const note = tastingData.voiceNote?.trim() || personalNote.trim() || undefined;
+    const entryRating = tastingData.quality ?? tastingData.rating;
 
     const entry: CustomerTasting = {
       id: crypto.randomUUID(),
@@ -93,24 +73,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
       rating: entryRating,
       createdAt: new Date().toISOString(),
     };
-    addTasting(entry);
+    try {
+      addTasting(entry);
+    } catch {
+      setSaveState('idle');
+      return;
+    }
 
     setSaveState('saved');
-    setTimeout(() => {
+    saveTimerRef.current = setTimeout(() => {
       setPhase('saved');
     }, 400);
-  }, [item, tastingData, personalNote, addTasting, saveState, useCapture]);
-
-  const allNotes = hasNotes ? flattenTastingNotes(tastingData) : [];
-
-  // Group saved notes by category for confirmation view
-  const groupedSavedNotes = TASTING_CATEGORY_ORDER
-    .map(catId => ({
-      categoryId: catId,
-      label: CATEGORY_DISPLAY_LABELS[catId] || catId,
-      terms: tastingData[catId] || [],
-    }))
-    .filter(g => g.terms.length > 0);
+  }, [item, tastingData, personalNote, addTasting, saveState]);
 
   // Drag handle touch handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -123,7 +97,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
   };
   const handleTouchEnd = () => {
     const currentY = dragY.get();
-    if (currentY > 80) {
+    const dismissThreshold = hasNotes ? 200 : 80;
+    if (currentY > dismissThreshold) {
       onClose();
     } else {
       animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
@@ -207,78 +182,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
             >
               {/* Tasting content area */}
               <div className="flex-1 overflow-auto px-5 py-4">
-                {useCapture ? (
-                  <TastingCapture
-                    value={tastingData}
-                    onChange={setTastingData}
-                    teaType={item.type}
-                  />
-                ) : (
-                  <>
-                    {/* Previous tasting comparison */}
-                    {previousTasting && previousTasting.tasting && (
-                      <div className="mb-4 px-3 py-2.5 rounded-lg bg-tea-surface/60">
-                        <div
-                          className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-1.5 font-medium"
-                          style={{ fontFamily: 'var(--font-display)' }}
-                        >
-                          Previous session
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {flattenTastingNotes(previousTasting.tasting).map(termId => (
-                            <span
-                              key={termId}
-                              className="tag"
-                              style={{ opacity: 0.45 }}
-                            >
-                              {resolveTermLabel(termId)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <TastingFlow
-                      mode="customer"
-                      value={tastingData}
-                      onChange={setTastingData}
-                      teaType={item.type}
-                    />
-                  </>
-                )}
+                <TastingCapture
+                  value={tastingData}
+                  onChange={setTastingData}
+                  teaType={item.type}
+                />
               </div>
 
               {/* Sticky bottom bar: save */}
               <div className="px-5 py-3 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
-                {/* Personal note — only in legacy mode (capture mode has voice note built in) */}
-                {!useCapture && (
-                  <div className="mb-3">
-                    {noteExpanded ? (
-                      <textarea
-                        value={personalNote}
-                        onChange={e => setPersonalNote(e.target.value)}
-                        onBlur={() => {
-                          if (!personalNote.trim()) setNoteExpanded(false);
-                        }}
-                        placeholder="How was this session? Any thoughts to remember..."
-                        rows={3}
-                        autoFocus
-                        className="w-full px-3 py-2 bg-tea-bg rounded-lg text-sm text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg resize-none"
-                        style={{ fontFamily: 'var(--font-body)' }}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setNoteExpanded(true)}
-                        className="w-full px-3 py-2 text-left text-sm text-tea-text-dim/60 bg-tea-bg rounded-lg hover:text-tea-text-dim transition-colors truncate"
-                        style={{ fontFamily: 'var(--font-body)' }}
-                      >
-                        {personalNote.trim() || 'Add note...'}
-                      </button>
-                    )}
-                  </div>
-                )}
-
                 {/* Save button with state transitions */}
                 <button
                   onClick={handleSave}
@@ -375,7 +287,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
               </div>
 
               {/* Capture-mode summary */}
-              {useCapture && (tastingData.cleanliness != null || tastingData.patience != null || tastingData.mood || tastingData.huiGan) && (
+              {(tastingData.cleanliness != null || tastingData.patience != null || tastingData.mood || tastingData.huiGan) && (
                 <div className="rounded-xl p-4 mb-4 bg-tea-surface/50 space-y-2">
                   {/* Score row */}
                   <div className="flex gap-4 text-[12px]" style={{ fontFamily: 'var(--font-body)' }}>
@@ -430,43 +342,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                       );
                     })}
                   </div>
-                </div>
-              )}
-
-              {/* Legacy grouped notes (for old-style flow) */}
-              {!useCapture && groupedSavedNotes.length > 0 && (
-                <div className="rounded-xl p-4 mb-4 bg-tea-surface/50 space-y-3">
-                  {groupedSavedNotes.map(group => (
-                    <div key={group.categoryId}>
-                      <div
-                        className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1"
-                        style={{ fontFamily: 'var(--font-display)' }}
-                      >
-                        {group.label}
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {group.terms.map(termId => {
-                          const Icon = resolveTermIcon(termId);
-                          const termInfo = TERM_MAP.get(termId);
-                          const isColor = termInfo?.categoryId === 'liquor-color';
-                          const hex = isColor ? LIQUOR_COLORS[termId] : null;
-                          return (
-                            <span key={termId} className="tag">
-                              {hex ? (
-                                <span
-                                  className="shrink-0 rounded-full"
-                                  style={{ width: 10, height: 10, background: hex, display: 'inline-block' }}
-                                />
-                              ) : (
-                                <Icon size={11} className="shrink-0 text-tea-gold" style={{ opacity: 0.7 }} />
-                              )}
-                              {resolveTermLabel(termId)}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
 

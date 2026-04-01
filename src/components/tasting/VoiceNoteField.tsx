@@ -30,6 +30,7 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
   placeholder = 'How would you describe this tea to a friend?',
 }) => {
   const [recState, setRecState] = useState<RecorderState>('idle');
+  const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -43,6 +44,7 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
   }, []);
 
   const startRecording = useCallback(async () => {
+    setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -76,7 +78,7 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
             onChange(value.trim() + separator + result.text.trim());
           }
         } catch {
-          // Silently fail — the user can type instead
+          setError('Transcription failed. Try typing instead.');
         }
         setRecState('idle');
       };
@@ -85,6 +87,7 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
       setRecState('recording');
     } catch {
       setRecState('idle');
+      setError('Microphone access denied. Try typing instead.');
     }
   }, [value, onChange]);
 
@@ -103,6 +106,7 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
   }, [recState, startRecording, stopRecording]);
 
   return (
+    <>
     <div className="tasting-voice-field">
       <textarea
         value={value}
@@ -141,6 +145,8 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
         )}
       </button>
     </div>
+    {error && <p className="text-[12px] text-red-400 mt-1" style={{ fontFamily: 'var(--font-body)' }}>{error}</p>}
+    </>
   );
 };
 
