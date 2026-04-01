@@ -655,6 +655,59 @@ export const api = {
       });
       return handleResponse(res);
     },
+    // V2: Attendee approval actions
+    approveAttendee: async (id: string, data?: { approved_guests?: number; message?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/attendees/${id}/approve`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data || {}),
+      });
+      return handleResponse(res);
+    },
+    denyAttendee: async (id: string, data?: { message?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/attendees/${id}/deny`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data || {}),
+      });
+      return handleResponse(res);
+    },
+    waitlistAttendee: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/attendees/${id}/waitlist`, {
+        method: 'PUT',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    approveBatch: async (eventId: string, attendeeIds: string[], approvedGuestsMap?: Record<string, number>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/approve-batch`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ attendee_ids: attendeeIds, approved_guests_map: approvedGuestsMap }),
+      });
+      return handleResponse(res);
+    },
+    getShareMessages: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}/share`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getCustomerJourney: async (customerId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/customers/${customerId}/journey`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    // V2: Interest capture
+    registerInterest: async (slug: string, data: { name?: string; phone?: string; email?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/interest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
     // Public endpoints
     getPublic: async (slug: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`);
@@ -777,6 +830,72 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+      return handleResponse(res);
+    },
+    // V2: Cancel with optional note
+    cancel: async (token: string, note?: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled', cancellation_note: note }),
+      });
+      return handleResponse(res);
+    },
+    // V2: Mark first-visit briefing seen
+    markBriefed: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rsvp/${token}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ first_visit_briefed: 1 }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  // V2: Guest invite single-use links
+  guestInvites: {
+    get: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/guest-invite/${token}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return handleResponse(res);
+    },
+    claim: async (token: string, data: { name: string; phone?: string; email?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/guest-invite/${token}/claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  // V2: Verification (quiet account — phone or email, no passwords)
+  verify: {
+    requestCode: async (contact: string, method: 'whatsapp' | 'email') => {
+      const res = await fetchWithTimeout(`${API_URL}/api/verify/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact, method }),
+      });
+      return handleResponse(res);
+    },
+    confirmCode: async (contact: string, code: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/verify/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact, code }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  // V2: Guest journey (tea history, seals, impressions)
+  journey: {
+    get: async (phone: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/journey/${encodeURIComponent(phone)}`, {
+        headers: { 'Content-Type': 'application/json' },
       });
       return handleResponse(res);
     },

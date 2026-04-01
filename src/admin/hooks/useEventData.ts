@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote } from '../../types/events';
+import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData } from '../../types/events';
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
@@ -100,6 +100,12 @@ export const useAttendees = (eventId: string) => {
         fullName: a.full_name,
         phoneNumber: a.phone_number,
         email: a.email || undefined,
+        contactMethod: a.contact_method || 'whatsapp',
+        // V2: guest requests (parse JSON; fall back to legacy plus_one)
+        guestRequests: a.guest_requests
+          ? (typeof a.guest_requests === 'string' ? JSON.parse(a.guest_requests) : a.guest_requests)
+          : undefined,
+        // Legacy (kept for backwards compat)
         plusOne: !!a.plus_one,
         plusOneName: a.plus_one_name || undefined,
         accessTier: a.access_tier || 'standard',
@@ -113,6 +119,17 @@ export const useAttendees = (eventId: string) => {
         claimedAt: a.claimed_at || undefined,
         claimExpiresAt: a.claim_expires_at || undefined,
         attended: a.attended != null ? !!a.attended : undefined,
+        // V2 fields
+        firstVisitBriefed: a.first_visit_briefed != null ? !!a.first_visit_briefed : undefined,
+        cancellationNote: a.cancellation_note || undefined,
+        denialMessage: a.denial_message || undefined,
+        source: a.source || undefined,
+        // Computed from customer record
+        sessionsAttended: a.sessions_attended != null ? Number(a.sessions_attended) : undefined,
+        lastAttended: a.last_attended || undefined,
+        favoriteTypes: a.favorite_types
+          ? (typeof a.favorite_types === 'string' ? JSON.parse(a.favorite_types) : a.favorite_types)
+          : undefined,
         createdAt: a.created_at,
       })) as EventAttendee[];
     },
@@ -189,6 +206,78 @@ export const useTastingNotes = (eventId: string) => {
         attendeeName: t.attendee_name || undefined,
         teaName: t.tea_name || undefined,
       })) as TastingNote[];
+    },
+  });
+};
+
+// V2: Fetch guest invites for an event (admin) — uses the attendees endpoint and
+// extracts the embedded guest_invite_tokens list for each attendee.
+export const useGuestInvites = (eventId: string) => {
+  return useQuery({
+    queryKey: ['event-guest-invites', eventId],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: !!eventId,
+    queryFn: async () => {
+      const data = await api.events.getAttendees(eventId);
+      const invites: GuestInvite[] = [];
+      for (const a of (data || [])) {
+        const tokens: any[] = a.guest_invite_tokens
+          ? (typeof a.guest_invite_tokens === 'string'
+            ? JSON.parse(a.guest_invite_tokens)
+            : a.guest_invite_tokens)
+          : [];
+        for (const t of tokens) {
+          invites.push({
+            id: t.id,
+            eventId: t.event_id || eventId,
+            parentAttendeeId: t.parent_attendee_id || a.id,
+            inviteToken: t.invite_token,
+            nameHint: t.name_hint || undefined,
+            claimedByName: t.claimed_by_name || undefined,
+            claimedByPhone: t.claimed_by_phone || undefined,
+            claimedByEmail: t.claimed_by_email || undefined,
+            claimedAttendeeId: t.claimed_attendee_id || undefined,
+            status: t.status || 'pending',
+            createdAt: t.created_at,
+            claimedAt: t.claimed_at || undefined,
+          });
+        }
+      }
+      return invites;
+    },
+  });
+};
+
+// V2: Fetch admin view of a customer's journey summary
+export const useCustomerJourney = (customerId: string) => {
+  return useQuery({
+    queryKey: ['customer-journey', customerId],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: !!customerId,
+    queryFn: async () => {
+      const data = await api.events.getCustomerJourney(customerId);
+      return {
+        sessionsAttended: Number(data.sessions_attended) || 0,
+        totalTeas: Number(data.total_teas) || 0,
+        teaTypeMap: data.tea_type_map
+          ? (typeof data.tea_type_map === 'string' ? JSON.parse(data.tea_type_map) : data.tea_type_map)
+          : {},
+        favorites: data.favorites
+          ? (typeof data.favorites === 'string' ? JSON.parse(data.favorites) : data.favorites)
+          : [],
+        impressions: data.impressions
+          ? (typeof data.impressions === 'string' ? JSON.parse(data.impressions) : data.impressions)
+          : [],
+        milestones: data.milestones
+          ? (typeof data.milestones === 'string' ? JSON.parse(data.milestones) : data.milestones)
+          : [],
+        seals: data.seals
+          ? (typeof data.seals === 'string' ? JSON.parse(data.seals) : data.seals)
+          : [],
+        memberSince: data.member_since || undefined,
+      } as JourneyData;
     },
   });
 };

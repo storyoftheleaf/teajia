@@ -1,7 +1,14 @@
 export type EventStatus = 'draft' | 'active' | 'closed' | 'archived';
-export type AttendeeStatus = 'confirmed' | 'waitlist' | 'cancelled';
+export type AttendeeStatus = 'requested' | 'confirmed' | 'waitlist' | 'cancelled' | 'denied';
 export type AccessTier = 'standard' | 'golden';
 export type TeaPreference = 'light_floral' | 'rich_roasted' | 'aged_earthy' | 'surprise_me';
+export type ContactMethod = 'whatsapp' | 'email';
+export type GuestInviteStatus = 'pending' | 'claimed' | 'expired';
+export type SessionEnergy = 'intimate_warm' | 'lively' | 'contemplative' | 'exploratory' | 'meditative';
+
+// ============================================================
+// Location
+// ============================================================
 
 export interface SavedLocation {
   id: string;
@@ -27,10 +34,20 @@ export interface VenueGuide {
   arrival_notes?: string;
 }
 
+// ============================================================
+// Event
+// ============================================================
+
 export interface SessionFlowItem {
   title: string;
   description?: string;
   duration_minutes?: number;
+}
+
+export interface BriefingCard {
+  text: string;
+  imageUrl?: string;
+  order: number;
 }
 
 export interface TeaEvent {
@@ -53,11 +70,17 @@ export interface TeaEvent {
   status: EventStatus;
   sessionFlow?: SessionFlowItem[];
   playlistUrl?: string;
+  // V2 fields
+  briefingCards?: BriefingCard[];
+  areaHint?: string;           // General area shown before approval (e.g., "Da'an District, Taipei")
+  moodHints?: string[];        // Pre-session mood hints (optional)
+  interestedList?: InterestSignup[];
   createdAt: string;
   updatedAt: string;
   // Computed fields from API
   confirmedCount?: number;
   waitlistCount?: number;
+  requestedCount?: number;
   seatsRemaining?: number;
 }
 
@@ -68,6 +91,15 @@ export interface EventAvailability {
   isFull: boolean;
 }
 
+// ============================================================
+// Attendee
+// ============================================================
+
+export interface GuestRequest {
+  nameHint: string;           // "my partner", "a friend new to tea"
+  approved: boolean | null;   // null = pending decision
+}
+
 export interface EventAttendee {
   id: string;
   eventId: string;
@@ -75,7 +107,11 @@ export interface EventAttendee {
   fullName: string;
   phoneNumber: string;
   email?: string;
-  plusOne: boolean;
+  contactMethod: ContactMethod;
+  // V2: guest requests (replaces plusOne/plusOneName)
+  guestRequests?: GuestRequest[];
+  // Legacy (kept for backwards compat)
+  plusOne?: boolean;
   plusOneName?: string;
   accessTier: AccessTier;
   status: AttendeeStatus;
@@ -88,8 +124,39 @@ export interface EventAttendee {
   claimedAt?: string;
   claimExpiresAt?: string;
   attended?: boolean;
+  firstVisitBriefed?: boolean;
+  cancellationNote?: string;
+  denialMessage?: string;
+  source?: 'direct' | 'waitlist_notify' | 'public_page' | 'guest_invite';
   createdAt: string;
+  // Computed — from customer record
+  sessionsAttended?: number;
+  lastAttended?: string;
+  favoriteTypes?: string[];
 }
+
+// ============================================================
+// Guest Invites (+guest single-use links)
+// ============================================================
+
+export interface GuestInvite {
+  id: string;
+  eventId: string;
+  parentAttendeeId: string;
+  inviteToken: string;
+  nameHint?: string;
+  claimedByName?: string;
+  claimedByPhone?: string;
+  claimedByEmail?: string;
+  claimedAttendeeId?: string;
+  status: GuestInviteStatus;
+  createdAt: string;
+  claimedAt?: string;
+}
+
+// ============================================================
+// Tea Menu
+// ============================================================
 
 export interface TeaMenuItem {
   id: string;
@@ -105,6 +172,10 @@ export interface TeaMenuItem {
   productImageUrl?: string;
 }
 
+// ============================================================
+// Tasting Notes
+// ============================================================
+
 export interface TastingNote {
   id: string;
   eventId: string;
@@ -119,6 +190,10 @@ export interface TastingNote {
   teaName?: string;
 }
 
+// ============================================================
+// Post-Session
+// ============================================================
+
 export interface EventPostSession {
   id: string;
   eventId: string;
@@ -126,14 +201,22 @@ export interface EventPostSession {
   playlistUrl?: string;
   galleryImages?: string[];
   sessionNotes?: string;
+  // V2 fields
+  hostNotes?: string;
+  energy?: SessionEnergy;
+  hostChanges?: string;
   createdAt: string;
 }
+
+// ============================================================
+// Notifications
+// ============================================================
 
 export interface EventNotification {
   id: string;
   eventId: string;
   attendeeId?: string;
-  type: 'checkin_reminder' | 'waitlist_promotion' | 'spot_claimed' | 'event_update';
+  type: 'checkin_reminder' | 'waitlist_promotion' | 'spot_claimed' | 'event_update' | 'approval' | 'denial';
   messageTemplate?: string;
   status: 'pending' | 'sent' | 'failed';
   createdAt: string;
@@ -141,6 +224,83 @@ export interface EventNotification {
   // Joined
   attendeeName?: string;
 }
+
+// ============================================================
+// Journey (guest-facing tea history)
+// ============================================================
+
+export interface JourneySeal {
+  eventId: string;
+  title: string;
+  date: string;
+  flyerUrl?: string;
+}
+
+export interface JourneyImpression {
+  text: string;
+  teaName: string;
+  eventTitle: string;
+  date: string;
+}
+
+export interface JourneyData {
+  sessionsAttended: number;
+  totalTeas: number;
+  teaTypeMap: Record<string, number>;  // { "Sheng": 4, "Oolong": 3 }
+  favorites: string[];
+  impressions: JourneyImpression[];
+  milestones: string[];                // ['初', '七', etc.]
+  seals: JourneySeal[];
+  memberSince?: string;
+}
+
+// ============================================================
+// Interest / "Notify Me"
+// ============================================================
+
+export interface InterestSignup {
+  phone?: string;
+  name?: string;
+  email?: string;
+  createdAt: string;
+}
+
+// ============================================================
+// Share / Message Helpers
+// ============================================================
+
+export interface ShareMessage {
+  whatsappText: string;
+  emailSubject: string;
+  emailBody: string;
+  eventUrl: string;
+}
+
+export interface ReminderMilestone {
+  key: '3d' | '1d' | '2h';
+  label: string;
+  scheduledAt: string;
+  sent: boolean;
+  messageTemplate: string;
+}
+
+// ============================================================
+// Verification (quiet account)
+// ============================================================
+
+export interface VerifyRequest {
+  contact: string;          // phone or email
+  method: ContactMethod;
+}
+
+export interface VerifyConfirm {
+  contact: string;
+  code: string;
+}
+
+// ============================================================
+// RSVP Response
+// ============================================================
 
 export interface RSVPResponse {
   magicToken: string;
@@ -152,19 +312,21 @@ export interface GuestManagementData {
   event: TeaEvent;
   attendee: EventAttendee;
   teaMenu: TeaMenuItem[];
+  guestInvites?: GuestInvite[];
+  briefingCards?: BriefingCard[];
 }
 
-// Form data types
+// ============================================================
+// Form Data Types
+// ============================================================
+
 export interface RSVPFormData {
   fullName: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   email?: string;
-  plusOne: boolean;
-  plusOneName?: string;
-  photoConsent: boolean;
+  contactMethod: ContactMethod;
+  guests?: { nameHint: string }[];
   notes?: string;
-  teaPreference?: TeaPreference;
-  bringingTea?: string;
 }
 
 export interface EventFormData {
@@ -186,4 +348,15 @@ export interface EventFormData {
   status?: EventStatus;
   sessionFlow?: SessionFlowItem[];
   locationId?: string;
+  // V2 fields
+  briefingCards?: BriefingCard[];
+  areaHint?: string;
+  moodHints?: string[];
+}
+
+export interface ApprovalAction {
+  attendeeId: string;
+  action: 'approve' | 'deny' | 'waitlist';
+  approvedGuests?: number;     // how many of their guest requests to approve
+  message?: string;            // optional note to guest
 }
