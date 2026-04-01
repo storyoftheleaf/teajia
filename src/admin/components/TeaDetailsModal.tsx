@@ -10,7 +10,7 @@ interface TeaDetailsModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (product: Product) => void;
+  onAdd: (product: Product, quantity: number) => void;
   currency: Currency;
   rates: ExchangeRate[];
   onNext?: () => void;
@@ -20,7 +20,7 @@ interface TeaDetailsModalProps {
 }
 
 export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
-  product, isOpen, onClose, currency, rates, onNext, onPrev, isAdmin, onEdit
+  product, isOpen, onClose, onAdd, currency, rates, onNext, onPrev, isAdmin, onEdit
 }) => {
   const [tastingProduct, setTastingProduct] = useState<Product | null>(null);
 
@@ -45,9 +45,8 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   if (!isOpen || !product || !mappedItem) return null;
 
 
-  const handleAddToCart = (_item: any, qty: number, total: number) => {
-    // The AlcoveCard handles its own add-to-cart UI state,
-    // but we still call the parent's onAdd if needed
+  const handleAddToCart = (_item: any, qty: number, _total: number) => {
+    if (product) onAdd(product, qty);
   };
 
   const handleTaste = isAdmin && product ? (_item: InventoryItem) => {
