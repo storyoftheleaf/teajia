@@ -357,7 +357,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
       <button
         type="button"
         onClick={() => setEditing(false)}
-        className="w-full py-2.5 rounded-lg bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.1em] transition-opacity hover:opacity-90"
+        className="w-full py-2.5 rounded-lg bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-90"
       >
         Done
       </button>

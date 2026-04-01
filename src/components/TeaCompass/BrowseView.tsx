@@ -130,7 +130,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         </p>
         <button
           onClick={onNewCapture}
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-[10px] font-bold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
         >
           Begin
         </button>

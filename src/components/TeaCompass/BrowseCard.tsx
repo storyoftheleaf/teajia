@@ -182,7 +182,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
   return (
     <div
       className="bg-tea-surface/40 rounded-lg overflow-hidden space-y-0 relative"
-      style={typeColor ? { borderLeft: `2.5px solid ${typeColor}40` } : undefined}
+      style={typeColor ? { borderLeft: `2.5px solid color-mix(in srgb, ${typeColor} 25%, transparent)` } : undefined}
     >
       {/* Main content area */}
       <div className="flex gap-3 px-3 py-2.5">
@@ -266,11 +266,11 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
       </div>
 
       {/* Compact Taste / Want / Buy row */}
-      <div className="flex items-center border-t border-tea-border/10 divide-x divide-tea-border/10">
+      <div className="flex items-center border-t border-tea-gold/8 gap-px bg-tea-gold/[0.06]">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}
-          className="flex-1 text-[11px] font-semibold text-center py-2 transition-all text-tea-text-sec active:bg-tea-elevated flex items-center justify-center gap-1"
+          className="flex-1 text-[11px] font-semibold text-center py-2 transition-all text-tea-text-sec active:bg-tea-elevated bg-tea-surface/40 flex items-center justify-center gap-1"
         >
           <Droplets size={12} />
           Taste
@@ -281,7 +281,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
           className={`flex-1 text-[11px] font-semibold text-center py-2 transition-all ${
             entry.status === 'want'
               ? 'bg-tea-gold/10 text-tea-gold'
-              : 'text-tea-text-sec active:bg-tea-elevated'
+              : 'text-tea-text-sec active:bg-tea-elevated bg-tea-surface/40'
           }`}
         >
           Want
@@ -296,7 +296,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : showBuyPrompt
                   ? 'bg-tea-gold/10 text-tea-gold'
-                  : 'text-tea-text-sec active:bg-tea-elevated'
+                  : 'text-tea-text-sec active:bg-tea-elevated bg-tea-surface/40'
           }`}
         >
           {entry.status === 'bought' ? 'Bought' : entry.status === 'buying' ? 'Buying' : 'Buy'}
@@ -314,7 +314,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
             className="overflow-hidden"
           >
             <div className="px-3 py-2 space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-tea-text-sec">
+              <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-tea-text-sec">
                 {entry.category === 'teaware' ? 'How many?' : 'How many grams?'}
               </label>
               <div className="flex flex-wrap gap-1.5">
@@ -350,7 +350,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     if (Number(buyAmount) > 0) handleConfirmBuy(Number(buyAmount));
                   }}
                   disabled={!buyAmount || Number(buyAmount) <= 0}
-                  className="px-4 py-1.5 text-xs font-bold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
+                  className="px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
                 >
                   Confirm
                 </button>
@@ -361,7 +361,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
       </AnimatePresence>
 
       {/* Actions row — compact pill strip */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-tea-border/10">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-tea-gold/8">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}

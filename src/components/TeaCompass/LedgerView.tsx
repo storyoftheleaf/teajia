@@ -67,11 +67,11 @@ const LineItemRow: React.FC<{
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
-    <div className="py-3 border-b border-tea-border/15 last:border-b-0">
+    <div className="py-3 border-b border-tea-gold/8 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {item.chineseName && (
-            <p className="text-tea-text text-lg font-serif tracking-wide leading-[1.3]">
+            <p className="text-tea-text text-lg font-chinese tracking-wide leading-[1.3]">
               {item.chineseName}
             </p>
           )}
@@ -473,7 +473,7 @@ const TransactionCard: React.FC<{
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 border-t border-tea-border/20">
+            <div className="px-3 pb-3 border-t border-tea-gold/8">
               {/* Line items */}
               {tx.items.length === 0 ? (
                 <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">No items yet</p>
@@ -493,7 +493,7 @@ const TransactionCard: React.FC<{
 
               {/* Grand total */}
               {tx.items.length > 0 && (
-                <div className="flex items-baseline justify-between pt-3 border-t border-tea-border/15" aria-label="Grand total">
+                <div className="flex items-baseline justify-between pt-3 border-t border-tea-gold/10" aria-label="Grand total">
                   <span className="text-tea-text-sec text-[11px] uppercase tracking-[0.15em]">Total</span>
                   <span className="text-tea-text text-lg font-serif font-semibold num">
                     {fmtPrice(total, tx.currency)}
@@ -699,7 +699,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
       </div>
 
       {/* Quick create buttons */}
-      <div className="flex flex-col gap-2 pt-4 border-t border-tea-border/15">
+      <div className="flex flex-col gap-2 pt-4 border-t border-tea-gold/10">
         <div className="flex gap-2">
           <button
             onClick={() => {
