@@ -1704,8 +1704,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             });
           })()}
 
-          {/* Right controls — sort + options */}
+          {/* Right controls — price toggle + sort + options */}
           <div className="flex items-center gap-0 ml-auto shrink-0 relative">
+            <button
+              onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
+              className={`flex items-center h-7 px-2 rounded-md text-[10px] uppercase tracking-[0.08em] font-semibold transition-colors ${priceMode === 'cost' ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              title={`Showing ${priceMode} prices — tap to switch`}
+            >
+              {priceMode === 'retail' ? 'Retail' : 'Cost'}
+            </button>
             <button
               onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
               className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
