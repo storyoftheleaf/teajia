@@ -71,7 +71,7 @@ const LineItemRow: React.FC<{
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {item.chineseName && (
-            <p className="text-tea-text text-lg font-serif tracking-wide leading-[1.3]">
+            <p className="text-tea-text text-lg font-chinese tracking-wide leading-[1.3]">
               {item.chineseName}
             </p>
           )}
