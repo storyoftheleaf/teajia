@@ -105,7 +105,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                         key={st}
                         type="button"
                         onClick={() => onStorageChange(storage === st ? undefined : st)}
-                        className={storage === st ? 'pill-active' : 'pill'}
+                        className={storage === st ? 'tag-selectable-active' : 'tag-selectable'}
                       >
                         {st}
                       </button>
@@ -139,7 +139,7 @@ export const DetailsRow: React.FC<DetailsRowProps> = ({
                       : 'bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/12'
                   }`}
                 >
-                  <Droplets size={13} strokeWidth={1.5} />
+                  <Droplets size={14} strokeWidth={1.5} />
                   {hasTasting ? 'Edit tasting' : 'Record tasting'}
                 </button>
 

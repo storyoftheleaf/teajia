@@ -280,7 +280,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
           onClick={() => updateEntry(entry.id, { status: entry.status === 'want' ? 'logged' : 'want' })}
           className={`flex-1 text-[11px] font-semibold text-center py-2 transition-all ${
             entry.status === 'want'
-              ? 'bg-amber-500/10 text-amber-400'
+              ? 'bg-tea-gold/10 text-tea-gold'
               : 'text-tea-text-sec active:bg-tea-elevated'
           }`}
         >
@@ -342,7 +342,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
                     }
                   }}
                   placeholder={entry.category === 'teaware' ? 'Units' : 'Grams'}
-                  className="flex-1 bg-tea-surface text-tea-text text-sm rounded-lg px-3 py-1.5 outline-none placeholder-tea-text-dim/50 focus:ring-1 focus:ring-tea-gold/40"
+                  className="flex-1 bg-tea-surface text-tea-text text-sm rounded-lg px-3 py-1.5 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
                   type="button"

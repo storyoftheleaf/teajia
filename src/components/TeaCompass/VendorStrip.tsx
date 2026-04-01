@@ -438,7 +438,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               handleSelectVendor(undefined, val);
             }}
             className="flex-1 bg-transparent text-tea-text-dim text-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none cursor-pointer"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23917a55' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
           >
             <option value="" disabled>Select vendor...</option>
             {recentVendors.length > 0 && (
@@ -528,11 +528,11 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                         href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
+                        className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
                       >
-                        <MapPin size={10} />
+                        <MapPin size={12} />
                         <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
-                        <ExternalLink size={9} />
+                        <ExternalLink size={11} />
                       </a>
                     )}
                   </div>
@@ -541,7 +541,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 {/* Contact fields */}
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <Phone size={11} className="text-tea-text-dim shrink-0" />
+                    <Phone size={14} className="text-tea-text-dim shrink-0" />
                     <input
                       type="tel"
                       value={vendorDetails?.phone || ''}
@@ -551,7 +551,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <MessageCircle size={14} className="text-tea-text-dim shrink-0" />
                     <input
                       type="text"
                       value={vendorDetails?.whatsapp || ''}
@@ -561,7 +561,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <MessageCircle size={14} className="text-tea-text-dim shrink-0" />
                     <input
                       type="text"
                       value={vendorDetails?.wechat || ''}
@@ -571,7 +571,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <MessageCircle size={11} className="text-tea-text-dim shrink-0" />
+                    <MessageCircle size={14} className="text-tea-text-dim shrink-0" />
                     <input
                       type="text"
                       value={vendorDetails?.line || ''}

@@ -62,7 +62,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
 
               {/* Teaware indicator */}
               {entry.category === 'teaware' && !entry.type && (
-                <span className="pill text-[9px] px-1.5 py-0.5 leading-4 shrink-0">
+                <span className="badge-status badge-status-muted text-[9px] shrink-0">
                   Teaware
                 </span>
               )}

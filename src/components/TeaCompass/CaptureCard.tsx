@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Check, Minus, Plus, X } from 'lucide-react';
+import { Camera, Check, Droplets, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -568,7 +568,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         {/* Panel 2: Price + Size */}
         <div className="rounded-lg space-y-1.5">
-          <div className="flex gap-4 items-end">
+          <div className="flex gap-3 items-end">
             {/* Price half */}
             <div className="flex-1 min-w-0">
               <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
@@ -610,7 +610,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 key={c.value}
                 type="button"
                 onClick={() => handleCurrencyChange(c.value)}
-                className={entry.priceCurrency === c.value ? 'pill-active' : 'pill'}
+                className={`${entry.priceCurrency === c.value ? 'tag-selectable-active' : 'tag-selectable'} text-[11px]`}
               >
                 {c.label}
               </button>
@@ -742,6 +742,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onClick={handleCommit}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
                        bg-tea-gold/10 text-tea-gold text-sm font-semibold
+
+
                        hover:bg-tea-gold/15 active:bg-tea-gold/20
                        transition-all mt-1"
           >
@@ -775,7 +777,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-sec/50"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
             onSelect={handleNameAutocompleteSelect}
             itemData={productNameMap}
           />
@@ -842,6 +844,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onPriceChange={(priceAmount) => update({ priceAmount })}
           onCurrencyChange={handleCurrencyChange}
           onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
+          onFormChange={handleFormSelect}
         />
       </div>
 
@@ -853,9 +856,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         onAddedToLedger={onSwitchToLedger}
       />
 
-      {/* ─── LAYER 2: Type, Form, Notes ─── */}
+      {/* ─── LAYER 2: Type, Region, Tasting, Notes ─── */}
           <div className="space-y-3">
-            {/* Panel 3: Type & Form */}
+            {/* Panel 3: Type chip */}
             <div className="rounded-lg">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Type chip */}
@@ -863,7 +866,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
-                  className="pill"
+                  className="tag-selectable"
                   style={entry.type ? {
                     backgroundColor: getTypeChipStyle(entry.type).bg,
                     color: getTypeChipStyle(entry.type).text,
@@ -887,7 +890,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                             key={type}
                             type="button"
                             onClick={() => handleTypeSelect(type)}
-                            className={`${entry.type === type ? 'pill-active' : 'pill'} py-2`}
+                            className={`${entry.type === type ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
                           >
                             {type}
                           </button>
@@ -897,43 +900,40 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   )}
                 </AnimatePresence>
               </div>
-
-              {/* Form chip */}
-              <div className="relative" ref={formPopoverRef}>
-                <button
-                  type="button"
-                  onClick={() => { setFormPopoverOpen(!formPopoverOpen); setTypePopoverOpen(false); }}
-                  className={entry.form ? 'pill-active' : 'pill'}
-                >
-                  {entry.form ? `${entry.form}${entry.pricePerUnitGrams ? ` ${entry.pricePerUnitGrams}g` : ''}` : 'Form'}
-                </button>
-
-                <AnimatePresence>
-                  {formPopoverOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
-                    >
-                      <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '180px' }}>
-                        {TEA_FORMS.map((form) => (
-                          <button
-                            key={form}
-                            type="button"
-                            onClick={() => handleFormSelect(form)}
-                            className={`${entry.form === form ? 'pill-active' : 'pill'} py-2`}
-                          >
-                            {form}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
             </div>
+            </div>
+
+            {/* Region — promoted from details */}
+            <div className="space-y-1">
+              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
+                Region
+              </label>
+              <AutocompleteInput
+                value={entry.originRegion || ''}
+                onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+                suggestions={availableRegions}
+                placeholder="e.g. Alishan, Yiwu..."
+                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/15 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base"
+              />
+            </div>
+
+            {/* Tasting — promoted from details */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={openTastingOverlay}
+                className="tag-selectable flex items-center gap-1.5 text-xs"
+              >
+                <Droplets size={14} strokeWidth={1.5} />
+                {hasTasting ? 'Edit tasting' : 'Record tasting'}
+              </button>
+
+              {hasTasting && entry.tasting && (
+                <TastingProfileStrip
+                  value={entry.tasting}
+                  onRemove={handleTastingStripRemove}
+                />
+              )}
             </div>
 
             {/* Panel 4: Notes */}
@@ -972,6 +972,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onClick={handleCommit}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
                      bg-tea-gold/10 text-tea-gold text-sm font-semibold
+
+
                      hover:bg-tea-gold/15 active:bg-tea-gold/20
                      transition-all"
         >
