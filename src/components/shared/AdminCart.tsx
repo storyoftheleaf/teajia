@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight, FileDown } from 'lucide-react';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
@@ -88,6 +88,8 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [lastInvoice, setLastInvoice] = useState<any>(null);
   const [transactionComplete, setTransactionComplete] = useState(false);
   const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
+
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -194,6 +196,14 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       // Build purchase receipt
       const purchaseRef = `PO-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 
+      // Link vendor to customers table if selected (optional)
+      let vendorId = selectedCustomerId;
+      if (!vendorId && customerName.trim() && allCustomers.length > 0) {
+        // Check for existing vendor by exact name match — don't force creation
+        const exactMatch = allCustomers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
+        if (exactMatch) vendorId = exactMatch.id;
+      }
+
       // Persist purchase order to database
       let poId: string | null = null;
       try {
@@ -201,6 +211,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           po_number: purchaseRef,
           vendor_name: customerName,
           vendor_contact: customerPhone || undefined,
+          vendor_id: vendorId || undefined,
           items_json: JSON.stringify(cart.map(item => ({
             productId: item.productId,
             name: item.product.givenName,
@@ -334,6 +345,57 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     return buildWhatsAppUrl(customerPhone, message);
   };
 
+  // ── PDF generation ─────────────────────────────────────────────────────
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!lastInvoice) return;
+    setPdfLoading(true);
+    try {
+      const { pdf } = await import('@react-pdf/renderer');
+      if (isPurchase) {
+        const { PurchaseOrderPdfDocument } = await import('../../admin/components/PurchaseOrderPdf');
+        const doc = React.createElement(PurchaseOrderPdfDocument, {
+          poNumber: lastInvoice.invoice_number,
+          vendorName: lastInvoice.customer_name,
+          vendorContact: customerPhone || undefined,
+          cart, rates, currency: displayCurrency, shipping: shippingCostUSD,
+        });
+        const blob = await pdf(doc).toBlob();
+        const fileName = `teajia-po-${lastInvoice.customer_name}-${lastInvoice.invoice_number}.pdf`.replace(/\s+/g, '-');
+        if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
+          await navigator.share({ files: [new File([blob], fileName, { type: 'application/pdf' })], title: `Teajia Purchase Order` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = fileName; a.click();
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        const { InvoicePdfDocument } = await import('../../admin/components/InvoicePdf');
+        const doc = React.createElement(InvoicePdfDocument, {
+          invoiceNumber: lastInvoice.invoice_number,
+          customerName: lastInvoice.customer_name,
+          cart, rates, currency: displayCurrency, shipping: shippingCostUSD,
+        });
+        const blob = await pdf(doc).toBlob();
+        const fileName = `teajia-invoice-${lastInvoice.invoice_number}.pdf`.replace(/\s+/g, '-');
+        if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
+          await navigator.share({ files: [new File([blob], fileName, { type: 'application/pdf' })], title: `Teajia Invoice` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = fileName; a.click();
+          URL.revokeObjectURL(url);
+        }
+      }
+    } catch (err) {
+      console.debug('PDF generation failed:', err);
+      showToast('PDF generation failed', 'error');
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [lastInvoice, isPurchase, cart, rates, displayCurrency, shippingCostUSD, customerPhone, showToast]);
+
   // ── Derived ────────────────────────────────────────────────────────────
 
   const subtotalUSD = useMemo(() => cart.reduce((acc, item) => acc + item.quantity * item.priceAtSale, 0), [cart]);
@@ -446,9 +508,13 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   <Share2 size={16} /> Share on WhatsApp
                 </div>
               ) : null}
-              <button onClick={() => window.print()}
-                className="flex w-full bg-tea-bg border border-tea-border text-tea-text py-3 rounded-lg font-medium hover:bg-tea-surface transition-colors items-center justify-center gap-2 text-sm">
-                <Printer size={16} /> {isPurchase ? 'Print Order' : 'Print Receipt'}
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-surface hover:bg-tea-elevated/50 text-tea-text border border-tea-border transition-colors"
+              >
+                {pdfLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+                {pdfLoading ? 'Generating...' : isPurchase ? 'Download PO as PDF' : 'Download Invoice PDF'}
               </button>
               <div className="h-px bg-tea-border my-4" />
               <button onClick={() => { handleStartNewSale(); if (isPurchase) setCartDirection('sale'); }}
