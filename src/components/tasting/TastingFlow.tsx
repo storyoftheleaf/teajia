@@ -212,7 +212,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
       {/* ─── Tab bar ─── */}
       <div className="md:grid md:grid-cols-[180px_1fr] md:gap-0 flex-1 min-h-0">
         <nav
-          className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-1 px-1 py-1.5 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border/20"
+          className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-0.5 px-1 py-1 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border/20 shrink-0"
           role="tablist"
           aria-label="Tasting sections"
         >
@@ -229,10 +229,10 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                 aria-selected={isActive}
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => goToSection(section.id)}
-                className={`relative flex items-center md:w-full gap-2 px-3 py-2.5 md:py-3 min-h-[44px] flex-shrink-0 rounded-lg transition-all duration-200 ${
+                className={`relative flex items-center justify-center md:justify-start md:w-full gap-1.5 md:gap-2 px-2.5 md:px-3 py-2 md:py-3 min-h-[44px] min-w-[56px] flex-shrink-0 rounded-lg transition-all duration-200 ${
                   isActive
                     ? 'text-tea-gold'
-                    : 'text-tea-text-dim hover:text-tea-text-sec'
+                    : 'text-tea-text-dim hover:text-tea-text-sec active:text-tea-text-sec'
                 } ${isPulsing ? 'tasting-tab-pulse' : ''}`}
                 style={{
                   fontFamily: 'var(--font-display)',
@@ -243,8 +243,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                     : 'transparent',
                 }}
               >
-                <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
-                <span className="whitespace-nowrap">{section.label}</span>
+                <Icon size={18} strokeWidth={isActive ? 2 : 1.5} />
+                <span className="whitespace-nowrap text-[13px] md:text-[13px]">{section.label}</span>
 
                 {count > 0 && (
                   <span
@@ -261,7 +261,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
                 {isActive && (
                   <motion.div
                     layoutId="tasting-section-indicator"
-                    className="absolute md:left-0 md:top-1.5 md:bottom-1.5 md:w-[2px] md:h-auto bottom-0 left-3 right-3 h-[2px] md:rounded-r-full rounded-full"
+                    className="absolute md:left-0 md:top-1.5 md:bottom-1.5 md:w-[2px] md:h-auto bottom-0 left-2 right-2 h-[2px] md:rounded-r-full rounded-full"
                     style={{
                       background: 'linear-gradient(180deg, rgb(var(--tea-gold-rgb) / 0.6), rgb(var(--tea-gold-rgb) / 0.3))',
                     }}
@@ -276,7 +276,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
         {/* ─── Section content ─── */}
         <div
           ref={contentRef}
-          className="relative min-h-[280px] md:pl-5 pt-4 md:pt-0 overflow-hidden flex-1"
+          className="relative min-h-[280px] md:pl-5 pt-3 md:pt-0 overflow-x-hidden overflow-y-auto flex-1"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
