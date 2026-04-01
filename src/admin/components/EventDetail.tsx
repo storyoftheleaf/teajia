@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Link2, MessageCircle, Lock, Edit3, Loader2, Users, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, BookOpen, AlarmClock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../../lib/api';
-import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useEvent, useAttendees } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { EventForm } from './EventForm';
@@ -11,16 +10,13 @@ import { AttendeeTable } from './AttendeeTable';
 import { TeaMenuEditor } from './TeaMenuEditor';
 import { NotificationPanel } from './NotificationPanel';
 import { PostSessionEditor } from './PostSessionEditor';
-import { EventStatus } from '../../types/events';
+import { ApprovalCard } from './ApprovalCard';
+import { BriefingCardsEditor } from './BriefingCardsEditor';
+import { ReminderTimeline } from './ReminderTimeline';
+import { ShareSheet } from './ShareSheet';
+import { EventStatus, BriefingCard } from '../../types/events';
 
-type TabKey = 'attendees' | 'tea-menu' | 'notifications' | 'post-session';
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'attendees', label: 'Attendees' },
-  { key: 'tea-menu', label: 'Tea Menu' },
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'post-session', label: 'Post-Session' },
-];
+type TabKey = 'requests' | 'attendees' | 'briefing' | 'reminders' | 'tea-menu' | 'notifications' | 'post-session';
 
 const STATUS_STYLES: Record<EventStatus, string> = {
   draft: 'bg-tea-text-sec/10 text-tea-text-sec',
@@ -43,13 +39,15 @@ export const EventDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { data: event, isLoading, refetch: refetchEvent } = useEvent(id);
-  const { data: attendees = [], refetch: refetchAttendees } = useAttendees(id);
+  const { data: event, isLoading, refetch: refetchEvent } = useEvent(id!);
+  const { data: attendees = [], refetch: refetchAttendees } = useAttendees(id!);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('attendees');
+  const [activeTab, setActiveTab] = useState<TabKey>('requests');
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [closingRsvp, setClosingRsvp] = useState(false);
+  const [savingBriefing, setSavingBriefing] = useState(false);
+  const [briefingCards, setBriefingCards] = useState<BriefingCard[] | null>(null);
 
   if (isLoading || !event) {
     return (
@@ -59,24 +57,16 @@ export const EventDetail: React.FC = () => {
     );
   }
 
+  // Sync local briefing state on first load
+  if (briefingCards === null && event.briefingCards !== undefined) {
+    setBriefingCards(event.briefingCards);
+  }
+  const localBriefingCards = briefingCards ?? event.briefingCards ?? [];
+
   const confirmedCount = attendees.filter(a => a.status === 'confirmed').length;
   const waitlistCount = attendees.filter(a => a.status === 'waitlist').length;
+  const requestedCount = attendees.filter(a => a.status === 'requested').length;
   const capacityPct = event.totalCapacity > 0 ? Math.min((confirmedCount / event.totalCapacity) * 100, 100) : 0;
-
-  const eventUrl = `${window.location.origin}/event/${event.slug}`;
-  const goldenUrl = `${eventUrl}?access=golden`;
-  const whatsappLink = buildWhatsAppUrl('', `You're invited to ${event.title}!\n\n${eventUrl}`);
-
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedLink(label);
-      setTimeout(() => setCopiedLink(null), 2000);
-      showToast(`${label} copied`, 'info');
-    } catch {
-      showToast('Failed to copy', 'error');
-    }
-  };
 
   const handleCloseRsvp = async () => {
     if (!confirm('Close RSVPs for this event? Guests will no longer be able to register.')) return;
@@ -92,6 +82,31 @@ export const EventDetail: React.FC = () => {
     }
   };
 
+  const handleSaveBriefing = async () => {
+    setSavingBriefing(true);
+    try {
+      await api.events.update(event.id, {
+        briefing_cards: JSON.stringify(localBriefingCards),
+      });
+      showToast('Briefing cards saved', 'success');
+      refetchEvent();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save', 'error');
+    } finally {
+      setSavingBriefing(false);
+    }
+  };
+
+  const TABS: { key: TabKey; label: string; badge?: number }[] = [
+    { key: 'requests', label: 'Requests', badge: requestedCount },
+    { key: 'attendees', label: 'Attendees' },
+    { key: 'briefing', label: 'Briefing' },
+    { key: 'reminders', label: 'Reminders' },
+    { key: 'tea-menu', label: 'Tea Menu' },
+    { key: 'notifications', label: 'Notifications' },
+    { key: 'post-session', label: 'Post-Session' },
+  ];
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Back button */}
@@ -102,39 +117,58 @@ export const EventDetail: React.FC = () => {
         <ArrowLeft size={14} /> Back to Events
       </button>
 
-      {/* Header */}
+      {/* Header card */}
       <div className="bg-tea-surface border border-tea-border rounded-md p-5 mb-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h1 className="text-xl font-serif text-tea-text">{event.title}</h1>
               <span className={`text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[event.status]}`}>
                 {event.status}
               </span>
+              {requestedCount > 0 && (
+                <span className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full font-medium">
+                  <Bell size={9} className="shrink-0" />
+                  {requestedCount} pending
+                </span>
+              )}
             </div>
             {event.subtitle && (
               <p className="text-sm text-tea-text-sec mb-2">{event.subtitle}</p>
             )}
-            <div className="flex items-center gap-4 text-xs text-tea-text-sec">
+            <div className="flex items-center gap-4 text-xs text-tea-text-sec flex-wrap">
               <span className="flex items-center gap-1">
                 <Clock size={12} />
                 {formatEventDate(event.eventDate)}
               </span>
-              {event.locationName && (
+              {event.areaHint ? (
+                <span className="flex items-center gap-1">
+                  <MapPin size={12} />
+                  {event.areaHint}
+                </span>
+              ) : event.locationName ? (
                 <span className="flex items-center gap-1">
                   <MapPin size={12} />
                   {event.locationName}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
 
-          <button
-            onClick={() => setIsEditOpen(true)}
-            className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors shrink-0"
-          >
-            <Edit3 size={12} /> Edit Event
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
+            >
+              <Share2 size={12} /> Share
+            </button>
+            <button
+              onClick={() => setIsEditOpen(true)}
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
+            >
+              <Edit3 size={12} /> Edit
+            </button>
+          </div>
         </div>
 
         {/* Capacity bar */}
@@ -147,7 +181,7 @@ export const EventDetail: React.FC = () => {
               />
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs text-tea-text-sec">
+          <div className="flex items-center gap-3 text-xs text-tea-text-sec flex-wrap">
             <span className="flex items-center gap-1">
               <Users size={11} />
               {confirmedCount}/{event.totalCapacity} confirmed
@@ -155,44 +189,14 @@ export const EventDetail: React.FC = () => {
             {waitlistCount > 0 && (
               <span className="text-tea-gold">+{waitlistCount} waitlist</span>
             )}
+            {requestedCount > 0 && (
+              <span className="text-amber-400">+{requestedCount} awaiting approval</span>
+            )}
           </div>
         </div>
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => copyToClipboard(eventUrl, 'Event Link')}
-            className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border transition-colors ${
-              copiedLink === 'Event Link'
-                ? 'border-green-500/30 text-green-400 bg-green-500/5'
-                : 'border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
-            }`}
-          >
-            {copiedLink === 'Event Link' ? <Check size={11} /> : <Link2 size={11} />}
-            Copy Event Link
-          </button>
-
-          <button
-            onClick={() => copyToClipboard(goldenUrl, 'Golden Link')}
-            className={`flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border transition-colors ${
-              copiedLink === 'Golden Link'
-                ? 'border-green-500/30 text-green-400 bg-green-500/5'
-                : 'border-tea-gold/30 text-tea-gold hover:bg-tea-gold/5'
-            }`}
-          >
-            {copiedLink === 'Golden Link' ? <Check size={11} /> : <Copy size={11} />}
-            Copy Golden Link
-          </button>
-
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
-          >
-            <MessageCircle size={11} /> Share via WhatsApp
-          </a>
-
           {event.status === 'active' && (
             <button
               onClick={handleCloseRsvp}
@@ -207,18 +211,27 @@ export const EventDetail: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 border-b border-tea-border mb-6">
+      <div className="flex gap-0.5 border-b border-tea-border mb-6 overflow-x-auto scrollbar-hide">
         {TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px ${
+            className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
               activeTab === tab.key
                 ? 'border-tea-gold text-tea-gold'
                 : 'border-transparent text-tea-text-sec hover:text-tea-text-sec'
             }`}
           >
             {tab.label}
+            {tab.badge !== undefined && tab.badge > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium leading-none ${
+                activeTab === tab.key
+                  ? 'bg-tea-gold/20 text-tea-gold'
+                  : 'bg-amber-500/15 text-amber-400'
+              }`}>
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -230,6 +243,32 @@ export const EventDetail: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
+        {/* ── Requests tab ── */}
+        {activeTab === 'requests' && (
+          <div>
+            {requestedCount === 0 ? (
+              <div className="text-center py-12 text-tea-text-sec text-sm">
+                <Bell className="mx-auto mb-3 text-tea-text-dim" size={24} />
+                <p>No pending requests</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-w-xl">
+                {attendees
+                  .filter(a => a.status === 'requested')
+                  .map(attendee => (
+                    <ApprovalCard
+                      key={attendee.id}
+                      attendee={attendee}
+                      onRefresh={refetchAttendees}
+                    />
+                  ))
+                }
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Attendees tab ── */}
         {activeTab === 'attendees' && (
           <AttendeeTable
             attendees={attendees}
@@ -237,12 +276,49 @@ export const EventDetail: React.FC = () => {
             onRefresh={refetchAttendees}
           />
         )}
+
+        {/* ── Briefing tab ── */}
+        {activeTab === 'briefing' && (
+          <div className="max-w-xl space-y-4">
+            <BriefingCardsEditor
+              cards={localBriefingCards}
+              onChange={setBriefingCards}
+              saving={savingBriefing}
+            />
+            {localBriefingCards.length > 0 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveBriefing}
+                  disabled={savingBriefing}
+                  className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 rounded-md text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                >
+                  {savingBriefing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                  Save Briefing Cards
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Reminders tab ── */}
+        {activeTab === 'reminders' && (
+          <div className="max-w-xl">
+            <ReminderTimeline event={event} />
+          </div>
+        )}
+
+        {/* ── Tea Menu tab ── */}
         {activeTab === 'tea-menu' && (
           <TeaMenuEditor eventId={event.id} />
         )}
+
+        {/* ── Notifications tab ── */}
         {activeTab === 'notifications' && (
           <NotificationPanel eventId={event.id} event={event} />
         )}
+
+        {/* ── Post-Session tab ── */}
         {activeTab === 'post-session' && (
           <PostSessionEditor eventId={event.id} />
         )}
@@ -258,6 +334,15 @@ export const EventDetail: React.FC = () => {
           setIsEditOpen(false);
         }}
       />
+
+      {/* Share Sheet */}
+      {isShareOpen && (
+        <ShareSheet
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          event={event}
+        />
+      )}
     </div>
   );
 };
