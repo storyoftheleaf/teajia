@@ -1707,42 +1707,47 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </button>
             {showMobileSort && (
               <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-              <div className="absolute right-0 top-9 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
-                {[
-                  { key: 'type', label: 'Type' },
-                  { key: 'productName', label: 'Name' },
-                  { key: 'stockGrams', label: 'Stock' },
-                  { key: 'pricePerGramUSD', label: 'Price' },
-                  { key: 'year', label: 'Year' },
-                  { key: 'originRegion', label: 'Origin' },
-                  { key: 'costAmount', label: 'Cost' },
-                  { key: 'vendor', label: 'Source' },
-                ].map(opt => {
-                  const current = inventorySortConfig[0];
-                  const isActive = current?.key === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      onClick={() => {
-                        if (isActive) {
-                          setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
-                        } else {
-                          setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
-                        }
-                        setShowMobileSort(false);
-                      }}
-                      className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-accent' : 'text-tea-text-sec'}`}
-                    >
-                      {opt.label}
-                      {isActive && (
-                        <span className="ml-auto">
-                          {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="fixed inset-0 z-40 bg-tea-text/30" onClick={() => setShowMobileSort(false)} />
+              <div className="fixed left-0 right-0 bottom-[calc(44px+env(safe-area-inset-bottom,0px))] z-50 bg-tea-surface border-t border-tea-border rounded-t-2xl shadow-2xl" role="menu">
+                <div className="w-10 h-1 rounded-full bg-tea-border mx-auto mt-2 mb-1" />
+                <div className="px-4 py-2 text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-semibold">Sort by</div>
+                <div className="grid grid-cols-2 gap-1 px-3 pb-4">
+                  {[
+                    { key: 'type', label: 'Type' },
+                    { key: 'productName', label: 'Name' },
+                    { key: 'stockGrams', label: 'Stock' },
+                    { key: 'pricePerGramUSD', label: 'Price/g' },
+                    { key: 'costAmount', label: 'Cost' },
+                    { key: 'costPerGramUSD', label: 'Cost/g' },
+                    { key: 'year', label: 'Year' },
+                    { key: 'originRegion', label: 'Origin' },
+                    { key: 'vendor', label: 'Source' },
+                  ].map(opt => {
+                    const current = inventorySortConfig[0];
+                    const isActive = current?.key === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          if (isActive) {
+                            setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                          } else {
+                            setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
+                          }
+                          setShowMobileSort(false);
+                        }}
+                        className={`flex items-center justify-between gap-2 px-3 py-3 rounded-xl text-[13px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && (
+                          <span className="flex items-center">
+                            {current.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               </>
             )}
@@ -2569,15 +2574,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                       </div>
                                     </>
                                   )}
-                                  {/* Recheck stock flag */}
+                                  {/* Recheck stock flag + Taste button */}
                                   <div className="col-span-2 flex items-center justify-between gap-2 pt-0.5">
-                                    <button
-                                      onClick={() => handleProductUpdate(product.id, 'recheckStock', !product.recheckStock)}
-                                      className={`flex items-center gap-1.5 text-[11px] transition-colors ${product.recheckStock ? 'text-amber-400' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                                    >
-                                      <span className="text-[12px]">{product.recheckStock ? '⚠' : '☐'}</span>
-                                      <span className="uppercase tracking-[0.06em]">{product.recheckStock ? 'Needs recount' : 'Mark for recount'}</span>
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        onClick={() => handleProductUpdate(product.id, 'recheckStock', !product.recheckStock)}
+                                        className={`flex items-center gap-1.5 text-[11px] transition-colors ${product.recheckStock ? 'text-amber-400' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                                      >
+                                        <span className="text-[12px]">{product.recheckStock ? '⚠' : '☐'}</span>
+                                        <span className="uppercase tracking-[0.06em]">{product.recheckStock ? 'Needs recount' : 'Mark for recount'}</span>
+                                      </button>
+                                      <span className="w-px h-3 bg-tea-border/40" />
+                                      <button
+                                        onClick={() => setTastingEditorProduct(product)}
+                                        className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
+                                      >
+                                        <Sparkles size={12} />
+                                        <span className="uppercase tracking-[0.06em]">Taste</span>
+                                      </button>
+                                    </div>
                                     {product.stockVerifiedAt && (
                                       <span className="text-[10px] text-tea-text-dim">
                                         Verified {new Date(product.stockVerifiedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
