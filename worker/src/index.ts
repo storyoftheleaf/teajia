@@ -3276,10 +3276,16 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   const approvedGuests = body.approved_guests ?? 0;
   const userEmail = getUserEmail(request);
 
+  // Guard against race conditions: only update if still in 'requested' status
+  const updateResult = await env.DB.prepare(
+    `UPDATE event_attendees SET status = 'confirmed' WHERE id = ? AND status = 'requested'`
+  ).bind(params.id).run();
+
+  if (updateResult.meta.changes === 0) {
+    return json({ error: 'Attendee already processed' }, 409);
+  }
+
   const stmts: D1PreparedStatement[] = [
-    env.DB.prepare(
-      `UPDATE event_attendees SET status = 'confirmed' WHERE id = ?`
-    ).bind(params.id),
     buildActivityLog(
       env,
       'attendee_approved',
@@ -3453,11 +3459,15 @@ const handleGetEventShareMessages: Handler = async (request, env, params) => {
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
-  const eventDate = event.event_date
-    ? new Date(event.event_date as string).toLocaleDateString('en-US', {
+  let eventDate = 'Date TBD';
+  if (event.event_date) {
+    const parsedDate = new Date(event.event_date as string);
+    if (!isNaN(parsedDate.getTime())) {
+      eventDate = parsedDate.toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-      })
-    : 'Date TBD';
+      });
+    }
+  }
 
   const eventUrl = `https://teajia.co/e/${event.slug}`;
   const areaHint = event.area_hint || 'Taipei';
@@ -3516,18 +3526,20 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
 
   const magicToken = crypto.randomUUID();
   const newAttendeeId = crypto.randomUUID();
+  const contactMethod = body.phone ? 'whatsapp' : 'email';
 
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO event_attendees
-         (id, event_id, full_name, phone_number, email, status, magic_token, source, access_tier)
-       VALUES (?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
+         (id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
+       VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
     ).bind(
       newAttendeeId,
       invite.event_id,
       body.name,
       body.phone || null,
       body.email || null,
+      contactMethod,
       magicToken
     ),
     env.DB.prepare(
@@ -3578,25 +3590,29 @@ const handleEventInterest: Handler = async (request, env, params) => {
   if (!event) return json({ error: 'Event not found' }, 404);
 
   const body = await request.json() as { name?: string; phone?: string; email?: string };
-  if (!body.name && !body.phone && !body.email) {
+  const name = body.name?.trim() || '';
+  const phone = body.phone?.trim() || '';
+  const email = body.email?.trim() || '';
+
+  if (!name && !phone && !email) {
     return json({ error: 'At least one of name, phone, or email is required' }, 400);
   }
 
   // Try to match existing customer
   let customerId: string | null = null;
-  if (body.phone) {
+  if (phone) {
     const c = await env.DB.prepare(`SELECT id FROM customers WHERE phone = ? OR whatsapp = ?`)
-      .bind(body.phone, body.phone).first();
+      .bind(phone, phone).first();
     if (c) customerId = c.id as string;
-  } else if (body.email) {
-    const c = await env.DB.prepare(`SELECT id FROM customers WHERE email = ?`).bind(body.email).first();
+  } else if (email) {
+    const c = await env.DB.prepare(`SELECT id FROM customers WHERE email = ?`).bind(email).first();
     if (c) customerId = c.id as string;
   }
 
   await env.DB.prepare(
     `INSERT INTO interest_signups (id, event_id, customer_id, name, phone, email)
      VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
-  ).bind(event.id, customerId, body.name || null, body.phone || null, body.email || null).run();
+  ).bind(event.id, customerId, name || null, phone || null, email || null).run();
 
   return json({ success: true }, 201);
 };
@@ -3616,9 +3632,22 @@ const handleVerifyRequest: Handler = async (request, env) => {
   // Find or create customer by contact
   const isEmail = body.method === 'email';
   const existingCustomer = isEmail
-    ? await env.DB.prepare(`SELECT id FROM customers WHERE email = ?`).bind(body.contact).first()
-    : await env.DB.prepare(`SELECT id FROM customers WHERE phone = ? OR whatsapp = ?`)
+    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ?`).bind(body.contact).first()
+    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE phone = ? OR whatsapp = ?`)
         .bind(body.contact, body.contact).first();
+
+  // Rate limit: if a non-expired code was issued less than 60 seconds ago, reject
+  if (existingCustomer && existingCustomer.verification_code && existingCustomer.verification_expires) {
+    const expiresAt = new Date(existingCustomer.verification_expires as string);
+    const now = new Date();
+    if (expiresAt > now) {
+      // Code expires in at most 10 minutes from creation; if more than 9 minutes remain, it was issued < 60s ago
+      const msRemaining = expiresAt.getTime() - now.getTime();
+      if (msRemaining > 9 * 60 * 1000) {
+        return json({ error: 'Please wait before requesting another code' }, 429);
+      }
+    }
+  }
 
   if (existingCustomer) {
     await env.DB.prepare(
@@ -3657,11 +3686,36 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   ).bind(body.contact, body.contact, body.contact).first();
 
   if (!customer) return json({ error: 'No account found for this contact' }, 404);
-  if (customer.verification_code !== body.code) return json({ error: 'Invalid verification code' }, 401);
 
   const expires = customer.verification_expires ? new Date(customer.verification_expires as string) : null;
   if (!expires || expires <= new Date()) {
     return json({ error: 'Verification code has expired' }, 401);
+  }
+
+  // Parse attempt-prefixed code: stored as "N:123456" where N is fail count, or plain "123456"
+  const storedRaw = (customer.verification_code as string) || '';
+  let failCount = 0;
+  let storedCode = storedRaw;
+  const prefixMatch = storedRaw.match(/^(\d+):(.+)$/);
+  if (prefixMatch) {
+    failCount = parseInt(prefixMatch[1], 10);
+    storedCode = prefixMatch[2];
+  }
+
+  if (storedCode !== body.code) {
+    failCount += 1;
+    if (failCount >= 3) {
+      // Invalidate the code after 3 failed attempts
+      await env.DB.prepare(
+        `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
+      ).bind(customer.id).run();
+      return json({ error: 'Too many attempts. Please request a new code.' }, 429);
+    }
+    // Store incremented fail count back
+    await env.DB.prepare(
+      `UPDATE customers SET verification_code = ? WHERE id = ?`
+    ).bind(`${failCount}:${storedCode}`, customer.id).run();
+    return json({ error: 'Invalid verification code' }, 401);
   }
 
   // Clear the code after successful verify
@@ -3692,9 +3746,22 @@ const handleVerifyConfirm: Handler = async (request, env) => {
 // GET /api/journey/:phone
 const handleGetJourney: Handler = async (request, env, params) => {
   const phone = decodeURIComponent(params.phone);
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
 
-  // Require at least a basic identity check — Authorization header or derive from token
-  // For now: open if phone matches a known customer (no auth required per spec)
+  if (!token) {
+    return json({ error: 'token is required' }, 401);
+  }
+
+  // Verify the token matches a magic_token belonging to this phone number
+  const tokenRow = await env.DB.prepare(
+    `SELECT id FROM event_attendees WHERE magic_token = ? AND phone_number = ?`
+  ).bind(token, phone).first();
+
+  if (!tokenRow) {
+    return json({ error: 'Invalid or expired token' }, 403);
+  }
+
   const customer = await env.DB.prepare(
     `SELECT id, name FROM customers WHERE phone = ? OR whatsapp = ?`
   ).bind(phone, phone).first();
