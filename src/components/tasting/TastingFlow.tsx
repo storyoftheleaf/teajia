@@ -215,6 +215,23 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
           className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-0.5 px-1 py-1 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border/20 shrink-0"
           role="tablist"
           aria-label="Tasting sections"
+          onKeyDown={(e) => {
+            const isHorizontal = e.key === 'ArrowLeft' || e.key === 'ArrowRight';
+            const isVertical = e.key === 'ArrowUp' || e.key === 'ArrowDown';
+            if (!isHorizontal && !isVertical) return;
+            e.preventDefault();
+            const goForward = e.key === 'ArrowRight' || e.key === 'ArrowDown';
+            const nextIdx = goForward
+              ? Math.min(activeIdx + 1, sections.length - 1)
+              : Math.max(activeIdx - 1, 0);
+            if (nextIdx !== activeIdx) {
+              goToSection(sections[nextIdx].id);
+              // Move focus to the newly active tab
+              const nav = e.currentTarget;
+              const buttons = nav.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+              buttons[nextIdx]?.focus();
+            }
+          }}
         >
           {sections.map((section) => {
             const isActive = section.id === activeSectionId;
@@ -305,7 +322,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-tea-surface px-4 py-2.5 rounded-lg shadow-lg"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-tea-surface px-4 py-2.5 rounded-lg shadow-lg"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <button

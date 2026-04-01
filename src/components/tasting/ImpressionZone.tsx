@@ -3,19 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Leaf, Flame, Sparkles, Waves } from 'lucide-react';
 import type { TastingData } from '../../types';
 
-/**
- * Extended TastingData with impression fields.
- * These fields will be added to the base TastingData type in a future update.
- * For now, ImpressionZone works with the extended shape.
- */
-interface ImpressionTastingData extends TastingData {
-  rating?: number;
-  overallImpression?: string;
-}
-
 interface ImpressionZoneProps {
-  value: ImpressionTastingData;
-  onChange: (data: ImpressionTastingData) => void;
+  value: TastingData;
+  onChange: (data: TastingData) => void;
 }
 
 const MOOD_OPTIONS = [

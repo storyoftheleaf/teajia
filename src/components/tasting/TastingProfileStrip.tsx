@@ -85,7 +85,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
             >
               {/* Tiny category label */}
               <div
-                className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-1 ml-0.5"
+                className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-1 ml-0.5"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {group.label}
