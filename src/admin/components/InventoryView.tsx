@@ -700,6 +700,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => { if (externalShowOptions !== undefined) setShowOptionsInternal(externalShowOptions); }, [externalShowOptions]);
   const [showMobileSort, setShowMobileSort] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
+  const [priceMode, setPriceMode] = useState<'retail' | 'cost'>('retail');
 
   // Reset glossary mode when switching categories
   useEffect(() => { setGlossaryMode(false); }, [externalCategory]);
@@ -896,7 +897,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [localProducts, searchQuery, filterType, inventorySortConfig, fuse]);
 
   // Visible columns (filtered by store, adapted to category)
-  const visibleCols = useMemo(() => activeColumnDefs.filter(col => inventoryColumns.includes(col.key)), [inventoryColumns, activeColumnDefs]);
+  const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
+    if (!inventoryColumns.includes(col.key)) return false;
+    // Price mode filtering: retail hides cost columns, cost hides retail column
+    if (priceMode === 'retail' && (col.key === 'costAmount' || col.key === 'costPerGramUSD')) return false;
+    if (priceMode === 'cost' && col.key === 'pricePerGramUSD') return false;
+    return true;
+  }), [inventoryColumns, activeColumnDefs, priceMode]);
   const colCount = visibleCols.length + 1; // +1 for actions column
   const colCountWithBulk = colCount + (isEditMode ? 1 : 0); // +1 for checkbox column in edit mode
 
@@ -1928,6 +1935,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button onClick={onAddClick} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
                         <Plus size={14} /> New
                     </button>
+
+                    {/* Price Mode Toggle */}
+                    <div className="flex items-center rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setPriceMode('retail')}
+                        className={priceMode === 'retail' ? 'pill-active' : 'pill'}
+                        style={{ borderRadius: '8px 0 0 8px', fontSize: '11px', padding: '4px 10px' }}
+                      >
+                        Retail
+                      </button>
+                      <button
+                        onClick={() => setPriceMode('cost')}
+                        className={priceMode === 'cost' ? 'pill-active' : 'pill'}
+                        style={{ borderRadius: '0 8px 8px 0', fontSize: '11px', padding: '4px 10px' }}
+                      >
+                        Cost
+                      </button>
+                    </div>
 
                     {/* Columns Toggle */}
                     <div className="relative">
