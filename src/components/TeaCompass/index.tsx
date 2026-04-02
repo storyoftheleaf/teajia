@@ -229,30 +229,35 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
                 onSelectEntry={handleSelectEntry}
               />
 
-              {/* Tea / Teaware / Sample tab toggle */}
+              {/* Tea / Teaware tab toggle */}
               <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
                 <motion.div
                   className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
-                  animate={{
-                    left: activeCategory === 'tea' ? '2px' : activeCategory === 'teaware' ? '33.33%' : '66.66%',
-                    right: activeCategory === 'tea' ? '66.66%' : activeCategory === 'teaware' ? '33.33%' : '2px',
-                  }}
+                  animate={{ left: activeCategory === 'tea' ? '2px' : '50%', right: activeCategory === 'teaware' ? '2px' : '50%' }}
                   transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                 />
-                {(['tea', 'teaware', 'sample'] as CompassCategory[]).map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => handleCategorySwitch(cat)}
-                    className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
-                      activeCategory === cat
-                        ? 'text-tea-text'
-                        : 'text-tea-text-dim hover:text-tea-text-sec'
-                    }`}
-                  >
-                    {cat === 'tea' ? 'Tea' : cat === 'teaware' ? 'Teaware' : 'Sample'}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => handleCategorySwitch('tea')}
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
+                    activeCategory === 'tea'
+                      ? 'text-tea-text'
+                      : 'text-tea-text-dim hover:text-tea-text-sec'
+                  }`}
+                >
+                  Tea
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCategorySwitch('teaware')}
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
+                    activeCategory === 'teaware'
+                      ? 'text-tea-text'
+                      : 'text-tea-text-dim hover:text-tea-text-sec'
+                  }`}
+                >
+                  Teaware
+                </button>
               </div>
 
               <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} onCommit={handleCommitEntry} />

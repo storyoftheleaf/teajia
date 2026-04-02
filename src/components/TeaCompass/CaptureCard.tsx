@@ -445,7 +445,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const isTeaware = entry.category === 'teaware';
-  const isSample = entry.category === 'sample';
+  const isSample = !!entry.isSample;
   const hasName = (entry.name || '').trim().length > 0;
 
   const hasTasting = entry.tasting && Object.values(entry.tasting).some(
@@ -834,6 +834,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Sample toggle — marks this tea entry as a sample */}
+      <button
+        type="button"
+        onClick={() => update({ isSample: !entry.isSample })}
+        className={`pill text-xs flex items-center gap-1.5 ${isSample ? 'pill-active' : ''}`}
+      >
+        🧪 {isSample ? 'Sample' : 'Mark as sample'}
+      </button>
 
       {/* Panel 2: Price & Grams */}
       <div className="rounded-lg">

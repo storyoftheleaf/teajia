@@ -4,7 +4,7 @@ import type { Currency } from '../../admin/types';
 export type TeaType = 'Green' | 'White' | 'Yellow' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware';
 export type TeaForm = 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag';
 export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought';
-export type CompassCategory = 'tea' | 'teaware' | 'sample';
+export type CompassCategory = 'tea' | 'teaware';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
 export type TeawareCategory = 'Pot' | 'Cup' | 'Gaiwan' | 'Fair Cup' | 'Tray' | 'Storage' | 'Tool' | 'Other';
@@ -70,7 +70,8 @@ export interface TeaCompassEntry {
   buyQuantityUnits?: number;
   buyTotal?: number;
 
-  // Sample-specific (only when category === 'sample')
+  // Sample flag — tea entries can be marked as samples (small tasting portions)
+  isSample?: boolean;
   sampleSetId?: string;        // Groups samples from one session
   sampleGrams?: number;        // Amount in sample bag (5-15g)
   sampleVerdict?: 'love' | 'like' | 'neutral' | 'pass';
