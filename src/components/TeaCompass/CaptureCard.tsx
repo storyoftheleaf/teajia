@@ -12,7 +12,6 @@ import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, TEAWARE_CATEGORIES, TEAWARE_MATERI
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
-import { DetailsRow } from './DetailsRow';
 import { PriceGrams } from './PriceGrams';
 import { NotesField } from './NotesField';
 import { StatusActions } from './StatusActions';
@@ -792,7 +791,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-2 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-2 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center placeholder:text-tea-text-dim
                        [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
@@ -1065,26 +1064,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         </>
       )}
-
-      {/* ═══ DETAILS (shared, collapsed) ═══ */}
-      <DetailsRow
-        year={entry.year}
-        season={entry.season}
-        storage={entry.storage}
-        originRegion={entry.originRegion}
-        teaType={entry.type}
-        chineseName={entry.chineseName}
-        tasting={entry.tasting}
-        hasTasting={!!hasTasting}
-        availableRegions={availableRegions}
-        onYearChange={(year) => { userTapped.current.add('year'); update({ year }); }}
-        onSeasonChange={(season) => { userTapped.current.add('season'); update({ season }); }}
-        onStorageChange={(storage) => { userTapped.current.add('storage'); update({ storage }); }}
-        onRegionChange={(originRegion) => { userTapped.current.add('region'); update({ originRegion }); }}
-        onChineseNameChange={(chineseName) => update({ chineseName: chineseName || undefined })}
-        onOpenTasting={openTastingOverlay}
-        onTastingStripRemove={handleTastingStripRemove}
-      />
 
       {/* Done — acquisition path */}
       {!isSample && hasName && (
