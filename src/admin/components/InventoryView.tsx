@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -703,8 +703,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const setShowOptions = (v: boolean) => { setShowOptionsInternal(v); onOptionsToggle?.(v); };
   useEffect(() => { if (externalShowOptions !== undefined) setShowOptionsInternal(externalShowOptions); }, [externalShowOptions]);
   const [showMobileSort, setShowMobileSort] = useState(false);
+  const [showMobileGroupBy, setShowMobileGroupBy] = useState(false);
+  const [showGroupByDropdown, setShowGroupByDropdown] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
   const [priceMode, setPriceMode] = useState<'retail' | 'cost'>('retail');
+  const [viewTabsExpanded, setViewTabsExpanded] = useState(false);
 
   // Reset glossary mode when switching categories
   useEffect(() => { setGlossaryMode(false); }, [externalCategory]);
@@ -903,11 +906,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [localProducts, searchQuery, filterType, inventorySortConfig, fuse]);
 
   // Visible columns (filtered by store, adapted to category)
+  // Price columns are always controlled by priceMode toggle, not by view config
   const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
+    const isCostCol = col.key === 'costAmount' || col.key === 'costPerGramUSD';
+    const isRetailCol = col.key === 'pricePerGramUSD';
+    if (isCostCol) return priceMode === 'cost';
+    if (isRetailCol) return priceMode === 'retail';
     if (!inventoryColumns.includes(col.key)) return false;
-    // Price mode filtering: retail hides cost columns, cost hides retail column
-    if (priceMode === 'retail' && (col.key === 'costAmount' || col.key === 'costPerGramUSD')) return false;
-    if (priceMode === 'cost' && col.key === 'pricePerGramUSD') return false;
     return true;
   }), [inventoryColumns, activeColumnDefs, priceMode]);
   const colCount = visibleCols.length + 1; // +1 for actions column
@@ -1674,8 +1679,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
       <div className={`md:hidden sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
-        <div className="flex items-center px-2 py-1.5 gap-0.5">
-          {/* View tabs — text then icons */}
+        <div className={`flex items-center px-2 py-1.5 gap-0.5 ${viewTabsExpanded ? 'flex-wrap' : ''}`}>
+          {/* View tabs — top 3 visible, expand to show all */}
           {(() => {
             const defaultOrder = activeDefaultViews.map(v => v.id);
             const unsorted = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
@@ -1684,67 +1689,113 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const bi = defaultOrder.indexOf(b.id);
               return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
             });
-            let didSeparate = false;
-            return views.map(view => {
-              const isIconOnly = view.icon && !view.name;
-              const needsSep = isIconOnly && !didSeparate;
-              if (needsSep) didSeparate = true;
-              return (
-                <React.Fragment key={view.id}>
-                  {needsSep && <div className="w-px h-3.5 bg-tea-border/30 shrink-0" />}
+            const VISIBLE_COUNT = 3;
+            const visibleViews = viewTabsExpanded ? views : views.slice(0, VISIBLE_COUNT);
+            const hasMore = views.length > VISIBLE_COUNT;
+            // Check if active view is in the hidden set
+            const activeInHidden = !viewTabsExpanded && views.findIndex(v => v.id === activeViewId) >= VISIBLE_COUNT;
+            return (
+              <>
+                {visibleViews.map(view => {
+                  const isIconOnly = view.icon && !view.name;
+                  const filterLabel = VIEW_FILTER_LABELS[view.filterType] || view.filterType;
+                  return (
+                    <button
+                      key={view.id}
+                      onClick={() => {
+                        setGlossaryMode(false);
+                        setActiveView(view.id);
+                        setInventoryColumns(view.columns);
+                        setInventorySortConfig(view.sortConfig);
+                        setFilterType(view.filterType);
+                        setInventoryGroupBy(view.groupBy);
+                      }}
+                      className={`flex items-center gap-1 shrink-0 ${isIconOnly && !viewTabsExpanded ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-[11px] uppercase tracking-[0.08em]'} rounded-md transition-colors ${
+                        activeViewId === view.id
+                          ? 'bg-tea-accent/15 text-tea-accent'
+                          : 'text-tea-text-dim hover:text-tea-text-sec'
+                      }`}
+                      title={filterLabel}
+                    >
+                      {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
+                      {viewTabsExpanded && isIconOnly ? <span className="text-[11px] uppercase tracking-[0.08em]">{filterLabel}</span> : (view.name || null)}
+                      {!view.id.startsWith('default-') && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
+                          className="ml-1 text-tea-text-sec/40 hover:text-tea-accent transition-colors"
+                        >
+                          <XIcon size={9} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                {hasMore && (
                   <button
-                    onClick={() => {
-                      setGlossaryMode(false);
-                      setActiveView(view.id);
-                      setInventoryColumns(view.columns);
-                      setInventorySortConfig(view.sortConfig);
-                      setFilterType(view.filterType);
-                      setInventoryGroupBy(view.groupBy);
-                    }}
-                    className={`flex items-center justify-center shrink-0 ${isIconOnly ? 'w-9 h-9' : 'px-2 h-9 text-[11px] uppercase tracking-[0.08em]'} rounded-md transition-colors ${
-                      activeViewId === view.id
-                        ? 'bg-tea-accent/15 text-tea-accent'
-                        : 'text-tea-text-dim hover:text-tea-text-sec'
-                    }`}
+                    onClick={() => setViewTabsExpanded(!viewTabsExpanded)}
+                    className={`w-7 h-7 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-accent bg-tea-accent/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                    title={viewTabsExpanded ? 'Show fewer views' : 'Show all views'}
                   >
-                    {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
-                    {view.name || null}
-                    {!view.id.startsWith('default-') && (
-                      <span
-                        onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                        className="ml-1 text-tea-text-sec/40 hover:text-tea-accent transition-colors"
-                      >
-                        <XIcon size={9} />
-                      </span>
-                    )}
+                    {viewTabsExpanded ? <XIcon size={13} /> : <Plus size={13} />}
                   </button>
-                </React.Fragment>
-              );
-            });
+                )}
+              </>
+            );
           })()}
 
-          {/* Right controls — price toggle + sort + options */}
+          {/* Right controls — price toggle + group + sort */}
           <div className="flex items-center gap-0 ml-auto shrink-0 relative">
             <button
               onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
-              className={`flex items-center h-7 px-2 rounded-md text-[10px] uppercase tracking-[0.08em] font-semibold transition-colors ${priceMode === 'cost' ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${priceMode === 'cost' ? 'text-tea-accent bg-tea-accent/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
               title={`Showing ${priceMode} prices — tap to switch`}
             >
-              {priceMode === 'retail' ? 'Retail' : 'Cost'}
+              {priceMode === 'retail' ? <Tag size={15} /> : <Receipt size={15} />}
             </button>
-            <button
-              onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-            >
-              <ArrowUpDown size={15} />
-            </button>
-            {showMobileSort && (
-              <>
-              <div className="fixed inset-0 z-40 bg-tea-text/30" onClick={() => setShowMobileSort(false)} />
-              <div className="fixed left-0 right-0 bottom-[calc(44px+env(safe-area-inset-bottom,0px))] z-50 bg-tea-surface border-t border-tea-border rounded-t-2xl shadow-2xl" role="menu">
-                <div className="w-10 h-1 rounded-full bg-tea-border mx-auto mt-2 mb-1" />
-                <div className="px-4 py-2 text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-semibold">Sort by</div>
-                <div className="grid grid-cols-2 gap-1 px-3 pb-4">
+            <div className="relative">
+              <button
+                onClick={() => { setShowMobileGroupBy(!showMobileGroupBy); setShowMobileSort(false); setShowOptions(false); }}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <Layers size={15} />
+              </button>
+              {showMobileGroupBy && (
+                <>
+                {/* absolute overlay — fixed doesn't work inside backdrop-blur */}
+                <div className="absolute -top-4 -right-4 w-[200vw] h-[200vh] z-40" onClick={() => setShowMobileGroupBy(false)} />
+                <div className="absolute right-0 top-full mt-1 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                  {GROUPBY_OPTIONS.map(opt => {
+                    const isActive = (inventoryGroupBy || '') === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setInventoryGroupBy(opt.value || null);
+                          setShowMobileGroupBy(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] transition-colors ${isActive ? 'text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && <Check size={14} />}
+                      </button>
+                    );
+                  })}
+                </div>
+                </>
+              )}
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileGroupBy(false); setShowOptions(false); }}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <ArrowUpDown size={15} />
+              </button>
+              {showMobileSort && (
+                <>
+                <div className="absolute -top-4 -right-4 w-[200vw] h-[200vh] z-40" onClick={() => setShowMobileSort(false)} />
+                <div className="absolute right-0 top-full mt-1 w-[calc(100vw-16px)] max-w-[280px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-2 px-1" role="menu">
+                  <div className="grid grid-cols-2 gap-0.5">
                   {[
                     { key: 'type', label: 'Type' },
                     { key: 'productName', label: 'Name' },
@@ -1769,21 +1820,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           }
                           setShowMobileSort(false);
                         }}
-                        className={`flex items-center justify-between gap-2 px-3 py-3 rounded-xl text-[13px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                        className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-[12px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
                       >
                         <span>{opt.label}</span>
                         {isActive && (
                           <span className="flex items-center">
-                            {current.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                           </span>
                         )}
                       </button>
                     );
                   })}
+                  </div>
                 </div>
-              </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- MOBILE OPTIONS SHEET (outside backdrop-blur container) --- */}
+      <div className="md:hidden">
             {showOptions && (
               <>
               <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }} />
@@ -1826,8 +1884,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
               </>
             )}
-          </div>
-        </div>
       </div>
 
       {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
@@ -1967,16 +2023,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => setPriceMode('retail')}
                         className={priceMode === 'retail' ? 'pill-active' : 'pill'}
-                        style={{ borderRadius: '8px 0 0 8px', fontSize: '11px', padding: '4px 10px' }}
+                        style={{ borderRadius: '8px 0 0 8px', padding: '5px 10px' }}
+                        title="Show retail prices"
                       >
-                        Retail
+                        <Tag size={14} />
                       </button>
                       <button
                         onClick={() => setPriceMode('cost')}
                         className={priceMode === 'cost' ? 'pill-active' : 'pill'}
-                        style={{ borderRadius: '0 8px 8px 0', fontSize: '11px', padding: '4px 10px' }}
+                        style={{ borderRadius: '0 8px 8px 0', padding: '5px 10px' }}
+                        title="Show cost prices"
                       >
-                        Cost
+                        <Receipt size={14} />
                       </button>
                     </div>
 
@@ -2014,29 +2072,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {/* Group By Dropdown */}
                     <div className="relative">
                       <button
-                        onClick={() => {
-                          const el = document.getElementById('groupby-dropdown');
-                          if (el) el.classList.toggle('hidden');
-                        }}
+                        onClick={() => setShowGroupByDropdown(!showGroupByDropdown)}
                         className={`flex items-center gap-1 p-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Group By"
                       >
                         <Layers size={15} />
                       </button>
-                      <div id="groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
-                        {GROUPBY_OPTIONS.map(opt => (
-                          <button
-                            key={opt.value}
-                            onClick={() => {
-                              setInventoryGroupBy(opt.value || null);
-                              document.getElementById('groupby-dropdown')?.classList.add('hidden');
-                            }}
-                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-text-sec'}`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
+                      {showGroupByDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowGroupByDropdown(false)} />
+                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
+                            {GROUPBY_OPTIONS.map(opt => (
+                              <button
+                                key={opt.value}
+                                onClick={() => {
+                                  setInventoryGroupBy(opt.value || null);
+                                  setShowGroupByDropdown(false);
+                                }}
+                                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <button
@@ -2459,7 +2519,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           </div>
                                         )}
                                         <div className="text-[12px] text-tea-text-dim tabular-nums">
-                                            {fmtNum(product.pricePerGramUSD)}/g
+                                            {priceMode === 'cost'
+                                              ? `${product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '0.00'}/g`
+                                              : `${fmtNum(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)}/g`
+                                            }
                                         </div>
                                       </>
                                     )}
