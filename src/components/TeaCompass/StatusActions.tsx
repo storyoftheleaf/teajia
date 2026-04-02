@@ -113,10 +113,10 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleWant}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 transition-all border ${
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 transition-all ${
             status === 'want'
-              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
-              : 'bg-tea-surface/80 text-tea-text-sec border-tea-border/40 active:bg-tea-elevated hover:bg-tea-surface hover:border-tea-border/60'
+              ? 'bg-tea-gold/20 text-tea-gold'
+              : 'bg-tea-surface/80 text-tea-text-sec active:bg-tea-elevated hover:bg-tea-surface'
           }`}
         >
           Want
@@ -124,12 +124,12 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleBuyClick}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all border ${
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             isInLedger
-              ? 'bg-tea-gold/20 text-tea-gold border-tea-gold/25'
+              ? 'bg-tea-gold/20 text-tea-gold'
               : status === 'buying'
-                ? 'bg-tea-gold text-tea-bg border-tea-gold/40'
-                : 'bg-tea-gold/8 text-tea-text-sec border-tea-border/40 active:bg-tea-gold/15 hover:bg-tea-gold/12 hover:border-tea-gold/30'
+                ? 'bg-tea-gold text-tea-bg'
+                : 'bg-tea-gold/8 text-tea-text-sec active:bg-tea-gold/15 hover:bg-tea-gold/12'
           }`}
         >
           {isInLedger ? (
