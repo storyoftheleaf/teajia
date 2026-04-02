@@ -56,6 +56,15 @@ const SamplePage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
 
+  // Escape key closes tasting section
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showTasting) setShowTasting(false);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [showTasting]);
+
   // Fetch from API if not in store
   useEffect(() => {
     if (storeSample) {
@@ -112,7 +121,7 @@ const SamplePage: React.FC = () => {
         tasterName: isAdmin ? 'Adrian' : tasterName || undefined,
       });
     } catch {
-      // Offline — local save is sufficient
+      console.warn('Sample tasting failed to sync — saved locally');
     }
 
     setTastingData({});
@@ -134,14 +143,14 @@ const SamplePage: React.FC = () => {
     if (!sample) return;
     updateStatus(sample.id, newStatus);
     setSample((prev) => prev ? { ...prev, status: newStatus } : prev);
-    api.samples.update(sample.id, { status: newStatus }).catch(() => {});
+    api.samples.update(sample.id, { status: newStatus }).catch(() => { console.warn('Status update failed to sync — saved locally'); });
   }, [sample, updateStatus]);
 
   const handleSaveEdit = useCallback(() => {
     if (!sample) return;
     updateSample(sample.id, { name: editName, notes: editNotes });
     setSample((prev) => prev ? { ...prev, name: editName, notes: editNotes } : prev);
-    api.samples.update(sample.id, { name: editName, notes: editNotes }).catch(() => {});
+    api.samples.update(sample.id, { name: editName, notes: editNotes }).catch(() => { console.warn('Edit update failed to sync — saved locally'); });
     setEditing(false);
   }, [sample, editName, editNotes, updateSample]);
 
@@ -189,7 +198,7 @@ const SamplePage: React.FC = () => {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border/30">
         <div className="flex items-center px-4 py-3 max-w-2xl mx-auto">
-          <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors">
+          <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Go back">
             <ChevronLeft size={24} />
           </button>
           <div className="flex-1 min-w-0 ml-2">
@@ -199,6 +208,7 @@ const SamplePage: React.FC = () => {
             <button
               onClick={() => editing ? handleSaveEdit() : setEditing(true)}
               className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
+              aria-label={editing ? 'Save changes' : 'Edit sample'}
             >
               {editing ? <Check size={18} /> : <Edit3 size={18} />}
             </button>
@@ -335,7 +345,7 @@ const SamplePage: React.FC = () => {
             transition={{ delay: 0.25 }}
           >
             <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2">Status</p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Status selector">
               {STATUS_FLOW.map((s) => {
                 const cfg = SAMPLE_STATUS_CONFIG[s];
                 const active = sample.status === s;
@@ -481,6 +491,8 @@ const SamplePage: React.FC = () => {
                         <button
                           key={n}
                           onClick={() => setRating(n)}
+                          aria-label={`Rate ${n} out of 10`}
+                          aria-pressed={n <= rating}
                           className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
                             n <= rating
                               ? 'bg-tea-gold text-white'
@@ -496,7 +508,7 @@ const SamplePage: React.FC = () => {
                   {/* Verdict */}
                   <div>
                     <label className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2 block">Verdict</label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2" role="radiogroup" aria-label="Verdict">
                       {(['love', 'like', 'neutral', 'pass'] as TastingVerdict[]).map((v) => {
                         const cfg = VERDICT_CONFIG[v];
                         const VIcon = VERDICT_ICONS[v];
@@ -505,6 +517,7 @@ const SamplePage: React.FC = () => {
                           <button
                             key={v}
                             onClick={() => setVerdict(v)}
+                            aria-pressed={active}
                             className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all ${
                               active
                                 ? `${cfg.color} bg-tea-surface ring-1 ring-tea-gold/20`

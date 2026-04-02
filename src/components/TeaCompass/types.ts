@@ -4,7 +4,7 @@ import type { Currency } from '../../admin/types';
 export type TeaType = 'Green' | 'White' | 'Yellow' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware';
 export type TeaForm = 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag';
 export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought';
-export type CompassCategory = 'tea' | 'teaware';
+export type CompassCategory = 'tea' | 'teaware' | 'sample';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
 export type TeawareCategory = 'Pot' | 'Cup' | 'Gaiwan' | 'Fair Cup' | 'Tray' | 'Storage' | 'Tool' | 'Other';
@@ -12,7 +12,7 @@ export type TeawareMaterial = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcela
 export type TeawareEra = 'Modern' | '90s' | '80s' | '70s' | 'Pre-70s' | 'Republic' | 'Qing' | 'Unknown';
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'want' | 'bought';
+export type BrowseFilter = 'all' | 'want' | 'bought' | 'sample';
 
 export interface VendorDetails {
   businessCardUrl?: string;
@@ -69,6 +69,12 @@ export interface TeaCompassEntry {
   buyQuantityGrams?: number;
   buyQuantityUnits?: number;
   buyTotal?: number;
+
+  // Sample-specific (only when category === 'sample')
+  sampleSetId?: string;        // Groups samples from one session
+  sampleGrams?: number;        // Amount in sample bag (5-15g)
+  sampleVerdict?: 'love' | 'like' | 'neutral' | 'pass';
+  sampleWouldBuy?: boolean;
 
   // Pipeline
   draftProductId?: string;

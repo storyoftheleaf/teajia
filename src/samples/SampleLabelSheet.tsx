@@ -1,19 +1,29 @@
 import React, { useState, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Printer, Columns3, Columns2, Grid2x2, FileDown } from 'lucide-react';
-import type { TeaSample } from './types';
+/** Minimal shape for label printing — works with TeaSample or TeaCompassEntry */
+interface LabelItem {
+  id: string;
+  name: string;
+  chineseName?: string;
+  type?: string;
+  year?: number;
+  originRegion?: string;
+}
 
 interface SampleLabelSheetProps {
-  samples: TeaSample[];
+  samples: LabelItem[];
   columns?: number;
   labelSize?: 'small' | 'medium';
   showSetName?: string;
+  /** Custom base URL for QR codes (default: https://teajia.co/s/) */
+  qrBaseUrl?: string;
 }
 
 const COLUMN_OPTIONS = [2, 3, 4] as const;
 
-function LabelCell({ sample, size }: { sample: TeaSample; size: 'small' | 'medium' }) {
-  const qrValue = `https://teajia.co/s/${sample.id}`;
+function LabelCell({ sample, size, qrBaseUrl }: { sample: LabelItem; size: 'small' | 'medium'; qrBaseUrl: string }) {
+  const qrValue = `${qrBaseUrl}${sample.id}`;
   const qrPx = size === 'small' ? 56 : 66;
   const typeLine = [sample.type, sample.year].filter(Boolean).join(' \u00b7 ');
 
@@ -72,6 +82,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
   columns: initialColumns = 3,
   labelSize: initialSize = 'small',
   showSetName,
+  qrBaseUrl = 'https://teajia.co/s/',
 }) => {
   const [columns, setColumns] = useState<number>(initialColumns);
   const [labelSize, setLabelSize] = useState<'small' | 'medium'>(initialSize);
@@ -278,7 +289,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
             }}
           >
             {samples.map((sample) => (
-              <LabelCell key={sample.id} sample={sample} size={labelSize} />
+              <LabelCell key={sample.id} sample={sample} size={labelSize} qrBaseUrl={qrBaseUrl} />
             ))}
           </div>
         </div>

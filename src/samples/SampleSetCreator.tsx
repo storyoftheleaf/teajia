@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Printer, Share2, Trash2, Edit3, Package, Leaf, X, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Printer, Share2, Trash2, Edit3, Package, Leaf, X, ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
 import { useSampleStore } from './sampleStore';
 import { createEmptySample, createEmptySampleSet, SAMPLE_GRAM_PRESETS, SAMPLE_STATUS_CONFIG } from './types';
+import { SampleLabelSheet } from './SampleLabelSheet';
 import type { TeaSample, SampleSet, SampleSetPurpose } from './types';
 import type { TeaType } from '../components/TeaCompass/types';
-import { TEA_TYPES } from '../components/TeaCompass/types';
+import { TEA_TYPES, createEmptyEntry } from '../components/TeaCompass/types';
+import { useTeaCompassStore } from '../lib/teaCompassStore';
 
 const PURPOSE_OPTIONS: { value: SampleSetPurpose; label: string }[] = [
   { value: 'sourcing', label: 'Sourcing' },
@@ -36,6 +38,7 @@ interface QuickAddBarProps {
 
 function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
   const { addSample, updateSampleSet, getSampleSet } = useSampleStore();
+  const addCompassEntry = useTeaCompassStore((s) => s.addEntry);
   const nameRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState('');
@@ -61,6 +64,19 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
 
     addSample(sample);
 
+    // Also create a compass entry so samples appear in Tea Compass Browse
+    const compassEntry = createEmptyEntry('sample', {
+      vendorName: sourceName,
+      vendorId: sourceId,
+    });
+    compassEntry.name = trimmed;
+    compassEntry.type = type;
+    compassEntry.year = year ? parseInt(year, 10) : undefined;
+    compassEntry.originRegion = region.trim() || undefined;
+    compassEntry.sampleSetId = setId;
+    compassEntry.sampleGrams = grams;
+    addCompassEntry(compassEntry);
+
     // Add sample id to the set
     const set = getSampleSet(setId);
     if (set) {
@@ -75,7 +91,7 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
     setRegion('');
     // grams and type stay — usually same for a batch
     setTimeout(() => nameRef.current?.focus(), 50);
-  }, [name, type, year, grams, region, setId, sourceName, sourceId, addSample, updateSampleSet, getSampleSet]);
+  }, [name, type, year, grams, region, setId, sourceName, sourceId, addSample, updateSampleSet, getSampleSet, addCompassEntry]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -86,7 +102,7 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
 
   return (
     <div className="fixed left-0 right-0 bottom-[44px] lg:bottom-0 bg-tea-surface z-40"
-      style={{ boxShadow: '0 -2px 12px rgba(0,0,0,0.3)' }}>
+      style={{ boxShadow: '0 -2px 12px color-mix(in srgb, var(--tea-text) 20%, transparent)' }}>
       {/* Type selector row — toggled */}
       <AnimatePresence>
         {showTypeRow && (
@@ -162,7 +178,7 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
       </div>
 
       {/* Grams presets row */}
-      <div className="flex items-center gap-1 px-3 pb-2 overflow-x-auto scrollbar-hide">
+      <div className="flex items-center gap-1 px-3 pb-1 overflow-x-auto scrollbar-hide">
         <span className="text-[10px] uppercase tracking-wider text-tea-text-dim mr-1 shrink-0">g</span>
         {SAMPLE_GRAM_PRESETS.map((g) => (
           <button
@@ -173,13 +189,18 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
             {g}
           </button>
         ))}
+      </div>
+
+      {/* Region row */}
+      <div className="flex items-center gap-2 px-3 pb-2">
+        <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">Region</span>
         <input
           type="text"
           value={region}
           onChange={(e) => setRegion(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Region"
-          className="ml-2 flex-1 min-w-[60px] bg-tea-bg text-tea-text rounded px-2 py-1 text-xs
+          placeholder="e.g. Wuyi, Yixing..."
+          className="flex-1 bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm
                      placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
         />
       </div>
@@ -313,6 +334,7 @@ export default function SampleSetCreator() {
     sampleSets.length > 0 ? sampleSets[0].id : null
   );
   const [editingSampleId, setEditingSampleId] = useState<string | null>(null);
+  const [showLabels, setShowLabels] = useState(false);
 
   const activeSet = sampleSets.find((s) => s.id === activeSetId);
   const activeSamples = activeSetId ? getSamplesForSet(activeSetId) : [];
@@ -445,11 +467,11 @@ export default function SampleSetCreator() {
             <div className="flex-1 text-[11px] text-tea-text-sec">
               <span className="num">{activeSamples.length}</span> sample{activeSamples.length !== 1 ? 's' : ''}
             </div>
-            <button className="pill flex items-center gap-1">
+            <button className="pill flex items-center gap-1" onClick={() => setShowLabels(true)}>
               <Printer size={12} />
               Print Labels
             </button>
-            <button className="pill flex items-center gap-1">
+            <button className="pill flex items-center gap-1" onClick={() => alert('Sharing coming soon')}>
               <Share2 size={12} />
               Share
             </button>
@@ -507,6 +529,19 @@ export default function SampleSetCreator() {
           />
         )}
       </AnimatePresence>
+
+      {/* Label Sheet */}
+      {showLabels && activeSet && (
+        <div className="fixed inset-0 z-50 bg-tea-bg overflow-auto">
+          <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-2 border-b border-tea-border/30">
+            <button onClick={() => setShowLabels(false)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back to sample set">
+              <ArrowLeft size={20} />
+            </button>
+            <span className="text-sm font-medium text-tea-text">Print Labels</span>
+          </div>
+          <SampleLabelSheet samples={activeSamples} setName={activeSet.name} />
+        </div>
+      )}
     </div>
   );
 }
@@ -516,6 +551,13 @@ export default function SampleSetCreator() {
 function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () => void }) {
   const { getSample, updateSample } = useSampleStore();
   const sample = getSample(sampleId);
+
+  // Escape key to close
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   if (!sample) return null;
 

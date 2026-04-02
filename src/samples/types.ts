@@ -128,9 +128,9 @@ export const VERDICT_CONFIG: Record<TastingVerdict, { label: string; color: stri
 // Status display config
 export const SAMPLE_STATUS_CONFIG: Record<SampleStatus, { label: string; color: string }> = {
   untasted: { label: 'Untasted', color: 'bg-tea-surface text-tea-text-sec' },
-  tasted: { label: 'Tasted', color: 'bg-blue-500/10 text-blue-400' },
-  favorite: { label: 'Favorite', color: 'bg-rose-500/10 text-rose-400' },
-  ordering: { label: 'Ordering', color: 'bg-amber-500/10 text-amber-400' },
-  ordered: { label: 'Ordered', color: 'bg-emerald-500/10 text-emerald-400' },
+  tasted: { label: 'Tasted', color: 'bg-tea-accent-sub text-tea-gold' },
+  favorite: { label: 'Favorite', color: 'bg-tea-gold/10 text-tea-gold' },
+  ordering: { label: 'Ordering', color: 'bg-tea-gold-lt/10 text-tea-gold-lt' },
+  ordered: { label: 'Ordered', color: 'bg-tea-gold/15 text-tea-gold' },
   passed: { label: 'Passed', color: 'bg-tea-surface text-tea-text-dim' },
 };
