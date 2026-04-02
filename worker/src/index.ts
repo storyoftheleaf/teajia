@@ -3850,6 +3850,353 @@ const handleGetJourney: Handler = async (request, env, params) => {
   });
 };
 
+// ── Samples ──
+
+function stripSampleSource(sample: Record<string, any>): Record<string, any> {
+  const { source_id, source_name, source_contact, notes, ...rest } = sample;
+  return rest;
+}
+
+function parseSampleRow(row: Record<string, any>): Record<string, any> {
+  return {
+    ...row,
+    photos: row.photos ? JSON.parse(row.photos) : [],
+    source_contact: row.source_contact ? JSON.parse(row.source_contact) : null,
+  };
+}
+
+function parseSampleSetRow(row: Record<string, any>): Record<string, any> {
+  return {
+    ...row,
+    shared_with: row.shared_with ? JSON.parse(row.shared_with) : [],
+  };
+}
+
+function parseTastingRow(row: Record<string, any>): Record<string, any> {
+  return {
+    ...row,
+    tasting: row.tasting ? JSON.parse(row.tasting) : {},
+  };
+}
+
+// Public: GET /api/samples/:id
+const handleGetSample: Handler = async (request, env, params) => {
+  const sample = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(params.id).first();
+  if (!sample) return json({ error: 'Sample not found' }, 404);
+
+  const tastings = await env.DB.prepare(
+    'SELECT * FROM tea_sample_tastings WHERE sample_id = ? ORDER BY created_at DESC'
+  ).bind(params.id).all();
+
+  let parsed = parseSampleRow(sample as Record<string, any>);
+
+  // Strip source info for unauthenticated users
+  const token = isAuthed(request);
+  const authed = token ? await verifyToken(token, env.JWT_SECRET) : false;
+  if (!authed) {
+    parsed = stripSampleSource(parsed);
+  }
+
+  return json({
+    ...parsed,
+    tastings: (tastings.results as Record<string, any>[]).map(parseTastingRow),
+  });
+};
+
+// Public: GET /api/samples/set/:setId
+const handleGetSamplesBySet: Handler = async (request, env, params) => {
+  const set = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(params.setId).first();
+  if (!set) return json({ error: 'Sample set not found' }, 404);
+
+  const samples = await env.DB.prepare(
+    'SELECT * FROM tea_samples WHERE set_id = ? ORDER BY created_at DESC'
+  ).bind(params.setId).all();
+
+  const token = isAuthed(request);
+  const authed = token ? await verifyToken(token, env.JWT_SECRET) : false;
+
+  const parsedSamples = (samples.results as Record<string, any>[]).map(s => {
+    const parsed = parseSampleRow(s);
+    return authed ? parsed : stripSampleSource(parsed);
+  });
+
+  return json({
+    set: parseSampleSetRow(set as Record<string, any>),
+    samples: parsedSamples,
+  });
+};
+
+// Public/Guest: POST /api/samples/:id/tastings
+const handleAddSampleTasting: Handler = async (request, env, params) => {
+  const sample = await env.DB.prepare('SELECT id FROM tea_samples WHERE id = ?').bind(params.id).first();
+  if (!sample) return json({ error: 'Sample not found' }, 404);
+
+  const body = await request.json() as Record<string, any>;
+  const id = crypto.randomUUID();
+
+  let tasterId = 'guest_' + crypto.randomUUID().slice(0, 8);
+  let tasterName = body.tasterName || 'Guest';
+  const token = isAuthed(request);
+  if (token) {
+    const valid = await verifyToken(token, env.JWT_SECRET);
+    if (valid) {
+      const claims = parseToken(token);
+      if (claims?.email) tasterId = claims.email;
+      if (claims?.name) tasterName = claims.name;
+    }
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO tea_sample_tastings (id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    params.id,
+    tasterId,
+    tasterName,
+    JSON.stringify(body.tasting || {}),
+    body.rating ?? null,
+    body.verdict || 'neutral',
+    body.wouldBuy ? 1 : 0,
+    body.personalNote || null,
+  ).run();
+
+  // Update sample updated_at
+  await env.DB.prepare(
+    "UPDATE tea_samples SET updated_at = datetime('now') WHERE id = ?"
+  ).bind(params.id).run();
+
+  const created = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(id).first();
+  return json(parseTastingRow(created as Record<string, any>), 201);
+};
+
+// Admin: GET /api/admin/samples
+const handleListSamples: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const setId = url.searchParams.get('setId');
+  const status = url.searchParams.get('status');
+
+  let query = 'SELECT * FROM tea_samples WHERE 1=1';
+  const binds: any[] = [];
+
+  if (setId) {
+    query += ' AND set_id = ?';
+    binds.push(setId);
+  }
+  if (status) {
+    query += ' AND status = ?';
+    binds.push(status);
+  }
+  query += ' ORDER BY created_at DESC';
+
+  const result = await env.DB.prepare(query).bind(...binds).all();
+  return json({ samples: (result.results as Record<string, any>[]).map(parseSampleRow) });
+};
+
+// Admin: POST /api/admin/samples
+const handleCreateSample: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  const id = body.id || crypto.randomUUID();
+  const userEmail = getUserEmail(request);
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+
+  const cols = [
+    'name', 'chinese_name', 'type', 'form', 'year', 'origin_region',
+    'source_id', 'source_name', 'source_contact', 'product_id',
+    'compass_entry_id', 'set_id', 'status', 'grams', 'notes', 'photos',
+    'created_by', 'user_id',
+  ];
+  const present = cols.filter(c => body[c] !== undefined);
+  const allCols = ['id', ...present];
+  if (!present.includes('user_id')) allCols.push('user_id');
+  if (!present.includes('created_by')) allCols.push('created_by');
+
+  const placeholders = allCols.map(() => '?').join(', ');
+  const colNames = allCols.join(', ');
+
+  const values: any[] = [id];
+  for (const c of present) {
+    let val = body[c] ?? null;
+    if ((c === 'photos' || c === 'source_contact') && typeof val === 'object') {
+      val = JSON.stringify(val);
+    }
+    values.push(val);
+  }
+  if (!present.includes('user_id')) values.push(userId);
+  if (!present.includes('created_by')) values.push(userEmail || 'admin');
+
+  await env.DB.prepare(
+    `INSERT INTO tea_samples (${colNames}) VALUES (${placeholders})`
+  ).bind(...values).run();
+
+  buildActivityLog(env, 'sample_created', `Sample ${body.name || id} created`, userEmail, 'sample', id);
+
+  const created = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(id).first();
+  return json(parseSampleRow(created as Record<string, any>), 201);
+};
+
+// Admin: PUT /api/admin/samples/:id
+const handleUpdateSample: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  delete body.id;
+  delete body.user_id;
+  delete body.created_by;
+
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  // Serialize JSON fields
+  for (const c of cols) {
+    if ((c === 'photos' || c === 'source_contact') && typeof body[c] === 'object') {
+      body[c] = JSON.stringify(body[c]);
+    }
+  }
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE tea_samples SET ${sets}, updated_at = datetime('now') WHERE id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+
+  const userEmail = getUserEmail(request);
+  buildActivityLog(env, 'sample_updated', `Sample ${params.id} updated`, userEmail, 'sample', params.id);
+
+  const updated = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(params.id).first();
+  if (!updated) return json({ error: 'Sample not found' }, 404);
+  return json(parseSampleRow(updated as Record<string, any>));
+};
+
+// Admin: DELETE /api/admin/samples/:id
+const handleDeleteSample: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Delete tastings first
+  await env.DB.prepare('DELETE FROM tea_sample_tastings WHERE sample_id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM tea_samples WHERE id = ?').bind(params.id).run();
+
+  const userEmail = getUserEmail(request);
+  buildActivityLog(env, 'sample_deleted', `Sample ${params.id} deleted`, userEmail, 'sample', params.id);
+
+  return json({ success: true });
+};
+
+// Admin: GET /api/admin/sample-sets
+const handleListSampleSets: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const result = await env.DB.prepare('SELECT * FROM tea_sample_sets ORDER BY created_at DESC').all();
+  return json({ sets: (result.results as Record<string, any>[]).map(parseSampleSetRow) });
+};
+
+// Admin: POST /api/admin/sample-sets
+const handleCreateSampleSet: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  const id = body.id || crypto.randomUUID();
+
+  const claims = parseToken(isAuthed(request)!);
+  const userId = claims?.sub || 'admin';
+
+  const cols = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'user_id'];
+  const present = cols.filter(c => body[c] !== undefined);
+  const allCols = ['id', ...present];
+  if (!present.includes('user_id')) allCols.push('user_id');
+
+  const placeholders = allCols.map(() => '?').join(', ');
+  const colNames = allCols.join(', ');
+
+  const values: any[] = [id];
+  for (const c of present) {
+    let val = body[c] ?? null;
+    if (c === 'shared_with' && typeof val === 'object') {
+      val = JSON.stringify(val);
+    }
+    values.push(val);
+  }
+  if (!present.includes('user_id')) values.push(userId);
+
+  await env.DB.prepare(
+    `INSERT INTO tea_sample_sets (${colNames}) VALUES (${placeholders})`
+  ).bind(...values).run();
+
+  const userEmail = getUserEmail(request);
+  buildActivityLog(env, 'sample_set_created', `Sample set ${body.name || id} created`, userEmail, 'sample_set', id);
+
+  const created = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(id).first();
+  return json(parseSampleSetRow(created as Record<string, any>), 201);
+};
+
+// Admin: PUT /api/admin/sample-sets/:id
+const handleUpdateSampleSet: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const body = await request.json() as Record<string, any>;
+  delete body.id;
+  delete body.user_id;
+
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  if (cols.includes('shared_with') && typeof body.shared_with === 'object') {
+    body.shared_with = JSON.stringify(body.shared_with);
+  }
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE tea_sample_sets SET ${sets}, updated_at = datetime('now') WHERE id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+
+  const userEmail = getUserEmail(request);
+  buildActivityLog(env, 'sample_set_updated', `Sample set ${params.id} updated`, userEmail, 'sample_set', params.id);
+
+  const updated = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(params.id).first();
+  if (!updated) return json({ error: 'Sample set not found' }, 404);
+  return json(parseSampleSetRow(updated as Record<string, any>));
+};
+
+// Admin: DELETE /api/admin/sample-sets/:id
+const handleDeleteSampleSet: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  // Get all samples in this set
+  const samples = await env.DB.prepare('SELECT id FROM tea_samples WHERE set_id = ?').bind(params.id).all();
+  const sampleIds = (samples.results as Record<string, any>[]).map(s => s.id);
+
+  // Delete tastings for all samples in the set
+  if (sampleIds.length > 0) {
+    const placeholders = sampleIds.map(() => '?').join(', ');
+    await env.DB.prepare(
+      `DELETE FROM tea_sample_tastings WHERE sample_id IN (${placeholders})`
+    ).bind(...sampleIds).run();
+  }
+
+  // Delete all samples in the set
+  await env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ?').bind(params.id).run();
+  // Delete the set itself
+  await env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ?').bind(params.id).run();
+
+  const userEmail = getUserEmail(request);
+  buildActivityLog(env, 'sample_set_deleted', `Sample set ${params.id} deleted (${sampleIds.length} samples)`, userEmail, 'sample_set', params.id);
+
+  return json({ success: true });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -4010,6 +4357,21 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],
   ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
   ['POST', '/api/compass/sync', handleSyncCompassEntries],
+
+  // Samples — Public
+  ['GET', '/api/samples/set/:setId', handleGetSamplesBySet],
+  ['GET', '/api/samples/:id', handleGetSample],
+  ['POST', '/api/samples/:id/tastings', handleAddSampleTasting],
+
+  // Samples — Admin
+  ['GET', '/api/admin/samples', handleListSamples],
+  ['POST', '/api/admin/samples', handleCreateSample],
+  ['PUT', '/api/admin/samples/:id', handleUpdateSample],
+  ['DELETE', '/api/admin/samples/:id', handleDeleteSample],
+  ['GET', '/api/admin/sample-sets', handleListSampleSets],
+  ['POST', '/api/admin/sample-sets', handleCreateSampleSet],
+  ['PUT', '/api/admin/sample-sets/:id', handleUpdateSampleSet],
+  ['DELETE', '/api/admin/sample-sets/:id', handleDeleteSampleSet],
 ];
 
 export default {

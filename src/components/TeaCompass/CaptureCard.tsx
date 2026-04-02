@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Check, Droplets, Minus, Plus, X } from 'lucide-react';
+import { Camera, Check, Droplets, FlaskConical, Heart, Minus, Plus, ShoppingCart, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -445,6 +445,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const isTeaware = entry.category === 'teaware';
+  const isSample = !!entry.isSample;
   const hasName = (entry.name || '').trim().length > 0;
 
   const hasTasting = entry.tasting && Object.values(entry.tasting).some(
@@ -834,6 +835,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
+      {/* Sample toggle — marks this tea entry as a sample */}
+      <button
+        type="button"
+        onClick={() => update({ isSample: !entry.isSample })}
+        className={`pill text-xs flex items-center gap-1.5 ${isSample ? 'pill-active' : ''}`}
+      >
+        <FlaskConical size={13} strokeWidth={1.5} /> {isSample ? 'Sample' : 'Mark as sample'}
+      </button>
+
       {/* Panel 2: Price & Grams */}
       <div className="rounded-lg">
         <PriceGrams
@@ -935,6 +945,54 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 />
               )}
             </div>
+
+            {/* Sample-specific: grams + verdict */}
+            {isSample && (
+              <div className="space-y-3">
+                {/* Sample grams */}
+                <div className="space-y-1">
+                  <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Sample size</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[5, 8, 10, 15, 20, 25, 50].map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => update({ sampleGrams: g })}
+                        className={`pill text-xs ${entry.sampleGrams === g ? 'pill-active' : ''}`}
+                      >
+                        {g}g
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Verdict */}
+                <div className="space-y-1">
+                  <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Verdict</label>
+                  <div className="flex gap-1.5">
+                    {([['love', Heart], ['like', ThumbsUp], ['neutral', Minus], ['pass', ThumbsDown]] as const).map(([v, Icon]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => update({ sampleVerdict: entry.sampleVerdict === v ? undefined : v })}
+                        className={`pill text-xs flex items-center gap-1 ${entry.sampleVerdict === v ? 'pill-active' : ''}`}
+                      >
+                        <Icon size={12} strokeWidth={1.5} /> {v.charAt(0).toUpperCase() + v.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Would buy */}
+                <button
+                  type="button"
+                  onClick={() => update({ sampleWouldBuy: !entry.sampleWouldBuy })}
+                  className={`pill text-xs flex items-center gap-1.5 ${entry.sampleWouldBuy ? 'pill-active' : ''}`}
+                >
+                  <ShoppingCart size={13} strokeWidth={1.5} /> {entry.sampleWouldBuy ? 'Would buy!' : 'Would you buy this?'}
+                </button>
+              </div>
+            )}
 
             {/* Panel 4: Notes */}
             <div className="rounded-lg">

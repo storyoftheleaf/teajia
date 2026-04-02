@@ -28,6 +28,7 @@ import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { TeaCompass } from '../components/TeaCompass';
 import type { CompassMode } from '../components/TeaCompass';
+import SampleSetCreator from '../samples/SampleSetCreator';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -406,6 +407,15 @@ const AdminContent = () => {
                 <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate('/admin/inventory')} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+
+              {/* Samples */}
+              <Route path="samples" element={
+                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <SampleSetCreator />
                   </PageTransition>
                 </ProtectedRoute>
               } />

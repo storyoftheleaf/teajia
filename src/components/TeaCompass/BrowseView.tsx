@@ -83,6 +83,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     if (browseFilter === 'all') return entries;
     if (browseFilter === 'want') return entries.filter((e) => e.status === 'want');
     if (browseFilter === 'bought') return entries.filter((e) => e.status === 'bought');
+    if (browseFilter === 'sample') return entries.filter((e) => e.isSample);
     return entries;
   }, [entries, browseFilter]);
 
@@ -90,6 +91,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     all: entries.length,
     want: entries.filter((e) => e.status === 'want').length,
     bought: entries.filter((e) => e.status === 'bought').length,
+    sample: entries.filter((e) => e.isSample).length,
   }), [entries]);
 
   const groups = useMemo(() => {
@@ -116,6 +118,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     { value: 'all', label: 'All', count: counts.all },
     { value: 'want', label: 'Want', count: counts.want },
     { value: 'bought', label: 'Bought', count: counts.bought },
+    { value: 'sample', label: 'Samples', count: counts.sample },
   ];
 
   if (entries.length === 0) {

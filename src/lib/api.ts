@@ -1016,4 +1016,102 @@ export const api = {
       return handleResponse(res);
     },
   },
+
+  // ── Samples ──
+  samples: {
+    // Public: get a single sample (source info stripped for non-admin)
+    get: async (id: string) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetchWithTimeout(`${API_URL}/api/samples/${id}`, { headers });
+      return handleResponse(res);
+    },
+    // Public: get all samples in a set
+    getSet: async (setId: string) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetchWithTimeout(`${API_URL}/api/samples/set/${setId}`, { headers });
+      return handleResponse(res);
+    },
+    // Public/guest: add a tasting to a sample
+    addTasting: async (sampleId: string, data: { tasting: Record<string, any>; rating?: number; verdict: string; wouldBuy: boolean; personalNote?: string; tasterName?: string }) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia-token');
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetchWithTimeout(`${API_URL}/api/samples/${sampleId}/tastings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    // Admin: list all samples
+    list: async (params?: { setId?: string; status?: string }) => {
+      const qp = new URLSearchParams();
+      if (params?.setId) qp.set('setId', params.setId);
+      if (params?.status) qp.set('status', params.status);
+      const qs = qp.toString();
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/samples${qs ? `?${qs}` : ''}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (sample: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/samples`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(sample),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, updates: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/samples/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(updates),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/samples/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  sampleSets: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (set: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(set),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, updates: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(updates),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
 };

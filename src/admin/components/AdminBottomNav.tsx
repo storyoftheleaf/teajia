@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   BookOpen,
   Sparkles,
+  FlaskConical,
   X,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
@@ -33,6 +34,7 @@ const rightTabs = [
 ] as const;
 
 const moreItems = [
+  { id: 'samples', label: 'Samples', icon: FlaskConical, path: '/admin/samples' },
   { id: 'tasting', label: 'Tasting Notes', icon: Sparkles, path: '/admin/tasting' },
   { id: 'cart', label: 'Cart / Registry', icon: ShoppingCart, path: null },
 ];

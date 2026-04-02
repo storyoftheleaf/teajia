@@ -12,7 +12,7 @@ export type TeawareMaterial = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcela
 export type TeawareEra = 'Modern' | '90s' | '80s' | '70s' | 'Pre-70s' | 'Republic' | 'Qing' | 'Unknown';
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'want' | 'bought';
+export type BrowseFilter = 'all' | 'want' | 'bought' | 'sample';
 
 export interface VendorDetails {
   businessCardUrl?: string;
@@ -69,6 +69,13 @@ export interface TeaCompassEntry {
   buyQuantityGrams?: number;
   buyQuantityUnits?: number;
   buyTotal?: number;
+
+  // Sample flag — tea entries can be marked as samples (small tasting portions)
+  isSample?: boolean;
+  sampleSetId?: string;        // Groups samples from one session
+  sampleGrams?: number;        // Amount in sample bag (5-15g)
+  sampleVerdict?: 'love' | 'like' | 'neutral' | 'pass';
+  sampleWouldBuy?: boolean;
 
   // Pipeline
   draftProductId?: string;
