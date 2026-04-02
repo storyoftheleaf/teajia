@@ -1759,30 +1759,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               >
                 <Layers size={15} />
               </button>
-              {showMobileGroupBy && (
-                <>
-                {/* absolute overlay — fixed doesn't work inside backdrop-blur */}
-                <div className="absolute -top-4 -right-4 w-[200vw] h-[200vh] z-40" onClick={() => setShowMobileGroupBy(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
-                  {GROUPBY_OPTIONS.map(opt => {
-                    const isActive = (inventoryGroupBy || '') === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setInventoryGroupBy(opt.value || null);
-                          setShowMobileGroupBy(false);
-                        }}
-                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] transition-colors ${isActive ? 'text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                      >
-                        <span>{opt.label}</span>
-                        {isActive && <Check size={14} />}
-                      </button>
-                    );
-                  })}
-                </div>
-                </>
-              )}
+              {/* Group-by dropdown rendered outside backdrop-blur container below */}
             </div>
             <div className="relative">
               <button
@@ -1791,53 +1768,85 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               >
                 <ArrowUpDown size={15} />
               </button>
-              {showMobileSort && (
-                <>
-                <div className="absolute -top-4 -right-4 w-[200vw] h-[200vh] z-40" onClick={() => setShowMobileSort(false)} />
-                <div className="absolute right-0 top-full mt-1 w-[calc(100vw-16px)] max-w-[280px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-2 px-1" role="menu">
-                  <div className="grid grid-cols-2 gap-0.5">
-                  {[
-                    { key: 'type', label: 'Type' },
-                    { key: 'productName', label: 'Name' },
-                    { key: 'stockGrams', label: 'Stock' },
-                    { key: 'pricePerGramUSD', label: 'Price/g' },
-                    { key: 'costAmount', label: 'Cost' },
-                    { key: 'costPerGramUSD', label: 'Cost/g' },
-                    { key: 'year', label: 'Year' },
-                    { key: 'originRegion', label: 'Origin' },
-                    { key: 'vendor', label: 'Source' },
-                  ].map(opt => {
-                    const current = inventorySortConfig[0];
-                    const isActive = current?.key === opt.key;
-                    return (
-                      <button
-                        key={opt.key}
-                        onClick={() => {
-                          if (isActive) {
-                            setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
-                          } else {
-                            setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
-                          }
-                          setShowMobileSort(false);
-                        }}
-                        className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-[12px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                      >
-                        <span>{opt.label}</span>
-                        {isActive && (
-                          <span className="flex items-center">
-                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  </div>
-                </div>
-                </>
-              )}
+              {/* Sort dropdown rendered outside backdrop-blur container below */}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* --- MOBILE GROUP-BY DROPDOWN (outside backdrop-blur container) --- */}
+      <div className="md:hidden">
+            {showMobileGroupBy && (
+              <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMobileGroupBy(false)} />
+              <div className="fixed right-12 top-[40px] w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                {GROUPBY_OPTIONS.map(opt => {
+                  const isActive = (inventoryGroupBy || '') === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        setInventoryGroupBy(opt.value || null);
+                        setShowMobileGroupBy(false);
+                      }}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] transition-colors ${isActive ? 'text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                    >
+                      <span>{opt.label}</span>
+                      {isActive && <Check size={14} />}
+                    </button>
+                  );
+                })}
+              </div>
+              </>
+            )}
+      </div>
+
+      {/* --- MOBILE SORT DROPDOWN (outside backdrop-blur container) --- */}
+      <div className="md:hidden">
+            {showMobileSort && (
+              <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
+              <div className="fixed right-2 top-[40px] w-[calc(100vw-16px)] max-w-[280px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-2 px-1" role="menu">
+                <div className="grid grid-cols-2 gap-0.5">
+                {[
+                  { key: 'type', label: 'Type' },
+                  { key: 'productName', label: 'Name' },
+                  { key: 'stockGrams', label: 'Stock' },
+                  { key: 'pricePerGramUSD', label: 'Price/g' },
+                  { key: 'costAmount', label: 'Cost' },
+                  { key: 'costPerGramUSD', label: 'Cost/g' },
+                  { key: 'year', label: 'Year' },
+                  { key: 'originRegion', label: 'Origin' },
+                  { key: 'vendor', label: 'Source' },
+                ].map(opt => {
+                  const current = inventorySortConfig[0];
+                  const isActive = current?.key === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      onClick={() => {
+                        if (isActive) {
+                          setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                        } else {
+                          setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
+                        }
+                        setShowMobileSort(false);
+                      }}
+                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-[12px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                    >
+                      <span>{opt.label}</span>
+                      {isActive && (
+                        <span className="flex items-center">
+                          {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                </div>
+              </div>
+              </>
+            )}
       </div>
 
       {/* --- MOBILE OPTIONS SHEET (outside backdrop-blur container) --- */}
