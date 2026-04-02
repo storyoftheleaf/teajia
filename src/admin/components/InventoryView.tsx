@@ -1764,6 +1764,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             >
               <ArrowUpDown size={15} />
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- MOBILE BOTTOM SHEETS (outside backdrop-blur container) --- */}
+      <div className="md:hidden">
             {showMobileSort && (
               <>
               <div className="fixed inset-0 z-40 bg-tea-text/30" onClick={() => setShowMobileSort(false)} />
@@ -1879,8 +1885,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
               </>
             )}
-          </div>
-        </div>
       </div>
 
       {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
@@ -2516,7 +2520,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           </div>
                                         )}
                                         <div className="text-[12px] text-tea-text-dim tabular-nums">
-                                            {fmtNum(product.pricePerGramUSD)}/g
+                                            {priceMode === 'cost'
+                                              ? `${product.costAmount > 0 ? product.costAmount.toLocaleString() : '0'}`
+                                              : `${fmtNum(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)}/g`
+                                            }
                                         </div>
                                       </>
                                     )}
