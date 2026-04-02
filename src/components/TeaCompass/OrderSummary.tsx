@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Minus, Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { useLedgerStore } from '../../lib/ledgerStore';
 import type { TeaCompassEntry, TeaForm } from './types';
 import { GRAM_PRESETS, DEFAULT_GRAMS, compassEntryToProductDraft } from './types';
 import { api, isConfigured, hasToken } from '../../lib/api';
@@ -310,6 +311,9 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
   // Common currency (all items should share one)
   const currency = buyingEntries[0]?.priceCurrency ?? 'NT';
 
+  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
+  const addLineItem = useLedgerStore((s) => s.addLineItem);
+
   const handleConfirm = useCallback(async () => {
     // First, update all entries to 'bought' status with quantities
     const updatedEntries: TeaCompassEntry[] = [];
@@ -330,6 +334,29 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
       }
       updateEntry(entry.id, updates);
       updatedEntries.push({ ...entry, ...updates });
+    }
+
+    // Also create ledger entries so purchases are tracked in the ledger
+    const vendorName = buyingEntries[0]?.vendorName || 'Unknown Vendor';
+    const vendorId = buyingEntries[0]?.vendorId;
+    const txId = getOrCreatePurchaseTransaction(vendorName, currency, vendorId);
+    for (const entry of updatedEntries) {
+      const qty = quantities[entry.id] ?? 1;
+      const unitBased = entry.category === 'teaware' || isUnitBased(entry.form);
+      addLineItem(txId, {
+        name: entry.name,
+        chineseName: entry.chineseName,
+        type: entry.category === 'teaware' ? 'Teaware' : (entry.type || undefined),
+        form: entry.form,
+        year: entry.year,
+        quantityGrams: unitBased ? undefined : qty,
+        quantityUnits: unitBased ? qty : undefined,
+        unitWeightGrams: unitBased && entry.form ? getDefaultGrams(entry.form) : undefined,
+        pricePerUnit: entry.priceAmount ?? 0,
+        priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+        currency,
+        compassEntryId: entry.id,
+      });
     }
 
     setConfirmed(true);
@@ -355,7 +382,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
     setTimeout(() => {
       onClose();
     }, 1200);
-  }, [buyingEntries, quantities, updateEntry, onClose]);
+  }, [buyingEntries, quantities, updateEntry, onClose, currency, getOrCreatePurchaseTransaction, addLineItem]);
 
   const today = new Date().toLocaleDateString(undefined, {
     year: 'numeric',

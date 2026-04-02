@@ -18,6 +18,7 @@ import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
 import { TastingEditorModal } from './TastingEditorModal';
 import { StockLedgerPanel } from './StockLedgerPanel';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TeaDetailsModal } from './TeaDetailsModal';
 import {
   flattenTastingNotes,
@@ -689,6 +690,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const vendorFilter = searchParams.get('vendor') || '';
   const panelParam = searchParams.get('panel') || '';
   const navigate = useNavigate();
+  const compassEntries = useTeaCompassStore((s) => s.entries);
 
   // Use external category/search from parent top bar
   const inventoryCategory: InventoryCategory = externalCategory;
@@ -3200,6 +3202,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
                       </div>
+
+                      {/* Compass Origin — if this product came from a Tea Compass entry */}
+                      {(() => {
+                        const compassEntry = compassEntries.find(e => e.draftProductId === panelProduct.id);
+                        if (!compassEntry) return null;
+                        return (
+                          <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                            <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
+                            <button
+                              onClick={() => navigate(`/compass?entry=${encodeURIComponent(compassEntry.id)}`)}
+                              className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
+                            >
+                              <Globe size={10} />
+                              {compassEntry.vendorName || 'Compass Entry'}
+                              <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* All toggles: visibility + source + ownership */}
