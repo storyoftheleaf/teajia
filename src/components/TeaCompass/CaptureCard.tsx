@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Check, Droplets, Minus, Plus, X } from 'lucide-react';
+import { Camera, Check, Droplets, FlaskConical, Heart, Minus, Plus, ShoppingCart, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -841,7 +841,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         onClick={() => update({ isSample: !entry.isSample })}
         className={`pill text-xs flex items-center gap-1.5 ${isSample ? 'pill-active' : ''}`}
       >
-        🧪 {isSample ? 'Sample' : 'Mark as sample'}
+        <FlaskConical size={13} strokeWidth={1.5} /> {isSample ? 'Sample' : 'Mark as sample'}
       </button>
 
       {/* Panel 2: Price & Grams */}
@@ -970,14 +970,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <div className="space-y-1">
                   <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Verdict</label>
                   <div className="flex gap-1.5">
-                    {([['love', '\u2764\uFE0F'], ['like', '\uD83D\uDC4D'], ['neutral', '\u2014'], ['pass', '\uD83D\uDC4E']] as const).map(([v, emoji]) => (
+                    {([['love', Heart], ['like', ThumbsUp], ['neutral', Minus], ['pass', ThumbsDown]] as const).map(([v, Icon]) => (
                       <button
                         key={v}
                         type="button"
                         onClick={() => update({ sampleVerdict: entry.sampleVerdict === v ? undefined : v })}
                         className={`pill text-xs flex items-center gap-1 ${entry.sampleVerdict === v ? 'pill-active' : ''}`}
                       >
-                        <span>{emoji}</span> {v.charAt(0).toUpperCase() + v.slice(1)}
+                        <Icon size={12} strokeWidth={1.5} /> {v.charAt(0).toUpperCase() + v.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -989,7 +989,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   onClick={() => update({ sampleWouldBuy: !entry.sampleWouldBuy })}
                   className={`pill text-xs flex items-center gap-1.5 ${entry.sampleWouldBuy ? 'pill-active' : ''}`}
                 >
-                  \uD83D\uDED2 {entry.sampleWouldBuy ? 'Would buy!' : 'Would you buy this?'}
+                  <ShoppingCart size={13} strokeWidth={1.5} /> {entry.sampleWouldBuy ? 'Would buy!' : 'Would you buy this?'}
                 </button>
               </div>
             )}
