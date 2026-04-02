@@ -1743,7 +1743,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             );
           })()}
 
-          {/* Right controls — price toggle + group + sort + options */}
+          {/* Right controls — price toggle + group + sort */}
           <div className="flex items-center gap-0 ml-auto shrink-0 relative">
             <button
               onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
@@ -1752,31 +1752,48 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             >
               {priceMode === 'retail' ? <Tag size={15} /> : <Receipt size={15} />}
             </button>
-            <button
-              onClick={() => { setShowMobileGroupBy(!showMobileGroupBy); setShowMobileSort(false); setShowOptions(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-            >
-              <Layers size={15} />
-            </button>
-            <button
-              onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileGroupBy(false); setShowOptions(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-            >
-              <ArrowUpDown size={15} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* --- MOBILE BOTTOM SHEETS (outside backdrop-blur container) --- */}
-      <div className="md:hidden">
-            {showMobileSort && (
-              <>
-              <div className="fixed inset-0 z-40 bg-tea-text/30" onClick={() => setShowMobileSort(false)} />
-              <div className="fixed left-0 right-0 bottom-[calc(44px+env(safe-area-inset-bottom,0px))] z-50 bg-tea-surface border-t border-tea-border rounded-t-2xl shadow-2xl" role="menu">
-                <div className="w-10 h-1 rounded-full bg-tea-border mx-auto mt-2 mb-1" />
-                <div className="px-4 py-2 text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-semibold">Sort by</div>
-                <div className="grid grid-cols-2 gap-1 px-3 pb-4">
+            <div className="relative">
+              <button
+                onClick={() => { setShowMobileGroupBy(!showMobileGroupBy); setShowMobileSort(false); setShowOptions(false); }}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <Layers size={15} />
+              </button>
+              {showMobileGroupBy && (
+                <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMobileGroupBy(false)} />
+                <div className="absolute right-0 top-full mt-1 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                  {GROUPBY_OPTIONS.map(opt => {
+                    const isActive = (inventoryGroupBy || '') === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setInventoryGroupBy(opt.value || null);
+                          setShowMobileGroupBy(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] transition-colors ${isActive ? 'text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && <Check size={14} />}
+                      </button>
+                    );
+                  })}
+                </div>
+                </>
+              )}
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileGroupBy(false); setShowOptions(false); }}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <ArrowUpDown size={15} />
+              </button>
+              {showMobileSort && (
+                <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
+                <div className="absolute right-0 top-full mt-1 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
                   {[
                     { key: 'type', label: 'Type' },
                     { key: 'productName', label: 'Name' },
@@ -1801,7 +1818,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           }
                           setShowMobileSort(false);
                         }}
-                        className={`flex items-center justify-between gap-2 px-3 py-3 rounded-xl text-[13px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] transition-colors ${isActive ? 'text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
                       >
                         <span>{opt.label}</span>
                         {isActive && (
@@ -1813,36 +1830,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     );
                   })}
                 </div>
-              </div>
-              </>
-            )}
-            {showMobileGroupBy && (
-              <>
-              <div className="fixed inset-0 z-40 bg-tea-text/30" onClick={() => setShowMobileGroupBy(false)} />
-              <div className="fixed left-0 right-0 bottom-[calc(44px+env(safe-area-inset-bottom,0px))] z-50 bg-tea-surface border-t border-tea-border rounded-t-2xl shadow-2xl" role="menu">
-                <div className="w-10 h-1 rounded-full bg-tea-border mx-auto mt-2 mb-1" />
-                <div className="px-4 py-2 text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-semibold">Group by</div>
-                <div className="grid grid-cols-2 gap-1 px-3 pb-4">
-                  {GROUPBY_OPTIONS.map(opt => {
-                    const isActive = (inventoryGroupBy || '') === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          setInventoryGroupBy(opt.value || null);
-                          setShowMobileGroupBy(false);
-                        }}
-                        className={`flex items-center justify-between gap-2 px-3 py-3 rounded-xl text-[13px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                      >
-                        <span>{opt.label}</span>
-                        {isActive && <Check size={14} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- MOBILE OPTIONS SHEET (outside backdrop-blur container) --- */}
+      <div className="md:hidden">
             {showOptions && (
               <>
               <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }} />
@@ -2521,7 +2517,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                         )}
                                         <div className="text-[12px] text-tea-text-dim tabular-nums">
                                             {priceMode === 'cost'
-                                              ? `${product.costAmount > 0 ? product.costAmount.toLocaleString() : '0'}`
+                                              ? `${product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '0.00'}/g`
                                               : `${fmtNum(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)}/g`
                                             }
                                         </div>
