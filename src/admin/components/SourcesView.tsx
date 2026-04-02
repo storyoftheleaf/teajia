@@ -4,7 +4,8 @@ import {
   Search, Plus, Trash2, Edit3, Loader2, ChevronDown, ChevronUp,
   ChevronRight, Leaf, MapPin, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, X as XIcon, Pencil, Check, Columns, Layers,
-  MoreHorizontal, Save, Download, Square, CheckSquare, Users
+  MoreHorizontal, Save, Download, Square, CheckSquare, Users,
+  Clock, TrendingUp, ShoppingBag, Eye, Palette, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -15,6 +16,10 @@ import { api } from '../../lib/api';
 import { Customer, CustomerTag, Product } from '../types';
 import { useAppStore } from '../store';
 import { TeaTable } from './TeaTable';
+import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
+import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import type { Currency } from '../types';
 
 // ── Add/Edit Source Modal ──
 const SourceModal = ({
@@ -42,7 +47,7 @@ const SourceModal = ({
     try { await onSave(form); } finally { setSaving(false); }
   };
 
-  const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
@@ -184,7 +189,7 @@ const GhostInput = ({
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
-      className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${className}`}
+      className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none text-base md:text-[length:inherit] ${className}`}
     />
   );
 };
@@ -210,6 +215,23 @@ interface SourceRow extends Customer {
   teaCount: number;
 }
 
+// ── Currency formatting ──
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', UNK: '',
+};
+
+function fmtPrice(amount: number, cur: string): string {
+  const sym = CURRENCY_SYMBOLS[cur] || '';
+  const decimals = ['NT', 'IDR', 'JPY'].includes(cur) ? 0 : 2;
+  return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+function lineTotal(item: LedgerLineItem): number {
+  return item.priceIsPerGram
+    ? item.pricePerUnit * (item.quantityGrams ?? 0)
+    : item.pricePerUnit * (item.quantityUnits ?? 1);
+}
+
 export const SourcesView = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -217,6 +239,10 @@ export const SourcesView = () => {
   const { data: allProducts = [] } = useProducts();
   const { data: rates = [] } = useRates();
   const { currency } = useAppStore();
+
+  // Ledger & Compass stores
+  const ledgerTransactions = useLedgerStore((s) => s.transactions);
+  const compassEntries = useTeaCompassStore((s) => s.entries);
 
   // Expanded source — shows inline inventory table
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
@@ -745,7 +771,7 @@ export const SourcesView = () => {
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-base md:text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
             />
           </div>
 
@@ -1384,7 +1410,7 @@ export const SourcesView = () => {
                               placeholder="Search teas..."
                               value={linkSearch}
                               onChange={e => setLinkSearch(e.target.value)}
-                              className="flex-1 bg-transparent text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                              className="flex-1 bg-transparent text-base md:text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                               autoFocus
                             />
                             <button onClick={() => { setShowLinkSearch(false); setLinkSearch(''); }} className="text-tea-text-sec hover:text-tea-text"><XIcon size={12} /></button>
@@ -1424,6 +1450,581 @@ export const SourcesView = () => {
                   </>
                 )}
               </CollapsibleSection>
+
+              {/* Ledger Transactions Section */}
+              {(() => {
+                const vendorTxs = ledgerTransactions.filter(
+                  (tx) =>
+                    tx.counterpartyId === panelSource.id ||
+                    tx.counterpartyName.toLowerCase() === panelSource.name.toLowerCase()
+                );
+                const totalsByDir = vendorTxs.reduce(
+                  (acc, tx) => {
+                    const total = tx.items.reduce((s, i) => s + lineTotal(i), 0);
+                    if (tx.direction === 'purchase') acc.purchases += total;
+                    else acc.sales += total;
+                    return acc;
+                  },
+                  { purchases: 0, sales: 0 }
+                );
+                return (
+                  <CollapsibleSection title={`Ledger (${vendorTxs.length})`}>
+                    {vendorTxs.length === 0 ? (
+                      <p className="text-xs text-tea-text-dim font-serif italic">No transactions recorded yet.</p>
+                    ) : (
+                      <>
+                        {/* Summary */}
+                        <div className="flex items-center gap-4 mb-3 text-xs text-tea-text-sec">
+                          {totalsByDir.purchases > 0 && (
+                            <span className="flex items-center gap-1">
+                              <ArrowDown size={10} className="text-amber-400" />
+                              {vendorTxs.filter(t => t.direction === 'purchase').length} purchase{vendorTxs.filter(t => t.direction === 'purchase').length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {totalsByDir.sales > 0 && (
+                            <span className="flex items-center gap-1">
+                              <ArrowUp size={10} className="text-emerald-400" />
+                              {vendorTxs.filter(t => t.direction === 'sale').length} sale{vendorTxs.filter(t => t.direction === 'sale').length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Transaction list */}
+                        <div className="space-y-2">
+                          {vendorTxs.slice(0, 10).map((tx) => {
+                            const txTotal = tx.items.reduce((s, i) => s + lineTotal(i), 0);
+                            return (
+                              <div key={tx.id} className="bg-tea-bg rounded-lg border border-tea-border p-3">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {tx.direction === 'purchase' ? (
+                                      <ArrowDown size={12} className="text-amber-400" />
+                                    ) : (
+                                      <ArrowUp size={12} className="text-emerald-400" />
+                                    )}
+                                    <span className="text-[10px] text-tea-text-sec uppercase tracking-wider">
+                                      {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}
+                                    </span>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                      {tx.status}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-tea-text tabular-nums font-medium">
+                                    {fmtPrice(txTotal, tx.currency)}
+                                  </span>
+                                </div>
+
+                                {/* Items preview */}
+                                <div className="space-y-0.5">
+                                  {tx.items.slice(0, 3).map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between text-[11px]">
+                                      <span className="text-tea-text-sec truncate flex-1 mr-2">
+                                        {item.chineseName || item.name}
+                                        {item.type && <span className="text-tea-text-dim ml-1 uppercase text-[9px]">{item.type}</span>}
+                                      </span>
+                                      <span className="text-tea-text-sec tabular-nums flex-shrink-0">
+                                        {item.priceIsPerGram ? `${item.quantityGrams}g` : `×${item.quantityUnits ?? 1}`}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {tx.items.length > 3 && (
+                                    <div className="text-[10px] text-tea-text-dim">+{tx.items.length - 3} more</div>
+                                  )}
+                                </div>
+
+                                {/* Photos */}
+                                {tx.photos && tx.photos.length > 0 && (
+                                  <div className="flex gap-1.5 mt-2">
+                                    {tx.photos.slice(0, 4).map((url, i) => (
+                                      <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" />
+                                    ))}
+                                    {tx.photos.length > 4 && (
+                                      <div className="w-10 h-10 rounded bg-tea-surface flex items-center justify-center text-[10px] text-tea-text-dim border border-tea-border">
+                                        +{tx.photos.length - 4}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                <div className="text-[10px] text-tea-text-dim mt-1.5">
+                                  {new Date(tx.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {vendorTxs.length > 10 && (
+                            <p className="text-[10px] text-tea-text-dim text-center">+{vendorTxs.length - 10} more transactions</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* Store / Tea Compass Section */}
+              {(() => {
+                const vendorEntries = compassEntries.filter(
+                  (e) =>
+                    e.vendorId === panelSource.id ||
+                    (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                // Get vendor details from the first entry that has them
+                const vendorDetails = vendorEntries.find((e) => e.vendorDetails)?.vendorDetails;
+                const totalEntries = vendorEntries.length;
+
+                if (totalEntries === 0 && !vendorDetails) return null;
+
+                return (
+                  <CollapsibleSection title={`Store${totalEntries > 0 ? ` (${totalEntries} entries)` : ''}`}>
+                    {/* Vendor details (storefront, business card, location) */}
+                    {vendorDetails && (
+                      <div className="space-y-3 mb-3">
+                        {/* Photos row */}
+                        {(vendorDetails.storefrontUrl || vendorDetails.businessCardUrl) && (
+                          <div className="flex gap-2">
+                            {vendorDetails.storefrontUrl && (
+                              <div className="flex-1">
+                                <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
+                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" />
+                              </div>
+                            )}
+                            {vendorDetails.businessCardUrl && (
+                              <div className="flex-1">
+                                <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
+                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Contact details from vendor */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {vendorDetails.wechat && (
+                            <div>
+                              <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">WeChat</div>
+                              <div className="text-tea-text">{vendorDetails.wechat}</div>
+                            </div>
+                          )}
+                          {vendorDetails.line && (
+                            <div>
+                              <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">LINE</div>
+                              <div className="text-tea-text">{vendorDetails.line}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Location */}
+                        {vendorDetails.lat != null && vendorDetails.lng != null && (
+                          <div>
+                            <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Location</div>
+                            <a
+                              href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-xs text-tea-accent hover:text-tea-text transition-colors"
+                            >
+                              <MapPin size={12} />
+                              <span className="tabular-nums">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
+                              <ExternalLink size={9} className="ml-1" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Recent compass entries from this vendor */}
+                    {vendorEntries.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Field Notes</div>
+                        {vendorEntries.slice(0, 8).map((entry) => (
+                          <div key={entry.id} className="flex items-center gap-2 py-1 text-xs">
+                            {entry.photos?.[0] && (
+                              <img src={entry.photos[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-tea-text truncate font-serif">
+                                {entry.chineseName || entry.name || 'Unnamed'}
+                              </div>
+                              <div className="text-[10px] text-tea-text-dim flex items-center gap-1">
+                                {entry.type && <span className="uppercase">{entry.type}</span>}
+                                {entry.status === 'bought' && <span className="text-emerald-400">bought</span>}
+                                {entry.status === 'want' && <span className="text-amber-400">want</span>}
+                              </div>
+                            </div>
+                            {entry.priceAmount != null && entry.priceAmount > 0 && (
+                              <span className="text-[10px] text-tea-text-sec tabular-nums flex-shrink-0">
+                                {fmtPrice(entry.priceAmount, entry.priceCurrency)}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                        {vendorEntries.length > 8 && (
+                          <p className="text-[10px] text-tea-text-dim">+{vendorEntries.length - 8} more entries</p>
+                        )}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Flavor Profile ── */}
+              {(() => {
+                const sourceProducts = allProducts.filter(
+                  (p) => p.vendorId === panelSource.id || (p.vendor && p.vendor.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                // Aggregate tasting terms across all products from this vendor
+                const termCounts: Record<string, number> = {};
+                let tastingsCount = 0;
+                const moods: string[] = [];
+                const liquorColors: string[] = [];
+
+                for (const p of sourceProducts) {
+                  if (p.tasting) {
+                    tastingsCount++;
+                    const terms = flattenTastingNotes(p.tasting);
+                    for (const t of terms) {
+                      termCounts[t] = (termCounts[t] || 0) + 1;
+                    }
+                    if (p.tasting['liquor-color']?.length) {
+                      liquorColors.push(...p.tasting['liquor-color']);
+                    }
+                  }
+                  if (p.mood) moods.push(p.mood);
+                  // Also count plain tastingNotes (string array)
+                  if (p.tastingNotes?.length && !p.tasting) {
+                    tastingsCount++;
+                    for (const n of p.tastingNotes) {
+                      termCounts[n] = (termCounts[n] || 0) + 1;
+                    }
+                  }
+                }
+
+                // Also aggregate compass entry tastings
+                const vendorCompassEntries = compassEntries.filter(
+                  (e) => e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                for (const e of vendorCompassEntries) {
+                  if (e.tasting) {
+                    tastingsCount++;
+                    const terms = flattenTastingNotes(e.tasting);
+                    for (const t of terms) {
+                      termCounts[t] = (termCounts[t] || 0) + 1;
+                    }
+                    if (e.tasting['liquor-color']?.length) {
+                      liquorColors.push(...e.tasting['liquor-color']);
+                    }
+                  }
+                }
+
+                const topTerms = Object.entries(termCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 12);
+
+                // Unique liquor colors
+                const uniqueColors = [...new Set(liquorColors)].slice(0, 6);
+                // Unique moods
+                const uniqueMoods = [...new Set(moods)].slice(0, 4);
+
+                if (tastingsCount === 0) return null;
+
+                return (
+                  <CollapsibleSection title={`Flavor Profile (${tastingsCount})`}>
+                    {/* Liquor color swatches */}
+                    {uniqueColors.length > 0 && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <Palette size={11} className="text-tea-text-dim" />
+                        <div className="flex gap-1">
+                          {uniqueColors.map((c) => (
+                            <div
+                              key={c}
+                              className="w-5 h-5 rounded-full border border-tea-border"
+                              style={{ backgroundColor: LIQUOR_COLORS[c] || '#888' }}
+                              title={resolveTermLabel(c)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Top flavor terms */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {topTerms.map(([term, count]) => (
+                        <span
+                          key={term}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-tea-surface rounded-full text-tea-text-sec"
+                          title={`Appears in ${count} tasting${count > 1 ? 's' : ''}`}
+                        >
+                          {resolveTermLabel(term)}
+                          {count > 1 && <span className="text-tea-gold tabular-nums">{count}</span>}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Moods */}
+                    {uniqueMoods.length > 0 && (
+                      <div className="text-[10px] text-tea-text-dim">
+                        <span className="uppercase tracking-wider text-tea-text-sec/50 mr-1.5">Moods:</span>
+                        {uniqueMoods.join(' · ')}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Cost Intelligence ── */}
+              {(() => {
+                const sourceProducts = allProducts.filter(
+                  (p) => p.vendorId === panelSource.id || (p.vendor && p.vendor.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                if (sourceProducts.length === 0) return null;
+
+                const withCost = sourceProducts.filter((p) => p.costAmount > 0);
+                const totalSpend = withCost.reduce((s, p) => s + p.costAmount, 0);
+                const totalGrams = withCost.reduce((s, p) => s + (p.quantityPurchased || p.stockGrams || 0), 0);
+                const avgCostPerGram = totalGrams > 0 ? totalSpend / totalGrams : 0;
+                // Primary cost currency (most common)
+                const currCounts: Record<string, number> = {};
+                for (const p of withCost) {
+                  currCounts[p.costCurrency] = (currCounts[p.costCurrency] || 0) + 1;
+                }
+                const primaryCurrency = Object.entries(currCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
+
+                // Value ranking (cheapest cost/gram products)
+                const valueRanked = [...withCost]
+                  .filter((p) => p.costPerGramUSD > 0)
+                  .sort((a, b) => a.costPerGramUSD - b.costPerGramUSD);
+
+                // Type breakdown
+                const typeBreakdown: Record<string, { count: number; totalCost: number }> = {};
+                for (const p of sourceProducts) {
+                  if (!typeBreakdown[p.type]) typeBreakdown[p.type] = { count: 0, totalCost: 0 };
+                  typeBreakdown[p.type].count++;
+                  typeBreakdown[p.type].totalCost += p.costAmount || 0;
+                }
+
+                return (
+                  <CollapsibleSection title="Cost Intelligence">
+                    {/* Summary stats */}
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Total Spend</div>
+                        <div className="text-sm text-tea-text tabular-nums font-medium">
+                          {fmtPrice(totalSpend, primaryCurrency)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Avg / Gram</div>
+                        <div className="text-sm text-tea-text tabular-nums font-medium">
+                          {avgCostPerGram > 0 ? fmtPrice(avgCostPerGram, primaryCurrency) : '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Total Stock</div>
+                        <div className="text-sm text-tea-text tabular-nums font-medium">
+                          {totalGrams > 0 ? `${totalGrams.toLocaleString()}g` : '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Type breakdown */}
+                    <div className="space-y-1 mb-3">
+                      {Object.entries(typeBreakdown)
+                        .sort((a, b) => b[1].count - a[1].count)
+                        .map(([type, data]) => (
+                          <div key={type} className="flex items-center justify-between text-[11px]">
+                            <span className="text-tea-text-sec uppercase tracking-wider">{type}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-tea-text tabular-nums">{data.count}</span>
+                              {data.totalCost > 0 && (
+                                <span className="text-tea-text-dim tabular-nums">{fmtPrice(data.totalCost, primaryCurrency)}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Best value */}
+                    {valueRanked.length > 0 && (
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1.5">Best Value</div>
+                        {valueRanked.slice(0, 3).map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-[11px] py-0.5">
+                            <button
+                              onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
+                              className="text-tea-text hover:text-tea-accent transition-colors truncate flex-1 mr-2 text-left"
+                            >
+                              {p.givenName || p.productName}
+                            </button>
+                            <span className="text-tea-gold tabular-nums flex-shrink-0">
+                              ${p.costPerGramUSD.toFixed(2)}/g
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Sampled, Not Bought ── */}
+              {(() => {
+                const pipeline = compassEntries.filter(
+                  (e) =>
+                    (e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())) &&
+                    (e.status === 'logged' || e.status === 'want')
+                );
+                if (pipeline.length === 0) return null;
+
+                const wants = pipeline.filter((e) => e.status === 'want');
+                const logged = pipeline.filter((e) => e.status === 'logged');
+
+                return (
+                  <CollapsibleSection title={`Pipeline (${pipeline.length})`}>
+                    {wants.length > 0 && (
+                      <div className="mb-2">
+                        <div className="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Star size={9} /> Want List
+                        </div>
+                        {wants.map((e) => (
+                          <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
+                            {e.photos?.[0] && (
+                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
+                            </div>
+                            {e.priceAmount != null && e.priceAmount > 0 && (
+                              <span className="text-[10px] text-tea-text-sec tabular-nums">{fmtPrice(e.priceAmount, e.priceCurrency)}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {logged.length > 0 && (
+                      <div>
+                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Eye size={9} /> Sampled / Noted
+                        </div>
+                        {logged.map((e) => (
+                          <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
+                            {e.photos?.[0] && (
+                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
+                            </div>
+                            {e.type && <span className="text-[9px] text-tea-text-dim uppercase">{e.type}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CollapsibleSection>
+                );
+              })()}
+
+              {/* ── Relationship Timeline ── */}
+              {(() => {
+                const events: { date: string; type: 'compass' | 'ledger' | 'product' | 'sale'; label: string; detail?: string; id?: string }[] = [];
+
+                // Compass entries
+                const vendorCompass = compassEntries.filter(
+                  (e) => e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                for (const e of vendorCompass) {
+                  const statusLabel = e.status === 'bought' ? 'Purchased' : e.status === 'want' ? 'Wishlisted' : 'Noted';
+                  events.push({
+                    date: e.createdAt,
+                    type: 'compass',
+                    label: `${statusLabel}: ${e.chineseName || e.name || 'tea'}`,
+                    detail: e.type ? `${e.type}${e.originRegion ? ` · ${e.originRegion}` : ''}` : undefined,
+                  });
+                }
+
+                // Ledger transactions
+                const vendorTxs = ledgerTransactions.filter(
+                  (tx) => tx.counterpartyId === panelSource.id || tx.counterpartyName.toLowerCase() === panelSource.name.toLowerCase()
+                );
+                for (const tx of vendorTxs) {
+                  const itemCount = tx.items.length;
+                  events.push({
+                    date: tx.createdAt,
+                    type: 'ledger',
+                    label: `${tx.direction === 'purchase' ? 'Bought' : 'Sold'} ${itemCount} item${itemCount !== 1 ? 's' : ''}`,
+                    detail: tx.status === 'draft' ? 'Draft' : undefined,
+                  });
+                }
+
+                // Products added from this vendor
+                const sourceProducts = allProducts.filter(
+                  (p) => p.vendorId === panelSource.id || (p.vendor && p.vendor.toLowerCase() === panelSource.name.toLowerCase())
+                );
+                // We don't have createdAt on products client-side, so use a fallback
+                for (const p of sourceProducts) {
+                  events.push({
+                    date: '', // no date available — will sort to end
+                    type: 'product',
+                    label: `Added to inventory: ${p.givenName || p.productName}`,
+                    detail: `${p.type} · ${p.status}`,
+                    id: p.id,
+                  });
+                }
+
+                // Sort by date descending, undated items last
+                events.sort((a, b) => {
+                  if (!a.date && !b.date) return 0;
+                  if (!a.date) return 1;
+                  if (!b.date) return -1;
+                  return new Date(b.date).getTime() - new Date(a.date).getTime();
+                });
+
+                if (events.length === 0) return null;
+
+                const typeColors: Record<string, string> = {
+                  compass: 'bg-blue-400',
+                  ledger: 'bg-amber-400',
+                  product: 'bg-emerald-400',
+                  sale: 'bg-purple-400',
+                };
+
+                return (
+                  <CollapsibleSection title={`Timeline (${events.length})`}>
+                    <div className="relative pl-4">
+                      {/* Vertical line */}
+                      <div className="absolute left-[5px] top-1 bottom-1 w-px bg-tea-border" />
+
+                      <div className="space-y-2.5">
+                        {events.slice(0, 15).map((evt, i) => (
+                          <div key={i} className="relative flex items-start gap-2.5">
+                            {/* Dot */}
+                            <div className={`absolute -left-4 top-1 w-[10px] h-[10px] rounded-full border-2 border-tea-bg ${typeColors[evt.type]}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[11px] text-tea-text leading-tight">
+                                {evt.id ? (
+                                  <button
+                                    onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(evt.id!)}`)}
+                                    className="hover:text-tea-accent transition-colors text-left"
+                                  >
+                                    {evt.label}
+                                  </button>
+                                ) : evt.label}
+                              </div>
+                              <div className="flex items-center gap-2 text-[9px] text-tea-text-dim mt-0.5">
+                                {evt.date && <span>{new Date(evt.date).toLocaleDateString()}</span>}
+                                {evt.detail && <span>{evt.detail}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {events.length > 15 && (
+                        <p className="text-[10px] text-tea-text-dim mt-2 pl-1">+{events.length - 15} more events</p>
+                      )}
+                    </div>
+                  </CollapsibleSection>
+                );
+              })()}
             </div>
 
             {/* Panel Footer */}

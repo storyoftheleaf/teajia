@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowDownLeft,
@@ -48,6 +49,7 @@ const LineItemRow: React.FC<{
   txId: string;
   onRemove: () => void;
 }> = ({ item, txId, onRemove }) => {
+  const navigate = useNavigate();
   const updateLineItem = useLedgerStore((s) => s.updateLineItem);
   const total = lineTotal(item);
   const isUnitBased = !item.priceIsPerGram;
@@ -71,13 +73,25 @@ const LineItemRow: React.FC<{
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {item.chineseName && (
-            <p className="text-tea-text text-lg font-chinese tracking-wide leading-[1.3]">
-              {item.chineseName}
+            item.productId ? (
+              <button onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)} className="text-tea-text hover:text-tea-accent text-lg font-chinese tracking-wide leading-[1.3] text-left transition-colors">
+                {item.chineseName}
+              </button>
+            ) : (
+              <p className="text-tea-text text-lg font-chinese tracking-wide leading-[1.3]">
+                {item.chineseName}
+              </p>
+            )
+          )}
+          {item.productId ? (
+            <button onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)} className="text-tea-text hover:text-tea-accent font-serif text-[13px] text-left transition-colors">
+              {item.name || 'Unnamed'}
+            </button>
+          ) : (
+            <p className="text-tea-text font-serif text-[13px]">
+              {item.name || 'Unnamed'}
             </p>
           )}
-          <p className="text-tea-text font-serif text-[13px]">
-            {item.name || 'Unnamed'}
-          </p>
           {(item.type || item.form || item.year) && (
             <p className="text-tea-text-sec text-[11px] mt-0.5 num">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}

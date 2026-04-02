@@ -85,7 +85,7 @@ const CustomerModal = ({
         value={form[name] as string}
         onChange={e => setForm(prev => ({ ...prev, [name]: e.target.value }))}
         placeholder={placeholder}
-        className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+        className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
       />
     </div>
   );
@@ -152,7 +152,7 @@ const CustomerModal = ({
             <select
               value={form.preferred_currency}
               onChange={e => setForm(prev => ({ ...prev, preferred_currency: e.target.value }))}
-              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
             >
               {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -167,7 +167,7 @@ const CustomerModal = ({
               onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Private notes about this customer..."
               rows={3}
-              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors resize-none"
+              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors resize-none"
             />
           </div>
 
@@ -375,7 +375,7 @@ const CustomerDetail = ({
                                 placeholder="Search teas..."
                                 value={linkSearch}
                                 onChange={e => setLinkSearch(e.target.value)}
-                                className="w-full input-warm rounded-lg px-3 py-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                                className="w-full input-warm rounded-lg px-3 py-1.5 text-base md:text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                 autoFocus
                               />
                             </div>
@@ -750,7 +750,7 @@ export const CustomersView = () => {
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-base md:text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
               />
             </div>
 

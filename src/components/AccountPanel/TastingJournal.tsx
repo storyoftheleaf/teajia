@@ -82,7 +82,17 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                   className="w-full text-left p-3.5 hover:bg-tea-elevated/30 transition-colors"
                 >
                   <div className="flex items-start gap-3">
-                    {entry.teaImage ? (
+                    {onOrderTea ? (
+                      <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="shrink-0">
+                        {entry.teaImage ? (
+                          <img src={entry.teaImage} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-tea-border/30 flex items-center justify-center">
+                            <Leaf size={16} className="text-tea-text-dim" />
+                          </div>
+                        )}
+                      </button>
+                    ) : entry.teaImage ? (
                       <img src={entry.teaImage} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                     ) : (
                       <div className="w-10 h-10 rounded-lg bg-tea-border/30 flex items-center justify-center shrink-0">
@@ -92,7 +102,11 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-medium text-tea-text truncate">{entry.teaName}</span>
+                        {onOrderTea ? (
+                          <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="text-sm font-medium text-tea-text hover:text-tea-accent truncate transition-colors text-left">{entry.teaName}</button>
+                        ) : (
+                          <span className="text-sm font-medium text-tea-text truncate">{entry.teaName}</span>
+                        )}
                         {entry.teaType && (
                           <span className="text-[9px] text-tea-text-dim shrink-0">{entry.teaType}</span>
                         )}

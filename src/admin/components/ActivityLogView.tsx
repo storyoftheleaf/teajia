@@ -1,8 +1,16 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useActivityLogs } from '../hooks/useAdminData';
 
+const ENTITY_ROUTES: Record<string, string> = {
+  product: '/admin/inventory?panel=',
+  invoice: '/admin/orders?search=',
+  customer: '/admin/people?search=',
+};
+
 export const ActivityLogView = () => {
+  const navigate = useNavigate();
   const { data: logs, isLoading } = useActivityLogs();
 
   if (isLoading) {
@@ -37,14 +45,24 @@ export const ActivityLogView = () => {
                     </td>
                 </tr>
             ) : (
-                logs.map((log: any) => (
-                <tr key={log.id} className="hover:bg-tea-bg/50 transition-colors">
-                    <td className="py-3 px-4 text-tea-text-sec font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
-                    <td className="py-3 px-4 text-tea-text">{log.user_email || 'System'}</td>
-                    <td className="py-3 px-4 text-tea-accent">{log.action}</td>
-                    <td className="py-3 px-4 text-tea-text-sec">{log.details}</td>
-                </tr>
-                ))
+                logs.map((log: any) => {
+                  const route = log.entity_type && log.entity_id && ENTITY_ROUTES[log.entity_type];
+                  return (
+                    <tr
+                      key={log.id}
+                      className={`hover:bg-tea-bg/50 transition-colors ${route ? 'cursor-pointer' : ''}`}
+                      onClick={route ? () => navigate(`${route}${encodeURIComponent(log.entity_id)}`) : undefined}
+                    >
+                      <td className="py-3 px-4 text-tea-text-sec font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
+                      <td className="py-3 px-4 text-tea-text">{log.user_email || 'System'}</td>
+                      <td className="py-3 px-4 text-tea-accent">{log.action}</td>
+                      <td className="py-3 px-4 text-tea-text-sec">
+                        {log.details}
+                        {route && <span className="ml-2 text-tea-accent/40 text-[10px]">→</span>}
+                      </td>
+                    </tr>
+                  );
+                })
             )}
           </tbody>
         </table>

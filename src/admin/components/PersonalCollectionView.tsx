@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Loader2, Search, UserCheck, ArrowUpDown, ArrowUp, ArrowDown, Pencil, AlertCircle, Sparkles } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { Product } from '../types';
@@ -10,6 +11,7 @@ import { getThemeColor } from '../themeUtils';
 const ROW_HEIGHT = 36;
 
 export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { products: Product[], isLoading: boolean, onRefresh: () => void }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Product; direction: 'asc' | 'desc' }>({ key: 'productName', direction: 'asc' });
@@ -133,7 +135,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                         {product.vendor && (
                           <>
                             <span className="opacity-40">·</span>
-                            <span className="truncate">{product.vendor}</span>
+                            <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="truncate hover:text-tea-accent transition-colors">{product.vendor}</button>
                           </>
                         )}
                       </div>
@@ -214,7 +216,9 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                         <span className="text-xs text-tea-text-sec font-serif italic">{product.year || 'N.V.'}</span>
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden">
-                                        <span className="text-xs text-tea-text-sec truncate block">{product.vendor || 'Unknown'}</span>
+                                        {product.vendor ? (
+                                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-xs text-tea-text-sec hover:text-tea-accent truncate block text-left transition-colors">{product.vendor}</button>
+                                        ) : <span className="text-xs text-tea-text-dim">Unknown</span>}
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">
                                         <span className="num text-xs text-tea-text">{Math.round(product.stockGrams)}g</span>

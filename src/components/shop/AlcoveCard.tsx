@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
@@ -75,6 +76,7 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean,
 }
 
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, items, onItemSelect }) => {
+  const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [grams, setGrams] = useState(25);
@@ -334,6 +336,27 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   {vintage && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{vintage}</>}
                 </p>
               </div>
+
+              {/* Vendor / Source — admin-only link to source profile */}
+              {item.supplier && isAdmin && (
+                <div style={{ textAlign: "center", paddingTop: 4 }}>
+                  <button
+                    onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      fontFamily: "var(--font-display)", fontSize: "11px",
+                      color: alcoveColors.subtitle, opacity: 0.7,
+                      letterSpacing: "0.1em", textTransform: "uppercase",
+                      padding: "2px 6px",
+                      transition: "opacity 0.2s",
+                    }}
+                    onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
+                    onMouseLeave={(e) => { (e.target as HTMLElement).style.opacity = '0.7'; }}
+                  >
+                    Source: {item.supplier}
+                  </button>
+                </div>
+              )}
         </div>
 
         {/* === VISUAL ZONE — compact image strip, click to expand fullscreen === */}
