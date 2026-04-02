@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass } from 'lucide-react';
+import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -109,6 +109,7 @@ export const Sidebar = ({
     { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar className="w-5 h-5" strokeWidth={2} /> },
     { id: 'capture', path: '/admin/capture', label: 'Capture', icon: <Camera className="w-5 h-5" strokeWidth={2} /> },
     { id: 'compass', path: '/admin/compass', label: 'Tea Compass', icon: <Compass className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'samples', path: '/admin/samples', label: 'Samples', icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
   ];
 
   const handleNav = () => {
