@@ -763,86 +763,45 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     </AnimatePresence>
   );
 
-  // --- DESKTOP SIDEBAR ---
-  const DesktopSidebar = () => (
-    <div className={`reader-sidebar ${showSidebar ? '' : 'collapsed'}`}>
-      {showSidebar && (
-        <div className="p-5 flex flex-col gap-6 h-full">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Contents</span>
-            <button onClick={() => setShowSidebar(false)} className="p-2 rounded-full hover:bg-tea-surface/40 transition-colors">
-              <Icons.Close className="w-4 h-4 text-tea-text-dim" />
-            </button>
-          </div>
-
-          {/* Chapter list */}
-          {chapters.length > 0 && (
-            <div className="space-y-1">
-              {chapters.map((ch, i) => (
-                <button
-                  key={i}
-                  onClick={() => goToPage(ch.pageIndex)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors text-sm ${ch.pageIndex === currentPageIndex ? 'bg-tea-accent-sub text-tea-gold' : 'text-tea-text hover:bg-tea-surface/40'}`}
-                >
-                  <span className="text-[10px] text-tea-text-dim mr-2">{String(i + 1).padStart(2, '0')}</span>
-                  {ch.title}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="border-t border-tea-border" />
-
-          {/* Notes area */}
-          <div className="flex flex-col gap-2 flex-1">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Notes</span>
-            <textarea
-              value={sidebarNotes}
-              onChange={e => {
-                setSidebarNotes(e.target.value);
-                localStorage.setItem(`teajia_notes_${story.id}`, e.target.value);
-              }}
-              placeholder="Your notes for this story…"
-              className="flex-1 bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text text-sm resize-none placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/40 transition-colors"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // --- CROSSFADE PAGE TRANSITION ---
-  const CrossfadeReader = () => {
-    const page = pages[currentPageIndex];
-    if (!page) return null;
-    return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={crossfadeKey}
-            initial={{ scale: 1.08, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.92, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-full"
+  // --- CONTROLS OVERLAY (center-tap) ---
+  const ControlsOverlay = () => (
+    <AnimatePresence>
+      {showControls && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.2 }}
+          className="absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-tea-elevated/90 backdrop-blur-sm rounded-full px-5 py-3 shadow-lg"
+          style={{ bottom: '80px' }}
+        >
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-full hover:bg-tea-surface/40 transition-colors"
+            aria-label="Share"
           >
-            <ScaledPage isActive pageWeight={page.pageWeight}>
-              <SinglePageRenderer
-                page={page}
-                storyTitle={story.title}
-                storySubtitle={story.subtitle}
-                onNavigate={onNavigate}
-                recommendations={recommendations}
-              />
-            </ScaledPage>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    );
-  };
-
-  // Determine if we're rendering crossfade mode (future toggle)
-  const useCrossfade = transitionMode === 'crossfade';
+            <Icons.Share className="w-5 h-5 text-tea-text-dim" />
+          </button>
+          <button
+            onClick={onToggleSave}
+            className={`p-2 rounded-full hover:bg-tea-surface/40 transition-colors ${isSaved ? 'text-tea-gold' : ''}`}
+            aria-label="Bookmark"
+          >
+            <Icons.Bookmark className="w-5 h-5 text-tea-text-dim" />
+          </button>
+          {chapters.length > 0 && (
+            <button
+              onClick={() => { setShowChapterDrawer(true); setShowControls(false); }}
+              className="p-2 rounded-full hover:bg-tea-surface/40 transition-colors"
+              aria-label="Chapters"
+            >
+              <Icons.List className="w-5 h-5 text-tea-text-dim" />
+            </button>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   // --- MAIN RENDER ---
   return (
