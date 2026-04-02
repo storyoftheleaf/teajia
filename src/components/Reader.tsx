@@ -809,7 +809,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       className={`fixed inset-0 bg-tea-bg flex flex-col overflow-hidden ${customZIndex || 'z-modal'}`}
       style={{
         height: '100dvh',
-        ...(timeFilter ? { filter: timeFilter } : {})
+        ...(timeFilter ? { filter: timeFilter } : {}),
       }}
     >
       {/* Background Texture */}
@@ -841,8 +841,8 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         </button>
 
         <div className="flex items-center gap-4 pointer-events-auto">
-          {/* Chapter drawer button (shown if chapters exist and not desktop spread) */}
-          {chapters.length > 0 && !isDesktopSpread && (
+          {/* Chapter drawer button */}
+          {chapters.length > 0 && (
             <button
               onClick={() => setShowChapterDrawer(s => !s)}
               className="p-3 hover:text-white transition-colors rounded-full"
@@ -851,33 +851,13 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
               <Icons.List className="w-5 h-5" />
             </button>
           )}
-          {/* Sidebar toggle on desktop */}
-          {isDesktopSpread && (
-            <button
-              onClick={() => setShowSidebar(s => !s)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-              aria-label="Sidebar"
-            >
-              <Icons.List className="w-5 h-5" />
-            </button>
-          )}
           {/* Nav overlay (recommendations) */}
-          {!isDesktopSpread && (
-            <button
-              onClick={() => setShowNav(true)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-            >
-              <Icons.List className="w-5 h-5" />
-            </button>
-          )}
-          {onShare && (
-            <button
-              onClick={() => onShare(story)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-            >
-              <Icons.Share className="w-5 h-5" />
-            </button>
-          )}
+          <button
+            onClick={() => setShowNav(true)}
+            className="p-3 hover:text-white transition-colors rounded-full"
+          >
+            <Icons.List className="w-5 h-5" />
+          </button>
           <button
             onClick={onToggleSave}
             className={`p-3 hover:text-white transition-colors rounded-full ${isSaved ? 'text-tea-gold' : ''}`}
@@ -887,193 +867,124 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         </div>
       </div>
 
-      {/* --- MAIN LAYOUT: content area + optional sidebar --- */}
-      <div className="flex w-full h-full">
+      {/* --- MAIN CONTENT AREA --- */}
+      <div className="relative flex-1 flex flex-col overflow-hidden w-full h-full">
 
-        {/* --- CONTENT AREA --- */}
-        <div className="relative flex-1 flex flex-col overflow-hidden">
+        {/* --- GALLERY FRAME (desktop) / SINGLE PAGE (mobile) --- */}
+        <div
+          className="relative w-full h-full flex items-center justify-center"
+          style={{ paddingTop: '64px', paddingBottom: '96px' }}
+        >
+          {/* Gallery margins — left (desktop only) */}
+          <div
+            className="hidden lg:flex flex-col justify-between h-full py-20 px-8 pointer-events-none shrink-0"
+            style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
+          >
+            <span className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim" style={{ fontFamily: 'var(--font-sans)' }}>
+              {story.title}
+            </span>
+          </div>
 
-          {/* Desktop spread nav arrows — relative to page container */}
+          {/* Page container */}
+          <div className="relative flex-1 lg:flex-none h-full lg:h-auto" style={{ maxHeight: isDesktop ? 'calc(100vh - 160px)' : undefined, aspectRatio: isDesktop ? '4/5' : undefined }}>
+            {/* Tap zones overlay */}
+            <div
+              className="absolute inset-0 z-40 cursor-pointer"
+              onClick={handlePageTap}
+            />
+
+            {/* Controls overlay (center-tap) */}
+            <ControlsOverlay />
+
+            {/* Push-with-depth page transition */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentPageIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                className="w-full h-full"
+              >
+                {pages[currentPageIndex] && (
+                  <ScaledPage isActive pageWeight={pages[currentPageIndex].pageWeight}>
+                    <SinglePageRenderer
+                      page={pages[currentPageIndex]}
+                      storyTitle={story.title}
+                      storySubtitle={story.subtitle}
+                      onNavigate={onNavigate}
+                      recommendations={recommendations}
+                    />
+                  </ScaledPage>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Mobile share button — bottom-left of page area */}
+            <button
+              onClick={handleShare}
+              className="lg:hidden absolute bottom-4 left-4 z-50 p-2 rounded-full"
+              aria-label="Share"
+            >
+              <Icons.ExternalLink className="w-[14px] h-[14px] text-tea-text-dim" />
+            </button>
+          </div>
+
+          {/* Gallery margins — right (desktop only) */}
+          <div
+            className="hidden lg:flex flex-col justify-end h-full py-20 px-8 pointer-events-none shrink-0"
+            style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
+          >
+            <span className="font-mono text-[11px] text-tea-text-dim tabular-nums">
+              {currentPageIndex + 1} / {pages.length}
+            </span>
+          </div>
+
+          {/* Desktop nav arrows — in margins */}
           {isDesktop && (
             <>
               <button
                 onClick={prev}
                 disabled={currentPageIndex === 0}
-                className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-50 w-16 h-48 items-center justify-center transition-all disabled:opacity-0 hover:bg-tea-surface/10 rounded-lg"
+                className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
                 aria-label="Previous page"
               >
-                <Icons.Back className="w-8 h-8 text-white/40 hover:text-white transition-colors" />
+                <Icons.Back className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />
               </button>
               <button
                 onClick={next}
                 disabled={currentPageIndex >= pages.length - 1}
-                className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-50 w-16 h-48 items-center justify-center transition-all disabled:opacity-0 hover:bg-tea-surface/10 rounded-lg"
+                className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
                 aria-label="Next page"
               >
-                <Icons.Next className="w-8 h-8 text-white/40 hover:text-white transition-colors" />
+                <Icons.Next className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />
               </button>
             </>
           )}
-
-          {useCrossfade ? (
-            <div
-              className="relative w-full h-full"
-              style={{ paddingTop: '64px', paddingBottom: '96px' }}
-            >
-              <CrossfadeReader />
-            </div>
-          ) : isDesktopSpread ? (
-            /* --- DESKTOP DUAL-PAGE SPREAD --- */
-            <div
-              className="relative w-full h-full flex items-center justify-center"
-              style={{ paddingTop: '64px', paddingBottom: '96px' }}
-            >
-              {(() => {
-                const totalPages = pages.length;
-                const leftIdx = currentPageIndex % 2 === 0 ? currentPageIndex : currentPageIndex - 1;
-                const rightIdx = leftIdx + 1;
-                const leftPage = pages[leftIdx];
-                const rightPage = rightIdx < totalPages ? pages[rightIdx] : null;
-
-                return (
-                  <div className="flex items-center justify-center h-full" style={{ gap: '2px' }}>
-                    {/* Left page — fixed aspect container */}
-                    <div className="h-full" style={{ aspectRatio: '800/1000' }}>
-                      {leftPage && (
-                        <ScaledPage isActive={currentPageIndex === leftIdx} pageWeight={leftPage.pageWeight}>
-                          <SinglePageRenderer
-                            page={leftPage}
-                            storyTitle={story.title}
-                            storySubtitle={story.subtitle}
-                            onNavigate={onNavigate}
-                            recommendations={recommendations}
-                          />
-                        </ScaledPage>
-                      )}
-                    </div>
-
-                    {/* Right page — fixed aspect container */}
-                    <div className="h-full" style={{ aspectRatio: '800/1000' }}>
-                      {rightPage ? (
-                        <ScaledPage isActive={currentPageIndex === rightIdx} pageWeight={rightPage.pageWeight}>
-                          <SinglePageRenderer
-                            page={rightPage}
-                            storyTitle={story.title}
-                            storySubtitle={story.subtitle}
-                            onNavigate={onNavigate}
-                            recommendations={recommendations}
-                          />
-                        </ScaledPage>
-                      ) : (
-                        <div className="w-full h-full" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          ) : (
-            /* --- SCROLL-SNAP SINGLE PAGE (default) --- */
-            <div
-              ref={scrollContainerRef}
-              className="relative w-full h-full overflow-x-scroll overflow-y-hidden snap-x snap-mandatory scroll-smooth hide-scrollbar-always flex items-center"
-              style={{
-                paddingTop: '64px',
-                paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)'
-              }}
-            >
-              <div className="inline-flex h-full" style={{ gap: '0' }}>
-                {pages.map((page, index) => {
-                  const isInRange = Math.abs(index - currentPageIndex) <= 3;
-                  if (isInRange) {
-                    const isActive = index === currentPageIndex;
-                    const enterClass = isActive ? getPageEnterClass(page.variant) : '';
-                    const pageType = getPageType(page.variant);
-                    return (
-                      <div
-                        key={index}
-                        className={`w-screen h-full snap-center snap-always shrink-0 ${enterClass}`}
-                        data-page-active={isActive ? "true" : "false"}
-                        data-page-type={pageType}
-                        style={{
-                          opacity: isActive ? 1 : 0.6,
-                          transition: 'opacity 200ms ease'
-                        }}
-                      >
-                        <ScaledPage isActive={isActive} pageWeight={page.pageWeight}>
-                          <SinglePageRenderer
-                            page={page}
-                            storyTitle={story.title}
-                            storySubtitle={story.subtitle}
-                            onNavigate={onNavigate}
-                            recommendations={recommendations}
-                          />
-                        </ScaledPage>
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div key={index} className="w-screen h-full snap-center snap-always shrink-0" />
-                    );
-                  }
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* --- PAGE INDICATOR (transient) --- */}
-          <AnimatePresence>
-            {showPageIndicator && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="absolute pointer-events-none font-mono text-[11px] tracking-wider text-tea-text-dim"
-                style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)', right: '1.5rem', zIndex: 55 }}
-              >
-                {currentPageIndex + 1} / {pages.length}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* --- BOTTOM BAR --- */}
-          <div
-            className="absolute left-0 w-full z-50 pointer-events-none"
-            style={{ bottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom) + 70px)' }}
-          >
-            {/* Mobile: Arrows + Scrubber */}
-            <div className="lg:hidden flex items-center px-6 pb-4 gap-3 pointer-events-auto">
-              <button
-                onClick={prev}
-                disabled={currentPageIndex === 0}
-                className="p-3 text-white/40 hover:text-white disabled:opacity-0 transition-all shrink-0 rounded-full"
-                aria-label="Previous page"
-              >
-                <Icons.Back className="w-7 h-7" />
-              </button>
-
-              <ProgressScrubber className="flex-1" />
-
-              <button
-                onClick={next}
-                disabled={currentPageIndex >= pages.length - 1}
-                className="p-3 text-white/40 hover:text-white disabled:opacity-0 transition-all shrink-0 rounded-full"
-                aria-label="Next page"
-              >
-                <Icons.Next className="w-7 h-7" />
-              </button>
-            </div>
-
-            {/* Desktop: Scrubber only */}
-            <div className="hidden lg:flex pb-6 pointer-events-auto justify-center">
-              <ProgressScrubber className="w-64" />
-            </div>
-          </div>
         </div>
 
-        {/* --- DESKTOP SIDEBAR --- */}
-        {isDesktopSpread && <DesktopSidebar />}
+        {/* --- BOTTOM BAR --- */}
+        <div
+          className="absolute left-0 w-full z-50 pointer-events-none"
+          style={{ bottom: 0, paddingBottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 16px)' }}
+        >
+          {/* Mobile: Share icon + Scrubber */}
+          <div className="lg:hidden flex items-center px-6 pb-4 gap-3 pointer-events-auto">
+            <button
+              onClick={handleShare}
+              className="p-2 text-tea-text-dim hover:text-tea-text transition-colors shrink-0 rounded-full"
+              aria-label="Share"
+            >
+              <Icons.ExternalLink className="w-4 h-4" />
+            </button>
+            <ProgressScrubber className="flex-1" />
+          </div>
+
+          {/* Desktop: Scrubber only */}
+          <div className="hidden lg:flex pb-6 pointer-events-auto justify-center">
+            <ProgressScrubber className="w-64" />
+          </div>
+        </div>
       </div>
     </div>
   );
