@@ -8,7 +8,7 @@ import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import type { TeaType, TeaForm, Season, Storage, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
-import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
+import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, SEASONS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
@@ -1064,6 +1064,72 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         </>
       )}
+
+      {/* ─── DETAILS (inline, shared) ─── */}
+      <div className="border-t border-tea-border/20" />
+      <div className="space-y-3">
+        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Details</p>
+
+        {/* Region */}
+        <div className="space-y-1">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Region</label>
+          <AutocompleteInput
+            value={entry.originRegion || ''}
+            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+            suggestions={availableRegions}
+            placeholder="e.g. Alishan, Yiwu..."
+            className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base"
+          />
+        </div>
+
+        {/* Season */}
+        <div className="space-y-1">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Season</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {SEASONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => { userTapped.current.add('season'); update({ season: entry.season === s ? undefined : s }); }}
+                className={entry.season === s ? 'tag-selectable-active' : 'tag-selectable'}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Storage (only for Sheng/Shou/Dark) */}
+        {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
+          <div className="space-y-1">
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Storage</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {STORAGE_OPTIONS.map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
+                  className={entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chinese name */}
+        <div className="space-y-1">
+          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Chinese name</label>
+          <input
+            type="text"
+            value={entry.chineseName || ''}
+            onChange={(e) => update({ chineseName: e.target.value || undefined })}
+            placeholder="e.g. &#32769;&#29677;&#31456;"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+          />
+        </div>
+      </div>
 
       {/* Done — acquisition path */}
       {!isSample && hasName && (
