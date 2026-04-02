@@ -1761,7 +1761,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </button>
               {showMobileGroupBy && (
                 <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMobileGroupBy(false)} />
+                {/* absolute overlay — fixed doesn't work inside backdrop-blur */}
+                <div className="absolute -top-4 -right-4 w-[200vw] h-[200vh] z-40" onClick={() => setShowMobileGroupBy(false)} />
                 <div className="absolute right-0 top-full mt-1 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
                   {GROUPBY_OPTIONS.map(opt => {
                     const isActive = (inventoryGroupBy || '') === opt.value;
@@ -1792,8 +1793,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </button>
               {showMobileSort && (
                 <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-                <div className="absolute right-0 top-full mt-1 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                <div className="absolute -top-4 -right-4 w-[200vw] h-[200vh] z-40" onClick={() => setShowMobileSort(false)} />
+                <div className="absolute right-0 top-full mt-1 w-[calc(100vw-16px)] max-w-[280px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-2 px-1" role="menu">
+                  <div className="grid grid-cols-2 gap-0.5">
                   {[
                     { key: 'type', label: 'Type' },
                     { key: 'productName', label: 'Name' },
@@ -1818,17 +1820,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           }
                           setShowMobileSort(false);
                         }}
-                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] transition-colors ${isActive ? 'text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                        className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-[12px] transition-colors ${isActive ? 'bg-tea-accent/15 text-tea-accent font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
                       >
                         <span>{opt.label}</span>
                         {isActive && (
                           <span className="flex items-center">
-                            {current.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                           </span>
                         )}
                       </button>
                     );
                   })}
+                  </div>
                 </div>
                 </>
               )}
