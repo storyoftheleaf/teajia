@@ -81,7 +81,7 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
               onClick={() => toggleWisdomCard(entry.id)}
               className={`text-left w-full transition-all duration-300 rounded-lg ${getWisdomCardStyle(entry)}`}
             >
-              <CardContainer variant="dark" className="transition-all h-full">
+              <CardContainer className="transition-all h-full">
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">

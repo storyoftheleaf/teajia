@@ -121,13 +121,13 @@ const useShakeDetector = (onShake: () => void) => {
 };
 
 // --- Scaled Page Wrapper ---
-// CRITICAL: Maintains strict 3:4 aspect ratio across all viewport sizes
+// CRITICAL: Maintains strict 4:5 aspect ratio across all viewport sizes
 //
 // How it works:
-// - Article always rendered at 800×1067px (3:4 ratio)
-// - Scale = Math.min(clientWidth/800, clientHeight/1067)
+// - Article always rendered at 800×1000px (4:5 ratio)
+// - Scale = Math.min(clientWidth/800, clientHeight/1000)
 // - transform: scale() shrinks it to fit within available container space
-// - Math.min() ensures the limiting dimension controls scale (preserves 3:4 ratio)
+// - Math.min() ensures the limiting dimension controls scale (preserves 4:5 ratio)
 // - transformOrigin: 'center center' keeps it centered
 //
 const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scaleOverride?: number; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, scaleOverride, pageWeight }) => {
@@ -135,7 +135,7 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scal
   const [scale, setScale] = useState(1);
 
   const BASE_WIDTH = 800;
-  const BASE_HEIGHT = 1067;
+  const BASE_HEIGHT = 1000;
 
   useEffect(() => {
     const calculateScale = () => {
@@ -219,27 +219,22 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showNav, setShowNav] = useState(false);
   const [showChapterDrawer, setShowChapterDrawer] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTooltipPage, setDragTooltipPage] = useState<number | null>(null);
-  const [showPageIndicator, setShowPageIndicator] = useState(false);
   const [showShakeConfirm, setShowShakeConfirm] = useState(false);
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
-  const [transitionMode] = useState<'scroll' | 'crossfade'>('scroll');
-  const [crossfadeKey, setCrossfadeKey] = useState(0);
-  const [sidebarNotes, setSidebarNotes] = useState('');
+  const [marginOpacity, setMarginOpacity] = useState(0.3);
 
   const { preloadImages, clearCache } = useImagePreloader();
   const windowWidth = useWindowWidth();
-  const isDesktopSpread = windowWidth > 1200;
   const isDesktop = windowWidth >= 1024;
 
-  // Horizontal scroll container ref
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrubberRef = useRef<HTMLDivElement>(null);
-  const pageIndicatorTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const lastVibratedPage = useRef<number>(-1);
   const keyboardHintsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const marginTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // W30: Time-of-Day Theming — strengthened
   const hour = new Date().getHours();
@@ -368,12 +363,6 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     [pages]
   );
 
-  // Load sidebar notes from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(`teajia_notes_${story.id}`);
-    if (saved) setSidebarNotes(saved);
-  }, [story.id]);
-
   // --- PROGRESS & PERSISTENCE ---
   useEffect(() => {
     const savedPage = localStorage.getItem(`teajia_progress_${story.id}`);
@@ -381,15 +370,6 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       const p = parseInt(savedPage, 10);
       if (!isNaN(p) && p > 0 && p < pages.length - 1) {
         setCurrentPageIndex(p);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const container = scrollContainerRef.current;
-            if (container) {
-              const pageWidth = container.clientWidth;
-              container.scrollTo({ left: p * pageWidth, behavior: 'instant' });
-            }
-          });
-        });
       } else {
         setCurrentPageIndex(0);
       }
@@ -402,20 +382,22 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     localStorage.setItem(`teajia_progress_${story.id}`, currentPageIndex.toString());
   }, [currentPageIndex, story.id]);
 
-  // --- CROSSFADE KEY SYNC ---
+  // --- MARGIN OPACITY (desktop gallery) ---
   useEffect(() => {
-    if (transitionMode === 'crossfade') {
-      setCrossfadeKey(k => k + 1);
-    }
-  }, [currentPageIndex, transitionMode]);
-
-  // --- PAGE INDICATOR ---
-  useEffect(() => {
-    setShowPageIndicator(true);
-    clearTimeout(pageIndicatorTimerRef.current);
-    pageIndicatorTimerRef.current = setTimeout(() => setShowPageIndicator(false), 2000);
-    return () => clearTimeout(pageIndicatorTimerRef.current);
+    setMarginOpacity(1);
+    clearTimeout(marginTimerRef.current);
+    marginTimerRef.current = setTimeout(() => setMarginOpacity(0.3), 2000);
+    return () => clearTimeout(marginTimerRef.current);
   }, [currentPageIndex]);
+
+  // --- CONTROLS AUTO-DISMISS ---
+  useEffect(() => {
+    if (showControls) {
+      clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+      return () => clearTimeout(controlsTimerRef.current);
+    }
+  }, [showControls]);
 
   // --- HAPTIC FEEDBACK ---
   useEffect(() => {
@@ -442,39 +424,49 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
   }, [isDesktop]);
 
   // --- NAVIGATION ---
-  const scrollToPage = useCallback((index: number) => {
-    if (!scrollContainerRef.current) return;
-    const container = scrollContainerRef.current;
-    const pageWidth = container.clientWidth;
-    const scrollLeft = index * pageWidth;
-    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-  }, []);
+  const goToPage = useCallback((index: number) => {
+    if (index >= 0 && index < pages.length) {
+      setCurrentPageIndex(index);
+    }
+  }, [pages.length]);
 
   const next = useCallback(() => {
-    if (currentPageIndex < pages.length - 1) scrollToPage(currentPageIndex + 1);
-  }, [currentPageIndex, pages.length, scrollToPage]);
+    if (currentPageIndex < pages.length - 1) setCurrentPageIndex(currentPageIndex + 1);
+  }, [currentPageIndex, pages.length]);
 
   const prev = useCallback(() => {
-    if (currentPageIndex > 0) scrollToPage(currentPageIndex - 1);
-  }, [currentPageIndex, scrollToPage]);
+    if (currentPageIndex > 0) setCurrentPageIndex(currentPageIndex - 1);
+  }, [currentPageIndex]);
 
-  // --- SCROLL-BASED PAGE TRACKING ---
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  // --- TAP ZONE HANDLER ---
+  const handlePageTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : (e as React.MouseEvent).clientX;
+    const relativeX = (clientX - rect.left) / rect.width;
 
-    const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      const pageWidth = container.clientWidth;
-      const newIndex = Math.round(scrollLeft / pageWidth);
-      if (newIndex !== currentPageIndex && newIndex >= 0 && newIndex < pages.length) {
-        setCurrentPageIndex(newIndex);
-      }
-    };
+    if (relativeX < 0.3) {
+      prev();
+    } else if (relativeX > 0.7) {
+      next();
+    } else {
+      setShowControls(s => !s);
+    }
+  }, [prev, next]);
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [currentPageIndex, pages.length]);
+  // --- SHARE HANDLER ---
+  const handleShare = useCallback(async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: story.title,
+          text: `${story.title} — Page ${currentPageIndex + 1}`,
+          url: window.location.href,
+        });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard?.writeText(window.location.href);
+    }
+  }, [story.title, currentPageIndex]);
 
   // --- PAUSE VIDEOS ON PAGE CHANGE ---
   useEffect(() => {
@@ -502,13 +494,12 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       if (e.key === 'Escape') onBack();
       if (e.key === 'b' || e.key === 'B') onToggleSave?.();
       if (e.key === 't' || e.key === 'T') {
-        if (isDesktopSpread) setShowSidebar(s => !s);
-        else if (chapters.length > 0) setShowChapterDrawer(s => !s);
+        if (chapters.length > 0) setShowChapterDrawer(s => !s);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPageIndex, pages.length, enableKeyboard, onBack, next, prev, showKeyboardHints, onToggleSave, isDesktopSpread, chapters.length]);
+  }, [currentPageIndex, pages.length, enableKeyboard, onBack, next, prev, showKeyboardHints, onToggleSave, chapters.length]);
 
   // --- IMAGE PRELOADING ---
   useEffect(() => {
@@ -540,8 +531,8 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const newPage = Math.round(ratio * (pages.length - 1));
     setDragTooltipPage(newPage);
-    scrollToPage(newPage);
-  }, [pages.length, scrollToPage]);
+    goToPage(newPage);
+  }, [pages.length, goToPage]);
 
   const handleScrubberMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -585,7 +576,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / rect.width));
       const targetPage = Math.round(ratio * (pages.length - 1));
-      scrollToPage(targetPage);
+      goToPage(targetPage);
     };
 
     return (
@@ -698,7 +689,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
               {chapters.map((ch, i) => (
                 <button
                   key={i}
-                  onClick={() => { scrollToPage(ch.pageIndex); setShowChapterDrawer(false); }}
+                  onClick={() => { goToPage(ch.pageIndex); setShowChapterDrawer(false); }}
                   className="w-full text-left px-4 py-3 rounded-lg hover:bg-tea-accent-sub transition-colors"
                 >
                   <span className="text-tea-text-dim text-[10px] uppercase tracking-[0.15em] mr-3">{String(i + 1).padStart(2, '0')}</span>
@@ -756,7 +747,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         >
           <span className="text-tea-text text-sm">Return to start?</span>
           <button
-            onClick={() => { scrollToPage(0); setShowShakeConfirm(false); }}
+            onClick={() => { goToPage(0); setShowShakeConfirm(false); }}
             className="text-tea-gold text-sm font-medium hover:text-tea-gold-lt transition-colors"
           >
             Yes
@@ -790,7 +781,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
               {chapters.map((ch, i) => (
                 <button
                   key={i}
-                  onClick={() => scrollToPage(ch.pageIndex)}
+                  onClick={() => goToPage(ch.pageIndex)}
                   className={`w-full text-left px-3 py-2 rounded-lg transition-colors text-sm ${ch.pageIndex === currentPageIndex ? 'bg-tea-accent-sub text-tea-gold' : 'text-tea-text hover:bg-tea-surface/40'}`}
                 >
                   <span className="text-[10px] text-tea-text-dim mr-2">{String(i + 1).padStart(2, '0')}</span>
@@ -988,7 +979,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                 return (
                   <div className="flex items-center justify-center h-full" style={{ gap: '2px' }}>
                     {/* Left page — fixed aspect container */}
-                    <div className="h-full" style={{ aspectRatio: '800/1067' }}>
+                    <div className="h-full" style={{ aspectRatio: '800/1000' }}>
                       {leftPage && (
                         <ScaledPage isActive={currentPageIndex === leftIdx} pageWeight={leftPage.pageWeight}>
                           <SinglePageRenderer
@@ -1003,7 +994,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
                     </div>
 
                     {/* Right page — fixed aspect container */}
-                    <div className="h-full" style={{ aspectRatio: '800/1067' }}>
+                    <div className="h-full" style={{ aspectRatio: '800/1000' }}>
                       {rightPage ? (
                         <ScaledPage isActive={currentPageIndex === rightIdx} pageWeight={rightPage.pageWeight}>
                           <SinglePageRenderer

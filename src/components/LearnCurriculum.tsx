@@ -149,7 +149,6 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             {LEARN_PATHS.map(path => (
               <CardContainer
                 key={path.id}
-                variant="dark"
                 className="cursor-pointer transition-all duration-300 hover:shadow-lg"
                 onClick={() => setSelectedPath(path.id)}
               >
@@ -201,7 +200,6 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                  <div key={module.id} className="group">
                      {/* Module Header Card */}
                      <CardContainer
-                        variant="dark"
                         className={`relative cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-2xl' : 'shadow-sm hover:shadow-lg'}`}
                         onClick={() => toggleModule(module.id)}
                      >

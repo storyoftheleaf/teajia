@@ -3,7 +3,6 @@ import React from 'react';
 interface CardContainerProps {
   children: React.ReactNode;
   className?: string;
-  variant?: 'light' | 'dark';
   style?: React.CSSProperties;
 }
 
@@ -15,17 +14,10 @@ interface CardContainerProps {
 const CardContainerComponent: React.FC<CardContainerProps> = ({
   children,
   className = '',
-  variant = 'dark',
   style,
 }) => {
-  const baseStyles = 'rounded-lg overflow-hidden transition-all duration-300';
-
-  const variantStyles = variant === 'dark'
-    ? 'bg-tea-surface'
-    : 'bg-tea-surface';
-
   return (
-    <div className={`${baseStyles} ${variantStyles} ${className}`} style={style}>
+    <div className={`rounded-lg overflow-hidden transition-all duration-300 bg-tea-surface ${className}`} style={style}>
       {children}
     </div>
   );

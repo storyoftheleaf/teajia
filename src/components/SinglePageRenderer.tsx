@@ -38,7 +38,7 @@ interface SinglePageRendererProps {
 
 // ────────────────────────────────────────────────────────────
 // TYPOGRAPHY SYSTEM
-// Canvas: 800×1067 (~47% scale on 375px phones)
+// Canvas: 800×1000 (4:5 ratio, ~47% scale on 375px phones)
 // Three voices: Cormorant Garamond (display), Lora (body), Plus Jakarta Sans (captions/UI)
 // Scale ratio ≈ 1:2:4 — body 21px, headline 40px, display 84px
 // ────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ const PAD = {
   text: 'px-[56px] py-[48px]',          // Text pages — wide margins, narrow measure
   textWide: 'px-[80px] py-[48px]',      // Centered narrow-measure text
   image: 'p-0',                          // Full-bleed images
-  spacious: 'px-[64px] py-[56px]',      // Covers, quotes, chapters
+  spacious: 'px-[64px] py-[48px]',      // Covers, quotes, chapters
   card: 'px-[48px] py-[40px]',          // Card-style pages
   tight: 'px-[32px] py-[24px]',         // Dense/compact pages
   gutter: 'px-[40px]',                  // Minimal horizontal padding

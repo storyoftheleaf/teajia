@@ -164,7 +164,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
           {pickedForYou.map(item => (
             <div key={item.id} className="min-w-[200px] max-w-[240px] shrink-0 cursor-pointer">
-              <CardContainer variant="dark" className="hover:-translate-y-0.5 transition-all h-full">
+              <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                 <div className="p-4">
                   <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${getTypeColor(item.type)}`}>
                     {item.type}
@@ -226,7 +226,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         />
         <SwipeCarousel itemWidth={220} gap={12} showArrows={true} showDots={false} peek={2}>
           {MUSIC.map(item => (
-            <CardContainer key={item.id} variant="dark" className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
+            <CardContainer key={item.id} className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
               <div className="p-4">
                 <div className="w-10 h-10 rounded-sm bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center mb-3">
                   <Icons.Music className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -252,7 +252,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         />
         <SwipeCarousel itemWidth={220} gap={12} showArrows={true} showDots={false} peek={2}>
           {VIDEOS.map(item => (
-            <CardContainer key={item.id} variant="dark" className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
+            <CardContainer key={item.id} className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
               <div className="p-4">
                 <div className="w-10 h-10 rounded-sm bg-tea-text/10 flex items-center justify-center mb-3">
                   <Icons.Play className="w-5 h-5 text-tea-text/60" />
@@ -299,7 +299,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         <div className="grid grid-cols-2 gap-4">
           {REFERENCE.map(item => (
             <div key={item.id} className="cursor-pointer">
-              <CardContainer variant="dark" className="hover:-translate-y-0.5 transition-all h-full">
+              <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                 <div className="p-5 flex flex-col items-center text-center">
                   <div className="w-12 h-12 rounded-sm bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-3">
                     <span className="text-orange-600 dark:text-orange-400">
