@@ -437,8 +437,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const handleCommit = useCallback(() => {
     commitEntry(entryId);
+    // Auto-start a new capture with the same vendor
+    const cat = entry?.category || 'tea';
+    const newId = startNewCapture(cat);
+    setActiveEntry(newId);
     onCommit?.();
-  }, [commitEntry, entryId, onCommit]);
+  }, [commitEntry, entryId, entry?.category, startNewCapture, setActiveEntry, onCommit]);
+
+  // "Would buy" graduation: flip sample off, carry all data, move to acquisition
+  const handleWouldBuyGraduation = useCallback(() => {
+    update({ isSample: false, sampleWouldBuy: true, status: 'want' });
+  }, [update]);
 
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
@@ -541,14 +550,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const hasTeawareName = (entry.name || '').trim().length > 0;
 
     return (
-      <div className="bg-tea-surface rounded-lg p-3 space-y-3">
-        {/* Panel 1: Identity — Photo + Name */}
-        <div className="rounded-lg space-y-3">
+      <div className="bg-tea-surface rounded-lg p-3 space-y-4">
+        {/* ─── IDENTITY ─── */}
+        <div className="space-y-3">
+          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Identity</p>
           <TeawarePhotos
             photos={entry.photos}
             onPhotosChange={handleTeawarePhotosChange}
           />
-
           <VendorStrip
             vendorName={entry.vendorName}
             vendorId={entry.vendorId}
@@ -557,7 +566,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onClear={handleVendorClear}
             onDetailsChange={handleVendorDetailsChange}
           />
-
           <input
             type="text"
             value={entry.name}
@@ -567,10 +575,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
         </div>
 
-        {/* Panel 2: Price + Size */}
-        <div className="rounded-lg space-y-1.5">
+        <div className="border-t border-tea-border/20" />
+
+        {/* ─── ACQUISITION ─── */}
+        <div className="space-y-3">
+          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Acquisition</p>
           <div className="flex gap-3 items-end">
-            {/* Price half */}
             <div className="flex-1 min-w-0">
               <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
               <input
@@ -587,7 +597,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 style={{ MozAppearance: 'textfield' } as React.CSSProperties}
               />
             </div>
-            {/* Size (ml) half */}
             <div className="flex-1 min-w-0">
               <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Size (ml)</label>
               <input
@@ -605,7 +614,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               />
             </div>
           </div>
-          <div className="flex gap-1 flex-wrap pt-1">
+          <div className="flex gap-1 flex-wrap">
             {CURRENCIES.map((c) => (
               <button
                 key={c.value}
@@ -617,134 +626,122 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             ))}
           </div>
+          {/* Quantity */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Qty</label>
+            <button
+              type="button"
+              onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
+              className="pill w-8 h-8 flex items-center justify-center rounded-lg"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="text-tea-text text-base font-medium tabular-nums min-w-[2ch] text-center">
+              {entry.quantity || 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
+              className="pill w-8 h-8 flex items-center justify-center rounded-lg"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <StatusActions
+            status={entry.status}
+            onStatusChange={(status: CompassStatus) => update({ status })}
+            entry={entry}
+            onAddedToLedger={onSwitchToLedger}
+          />
         </div>
 
-        {/* Status — standalone, not in panel */}
-        <StatusActions
-          status={entry.status}
-          onStatusChange={(status: CompassStatus) => update({ status })}
-          entry={entry}
-          onAddedToLedger={onSwitchToLedger}
-        />
+        <div className="border-t border-tea-border/20" />
 
-        {/* Layer 2: Category, Material, Notes */}
-            <div className="space-y-3">
-              {/* Panel 3: Category & Material */}
-              <div className="rounded-lg space-y-3">
-              {/* Category */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Category</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {TEAWARE_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => {
-                        const updates: Record<string, unknown> = { teawareCategory: cat };
-                        if (entry.teawareCategory !== cat) {
-                          updates.material = undefined;
-                        }
-                        update(updates);
-                      }}
-                      className={entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Material / Clay type */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-                  {entry.teawareCategory === 'Teapot' || entry.teawareCategory === 'Gaiwan' ? 'Clay / Material' : 'Material'}
-                </label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {materials.map((mat) => (
-                    <button
-                      key={mat}
-                      type="button"
-                      onClick={() => update({ material: mat })}
-                      className={entry.material === mat ? 'tag-selectable-active' : 'tag-selectable'}
-                    >
-                      {mat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Era / Age */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Age / Era</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {TEAWARE_ERAS.map((e) => (
-                    <button
-                      key={e}
-                      type="button"
-                      onClick={() => update({ era: entry.era === e ? undefined : e })}
-                      className={entry.era === e ? 'tag-selectable-active' : 'tag-selectable'}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Origin */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Origin</label>
-                <AutocompleteInput
-                  value={entry.originRegion || ''}
-                  onChange={(val) => update({ originRegion: val || undefined })}
-                  suggestions={availableRegions}
-                  placeholder="e.g. Yixing, Jingdezhen..."
-                  className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors"
-                />
-              </div>
-              </div>
-
-              {/* Panel 4: Notes */}
-              <div className="rounded-lg">
-              <NotesField
-                notes={entry.notes}
-                onNotesChange={(notes) => update({ notes })}
-              />
-              </div>
-            </div>
-
-        {/* Quantity stepper */}
+        {/* ─── DETAILS ─── */}
+        <div className="space-y-3">
+          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Details</p>
+          {/* Category */}
           <div className="space-y-1.5">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Quantity</label>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
-                className="pill w-9 h-9 flex items-center justify-center rounded-lg"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="text-tea-text text-lg font-medium tabular-nums min-w-[2ch] text-center">
-                {entry.quantity || 1}
-              </span>
-              <button
-                type="button"
-                onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
-                className="pill w-9 h-9 flex items-center justify-center rounded-lg"
-              >
-                <Plus size={16} />
-              </button>
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Category</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {TEAWARE_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    const updates: Record<string, unknown> = { teawareCategory: cat };
+                    if (entry.teawareCategory !== cat) updates.material = undefined;
+                    update(updates);
+                  }}
+                  className={entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           </div>
+          {/* Material */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
+              {entry.teawareCategory === 'Teapot' || entry.teawareCategory === 'Gaiwan' ? 'Clay / Material' : 'Material'}
+            </label>
+            <div className="flex gap-1.5 flex-wrap">
+              {materials.map((mat) => (
+                <button
+                  key={mat}
+                  type="button"
+                  onClick={() => update({ material: mat })}
+                  className={entry.material === mat ? 'tag-selectable-active' : 'tag-selectable'}
+                >
+                  {mat}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Era */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Age / Era</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {TEAWARE_ERAS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => update({ era: entry.era === e ? undefined : e })}
+                  className={entry.era === e ? 'tag-selectable-active' : 'tag-selectable'}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Origin */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Origin</label>
+            <AutocompleteInput
+              value={entry.originRegion || ''}
+              onChange={(val) => update({ originRegion: val || undefined })}
+              suggestions={availableRegions}
+              placeholder="e.g. Yixing, Jingdezhen..."
+              className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors"
+            />
+          </div>
+        </div>
 
-        {/* Done — commit entry */}
+        <div className="border-t border-tea-border/20" />
+
+        {/* ─── NOTES ─── */}
+        <NotesField
+          notes={entry.notes}
+          onNotesChange={(notes) => update({ notes })}
+        />
+
+        {/* Done */}
         {hasTeawareName && (
           <button
             type="button"
             onClick={handleCommit}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
                        bg-tea-gold/10 text-tea-gold text-sm font-semibold
-
-
                        hover:bg-tea-gold/15 active:bg-tea-gold/20
                        transition-all mt-1"
           >
@@ -756,13 +753,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     );
   }
 
+  // Verdict is positive (love or like)
+  const isPositiveVerdict = entry.sampleVerdict === 'love' || entry.sampleVerdict === 'like';
+  const isNegativeVerdict = entry.sampleVerdict === 'pass';
+
   // ── Tea card layout ────────────────────────
   return (
-    <div className="bg-tea-surface rounded-lg p-3 space-y-3">
-      {/* ─── LAYER 1: Always visible ─── */}
-
-      {/* Panel 1: Identity — vendor + name + photo */}
-      <div className="rounded-lg space-y-3">
+    <div className="bg-tea-surface rounded-lg p-3 space-y-4">
+      {/* ─── IDENTITY ─── */}
+      <div className="space-y-3">
+        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Identity</p>
         <VendorStrip
           vendorName={entry.vendorName}
           vendorId={entry.vendorId}
@@ -798,9 +798,51 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
           <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
         </div>
+
+        {/* Type chip — part of identity */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative" ref={typePopoverRef}>
+            <button
+              type="button"
+              onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
+              className="tag-selectable"
+              style={entry.type ? {
+                backgroundColor: getTypeChipStyle(entry.type).bg,
+                color: getTypeChipStyle(entry.type).text,
+              } : undefined}
+            >
+              {entry.type || 'Type'}
+            </button>
+
+            <AnimatePresence>
+              {typePopoverOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
+                >
+                  <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '200px' }}>
+                    {TEA_TYPES.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => handleTypeSelect(type)}
+                        className={`${entry.type === type ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
-      {/* 2a. Duplicate nudge */}
+      {/* Duplicate nudge */}
       <AnimatePresence>
         {showDuplicateNudge && duplicateMatch && (
           <DuplicateNudge
@@ -818,7 +860,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
-      {/* 2b. Extraction confirmation */}
+      {/* Extraction confirmation */}
       <AnimatePresence>
         {extractionSummary && (
           <motion.div
@@ -835,99 +877,51 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
-      {/* Sample toggle — marks this tea entry as a sample */}
-      <button
-        type="button"
-        onClick={() => update({ isSample: !entry.isSample })}
-        className={`pill text-xs flex items-center gap-1.5 ${isSample ? 'pill-active' : ''}`}
-      >
-        <FlaskConical size={13} strokeWidth={1.5} /> {isSample ? 'Sample' : 'Mark as sample'}
-      </button>
+      <div className="border-t border-tea-border/20" />
 
-      {/* Panel 2: Price & Grams */}
-      <div className="rounded-lg">
-        <PriceGrams
-          priceAmount={entry.priceAmount}
-          priceCurrency={entry.priceCurrency}
-          pricePerUnitGrams={entry.pricePerUnitGrams}
-          form={entry.form}
-          onPriceChange={(priceAmount) => update({ priceAmount })}
-          onCurrencyChange={handleCurrencyChange}
-          onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
-          onFormChange={handleFormSelect}
-        />
+      {/* ─── MODE: Sample toggle + Status ─── */}
+      <div className="space-y-3">
+        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Mode</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => update({ isSample: !entry.isSample })}
+            className={`pill text-xs flex items-center gap-1.5 ${isSample ? 'pill-active' : ''}`}
+          >
+            <FlaskConical size={13} strokeWidth={1.5} /> Sample
+          </button>
+          {!isSample && (
+            <div className="flex items-center gap-1.5 text-[11px] text-tea-text-dim">
+              {(['logged', 'want', 'buying', 'bought'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => update({ status: s })}
+                  className={`pill text-xs ${entry.status === s ? 'pill-active' : ''}`}
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Status — standalone, not in panel */}
-      <StatusActions
-        status={entry.status}
-        onStatusChange={(status: CompassStatus) => update({ status })}
-        entry={entry}
-        onAddedToLedger={onSwitchToLedger}
-      />
+      <div className="border-t border-tea-border/20" />
 
-      {/* ─── LAYER 2: Type, Region, Tasting, Notes ─── */}
+      {/* ═══ SAMPLE PATH ═══ */}
+      {isSample && (
+        <>
           <div className="space-y-3">
-            {/* Panel 3: Type chip */}
-            <div className="rounded-lg">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Type chip */}
-              <div className="relative" ref={typePopoverRef}>
-                <button
-                  type="button"
-                  onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
-                  className="tag-selectable"
-                  style={entry.type ? {
-                    backgroundColor: getTypeChipStyle(entry.type).bg,
-                    color: getTypeChipStyle(entry.type).text,
-                  } : undefined}
-                >
-                  {entry.type || 'Type'}
-                </button>
+            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Impression</p>
 
-                <AnimatePresence>
-                  {typePopoverOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
-                    >
-                      <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '200px' }}>
-                        {TEA_TYPES.map((type) => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => handleTypeSelect(type)}
-                            className={`${entry.type === type ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
-                          >
-                            {type}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-            </div>
+            {/* Notes first — quick capture for samples */}
+            <NotesField
+              notes={entry.notes}
+              onNotesChange={(notes) => update({ notes })}
+            />
 
-            {/* Region — promoted from details */}
-            <div className="space-y-1">
-              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-                Region
-              </label>
-              <AutocompleteInput
-                value={entry.originRegion || ''}
-                onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
-                suggestions={availableRegions}
-                placeholder="e.g. Alishan, Yiwu..."
-                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base"
-              />
-            </div>
-
-            {/* Tasting — promoted from details */}
+            {/* Tasting — optional deeper capture */}
             <div className="space-y-2">
               <button
                 type="button"
@@ -946,92 +940,159 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               )}
             </div>
 
-            {/* Sample-specific: grams + verdict */}
-            {isSample && (
-              <div className="space-y-3">
-                {/* Sample grams */}
-                <div className="space-y-1">
-                  <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Sample size</label>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {[5, 8, 10, 15, 20, 25, 50].map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => update({ sampleGrams: g })}
-                        className={`pill text-xs ${entry.sampleGrams === g ? 'pill-active' : ''}`}
-                      >
-                        {g}g
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Verdict */}
-                <div className="space-y-1">
-                  <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Verdict</label>
-                  <div className="flex gap-1.5">
-                    {([['love', Heart], ['like', ThumbsUp], ['neutral', Minus], ['pass', ThumbsDown]] as const).map(([v, Icon]) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => update({ sampleVerdict: entry.sampleVerdict === v ? undefined : v })}
-                        className={`pill text-xs flex items-center gap-1 ${entry.sampleVerdict === v ? 'pill-active' : ''}`}
-                      >
-                        <Icon size={12} strokeWidth={1.5} /> {v.charAt(0).toUpperCase() + v.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Would buy */}
-                <button
-                  type="button"
-                  onClick={() => update({ sampleWouldBuy: !entry.sampleWouldBuy })}
-                  className={`pill text-xs flex items-center gap-1.5 ${entry.sampleWouldBuy ? 'pill-active' : ''}`}
-                >
-                  <ShoppingCart size={13} strokeWidth={1.5} /> {entry.sampleWouldBuy ? 'Would buy!' : 'Would you buy this?'}
-                </button>
+            {/* Verdict */}
+            <div className="space-y-1.5">
+              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Verdict</label>
+              <div className="flex gap-1.5">
+                {([['love', Heart], ['like', ThumbsUp], ['neutral', Minus], ['pass', ThumbsDown]] as const).map(([v, Icon]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => update({ sampleVerdict: entry.sampleVerdict === v ? undefined : v })}
+                    className={`pill text-xs flex items-center gap-1 ${entry.sampleVerdict === v ? 'pill-active' : ''}`}
+                  >
+                    <Icon size={12} strokeWidth={1.5} /> {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* Panel 4: Notes */}
-            <div className="rounded-lg">
-              <NotesField
-                notes={entry.notes}
-                onNotesChange={(notes) => update({ notes })}
+            {/* Reference price (optional, for samples) */}
+            <div className="space-y-1.5">
+              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Reference price</label>
+              <PriceGrams
+                priceAmount={entry.priceAmount}
+                priceCurrency={entry.priceCurrency}
+                pricePerUnitGrams={entry.pricePerUnitGrams}
+                form={entry.form}
+                onPriceChange={(priceAmount) => update({ priceAmount })}
+                onCurrencyChange={handleCurrencyChange}
+                onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
+                onFormChange={handleFormSelect}
               />
             </div>
           </div>
 
-      {/* ─── LAYER 3: Details collapsible ─── */}
-        <DetailsRow
-          year={entry.year}
-          season={entry.season}
-          storage={entry.storage}
-          originRegion={entry.originRegion}
-          teaType={entry.type}
-          chineseName={entry.chineseName}
-          tasting={entry.tasting}
-          hasTasting={!!hasTasting}
-          availableRegions={availableRegions}
-          onYearChange={(year) => { userTapped.current.add('year'); update({ year }); }}
-          onSeasonChange={(season) => { userTapped.current.add('season'); update({ season }); }}
-          onStorageChange={(storage) => { userTapped.current.add('storage'); update({ storage }); }}
-          onRegionChange={(originRegion) => { userTapped.current.add('region'); update({ originRegion }); }}
-          onChineseNameChange={(chineseName) => update({ chineseName: chineseName || undefined })}
-          onOpenTasting={openTastingOverlay}
-          onTastingStripRemove={handleTastingStripRemove}
-        />
+          {/* Verdict-driven actions */}
+          <div className="space-y-2">
+            {/* Positive verdict: "Would buy" graduates to acquisition */}
+            {isPositiveVerdict && hasName && (
+              <button
+                type="button"
+                onClick={handleWouldBuyGraduation}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
+                           bg-tea-gold/15 text-tea-gold text-sm font-semibold
+                           hover:bg-tea-gold/20 active:bg-tea-gold/25
+                           transition-all"
+              >
+                <ShoppingCart size={15} strokeWidth={2} />
+                Would buy
+              </button>
+            )}
 
-      {/* Done — commit entry */}
-      {hasName && (
+            {/* Negative verdict or no verdict: Done */}
+            {hasName && (isNegativeVerdict || !isPositiveVerdict) && (
+              <button
+                type="button"
+                onClick={handleCommit}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all ${
+                  isNegativeVerdict
+                    ? 'bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 active:bg-tea-gold/20'
+                    : 'bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                }`}
+              >
+                <Check size={15} strokeWidth={2.5} />
+                Done
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ═══ ACQUISITION PATH (direct or graduated from sample) ═══ */}
+      {!isSample && (
+        <>
+          {/* ─── ACQUISITION ─── */}
+          <div className="space-y-3">
+            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Acquisition</p>
+            <PriceGrams
+              priceAmount={entry.priceAmount}
+              priceCurrency={entry.priceCurrency}
+              pricePerUnitGrams={entry.pricePerUnitGrams}
+              form={entry.form}
+              onPriceChange={(priceAmount) => update({ priceAmount })}
+              onCurrencyChange={handleCurrencyChange}
+              onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
+              onFormChange={handleFormSelect}
+            />
+            <StatusActions
+              status={entry.status}
+              onStatusChange={(status: CompassStatus) => update({ status })}
+              entry={entry}
+              onAddedToLedger={onSwitchToLedger}
+            />
+          </div>
+
+          <div className="border-t border-tea-border/20" />
+
+          {/* ─── TASTING & NOTES ─── */}
+          <div className="space-y-3">
+            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Tasting & Notes</p>
+
+            {/* Tasting button + strip (pre-filled if graduated from sample) */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={openTastingOverlay}
+                className="tag-selectable flex items-center gap-1.5 text-xs"
+              >
+                <Droplets size={14} strokeWidth={1.5} />
+                {hasTasting ? 'Edit tasting' : 'Record tasting'}
+              </button>
+
+              {hasTasting && entry.tasting && (
+                <TastingProfileStrip
+                  value={entry.tasting}
+                  onRemove={handleTastingStripRemove}
+                />
+              )}
+            </div>
+
+            <NotesField
+              notes={entry.notes}
+              onNotesChange={(notes) => update({ notes })}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ═══ DETAILS (shared, collapsed) ═══ */}
+      <DetailsRow
+        year={entry.year}
+        season={entry.season}
+        storage={entry.storage}
+        originRegion={entry.originRegion}
+        teaType={entry.type}
+        chineseName={entry.chineseName}
+        tasting={entry.tasting}
+        hasTasting={!!hasTasting}
+        availableRegions={availableRegions}
+        onYearChange={(year) => { userTapped.current.add('year'); update({ year }); }}
+        onSeasonChange={(season) => { userTapped.current.add('season'); update({ season }); }}
+        onStorageChange={(storage) => { userTapped.current.add('storage'); update({ storage }); }}
+        onRegionChange={(originRegion) => { userTapped.current.add('region'); update({ originRegion }); }}
+        onChineseNameChange={(chineseName) => update({ chineseName: chineseName || undefined })}
+        onOpenTasting={openTastingOverlay}
+        onTastingStripRemove={handleTastingStripRemove}
+      />
+
+      {/* Done — acquisition path */}
+      {!isSample && hasName && (
         <button
           type="button"
           onClick={handleCommit}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
                      bg-tea-gold/10 text-tea-gold text-sm font-semibold
-
-
                      hover:bg-tea-gold/15 active:bg-tea-gold/20
                      transition-all"
         >
