@@ -42,6 +42,51 @@
 
 **NEVER add visible `border` to pills, badges, or tags.** Differentiation comes from background tint + text color only. No `border-tea-accent/30`, no `border-amber-400/30`, no `border-white`, no `border-black`. If you find yourself writing a border on a pill or badge, use a CSS class from card-utilities.css instead.
 
+## MANDATORY: Product Vision & Decision-Making
+
+**Read `VISION.md` for the full strategic vision. Read `ROADMAP.md` for the build sequence.** The following rules shape every coding decision:
+
+### What Teajia Is
+
+Teajia is professional infrastructure for the tea community — tools, sourcing, education, and scaffolding for tea professionals and enthusiasts. It is NOT a consumer wellness app, NOT a social network, NOT a franchise. It's closer to a lineage: shared tradition, independent expression. Each operator/location has their own identity within the Teajia ecosystem.
+
+### The Presence Principle
+
+Tea is about being present. The app works **before** the session (source, stock, prepare, invite) and **after** (remember, purchase, learn more). It NEVER competes with the tea table for attention. Do not build features that encourage phone use during tea sessions.
+
+### Who Uses This
+
+Different people interact at different depths. When building features, know which user you're serving:
+
+| User | What they use | What they DON'T need |
+|---|---|---|
+| **Adrian (platform owner)** | Everything — Compass, inventory, events, CRM, invoicing, editorial | N/A |
+| **Tea masters / independent sourcers** | Compass (field sourcing), maybe events, may contribute articles | Tea house operations, wholesale ordering |
+| **Tea house operators** | Inventory, events, CRM, shop, wholesale catalog, education content | Compass (they source through the network) |
+| **Tea workers / staff** | Scoped inventory, events, education | Full admin, sourcing, user management |
+| **Home practitioners** | Events, shop, learning, maybe simple hosting | Professional tools |
+| **Guests** | Event RSVP, post-session recap, shop, articles | Admin anything |
+
+### Design Rules for Features
+
+1. **Simple by default, detailed when needed.** Events can be "4 seats, Saturday, tea" or full approval-based with briefing cards. The simple version is the default. Advanced features are opt-in layers that feel like a bonus, never a requirement. Nothing should feel lacking if advanced features aren't used.
+2. **Suggest without pushing.** Post-event teas are easy to find and buy — but the app doesn't hard-sell. The path from guest → practitioner → host → operator is natural, never pressured.
+3. **Human curation over algorithms.** At 139 products, Adrian's voice IS the recommendation engine. Don't build similarity engines, knowledge graphs, or adaptive learning paths. Curate manually.
+4. **WhatsApp checkout is correct.** Every order is a personal conversation. Frame it as a feature ("We confirm every order personally"), not a limitation.
+5. **Magazine quality matters.** The editorial standard is high. Templates that don't feel like a real magazine aren't ready. Quality over quantity.
+
+### What NOT to Build
+
+Do not build: streak trackers, gamification, push notifications for engagement, live tasting modes (phones at the table), algorithmic recommendations, community review aggregation, auto-replenish subscriptions, social feeds/likes/followers. See VISION.md "What Teajia Does NOT Do" for the full list with rationale.
+
+### Multi-Tenancy Direction
+
+The app is currently single-tenant (Adrian only). It will become multi-account. When designing data models or API endpoints, be aware:
+- An `account_id` column will be added to products, invoices, customers, events, teaware, activity_logs, stock_ledger
+- Compass entries are ALREADY user-scoped (has `user_id`) — this is correct
+- All queries will eventually filter by account_id
+- Don't build features that assume a single global dataset — but don't add account_id yourself unless specifically asked to work on multi-tenancy
+
 ## Project Overview
 
 This is the unified Teajia application combining two previously separate repos:
