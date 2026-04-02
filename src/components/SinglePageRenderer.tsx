@@ -539,6 +539,70 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
   );
 };
 
+// --- VIDEO POSTER FRAME (tap-to-expand) ---
+const VideoPosterFrame: React.FC<{
+  videoId?: string;
+  instagramId?: string;
+  caption?: string;
+  className?: string;
+}> = ({ videoId, instagramId, caption, className = '' }) => {
+  const [showPlayer, setShowPlayer] = useState(false);
+  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : undefined;
+
+  return (
+    <>
+      {/* Poster frame */}
+      <div className={`relative cursor-pointer group ${className}`} onClick={() => setShowPlayer(true)}>
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={caption || 'Video'} className="w-full h-full object-cover" />
+        ) : instagramId ? (
+          <div className="w-full h-full bg-tea-elevated flex items-center justify-center">
+            <span className="text-tea-text-dim text-xs">Instagram Reel</span>
+          </div>
+        ) : null}
+
+        {/* Play button overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center group-hover:bg-black/60 transition-colors">
+            <svg className="w-5 h-5 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+
+        {caption && (
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+            <p className="text-white/70 text-xs">{caption}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Full-screen player overlay */}
+      {showPlayer && videoId && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center" onClick={() => setShowPlayer(false)}>
+          <button
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            onClick={() => setShowPlayer(false)}
+          >
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="w-full max-w-4xl aspect-video" onClick={e => e.stopPropagation()}>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+              className="w-full h-full"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+};
+
 export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, storyTitle, storySubtitle, isEditable, readOnly = false, onPageUpdate, onStoryUpdate, recommendations, onNavigate }) => {
     if (!page) return <div className="w-full h-full bg-tea-bg"></div>;
     const { variant, content = '', images = [], textColor = 'light' } = page;
@@ -1220,7 +1284,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         )}
                         {hasVideo ? (
                             <div className={`w-full flex justify-center ${isVertical ? 'my-3' : 'my-4'}`}>
-                                <VideoEmbed videoId={videoId} instagramId={instagramId} isVertical={isVertical} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                {instagramId ? (
+                                    <VideoEmbed videoId={videoId} instagramId={instagramId} isVertical={isVertical} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                ) : (
+                                    <VideoPosterFrame videoId={videoId} caption={videoCaption} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                )}
                             </div>
                         ) : (
                             <div className="w-full flex justify-center my-4">

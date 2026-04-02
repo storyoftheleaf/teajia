@@ -334,6 +334,32 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       });
     });
 
+    // --- PAGE WEIGHT CLASSIFICATION ---
+    const getPageWeight = (v: LayoutVariant): 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' => {
+      const s = v as string;
+      if (s.startsWith('TEXT_DOUBLE') || s.startsWith('TEXT_TRIPLE') || s === 'TEXT_JUSTIFIED_NARROW' || s === 'TEXT_SINGLE_COL') return 'text-heavy';
+      if (s.startsWith('IMG_') || s === 'COVER_MAIN' || s === 'COVER_SPLIT') return 'image-heavy';
+      if (s.startsWith('QUOTE_') || s.startsWith('POEM_') || s.startsWith('CHAPTER_') || s === 'TEXT_BLOCKQUOTE_CENTER') return 'spacious';
+      return 'mixed';
+    };
+
+    // Assign pageWeight to every generated page
+    generated.forEach((p) => {
+      p.pageWeight = getPageWeight(p.variant);
+    });
+
+    // Pacing check: avoid two consecutive text-heavy pages
+    for (let i = 1; i < generated.length - 1; i++) {
+      if (generated[i].pageWeight === 'text-heavy' && generated[i - 1].pageWeight === 'text-heavy') {
+        // Only swap auto-assigned variants (not author-tagged ones)
+        const wasAutoAssigned = !rawContent[i]?.match(/^:::(\w+):::/);
+        if (wasAutoAssigned) {
+          generated[i].variant = LayoutVariant.TEXT_CENTER_NARROW;
+          generated[i].pageWeight = 'spacious';
+        }
+      }
+    }
+
     if (generated.length === 0) {
       generated.push({
         variant: LayoutVariant.COVER_MAIN,
