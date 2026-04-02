@@ -72,6 +72,38 @@ Suggestions without pushing. The app should feel like: "Oh, this is convenient..
 
 ---
 
+## The Open Community Model
+
+Teajia is not closed infrastructure. People may choose to interact with it in different ways:
+
+- **A tea master in Kyoto** may use Compass for sourcing and contribute articles to the magazine — but never carry the Teajia name and never use the inventory tools.
+- **A tea house in Lisbon** may source all their tea through the wholesale network, use events and inventory daily, and carry the Teajia name alongside their own identity.
+- **A home practitioner in Melbourne** may only attend events, buy tea, and read articles — and that's a complete, valid relationship with the platform.
+- **A retired tea farmer** might never touch the app, but be the subject of a magazine article and the source of a rare tea in the catalog.
+
+The platform should welcome all of these without forcing anyone into a box. Some people just want the tools. Some want the community. Some want the tea. Some want to build a space and need the full infrastructure. All are served.
+
+### Open vs. Gated Access
+
+| Layer | Access model |
+|---|---|
+| Magazine & Learn Hub (foundational) | Free and open. This is how people find Teajia. |
+| Shop | Open to anyone. WhatsApp inquiry model means Adrian personally confirms every order. |
+| Events (attending) | Open. Anyone can discover and RSVP. Host approves. |
+| Events (hosting) | Open with tools, but verification badges signal trust over time. |
+| Tea Compass | Available to any authenticated user. Designed for sourcing professionals. |
+| Inventory & CRM | Requires an account. Eventually tiered (free basic, paid full suite). |
+| Wholesale sourcing | Trust-gated. Access deepens with the relationship. |
+| Deeper training & workshops | May carry a fee. In-person training through consulting pathway. |
+
+### The Lineage, Not Franchise
+
+Each space that carries the Teajia identity has its own character. "Teajia" is not a brand template — it's a quality signal. Like a martial arts lineage: each school has its own master, students, and style, but they share a tradition and a body of knowledge.
+
+Some operators will feature the name prominently. Others will have the logo on the tea bag and nowhere else. Some will just use the tools with no public Teajia affiliation at all. All are valid paths.
+
+The tea is a brand — the logo is clean and minimal. To use the tools, you don't have to advertise it.
+
 ## The Five Layers
 
 ### 1. Tools (the engine)
@@ -80,7 +112,7 @@ Professional-grade operational software built by a tea professional for tea prof
 
 - **Tea Compass** — Field sourcing journal. Capture teas at markets and vendor visits, compare prices across vendors, track purchase intent, promote to inventory. For sourcing professionals and tea masters. NOT for tea house operators who source through the network.
 - **Inventory** — Stock management with inline editing, multi-currency cost tracking, vendor relationships, status workflows (Draft → Active → Archived), public/personal/sample visibility controls.
-- **Events** — From dead simple ("4 seats, Saturday, my place") to fully curated (approval-based RSVP, briefing cards, tea menu with brew order, post-session archive). Function first. Advanced features available but tucked away. The default should be: invite friends, know who's coming, know what kind of gathering it is.
+- **Events** — From dead simple ("4 seats, Saturday, my place") to fully curated (approval-based RSVP, briefing cards, tea menu with brew order, post-session archive). Function first. Advanced features available but tucked away. The default should be: invite friends, know who's coming, know what kind of gathering it is. But even the simple mode needs key context: if someone shares the link, guests want to know if they have the right people there, and whether it's a silent meditation or a tea shopping gathering. Gathering type and guest list visibility are core, not advanced.
 - **Orders & Invoicing** — Multi-currency, WhatsApp-integrated, stock-deducting. Sale and purchase directions. PDF receipts.
 - **Customer CRM** — Tags (wholesale, retail, friend, vendor, VIP), purchase history, preferred currency, contact preferences.
 - **CSV Import** — Bulk inventory loading from vendor receipts. Day-one essential for any new operator.
@@ -97,7 +129,7 @@ Adrian's 20-year vendor relationships become a sourcing network that operators c
 
 The content that no individual tea house could create alone. Adrian's editorial voice plus contributions from tea masters and community members across the network.
 
-- **Magazine (Read)** — Editorial content: stories, interviews, origin reports, cultural essays. Community contributors write through a structured process with editorial approval to maintain quality and prevent commercial selling. The goal is an offering to the tea community, not a marketing channel.
+- **Magazine (Read)** — Editorial content: stories, interviews, origin reports, cultural essays. Contributors from across the tea community write through a structured process with editorial approval. Content maintains consistency — there is a voice and a standard. The editorial goal is to give an offering to the tea-drinking community, not to sell product. Articles that are thinly veiled sales pitches get rejected. Adrian has existing interviews and imagery ready to populate the magazine once templates reach quality standard.
 - **Learn Hub** — Structured curricula (Foundation, Brewing, Flavor, Mindfulness, Vessels, Community). Free at the foundational level. Deeper training may carry a fee or require in-person workshops.
 - **Brewing Guides** — Portable. Printable cards, QR-linked pages. Information that goes OFF the screen and onto the tea table, into the package.
 - **Glossary & Reference** — Shared knowledge base available to all.
@@ -157,6 +189,10 @@ The magazine templates need to reach the level of quality that Adrian expects. 1
 ---
 
 ## Current State (April 2026)
+
+**Status:** Pre-launch. Adrian is the sole active user. The app has not been publicly launched. There are people interested in using this in Australia. Adrian has a large network of tea people, several of whom would use Compass. He has existing interviews with imagery ready to populate the magazine once templates reach his quality standard.
+
+**Immediate priority:** Make the app work flawlessly for Adrian's daily workflow (sourcing, inventory, events, invoicing). Fix quality issues (magazine templates). Then onboard a few trusted people.
 
 ### What exists and works
 - Full inventory management with inline editing, multi-currency, vendor tracking
@@ -223,3 +259,5 @@ This vision document supersedes the assumptions in the previous audit documents 
 - The events system isn't too heavy — it's right for curated sessions, needs a simpler mode for casual hosts
 - The Compass isn't a mindfulness journal — it's supply-chain intelligence for sourcing professionals
 - "Building hallways between rooms" is correct, but the hallways should suggest, not push
+- The "Tea Practice OS" framing is too consumer/engagement-oriented — Teajia is infrastructure for a community, not an app trying to maximize daily active users
+- The platform isn't SaaS and isn't a franchise — it's a lineage model where each participant interacts at their own depth

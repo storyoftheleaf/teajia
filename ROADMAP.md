@@ -6,7 +6,11 @@
 
 ## Phase 0: Make It Work for Adrian (Now)
 
+**Status:** Pre-launch. Adrian is the sole user. App has not been publicly launched. People in Australia are interested but not yet onboarded. Several tea friends would use Compass. Existing interviews and imagery ready for magazine once templates reach quality.
+
 Adrian is the proof that the tools work. Every rough edge he hits, future operators will hit harder. Fix what's broken, polish what's rough, get to the point where Adrian says "I don't need anything else for my daily work."
+
+**Key blocker identified by Adrian:** Magazine templates are not at the quality level he expects. This is the editorial face of the brand and must be fixed before launch.
 
 ### 0.1 Critical Fixes (bugs that break trust)
 
@@ -38,8 +42,18 @@ Adrian is the proof that the tools work. Every rough edge he hits, future operat
 
 ### 0.5 Events Simplification
 
-- [ ] **Create a "simple mode" for event creation** — Default: title, date, seat count, gathering type (tea session / meditation / shopping / casual), share link. That's it. The full approval workflow, briefing cards, tea menu, etc. remain available as optional layers.
-- [ ] **Gathering type indicator** — Guests need to know if it's a silent meditation or a tea shopping event. Simple tag/label on the event page.
+- [ ] **Create a "simple mode" for event creation** — Default: title, date, seat count, gathering type, share link. That's it. The full approval workflow, briefing cards, tea menu, etc. remain available as optional layers that feel like a bonus when used, not something that's lacking when unused.
+- [ ] **Gathering type indicator (core, not optional)** — Guests need to know if it's a silent meditation or a tea shopping event. This isn't an advanced feature — it's essential context even in simple mode. Simple tag/label on the event page.
+- [ ] **Guest list visibility** — When someone receives a shared link, they want to know if the right people are there. Show confirmed guests (with opt-in visibility). This is function, not social — it's "is my friend coming" not "how many followers."
+
+### 0.6 Onboard First Trusted Users
+
+Once Adrian's workflow is solid, bring in a small group of trusted tea friends and the Australia contacts.
+
+- [ ] **Compass access for tea friends** — Compass is already user-scoped. Ensure sign-up flow works, entries are isolated, and the experience is solid for someone who isn't Adrian.
+- [ ] **Share events with real guests** — Use the events system with real attendees. Identify friction in the RSVP and guest experience flow.
+- [ ] **Populate magazine with existing content** — Adrian has interviews and imagery. Once templates are at quality, load real content. This is the moment the public-facing site becomes real.
+- [ ] **Collect feedback** — What works, what's confusing, what's missing. This informs Phase 1 priorities.
 
 ---
 
