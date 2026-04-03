@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check, Calendar } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -186,24 +186,28 @@ const CustomerModal = ({
 
 // ── Customer Detail Panel ──
 const CustomerDetail = ({
-  customer, onClose, onEdit, onDelete, allProducts,
+  customer, onClose, onEdit, onDelete, allProducts, filterAttendedEvents,
 }: {
   customer: Customer;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   allProducts?: any[];
+  filterAttendedEvents?: boolean;
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [teas, setTeas] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [suppliedProducts, setSuppliedProducts] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingTeas, setLoadingTeas] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingSupplied, setLoadingSupplied] = useState(true);
   const [showOrders, setShowOrders] = useState(true);
   const [showTeas, setShowTeas] = useState(true);
+  const [showEvents, setShowEvents] = useState(!!filterAttendedEvents);
   const [showSupplied, setShowSupplied] = useState(true);
   const [showLinkDropdown, setShowLinkDropdown] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
@@ -221,6 +225,7 @@ const CustomerDetail = ({
   React.useEffect(() => {
     setLoadingOrders(true);
     setLoadingTeas(true);
+    setLoadingEvents(true);
     api.customers.getOrders(customer.id)
       .then(setOrders)
       .catch(() => setOrders([]))
@@ -229,6 +234,10 @@ const CustomerDetail = ({
       .then(setTeas)
       .catch(() => setTeas([]))
       .finally(() => setLoadingTeas(false));
+    api.customers.getEvents(customer.id)
+      .then(setEvents)
+      .catch(() => setEvents([]))
+      .finally(() => setLoadingEvents(false));
     if (isVendor) refreshSupplied();
     else setLoadingSupplied(false);
   }, [customer.id]);
@@ -280,7 +289,7 @@ const CustomerDetail = ({
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className={`grid gap-4 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-2xl font-serif text-tea-accent">{customer.orderCount || 0}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
@@ -289,6 +298,12 @@ const CustomerDetail = ({
               <div className="text-2xl font-serif text-tea-accent">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
+            {(customer.eventCount || 0) > 0 && (
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
+                <div className="text-2xl font-serif text-tea-gold">{customer.eventCount}</div>
+                <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Events</div>
+              </div>
+            )}
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-sm font-serif text-tea-text">
                 {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '—'}
@@ -436,6 +451,59 @@ const CustomerDetail = ({
             </div>
           )}
 
+          {/* Events Attended */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <button
+              onClick={() => setShowEvents(!showEvents)}
+              className="w-full flex justify-between items-center"
+            >
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+                <Calendar size={12} /> Events Attended
+                {!loadingEvents && events.length > 0 && <span className="text-tea-gold">({events.length})</span>}
+              </h4>
+              {showEvents ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
+            </button>
+
+            {showEvents && (
+              <div className="mt-4 space-y-2">
+                {loadingEvents ? (
+                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
+                ) : events.length === 0 ? (
+                  <p className="text-tea-text-sec text-sm italic">No events attended yet.</p>
+                ) : (
+                  events.map((evt: any) => (
+                    <div key={evt.id + '-' + evt.rsvp_date} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <button
+                          onClick={() => { onClose(); navigate(`/admin/events/${evt.slug || evt.id}`); }}
+                          className="text-tea-text font-medium hover:text-tea-gold transition-colors truncate block text-left"
+                          title="View in Events"
+                        >
+                          {evt.title}
+                        </button>
+                        <div className="text-xs text-tea-text-sec flex items-center gap-2 mt-0.5">
+                          {evt.event_date && <span>{new Date(evt.event_date).toLocaleDateString()}</span>}
+                          {evt.location_name && <span>· {evt.location_name}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                        {evt.attended === 1 && (
+                          <span className="badge-status badge-status-default">Attended</span>
+                        )}
+                        {evt.attended === 0 && (
+                          <span className="badge-status badge-status-muted">No-show</span>
+                        )}
+                        {evt.attended == null && (
+                          <span className="badge-status badge-status-gold">{evt.attendee_status}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Teas Purchased */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
             <button
@@ -555,6 +623,7 @@ export const CustomersView = () => {
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterTag, setFilterTag] = useState<CustomerTag | ''>('');
+  const [filterAttendedEvents, setFilterAttendedEvents] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'spent' | 'orders'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -585,6 +654,9 @@ export const CustomersView = () => {
     if (filterTag) {
       list = list.filter(c => c.tags.includes(filterTag));
     }
+    if (filterAttendedEvents) {
+      list = list.filter(c => (c.eventCount || 0) > 0);
+    }
     // Sort
     list = [...list].sort((a, b) => {
       switch (sortBy) {
@@ -599,7 +671,7 @@ export const CustomersView = () => {
       }
     });
     return list;
-  }, [nonVendorCustomers, search, filterTag, sortBy]);
+  }, [nonVendorCustomers, search, filterTag, filterAttendedEvents, sortBy]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -694,6 +766,25 @@ export const CustomersView = () => {
                 </button>
               );
             })}
+
+            {/* Attended Events segment filter */}
+            {(() => {
+              const attendedCount = nonVendorCustomers.filter(c => (c.eventCount || 0) > 0).length;
+              if (attendedCount === 0) return null;
+              return (
+                <>
+                  <span className="w-px h-4 bg-tea-border flex-shrink-0" />
+                  <button
+                    onClick={() => setFilterAttendedEvents(!filterAttendedEvents)}
+                    className={filterAttendedEvents ? 'pill-active' : 'pill'}
+                  >
+                    <Calendar size={11} className="mr-0.5 -ml-0.5" />
+                    Events
+                    <span className="text-[9px] opacity-70 ml-0.5">{attendedCount}</span>
+                  </button>
+                </>
+              );
+            })()}
           </div>
 
           {/* Right controls */}
@@ -779,13 +870,13 @@ export const CustomersView = () => {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
             <Users size={32} strokeWidth={1} className="opacity-40" />
-            <span className="font-serif italic">{search || filterTag ? 'No matching customers' : 'No customers yet'}</span>
-            {(search || filterTag) && (
-              <button onClick={() => { setSearch(''); setFilterTag(''); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
+            <span className="font-serif italic">{search || filterTag || filterAttendedEvents ? 'No matching customers' : 'No customers yet'}</span>
+            {(search || filterTag || filterAttendedEvents) && (
+              <button onClick={() => { setSearch(''); setFilterTag(''); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                 Clear filters
               </button>
             )}
-            {search && !filterTag && (
+            {search && !filterTag && !filterAttendedEvents && (
               <button
                 onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors mt-1"
@@ -825,8 +916,14 @@ export const CustomersView = () => {
                   {/* Stats */}
                   <div className="flex-shrink-0 text-right">
                     <div className="text-xs text-tea-text tabular-nums">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
-                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
-                      {customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}
+                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums flex items-center justify-end gap-1.5">
+                      <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                      {(customer.eventCount || 0) > 0 && (
+                        <span className="flex items-center gap-0.5 text-tea-gold">
+                          <Calendar size={8} />
+                          {customer.eventCount}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -886,7 +983,15 @@ export const CustomersView = () => {
                     </div>
 
                     <div className="flex justify-between items-center text-xs text-tea-text-sec border-t border-tea-border pt-3 mt-auto">
-                      <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                        {(customer.eventCount || 0) > 0 && (
+                          <span className="flex items-center gap-0.5 text-tea-gold">
+                            <Calendar size={10} />
+                            {customer.eventCount} event{customer.eventCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                       <span className="font-medium text-tea-text">${(customer.totalSpentUSD || 0).toFixed(0)} spent</span>
                     </div>
                   </div>
@@ -914,6 +1019,7 @@ export const CustomersView = () => {
           onEdit={() => openEdit(viewingCustomer)}
           onDelete={() => handleDelete(viewingCustomer)}
           allProducts={allProducts}
+          filterAttendedEvents={filterAttendedEvents}
         />
       )}
     </div>

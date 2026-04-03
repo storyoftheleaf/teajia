@@ -227,7 +227,7 @@ const GuestManagement: React.FC = () => {
           {data.teaMenu && data.teaMenu.length > 0 && magicToken && (
             <Suspense fallback={null}>
               <div className="border-t border-tea-border pt-10">
-                <TastingNotesForm teaMenu={data.teaMenu} token={magicToken} />
+                <TastingNotesForm teaMenu={data.teaMenu} token={magicToken} eventId={event.id} eventTitle={event.title} />
               </div>
             </Suspense>
           )}

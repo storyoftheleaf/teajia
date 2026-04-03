@@ -223,6 +223,10 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getEvents: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/events`);
+      return handleResponse(res);
+    },
   },
 
   rates: {
@@ -324,6 +328,12 @@ export const api = {
     },
     getTeas: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/teas`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getEvents: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/events`, {
         headers: authHeaders(),
       });
       return handleResponse(res);

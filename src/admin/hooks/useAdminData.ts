@@ -55,6 +55,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         recheckStock: !!p.recheck_stock,
         stockVerifiedAt: p.stock_verified_at || null,
         tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
+        sourceCompassEntryId: p.source_compass_entry_id || undefined,
       })) as Product[];
     }
   });
@@ -124,6 +125,7 @@ export const useCustomers = () => {
         orderCount: Number(c.order_count) || 0,
         totalSpentUSD: Number(c.total_spent_usd) || 0,
         lastOrderDate: c.last_order_date || undefined,
+        eventCount: Number(c.event_count) || 0,
       })) as Customer[];
     }
   });
