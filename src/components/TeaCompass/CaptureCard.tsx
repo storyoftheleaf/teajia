@@ -574,7 +574,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
         </div>
 
-        <div className="border-t border-tea-border/20" />
+        <div className="border-t border-tea-border" />
 
         {/* ─── ACQUISITION ─── */}
         <div className="space-y-3">
@@ -654,7 +654,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
         </div>
 
-        <div className="border-t border-tea-border/20" />
+        <div className="border-t border-tea-border" />
 
         {/* ─── DETAILS ─── */}
         <div className="space-y-3">
@@ -726,7 +726,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         </div>
 
-        <div className="border-t border-tea-border/20" />
+        <div className="border-t border-tea-border" />
 
         {/* ─── NOTES ─── */}
         <NotesField
@@ -820,7 +820,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
+                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border"
                 >
                   <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '200px' }}>
                     {TEA_TYPES.map((type) => (
@@ -876,7 +876,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
-      <div className="border-t border-tea-border/20" />
+      <div className="border-t border-tea-border" />
 
       {/* ─── MODE: Sample toggle + Status ─── */}
       <div className="space-y-3">
@@ -906,7 +906,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </div>
       </div>
 
-      <div className="border-t border-tea-border/20" />
+      <div className="border-t border-tea-border" />
 
       {/* ═══ SAMPLE PATH ═══ */}
       {isSample && (
@@ -1032,7 +1032,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             />
           </div>
 
-          <div className="border-t border-tea-border/20" />
+          <div className="border-t border-tea-border" />
 
           {/* ─── TASTING & NOTES ─── */}
           <div className="space-y-3">
@@ -1066,7 +1066,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       )}
 
       {/* ─── DETAILS (inline, shared) ─── */}
-      <div className="border-t border-tea-border/20" />
+      <div className="border-t border-tea-border" />
       <div className="space-y-3">
         <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Details</p>
 
