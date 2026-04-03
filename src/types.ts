@@ -29,6 +29,10 @@ export interface CustomerTasting {
   personalNote?: string;
   rating?: number;
   createdAt: string;
+  /** When this tasting originated from an event session */
+  eventId?: string;
+  /** Human-readable event title for display in the journal */
+  eventTitle?: string;
 }
 
 export enum ContentType {

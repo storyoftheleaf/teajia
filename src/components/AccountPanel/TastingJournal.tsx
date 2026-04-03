@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Trash2, ShoppingCart, Leaf } from 'lucide-react';
+import { ChevronLeft, Trash2, ShoppingCart, Leaf, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../lib/store';
 import type { CustomerTasting } from '../../types';
@@ -111,7 +111,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           <span className="text-[9px] text-tea-text-dim shrink-0">{entry.teaType}</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className="text-[10px] text-tea-text-dim">{formatDate(entry.createdAt)}</span>
                         {/* Rating as filled tea leaves */}
                         {(entry.tasting.rating ?? entry.rating ?? 0) > 0 && (
@@ -123,6 +123,13 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 className={i <= (entry.tasting.rating ?? entry.rating ?? 0) ? 'text-tea-gold fill-tea-gold' : 'text-tea-text-dim/20'}
                               />
                             ))}
+                          </span>
+                        )}
+                        {/* Event context badge */}
+                        {entry.eventId && (
+                          <span className="badge-status badge-status-gold">
+                            <Calendar size={9} />
+                            {entry.eventTitle || 'Event'}
                           </span>
                         )}
                       </div>
