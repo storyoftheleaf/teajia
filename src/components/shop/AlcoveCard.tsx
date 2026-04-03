@@ -660,6 +660,104 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
         )}
 
+        {/* === FEATURED IN EVENTS === */}
+        {productEvents && productEvents.length > 0 && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <h3 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "10px", fontWeight: 400,
+              textTransform: "uppercase", letterSpacing: "0.12em",
+              color: "var(--tea-gold)",
+              margin: "0 0 10px 0",
+            }}>
+              Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {productEvents.map(evt => {
+                const eventDate = new Date(evt.event_date);
+                const formattedDate = eventDate.toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                });
+                return (
+                  <button
+                    key={evt.id}
+                    onClick={() => navigate(`/events/${evt.slug}`)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "10px",
+                      background: "var(--tea-accent-sub)",
+                      border: "1px solid var(--tea-border)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "background 0.2s ease, border-color 0.2s ease",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "var(--tea-surface)";
+                      e.currentTarget.style.borderColor = "var(--tea-gold, #a8874d)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "var(--tea-accent-sub)";
+                      e.currentTarget.style.borderColor = "var(--tea-border)";
+                    }}
+                  >
+                    {evt.flyer_image_url ? (
+                      <img
+                        src={evt.flyer_image_url}
+                        alt=""
+                        style={{
+                          width: "36px", height: "36px",
+                          borderRadius: "4px", objectFit: "cover",
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: "36px", height: "36px",
+                        borderRadius: "4px",
+                        background: "var(--tea-surface)",
+                        border: "1px solid var(--tea-border)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0,
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                          stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: "var(--font-body)",
+                        fontSize: "13px", fontWeight: 400,
+                        color: "var(--tea-text)",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      }}>
+                        {evt.title}
+                      </div>
+                      <div style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px", fontWeight: 400,
+                        color: "var(--tea-text-dim)",
+                        marginTop: "2px",
+                      }}>
+                        {formattedDate}
+                        {evt.location_name ? ` · ${evt.location_name}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* === YOU MIGHT ALSO LIKE === */}
         {(() => {
           if (!items || items.length <= 1) return null;
