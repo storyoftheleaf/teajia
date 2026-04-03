@@ -11,6 +11,18 @@
 
 **Quick rule:** If your color class doesn't start with `tea-text`, `tea-surface`, `tea-bg`, `tea-elevated`, `tea-gold`, `tea-gold-lt`, `tea-border`, `tea-accent-sub`, `tea-text-sec`, or `tea-text-dim` — you're probably using the wrong token.
 
+### Border Rules (the most common violation)
+
+These three rules cause 90% of styling bugs. Memorize them:
+
+1. **`border-tea-border`** — NEVER add opacity. No `/20`, `/30`, `/50`. The token already has the right opacity built in. Writing `border-tea-border/20` makes it near-invisible or white-appearing.
+2. **`border-tea-gold`** — ONLY for focus/hover/active states (`focus:border-tea-gold/40`). NEVER as a structural border on dividers, cards, or separators.
+3. **Dividers** — Always `border-t border-tea-border` or `border-b border-tea-border`. Nothing else.
+
+### Mandatory: Run `npm run lint:colors` Before Committing
+
+Run `npm run lint:colors` on any files you changed. It will catch border-tea-border with opacity, border-tea-gold as structural borders, border-white/black, and legacy tokens. Fix all violations before committing. There is no exception to this rule.
+
 ## MANDATORY: Bottom Navigation Clearance
 
 **No modal, overlay, drawer, or floating element may overlap the bottom navigation bar.** The bottom tab bar is `h-[44px]` plus `env(safe-area-inset-bottom)`. Any full-screen or bottom-anchored UI must account for this:
