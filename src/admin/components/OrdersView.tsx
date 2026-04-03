@@ -289,7 +289,11 @@ export const OrdersView = () => {
                             <span className="text-tea-text-sec/50" title={order.notes}>📝</span>
                           )}
                           {order.source_event_title && (
-                            <span className="text-tea-gold/60 text-[9px]" title={`From: ${order.source_event_title}`}>🎋</span>
+                            <button
+                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
+                              className="text-tea-gold/60 text-[9px] hover:text-tea-gold transition-colors cursor-pointer"
+                              title={`Attributed to: ${order.source_event_title}`}
+                            >🎋</button>
                           )}
                         </div>
                       </td>
@@ -371,6 +375,13 @@ export const OrdersView = () => {
                       {isPending && daysAge >= 7 && (
                         <span className="text-[9px] text-tea-gold/80 num">{daysAge}d</span>
                       )}
+                      {order.source_event_title && (
+                        <button
+                          onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
+                          className="text-tea-gold/60 text-[9px] hover:text-tea-gold transition-colors cursor-pointer"
+                          title={`Attributed to: ${order.source_event_title}`}
+                        >🎋</button>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
@@ -451,7 +462,12 @@ export const OrdersView = () => {
                 {viewingInvoice.source_event_title && (
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
-                    <p className="text-sm text-tea-text">{viewingInvoice.source_event_title}</p>
+                    <button
+                      onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title)}`); }}
+                      className="text-sm text-tea-text hover:text-tea-accent transition-colors"
+                    >
+                      {viewingInvoice.source_event_title}
+                    </button>
                   </div>
                 )}
 
