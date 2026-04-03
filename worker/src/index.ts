@@ -1357,6 +1357,28 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
   }
 };
 
+const handleGetCustomerEvents: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  try {
+    const result = await env.DB.prepare(`
+      SELECT
+        e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
+        e.location_name, e.status as event_status,
+        ea.status as attendee_status, ea.attended, ea.access_tier,
+        ea.plus_one, ea.created_at as rsvp_date
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      WHERE ea.customer_id = ? AND ea.status != 'cancelled'
+      ORDER BY e.event_date DESC
+    `).bind(params.id).all();
+    return json(result.results);
+  } catch {
+    return json([]);
+  }
+};
+
 const handleGetVendorProducts: Handler = async (request, env, params) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
@@ -4273,6 +4295,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],
   ['GET', '/api/customers/:id/orders', handleGetCustomerOrders],
   ['GET', '/api/customers/:id/teas', handleGetCustomerTeas],
+  ['GET', '/api/customers/:id/events', handleGetCustomerEvents],
   ['GET', '/api/customers/:id/products', handleGetVendorProducts],
   ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
   ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],

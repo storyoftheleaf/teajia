@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check, Calendar } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -198,12 +198,15 @@ const CustomerDetail = ({
   const { showToast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [teas, setTeas] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [suppliedProducts, setSuppliedProducts] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingTeas, setLoadingTeas] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingSupplied, setLoadingSupplied] = useState(true);
   const [showOrders, setShowOrders] = useState(true);
   const [showTeas, setShowTeas] = useState(true);
+  const [showEvents, setShowEvents] = useState(true);
   const [showSupplied, setShowSupplied] = useState(true);
   const [showLinkDropdown, setShowLinkDropdown] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
@@ -221,6 +224,7 @@ const CustomerDetail = ({
   React.useEffect(() => {
     setLoadingOrders(true);
     setLoadingTeas(true);
+    setLoadingEvents(true);
     api.customers.getOrders(customer.id)
       .then(setOrders)
       .catch(() => setOrders([]))
@@ -229,6 +233,10 @@ const CustomerDetail = ({
       .then(setTeas)
       .catch(() => setTeas([]))
       .finally(() => setLoadingTeas(false));
+    api.customers.getEvents(customer.id)
+      .then(setEvents)
+      .catch(() => setEvents([]))
+      .finally(() => setLoadingEvents(false));
     if (isVendor) refreshSupplied();
     else setLoadingSupplied(false);
   }, [customer.id]);
@@ -435,6 +443,59 @@ const CustomerDetail = ({
               <p className="text-sm text-tea-text whitespace-pre-wrap leading-relaxed">{customer.notes}</p>
             </div>
           )}
+
+          {/* Events Attended */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <button
+              onClick={() => setShowEvents(!showEvents)}
+              className="w-full flex justify-between items-center"
+            >
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+                <Calendar size={12} /> Events Attended
+                {!loadingEvents && events.length > 0 && <span className="text-tea-gold">({events.length})</span>}
+              </h4>
+              {showEvents ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
+            </button>
+
+            {showEvents && (
+              <div className="mt-4 space-y-2">
+                {loadingEvents ? (
+                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
+                ) : events.length === 0 ? (
+                  <p className="text-tea-text-sec text-sm italic">No events attended yet.</p>
+                ) : (
+                  events.map((evt: any) => (
+                    <div key={evt.id + '-' + evt.rsvp_date} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <button
+                          onClick={() => { onClose(); navigate(`/admin/events?search=${encodeURIComponent(evt.title || '')}`); }}
+                          className="text-tea-text font-medium hover:text-tea-gold transition-colors truncate block text-left"
+                          title="View in Events"
+                        >
+                          {evt.title}
+                        </button>
+                        <div className="text-xs text-tea-text-sec flex items-center gap-2 mt-0.5">
+                          {evt.event_date && <span>{new Date(evt.event_date).toLocaleDateString()}</span>}
+                          {evt.location_name && <span>· {evt.location_name}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                        {evt.attended === 1 && (
+                          <span className="badge-status badge-status-default">Attended</span>
+                        )}
+                        {evt.attended === 0 && (
+                          <span className="badge-status badge-status-muted">No-show</span>
+                        )}
+                        {evt.attended == null && (
+                          <span className="badge-status badge-status-gold">{evt.attendee_status}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Teas Purchased */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">

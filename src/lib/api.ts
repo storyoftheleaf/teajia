@@ -332,6 +332,12 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getEvents: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/events`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
     getSuppliedProducts: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/products`, {
         headers: authHeaders(),
