@@ -3,7 +3,7 @@ import '../styles/reader-animations.css';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
-import { Story, Person, LayoutVariant } from '../types';
+import { Story, LayoutVariant } from '../types';
 import { Icons } from './Icons';
 import { SinglePageRenderer, PageData, videoPlayerRegistry } from './SinglePageRenderer';
 import { useImagePreloader } from '../context/ImagePreloaderContext';
@@ -12,10 +12,8 @@ interface ReaderProps {
   story: Story;
   onBack: () => void;
   onNavigate: (story: Story) => void;
-  onPersonClick: (person: Person) => void;
   isSaved?: boolean;
   onToggleSave?: () => void;
-  onShare?: (story: Story) => void;
   enableKeyboard?: boolean;
   watchedStories?: Record<string, boolean>;
   recommendations?: Story[];
@@ -67,25 +65,6 @@ const useWindowWidth = () => {
   return width;
 };
 
-// Helper: Determine page category for entrance animation
-const getPageEnterClass = (variant: LayoutVariant): string => {
-  const v = variant as string;
-  if (v.startsWith('CHAPTER_')) return 'reader-enter-wipe';
-  if (v.startsWith('IMG_') || v === 'COVER_MAIN' || v === 'COVER_MINIMAL' || v === 'COVER_SPLIT') return 'reader-enter-reveal';
-  if (v.startsWith('TEXT_DOUBLE') || v.startsWith('TEXT_TRIPLE') || v === 'TEXT_BLOCKQUOTE_CENTER') return 'reader-enter-scale';
-  if (v.startsWith('TEXT_SIDEBAR') || v.startsWith('TEXT_OVERLAPPING') || v === 'MAGAZINE_INTERVIEW_Q_A') return 'reader-enter-slide';
-  return 'reader-enter-text';
-};
-
-// Helper: Determine data-page-type from variant
-const getPageType = (variant: LayoutVariant): string => {
-  const v = variant as string;
-  if (v.startsWith('CHAPTER_')) return 'chapter';
-  if (v.startsWith('IMG_')) return 'image';
-  if (v.startsWith('TEXT_DOUBLE') || v.startsWith('TEXT_TRIPLE') || v === 'TEXT_BLOCKQUOTE_CENTER') return 'spacious';
-  if (v.startsWith('TEXT_SIDEBAR') || v.startsWith('TEXT_OVERLAPPING') || v === 'MAGAZINE_INTERVIEW_Q_A') return 'mixed';
-  return 'text';
-};
 
 // Shake detector hook
 const useShakeDetector = (onShake: () => void) => {
@@ -130,7 +109,7 @@ const useShakeDetector = (onShake: () => void) => {
 // - Math.min() ensures the limiting dimension controls scale (preserves 4:5 ratio)
 // - transformOrigin: 'center center' keeps it centered
 //
-const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scaleOverride?: number; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, scaleOverride, pageWeight }) => {
+const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, pageWeight }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -166,15 +145,13 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scal
     };
   }, []);
 
-  const effectiveScale = scaleOverride !== undefined ? scale * scaleOverride : scale;
-
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden bg-transparent">
       <div
         style={{
           width: BASE_WIDTH,
           height: BASE_HEIGHT,
-          transform: `scale(${effectiveScale})`,
+          transform: `scale(${scale})`,
           transformOrigin: 'center center',
           boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(0,0,0,0.1)',
           contain: 'layout style paint',
@@ -215,7 +192,7 @@ const ReaderProgressBar: React.FC<{ currentPage: number; totalPages: number }> =
   );
 };
 
-export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onShare, isSaved, onToggleSave, enableKeyboard = true, watchedStories, recommendations = [], customZIndex }) => {
+export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSaved, onToggleSave, enableKeyboard = true, watchedStories, recommendations = [], customZIndex }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showNav, setShowNav] = useState(false);
   const [showChapterDrawer, setShowChapterDrawer] = useState(false);
@@ -464,20 +441,52 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     if (currentPageIndex > 0) setCurrentPageIndex(currentPageIndex - 1);
   }, [currentPageIndex]);
 
-  // --- TAP ZONE HANDLER ---
-  const handlePageTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? 0 : (e as React.MouseEvent).clientX;
-    const relativeX = (clientX - rect.left) / rect.width;
+  // --- SWIPE HANDLER ---
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
 
-    if (relativeX < 0.3) {
-      prev();
-    } else if (relativeX > 0.7) {
-      next();
-    } else {
-      setShowControls(s => !s);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+    setSwipeOffset(0);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const dx = e.touches[0].clientX - touchStartRef.current.x;
+    const dy = e.touches[0].clientY - touchStartRef.current.y;
+    // Only track horizontal swipes
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Resist at edges
+      const atStart = currentPageIndex === 0 && dx > 0;
+      const atEnd = currentPageIndex >= pages.length - 1 && dx < 0;
+      const resistance = (atStart || atEnd) ? 0.2 : 1;
+      setSwipeOffset(dx * resistance);
     }
-  }, [prev, next]);
+  }, [currentPageIndex, pages.length]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStartRef.current) return;
+    const threshold = 50;
+    const velocity = Math.abs(swipeOffset) / (Date.now() - touchStartRef.current.time) * 1000;
+
+    if (swipeOffset < -threshold || (swipeOffset < -20 && velocity > 300)) {
+      next();
+    } else if (swipeOffset > threshold || (swipeOffset > 20 && velocity > 300)) {
+      prev();
+    }
+    setSwipeOffset(0);
+    touchStartRef.current = null;
+  }, [swipeOffset, next, prev]);
+
+  // Single tap for controls (detect tap vs swipe)
+  const handlePageClick = useCallback((e: React.MouseEvent) => {
+    // Only toggle controls on click (not after swipe)
+    setShowControls(s => !s);
+  }, []);
 
   // --- SHARE HANDLER ---
   const handleShare = useCallback(async () => {
@@ -607,7 +616,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
 
     return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <span className="text-xs font-mono text-tea-text-sec/50 tabular-nums w-4 text-right">{currentPageIndex + 1}</span>
+        <span className="text-xs font-mono text-tea-text-sec/80 tabular-nums w-4 text-right">{currentPageIndex + 1}</span>
         <div
           ref={scrubberRef}
           onClick={handleClick}
@@ -643,7 +652,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             </div>
           </div>
         </div>
-        <span className="num text-[11px] text-tea-text-sec/50 w-4">{pages.length}</span>
+        <span className="num text-[11px] text-tea-text-sec/80 w-4">{pages.length}</span>
       </div>
     );
   };
@@ -799,7 +808,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
           className="absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-tea-elevated/90 backdrop-blur-sm rounded-full px-5 py-3 shadow-lg"
-          style={{ bottom: '80px' }}
+          style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 48px)' }}
         >
           <button
             onClick={handleShare}
@@ -839,7 +848,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       }}
     >
       {/* Background Texture */}
-      <div className="absolute inset-0 opacity-50 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }} />
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }} />
 
       {/* Reading Progress Bar */}
       <ReaderProgressBar currentPage={currentPageIndex} totalPages={pages.length} />
@@ -857,36 +866,26 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       {isDesktop && <KeyboardHintsOverlay />}
 
       {/* --- TOP BAR --- */}
-      <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-white/70 pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
+      <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-tea-text/70 pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] hover:text-white pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
+          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
         >
           <Icons.Close className="w-5 h-5" />
           <span className="hidden md:inline">Close</span>
         </button>
 
         <div className="flex items-center gap-4 pointer-events-auto">
-          {/* Chapter drawer button */}
-          {chapters.length > 0 && (
-            <button
-              onClick={() => setShowChapterDrawer(s => !s)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-              aria-label="Chapters"
-            >
-              <Icons.List className="w-5 h-5" />
-            </button>
-          )}
           {/* Nav overlay (recommendations) */}
           <button
             onClick={() => setShowNav(true)}
-            className="p-3 hover:text-white transition-colors rounded-full"
+            className="p-3 hover:text-tea-text transition-colors rounded-full"
           >
             <Icons.List className="w-5 h-5" />
           </button>
           <button
             onClick={onToggleSave}
-            className={`p-3 hover:text-white transition-colors rounded-full ${isSaved ? 'text-tea-gold' : ''}`}
+            className={`p-3 hover:text-tea-text transition-colors rounded-full ${isSaved ? 'text-tea-gold' : ''}`}
           >
             <Icons.Leaf filled={isSaved} className="w-5 h-5" />
           </button>
@@ -913,10 +912,13 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
 
           {/* Page container */}
           <div className="relative flex-1 lg:flex-none h-full lg:h-auto" style={{ maxHeight: isDesktop ? 'calc(100vh - 160px)' : undefined, aspectRatio: isDesktop ? '4/5' : undefined }}>
-            {/* Tap zones overlay */}
+            {/* Swipe zone overlay */}
             <div
               className="absolute inset-0 z-40 cursor-pointer"
-              onClick={handlePageTap}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={handlePageClick}
             />
 
             {/* Controls overlay (center-tap) */}
@@ -926,10 +928,13 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentPageIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, scale: 1, x: swipeOffset }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                transition={swipeOffset !== 0
+                  ? { duration: 0, x: { duration: 0 } }
+                  : { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
+                }
                 className="w-full h-full"
               >
                 {pages[currentPageIndex] && (
@@ -946,14 +951,6 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
               </motion.div>
             </AnimatePresence>
 
-            {/* Mobile share button — bottom-left of page area */}
-            <button
-              onClick={handleShare}
-              className="lg:hidden absolute bottom-4 left-4 z-50 p-2 rounded-full"
-              aria-label="Share"
-            >
-              <Icons.ExternalLink className="w-[14px] h-[14px] text-tea-text-dim" />
-            </button>
           </div>
 
           {/* Gallery margins — right (desktop only) */}

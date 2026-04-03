@@ -40,7 +40,7 @@ interface SinglePageRendererProps {
 // TYPOGRAPHY SYSTEM
 // Canvas: 800×1000 (4:5 ratio, ~47% scale on 375px phones)
 // Three voices: Cormorant Garamond (display), Lora (body), Plus Jakarta Sans (captions/UI)
-// Scale ratio ≈ 1:2:4 — body 21px, headline 40px, display 84px
+// Scale ratio ≈ 1:2:4 — body 25px (~12px on mobile), headline 40px, display 84px
 // ────────────────────────────────────────────────────────────
 const TYPE = {
   displayFont: '"Cormorant Garamond", "Georgia", serif',
@@ -53,16 +53,16 @@ const TYPE = {
   headline: 'text-[40px] font-display leading-[1.15] font-normal',
   subtitle: 'text-[30px] font-display leading-[1.25] font-light italic',
   headlineSm: 'text-[28px] font-display leading-[1.3] font-normal',
-  // Body — Lora, optimized for reading
-  subhead: 'text-[22px] font-body leading-[1.4]',
-  bodyLarge: 'text-[23px] font-body leading-[1.6]',
-  body: 'text-[21px] font-body leading-[1.6]',
-  bodySm: 'text-[19px] font-body leading-[1.55]',
-  bodyDense: 'text-[20px] font-body leading-[32px]',  // Multi-column, locked leading
-  // Captions — Plus Jakarta Sans, small-caps, letterspaced
-  caption: 'text-[13px] font-caption leading-[1.4] tracking-[0.14em]',
-  folio: 'text-[11px] font-caption leading-[1.3] tracking-[0.2em]',
-  micro: 'text-[10px] font-caption leading-[1.2]',
+  // Body — Lora, optimized for reading (sizes increased for ~47% mobile scale)
+  subhead: 'text-[26px] font-body leading-[1.4]',
+  bodyLarge: 'text-[27px] font-body leading-[1.6]',
+  body: 'text-[25px] font-body leading-[1.65]',         // was 21px → renders ~12px on mobile
+  bodySm: 'text-[23px] font-body leading-[1.55]',
+  bodyDense: 'text-[24px] font-body leading-[36px]',    // Multi-column, locked leading
+  // Captions — Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
+  caption: 'text-[15px] font-caption leading-[1.4] tracking-[0.12em]',
+  folio: 'text-[13px] font-caption leading-[1.3] tracking-[0.18em]',
+  micro: 'text-[12px] font-caption leading-[1.2]',
 } as const;
 
 // --- Line Height Semantic Constants ---
@@ -75,17 +75,17 @@ const LH = {
 
 // --- Padding Variants (8px grid) ---
 const PAD = {
-  text: 'px-[56px] py-[48px]',          // Text pages — wide margins, narrow measure
-  textWide: 'px-[80px] py-[48px]',      // Centered narrow-measure text
+  text: 'px-[64px] py-[52px]',          // Text pages — wide margins, narrow measure
+  textWide: 'px-[88px] py-[52px]',      // Centered narrow-measure text
   image: 'p-0',                          // Full-bleed images
-  spacious: 'px-[64px] py-[48px]',      // Covers, quotes, chapters
-  card: 'px-[48px] py-[40px]',          // Card-style pages
-  tight: 'px-[32px] py-[24px]',         // Dense/compact pages
-  gutter: 'px-[40px]',                  // Minimal horizontal padding
+  spacious: 'px-[72px] py-[52px]',      // Covers, quotes, chapters
+  card: 'px-[56px] py-[44px]',          // Card-style pages
+  tight: 'px-[40px] py-[28px]',         // Dense/compact pages
+  gutter: 'px-[48px]',                  // Minimal horizontal padding
 } as const;
 
 // --- Shared Typography Classes ---
-const BODY_CLASS = `${TYPE.body} ${LH.relaxed} text-left font-body [font-optical-sizing:auto] [hanging-punctuation:first_last]`;
+const BODY_CLASS = `${TYPE.body} text-left font-body [font-optical-sizing:auto] [hanging-punctuation:first_last]`;
 const BODY_DENSE_CLASS = `${TYPE.bodyDense} text-justify font-body [font-optical-sizing:auto] [hyphens:auto] [hyphenate-limit-chars:6_3_2] [word-spacing:-0.01em]`;
 const CAPTION_CLASS = `${TYPE.caption} ${LH.tight} uppercase font-caption small-caps`;
 const FOLIO_CLASS = `${TYPE.folio} uppercase font-caption tracking-[0.2em]`;
@@ -611,8 +611,8 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
       bg: isDarkText ? 'bg-tea-surface' : 'bg-tea-bg',
       fadeBg: isDarkText ? 'from-tea-surface' : 'from-tea-bg',
       text: isDarkText ? 'text-tea-bg' : 'text-tea-text',
-      subtext: isDarkText ? 'text-tea-bg/60' : 'text-tea-text/60',
-      border: isDarkText ? 'border-tea-bg/10' : 'border-tea-border',
+      subtext: isDarkText ? 'text-tea-bg/75' : 'text-tea-text/75',
+      border: isDarkText ? 'border-tea-bg/10' : 'border-tea-gold/10',
       softBg: isDarkText ? 'bg-tea-bg/5' : 'bg-tea-gold/5',
       seal: 'text-tea-gold',
     };
@@ -654,9 +654,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`${TYPE.folio} uppercase tracking-[0.3em] text-tea-text/70`}>Teajia</span>
                         </div>
                         {/* Title block — lower third */}
-                        <div className="relative z-20 mt-auto pb-8">
+                        <div className="relative z-20 mt-auto pb-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}>
                             <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.display} font-display font-light tracking-[-0.02em] leading-[0.88] mb-5 text-tea-text`} placeholder="Title" tag="h1" readOnly={readOnly} />
-                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} font-caption tracking-[0.12em] text-tea-text/60`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} font-caption tracking-[0.12em] text-tea-text/75`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -1638,9 +1638,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black relative`}>
                         <div className="absolute inset-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%)' }}></div>
-                        <div className="absolute bottom-12 left-0 right-0 text-center z-20 pointer-events-none">
+                        <div className="absolute bottom-12 left-0 right-0 text-center z-20 pointer-events-none" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}>
                             <div className={readOnly ? '' : 'pointer-events-auto inline-block'}>
-                                <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/70`} placeholder="Caption..." tag="p" readOnly={readOnly} />
+                                <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/80`} placeholder="Caption..." tag="p" readOnly={readOnly} />
                             </div>
                         </div>
                     </div>
