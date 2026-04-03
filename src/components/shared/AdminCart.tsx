@@ -91,8 +91,18 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
 
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [sourceEventId, setSourceEventId] = useState<string | null>(null);
+  const storeSourceEventId = useAppStore((s) => s.cartSourceEventId);
+  const setStoreSourceEventId = useAppStore((s) => s.setCartSourceEventId);
+  const [sourceEventId, setSourceEventId] = useState<string | null>(storeSourceEventId);
   const { data: allEvents = [] } = useEvents();
+
+  // Clear store event context once consumed
+  useEffect(() => {
+    if (storeSourceEventId) {
+      setSourceEventId(storeSourceEventId);
+      setStoreSourceEventId(null);
+    }
+  }, [storeSourceEventId, setStoreSourceEventId]);
 
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -312,6 +322,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       showToast('Order submitted successfully', 'success');
       setLastInvoice({ ...invoiceData, items: cart });
       setTransactionComplete(true);
+      setSourceEventId(null);
     } catch (err: any) {
       showToast('Transaction failed: ' + (err.message || 'Unknown error'), 'error');
     }
@@ -792,7 +803,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               >
                 <option value="">None</option>
                 {allEvents
-                  .filter(ev => ev.status === 'active' || ev.status === 'draft')
+                  .filter(ev => ev.status === 'active' || ev.status === 'draft' || ev.status === 'completed')
                   .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
                   .slice(0, 20)
                   .map(ev => (

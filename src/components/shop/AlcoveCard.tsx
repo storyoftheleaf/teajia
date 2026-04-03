@@ -694,6 +694,46 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         )}
 
         {/* === FEATURED IN EVENTS === */}
+        {eventsLoading && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <div style={{
+              width: "120px", height: "10px",
+              background: "var(--tea-accent-sub)",
+              borderRadius: "3px",
+              marginBottom: "10px",
+            }} />
+            {[0, 1].map(i => (
+              <div key={i} style={{
+                height: "40px",
+                background: "var(--tea-accent-sub)",
+                borderRadius: "6px",
+                marginBottom: "8px",
+                animation: "pulse 1.8s ease-in-out infinite",
+                opacity: i === 1 ? 0.6 : 0.8,
+              }} />
+            ))}
+          </div>
+        )}
+        {!eventsLoading && productEvents && productEvents.length === 0 && isAdmin && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "11px", fontWeight: 400,
+              color: "var(--tea-text-dim)",
+              letterSpacing: "0.05em",
+              fontStyle: "italic",
+              margin: 0,
+            }}>
+              Not yet featured in any events
+            </p>
+          </div>
+        )}
         {productEvents && productEvents.length > 0 && (
           <div style={{
             marginTop: "28px",
