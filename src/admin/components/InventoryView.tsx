@@ -693,6 +693,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const panelParam = searchParams.get('panel') || '';
   const navigate = useNavigate();
   const compassEntries = useTeaCompassStore((s) => s.entries);
+  const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
 
   // Use external category/search from parent top bar
   const inventoryCategory: InventoryCategory = externalCategory;
@@ -779,9 +781,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
+  const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
   const [panelHistoryOpen, setPanelHistoryOpen] = useState(false);
   useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
+
+  // Close row dropdown on outside click
+  useEffect(() => {
+    if (!rowDropdownId) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-row-dropdown]')) setRowDropdownId(null);
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [rowDropdownId]);
 
   // Auto-open panel from URL param (e.g. from Sources view)
   useEffect(() => {
@@ -1012,6 +1026,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // GENERIC UPDATE HANDLER (Optimistic + DB)
+  // Restock: create a pre-filled Tea Compass entry from a product and navigate
+  const handleRestock = useCallback((product: Product) => {
+    const category = product.type === 'Teaware' ? 'teaware' : 'tea';
+    const newId = startNewCapture(category);
+    const updates: Record<string, any> = {
+      name: product.givenName || product.productName,
+      chineseName: product.chineseName || undefined,
+      type: product.type,
+      status: 'buying',
+      notes: `Restock from inventory — ${product.productName}`,
+    };
+    if (product.vendor) updates.vendorName = product.vendor;
+    if (product.costCurrency) updates.priceCurrency = product.costCurrency;
+    if (product.costPerGramUSD) updates.pricePerUnitGrams = product.costPerGramUSD;
+    if (product.originRegion) updates.originRegion = product.originRegion;
+    if (product.form) updates.form = product.form;
+    if (product.year) updates.year = product.year;
+    updateCompassEntry(newId, updates);
+    setRowDropdownId(null);
+    navigate(`/admin/compass?tab=capture`);
+  }, [startNewCapture, updateCompassEntry, navigate]);
+
   const handleProductUpdate = async (id: string, field: keyof Product, value: any) => {
     // 1. Optimistic Update
     setLocalProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -2789,6 +2825,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     >
                                         <Archive size={16} />
                                     </button>
+                                    <button
+                                        onClick={() => handleRestock(product)}
+                                        className="w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-tea-text-dim hover:text-tea-accent hover:bg-tea-accent/10"
+                                        aria-label="Restock via Compass"
+                                    >
+                                        <Globe size={16} />
+                                    </button>
                                 </div>
                               </div>
                             </motion.div>
@@ -2890,6 +2933,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                         <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
                                         <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
                                         <button onClick={() => setPanelProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"><Pencil size={13}/></button>
+                                        <div className="relative" data-row-dropdown>
+                                          <button onClick={() => setRowDropdownId(rowDropdownId === product.id ? null : product.id)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="More actions"><MoreHorizontal size={13}/></button>
+                                          {rowDropdownId === product.id && (
+                                            <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-lg shadow-lg py-1 min-w-[140px]" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+                                              <button
+                                                onClick={() => handleRestock(product)}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"
+                                              >
+                                                <Globe size={12} /> Restock via Compass
+                                              </button>
+                                              <button
+                                                onClick={() => { handleProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); setRowDropdownId(null); }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"
+                                              >
+                                                <Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
                                       </>
                                     )}
                                   </div>
@@ -2959,6 +3021,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                                 <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove star" : "Star this tea"}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
                                                 <button onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} title={product.isPublic ? "Remove from shop" : "Add to shop"}>{product.isPublic ? <Eye size={13}/> : <EyeOff size={13}/>}</button>
                                                 <button onClick={() => setPanelProduct(product)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="Edit"><Pencil size={13}/></button>
+                                                <div className="relative" data-row-dropdown>
+                                                  <button onClick={() => setRowDropdownId(rowDropdownId === product.id ? null : product.id)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" title="More actions"><MoreHorizontal size={13}/></button>
+                                                  {rowDropdownId === product.id && (
+                                                    <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-lg shadow-lg py-1 min-w-[140px]" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+                                                      <button
+                                                        onClick={() => handleRestock(product)}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"
+                                                      >
+                                                        <Globe size={12} /> Restock via Compass
+                                                      </button>
+                                                      <button
+                                                        onClick={() => { handleProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); setRowDropdownId(null); }}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"
+                                                      >
+                                                        <Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}
+                                                      </button>
+                                                    </div>
+                                                  )}
+                                                </div>
                                             </>
                                         )}
                                     </div>
