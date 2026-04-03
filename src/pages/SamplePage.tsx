@@ -196,7 +196,7 @@ const SamplePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-tea-bg text-tea-text pb-[60px]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border/30">
+      <div className="sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
         <div className="flex items-center px-4 py-3 max-w-2xl mx-auto">
           <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Go back">
             <ChevronLeft size={24} />
@@ -227,7 +227,7 @@ const SamplePage: React.FC = () => {
             <input
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="text-2xl font-serif font-bold bg-transparent border-b border-tea-gold/50 w-full outline-none text-tea-text pb-1"
+              className="text-2xl font-serif font-bold bg-transparent border-b border-tea-border w-full outline-none text-tea-text pb-1"
               autoFocus
             />
           ) : (
@@ -380,7 +380,7 @@ const SamplePage: React.FC = () => {
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
                 rows={3}
-                className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border/30 focus:border-tea-gold/50 transition-colors"
+                className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold/50 transition-colors"
                 placeholder="Private notes about this sample..."
               />
             ) : (
@@ -469,7 +469,7 @@ const SamplePage: React.FC = () => {
                       <input
                         value={tasterName}
                         onChange={(e) => setTasterName(e.target.value)}
-                        className="w-full bg-tea-surface rounded-lg px-3 py-2 text-sm text-tea-text outline-none border border-tea-border/30 focus:border-tea-gold/50 transition-colors"
+                        className="w-full bg-tea-surface rounded-lg px-3 py-2 text-sm text-tea-text outline-none border border-tea-border focus:border-tea-gold/50 transition-colors"
                         placeholder="Optional"
                       />
                     </div>
@@ -549,7 +549,7 @@ const SamplePage: React.FC = () => {
                     value={personalNote}
                     onChange={(e) => setPersonalNote(e.target.value)}
                     rows={2}
-                    className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border/30 focus:border-tea-gold/50 transition-colors"
+                    className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold/50 transition-colors"
                     placeholder="Any personal notes..."
                   />
 

@@ -34,7 +34,7 @@ const ItemCard: React.FC<{
   return (
     <div
       onClick={() => onView(item)}
-      className="group cursor-pointer bg-tea-bg/90 backdrop-blur-md border border-tea-gold/10 rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
+      className="group cursor-pointer bg-tea-bg/90 backdrop-blur-md border border-tea-border rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
     >
       <div className="flex flex-col md:flex-row">
         {/* Image */}

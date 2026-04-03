@@ -64,7 +64,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
                   </div>
                 </div>
                 {item.customDescription && (
-                  <p className="text-sm text-tea-text-sec leading-relaxed mt-3 pt-3 border-t border-tea-border/50">
+                  <p className="text-sm text-tea-text-sec leading-relaxed mt-3 pt-3 border-t border-tea-border">
                     {item.customDescription}
                   </p>
                 )}

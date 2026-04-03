@@ -68,7 +68,7 @@ export const TeajiaTeamPage: React.FC<TeajiaTeamPageProps> = ({ teamMembers = []
 
       {/* Mission Statement */}
       <div className="max-w-5xl mx-auto px-4 mb-16">
-        <div className="bg-tea-bg rounded-lg p-8 md:p-12 border border-tea-gold/20">
+        <div className="bg-tea-bg rounded-lg p-8 md:p-12 border border-tea-border">
           <h2 className="font-serif text-2xl text-tea-text mb-4">Our Mission</h2>
           <p className="text-tea-text/80 text-lg leading-relaxed">
             Teajia exists to elevate tea from a beverage to a practice of mindfulness and connection. We believe in the transformative power of tea ceremonies, the stories behind every leaf, and the communities that cultivate and celebrate this ancient tradition. Through our platform, we honor tea heritage while building contemporary spaces for learning, discovery, and belonging.

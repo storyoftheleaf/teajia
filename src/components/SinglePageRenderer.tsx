@@ -272,7 +272,7 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
 
   return createPortal(
     <div 
-      className="fixed z-sticky flex items-center bg-tea-bg border border-tea-gold/15 rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
+      className="fixed z-sticky flex items-center bg-tea-bg border border-tea-border rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
       style={{ top: safeTop, left: safeLeft }}
       onMouseDown={(e) => e.preventDefault()}
     >
@@ -529,7 +529,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
             onClick={handlePlay}
             className="absolute inset-0 flex items-center justify-center group cursor-pointer"
           >
-            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-gold/30 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
+            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-border shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
               <Icons.Play className="w-8 h-8 text-tea-text ml-1" />
             </div>
           </button>
@@ -548,7 +548,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
       fadeBg: isDarkText ? 'from-tea-surface' : 'from-tea-bg',
       text: isDarkText ? 'text-tea-bg' : 'text-tea-text',
       subtext: isDarkText ? 'text-tea-bg/60' : 'text-tea-text/60',
-      border: isDarkText ? 'border-tea-bg/10' : 'border-tea-gold/10',
+      border: isDarkText ? 'border-tea-bg/10' : 'border-tea-border',
       softBg: isDarkText ? 'bg-tea-bg/5' : 'bg-tea-gold/5',
       seal: 'text-tea-gold',
     };
@@ -571,7 +571,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     return (
       <div key={page.index} className="w-full h-full relative group/page overflow-hidden">
         <style>{ANIMATION_STYLES}</style>
-        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-gold/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
+        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-border opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
         {/* Paper texture — hidden on full-bleed image pages */}
         {![LayoutVariant.IMG_FULL_BLEED, LayoutVariant.IMG_FULL_BLEED_TITLE, LayoutVariant.IMG_OVERLAY_TEXT, LayoutVariant.QUOTE_IMAGE_BG, LayoutVariant.IMG_VIGNETTE_SOFT, LayoutVariant.CHAPTER_IMAGE_BG].includes(variant) && (
           <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.06] mix-blend-overlay"><div className="w-full h-full" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div></div>
@@ -658,7 +658,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 <span className={`${TYPE.display} font-display font-light tracking-[0.15em] leading-none`}>Teajia</span>
                             </div>
                         </div>
-                        <div className="border-b border-tea-text/30 pb-2 mb-4 flex justify-between">
+                        <div className="border-b border-tea-border pb-2 mb-4 flex justify-between">
                             <span className={`${FOLIO_CLASS}`}>Est. 2024</span>
                             <span className={`${FOLIO_CLASS}`}>Issue No. 03</span>
                             <span className={`${FOLIO_CLASS}`}>Spring Edition</span>
@@ -670,7 +670,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {/* Headline */}
                         <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.headline} font-display leading-tight mb-2`} placeholder="Headline" tag="h1" readOnly={readOnly} />
                         <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.bodySm} font-body opacity-55 leading-snug`} placeholder="Deck text..." tag="p" readOnly={readOnly} />
-                        <div className="mt-auto pt-4 border-t border-tea-text/15 flex justify-between">
+                        <div className="mt-auto pt-4 border-t border-tea-border flex justify-between">
                             <span className={`${CAPTION_CLASS}`}>Staff</span>
                             <span className={`${CAPTION_CLASS}`}>Teajia Journal</span>
                         </div>
@@ -748,7 +748,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.TEXT_SIDEBAR_RIGHT:
                 return (
                     <div className={`${paperBase} flex h-full relative overflow-hidden`} style={OPENTYPE}>
-                        <div className={`w-2/3 ${PAD.text} pt-20 border-r border-tea-gold/10`}>
+                        <div className={`w-2/3 ${PAD.text} pt-20 border-r border-tea-border`}>
                              <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={`w-1/3 p-8 ${theme.softBg} flex flex-col justify-center text-center`}>
@@ -990,7 +990,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.QUOTE_MINIMAL:
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`} data-page-type="text">
-                        <div className="max-w-[80%] pl-8 border-l-2 border-tea-gold/20">
+                        <div className="max-w-[80%] pl-8 border-l-2 border-tea-border">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-display tracking-wide font-light italic ${LH.normal} opacity-80 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
@@ -1265,7 +1265,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              <div className="w-10 h-[0.5px] bg-current mx-auto mb-6 opacity-20"></div>
                              <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${TYPE.bodySm} opacity-70 leading-[1.5] font-caption`} placeholder="Sidebar note..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-gold/10`}>
+                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-border`}>
                              <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`} />
@@ -1313,7 +1313,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className={`w-1/3 ${PAD.spacious} flex items-center`}>
                             <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${TYPE.headlineSm} font-display italic leading-[1.5] opacity-70`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-gold/10`}>
+                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-border`}>
                             <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Body text..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
@@ -1876,7 +1876,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.POSTCARD_STYLE:
                 return (
-                    <div className={`${paperBase} flex border border-tea-border/40`}>
+                    <div className={`${paperBase} flex border border-tea-border`}>
                         <div className="w-1/2 relative"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="w-1/2 p-8 flex flex-col relative bg-tea-surface/30">
                             {/* Stamp area */}
@@ -2142,7 +2142,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 return (
                                     <div
                                         key={i}
-                                        className="absolute inset-x-0 bg-tea-surface border border-tea-border/20 shadow-lg p-8"
+                                        className="absolute inset-x-0 bg-tea-surface border border-tea-border shadow-lg p-8"
                                         style={{ top: offset, zIndex, transform: `rotate(${(i - Math.floor(cardItems.length / 2)) * 1.5}deg)` }}
                                     >
                                         <h3 className={`${TYPE.headline} font-display leading-none mb-2 opacity-90`}>{cardTitle}</h3>

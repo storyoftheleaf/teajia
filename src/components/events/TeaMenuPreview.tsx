@@ -64,7 +64,7 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
                     </span>
                   </div>
                   {item.customDescription && (
-                    <p className="text-sm text-tea-text-sec leading-relaxed mt-3 border-t border-tea-border/50 pt-3">
+                    <p className="text-sm text-tea-text-sec leading-relaxed mt-3 border-t border-tea-border pt-3">
                       {item.customDescription}
                     </p>
                   )}

@@ -294,7 +294,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         </div>
 
         {/* #20 Pricing callout — warm panel style */}
-        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-gold/30">
+        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-border">
           <p className="text-sm text-tea-text-sec">
             Projects range from <span className="text-tea-gold font-mono num">$5,000</span> to <span className="text-tea-gold font-mono num">$100,000+</span>.
           </p>
@@ -520,7 +520,7 @@ export const EventsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           Retreats, dinners, brand activations, celebrations. Fully curated from start to finish.
         </p>
 
-        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-gold/30">
+        <div className="bg-tea-accent-sub/40 rounded-md px-5 py-4 border-l-2 border-tea-border">
           <p className="text-sm text-tea-gold/80">From <span className="font-mono num">$500</span> for a half-day.</p>
           <p className="text-xs text-tea-text-dim mt-1.5">
             Full-day and multi-day experiences quoted based on scope.

@@ -61,7 +61,7 @@ const SealGrid: React.FC<{ seals: JourneySeal[]; onSealClick: (seal: JourneySeal
           className="flex flex-col items-center gap-1.5 group"
           aria-label={`${seal.title}, ${formatSealDate(seal.date)}`}
         >
-          <div className="w-14 h-14 rounded-full border border-tea-gold/40 bg-tea-surface flex items-center justify-center group-hover:border-tea-gold/70 transition-colors duration-300 overflow-hidden">
+          <div className="w-14 h-14 rounded-full border border-tea-border bg-tea-surface flex items-center justify-center group-hover:border-tea-gold/70 transition-colors duration-300 overflow-hidden">
             {seal.flyerUrl ? (
               <img
                 src={seal.flyerUrl}
@@ -89,7 +89,7 @@ const SealGrid: React.FC<{ seals: JourneySeal[]; onSealClick: (seal: JourneySeal
           className="flex flex-col items-center gap-1.5"
           aria-hidden="true"
         >
-          <div className="w-14 h-14 rounded-full border border-tea-border/30 bg-tea-surface/40" />
+          <div className="w-14 h-14 rounded-full border border-tea-border bg-tea-surface/40" />
         </div>
       ))}
     </div>
@@ -174,7 +174,7 @@ const MilestoneMarks: React.FC<{ milestones: string[] }> = ({ milestones }) => {
             className="group flex flex-col items-center gap-1.5"
             title={meta?.hint}
           >
-            <div className="w-10 h-10 rounded-full border border-tea-gold/30 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full border border-tea-border flex items-center justify-center">
               <span className="font-serif text-lg text-tea-gold/70 group-hover:text-tea-gold transition-colors">
                 {mark}
               </span>
@@ -380,7 +380,7 @@ const JourneyPage: React.FC = () => {
                 <img
                   src={expandedSeal.flyerUrl}
                   alt=""
-                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border border-tea-gold/30"
+                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border border-tea-border"
                 />
               )}
               <p className="font-serif text-lg text-tea-text mb-1">{expandedSeal.title}</p>

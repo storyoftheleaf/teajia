@@ -197,7 +197,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                 return (
                   <tr
                     key={attendee.id}
-                    className={`border-b border-tea-border/50 hover:bg-tea-elevated/30 transition-colors ${rowClass}`}
+                    className={`border-b border-tea-border hover:bg-tea-elevated/30 transition-colors ${rowClass}`}
                   >
                     <td className="py-2.5 px-2 text-tea-text font-medium">
                       {attendee.fullName}

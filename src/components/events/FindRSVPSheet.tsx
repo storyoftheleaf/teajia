@@ -87,7 +87,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
           <h2 className="font-serif text-xl text-tea-text">Find My RSVP</h2>
           <button
             onClick={onClose}
@@ -133,7 +133,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               className="w-full py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
             >
               {findMutation.isPending ? (
-                <span className="inline-block w-4 h-4 border-2 border-tea-gold/30 border-t-tea-gold rounded-full animate-spin" />
+                <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
               ) : (
                 <>
                   <Search className="w-4 h-4" />

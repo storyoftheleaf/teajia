@@ -346,7 +346,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-1.5 shadow-lg border border-tea-border/30 min-w-[180px]"
+                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-1.5 shadow-lg border border-tea-border min-w-[180px]"
               >
                 {/* Hidden file inputs */}
                   <input ref={businessCardRef} type="file" accept="image/*" capture="environment" className="hidden"

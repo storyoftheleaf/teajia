@@ -303,7 +303,7 @@ const AdminContent = () => {
                  {/* Source/vendor suggestions dropdown */}
                  {showSourceSuggestions && matchingVendors.length > 0 && (
                    <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden z-priority">
-                     <div className="px-3 py-1.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border/50">
+                     <div className="px-3 py-1.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border">
                        Sources
                      </div>
                      {matchingVendors.map(v => (

@@ -144,7 +144,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
 
       {/* Row 3: Journey preview */}
       {isReturning && (
-        <div className="border-t border-tea-border/40 pt-2.5 text-[11px] text-tea-text-sec">
+        <div className="border-t border-tea-border pt-2.5 text-[11px] text-tea-text-sec">
           {attendee.sessionsAttended} session{attendee.sessionsAttended !== 1 ? 's' : ''} attended
           {attendee.favoriteTypes && attendee.favoriteTypes.length > 0 && (
             <span> · fav: {attendee.favoriteTypes.join(', ')}</span>

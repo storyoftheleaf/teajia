@@ -319,7 +319,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   {/* Caption with left accent */}
                   {group.items[0].image.caption && (
                     <div className="px-5 md:px-8 lg:px-12 mt-4 mb-2">
-                      <p className="border-l-2 border-tea-gold/30 pl-4 text-[13px] md:text-sm text-tea-text/50 italic leading-relaxed">
+                      <p className="border-l-2 border-tea-border pl-4 text-[13px] md:text-sm text-tea-text/50 italic leading-relaxed">
                         {group.items[0].image.caption}
                       </p>
                     </div>

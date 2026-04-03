@@ -277,7 +277,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         {/* Desktop prev/next arrows */}
         {hasNavigation && !isFirst && (
           <button
-            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all border border-tea-gold/30 bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"
+            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all border border-tea-border bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"
             style={{ zIndex: 10 }}
             onClick={(e) => { e.stopPropagation(); goPrev(); }}
             aria-label="Previous item"
@@ -287,7 +287,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
         )}
         {hasNavigation && !isLast && (
           <button
-            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all border border-tea-gold/30 bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"
+            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all border border-tea-border bg-tea-gold/10 hover:bg-tea-gold/25 text-tea-gold"
             style={{ zIndex: 10 }}
             onClick={(e) => { e.stopPropagation(); goNext(); }}
             aria-label="Next item"

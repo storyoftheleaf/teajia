@@ -99,7 +99,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               value={priceAmount ?? ''}
               onChange={handlePriceInput}
               style={noSpinnerStyle}
-              className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
+              className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
                          placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>
@@ -133,7 +133,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border/30"
+                      className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border"
                     >
                       <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '180px' }}>
                         {TEA_FORMS.map((f) => (
@@ -159,7 +159,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
               value={pricePerUnitGrams ?? ''}
               onChange={handleGramsInput}
               style={noSpinnerStyle}
-              className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-gold/10 focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums text-right
+              className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums text-right
                          placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
           </div>

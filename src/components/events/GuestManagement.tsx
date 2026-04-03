@@ -382,7 +382,7 @@ const GuestManagement: React.FC = () => {
               <h1 className="font-serif text-3xl text-tea-text mb-3">{event.title}</h1>
             </div>
 
-            <div className="p-6 bg-tea-surface border-2 border-tea-gold/40 rounded-md mb-8">
+            <div className="p-6 bg-tea-surface border-2 border-tea-border rounded-md mb-8">
               <div className="text-center">
                 <h2 className="font-serif text-xl text-tea-text mb-2">
                   A seat just became available!
@@ -406,7 +406,7 @@ const GuestManagement: React.FC = () => {
                   className="w-full py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
                 >
                   {claimSeat.isPending ? (
-                    <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
                   ) : (
                     'Claim My Seat'
                   )}
@@ -512,7 +512,7 @@ const GuestManagement: React.FC = () => {
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
       <div className="max-w-xl mx-auto px-6 py-10">
         {/* Ticket card */}
-        <div className="border-2 border-tea-gold/30 rounded-md overflow-hidden mb-8">
+        <div className="border-2 border-tea-border rounded-md overflow-hidden mb-8">
           {event.flyerImageUrl && (
             <img
               src={event.flyerImageUrl}
