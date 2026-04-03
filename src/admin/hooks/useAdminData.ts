@@ -124,6 +124,7 @@ export const useCustomers = () => {
         orderCount: Number(c.order_count) || 0,
         totalSpentUSD: Number(c.total_spent_usd) || 0,
         lastOrderDate: c.last_order_date || undefined,
+        eventCount: Number(c.event_count) || 0,
       })) as Customer[];
     }
   });

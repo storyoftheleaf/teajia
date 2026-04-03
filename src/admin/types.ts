@@ -93,4 +93,6 @@ export interface Customer {
   orderCount?: number;
   totalSpentUSD?: number;
   lastOrderDate?: string;
+  // Computed from event_attendees join
+  eventCount?: number;
 }

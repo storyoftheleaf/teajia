@@ -288,7 +288,7 @@ const CustomerDetail = ({
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className={`grid gap-4 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-2xl font-serif text-tea-accent">{customer.orderCount || 0}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
@@ -297,6 +297,12 @@ const CustomerDetail = ({
               <div className="text-2xl font-serif text-tea-accent">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
+            {(customer.eventCount || 0) > 0 && (
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
+                <div className="text-2xl font-serif text-tea-gold">{customer.eventCount}</div>
+                <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Events</div>
+              </div>
+            )}
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-sm font-serif text-tea-text">
                 {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '—'}
@@ -616,6 +622,7 @@ export const CustomersView = () => {
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterTag, setFilterTag] = useState<CustomerTag | ''>('');
+  const [filterAttendedEvents, setFilterAttendedEvents] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'spent' | 'orders'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -646,6 +653,9 @@ export const CustomersView = () => {
     if (filterTag) {
       list = list.filter(c => c.tags.includes(filterTag));
     }
+    if (filterAttendedEvents) {
+      list = list.filter(c => (c.eventCount || 0) > 0);
+    }
     // Sort
     list = [...list].sort((a, b) => {
       switch (sortBy) {
@@ -660,7 +670,7 @@ export const CustomersView = () => {
       }
     });
     return list;
-  }, [nonVendorCustomers, search, filterTag, sortBy]);
+  }, [nonVendorCustomers, search, filterTag, filterAttendedEvents, sortBy]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -755,6 +765,25 @@ export const CustomersView = () => {
                 </button>
               );
             })}
+
+            {/* Attended Events segment filter */}
+            {(() => {
+              const attendedCount = nonVendorCustomers.filter(c => (c.eventCount || 0) > 0).length;
+              if (attendedCount === 0) return null;
+              return (
+                <>
+                  <span className="w-px h-4 bg-tea-border flex-shrink-0" />
+                  <button
+                    onClick={() => setFilterAttendedEvents(!filterAttendedEvents)}
+                    className={filterAttendedEvents ? 'pill-active' : 'pill'}
+                  >
+                    <Calendar size={11} className="mr-0.5 -ml-0.5" />
+                    Events
+                    <span className="text-[9px] opacity-70 ml-0.5">{attendedCount}</span>
+                  </button>
+                </>
+              );
+            })()}
           </div>
 
           {/* Right controls */}
@@ -840,13 +869,13 @@ export const CustomersView = () => {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
             <Users size={32} strokeWidth={1} className="opacity-40" />
-            <span className="font-serif italic">{search || filterTag ? 'No matching customers' : 'No customers yet'}</span>
-            {(search || filterTag) && (
-              <button onClick={() => { setSearch(''); setFilterTag(''); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
+            <span className="font-serif italic">{search || filterTag || filterAttendedEvents ? 'No matching customers' : 'No customers yet'}</span>
+            {(search || filterTag || filterAttendedEvents) && (
+              <button onClick={() => { setSearch(''); setFilterTag(''); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                 Clear filters
               </button>
             )}
-            {search && !filterTag && (
+            {search && !filterTag && !filterAttendedEvents && (
               <button
                 onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors mt-1"
@@ -886,8 +915,14 @@ export const CustomersView = () => {
                   {/* Stats */}
                   <div className="flex-shrink-0 text-right">
                     <div className="text-xs text-tea-text tabular-nums">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
-                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
-                      {customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}
+                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums flex items-center justify-end gap-1.5">
+                      <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                      {(customer.eventCount || 0) > 0 && (
+                        <span className="flex items-center gap-0.5 text-tea-gold">
+                          <Calendar size={8} />
+                          {customer.eventCount}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -947,7 +982,15 @@ export const CustomersView = () => {
                     </div>
 
                     <div className="flex justify-between items-center text-xs text-tea-text-sec border-t border-tea-border pt-3 mt-auto">
-                      <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
+                        {(customer.eventCount || 0) > 0 && (
+                          <span className="flex items-center gap-0.5 text-tea-gold">
+                            <Calendar size={10} />
+                            {customer.eventCount} event{customer.eventCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                       <span className="font-medium text-tea-text">${(customer.totalSpentUSD || 0).toFixed(0)} spent</span>
                     </div>
                   </div>

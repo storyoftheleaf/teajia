@@ -1212,16 +1212,19 @@ const handleGetCustomers: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  // Join with invoices to get order stats (fallback if customer_id column missing)
+  // Join with invoices to get order stats + event attendance count
   let result;
   try {
     result = await env.DB.prepare(`
       SELECT c.*,
-        COUNT(i.id) as order_count,
+        COUNT(DISTINCT i.id) as order_count,
         COALESCE(SUM(
           (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
         ), 0) as total_spent_usd,
-        MAX(i.created_at) as last_order_date
+        MAX(i.created_at) as last_order_date,
+        (SELECT COUNT(*) FROM event_attendees ea
+         WHERE ea.customer_id = c.id AND ea.status = 'confirmed' AND ea.attended = 1
+        ) as event_count
       FROM customers c
       LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
       GROUP BY c.id
@@ -1230,7 +1233,7 @@ const handleGetCustomers: Handler = async (request, env) => {
   } catch {
     // Fallback: customer_id column may not exist yet
     result = await env.DB.prepare(`
-      SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date
+      SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
       ORDER BY c.created_at DESC
     `).all();
