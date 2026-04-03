@@ -331,7 +331,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {TEA_SPACES.map(space => (
-            <CardContainer key={space.id} variant="dark" className="hover:-translate-y-0.5 transition-all">
+            <CardContainer key={space.id} className="hover:-translate-y-0.5 transition-all">
               <div className="p-5">
                 <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">
                   {SPACE_TYPE_LABELS[space.spaceType]}

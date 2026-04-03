@@ -191,7 +191,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
               {(filteredCommunity as any).map((member: any) => (
                 <CardContainer
                   key={member.id}
-                  variant="dark"
                   className="flex flex-col h-full cursor-pointer hover:shadow-lg transition-all duration-300"
                 >
                   <div className="p-6 flex flex-col h-full">

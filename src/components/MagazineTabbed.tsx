@@ -130,41 +130,87 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     return story.content.join(' ').split(/\s+/).filter(Boolean).length;
   };
 
-  const renderArticleCards = (storiesList: Story[]) => (
-    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4 max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-3 md:px-0 stagger-grid">
-      {storiesList.map((story) => (
+  const renderArticleCards = (storiesList: Story[]) => {
+    const [hero, ...rest] = storiesList;
+    return (
+      <div className="max-w-[900px] mx-auto px-4 md:px-6">
+        {/* Hero card */}
+        {hero && (
           <ArticleCard
-            key={story.id}
-            title={story.title}
-            description={story.subtitle}
-            imageUrl={story.thumbnailUrl}
+            key={hero.id}
+            title={hero.title}
+            description={hero.subtitle}
+            imageUrl={hero.thumbnailUrl}
             aspectRatio="portrait"
-            onClick={() => onCardClick(story)}
-            contentType={story.type}
-            duration={story.durationOrTime}
-            wordCount={getWordCount(story)}
+            onClick={() => onCardClick(hero)}
+            isFeatured={true}
+            wordCount={getWordCount(hero)}
+            pageCount={hero.content?.length || 0}
           />
-      ))}
-    </div>
-  );
+        )}
 
-  const renderVisualCards = (storiesList: Story[]) => (
-    <div className="grid grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4 max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-3 md:px-0 stagger-grid">
-      {storiesList.map((story) => (
-        <ArticleCard
-          key={story.id}
-          title={story.title}
-          description={story.subtitle}
-          imageUrl={story.thumbnailUrl}
-          aspectRatio="square"
-          onClick={() => onCardClick(story)}
-          contentType={story.type}
-          duration={story.durationOrTime}
-          wordCount={getWordCount(story)}
-        />
-      ))}
-    </div>
-  );
+        {/* Grid */}
+        {rest.length > 0 && (
+          <div className="grid grid-cols-2 gap-5 md:gap-6 mt-8 stagger-grid">
+            {rest.map((story, index) => (
+              <ArticleCard
+                key={story.id}
+                title={story.title}
+                description={story.subtitle}
+                imageUrl={story.thumbnailUrl}
+                aspectRatio="portrait"
+                onClick={() => onCardClick(story)}
+                wordCount={getWordCount(story)}
+                pageCount={story.content?.length || 0}
+                cardIndex={index}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderVisualCards = (storiesList: Story[]) => {
+    const [hero, ...rest] = storiesList;
+    return (
+      <div className="max-w-[900px] mx-auto px-4 md:px-6">
+        {/* Hero card */}
+        {hero && (
+          <ArticleCard
+            key={hero.id}
+            title={hero.title}
+            description={hero.subtitle}
+            imageUrl={hero.thumbnailUrl}
+            aspectRatio="portrait"
+            onClick={() => onCardClick(hero)}
+            isFeatured={true}
+            wordCount={getWordCount(hero)}
+            pageCount={hero.content?.length || 0}
+          />
+        )}
+
+        {/* Grid */}
+        {rest.length > 0 && (
+          <div className="grid grid-cols-2 gap-5 md:gap-6 mt-8 stagger-grid">
+            {rest.map((story, index) => (
+              <ArticleCard
+                key={story.id}
+                title={story.title}
+                description={story.subtitle}
+                imageUrl={story.thumbnailUrl}
+                aspectRatio="portrait"
+                onClick={() => onCardClick(story)}
+                wordCount={getWordCount(story)}
+                pageCount={story.content?.length || 0}
+                cardIndex={index}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderContent = () => {
     if (activeTab === 'articles') {
@@ -173,10 +219,10 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           {renderArticleCards(displayedArticles)}
           {isLoading && (
             <div className="pt-6">
-              <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+              <div className="grid grid-cols-2 gap-5 md:gap-6 max-w-[900px] mx-auto px-4 md:px-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex flex-col gap-2 animate-pulse">
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-md aspect-[3/4] w-full">
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm aspect-[4/5] w-full">
                       <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
                     </div>
                     <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-4 w-4/5">
@@ -201,10 +247,10 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           {renderVisualCards(displayedPhotoEssays)}
           {isLoading && (
             <div className="pt-6">
-              <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6 max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
+              <div className="grid grid-cols-2 gap-5 md:gap-6 max-w-[900px] mx-auto px-4 md:px-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex flex-col gap-2 animate-pulse">
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-md aspect-square w-full">
+                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm aspect-[4/5] w-full">
                       <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
                     </div>
                     <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-4 w-4/5">
@@ -283,7 +329,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       </PageHeader>
 
       {/* Tab Content */}
-      <div className="mt-8">
+      <div className="mt-10 md:mt-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

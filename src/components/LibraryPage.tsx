@@ -186,7 +186,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                     onClick={() => navigateTo(card.id)}
                     className="text-left"
                   >
-                    <CardContainer variant="dark" className="hover:-translate-y-0.5 hover:shadow-lg transition-all h-full">
+                    <CardContainer className="hover:-translate-y-0.5 hover:shadow-lg transition-all h-full">
                       <div className="p-5 flex flex-col items-center text-center gap-3">
                         <div className={`w-12 h-12 rounded-lg ${card.accentBg} flex items-center justify-center`}>
                           <span className={card.accentText}>{card.icon}</span>

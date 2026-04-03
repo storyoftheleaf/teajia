@@ -27,7 +27,6 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
           {contributors.map((contributor) => (
             <CardContainer
               key={contributor.id}
-              variant="dark"
               className="cursor-pointer transition-all duration-300 hover:shadow-lg"
               onClick={() => onContributorClick(contributor)}
             >

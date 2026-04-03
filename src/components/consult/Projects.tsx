@@ -30,7 +30,7 @@ const ProjectCard: React.FC<{
     onClick={() => onSelect(project.id)}
     className={`text-left group w-full ${CTA_FOCUS}`}
   >
-    <CardContainer variant="dark" className="overflow-hidden mb-4 md:hover:-translate-y-1 transition-all duration-300">
+    <CardContainer className="overflow-hidden mb-4 md:hover:-translate-y-1 transition-all duration-300">
       <div className="w-full bg-tea-elevated/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
     </CardContainer>
     <h3 className="font-serif text-lg font-medium text-tea-text">
