@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Leaf } from 'lucide-react';
+import { Pencil, Leaf, ChevronRight } from 'lucide-react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { useTastingCount } from '../../hooks/useTastingCount';
@@ -92,7 +92,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [showFade, setShowFade] = useState(false);
 
   // Fetch events that featured this product
-  const { data: productEvents } = useProductEvents(item.id);
+  const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
 
   const sliderMin = 5;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -343,21 +343,34 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </p>
               </div>
 
-              {/* Tasting badge — shows if user has tasted this tea */}
+              {/* Tasting badge — clickable link to tasting journal */}
               {tastingCount > 0 && (
                 <div style={{
                   display: "flex", justifyContent: "center", alignItems: "center",
-                  gap: "5px", paddingTop: "8px",
+                  paddingTop: "8px",
                 }}>
-                  <Leaf size={13} style={{ color: '#5A6E5A' }} />
-                  <span style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "11px", fontWeight: 400,
-                    color: "var(--tea-text-sec)",
-                    letterSpacing: "0.05em",
-                  }}>
-                    Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
-                  </span>
+                  <button
+                    onClick={() => navigate('/account?tab=journal')}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "5px",
+                      background: "none", border: "none", cursor: "pointer",
+                      padding: "2px 6px", borderRadius: "4px",
+                      transition: "opacity 0.2s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                  >
+                    <Leaf size={13} style={{ color: '#5A6E5A' }} />
+                    <span style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "11px", fontWeight: 400,
+                      color: "var(--tea-text-sec)",
+                      letterSpacing: "0.05em",
+                    }}>
+                      Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
+                    </span>
+                    <ChevronRight size={11} style={{ color: "var(--tea-text-dim)", marginLeft: "1px" }} />
+                  </button>
                 </div>
               )}
 

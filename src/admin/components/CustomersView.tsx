@@ -186,13 +186,14 @@ const CustomerModal = ({
 
 // ── Customer Detail Panel ──
 const CustomerDetail = ({
-  customer, onClose, onEdit, onDelete, allProducts,
+  customer, onClose, onEdit, onDelete, allProducts, filterAttendedEvents,
 }: {
   customer: Customer;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   allProducts?: any[];
+  filterAttendedEvents?: boolean;
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -206,7 +207,7 @@ const CustomerDetail = ({
   const [loadingSupplied, setLoadingSupplied] = useState(true);
   const [showOrders, setShowOrders] = useState(true);
   const [showTeas, setShowTeas] = useState(true);
-  const [showEvents, setShowEvents] = useState(true);
+  const [showEvents, setShowEvents] = useState(!!filterAttendedEvents);
   const [showSupplied, setShowSupplied] = useState(true);
   const [showLinkDropdown, setShowLinkDropdown] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
@@ -474,7 +475,7 @@ const CustomerDetail = ({
                     <div key={evt.id + '-' + evt.rsvp_date} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
                       <div className="min-w-0 flex-1">
                         <button
-                          onClick={() => { onClose(); navigate(`/admin/events?search=${encodeURIComponent(evt.title || '')}`); }}
+                          onClick={() => { onClose(); navigate(`/admin/events/${evt.slug || evt.id}`); }}
                           className="text-tea-text font-medium hover:text-tea-gold transition-colors truncate block text-left"
                           title="View in Events"
                         >
@@ -1018,6 +1019,7 @@ export const CustomersView = () => {
           onEdit={() => openEdit(viewingCustomer)}
           onDelete={() => handleDelete(viewingCustomer)}
           allProducts={allProducts}
+          filterAttendedEvents={filterAttendedEvents}
         />
       )}
     </div>

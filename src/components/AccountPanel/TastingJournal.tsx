@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronLeft, Trash2, ShoppingCart, Leaf, Calendar } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, Trash2, ShoppingCart, Leaf, Calendar, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
 import type { CustomerTasting } from '../../types';
 import {
@@ -18,15 +19,54 @@ interface TastingJournalProps {
   onOrderTea?: (teaId: string) => void;
 }
 
+type EventFilter = 'all' | 'event-only' | 'no-events';
+
 export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea }) => {
   const { tastingJournal, removeTasting } = useAppStore();
+  const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [eventFilter, setEventFilter] = useState<EventFilter>('all');
+
+  const hasEventTastings = useMemo(
+    () => tastingJournal.some(e => !!e.eventId),
+    [tastingJournal]
+  );
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+
+  // Filter entries based on event filter
+  const filteredEntries = useMemo(() => {
+    if (eventFilter === 'event-only') return tastingJournal.filter(e => !!e.eventId);
+    if (eventFilter === 'no-events') return tastingJournal.filter(e => !e.eventId);
+    return tastingJournal;
+  }, [tastingJournal, eventFilter]);
+
+  // Group entries: entries with the same eventId are grouped together
+  // Solo entries (no eventId) get their own group
+  const groupedEntries = useMemo(() => {
+    const groups: { eventId: string | null; eventTitle: string | null; date: string | null; entries: CustomerTasting[] }[] = [];
+    const eventMap = new Map<string, typeof groups[number]>();
+
+    for (const entry of filteredEntries) {
+      if (entry.eventId) {
+        const existing = eventMap.get(entry.eventId);
+        if (existing) {
+          existing.entries.push(entry);
+        } else {
+          const group = { eventId: entry.eventId, eventTitle: entry.eventTitle || 'Event', date: entry.createdAt, entries: [entry] };
+          eventMap.set(entry.eventId, group);
+          groups.push(group);
+        }
+      } else {
+        groups.push({ eventId: null, eventTitle: null, date: null, entries: [entry] });
+      }
+    }
+    return groups;
+  }, [filteredEntries]);
 
   const handleDelete = (id: string) => {
     if (confirmDelete === id) {
@@ -56,9 +96,37 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         </div>
       </div>
 
+      {/* Event filter toggle */}
+      {hasEventTastings && tastingJournal.length > 1 && (
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-tea-border">
+          <Filter size={11} className="text-tea-text-dim shrink-0" />
+          <div className="flex gap-1">
+            {([['all', 'All'], ['event-only', 'Events'], ['no-events', 'Solo']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setEventFilter(value)}
+                className={eventFilter === value ? 'pill-active' : 'pill'}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Journal list */}
       <div className="flex-1 overflow-auto px-4 py-4 space-y-2">
-        {tastingJournal.length === 0 ? (
+        {filteredEntries.length === 0 && tastingJournal.length > 0 ? (
+          <div className="text-center py-12">
+            <Filter size={24} className="mx-auto text-tea-text-dim/30 mb-3" />
+            <div className="text-sm text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
+              No matching tastings
+            </div>
+            <div className="text-xs text-tea-text-dim/60 mt-1">
+              Try a different filter
+            </div>
+          </div>
+        ) : tastingJournal.length === 0 ? (
           <div className="text-center py-12">
             <Leaf size={24} className="mx-auto text-tea-text-dim/30 mb-3" />
             <div className="text-sm text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
