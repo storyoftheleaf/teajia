@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     inventory_deducted INTEGER DEFAULT 0,
     deleted_at TEXT,                          -- Soft-delete timestamp
     notes TEXT,                              -- Free-text notes on the invoice
+    source_event_id TEXT,                    -- FK to events table (sale attributed to an event)
     created_at TEXT DEFAULT (datetime('now'))
 );
 

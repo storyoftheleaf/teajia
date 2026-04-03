@@ -9,6 +9,7 @@ import { formatCurrency } from '../../admin/utils';
 import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { TeaIllustration } from '../../admin/components/TeaIllustration';
 import { useCustomers } from '../../admin/hooks/useAdminData';
+import { useEvents } from '../../admin/hooks/useEventData';
 import { useAppStore } from '../../lib/store';
 
 // ── String similarity (Levenshtein-based) ────────────────────────────────────
@@ -90,6 +91,8 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
 
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [sourceEventId, setSourceEventId] = useState<string | null>(null);
+  const { data: allEvents = [] } = useEvents();
 
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -285,6 +288,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           customer_id: custId || null,
           display_currency: displayCurrency,
           shipping_cost_usd: shippingCostUSD,
+          source_event_id: sourceEventId || null,
           status: 'Pending',
         },
         cart.map(item => ({
@@ -320,6 +324,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     setCustomerPhone('');
     setSelectedCustomerId(null);
     setShippingCostUSD(0);
+    setSourceEventId(null);
     setLastInvoice(null);
     setTransactionComplete(false);
     setUndoState(null);
@@ -775,6 +780,30 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </div>
           </div>
         </div>
+        {/* Source Event (sales only) */}
+        {!isPurchase && allEvents.length > 0 && (
+          <div>
+            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Source Event (Optional)</label>
+            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+              <select
+                value={sourceEventId || ''}
+                onChange={(e) => setSourceEventId(e.target.value || null)}
+                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer"
+              >
+                <option value="">None</option>
+                {allEvents
+                  .filter(ev => ev.status === 'active' || ev.status === 'draft')
+                  .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
+                  .slice(0, 20)
+                  .map(ev => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} ({new Date(ev.eventDate).toLocaleDateString()})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
         <div>
           <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border/50">
             <span className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Total</span>

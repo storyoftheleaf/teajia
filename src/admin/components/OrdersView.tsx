@@ -288,6 +288,9 @@ export const OrdersView = () => {
                           {order.notes && (
                             <span className="text-tea-text-sec/50" title={order.notes}>📝</span>
                           )}
+                          {order.source_event_title && (
+                            <span className="text-tea-gold/60 text-[9px]" title={`From: ${order.source_event_title}`}>🎋</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 align-middle">
@@ -443,6 +446,14 @@ export const OrdersView = () => {
                         <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-accent'}`}>{viewingInvoice.inventory_deducted ? 'Yes' : 'No'}</span>
                     </div>
                 </div>
+
+                {/* Source Event */}
+                {viewingInvoice.source_event_title && (
+                  <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
+                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
+                    <p className="text-sm text-tea-text">{viewingInvoice.source_event_title}</p>
+                  </div>
+                )}
 
                 {/* Notes */}
                 {viewingInvoice.notes && (
