@@ -59,7 +59,7 @@ export const BodySelector: React.FC<BodySelectorProps> = ({ flow }) => {
             onClick={() => toggleWeight(w.id)}
             className={`flex-1 py-2 text-xs font-medium transition-all duration-150 ${
               selectedWeight === w.id
-                ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/30'
+                ? 'bg-tea-gold/15 text-tea-gold border-tea-border'
                 : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
             }`}
             style={{

@@ -74,7 +74,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
           {!imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-tea-gold/5">
-              <div className="w-6 h-6 border-2 border-tea-border/20 border-t-tea-gold rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin"></div>
             </div>
           )}
         </div>

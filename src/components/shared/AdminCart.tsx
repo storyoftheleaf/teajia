@@ -429,7 +429,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <div className="border-b border-tea-border mb-8" />
           </div>
           <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl shadow-2xl text-center w-full print:border-none print:shadow-none print:bg-white print:p-0 print:text-left">
-            <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-gold/20 print:hidden">
+            <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-border print:hidden">
               <Clock size={32} />
             </div>
             <h2 className="text-2xl font-serif text-tea-text mb-2 print:text-black">{isPurchase ? 'Purchase Order Ready' : 'Order Submitted'}</h2>
@@ -437,11 +437,11 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               {lastInvoice.invoice_number} • {new Date().toLocaleDateString()}
             </p>
             {isPurchase ? (
-              <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
+              <div className="bg-tea-gold/10 border border-tea-border p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
                 Send this order to your vendor via WhatsApp, copy, or print.
               </div>
             ) : (
-              <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
+              <div className="bg-tea-gold/10 border border-tea-border p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
                 Status: <strong className="font-sans not-italic">Pending Fulfillment</strong>.<br />
                 Stock has not been deducted yet. Mark as "Filled" in Orders view when packing.
               </div>
@@ -495,12 +495,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               )}
               {isPurchase && lastInvoice._vendorPhone && lastInvoice._vendorPhone.length >= 7 ? (
                 <a href={buildWhatsAppUrl(lastInvoice._vendorPhone, lastInvoice._purchaseMessage || '')} target="_blank" rel="noreferrer"
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
+                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
                   <Share2 size={16} /> Send to Vendor via WhatsApp
                 </a>
               ) : !isPurchase && customerPhone ? (
                 <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer"
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
+                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
                   <Share2 size={16} /> Share on WhatsApp
                 </a>
               ) : !isPurchase ? (
@@ -776,7 +776,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           </div>
         </div>
         <div>
-          <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border/50">
+          <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border">
             <span className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
             <span className="text-xl font-serif text-tea-gold">
               {formatCurrency(totalUSD, displayCurrency, rates)}

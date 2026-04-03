@@ -268,7 +268,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                 {categoryOfferings.map((offering) => (
                   <div
                     key={offering.id}
-                    className="group bg-tea-bg rounded-lg p-8 border border-tea-gold/10 hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg md:hover:-translate-y-1 animate-[fadeIn_0.6s_ease-out]"
+                    className="group bg-tea-bg rounded-lg p-8 border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg md:hover:-translate-y-1 animate-[fadeIn_0.6s_ease-out]"
                   >
                     {/* Category Label */}
                     <div className="mb-4">
@@ -333,7 +333,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
           {TEA_SPACES.map(space => (
             <CardContainer key={space.id} variant="dark" className="hover:-translate-y-0.5 transition-all">
               <div className="p-5">
-                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-gold/15">
+                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">
                   {SPACE_TYPE_LABELS[space.spaceType]}
                 </span>
                 <h3 className="font-serif text-lg text-tea-text mt-3 mb-2">

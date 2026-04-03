@@ -200,7 +200,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                       <img
                         src={member.avatar}
                         alt={member.name}
-                        className="w-20 h-20 rounded-full object-cover border-2 border-tea-gold/30"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-tea-border"
                       />
                     </div>
 
@@ -216,7 +216,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     {/* Expertise Badge */}
                     <div className="flex justify-center mb-4">
                       <span className={`text-[10px] uppercase tracking-wider px-3 py-1 rounded-sm ${
-                        member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-gold/40' :
+                        member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-border' :
                         member.expertise === 'Intermediate' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40' :
                         'bg-tea-green/20 text-tea-green border border-tea-green/40'
                       }`}>
@@ -231,7 +231,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                         {member.interests.map((interest: string) => (
                           <span
                             key={interest}
-                            className="text-xs px-2 py-1 bg-tea-gold/5 border border-tea-gold/10 rounded text-tea-text/70"
+                            className="text-xs px-2 py-1 bg-tea-gold/5 border border-tea-border rounded text-tea-text/70"
                           >
                             {interest}
                           </span>

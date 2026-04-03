@@ -243,7 +243,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
               </thead>
               <tbody>
                 {tastingNotes.map(note => (
-                  <tr key={note.id} className="border-b border-tea-border/50">
+                  <tr key={note.id} className="border-b border-tea-border">
                     <td className="py-2 px-2 text-tea-text-sec text-xs">Anonymous</td>
                     <td className="py-2 px-2 text-tea-text text-xs">{note.teaName || '—'}</td>
                     <td className="py-2 px-2">

@@ -56,7 +56,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
             {entries.map((entry: any) => {
               const isPositive = entry.delta > 0;
               return (
-                <div key={entry.id} className="flex items-center gap-2 py-1.5 border-b border-tea-border/50 last:border-0">
+                <div key={entry.id} className="flex items-center gap-2 py-1.5 border-b border-tea-border last:border-0">
                   <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-tea-gold' : 'text-tea-text-sec'}`}>
                     {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                     <span className="text-[11px] num font-medium">

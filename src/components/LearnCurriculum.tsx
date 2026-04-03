@@ -68,7 +68,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
     switch(level) {
       case 'Beginner': return 'bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm';
       case 'Intermediate': return 'bg-blue-500/20 text-blue-200 border border-blue-400/40 shadow-sm';
-      case 'Advanced': return 'bg-tea-gold/20 text-tea-gold border border-tea-gold/40 shadow-sm';
+      case 'Advanced': return 'bg-tea-gold/20 text-tea-gold border border-tea-border shadow-sm';
       default: return 'bg-tea-gold/10 text-tea-text/50';
     }
   };

@@ -212,7 +212,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({ mode, value, onChange,
       {/* ─── Tab bar ─── */}
       <div className="md:grid md:grid-cols-[180px_1fr] md:gap-0 flex-1 min-h-0">
         <nav
-          className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-0.5 px-1 py-1 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border/20 shrink-0"
+          className="flex md:flex-col overflow-x-auto md:overflow-x-visible hide-scrollbar gap-0.5 px-1 py-1 md:px-0 md:py-0 md:pr-4 md:border-r md:border-tea-border shrink-0"
           role="tablist"
           aria-label="Tasting sections"
           onKeyDown={(e) => {

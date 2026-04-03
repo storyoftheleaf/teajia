@@ -135,7 +135,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
               </div>
 
               {/* Message preview */}
-              <div className="bg-tea-bg/50 rounded-md p-3 border border-tea-border/60">
+              <div className="bg-tea-bg/50 rounded-md p-3 border border-tea-border">
                 <pre className="text-xs text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed">
                   {whatsappMessage}
                 </pre>
@@ -166,7 +166,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
               </div>
             </section>
 
-            <div className="border-t border-tea-border/50" />
+            <div className="border-t border-tea-border" />
 
             {/* ── Email ── */}
             <section className="space-y-2">
@@ -196,7 +196,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
               </button>
             </section>
 
-            <div className="border-t border-tea-border/50" />
+            <div className="border-t border-tea-border" />
 
             {/* ── Copy Link + QR ── */}
             <section className="space-y-3">

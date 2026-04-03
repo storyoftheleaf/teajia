@@ -179,7 +179,7 @@ const Studio: React.FC<{ story: Story; initialPages: PageState[]; onSave: (s: St
 
                             {/* Media Specific Fields */}
                             {isMedia && (
-                                <div className="p-4 border border-tea-gold/30 bg-tea-gold/5 rounded-sm space-y-4">
+                                <div className="p-4 border border-tea-border bg-tea-gold/5 rounded-sm space-y-4">
                                      <h3 className="text-xs uppercase tracking-[0.15em] text-tea-gold mb-2">Media Configuration</h3>
                                      <div>
                                         <label className="text-xs uppercase text-tea-gold block mb-1 tracking-wider">Duration</label>
@@ -811,7 +811,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
                                         <span className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wider bg-tea-text/60 backdrop-blur-sm rounded-lg text-tea-text border border-tea-border`}>
                                             {s.type}
                                         </span>
-                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-[0.15em] bg-tea-text/60 px-1.5 py-0.5 rounded-lg border border-tea-gold/20">Vault</span>}
+                                        {s.status === 'vault' && <span className="text-[10px] uppercase text-tea-gold tracking-[0.15em] bg-tea-text/60 px-1.5 py-0.5 rounded-lg border border-tea-border">Vault</span>}
                                     </div>
 
                                     {/* Bottom Meta */}

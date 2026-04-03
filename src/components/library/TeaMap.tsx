@@ -3,7 +3,7 @@ import { Icons } from '../Icons';
 import { teaMapPins } from '../../data/teaMapPins';
 
 const TYPE_STYLES: Record<string, { label: string; color: string }> = {
-  'tea-house': { label: 'Tea House', color: 'bg-tea-gold/10 text-tea-gold border border-tea-gold/20' },
+  'tea-house': { label: 'Tea House', color: 'bg-tea-gold/10 text-tea-gold border border-tea-border' },
   'shop': { label: 'Shop', color: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-400/30' },
   'farm': { label: 'Farm', color: 'bg-tea-green/10 text-tea-green border border-tea-green/30' },
   'space': { label: 'Space', color: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-400/30' },

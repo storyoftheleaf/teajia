@@ -486,7 +486,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   <CardContainer variant="dark" className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-gold/20">
+                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-border">
                           {SPACE_TYPE_LABELS[space.spaceType]}
                         </span>
                         <div

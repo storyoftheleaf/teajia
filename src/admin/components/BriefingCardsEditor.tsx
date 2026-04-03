@@ -123,7 +123,7 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
             {/* Photo upload */}
             <div>
               {card.imageUrl ? (
-                <div className="relative w-full h-28 rounded overflow-hidden border border-tea-border/50">
+                <div className="relative w-full h-28 rounded overflow-hidden border border-tea-border">
                   <img
                     src={card.imageUrl}
                     alt={`Card ${idx + 1}`}

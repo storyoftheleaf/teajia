@@ -364,7 +364,7 @@ export const TeaInspireGallery: React.FC = () => {
                   <h4 className="text-white/50 text-xs uppercase tracking-[0.15em] mb-3">Insights</h4>
                   <div className="space-y-4">
                     {selectedImage.insights.map((insight, i) => (
-                      <div key={i} className="border-l-2 border-tea-gold/50 pl-4">
+                      <div key={i} className="border-l-2 border-tea-border pl-4">
                         <p className="text-white font-medium text-sm mb-1">{insight.title}</p>
                         <p className="text-white/60 text-sm leading-relaxed">{insight.explanation}</p>
                       </div>

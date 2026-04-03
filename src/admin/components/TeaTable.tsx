@@ -200,7 +200,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                   onClick={() => setFilter('Featured')}
                   role="tab"
                   aria-selected={filter === 'Featured'}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-full border flex items-center gap-1 ${filter === 'Featured' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-gold/70 border-tea-gold/30 hover:border-tea-gold/60 hover:text-tea-gold'}`}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-full border flex items-center gap-1 ${filter === 'Featured' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-gold/70 border-tea-border hover:border-tea-gold/60 hover:text-tea-gold'}`}
               >
                   <Star className={`w-3 h-3 ${filter === 'Featured' ? 'fill-tea-bg' : 'fill-tea-gold/70'}`} />
                   Featured

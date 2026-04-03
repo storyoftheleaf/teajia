@@ -34,11 +34,11 @@ echo "Checking COLOR_RULES.md compliance..."
 check_pattern 'border-tea-border/[0-9]' \
   "Never add opacity to border-tea-border. Use border-tea-border alone."
 
-# 2. border-tea-gold as structural (non-interactive) border
-#    Allowed: focus:border-tea-gold, hover:border-tea-gold, active:border-tea-gold
-#    Forbidden: border-tea-gold/N without focus:/hover:/active: prefix
-check_pattern '(?<!focus:)(?<!hover:)(?<!active:)border-tea-gold/\d' \
-  "Don't use border-tea-gold for structural borders. Use border-tea-border."
+# 2. border-tea-gold as structural DIVIDER (border-t/border-b with gold, not interactive)
+#    Gold borders on cards/badges/decorative elements are intentional design choices.
+#    But dividers (border-t, border-b) should always use border-tea-border.
+check_pattern '(?<!focus:)(?<!hover:)(?<!active:)border-(t|b) border-tea-gold' \
+  "Don't use border-tea-gold for dividers. Use border-tea-border."
 
 # 3. border-white or border-black
 check_pattern 'border-white|border-black' \

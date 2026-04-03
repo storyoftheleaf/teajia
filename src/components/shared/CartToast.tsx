@@ -66,7 +66,7 @@ export const CartToast: React.FC<CartToastProps> = ({
                 e.stopPropagation();
                 onViewCart();
               }}
-              className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-tea-gold/10 border border-tea-gold/30 text-tea-gold text-xs uppercase tracking-widest hover:bg-tea-gold/20 transition-colors duration-200 rounded-sm"
+              className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-tea-gold/10 border border-tea-border text-tea-gold text-xs uppercase tracking-widest hover:bg-tea-gold/20 transition-colors duration-200 rounded-sm"
             >
               <Icons.Bag className="w-3.5 h-3.5" />
               <span>{cartCount}</span>

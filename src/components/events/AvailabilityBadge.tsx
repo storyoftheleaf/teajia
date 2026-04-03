@@ -41,7 +41,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
   return (
     <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] rounded-sm ${
       isLow
-        ? 'text-tea-gold bg-tea-gold/10 border border-tea-gold/30'
+        ? 'text-tea-gold bg-tea-gold/10 border border-tea-border'
         : 'text-tea-gold bg-tea-surface border border-tea-border'
     } ${className}`}>
       <span className={`w-2 h-2 rounded-full bg-tea-gold ${isLow ? 'animate-pulse' : ''}`} />

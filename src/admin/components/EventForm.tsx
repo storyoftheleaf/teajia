@@ -142,7 +142,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="w-full border border-dashed border-tea-border/70 rounded-md flex flex-col items-center justify-center gap-3 py-12 text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text-sec transition-colors"
+            className="w-full border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-3 py-12 text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text-sec transition-colors"
           >
             {uploading ? (
               <Loader2 size={24} className="animate-spin text-tea-gold" />
@@ -771,7 +771,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
               <Plus size={12} /> Add Step
             </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-tea-border/50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-tea-border">
               <Field label="Parking Notes">
                 <input
                   type="text"

@@ -151,7 +151,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
             className={`px-3 py-1 text-xs uppercase tracking-wider rounded-sm transition-colors ${
               activeType === type
                 ? 'bg-tea-elevated text-tea-text font-medium'
-                : 'border border-tea-text/15  text-tea-text/60 hover:border-tea-text/30 dark:hover:border-tea-border/30 hover:text-tea-text'
+                : 'border border-tea-border text-tea-text/60 hover:border-tea-border hover:text-tea-text'
             }`}
           >
             {type}

@@ -422,7 +422,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
-                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
                     ) : (
                       'Sign In'
                     )}
@@ -516,7 +516,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
-                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
                     ) : (
                       'Create Account'
                     )}
@@ -598,7 +598,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
-                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
                     ) : (
                       'Update Password'
                     )}
@@ -656,7 +656,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
                   >
                     {formLoading ? (
-                      <div className="w-4 h-4 border-2 border-tea-gold/20 border-t-tea-text-sec rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
                     ) : (
                       'Save Changes'
                     )}
@@ -789,7 +789,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* Profile Header */}
                 {auth.isAuthenticated && auth.user ? (
                   <div className="flex items-center gap-3 animate-[fadeIn_0.3s_ease-out]">
-                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-gold/20 shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border shrink-0">
                       <span className="text-sm font-serif text-tea-gold font-medium">
                         {getInitials(auth.user.name || auth.user.email)}
                       </span>

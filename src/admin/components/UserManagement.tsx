@@ -164,7 +164,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
 
           <div className="space-y-3">
             {pendingRequests.map(user => (
-              <div key={user.id} className="flex items-center gap-4 p-4 bg-tea-bg rounded-lg border border-tea-gold/20">
+              <div key={user.id} className="flex items-center gap-4 p-4 bg-tea-bg rounded-lg border border-tea-border">
                 <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-serif text-tea-gold font-medium">
                     {(user.name || user.email)[0].toUpperCase()}
@@ -184,7 +184,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
                     <button
                       onClick={() => handleApprove(user.id)}
                       disabled={actionLoading === user.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold/10 text-tea-gold border border-tea-gold/30 rounded-lg text-xs font-medium hover:bg-tea-gold/20 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold/10 text-tea-gold border border-tea-border rounded-lg text-xs font-medium hover:bg-tea-gold/20 transition-colors disabled:opacity-50"
                     >
                       {actionLoading === user.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
                       Approve
@@ -207,7 +207,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
 
       {/* Reset Token Modal */}
       {resetToken && (
-        <div className="bg-tea-surface border border-tea-gold/30 rounded-xl p-6 space-y-4">
+        <div className="bg-tea-surface border border-tea-border rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-serif text-tea-text">Password Reset Link</h4>
             <button onClick={() => { setResetToken(null); setCopied(false); }} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs">
@@ -223,7 +223,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
             </code>
             <button
               onClick={handleCopyToken}
-              className="flex-shrink-0 p-2.5 bg-tea-gold/10 text-tea-gold border border-tea-gold/30 rounded-lg hover:bg-tea-gold/20 transition-colors"
+              className="flex-shrink-0 p-2.5 bg-tea-gold/10 text-tea-gold border border-tea-border rounded-lg hover:bg-tea-gold/20 transition-colors"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>

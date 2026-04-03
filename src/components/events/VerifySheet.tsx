@@ -108,7 +108,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
           <h2 className="font-serif text-xl text-tea-text">Verify Identity</h2>
           <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors" aria-label="Close">
             <X className="w-5 h-5" />
@@ -163,7 +163,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 className="w-full py-3.5 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
                 {requestMutation.isPending ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
                 ) : (
                   'Send Code'
                 )}
@@ -212,7 +212,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 className="w-full py-3.5 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
                 {confirmMutation.isPending ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
                 ) : (
                   'Verify'
                 )}

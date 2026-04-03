@@ -118,7 +118,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
         {/* Subtle glow when recording */}
         {state === 'recording' && (
           <motion.span
-            className="absolute inset-0 rounded-full border border-tea-gold/20"
+            className="absolute inset-0 rounded-full border border-tea-border"
             animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0, 0.3] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           />
