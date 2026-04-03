@@ -797,6 +797,21 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Product Events (cross-link: which events featured this product) ──
+const handleGetProductEvents: Handler = async (_request, env, params) => {
+  const result = await env.DB.prepare(
+    `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
+            e.location_name, e.status, e.flyer_image_url,
+            etm.custom_name, etm.brew_order
+     FROM event_tea_menu etm
+     JOIN events e ON e.id = etm.event_id
+     WHERE etm.product_id = ?
+     ORDER BY e.event_date DESC`
+  ).bind(params.id).all();
+
+  return json(result.results);
+};
+
 // ── Exchange Rates ──
 const handleGetRates: Handler = async (_request, env) => {
   const result = await env.DB.prepare('SELECT * FROM exchange_rates').all();
@@ -4238,6 +4253,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
+  ['GET', '/api/products/:id/events', handleGetProductEvents],
 
   // Exchange Rates
   ['GET', '/api/rates', handleGetRates],

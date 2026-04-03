@@ -12,6 +12,7 @@ import {
   LIQUOR_COLORS,
   TERM_MAP,
 } from '../../data/tastingTaxonomy';
+import { useProductEvents } from '../../hooks/useProductEvents';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -87,6 +88,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
+
+  // Fetch events that featured this product
+  const { data: productEvents } = useProductEvents(item.id);
 
   const sliderMin = 5;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));

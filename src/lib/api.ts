@@ -223,6 +223,10 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getEvents: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/events`);
+      return handleResponse(res);
+    },
   },
 
   rates: {
