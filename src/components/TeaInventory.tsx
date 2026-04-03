@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Icons } from './Icons';
-import { X } from 'lucide-react';
+import { X, Leaf } from 'lucide-react';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
@@ -14,6 +14,7 @@ import { SALE_ITEM_IDS } from '../data/curatedCollections';
 import { useAppStore } from '../lib/store';
 import { useProductUrl } from '../hooks/useProductUrl';
 import { CompareView } from './shop/CompareView';
+import { useTastingCounts } from '../hooks/useTastingCount';
 import { TastingSession } from './tasting/TastingSession';
 import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../admin/types';
@@ -76,6 +77,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
+
+  // Tasting journal — count how many times user has tasted each tea
+  const tastingCounts = useTastingCounts();
 
   // Tasting term filter (cross-reference from AlcoveCard)
   const [tastingFilter, setTastingFilter] = useState<{ termId: string; categoryId: string } | null>(null);
@@ -442,6 +446,14 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 {item.name}
                                             </h3>
                                             {isTeajiaFav && <Icons.Seal className="w-2.5 h-2.5 text-tea-gold shrink-0" />}
+                                            {(tastingCounts.get(item.id) || 0) > 0 && (
+                                                <span className="inline-flex items-center gap-0.5 shrink-0 text-tea-green" title={`Tasted ${tastingCounts.get(item.id)} time${tastingCounts.get(item.id)! > 1 ? 's' : ''}`}>
+                                                    <Leaf className="w-2.5 h-2.5" />
+                                                    {tastingCounts.get(item.id)! > 1 && (
+                                                        <span className="text-[9px] font-medium leading-none">{tastingCounts.get(item.id)}</span>
+                                                    )}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="mt-0.5 truncate flex items-center gap-1.5">
                                              {showType && (

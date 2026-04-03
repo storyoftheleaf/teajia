@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
+import { Pencil, Leaf } from 'lucide-react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
+import { useTastingCount } from '../../hooks/useTastingCount';
 import { fmtNum } from '../../utils/formatNumber';
 import { TeaPlaceholder } from './TeaPlaceholder';
 import {
@@ -80,6 +81,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
+  const tastingCount = useTastingCount(item.id);
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -340,6 +342,24 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   {vintage && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{vintage}</>}
                 </p>
               </div>
+
+              {/* Tasting badge — shows if user has tasted this tea */}
+              {tastingCount > 0 && (
+                <div style={{
+                  display: "flex", justifyContent: "center", alignItems: "center",
+                  gap: "5px", paddingTop: "8px",
+                }}>
+                  <Leaf size={13} style={{ color: '#5A6E5A' }} />
+                  <span style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "11px", fontWeight: 400,
+                    color: "var(--tea-text-sec)",
+                    letterSpacing: "0.05em",
+                  }}>
+                    Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
+                  </span>
+                </div>
+              )}
 
               {/* Vendor / Source — admin-only link to source profile */}
               {item.supplier && isAdmin && (
