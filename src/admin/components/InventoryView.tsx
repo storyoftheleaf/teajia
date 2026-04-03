@@ -3285,18 +3285,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                       {/* Compass Origin — if this product came from a Tea Compass entry */}
                       {(() => {
-                        const compassEntry = compassEntries.find(e => e.draftProductId === panelProduct.id);
-                        if (!compassEntry) return null;
+                        // Prefer persistent DB link, fall back to client-side compass store
+                        const compassEntryId = panelProduct.sourceCompassEntryId;
+                        const compassEntry = compassEntryId
+                          ? compassEntries.find(e => e.id === compassEntryId)
+                          : compassEntries.find(e => e.draftProductId === panelProduct.id);
+                        // Show link if we have either a local compass entry or a persistent ID
+                        if (!compassEntry && !compassEntryId) return null;
+                        const linkId = compassEntry?.id || compassEntryId!;
                         return (
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
                             <button
-                              onClick={() => navigate(`/compass?entry=${encodeURIComponent(compassEntry.id)}`)}
+                              onClick={() => navigate(`/compass?entry=${encodeURIComponent(linkId)}`)}
                               className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
                             >
                               <Globe size={10} />
-                              {compassEntry.vendorName || 'Compass Entry'}
-                              <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>
+                              {compassEntry?.vendorName || 'Compass Entry'}
+                              {compassEntry && (
+                                <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>
+                              )}
                             </button>
                           </div>
                         );

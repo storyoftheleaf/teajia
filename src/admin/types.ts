@@ -54,6 +54,7 @@ export interface Product {
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number; // Unit count (used instead of stockGrams for teaware)
   tasting?: TastingData;
+  sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
 }
 
 export interface InvoiceItem {

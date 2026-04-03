@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS products (
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
     sold_out_at TEXT,                             -- When product auto-archived due to zero stock
     stock_verified_at TEXT,                        -- Last time stock was physically verified
+    source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row

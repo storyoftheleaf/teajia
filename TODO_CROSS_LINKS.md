@@ -35,5 +35,5 @@ Remaining interconnection work that requires backend/API changes or deeper archi
 
 ## Compass ↔ Inventory (Deeper)
 
-- [ ] **Product `source_compass_entry_id` field in database**
+- [x] **Product `source_compass_entry_id` field in database**
   Currently the link is client-side only (compass store `draftProductId` → product). To make it persistent and queryable from the server, add `source_compass_entry_id TEXT` to the `products` table in `worker/schema.sql`. Populate when draft is created via `compassEntryToProductDraft()`.
