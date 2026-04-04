@@ -9,6 +9,7 @@ import { formatCurrency } from '../../admin/utils';
 import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { TeaIllustration } from '../../admin/components/TeaIllustration';
 import { useCustomers } from '../../admin/hooks/useAdminData';
+import { useEvents } from '../../admin/hooks/useEventData';
 import { useAppStore } from '../../lib/store';
 
 // ── String similarity (Levenshtein-based) ────────────────────────────────────
@@ -90,6 +91,18 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   const [dedupSuggestion, setDedupSuggestion] = useState<{ name: string; id: string } | null>(null);
 
   const [pdfLoading, setPdfLoading] = useState(false);
+  const storeSourceEventId = useAppStore((s) => s.cartSourceEventId);
+  const setStoreSourceEventId = useAppStore((s) => s.setCartSourceEventId);
+  const [sourceEventId, setSourceEventId] = useState<string | null>(storeSourceEventId);
+  const { data: allEvents = [] } = useEvents();
+
+  // Clear store event context once consumed
+  useEffect(() => {
+    if (storeSourceEventId) {
+      setSourceEventId(storeSourceEventId);
+      setStoreSourceEventId(null);
+    }
+  }, [storeSourceEventId, setStoreSourceEventId]);
 
   // Undo state
   const [undoState, setUndoState] = useState<{ prevCart: AdminCartItem[]; label: string; timeout: ReturnType<typeof setTimeout> } | null>(null);
@@ -285,6 +298,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           customer_id: custId || null,
           display_currency: displayCurrency,
           shipping_cost_usd: shippingCostUSD,
+          source_event_id: sourceEventId || null,
           status: 'Pending',
         },
         cart.map(item => ({
@@ -308,6 +322,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       showToast('Order submitted successfully', 'success');
       setLastInvoice({ ...invoiceData, items: cart });
       setTransactionComplete(true);
+      setSourceEventId(null);
     } catch (err: any) {
       showToast('Transaction failed: ' + (err.message || 'Unknown error'), 'error');
     }
@@ -320,6 +335,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     setCustomerPhone('');
     setSelectedCustomerId(null);
     setShippingCostUSD(0);
+    setSourceEventId(null);
     setLastInvoice(null);
     setTransactionComplete(false);
     setUndoState(null);
@@ -429,7 +445,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <div className="border-b border-tea-border mb-8" />
           </div>
           <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl shadow-2xl text-center w-full print:border-none print:shadow-none print:bg-white print:p-0 print:text-left">
-            <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-gold/20 print:hidden">
+            <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-border print:hidden">
               <Clock size={32} />
             </div>
             <h2 className="text-2xl font-serif text-tea-text mb-2 print:text-black">{isPurchase ? 'Purchase Order Ready' : 'Order Submitted'}</h2>
@@ -437,11 +453,11 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               {lastInvoice.invoice_number} • {new Date().toLocaleDateString()}
             </p>
             {isPurchase ? (
-              <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
+              <div className="bg-tea-gold/10 border border-tea-border p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
                 Send this order to your vendor via WhatsApp, copy, or print.
               </div>
             ) : (
-              <div className="bg-tea-gold/10 border border-tea-gold/30 p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
+              <div className="bg-tea-gold/10 border border-tea-border p-3 rounded mb-6 text-xs text-tea-gold print:hidden text-left font-serif italic">
                 Status: <strong className="font-sans not-italic">Pending Fulfillment</strong>.<br />
                 Stock has not been deducted yet. Mark as "Filled" in Orders view when packing.
               </div>
@@ -495,12 +511,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               )}
               {isPurchase && lastInvoice._vendorPhone && lastInvoice._vendorPhone.length >= 7 ? (
                 <a href={buildWhatsAppUrl(lastInvoice._vendorPhone, lastInvoice._purchaseMessage || '')} target="_blank" rel="noreferrer"
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
+                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
                   <Share2 size={16} /> Send to Vendor via WhatsApp
                 </a>
               ) : !isPurchase && customerPhone ? (
                 <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer"
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-gold/30 transition-colors">
+                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
                   <Share2 size={16} /> Share on WhatsApp
                 </a>
               ) : !isPurchase ? (
@@ -775,8 +791,32 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </div>
           </div>
         </div>
+        {/* Source Event (sales only) */}
+        {!isPurchase && allEvents.length > 0 && (
+          <div>
+            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Source Event (Optional)</label>
+            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+              <select
+                value={sourceEventId || ''}
+                onChange={(e) => setSourceEventId(e.target.value || null)}
+                className="w-full bg-transparent py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer"
+              >
+                <option value="">None</option>
+                {allEvents
+                  .filter(ev => ev.status === 'active' || ev.status === 'draft' || ev.status === 'completed')
+                  .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
+                  .slice(0, 20)
+                  .map(ev => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} ({new Date(ev.eventDate).toLocaleDateString()})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        )}
         <div>
-          <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border/50">
+          <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border">
             <span className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
             <span className="text-xl font-serif text-tea-gold">
               {formatCurrency(totalUSD, displayCurrency, rates)}

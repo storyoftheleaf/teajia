@@ -30,6 +30,7 @@ interface AppState {
   isCartOpen: boolean;
   cartDirection: 'sale' | 'purchase';
   cartVendorName: string;
+  cartSourceEventId: string | null;
   addToCart: (product: Product, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -38,6 +39,7 @@ interface AppState {
   setIsCartOpen: (isOpen: boolean) => void;
   setCartDirection: (direction: 'sale' | 'purchase') => void;
   setCartVendorName: (name: string) => void;
+  setCartSourceEventId: (eventId: string | null) => void;
   openPurchaseOrder: (vendorName?: string) => void;
 
   // Public Cart (for customer checkout)
@@ -121,6 +123,7 @@ export const useAppStore = create<AppState>()(
       isCartOpen: false,
       cartDirection: 'sale' as 'sale' | 'purchase',
       cartVendorName: '',
+      cartSourceEventId: null as string | null,
 
       addToCart: (product, quantity) =>
         set((state) => {
@@ -164,6 +167,7 @@ export const useAppStore = create<AppState>()(
       setIsCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
       setCartDirection: (direction) => set({ cartDirection: direction }),
       setCartVendorName: (name) => set({ cartVendorName: name }),
+      setCartSourceEventId: (eventId) => set({ cartSourceEventId: eventId }),
       openPurchaseOrder: (vendorName) => set({
         cartDirection: 'purchase',
         cartVendorName: vendorName || '',

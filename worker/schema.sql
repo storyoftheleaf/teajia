@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS products (
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
     sold_out_at TEXT,                             -- When product auto-archived due to zero stock
     stock_verified_at TEXT,                        -- Last time stock was physically verified
+    source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row
@@ -106,6 +107,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     inventory_deducted INTEGER DEFAULT 0,
     deleted_at TEXT,                          -- Soft-delete timestamp
     notes TEXT,                              -- Free-text notes on the invoice
+    source_event_id TEXT,                    -- FK to events table (sale attributed to an event)
     created_at TEXT DEFAULT (datetime('now'))
 );
 

@@ -42,12 +42,12 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
              <div className="w-full h-full flex items-center justify-center bg-zinc-900 relative group">
                 <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-50" alt="video thumb"/>
                 <div className="absolute inset-0 flex items-center justify-center">
-                   <div className="w-16 h-16 border border-tea-border/30 rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
+                   <div className="w-16 h-16 border border-tea-border rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
                      <Icons.Play className="w-8 h-8 text-tea-text fill-tea-text/20" />
                    </div>
                 </div>
                 {/* Custom Player Frame */}
-                <div className="absolute inset-4 border border-tea-border/20 pointer-events-none"></div>
+                <div className="absolute inset-4 border border-tea-border pointer-events-none"></div>
              </div>
            )}
 

@@ -534,7 +534,7 @@ export default function SampleSetCreator() {
       {/* Label Sheet */}
       {showLabels && activeSet && (
         <div className="fixed inset-0 z-50 bg-tea-bg overflow-auto">
-          <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-2 border-b border-tea-border/30">
+          <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-2 border-b border-tea-border">
             <button onClick={() => setShowLabels(false)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back to sample set">
               <ArrowLeft size={20} />
             </button>

@@ -202,6 +202,8 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
     lore: '',
     processing_notes: '',
     terroir: '',
+    // Persistent cross-link back to this compass entry
+    source_compass_entry_id: entry.id,
     // Teaware-specific
     ...(entry.category === 'teaware' ? {
       teaware_category: entry.teawareCategory || null,

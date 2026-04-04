@@ -490,7 +490,7 @@ const PROJECT_TYPE_LABELS: Record<string, string> = {
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => (
   <button onClick={onClick} className="text-left group w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm">
     {/* #11 + #18 Type badge overlay + gradient on images */}
-    <CardContainer variant="dark" className="overflow-hidden mb-3 md:group-hover:-translate-y-1 transition-all duration-300 relative">
+    <CardContainer className="overflow-hidden mb-3 md:group-hover:-translate-y-1 transition-all duration-300 relative">
       <img
         src={PROJECT_PLACEHOLDER_IMGS[project.id] || 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80&auto=format'}
         alt={`${project.name} project`}

@@ -292,7 +292,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           onClick={() => onNavigateTo('glossary')}
           className={`w-full text-left group ${CTA_FOCUS}`}
         >
-          <CardContainer variant="dark">
+          <CardContainer>
             <div className="relative overflow-hidden">
               {/* Atmospheric gradient — subtle warmth from bottom-left */}
               <div className="absolute inset-0 pointer-events-none" style={{

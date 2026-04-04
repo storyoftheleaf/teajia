@@ -201,7 +201,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
 
       {/* ── Mode tabs ── */}
-      <div className="flex border-b border-tea-border/50 px-4" role="tablist">
+      <div className="flex border-b border-tea-border px-4" role="tablist">
         {tabs.map((tab) => {
           const active = mode === tab.id;
           const Icon = tab.icon;

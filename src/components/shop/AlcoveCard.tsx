@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
+import { Pencil, Leaf, ChevronRight } from 'lucide-react';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
+import { useTastingCount } from '../../hooks/useTastingCount';
 import { fmtNum } from '../../utils/formatNumber';
 import { TeaPlaceholder } from './TeaPlaceholder';
 import {
@@ -12,6 +13,7 @@ import {
   LIQUOR_COLORS,
   TERM_MAP,
 } from '../../data/tastingTaxonomy';
+import { useProductEvents } from '../../hooks/useProductEvents';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -79,6 +81,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
+  const tastingCount = useTastingCount(item.id);
   const [grams, setGrams] = useState(25);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -87,6 +90,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
+
+  // Fetch events that featured this product
+  const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
 
   const sliderMin = 5;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -336,6 +342,37 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   {vintage && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{vintage}</>}
                 </p>
               </div>
+
+              {/* Tasting badge — clickable link to tasting journal */}
+              {tastingCount > 0 && (
+                <div style={{
+                  display: "flex", justifyContent: "center", alignItems: "center",
+                  paddingTop: "8px",
+                }}>
+                  <button
+                    onClick={() => navigate('/account?tab=journal')}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "5px",
+                      background: "none", border: "none", cursor: "pointer",
+                      padding: "2px 6px", borderRadius: "4px",
+                      transition: "opacity 0.2s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                  >
+                    <Leaf size={13} style={{ color: '#5A6E5A' }} />
+                    <span style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "11px", fontWeight: 400,
+                      color: "var(--tea-text-sec)",
+                      letterSpacing: "0.05em",
+                    }}>
+                      Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
+                    </span>
+                    <ChevronRight size={11} style={{ color: "var(--tea-text-dim)", marginLeft: "1px" }} />
+                  </button>
+                </div>
+              )}
 
               {/* Vendor / Source — admin-only link to source profile */}
               {item.supplier && isAdmin && (
@@ -653,6 +690,144 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   </p>
                 </div>
               )}
+          </div>
+        )}
+
+        {/* === FEATURED IN EVENTS === */}
+        {eventsLoading && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <div style={{
+              width: "120px", height: "10px",
+              background: "var(--tea-accent-sub)",
+              borderRadius: "3px",
+              marginBottom: "10px",
+            }} />
+            {[0, 1].map(i => (
+              <div key={i} style={{
+                height: "40px",
+                background: "var(--tea-accent-sub)",
+                borderRadius: "6px",
+                marginBottom: "8px",
+                animation: "pulse 1.8s ease-in-out infinite",
+                opacity: i === 1 ? 0.6 : 0.8,
+              }} />
+            ))}
+          </div>
+        )}
+        {!eventsLoading && productEvents && productEvents.length === 0 && isAdmin && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "11px", fontWeight: 400,
+              color: "var(--tea-text-dim)",
+              letterSpacing: "0.05em",
+              fontStyle: "italic",
+              margin: 0,
+            }}>
+              Not yet featured in any events
+            </p>
+          </div>
+        )}
+        {productEvents && productEvents.length > 0 && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <h3 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "10px", fontWeight: 400,
+              textTransform: "uppercase", letterSpacing: "0.12em",
+              color: "var(--tea-gold)",
+              margin: "0 0 10px 0",
+            }}>
+              Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {productEvents.map(evt => {
+                const eventDate = new Date(evt.event_date);
+                const formattedDate = eventDate.toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                });
+                return (
+                  <button
+                    key={evt.id}
+                    onClick={() => navigate(`/events/${evt.slug}`)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "10px",
+                      background: "var(--tea-accent-sub)",
+                      border: "1px solid var(--tea-border)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "background 0.2s ease, border-color 0.2s ease",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "var(--tea-surface)";
+                      e.currentTarget.style.borderColor = "var(--tea-gold, #a8874d)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "var(--tea-accent-sub)";
+                      e.currentTarget.style.borderColor = "var(--tea-border)";
+                    }}
+                  >
+                    {evt.flyer_image_url ? (
+                      <img
+                        src={evt.flyer_image_url}
+                        alt=""
+                        style={{
+                          width: "36px", height: "36px",
+                          borderRadius: "4px", objectFit: "cover",
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: "36px", height: "36px",
+                        borderRadius: "4px",
+                        background: "var(--tea-surface)",
+                        border: "1px solid var(--tea-border)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        flexShrink: 0,
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                          stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: "var(--font-body)",
+                        fontSize: "13px", fontWeight: 400,
+                        color: "var(--tea-text)",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      }}>
+                        {evt.title}
+                      </div>
+                      <div style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px", fontWeight: 400,
+                        color: "var(--tea-text-dim)",
+                        marginTop: "2px",
+                      }}>
+                        {formattedDate}
+                        {evt.location_name ? ` · ${evt.location_name}` : ''}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

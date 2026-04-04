@@ -32,7 +32,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
         <div className="flex items-start gap-3 mb-4">
           {isDestructive && (
-            <div className="p-2 bg-tea-gold/10 rounded-full border border-tea-gold/20 shrink-0 mt-0.5">
+            <div className="p-2 bg-tea-gold/10 rounded-full border border-tea-border shrink-0 mt-0.5">
               <AlertTriangle size={18} className="text-tea-gold" />
             </div>
           )}

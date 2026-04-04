@@ -77,7 +77,7 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
   const presets = !unitBased && entry.form ? GRAM_PRESETS[entry.form] : null;
 
   return (
-    <div className="py-5 border-b border-tea-border/30 last:border-b-0">
+    <div className="py-5 border-b border-tea-border last:border-b-0">
       {/* Hero: Chinese name or English name promoted */}
       {entry.chineseName ? (
         <>
@@ -132,7 +132,7 @@ const TeaLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityChang
                 value={quantity}
                 onChange={(e) => onQuantityChange(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-20 text-xl tabular-nums text-center text-tea-text font-medium bg-transparent
-                           border-b border-tea-border/60 focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg
+                           border-b border-tea-border focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg
                            px-1 py-0.5"
               />
               <span className="text-tea-text-dim text-sm">g</span>
@@ -188,7 +188,7 @@ const TeawareLineItem: React.FC<LineItemProps> = ({ entry, quantity, onQuantityC
   const lineTotal = (entry.priceAmount ?? 0) * quantity;
 
   return (
-    <div className="py-5 border-b border-tea-border/30 last:border-b-0">
+    <div className="py-5 border-b border-tea-border last:border-b-0">
       {/* Hero: Chinese name or English name promoted */}
       {entry.chineseName ? (
         <>

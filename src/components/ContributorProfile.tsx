@@ -28,7 +28,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
       ></div>
 
       {/* Modal Card */}
-      <div className="relative w-full max-w-lg bg-tea-bg shadow-2xl border border-tea-gold/10 overflow-hidden flex flex-col items-center text-center p-8 md:p-12 animate-[slideUp_0.4s_ease-out]">
+      <div className="relative w-full max-w-lg bg-tea-bg shadow-2xl border border-tea-border overflow-hidden flex flex-col items-center text-center p-8 md:p-12 animate-[slideUp_0.4s_ease-out]">
         {/* Texture Overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.08] mix-blend-multiply" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div>
 
@@ -40,7 +40,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
         </button>
 
         {/* Avatar */}
-        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-tea-gold/25 shadow-inner mb-6 relative z-10">
+        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-tea-border shadow-inner mb-6 relative z-10">
           {person.avatarUrl ? (
              <img src={person.avatarUrl} alt={person.name} className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
           ) : (

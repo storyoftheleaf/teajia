@@ -551,8 +551,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   // Reusable input styles — warm tones only, zero grey
-  const inputStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec/50";
-  const selectStyle = "w-full bg-transparent border-b border-tea-border/20 rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec/50";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
   const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors font-sans";
 
@@ -588,7 +588,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
         {/* #42 — Draft restore banner */}
         {showDraftBanner && !isEditMode && (
-          <div className="px-6 py-2.5 bg-tea-gold/10 border-b border-tea-gold/20 flex items-center justify-between gap-4 shrink-0">
+          <div className="px-6 py-2.5 bg-tea-gold/10 border-b border-tea-border flex items-center justify-between gap-4 shrink-0">
             <span className="text-xs text-tea-text-sec">You have an unsaved draft. Restore?</span>
             <div className="flex items-center gap-3">
               <button

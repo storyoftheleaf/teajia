@@ -38,9 +38,9 @@ interface SinglePageRendererProps {
 
 // ────────────────────────────────────────────────────────────
 // TYPOGRAPHY SYSTEM
-// Canvas: 800×1067 (~47% scale on 375px phones)
+// Canvas: 800×1000 (4:5 ratio, ~47% scale on 375px phones)
 // Three voices: Cormorant Garamond (display), Lora (body), Plus Jakarta Sans (captions/UI)
-// Scale ratio ≈ 1:2:4 — body 21px, headline 40px, display 84px
+// Scale ratio ≈ 1:2:4 — body 25px (~12px on mobile), headline 40px, display 84px
 // ────────────────────────────────────────────────────────────
 const TYPE = {
   displayFont: '"Cormorant Garamond", "Georgia", serif',
@@ -53,16 +53,16 @@ const TYPE = {
   headline: 'text-[40px] font-display leading-[1.15] font-normal',
   subtitle: 'text-[30px] font-display leading-[1.25] font-light italic',
   headlineSm: 'text-[28px] font-display leading-[1.3] font-normal',
-  // Body — Lora, optimized for reading
-  subhead: 'text-[22px] font-body leading-[1.4]',
-  bodyLarge: 'text-[23px] font-body leading-[1.6]',
-  body: 'text-[21px] font-body leading-[1.6]',
-  bodySm: 'text-[19px] font-body leading-[1.55]',
-  bodyDense: 'text-[20px] font-body leading-[32px]',  // Multi-column, locked leading
-  // Captions — Plus Jakarta Sans, small-caps, letterspaced
-  caption: 'text-[13px] font-caption leading-[1.4] tracking-[0.14em]',
-  folio: 'text-[11px] font-caption leading-[1.3] tracking-[0.2em]',
-  micro: 'text-[10px] font-caption leading-[1.2]',
+  // Body — Lora, optimized for reading (sizes increased for ~47% mobile scale)
+  subhead: 'text-[26px] font-body leading-[1.4]',
+  bodyLarge: 'text-[27px] font-body leading-[1.6]',
+  body: 'text-[25px] font-body leading-[1.65]',         // was 21px → renders ~12px on mobile
+  bodySm: 'text-[23px] font-body leading-[1.55]',
+  bodyDense: 'text-[24px] font-body leading-[36px]',    // Multi-column, locked leading
+  // Captions — Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
+  caption: 'text-[15px] font-caption leading-[1.4] tracking-[0.12em]',
+  folio: 'text-[13px] font-caption leading-[1.3] tracking-[0.18em]',
+  micro: 'text-[12px] font-caption leading-[1.2]',
 } as const;
 
 // --- Line Height Semantic Constants ---
@@ -75,17 +75,17 @@ const LH = {
 
 // --- Padding Variants (8px grid) ---
 const PAD = {
-  text: 'px-[56px] py-[48px]',          // Text pages — wide margins, narrow measure
-  textWide: 'px-[80px] py-[48px]',      // Centered narrow-measure text
+  text: 'px-[64px] py-[52px]',          // Text pages — wide margins, narrow measure
+  textWide: 'px-[88px] py-[52px]',      // Centered narrow-measure text
   image: 'p-0',                          // Full-bleed images
-  spacious: 'px-[64px] py-[56px]',      // Covers, quotes, chapters
-  card: 'px-[48px] py-[40px]',          // Card-style pages
-  tight: 'px-[32px] py-[24px]',         // Dense/compact pages
-  gutter: 'px-[40px]',                  // Minimal horizontal padding
+  spacious: 'px-[72px] py-[52px]',      // Covers, quotes, chapters
+  card: 'px-[56px] py-[44px]',          // Card-style pages
+  tight: 'px-[40px] py-[28px]',         // Dense/compact pages
+  gutter: 'px-[48px]',                  // Minimal horizontal padding
 } as const;
 
 // --- Shared Typography Classes ---
-const BODY_CLASS = `${TYPE.body} ${LH.relaxed} text-left font-body [font-optical-sizing:auto] [hanging-punctuation:first_last]`;
+const BODY_CLASS = `${TYPE.body} text-left font-body [font-optical-sizing:auto] [hanging-punctuation:first_last]`;
 const BODY_DENSE_CLASS = `${TYPE.bodyDense} text-justify font-body [font-optical-sizing:auto] [hyphens:auto] [hyphenate-limit-chars:6_3_2] [word-spacing:-0.01em]`;
 const CAPTION_CLASS = `${TYPE.caption} ${LH.tight} uppercase font-caption small-caps`;
 const FOLIO_CLASS = `${TYPE.folio} uppercase font-caption tracking-[0.2em]`;
@@ -272,7 +272,7 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
 
   return createPortal(
     <div 
-      className="fixed z-sticky flex items-center bg-tea-bg border border-tea-gold/15 rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
+      className="fixed z-sticky flex items-center bg-tea-bg border border-tea-border rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
       style={{ top: safeTop, left: safeLeft }}
       onMouseDown={(e) => e.preventDefault()}
     >
@@ -529,13 +529,77 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
             onClick={handlePlay}
             className="absolute inset-0 flex items-center justify-center group cursor-pointer"
           >
-            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-gold/30 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
+            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-border shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
               <Icons.Play className="w-8 h-8 text-tea-text ml-1" />
             </div>
           </button>
         </>
       )}
     </div>
+  );
+};
+
+// --- VIDEO POSTER FRAME (tap-to-expand) ---
+const VideoPosterFrame: React.FC<{
+  videoId?: string;
+  instagramId?: string;
+  caption?: string;
+  className?: string;
+}> = ({ videoId, instagramId, caption, className = '' }) => {
+  const [showPlayer, setShowPlayer] = useState(false);
+  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : undefined;
+
+  return (
+    <>
+      {/* Poster frame */}
+      <div className={`relative cursor-pointer group ${className}`} onClick={() => setShowPlayer(true)}>
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={caption || 'Video'} className="w-full h-full object-cover" />
+        ) : instagramId ? (
+          <div className="w-full h-full bg-tea-elevated flex items-center justify-center">
+            <span className="text-tea-text-dim text-xs">Instagram Reel</span>
+          </div>
+        ) : null}
+
+        {/* Play button overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center group-hover:bg-black/60 transition-colors">
+            <svg className="w-5 h-5 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+
+        {caption && (
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+            <p className="text-white/70 text-xs">{caption}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Full-screen player overlay */}
+      {showPlayer && videoId && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center" onClick={() => setShowPlayer(false)}>
+          <button
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            onClick={() => setShowPlayer(false)}
+          >
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="w-full max-w-4xl aspect-video" onClick={e => e.stopPropagation()}>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+              className="w-full h-full"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 
@@ -547,7 +611,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
       bg: isDarkText ? 'bg-tea-surface' : 'bg-tea-bg',
       fadeBg: isDarkText ? 'from-tea-surface' : 'from-tea-bg',
       text: isDarkText ? 'text-tea-bg' : 'text-tea-text',
-      subtext: isDarkText ? 'text-tea-bg/60' : 'text-tea-text/60',
+      subtext: isDarkText ? 'text-tea-bg/75' : 'text-tea-text/75',
       border: isDarkText ? 'border-tea-bg/10' : 'border-tea-gold/10',
       softBg: isDarkText ? 'bg-tea-bg/5' : 'bg-tea-gold/5',
       seal: 'text-tea-gold',
@@ -571,7 +635,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
     return (
       <div key={page.index} className="w-full h-full relative group/page overflow-hidden">
         <style>{ANIMATION_STYLES}</style>
-        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-gold/10 opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
+        {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-border opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
         {/* Paper texture — hidden on full-bleed image pages */}
         {![LayoutVariant.IMG_FULL_BLEED, LayoutVariant.IMG_FULL_BLEED_TITLE, LayoutVariant.IMG_OVERLAY_TEXT, LayoutVariant.QUOTE_IMAGE_BG, LayoutVariant.IMG_VIGNETTE_SOFT, LayoutVariant.CHAPTER_IMAGE_BG].includes(variant) && (
           <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.06] mix-blend-overlay"><div className="w-full h-full" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div></div>
@@ -590,9 +654,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`${TYPE.folio} uppercase tracking-[0.3em] text-tea-text/70`}>Teajia</span>
                         </div>
                         {/* Title block — lower third */}
-                        <div className="relative z-20 mt-auto pb-8">
+                        <div className="relative z-20 mt-auto pb-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}>
                             <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.display} font-display font-light tracking-[-0.02em] leading-[0.88] mb-5 text-tea-text`} placeholder="Title" tag="h1" readOnly={readOnly} />
-                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} font-caption tracking-[0.12em] text-tea-text/60`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} font-caption tracking-[0.12em] text-tea-text/75`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
                 );
@@ -658,7 +722,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 <span className={`${TYPE.display} font-display font-light tracking-[0.15em] leading-none`}>Teajia</span>
                             </div>
                         </div>
-                        <div className="border-b border-tea-text/30 pb-2 mb-4 flex justify-between">
+                        <div className="border-b border-tea-border pb-2 mb-4 flex justify-between">
                             <span className={`${FOLIO_CLASS}`}>Est. 2024</span>
                             <span className={`${FOLIO_CLASS}`}>Issue No. 03</span>
                             <span className={`${FOLIO_CLASS}`}>Spring Edition</span>
@@ -670,7 +734,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {/* Headline */}
                         <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.headline} font-display leading-tight mb-2`} placeholder="Headline" tag="h1" readOnly={readOnly} />
                         <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.bodySm} font-body opacity-55 leading-snug`} placeholder="Deck text..." tag="p" readOnly={readOnly} />
-                        <div className="mt-auto pt-4 border-t border-tea-text/15 flex justify-between">
+                        <div className="mt-auto pt-4 border-t border-tea-border flex justify-between">
                             <span className={`${CAPTION_CLASS}`}>Staff</span>
                             <span className={`${CAPTION_CLASS}`}>Teajia Journal</span>
                         </div>
@@ -748,7 +812,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.TEXT_SIDEBAR_RIGHT:
                 return (
                     <div className={`${paperBase} flex h-full relative overflow-hidden`} style={OPENTYPE}>
-                        <div className={`w-2/3 ${PAD.text} pt-20 border-r border-tea-gold/10`}>
+                        <div className={`w-2/3 ${PAD.text} pt-20 border-r border-tea-border`}>
                              <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={`w-1/3 p-8 ${theme.softBg} flex flex-col justify-center text-center`}>
@@ -990,7 +1054,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.QUOTE_MINIMAL:
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex items-center justify-center`} data-page-type="text">
-                        <div className="max-w-[80%] pl-8 border-l-2 border-tea-gold/20">
+                        <div className="max-w-[80%] pl-8 border-l-2 border-tea-border">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-display tracking-wide font-light italic ${LH.normal} opacity-80 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
@@ -1220,7 +1284,11 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         )}
                         {hasVideo ? (
                             <div className={`w-full flex justify-center ${isVertical ? 'my-3' : 'my-4'}`}>
-                                <VideoEmbed videoId={videoId} instagramId={instagramId} isVertical={isVertical} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                {instagramId ? (
+                                    <VideoEmbed videoId={videoId} instagramId={instagramId} isVertical={isVertical} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                ) : (
+                                    <VideoPosterFrame videoId={videoId} caption={videoCaption} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                )}
                             </div>
                         ) : (
                             <div className="w-full flex justify-center my-4">
@@ -1265,7 +1333,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              <div className="w-10 h-[0.5px] bg-current mx-auto mb-6 opacity-20"></div>
                              <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${TYPE.bodySm} opacity-70 leading-[1.5] font-caption`} placeholder="Sidebar note..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-gold/10`}>
+                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-border`}>
                              <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Main text..." tag="p" readOnly={readOnly} />
                         </div>
                         <div className={`absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t ${theme.fadeBg} to-transparent pointer-events-none z-10`} />
@@ -1313,7 +1381,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className={`w-1/3 ${PAD.spacious} flex items-center`}>
                             <EditableText value={content.split('|')[0] || content} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className={`${TYPE.headlineSm} font-display italic leading-[1.5] opacity-70`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                         </div>
-                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-gold/10`}>
+                        <div className={`w-2/3 ${PAD.text} pt-20 border-l border-tea-border`}>
                             <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${BODY_CLASS} opacity-90`} placeholder="Body text..." tag="p" readOnly={readOnly} />
                         </div>
                     </div>
@@ -1570,9 +1638,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black relative`}>
                         <div className="absolute inset-0"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="absolute inset-0 z-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%)' }}></div>
-                        <div className="absolute bottom-12 left-0 right-0 text-center z-20 pointer-events-none">
+                        <div className="absolute bottom-12 left-0 right-0 text-center z-20 pointer-events-none" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}>
                             <div className={readOnly ? '' : 'pointer-events-auto inline-block'}>
-                                <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/70`} placeholder="Caption..." tag="p" readOnly={readOnly} />
+                                <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${CAPTION_CLASS} text-tea-text/80`} placeholder="Caption..." tag="p" readOnly={readOnly} />
                             </div>
                         </div>
                     </div>
@@ -1876,7 +1944,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
 
             case LayoutVariant.POSTCARD_STYLE:
                 return (
-                    <div className={`${paperBase} flex border border-tea-border/40`}>
+                    <div className={`${paperBase} flex border border-tea-border`}>
                         <div className="w-1/2 relative"><SafeImage index={0} className="w-full h-full" /></div>
                         <div className="w-1/2 p-8 flex flex-col relative bg-tea-surface/30">
                             {/* Stamp area */}
@@ -2142,7 +2210,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 return (
                                     <div
                                         key={i}
-                                        className="absolute inset-x-0 bg-tea-surface border border-tea-border/20 shadow-lg p-8"
+                                        className="absolute inset-x-0 bg-tea-surface border border-tea-border shadow-lg p-8"
                                         style={{ top: offset, zIndex, transform: `rotate(${(i - Math.floor(cardItems.length / 2)) * 1.5}deg)` }}
                                     >
                                         <h3 className={`${TYPE.headline} font-display leading-none mb-2 opacity-90`}>{cardTitle}</h3>

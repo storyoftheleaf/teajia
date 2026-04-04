@@ -149,7 +149,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         {!isPlaying && (
             <div className="absolute bottom-0 left-0 w-full p-6 pb-[calc(44px+env(safe-area-inset-bottom,0px)+10px)] text-tea-text pointer-events-none bg-gradient-to-t from-tea-bg/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
-                <span className="px-2 py-0.5 border border-tea-gold/20 text-[9px] uppercase tracking-[0.15em] rounded-full">
+                <span className="px-2 py-0.5 border border-tea-border text-[9px] uppercase tracking-[0.15em] rounded-full">
                     {story.type}
                 </span>
             </div>
@@ -247,7 +247,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             <div className="absolute inset-0 flex items-center justify-center">
                 <button 
                     onClick={() => setIsPlaying(true)}
-                    className="w-24 h-24 border border-tea-gold/15 rounded-full flex items-center justify-center hover:bg-tea-gold/5 transition-all cursor-pointer group"
+                    className="w-24 h-24 border border-tea-border rounded-full flex items-center justify-center hover:bg-tea-gold/5 transition-all cursor-pointer group"
                 >
                     <Icons.Play className="w-10 h-10 text-tea-text ml-1 group-hover:scale-110 transition-transform" />
                 </button>

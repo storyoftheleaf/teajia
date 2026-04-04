@@ -268,7 +268,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
       </div>
 
       {/* Compact Taste / Want / Buy row */}
-      <div className="flex items-center border-t border-tea-gold/8 gap-px bg-tea-gold/[0.06]">
+      <div className="flex items-center border-t border-tea-border gap-px bg-tea-gold/[0.06]">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}
@@ -363,7 +363,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
       </AnimatePresence>
 
       {/* Actions row — compact pill strip */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-tea-gold/8">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-tea-border">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}

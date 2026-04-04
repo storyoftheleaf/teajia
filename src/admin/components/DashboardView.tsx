@@ -175,7 +175,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
               <div className="text-[10px] md:text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
             </div>
-            <div className="text-[10px] md:text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-gold/20">
+            <div className="text-[10px] md:text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-border">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse"></span>
               Live
             </div>

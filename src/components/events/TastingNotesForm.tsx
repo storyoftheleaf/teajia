@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { Send, Leaf } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
 import { useSubmitTastingNotes } from '../../hooks/useEventPolling';
+import { useAppStore } from '../../lib/store';
 import type { TeaMenuItem } from '../../types/events';
+import type { CustomerTasting } from '../../types';
 
 interface TastingNotesFormProps {
   teaMenu: TeaMenuItem[];
   token: string;
   className?: string;
+  /** Event ID to cross-link tastings into the personal journal */
+  eventId?: string;
+  /** Event title shown as context in the journal */
+  eventTitle?: string;
 }
 
 interface NoteState {
@@ -16,8 +22,9 @@ interface NoteState {
   isFavorite: boolean;
 }
 
-const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '' }) => {
+const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '', eventId, eventTitle }) => {
   const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
+  const { addTasting } = useAppStore();
 
   const [notes, setNotes] = useState<Record<string, NoteState>>(() => {
     const initial: Record<string, NoteState> = {};
@@ -59,7 +66,34 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
     if (tastingNotes.length === 0) return;
 
     submitMutation.mutate(tastingNotes, {
-      onSuccess: () => setSubmitted(true),
+      onSuccess: () => {
+        // Cross-link: also write each rated tea into the personal tasting journal
+        if (eventId) {
+          sortedMenu
+            .filter((item) => notes[item.id].rating > 0)
+            .forEach((item) => {
+              const note = notes[item.id];
+              const journalEntry: CustomerTasting = {
+                id: crypto.randomUUID(),
+                teaId: item.productId || item.id,
+                teaName: item.customName || item.productName || 'Unknown Tea',
+                teaType: item.productType || '',
+                teaImage: item.productImageUrl || undefined,
+                tasting: {
+                  rating: note.rating,
+                  overallImpression: note.impression || undefined,
+                },
+                personalNote: note.impression || undefined,
+                rating: note.rating,
+                createdAt: new Date().toISOString(),
+                eventId,
+                eventTitle,
+              };
+              addTasting(journalEntry);
+            });
+        }
+        setSubmitted(true);
+      },
     });
   };
 
@@ -174,7 +208,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         className="w-full mt-6 py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
       >
         {submitMutation.isPending ? (
-          <span className="inline-block w-4 h-4 border-2 border-tea-gold/30 border-t-tea-gold rounded-full animate-spin" />
+          <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
         ) : (
           <>
             <Send className="w-4 h-4" />

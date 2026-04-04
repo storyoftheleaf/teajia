@@ -79,7 +79,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   key={item.id}
                   onClick={() => toggleItem(item.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
-                    isChecked ? 'bg-tea-gold/8 border-tea-gold/30' : 'bg-tea-surface border-tea-border hover:bg-tea-elevated/50'
+                    isChecked ? 'bg-tea-gold/8 border-tea-border' : 'bg-tea-surface border-tea-border hover:bg-tea-elevated/50'
                   }`}
                 >
                   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${

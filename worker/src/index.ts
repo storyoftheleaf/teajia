@@ -797,6 +797,21 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Product Events (cross-link: which events featured this product) ──
+const handleGetProductEvents: Handler = async (_request, env, params) => {
+  const result = await env.DB.prepare(
+    `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
+            e.location_name, e.status, e.flyer_image_url,
+            etm.custom_name, etm.brew_order
+     FROM event_tea_menu etm
+     JOIN events e ON e.id = etm.event_id
+     WHERE etm.product_id = ?
+     ORDER BY e.event_date DESC`
+  ).bind(params.id).all();
+
+  return json(result.results);
+};
+
 // ── Exchange Rates ──
 const handleGetRates: Handler = async (_request, env) => {
   const result = await env.DB.prepare('SELECT * FROM exchange_rates').all();
@@ -813,14 +828,16 @@ const handleGetInvoices: Handler = async (request, env) => {
   const offset = parseInt(url.searchParams.get('offset') || '0');
   const includeDeleted = url.searchParams.get('include_deleted') === '1';
 
-  const whereClause = includeDeleted ? '' : 'WHERE deleted_at IS NULL';
+  const whereClause = includeDeleted ? '' : 'WHERE i.deleted_at IS NULL';
   const result = await env.DB.prepare(
-    `SELECT i.*, COALESCE(t.line_total, 0) as computed_total
+    `SELECT i.*, COALESCE(t.line_total, 0) as computed_total,
+       ev.title as source_event_title, ev.slug as source_event_slug
      FROM invoices i
      LEFT JOIN (
        SELECT invoice_id, SUM(quantity * price_at_sale) as line_total
        FROM invoice_line_items GROUP BY invoice_id
      ) t ON t.invoice_id = i.id
+     LEFT JOIN events ev ON ev.id = i.source_event_id
      ${whereClause}
      ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
   ).bind(limit, offset).all();
@@ -836,7 +853,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const id = crypto.randomUUID();
 
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     body.invoice.invoice_number,
@@ -847,7 +864,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
     body.invoice.shipping_cost_usd || 0,
     body.invoice.status || 'Pending',
     0,
-    body.invoice.notes || null
+    body.invoice.notes || null,
+    body.invoice.source_event_id || null
   );
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
@@ -1197,16 +1215,19 @@ const handleGetCustomers: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
   if (authErr) return authErr;
 
-  // Join with invoices to get order stats (fallback if customer_id column missing)
+  // Join with invoices to get order stats + event attendance count
   let result;
   try {
     result = await env.DB.prepare(`
       SELECT c.*,
-        COUNT(i.id) as order_count,
+        COUNT(DISTINCT i.id) as order_count,
         COALESCE(SUM(
           (SELECT SUM(ili.quantity * ili.price_at_sale) FROM invoice_line_items ili WHERE ili.invoice_id = i.id)
         ), 0) as total_spent_usd,
-        MAX(i.created_at) as last_order_date
+        MAX(i.created_at) as last_order_date,
+        (SELECT COUNT(*) FROM event_attendees ea
+         WHERE ea.customer_id = c.id AND ea.status = 'confirmed' AND ea.attended = 1
+        ) as event_count
       FROM customers c
       LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
       GROUP BY c.id
@@ -1215,7 +1236,7 @@ const handleGetCustomers: Handler = async (request, env) => {
   } catch {
     // Fallback: customer_id column may not exist yet
     result = await env.DB.prepare(`
-      SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date
+      SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
       ORDER BY c.created_at DESC
     `).all();
@@ -1335,6 +1356,28 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
       WHERE i.customer_id = ? AND i.status != 'Void'
       GROUP BY p.id
       ORDER BY last_purchased DESC
+    `).bind(params.id).all();
+    return json(result.results);
+  } catch {
+    return json([]);
+  }
+};
+
+const handleGetCustomerEvents: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  try {
+    const result = await env.DB.prepare(`
+      SELECT
+        e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
+        e.location_name, e.status as event_status,
+        ea.status as attendee_status, ea.attended, ea.access_tier,
+        ea.plus_one, ea.created_at as rsvp_date
+      FROM event_attendees ea
+      JOIN events e ON e.id = ea.event_id
+      WHERE ea.customer_id = ? AND ea.status != 'cancelled'
+      ORDER BY e.event_date DESC
     `).bind(params.id).all();
     return json(result.results);
   } catch {
@@ -4238,6 +4281,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
+  ['GET', '/api/products/:id/events', handleGetProductEvents],
 
   // Exchange Rates
   ['GET', '/api/rates', handleGetRates],
@@ -4257,6 +4301,7 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],
   ['GET', '/api/customers/:id/orders', handleGetCustomerOrders],
   ['GET', '/api/customers/:id/teas', handleGetCustomerTeas],
+  ['GET', '/api/customers/:id/events', handleGetCustomerEvents],
   ['GET', '/api/customers/:id/products', handleGetVendorProducts],
   ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
   ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],

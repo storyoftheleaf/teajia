@@ -111,7 +111,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         >
           {Array.from({ length: galleryCount }).map((_, i) => (
             <div key={i} className="flex-shrink-0 w-full snap-center pr-4 last:pr-0">
-              <CardContainer variant="dark" className="w-full overflow-hidden">
+              <CardContainer className="w-full overflow-hidden">
                 <div className="w-full bg-tea-elevated/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} detail ${i + 1}`} />
               </CardContainer>
             </div>
@@ -132,7 +132,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         {/* Desktop: 2-column grid */}
         <div className="hidden md:grid grid-cols-2 gap-6">
           {Array.from({ length: galleryCount }).map((_, i) => (
-            <CardContainer key={i} variant="dark" className="w-full overflow-hidden">
+            <CardContainer key={i} className="w-full overflow-hidden">
               <div className="w-full bg-tea-elevated/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} detail ${i + 1}`} />
             </CardContainer>
           ))}

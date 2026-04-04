@@ -3,7 +3,7 @@ import '../styles/reader-animations.css';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
-import { Story, Person, LayoutVariant } from '../types';
+import { Story, LayoutVariant } from '../types';
 import { Icons } from './Icons';
 import { SinglePageRenderer, PageData, videoPlayerRegistry } from './SinglePageRenderer';
 import { useImagePreloader } from '../context/ImagePreloaderContext';
@@ -12,10 +12,8 @@ interface ReaderProps {
   story: Story;
   onBack: () => void;
   onNavigate: (story: Story) => void;
-  onPersonClick: (person: Person) => void;
   isSaved?: boolean;
   onToggleSave?: () => void;
-  onShare?: (story: Story) => void;
   enableKeyboard?: boolean;
   watchedStories?: Record<string, boolean>;
   recommendations?: Story[];
@@ -67,25 +65,6 @@ const useWindowWidth = () => {
   return width;
 };
 
-// Helper: Determine page category for entrance animation
-const getPageEnterClass = (variant: LayoutVariant): string => {
-  const v = variant as string;
-  if (v.startsWith('CHAPTER_')) return 'reader-enter-wipe';
-  if (v.startsWith('IMG_') || v === 'COVER_MAIN' || v === 'COVER_MINIMAL' || v === 'COVER_SPLIT') return 'reader-enter-reveal';
-  if (v.startsWith('TEXT_DOUBLE') || v.startsWith('TEXT_TRIPLE') || v === 'TEXT_BLOCKQUOTE_CENTER') return 'reader-enter-scale';
-  if (v.startsWith('TEXT_SIDEBAR') || v.startsWith('TEXT_OVERLAPPING') || v === 'MAGAZINE_INTERVIEW_Q_A') return 'reader-enter-slide';
-  return 'reader-enter-text';
-};
-
-// Helper: Determine data-page-type from variant
-const getPageType = (variant: LayoutVariant): string => {
-  const v = variant as string;
-  if (v.startsWith('CHAPTER_')) return 'chapter';
-  if (v.startsWith('IMG_')) return 'image';
-  if (v.startsWith('TEXT_DOUBLE') || v.startsWith('TEXT_TRIPLE') || v === 'TEXT_BLOCKQUOTE_CENTER') return 'spacious';
-  if (v.startsWith('TEXT_SIDEBAR') || v.startsWith('TEXT_OVERLAPPING') || v === 'MAGAZINE_INTERVIEW_Q_A') return 'mixed';
-  return 'text';
-};
 
 // Shake detector hook
 const useShakeDetector = (onShake: () => void) => {
@@ -121,21 +100,21 @@ const useShakeDetector = (onShake: () => void) => {
 };
 
 // --- Scaled Page Wrapper ---
-// CRITICAL: Maintains strict 3:4 aspect ratio across all viewport sizes
+// CRITICAL: Maintains strict 4:5 aspect ratio across all viewport sizes
 //
 // How it works:
-// - Article always rendered at 800×1067px (3:4 ratio)
-// - Scale = Math.min(clientWidth/800, clientHeight/1067)
+// - Article always rendered at 800×1000px (4:5 ratio)
+// - Scale = Math.min(clientWidth/800, clientHeight/1000)
 // - transform: scale() shrinks it to fit within available container space
-// - Math.min() ensures the limiting dimension controls scale (preserves 3:4 ratio)
+// - Math.min() ensures the limiting dimension controls scale (preserves 4:5 ratio)
 // - transformOrigin: 'center center' keeps it centered
 //
-const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scaleOverride?: number; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, scaleOverride, pageWeight }) => {
+const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, pageWeight }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
   const BASE_WIDTH = 800;
-  const BASE_HEIGHT = 1067;
+  const BASE_HEIGHT = 1000;
 
   useEffect(() => {
     const calculateScale = () => {
@@ -166,15 +145,13 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; scal
     };
   }, []);
 
-  const effectiveScale = scaleOverride !== undefined ? scale * scaleOverride : scale;
-
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden bg-transparent">
       <div
         style={{
           width: BASE_WIDTH,
           height: BASE_HEIGHT,
-          transform: `scale(${effectiveScale})`,
+          transform: `scale(${scale})`,
           transformOrigin: 'center center',
           boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(0,0,0,0.1)',
           contain: 'layout style paint',
@@ -215,31 +192,26 @@ const ReaderProgressBar: React.FC<{ currentPage: number; totalPages: number }> =
   );
 };
 
-export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onShare, isSaved, onToggleSave, enableKeyboard = true, watchedStories, recommendations = [], customZIndex }) => {
+export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSaved, onToggleSave, enableKeyboard = true, watchedStories, recommendations = [], customZIndex }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showNav, setShowNav] = useState(false);
   const [showChapterDrawer, setShowChapterDrawer] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTooltipPage, setDragTooltipPage] = useState<number | null>(null);
-  const [showPageIndicator, setShowPageIndicator] = useState(false);
   const [showShakeConfirm, setShowShakeConfirm] = useState(false);
   const [showKeyboardHints, setShowKeyboardHints] = useState(false);
-  const [transitionMode] = useState<'scroll' | 'crossfade'>('scroll');
-  const [crossfadeKey, setCrossfadeKey] = useState(0);
-  const [sidebarNotes, setSidebarNotes] = useState('');
+  const [marginOpacity, setMarginOpacity] = useState(0.3);
 
   const { preloadImages, clearCache } = useImagePreloader();
   const windowWidth = useWindowWidth();
-  const isDesktopSpread = windowWidth > 1200;
   const isDesktop = windowWidth >= 1024;
 
-  // Horizontal scroll container ref
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrubberRef = useRef<HTMLDivElement>(null);
-  const pageIndicatorTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const lastVibratedPage = useRef<number>(-1);
   const keyboardHintsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const marginTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // W30: Time-of-Day Theming — strengthened
   const hour = new Date().getHours();
@@ -339,6 +311,32 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       });
     });
 
+    // --- PAGE WEIGHT CLASSIFICATION ---
+    const getPageWeight = (v: LayoutVariant): 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' => {
+      const s = v as string;
+      if (s.startsWith('TEXT_DOUBLE') || s.startsWith('TEXT_TRIPLE') || s === 'TEXT_JUSTIFIED_NARROW' || s === 'TEXT_SINGLE_COL') return 'text-heavy';
+      if (s.startsWith('IMG_') || s === 'COVER_MAIN' || s === 'COVER_SPLIT') return 'image-heavy';
+      if (s.startsWith('QUOTE_') || s.startsWith('POEM_') || s.startsWith('CHAPTER_') || s === 'TEXT_BLOCKQUOTE_CENTER') return 'spacious';
+      return 'mixed';
+    };
+
+    // Assign pageWeight to every generated page
+    generated.forEach((p) => {
+      p.pageWeight = getPageWeight(p.variant);
+    });
+
+    // Pacing check: avoid two consecutive text-heavy pages
+    for (let i = 1; i < generated.length - 1; i++) {
+      if (generated[i].pageWeight === 'text-heavy' && generated[i - 1].pageWeight === 'text-heavy') {
+        // Only swap auto-assigned variants (not author-tagged ones)
+        const wasAutoAssigned = !rawContent[i]?.match(/^:::(\w+):::/);
+        if (wasAutoAssigned) {
+          generated[i].variant = LayoutVariant.TEXT_CENTER_NARROW;
+          generated[i].pageWeight = 'spacious';
+        }
+      }
+    }
+
     if (generated.length === 0) {
       generated.push({
         variant: LayoutVariant.COVER_MAIN,
@@ -368,12 +366,6 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     [pages]
   );
 
-  // Load sidebar notes from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(`teajia_notes_${story.id}`);
-    if (saved) setSidebarNotes(saved);
-  }, [story.id]);
-
   // --- PROGRESS & PERSISTENCE ---
   useEffect(() => {
     const savedPage = localStorage.getItem(`teajia_progress_${story.id}`);
@@ -381,15 +373,6 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       const p = parseInt(savedPage, 10);
       if (!isNaN(p) && p > 0 && p < pages.length - 1) {
         setCurrentPageIndex(p);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const container = scrollContainerRef.current;
-            if (container) {
-              const pageWidth = container.clientWidth;
-              container.scrollTo({ left: p * pageWidth, behavior: 'instant' });
-            }
-          });
-        });
       } else {
         setCurrentPageIndex(0);
       }
@@ -402,20 +385,22 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     localStorage.setItem(`teajia_progress_${story.id}`, currentPageIndex.toString());
   }, [currentPageIndex, story.id]);
 
-  // --- CROSSFADE KEY SYNC ---
+  // --- MARGIN OPACITY (desktop gallery) ---
   useEffect(() => {
-    if (transitionMode === 'crossfade') {
-      setCrossfadeKey(k => k + 1);
-    }
-  }, [currentPageIndex, transitionMode]);
-
-  // --- PAGE INDICATOR ---
-  useEffect(() => {
-    setShowPageIndicator(true);
-    clearTimeout(pageIndicatorTimerRef.current);
-    pageIndicatorTimerRef.current = setTimeout(() => setShowPageIndicator(false), 2000);
-    return () => clearTimeout(pageIndicatorTimerRef.current);
+    setMarginOpacity(1);
+    clearTimeout(marginTimerRef.current);
+    marginTimerRef.current = setTimeout(() => setMarginOpacity(0.3), 2000);
+    return () => clearTimeout(marginTimerRef.current);
   }, [currentPageIndex]);
+
+  // --- CONTROLS AUTO-DISMISS ---
+  useEffect(() => {
+    if (showControls) {
+      clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+      return () => clearTimeout(controlsTimerRef.current);
+    }
+  }, [showControls]);
 
   // --- HAPTIC FEEDBACK ---
   useEffect(() => {
@@ -442,39 +427,81 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
   }, [isDesktop]);
 
   // --- NAVIGATION ---
-  const scrollToPage = useCallback((index: number) => {
-    if (!scrollContainerRef.current) return;
-    const container = scrollContainerRef.current;
-    const pageWidth = container.clientWidth;
-    const scrollLeft = index * pageWidth;
-    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-  }, []);
+  const goToPage = useCallback((index: number) => {
+    if (index >= 0 && index < pages.length) {
+      setCurrentPageIndex(index);
+    }
+  }, [pages.length]);
 
   const next = useCallback(() => {
-    if (currentPageIndex < pages.length - 1) scrollToPage(currentPageIndex + 1);
-  }, [currentPageIndex, pages.length, scrollToPage]);
+    if (currentPageIndex < pages.length - 1) setCurrentPageIndex(currentPageIndex + 1);
+  }, [currentPageIndex, pages.length]);
 
   const prev = useCallback(() => {
-    if (currentPageIndex > 0) scrollToPage(currentPageIndex - 1);
-  }, [currentPageIndex, scrollToPage]);
+    if (currentPageIndex > 0) setCurrentPageIndex(currentPageIndex - 1);
+  }, [currentPageIndex]);
 
-  // --- SCROLL-BASED PAGE TRACKING ---
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  // --- SWIPE HANDLER ---
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
 
-    const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      const pageWidth = container.clientWidth;
-      const newIndex = Math.round(scrollLeft / pageWidth);
-      if (newIndex !== currentPageIndex && newIndex >= 0 && newIndex < pages.length) {
-        setCurrentPageIndex(newIndex);
-      }
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
     };
+    setSwipeOffset(0);
+  }, []);
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const dx = e.touches[0].clientX - touchStartRef.current.x;
+    const dy = e.touches[0].clientY - touchStartRef.current.y;
+    // Only track horizontal swipes
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Resist at edges
+      const atStart = currentPageIndex === 0 && dx > 0;
+      const atEnd = currentPageIndex >= pages.length - 1 && dx < 0;
+      const resistance = (atStart || atEnd) ? 0.2 : 1;
+      setSwipeOffset(dx * resistance);
+    }
   }, [currentPageIndex, pages.length]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStartRef.current) return;
+    const threshold = 50;
+    const velocity = Math.abs(swipeOffset) / (Date.now() - touchStartRef.current.time) * 1000;
+
+    if (swipeOffset < -threshold || (swipeOffset < -20 && velocity > 300)) {
+      next();
+    } else if (swipeOffset > threshold || (swipeOffset > 20 && velocity > 300)) {
+      prev();
+    }
+    setSwipeOffset(0);
+    touchStartRef.current = null;
+  }, [swipeOffset, next, prev]);
+
+  // Single tap for controls (detect tap vs swipe)
+  const handlePageClick = useCallback((e: React.MouseEvent) => {
+    // Only toggle controls on click (not after swipe)
+    setShowControls(s => !s);
+  }, []);
+
+  // --- SHARE HANDLER ---
+  const handleShare = useCallback(async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: story.title,
+          text: `${story.title} — Page ${currentPageIndex + 1}`,
+          url: window.location.href,
+        });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard?.writeText(window.location.href);
+    }
+  }, [story.title, currentPageIndex]);
 
   // --- PAUSE VIDEOS ON PAGE CHANGE ---
   useEffect(() => {
@@ -502,13 +529,12 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       if (e.key === 'Escape') onBack();
       if (e.key === 'b' || e.key === 'B') onToggleSave?.();
       if (e.key === 't' || e.key === 'T') {
-        if (isDesktopSpread) setShowSidebar(s => !s);
-        else if (chapters.length > 0) setShowChapterDrawer(s => !s);
+        if (chapters.length > 0) setShowChapterDrawer(s => !s);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPageIndex, pages.length, enableKeyboard, onBack, next, prev, showKeyboardHints, onToggleSave, isDesktopSpread, chapters.length]);
+  }, [currentPageIndex, pages.length, enableKeyboard, onBack, next, prev, showKeyboardHints, onToggleSave, chapters.length]);
 
   // --- IMAGE PRELOADING ---
   useEffect(() => {
@@ -540,8 +566,8 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const newPage = Math.round(ratio * (pages.length - 1));
     setDragTooltipPage(newPage);
-    scrollToPage(newPage);
-  }, [pages.length, scrollToPage]);
+    goToPage(newPage);
+  }, [pages.length, goToPage]);
 
   const handleScrubberMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -585,12 +611,12 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / rect.width));
       const targetPage = Math.round(ratio * (pages.length - 1));
-      scrollToPage(targetPage);
+      goToPage(targetPage);
     };
 
     return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <span className="text-xs font-mono text-tea-text-sec/50 tabular-nums w-4 text-right">{currentPageIndex + 1}</span>
+        <span className="text-xs font-mono text-tea-text-sec/80 tabular-nums w-4 text-right">{currentPageIndex + 1}</span>
         <div
           ref={scrubberRef}
           onClick={handleClick}
@@ -626,7 +652,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
             </div>
           </div>
         </div>
-        <span className="num text-[11px] text-tea-text-sec/50 w-4">{pages.length}</span>
+        <span className="num text-[11px] text-tea-text-sec/80 w-4">{pages.length}</span>
       </div>
     );
   };
@@ -698,7 +724,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
               {chapters.map((ch, i) => (
                 <button
                   key={i}
-                  onClick={() => { scrollToPage(ch.pageIndex); setShowChapterDrawer(false); }}
+                  onClick={() => { goToPage(ch.pageIndex); setShowChapterDrawer(false); }}
                   className="w-full text-left px-4 py-3 rounded-lg hover:bg-tea-accent-sub transition-colors"
                 >
                   <span className="text-tea-text-dim text-[10px] uppercase tracking-[0.15em] mr-3">{String(i + 1).padStart(2, '0')}</span>
@@ -756,7 +782,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
         >
           <span className="text-tea-text text-sm">Return to start?</span>
           <button
-            onClick={() => { scrollToPage(0); setShowShakeConfirm(false); }}
+            onClick={() => { goToPage(0); setShowShakeConfirm(false); }}
             className="text-tea-gold text-sm font-medium hover:text-tea-gold-lt transition-colors"
           >
             Yes
@@ -772,86 +798,45 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
     </AnimatePresence>
   );
 
-  // --- DESKTOP SIDEBAR ---
-  const DesktopSidebar = () => (
-    <div className={`reader-sidebar ${showSidebar ? '' : 'collapsed'}`}>
-      {showSidebar && (
-        <div className="p-5 flex flex-col gap-6 h-full">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Contents</span>
-            <button onClick={() => setShowSidebar(false)} className="p-2 rounded-full hover:bg-tea-surface/40 transition-colors">
-              <Icons.Close className="w-4 h-4 text-tea-text-dim" />
-            </button>
-          </div>
-
-          {/* Chapter list */}
-          {chapters.length > 0 && (
-            <div className="space-y-1">
-              {chapters.map((ch, i) => (
-                <button
-                  key={i}
-                  onClick={() => scrollToPage(ch.pageIndex)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors text-sm ${ch.pageIndex === currentPageIndex ? 'bg-tea-accent-sub text-tea-gold' : 'text-tea-text hover:bg-tea-surface/40'}`}
-                >
-                  <span className="text-[10px] text-tea-text-dim mr-2">{String(i + 1).padStart(2, '0')}</span>
-                  {ch.title}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="border-t border-tea-border" />
-
-          {/* Notes area */}
-          <div className="flex flex-col gap-2 flex-1">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Notes</span>
-            <textarea
-              value={sidebarNotes}
-              onChange={e => {
-                setSidebarNotes(e.target.value);
-                localStorage.setItem(`teajia_notes_${story.id}`, e.target.value);
-              }}
-              placeholder="Your notes for this story…"
-              className="flex-1 bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text text-sm resize-none placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/40 transition-colors"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // --- CROSSFADE PAGE TRANSITION ---
-  const CrossfadeReader = () => {
-    const page = pages[currentPageIndex];
-    if (!page) return null;
-    return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={crossfadeKey}
-            initial={{ scale: 1.08, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.92, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="w-full h-full"
+  // --- CONTROLS OVERLAY (center-tap) ---
+  const ControlsOverlay = () => (
+    <AnimatePresence>
+      {showControls && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.2 }}
+          className="absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-tea-elevated/90 backdrop-blur-sm rounded-full px-5 py-3 shadow-lg"
+          style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 48px)' }}
+        >
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-full hover:bg-tea-surface/40 transition-colors"
+            aria-label="Share"
           >
-            <ScaledPage isActive pageWeight={page.pageWeight}>
-              <SinglePageRenderer
-                page={page}
-                storyTitle={story.title}
-                storySubtitle={story.subtitle}
-                onNavigate={onNavigate}
-                recommendations={recommendations}
-              />
-            </ScaledPage>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    );
-  };
-
-  // Determine if we're rendering crossfade mode (future toggle)
-  const useCrossfade = transitionMode === 'crossfade';
+            <Icons.Share className="w-5 h-5 text-tea-text-dim" />
+          </button>
+          <button
+            onClick={onToggleSave}
+            className={`p-2 rounded-full hover:bg-tea-surface/40 transition-colors ${isSaved ? 'text-tea-gold' : ''}`}
+            aria-label="Bookmark"
+          >
+            <Icons.Bookmark className="w-5 h-5 text-tea-text-dim" />
+          </button>
+          {chapters.length > 0 && (
+            <button
+              onClick={() => { setShowChapterDrawer(true); setShowControls(false); }}
+              className="p-2 rounded-full hover:bg-tea-surface/40 transition-colors"
+              aria-label="Chapters"
+            >
+              <Icons.List className="w-5 h-5 text-tea-text-dim" />
+            </button>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   // --- MAIN RENDER ---
   return (
@@ -859,11 +844,11 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       className={`fixed inset-0 bg-tea-bg flex flex-col overflow-hidden ${customZIndex || 'z-modal'}`}
       style={{
         height: '100dvh',
-        ...(timeFilter ? { filter: timeFilter } : {})
+        ...(timeFilter ? { filter: timeFilter } : {}),
       }}
     >
       {/* Background Texture */}
-      <div className="absolute inset-0 opacity-50 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }} />
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }} />
 
       {/* Reading Progress Bar */}
       <ReaderProgressBar currentPage={currentPageIndex} totalPages={pages.length} />
@@ -881,249 +866,148 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, onSha
       {isDesktop && <KeyboardHintsOverlay />}
 
       {/* --- TOP BAR --- */}
-      <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-white/70 pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
+      <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-tea-text/70 pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] hover:text-white pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
+          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
         >
           <Icons.Close className="w-5 h-5" />
           <span className="hidden md:inline">Close</span>
         </button>
 
         <div className="flex items-center gap-4 pointer-events-auto">
-          {/* Chapter drawer button (shown if chapters exist and not desktop spread) */}
-          {chapters.length > 0 && !isDesktopSpread && (
-            <button
-              onClick={() => setShowChapterDrawer(s => !s)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-              aria-label="Chapters"
-            >
-              <Icons.List className="w-5 h-5" />
-            </button>
-          )}
-          {/* Sidebar toggle on desktop */}
-          {isDesktopSpread && (
-            <button
-              onClick={() => setShowSidebar(s => !s)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-              aria-label="Sidebar"
-            >
-              <Icons.List className="w-5 h-5" />
-            </button>
-          )}
           {/* Nav overlay (recommendations) */}
-          {!isDesktopSpread && (
-            <button
-              onClick={() => setShowNav(true)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-            >
-              <Icons.List className="w-5 h-5" />
-            </button>
-          )}
-          {onShare && (
-            <button
-              onClick={() => onShare(story)}
-              className="p-3 hover:text-white transition-colors rounded-full"
-            >
-              <Icons.Share className="w-5 h-5" />
-            </button>
-          )}
+          <button
+            onClick={() => setShowNav(true)}
+            className="p-3 hover:text-tea-text transition-colors rounded-full"
+          >
+            <Icons.List className="w-5 h-5" />
+          </button>
           <button
             onClick={onToggleSave}
-            className={`p-3 hover:text-white transition-colors rounded-full ${isSaved ? 'text-tea-gold' : ''}`}
+            className={`p-3 hover:text-tea-text transition-colors rounded-full ${isSaved ? 'text-tea-gold' : ''}`}
           >
             <Icons.Leaf filled={isSaved} className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {/* --- MAIN LAYOUT: content area + optional sidebar --- */}
-      <div className="flex w-full h-full">
+      {/* --- MAIN CONTENT AREA --- */}
+      <div className="relative flex-1 flex flex-col overflow-hidden w-full h-full">
 
-        {/* --- CONTENT AREA --- */}
-        <div className="relative flex-1 flex flex-col overflow-hidden">
+        {/* --- GALLERY FRAME (desktop) / SINGLE PAGE (mobile) --- */}
+        <div
+          className="relative w-full h-full flex items-center justify-center"
+          style={{ paddingTop: '64px', paddingBottom: '96px' }}
+        >
+          {/* Gallery margins — left (desktop only) */}
+          <div
+            className="hidden lg:flex flex-col justify-between h-full py-20 px-8 pointer-events-none shrink-0"
+            style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
+          >
+            <span className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim" style={{ fontFamily: 'var(--font-sans)' }}>
+              {story.title}
+            </span>
+          </div>
 
-          {/* Desktop spread nav arrows — relative to page container */}
+          {/* Page container */}
+          <div className="relative flex-1 lg:flex-none h-full lg:h-auto" style={{ maxHeight: isDesktop ? 'calc(100vh - 160px)' : undefined, aspectRatio: isDesktop ? '4/5' : undefined }}>
+            {/* Swipe zone overlay */}
+            <div
+              className="absolute inset-0 z-40 cursor-pointer"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={handlePageClick}
+            />
+
+            {/* Controls overlay (center-tap) */}
+            <ControlsOverlay />
+
+            {/* Push-with-depth page transition */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentPageIndex}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, scale: 1, x: swipeOffset }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={swipeOffset !== 0
+                  ? { duration: 0, x: { duration: 0 } }
+                  : { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
+                }
+                className="w-full h-full"
+              >
+                {pages[currentPageIndex] && (
+                  <ScaledPage isActive pageWeight={pages[currentPageIndex].pageWeight}>
+                    <SinglePageRenderer
+                      page={pages[currentPageIndex]}
+                      storyTitle={story.title}
+                      storySubtitle={story.subtitle}
+                      onNavigate={onNavigate}
+                      recommendations={recommendations}
+                    />
+                  </ScaledPage>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+          </div>
+
+          {/* Gallery margins — right (desktop only) */}
+          <div
+            className="hidden lg:flex flex-col justify-end h-full py-20 px-8 pointer-events-none shrink-0"
+            style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
+          >
+            <span className="font-mono text-[11px] text-tea-text-dim tabular-nums">
+              {currentPageIndex + 1} / {pages.length}
+            </span>
+          </div>
+
+          {/* Desktop nav arrows — in margins */}
           {isDesktop && (
             <>
               <button
                 onClick={prev}
                 disabled={currentPageIndex === 0}
-                className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-50 w-16 h-48 items-center justify-center transition-all disabled:opacity-0 hover:bg-tea-surface/10 rounded-lg"
+                className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
                 aria-label="Previous page"
               >
-                <Icons.Back className="w-8 h-8 text-white/40 hover:text-white transition-colors" />
+                <Icons.Back className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />
               </button>
               <button
                 onClick={next}
                 disabled={currentPageIndex >= pages.length - 1}
-                className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-50 w-16 h-48 items-center justify-center transition-all disabled:opacity-0 hover:bg-tea-surface/10 rounded-lg"
+                className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
                 aria-label="Next page"
               >
-                <Icons.Next className="w-8 h-8 text-white/40 hover:text-white transition-colors" />
+                <Icons.Next className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />
               </button>
             </>
           )}
-
-          {useCrossfade ? (
-            <div
-              className="relative w-full h-full"
-              style={{ paddingTop: '64px', paddingBottom: '96px' }}
-            >
-              <CrossfadeReader />
-            </div>
-          ) : isDesktopSpread ? (
-            /* --- DESKTOP DUAL-PAGE SPREAD --- */
-            <div
-              className="relative w-full h-full flex items-center justify-center"
-              style={{ paddingTop: '64px', paddingBottom: '96px' }}
-            >
-              {(() => {
-                const totalPages = pages.length;
-                const leftIdx = currentPageIndex % 2 === 0 ? currentPageIndex : currentPageIndex - 1;
-                const rightIdx = leftIdx + 1;
-                const leftPage = pages[leftIdx];
-                const rightPage = rightIdx < totalPages ? pages[rightIdx] : null;
-
-                return (
-                  <div className="flex items-center justify-center h-full" style={{ gap: '2px' }}>
-                    {/* Left page — fixed aspect container */}
-                    <div className="h-full" style={{ aspectRatio: '800/1067' }}>
-                      {leftPage && (
-                        <ScaledPage isActive={currentPageIndex === leftIdx} pageWeight={leftPage.pageWeight}>
-                          <SinglePageRenderer
-                            page={leftPage}
-                            storyTitle={story.title}
-                            storySubtitle={story.subtitle}
-                            onNavigate={onNavigate}
-                            recommendations={recommendations}
-                          />
-                        </ScaledPage>
-                      )}
-                    </div>
-
-                    {/* Right page — fixed aspect container */}
-                    <div className="h-full" style={{ aspectRatio: '800/1067' }}>
-                      {rightPage ? (
-                        <ScaledPage isActive={currentPageIndex === rightIdx} pageWeight={rightPage.pageWeight}>
-                          <SinglePageRenderer
-                            page={rightPage}
-                            storyTitle={story.title}
-                            storySubtitle={story.subtitle}
-                            onNavigate={onNavigate}
-                            recommendations={recommendations}
-                          />
-                        </ScaledPage>
-                      ) : (
-                        <div className="w-full h-full" />
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          ) : (
-            /* --- SCROLL-SNAP SINGLE PAGE (default) --- */
-            <div
-              ref={scrollContainerRef}
-              className="relative w-full h-full overflow-x-scroll overflow-y-hidden snap-x snap-mandatory scroll-smooth hide-scrollbar-always flex items-center"
-              style={{
-                paddingTop: '64px',
-                paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)'
-              }}
-            >
-              <div className="inline-flex h-full" style={{ gap: '0' }}>
-                {pages.map((page, index) => {
-                  const isInRange = Math.abs(index - currentPageIndex) <= 3;
-                  if (isInRange) {
-                    const isActive = index === currentPageIndex;
-                    const enterClass = isActive ? getPageEnterClass(page.variant) : '';
-                    const pageType = getPageType(page.variant);
-                    return (
-                      <div
-                        key={index}
-                        className={`w-screen h-full snap-center snap-always shrink-0 ${enterClass}`}
-                        data-page-active={isActive ? "true" : "false"}
-                        data-page-type={pageType}
-                        style={{
-                          opacity: isActive ? 1 : 0.6,
-                          transition: 'opacity 200ms ease'
-                        }}
-                      >
-                        <ScaledPage isActive={isActive} pageWeight={page.pageWeight}>
-                          <SinglePageRenderer
-                            page={page}
-                            storyTitle={story.title}
-                            storySubtitle={story.subtitle}
-                            onNavigate={onNavigate}
-                            recommendations={recommendations}
-                          />
-                        </ScaledPage>
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div key={index} className="w-screen h-full snap-center snap-always shrink-0" />
-                    );
-                  }
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* --- PAGE INDICATOR (transient) --- */}
-          <AnimatePresence>
-            {showPageIndicator && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="absolute pointer-events-none font-mono text-[11px] tracking-wider text-tea-text-dim"
-                style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)', right: '1.5rem', zIndex: 55 }}
-              >
-                {currentPageIndex + 1} / {pages.length}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* --- BOTTOM BAR --- */}
-          <div
-            className="absolute left-0 w-full z-50 pointer-events-none"
-            style={{ bottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom) + 70px)' }}
-          >
-            {/* Mobile: Arrows + Scrubber */}
-            <div className="lg:hidden flex items-center px-6 pb-4 gap-3 pointer-events-auto">
-              <button
-                onClick={prev}
-                disabled={currentPageIndex === 0}
-                className="p-3 text-white/40 hover:text-white disabled:opacity-0 transition-all shrink-0 rounded-full"
-                aria-label="Previous page"
-              >
-                <Icons.Back className="w-7 h-7" />
-              </button>
-
-              <ProgressScrubber className="flex-1" />
-
-              <button
-                onClick={next}
-                disabled={currentPageIndex >= pages.length - 1}
-                className="p-3 text-white/40 hover:text-white disabled:opacity-0 transition-all shrink-0 rounded-full"
-                aria-label="Next page"
-              >
-                <Icons.Next className="w-7 h-7" />
-              </button>
-            </div>
-
-            {/* Desktop: Scrubber only */}
-            <div className="hidden lg:flex pb-6 pointer-events-auto justify-center">
-              <ProgressScrubber className="w-64" />
-            </div>
-          </div>
         </div>
 
-        {/* --- DESKTOP SIDEBAR --- */}
-        {isDesktopSpread && <DesktopSidebar />}
+        {/* --- BOTTOM BAR --- */}
+        <div
+          className="absolute left-0 w-full z-50 pointer-events-none"
+          style={{ bottom: 0, paddingBottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 16px)' }}
+        >
+          {/* Mobile: Share icon + Scrubber */}
+          <div className="lg:hidden flex items-center px-6 pb-4 gap-3 pointer-events-auto">
+            <button
+              onClick={handleShare}
+              className="p-2 text-tea-text-dim hover:text-tea-text transition-colors shrink-0 rounded-full"
+              aria-label="Share"
+            >
+              <Icons.ExternalLink className="w-4 h-4" />
+            </button>
+            <ProgressScrubber className="flex-1" />
+          </div>
+
+          {/* Desktop: Scrubber only */}
+          <div className="hidden lg:flex pb-6 pointer-events-auto justify-center">
+            <ProgressScrubber className="w-64" />
+          </div>
+        </div>
       </div>
     </div>
   );
