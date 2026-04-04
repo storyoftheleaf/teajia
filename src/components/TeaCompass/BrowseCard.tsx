@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Droplets } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
@@ -88,6 +89,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
   entry,
   onEdit,
 }) => {
+  const navigate = useNavigate();
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
@@ -392,13 +394,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         )}
 
         {entry.status === 'bought' && entry.draftProductId && (
-          <a
-            href={`/admin/inventory?panel=${encodeURIComponent(entry.draftProductId)}`}
+          <button
+            type="button"
+            onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(entry.draftProductId!)}`)}
             className="pill flex items-center gap-1 text-tea-gold"
           >
             <ExternalLink size={10} />
             Inventory
-          </a>
+          </button>
         )}
 
         <button

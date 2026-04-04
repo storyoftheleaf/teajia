@@ -459,7 +459,7 @@ export const OrdersView = () => {
                             <div key={i} className="flex justify-between text-sm items-center">
                                 <div>
                                     <button
-                                      onClick={() => { setViewingInvoice(null); navigate(`/admin/catalog?search=${encodeURIComponent(item.given_name || item.product_name || '')}`); }}
+                                      onClick={() => { setViewingInvoice(null); navigate(item.product_id ? `/admin/inventory?panel=${encodeURIComponent(item.product_id)}` : `/admin/inventory?search=${encodeURIComponent(item.given_name || item.product_name || '')}`); }}
                                       className="text-tea-text font-medium hover:text-tea-accent transition-colors text-left"
                                     >
                                       {item.given_name || 'Unknown Item'}

@@ -36,13 +36,14 @@ import { CsvImportModal } from './components/CsvImportModal';
 import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
 
-/** Reads ?tab= query param and passes initialMode to TeaCompass */
+/** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
 const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
+  const entryId = params.get('entry');
   const initialMode: CompassMode | undefined =
     tab === 'ledger' ? 'ledger' : tab === 'capture' ? 'capture' : tab === 'browse' ? 'browse' : undefined;
-  return <TeaCompass onBack={onBack} initialMode={initialMode} />;
+  return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} />;
 };
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (

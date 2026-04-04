@@ -3372,7 +3372,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
                             <button
-                              onClick={() => navigate(`/compass?entry=${encodeURIComponent(compassEntry.id)}`)}
+                              onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(compassEntry.id)}`)}
                               className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
                             >
                               <Globe size={10} />
@@ -3382,6 +3382,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </div>
                         );
                       })()}
+
+                      {/* Order History — link to Activity view filtered by this product */}
+                      <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Orders</span>
+                        <button
+                          onClick={() => navigate(`/admin/activity?search=${encodeURIComponent(panelProduct.givenName || panelProduct.productName)}`)}
+                          className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
+                        >
+                          <Receipt size={10} />
+                          View order history
+                        </button>
+                      </div>
                     </div>
 
                     {/* All toggles: visibility + source + ownership */}
