@@ -35,8 +35,11 @@ const SamplePage = lazy(() => import('./pages/SamplePage'));
 const Storefront = lazy(() => import('./components/storefront/Storefront').then(m => ({ default: m.Storefront })));
 const FindATable = lazy(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
 
+import { useQuery } from '@tanstack/react-query';
+import { fetchStore } from './lib/storefrontApi';
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
+import type { Account } from './types';
 import { useAppStore } from './lib/store';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
@@ -114,6 +117,20 @@ const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const activeSection = pathToSection(location.pathname);
+
+  // Detect active storefront from pathname to route checkout to that store's
+  // WhatsApp number. Shares the react-query cache with <Storefront /> itself.
+  const storefrontSlug = useMemo(() => {
+    const m = location.pathname.match(/^\/store\/([^/?#]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }, [location.pathname]);
+
+  const { data: activeStore } = useQuery<Account>({
+    queryKey: ['storefront', 'store', storefrontSlug],
+    queryFn: () => fetchStore(storefrontSlug as string),
+    enabled: !!storefrontSlug,
+    staleTime: 1000 * 60 * 5,
+  });
 
   const [magazineDefaultTab, setMagazineDefaultTab] = useState<'articles' | 'visual' | 'tea-inspire'>('articles');
   const [isSectionTransitioning, setIsSectionTransitioning] = useState(false);
@@ -674,6 +691,7 @@ const AppContent = () => {
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
          onAddItem={addToPublicCart}
+         whatsappNumber={activeStore?.whatsapp_number}
       />
 
       {/* --- GLOBAL SEARCH --- */}
