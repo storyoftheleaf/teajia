@@ -1,10 +1,11 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin } from 'lucide-react';
 import { Product } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
+import { api } from '../../lib/api';
 
 const TooltipWrapper = (props: any) => (
     <RechartsTooltip 
@@ -18,6 +19,14 @@ const TooltipWrapper = (props: any) => (
 export const DashboardView = ({ products, isLoading }: { products: Product[], isLoading: boolean }) => {
   const navigate = useNavigate();
   const { data: rates = [] } = useRates();
+
+  const [customers, setCustomers] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.customers.list().then((data: any) => {
+      setCustomers(Array.isArray(data) ? data : data.customers || []);
+    }).catch(() => {});
+  }, []);
 
   const handleChartClick = useCallback((dimension: string, value: string) => {
     navigate(`/admin/inventory?search=${encodeURIComponent(value)}`);
@@ -83,6 +92,40 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
             .map(([name, value]) => ({ name, value }))
     };
   }, [products, rates, isLoading]);
+
+  const customerMetrics = useMemo(() => {
+    if (!customers.length) return null;
+
+    const totalCustomers = customers.length;
+    const withOrders = customers.filter((c: any) => (c.orderCount || 0) > 0);
+    const totalRevenue = withOrders.reduce((sum: number, c: any) => sum + (c.totalSpentUSD || 0), 0);
+    const avgOrderValue = withOrders.length > 0 ? totalRevenue / withOrders.reduce((sum: number, c: any) => sum + (c.orderCount || 0), 0) : 0;
+
+    // Tag distribution
+    const tagCounts: Record<string, number> = {};
+    customers.forEach((c: any) => {
+      const tags = Array.isArray(c.tags) ? c.tags : (typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : []);
+      tags.forEach((t: string) => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+    });
+
+    // Top customers by spend
+    const topCustomers = [...withOrders]
+      .sort((a: any, b: any) => (b.totalSpentUSD || 0) - (a.totalSpentUSD || 0))
+      .slice(0, 5);
+
+    // Event attendees (customers who've attended events)
+    const eventAttendees = customers.filter((c: any) => (c.eventCount || 0) > 0).length;
+
+    return {
+      totalCustomers,
+      activeCustomers: withOrders.length,
+      totalRevenue,
+      avgOrderValue,
+      tagCounts,
+      topCustomers,
+      eventAttendees,
+    };
+  }, [customers]);
 
   if (isLoading || !metrics) {
     return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Analyzing financial data...</div>;
@@ -250,6 +293,63 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Customer Intelligence Section */}
+      {customerMetrics && (
+        <div className="mt-8">
+          <h2 className="text-sm font-sans font-medium uppercase tracking-wider text-tea-text-sec mb-4">
+            Customer Intelligence
+          </h2>
+
+          {/* Customer KPI cards - same style as financial KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="bg-tea-surface rounded-lg p-4">
+              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Customers</p>
+              <p className="text-2xl font-mono text-tea-text mt-1">{customerMetrics.totalCustomers}</p>
+            </div>
+            <div className="bg-tea-surface rounded-lg p-4">
+              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Active Buyers</p>
+              <p className="text-2xl font-mono text-tea-text mt-1">{customerMetrics.activeCustomers}</p>
+            </div>
+            <div className="bg-tea-surface rounded-lg p-4">
+              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Revenue</p>
+              <p className="text-2xl font-mono text-tea-gold mt-1">${customerMetrics.totalRevenue.toFixed(0)}</p>
+            </div>
+            <div className="bg-tea-surface rounded-lg p-4">
+              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Avg Order Value</p>
+              <p className="text-2xl font-mono text-tea-text mt-1">${customerMetrics.avgOrderValue.toFixed(0)}</p>
+            </div>
+          </div>
+
+          {/* Top customers list */}
+          <div className="bg-tea-surface rounded-lg p-4">
+            <h3 className="text-xs font-sans text-tea-text-dim uppercase tracking-wider mb-3">Top Customers by Revenue</h3>
+            <div className="space-y-2">
+              {customerMetrics.topCustomers.map((c: any, i: number) => (
+                <button
+                  key={c.id}
+                  onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
+                  className="flex items-center justify-between w-full px-2 py-1.5 rounded hover:bg-tea-accent-sub/50 transition-colors text-left group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-tea-text-dim w-4">{i + 1}</span>
+                    <span className="text-sm font-sans text-tea-text group-hover:text-tea-gold transition-colors">{c.name}</span>
+                    {c.tags && (
+                      <span className="text-[10px] font-sans text-tea-text-dim">
+                        {(Array.isArray(c.tags) ? c.tags : JSON.parse(c.tags || '[]')).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-mono text-tea-gold">${(c.totalSpentUSD || 0).toFixed(0)}</span>
+                    <span className="text-xs font-sans text-tea-text-dim ml-2">{c.orderCount} orders</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
