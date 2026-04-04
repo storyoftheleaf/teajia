@@ -2799,8 +2799,9 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 // ── Event Admin Routes ──
 
 const handleGetEvents: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(`
     SELECT e.*,
@@ -2810,35 +2811,39 @@ const handleGetEvents: Handler = async (request, env) => {
       COUNT(ea.id) as total_attendees
     FROM events e
     LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.status != 'cancelled'
+    WHERE e.account_id = ?
     GROUP BY e.id
     ORDER BY e.event_date DESC
-  `).all();
+  `).bind(accountId).all();
 
   return json(result.results);
 };
 
 const handleCreateEvent: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   if (!body.slug || !body.title || !body.event_date || !body.total_capacity) {
     return json({ error: 'slug, title, event_date, and total_capacity are required' }, 400);
   }
 
-  // Check slug uniqueness
+  // Event slug must be unique globally (it's used in /api/events/:slug/public
+  // and in shareable URLs across the network).
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
   if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
 
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
-    `INSERT INTO events (id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+    `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, location_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
+    accountId,
     body.slug,
     body.title,
     body.subtitle || null,
@@ -2864,12 +2869,13 @@ const handleCreateEvent: Handler = async (request, env) => {
 };
 
 const handleUpdateEvent: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
-  // Stringify JSON fields if needed
   if (body.session_flow && typeof body.session_flow !== 'string') {
     body.session_flow = JSON.stringify(body.session_flow);
   }
@@ -2878,33 +2884,38 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(
+    `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleDeleteEvent: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare(`UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ?`)
-    .bind(params.id).run();
+  await env.DB.prepare(
+    `UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleGetAttendees: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(
     `SELECT ea.*, c.name as customer_name_linked, c.tags as customer_tags
      FROM event_attendees ea
      LEFT JOIN customers c ON c.id = ea.customer_id
-     WHERE ea.event_id = ?
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.event_id = ? AND e.account_id = ?
      ORDER BY ea.status ASC, ea.created_at ASC`
-  ).bind(params.id).all();
+  ).bind(params.id, accountId).all();
 
   // Attach journey preview per attendee (sessions_attended + last_attended)
   const attendeesWithJourney = await Promise.all(
@@ -2938,27 +2949,40 @@ const handleGetAttendees: Handler = async (request, env, params) => {
   return json(attendeesWithJourney);
 };
 
+// Helper: verify event belongs to the caller's account. Returns a 404-style
+// response when not found, so cross-account attempts look the same as
+// non-existent events.
+async function assertEventInAccount(env: Env, eventId: string, accountId: string): Promise<Response | null> {
+  const row = await env.DB.prepare(
+    'SELECT id FROM events WHERE id = ? AND account_id = ?'
+  ).bind(eventId, accountId).first();
+  if (!row) return json({ error: 'Event not found' }, 404);
+  return null;
+}
+
 const handleUpdateAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.claim_window_minutes, e.id as eid
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.id = ?`
-  ).bind(params.id).first();
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
     .bind(...cols.map(c => body[c] ?? null), params.id).run();
 
-  // If status changed to cancelled, cascade waitlist
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
     await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
   }
@@ -2967,8 +2991,11 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
 };
 
 const handleGetNotifications: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const result = await env.DB.prepare(
     `SELECT en.*, ea.full_name, ea.phone_number
@@ -2982,19 +3009,21 @@ const handleGetNotifications: Handler = async (request, env, params) => {
 };
 
 const handleCreateNotifications: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
-  // Generate checkin reminders for all confirmed attendees
   const attendees = await env.DB.prepare(
     `SELECT id FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
   ).bind(params.id).all();
 
-  const stmts = attendees.results.map(a =>
+  const stmts = (attendees.results as any[]).map(a =>
     env.DB.prepare(
-      `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-       VALUES (?, ?, ?, 'checkin_reminder', 'Reminder: Your tea session is coming up soon!', 'pending')`
-    ).bind(crypto.randomUUID(), params.id, a.id)
+      `INSERT INTO event_notifications (id, account_id, event_id, attendee_id, type, message_template, status)
+       VALUES (?, ?, ?, ?, 'checkin_reminder', 'Reminder: Your tea session is coming up soon!', 'pending')`
+    ).bind(crypto.randomUUID(), accountId, params.id, a.id)
   );
 
   if (stmts.length > 0) {
@@ -3005,12 +3034,14 @@ const handleCreateNotifications: Handler = async (request, env, params) => {
 };
 
 const handleUpsertPostSession: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as Record<string, any>;
 
-  // Stringify JSON fields
   const teaLedger = body.tea_ledger ? (typeof body.tea_ledger === 'string' ? body.tea_ledger : JSON.stringify(body.tea_ledger)) : null;
   const galleryImages = body.gallery_images ? (typeof body.gallery_images === 'string' ? body.gallery_images : JSON.stringify(body.gallery_images)) : null;
 
@@ -3024,17 +3055,18 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
     ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, params.id).run();
   } else {
     await env.DB.prepare(
-      `INSERT INTO event_post_session (id, event_id, tea_ledger, playlist_url, gallery_images, session_notes)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null).run();
+      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null).run();
   }
 
   return json({ success: true });
 };
 
 const handleDuplicateEvent: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as { slug: string; event_date: string };
   if (!body.slug || !body.event_date) return json({ error: 'slug and event_date are required' }, 400);
@@ -3042,18 +3074,20 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
   if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
 
-  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ?').bind(params.id).first();
+  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
   if (!source) return json({ error: 'Source event not found' }, 404);
 
   const newId = crypto.randomUUID();
 
   await env.DB.prepare(
-    `INSERT INTO events (id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+    `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`
   ).bind(
     newId,
+    accountId,
     body.slug,
     source.title,
     source.subtitle,
@@ -3073,14 +3107,15 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.playlist_url
   ).run();
 
-  // Copy tea menu
-  const menu = await env.DB.prepare('SELECT * FROM event_tea_menu WHERE event_id = ?').bind(params.id).all();
+  const menu = await env.DB.prepare(
+    'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
+  ).bind(params.id, accountId).all();
   if (menu.results.length > 0) {
-    const menuStmts = menu.results.map(m =>
+    const menuStmts = (menu.results as any[]).map(m =>
       env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).bind(crypto.randomUUID(), newId, m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order)
+        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), accountId, newId, m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order)
     );
     await env.DB.batch(menuStmts);
   }
@@ -3089,8 +3124,11 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
 };
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as { attendee_ids: string[]; attended: boolean };
   if (!Array.isArray(body.attendee_ids)) return json({ error: 'attendee_ids must be an array' }, 400);
@@ -3109,8 +3147,11 @@ const handleBatchAttendance: Handler = async (request, env, params) => {
 };
 
 const handleGetTeaMenu: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const result = await env.DB.prepare(
     `SELECT etm.*, p.given_name, p.product_name, p.chinese_name, p.type, p.image_url
@@ -3124,8 +3165,11 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
 };
 
 const handleUpsertTeaMenu: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const items = await request.json() as Array<Record<string, any>>;
   if (!Array.isArray(items)) return json({ error: 'Expected an array of menu items' }, 400);
@@ -3134,7 +3178,6 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
 
   for (const item of items) {
     if (item.id) {
-      // Update existing
       stmts.push(
         env.DB.prepare(
           `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
@@ -3150,13 +3193,13 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
         )
       );
     } else {
-      // Insert new
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO event_tea_menu (id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           crypto.randomUUID(),
+          accountId,
           params.id,
           item.product_id || null,
           item.custom_name || null,
@@ -3176,8 +3219,11 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
 };
 
 const handleDeleteTeaMenuItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   await env.DB.prepare(
     'DELETE FROM event_tea_menu WHERE id = ? AND event_id = ?'
@@ -3187,8 +3233,11 @@ const handleDeleteTeaMenuItem: Handler = async (request, env, params) => {
 };
 
 const handleGetTastingNotes: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const result = await env.DB.prepare(
     `SELECT etn.*, ea.full_name, ea.phone_number, etm.custom_name, p.given_name, p.product_name
