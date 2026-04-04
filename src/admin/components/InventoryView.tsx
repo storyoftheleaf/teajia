@@ -784,31 +784,74 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
   const [panelHistoryOpen, setPanelHistoryOpen] = useState(false);
-  const [productEvents, setProductEvents] = useState<any[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
-  const [showEvents, setShowEvents] = useState(false);
   useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
 
-  // Load events for the selected product
-  const loadProductEvents = useCallback(async (productId: string) => {
-    setLoadingEvents(true);
+  // Feature: Product Events & Tasting Aggregation
+  const [productEvents, setProductEvents] = useState<any[]>([]);
+  const [productEventsLoading, setProductEventsLoading] = useState(false);
+  const [productTastingAgg, setProductTastingAgg] = useState<{
+    avgRating: number;
+    totalNotes: number;
+    favoriteCount: number;
+    impressions: string[];
+  } | null>(null);
+
+  const loadProductTastings = async (events: any[], productName: string) => {
     try {
-      const events = await api.products.getEvents(productId);
-      setProductEvents(events);
-    } catch (e) {
-      console.error('Failed to load product events:', e);
-    } finally {
-      setLoadingEvents(false);
-    }
-  }, []);
+      const allNotes: any[] = [];
+      for (const event of events.slice(0, 5)) {
+        try {
+          const notes = await api.events.getTastingNotes(event.id);
+          const eventNotes = Array.isArray(notes) ? notes : (notes as any).tasting_notes || [];
+          const productNotes = eventNotes.filter((n: any) =>
+            n.teaName && n.teaName.toLowerCase().includes(productName.toLowerCase())
+          );
+          allNotes.push(...productNotes);
+        } catch { /* skip failed event */ }
+      }
+      if (allNotes.length > 0) {
+        const ratings = allNotes.filter((n: any) => n.rating).map((n: any) => n.rating);
+        setProductTastingAgg({
+          avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
+          totalNotes: allNotes.length,
+          favoriteCount: allNotes.filter((n: any) => n.isFavorite || n.is_favorite).length,
+          impressions: allNotes
+            .filter((n: any) => n.impression)
+            .map((n: any) => n.impression)
+            .slice(0, 5),
+        });
+      }
+    } catch { /* silently fail */ }
+  };
 
   useEffect(() => {
-    if (panelProduct?.id) {
+    if (!panelProduct) {
       setProductEvents([]);
-      setShowEvents(false);
-      loadProductEvents(panelProduct.id);
+      setProductTastingAgg(null);
+      return;
     }
-  }, [panelProduct?.id, loadProductEvents]);
+    let cancelled = false;
+    const load = async () => {
+      setProductEventsLoading(true);
+      setProductTastingAgg(null);
+      try {
+        const data = await api.products.getEvents(panelProduct.id);
+        const events = Array.isArray(data) ? data : (data as any).events || [];
+        if (!cancelled) {
+          setProductEvents(events);
+          if (events.length > 0) {
+            loadProductTastings(events, panelProduct.givenName || panelProduct.name || '');
+          }
+        }
+      } catch {
+        if (!cancelled) setProductEvents([]);
+      } finally {
+        if (!cancelled) setProductEventsLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [panelProduct?.id]);
 
   // Close row dropdown on outside click
   useEffect(() => {
@@ -3376,18 +3419,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       ))}
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Vendor</span>
-                          {panelProduct.vendor && (
-                            <button
-                              onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(panelProduct.vendor!)}`)}
-                              className="text-[10px] text-tea-gold hover:text-tea-gold-lt transition-colors leading-none"
-                              title="View vendor"
-                            >
-                              →
-                            </button>
-                          )}
-                        </div>
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Vendor</span>
                         <VendorPicker
                           value={panelProduct.vendor || ''}
                           productId={panelProduct.id}
@@ -3398,20 +3430,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
                       </div>
-
-                      {/* Sourced badge — link to compass ledger entry */}
-                      {panelProduct.sourceCompassEntryId && (
-                        <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Source</span>
-                          <button
-                            onClick={() => navigate(`/admin/compass?tab=ledger&entry=${panelProduct.sourceCompassEntryId}`)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-sans bg-tea-accent-sub text-tea-gold hover:text-tea-gold-lt transition-colors"
-                          >
-                            <span>Sourced</span>
-                            <span>→</span>
-                          </button>
-                        </div>
-                      )}
 
                       {/* Compass Origin — if this product came from a Tea Compass entry */}
                       {(() => {
@@ -3427,14 +3445,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
                             <button
-                              onClick={() => navigate(`/admin/compass?tab=ledger&entry=${encodeURIComponent(linkId)}`)}
-                              className="inline-flex items-center gap-1.5 text-xs font-sans text-tea-gold hover:text-tea-gold-lt transition-colors"
+                              onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(linkId)}`)}
+                              className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
                             >
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/>
-                              </svg>
-                              <span>View sourcing entry</span>
+                              <Globe size={10} />
+                              {compassEntry?.vendorName || 'Compass Entry'}
+                              {compassEntry && (
+                                <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>
+                              )}
                             </button>
                           </div>
                         );
@@ -3919,35 +3937,55 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </CollapsibleSection>
 
                 {/* ── 8. Events ── */}
-                <CollapsibleSection title={`Events${productEvents.length > 0 ? ` (${productEvents.length})` : ''}`} defaultOpen={false}>
-                  {loadingEvents ? (
-                    <p className="text-xs text-tea-text-dim font-sans">Loading...</p>
-                  ) : productEvents.length === 0 ? (
-                    <p className="text-xs text-tea-text-dim font-sans italic">Not yet featured in any event</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {productEvents.map((event: any) => (
-                        <button
-                          key={event.id}
-                          onClick={() => navigate(`/admin/events/${event.id}`)}
-                          className="w-full text-left px-2 py-1.5 rounded hover:bg-tea-accent-sub/50 transition-colors group"
-                        >
-                          <div className="text-sm font-sans text-tea-text group-hover:text-tea-gold transition-colors">
-                            {event.title}
-                          </div>
-                          <div className="text-xs font-sans text-tea-text-dim flex items-center gap-2">
-                            <span>{event.event_date ? new Date(event.event_date).toLocaleDateString() : 'No date'}</span>
-                            {event.brew_order && <span>Brew #{event.brew_order}</span>}
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${
-                              event.status === 'active' ? 'bg-tea-accent-sub text-tea-gold' :
-                              'bg-tea-surface text-tea-text-dim'
-                            }`}>
-                              {event.status}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
+                <CollapsibleSection title="Events" defaultOpen={false}>
+                  {productEventsLoading ? (
+                    <div className="flex items-center gap-2 py-2 text-xs text-tea-text-dim">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>Loading events…</span>
                     </div>
+                  ) : productEvents.length === 0 ? (
+                    <p className="text-xs text-tea-text-dim italic py-1">Not featured at any events yet.</p>
+                  ) : (
+                    <>
+                      {productTastingAgg && productTastingAgg.totalNotes > 0 && (
+                        <div className="mb-3 p-2.5 rounded bg-tea-accent-sub/30">
+                          <div className="flex items-center gap-3 text-xs font-sans">
+                            <span className="text-tea-gold font-medium">
+                              {productTastingAgg.avgRating.toFixed(1)}/5
+                            </span>
+                            <span className="text-tea-text-dim">
+                              from {productTastingAgg.totalNotes} tasting {productTastingAgg.totalNotes === 1 ? 'note' : 'notes'}
+                            </span>
+                            {productTastingAgg.favoriteCount > 0 && (
+                              <span className="text-tea-text-dim">
+                                · {productTastingAgg.favoriteCount} {productTastingAgg.favoriteCount === 1 ? 'favorite' : 'favorites'}
+                              </span>
+                            )}
+                          </div>
+                          {productTastingAgg.impressions.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {productTastingAgg.impressions.map((imp, i) => (
+                                <p key={i} className="text-xs font-serif italic text-tea-text-sec leading-relaxed">
+                                  "{imp}"
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        {productEvents.map((event: any) => (
+                          <div key={event.id} className="flex items-center justify-between text-xs">
+                            <span className="text-tea-text">{event.name || event.title || 'Event'}</span>
+                            {(event.date || event.event_date) && (
+                              <span className="text-tea-text-dim">
+                                {new Date(event.date || event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </CollapsibleSection>
 
