@@ -786,6 +786,73 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [panelHistoryOpen, setPanelHistoryOpen] = useState(false);
   useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
 
+  // Feature: Product Events & Tasting Aggregation
+  const [productEvents, setProductEvents] = useState<any[]>([]);
+  const [productEventsLoading, setProductEventsLoading] = useState(false);
+  const [productTastingAgg, setProductTastingAgg] = useState<{
+    avgRating: number;
+    totalNotes: number;
+    favoriteCount: number;
+    impressions: string[];
+  } | null>(null);
+
+  const loadProductTastings = async (events: any[], productName: string) => {
+    try {
+      const allNotes: any[] = [];
+      for (const event of events.slice(0, 5)) {
+        try {
+          const notes = await api.events.getTastingNotes(event.id);
+          const eventNotes = Array.isArray(notes) ? notes : (notes as any).tasting_notes || [];
+          const productNotes = eventNotes.filter((n: any) =>
+            n.teaName && n.teaName.toLowerCase().includes(productName.toLowerCase())
+          );
+          allNotes.push(...productNotes);
+        } catch { /* skip failed event */ }
+      }
+      if (allNotes.length > 0) {
+        const ratings = allNotes.filter((n: any) => n.rating).map((n: any) => n.rating);
+        setProductTastingAgg({
+          avgRating: ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0,
+          totalNotes: allNotes.length,
+          favoriteCount: allNotes.filter((n: any) => n.isFavorite || n.is_favorite).length,
+          impressions: allNotes
+            .filter((n: any) => n.impression)
+            .map((n: any) => n.impression)
+            .slice(0, 5),
+        });
+      }
+    } catch { /* silently fail */ }
+  };
+
+  useEffect(() => {
+    if (!panelProduct) {
+      setProductEvents([]);
+      setProductTastingAgg(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      setProductEventsLoading(true);
+      setProductTastingAgg(null);
+      try {
+        const data = await api.products.getEvents(panelProduct.id);
+        const events = Array.isArray(data) ? data : (data as any).events || [];
+        if (!cancelled) {
+          setProductEvents(events);
+          if (events.length > 0) {
+            loadProductTastings(events, panelProduct.givenName || panelProduct.name || '');
+          }
+        }
+      } catch {
+        if (!cancelled) setProductEvents([]);
+      } finally {
+        if (!cancelled) setProductEventsLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [panelProduct?.id]);
+
   // Close row dropdown on outside click
   useEffect(() => {
     if (!rowDropdownId) return;
@@ -3352,7 +3419,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       ))}
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Vendor</span>
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24 flex items-center gap-1">
+                          Vendor
+                          {panelProduct.vendor && (
+                            <button
+                              onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(panelProduct.vendor || '')}`)}
+                              className="ml-1 text-tea-gold hover:text-tea-gold-lt transition-colors"
+                              title="View vendor"
+                            >
+                              <svg className="w-3 h-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                              </svg>
+                            </button>
+                          )}
+                        </span>
                         <VendorPicker
                           value={panelProduct.vendor || ''}
                           productId={panelProduct.id}
@@ -3378,7 +3458,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
                             <button
-                              onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(linkId)}`)}
+                              onClick={() => navigate(`/admin/compass?tab=ledger&entry=${encodeURIComponent(linkId)}`)}
                               className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
                             >
                               <Globe size={10} />
@@ -3867,6 +3947,59 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       />
                     </div>
                   </div>
+                </CollapsibleSection>
+
+                {/* ── 8. Events ── */}
+                <CollapsibleSection title="Events" defaultOpen={false}>
+                  {productEventsLoading ? (
+                    <div className="flex items-center gap-2 py-2 text-xs text-tea-text-dim">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>Loading events…</span>
+                    </div>
+                  ) : productEvents.length === 0 ? (
+                    <p className="text-xs text-tea-text-dim italic py-1">Not featured at any events yet.</p>
+                  ) : (
+                    <>
+                      {productTastingAgg && productTastingAgg.totalNotes > 0 && (
+                        <div className="mb-3 p-2.5 rounded bg-tea-accent-sub/30">
+                          <div className="flex items-center gap-3 text-xs font-sans">
+                            <span className="text-tea-gold font-medium">
+                              {productTastingAgg.avgRating.toFixed(1)}/5
+                            </span>
+                            <span className="text-tea-text-dim">
+                              from {productTastingAgg.totalNotes} tasting {productTastingAgg.totalNotes === 1 ? 'note' : 'notes'}
+                            </span>
+                            {productTastingAgg.favoriteCount > 0 && (
+                              <span className="text-tea-text-dim">
+                                · {productTastingAgg.favoriteCount} {productTastingAgg.favoriteCount === 1 ? 'favorite' : 'favorites'}
+                              </span>
+                            )}
+                          </div>
+                          {productTastingAgg.impressions.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {productTastingAgg.impressions.map((imp, i) => (
+                                <p key={i} className="text-xs font-serif italic text-tea-text-sec leading-relaxed">
+                                  "{imp}"
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        {productEvents.map((event: any) => (
+                          <div key={event.id} className="flex items-center justify-between text-xs">
+                            <span className="text-tea-text">{event.name || event.title || 'Event'}</span>
+                            {(event.date || event.event_date) && (
+                              <span className="text-tea-text-dim">
+                                {new Date(event.date || event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </CollapsibleSection>
 
                 {/* Bottom breathing room */}

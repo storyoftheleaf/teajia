@@ -211,6 +211,9 @@ const CustomerDetail = ({
   const [showSupplied, setShowSupplied] = useState(true);
   const [showLinkDropdown, setShowLinkDropdown] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
+  const [journey, setJourney] = useState<any>(null);
+  const [loadingJourney, setLoadingJourney] = useState(false);
+  const [showJourney, setShowJourney] = useState(false);
 
   const isVendor = customer.tags.includes('vendor');
 
@@ -226,6 +229,8 @@ const CustomerDetail = ({
     setLoadingOrders(true);
     setLoadingTeas(true);
     setLoadingEvents(true);
+    setJourney(null);
+    setShowJourney(false);
     api.customers.getOrders(customer.id)
       .then(setOrders)
       .catch(() => setOrders([]))
@@ -238,6 +243,11 @@ const CustomerDetail = ({
       .then(setEvents)
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));
+    setLoadingJourney(true);
+    api.events.getCustomerJourney(customer.id)
+      .then(data => setJourney(data))
+      .catch(() => {})
+      .finally(() => setLoadingJourney(false));
     if (isVendor) refreshSupplied();
     else setLoadingSupplied(false);
   }, [customer.id]);
@@ -290,10 +300,14 @@ const CustomerDetail = ({
 
           {/* Stats */}
           <div className={`grid gap-4 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-2xl font-serif text-tea-accent">{customer.orderCount || 0}</div>
+            <button
+              onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
+              className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
+              title="View orders for this customer"
+            >
+              <div className="text-2xl font-serif text-tea-accent group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
-            </div>
+            </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-2xl font-serif text-tea-accent">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
@@ -504,6 +518,108 @@ const CustomerDetail = ({
             )}
           </div>
 
+          {/* Tea Journey */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <button
+              onClick={() => setShowJourney(!showJourney)}
+              className="w-full flex justify-between items-center"
+            >
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+                <Leaf size={12} /> Tea Journey
+              </h4>
+              {showJourney ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
+            </button>
+
+            {showJourney && (
+              <div className="mt-4 space-y-3">
+                {loadingJourney ? (
+                  <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
+                ) : !journey ? (
+                  <p className="text-tea-text-sec text-sm italic">No journey data available.</p>
+                ) : (
+                  <>
+                    {/* Journey stats row */}
+                    {(journey.sessionsAttended > 0 || journey.totalTeas > 0 || (journey.milestones?.length > 0)) && (
+                      <div className="flex gap-3">
+                        {journey.sessionsAttended > 0 && (
+                          <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
+                            <p className="text-lg font-mono text-tea-gold">{journey.sessionsAttended}</p>
+                            <p className="text-[10px] font-sans text-tea-text-dim uppercase">Sessions</p>
+                          </div>
+                        )}
+                        {journey.totalTeas > 0 && (
+                          <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
+                            <p className="text-lg font-mono text-tea-gold">{journey.totalTeas}</p>
+                            <p className="text-[10px] font-sans text-tea-text-dim uppercase">Teas Tasted</p>
+                          </div>
+                        )}
+                        {journey.milestones?.length > 0 && (
+                          <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
+                            <p className="text-lg font-display text-tea-gold">{journey.milestones[journey.milestones.length - 1]}</p>
+                            <p className="text-[10px] font-sans text-tea-text-dim uppercase">Milestone</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tea type preferences */}
+                    {journey.teaTypeMap && Object.keys(journey.teaTypeMap).length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Preferences</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(journey.teaTypeMap)
+                            .sort(([, a]: any, [, b]: any) => b - a)
+                            .map(([type, count]: [string, any]) => (
+                              <span key={type} className="text-xs font-sans text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded">
+                                {type} <span className="text-tea-text-dim">({count})</span>
+                              </span>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Favorite teas */}
+                    {journey.favorites?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Favorites</p>
+                        <div className="space-y-1">
+                          {journey.favorites.map((name: string, i: number) => (
+                            <p key={i} className="text-xs font-sans text-tea-text-sec">{name}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recent impressions */}
+                    {journey.impressions?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Impressions</p>
+                        <div className="space-y-1.5">
+                          {journey.impressions.slice(0, 3).map((imp: any, i: number) => (
+                            <div key={i} className="text-xs">
+                              <p className="font-serif italic text-tea-text-sec">"{imp.impression}"</p>
+                              <p className="font-sans text-tea-text-dim mt-0.5">
+                                {imp.teaName} — {imp.eventTitle}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Member since */}
+                    {journey.memberSince && (
+                      <p className="text-[10px] font-sans text-tea-text-dim">
+                        Member since {new Date(journey.memberSince).toLocaleDateString()}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Teas Purchased */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
             <button
@@ -576,16 +692,17 @@ const CustomerDetail = ({
                   <p className="text-tea-text-sec text-sm italic">No orders yet.</p>
                 ) : (
                   orders.map((order: any) => (
-                    <div key={order.id} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
+                    <button
+                      key={order.id}
+                      onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
+                      className="w-full flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0 hover:bg-tea-accent-sub/50 rounded px-2 -mx-2 transition-colors group"
+                      title="View orders in Activity"
+                    >
                       <div>
-                        <button
-                          onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(order.invoice_number || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-accent transition-colors inline-flex items-center gap-1"
-                          title="View in Orders"
-                        >
+                        <span className="text-tea-text font-medium group-hover:text-tea-accent transition-colors inline-flex items-center gap-1">
                           {order.invoice_number}
-                          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100" />
-                        </button>
+                          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </span>
                         <span className="text-tea-text-sec text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
                       <span className={`badge-status ${
@@ -595,7 +712,7 @@ const CustomerDetail = ({
                       }`}>
                         {order.status}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>

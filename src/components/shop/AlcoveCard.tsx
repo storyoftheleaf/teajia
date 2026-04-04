@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Leaf, ChevronRight } from 'lucide-react';
-import type { InventoryItem } from '../../types';
+import type { InventoryItem, Story } from '../../types';
+import { ContentType } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { useTastingCount } from '../../hooks/useTastingCount';
 import { fmtNum } from '../../utils/formatNumber';
@@ -14,6 +15,7 @@ import {
   TERM_MAP,
 } from '../../data/tastingTaxonomy';
 import { useProductEvents } from '../../hooks/useProductEvents';
+import { useStories } from '../../context/StoryContext';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -93,6 +95,15 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // Fetch events that featured this product
   const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
+
+  // Related journal articles (stories with matching teaId, published articles only)
+  const { stories } = useStories();
+  const relatedArticles = useMemo<Story[]>(() =>
+    stories.filter(
+      s => s.teaId === item.id && s.status === 'published' && s.type === ContentType.Article
+    ),
+    [stories, item.id]
+  );
 
   const sliderMin = 5;
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
@@ -831,6 +842,100 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
         )}
 
+        {/* === FROM THE JOURNAL === */}
+        {relatedArticles.length > 0 && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 8px",
+          }}>
+            <h3 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "10px", fontWeight: 400,
+              textTransform: "uppercase", letterSpacing: "0.12em",
+              color: "var(--tea-gold)",
+              margin: "0 0 10px 0",
+            }}>
+              From the journal
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {relatedArticles.map(article => (
+                <button
+                  key={article.id}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    background: "var(--tea-accent-sub)",
+                    border: "1px solid var(--tea-border)",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "background 0.2s ease, border-color 0.2s ease",
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = "var(--tea-surface)";
+                    e.currentTarget.style.borderColor = "var(--tea-gold, #a8874d)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = "var(--tea-accent-sub)";
+                    e.currentTarget.style.borderColor = "var(--tea-border)";
+                  }}
+                >
+                  {article.image ? (
+                    <img
+                      src={article.image}
+                      alt=""
+                      style={{
+                        width: "36px", height: "36px",
+                        borderRadius: "4px", objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: "36px", height: "36px",
+                      borderRadius: "4px",
+                      background: "var(--tea-surface)",
+                      border: "1px solid var(--tea-border)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                      </svg>
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: "13px", fontWeight: 400,
+                      color: "var(--tea-text)",
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}>
+                      {article.title}
+                    </div>
+                    {article.subtitle && (
+                      <div style={{
+                        fontFamily: "var(--font-body)",
+                        fontSize: "11px", fontWeight: 300,
+                        color: "var(--tea-text-dim)",
+                        marginTop: "2px",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      }}>
+                        {article.subtitle}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* === YOU MIGHT ALSO LIKE === */}
         {(() => {
           if (!items || items.length <= 1) return null;
@@ -883,6 +988,100 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           );
         })()}
+
+        {/* === EDITORIAL LINKS — Journal articles + Learn section === */}
+        {(relatedArticles.length > 0 || item.category === 'tea') && (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 20px",
+          }}>
+            <div className="border-t border-tea-border pt-3">
+              {relatedArticles.length > 0 && (
+                <>
+                  <p style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "10px", fontWeight: 400,
+                    textTransform: "uppercase", letterSpacing: "0.12em",
+                    color: "var(--tea-text-dim)",
+                    margin: "0 0 6px 0",
+                  }}>
+                    From the journal
+                  </p>
+                  {relatedArticles.map(article => (
+                    <button
+                      key={article.id}
+                      onClick={() => navigate('/magazine')}
+                      style={{
+                        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+                        gap: "8px",
+                        background: "none", border: "none",
+                        padding: "5px 0", cursor: "pointer",
+                        width: "100%", textAlign: "left",
+                      }}
+                      onMouseEnter={e => {
+                        const span = e.currentTarget.querySelector('.article-title') as HTMLElement;
+                        if (span) span.style.color = "var(--tea-gold)";
+                      }}
+                      onMouseLeave={e => {
+                        const span = e.currentTarget.querySelector('.article-title') as HTMLElement;
+                        if (span) span.style.color = "var(--tea-text)";
+                      }}
+                    >
+                      <span className="article-title" style={{
+                        fontFamily: "var(--font-body)",
+                        fontSize: "14px", fontWeight: 300, lineHeight: 1.45,
+                        color: "var(--tea-text)",
+                        transition: "color 0.2s",
+                      }}>
+                        {article.title}
+                      </span>
+                      <span style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "12px",
+                        color: "var(--tea-text-dim)",
+                        flexShrink: 0,
+                        paddingTop: "2px",
+                      }}>
+                        →
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {item.category === 'tea' && (
+                <button
+                  onClick={() => navigate('/learn')}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "6px",
+                    background: "none", border: "none",
+                    padding: relatedArticles.length > 0 ? "7px 0 0" : "3px 0 0",
+                    cursor: "pointer",
+                    width: "100%", textAlign: "left",
+                  }}
+                  onMouseEnter={e => {
+                    const span = e.currentTarget.querySelector('.learn-label') as HTMLElement;
+                    if (span) span.style.color = "var(--tea-gold)";
+                  }}
+                  onMouseLeave={e => {
+                    const span = e.currentTarget.querySelector('.learn-label') as HTMLElement;
+                    if (span) span.style.color = "var(--tea-text-sec)";
+                  }}
+                >
+                  <span className="learn-label" style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px", fontWeight: 400,
+                    letterSpacing: "0.02em",
+                    color: "var(--tea-text-sec)",
+                    transition: "color 0.2s",
+                  }}>
+                    Learn about {item.type ? item.type.toLowerCase() : ''} tea →
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
 

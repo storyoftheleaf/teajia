@@ -9,8 +9,9 @@ interface CartIndicatorProps {
 }
 
 /**
- * Subtle floating cart pill — mobile only, appears when items are in cart.
- * Sits just above the bottom nav bar. Tapping opens the cart drawer.
+ * Subtle floating cart pill — appears when items are in cart.
+ * On mobile, sits just above the bottom nav bar. On desktop, floats at bottom-right.
+ * Tapping opens the cart drawer.
  */
 export const CartIndicator: React.FC<CartIndicatorProps> = ({ itemCount, onOpen }) => {
   return (
@@ -18,7 +19,7 @@ export const CartIndicator: React.FC<CartIndicatorProps> = ({ itemCount, onOpen 
       {itemCount > 0 && (
         <motion.button
           onClick={onOpen}
-          className="fixed right-4 z-drawer lg:hidden"
+          className="fixed right-4 z-drawer"
           style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
           initial={{ scale: 0.8, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}

@@ -443,6 +443,15 @@ export const api = {
     },
   },
 
+  stockHolds: {
+    available: async (productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/stock/available?product_id=${productId}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   purchaseOrders: {
     create: async (data: {
       po_number: string;
@@ -1090,6 +1099,95 @@ export const api = {
         headers: authHeaders(),
       });
       return handleResponse(res);
+    },
+  },
+
+  tastingJournal: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    add: async (entry: any) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(entry),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    sync: async (entries: any[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal/sync`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ entries }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  xref: {
+    articles: {
+      list: async (articleId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/articles/${articleId}/products`, { headers: authHeaders() });
+        return handleResponse(res);
+      },
+      link: async (articleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/articles/${articleId}/products`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ product_id: productId }),
+        });
+        return handleResponse(res);
+      },
+      unlink: async (articleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/articles/${articleId}/products/${productId}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        return handleResponse(res);
+      },
+    },
+    modules: {
+      list: async (moduleId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/modules/${moduleId}/products`, { headers: authHeaders() });
+        return handleResponse(res);
+      },
+      link: async (moduleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/modules/${moduleId}/products`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ product_id: productId }),
+        });
+        return handleResponse(res);
+      },
+      unlink: async (moduleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/modules/${moduleId}/products/${productId}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        return handleResponse(res);
+      },
+    },
+    projects: {
+      list: async (projectId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/projects/${projectId}/products`, { headers: authHeaders() });
+        return handleResponse(res);
+      },
+      link: async (projectId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/projects/${projectId}/products`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ product_id: productId }),
+        });
+        return handleResponse(res);
+      },
+      unlink: async (projectId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/projects/${projectId}/products/${productId}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        return handleResponse(res);
+      },
     },
   },
 

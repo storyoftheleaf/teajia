@@ -7,6 +7,7 @@ import { Story, LayoutVariant } from '../types';
 import { Icons } from './Icons';
 import { SinglePageRenderer, PageData, videoPlayerRegistry } from './SinglePageRenderer';
 import { useImagePreloader } from '../context/ImagePreloaderContext';
+import { useInventory } from '../context/InventoryContext';
 
 interface ReaderProps {
   story: Story;
@@ -204,6 +205,8 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
   const [marginOpacity, setMarginOpacity] = useState(0.3);
 
   const { preloadImages, clearCache } = useImagePreloader();
+  const { inventory } = useInventory();
+  const linkedProduct = story.teaId ? inventory.find(p => p.id === story.teaId) ?? null : null;
   const windowWidth = useWindowWidth();
   const isDesktop = windowWidth >= 1024;
 
@@ -945,6 +948,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
                       storySubtitle={story.subtitle}
                       onNavigate={onNavigate}
                       recommendations={recommendations}
+                      linkedProduct={pages[currentPageIndex].variant === LayoutVariant.NEXT_READS ? linkedProduct : null}
                     />
                   </ScaledPage>
                 )}

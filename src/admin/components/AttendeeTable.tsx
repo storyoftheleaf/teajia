@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, Check, X, UserPlus, Phone, Leaf, Star, Loader2, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
@@ -32,6 +33,7 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
 
 export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId, onRefresh }) => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterTab>('all');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortAsc, setSortAsc] = useState(true);
@@ -105,6 +107,30 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
       showToast(err.message || 'Failed to update', 'error');
     } finally {
       setLoadingId(null);
+    }
+  };
+
+  const handleCreateCustomer = async (attendee: EventAttendee) => {
+    if (!confirm(`Create customer record for ${attendee.fullName}?`)) return;
+
+    try {
+      const customer = await api.customers.create({
+        name: attendee.fullName,
+        phone: attendee.phoneNumber || undefined,
+        email: attendee.email || undefined,
+        whatsapp: attendee.phoneNumber || undefined,
+        tags: ['retail'],
+        source: `Event attendee`,
+        preferredCurrency: 'USD',
+      });
+
+      await api.events.updateAttendee(attendee.id, { customerId: customer.id });
+
+      showToast(`Customer record created for ${attendee.fullName}`, 'success');
+      onRefresh();
+    } catch (e: any) {
+      console.error('Failed to create customer:', e);
+      showToast(e.message || 'Failed to create customer record', 'error');
     }
   };
 
@@ -200,7 +226,40 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     className={`border-b border-tea-border hover:bg-tea-elevated/30 transition-colors ${rowClass}`}
                   >
                     <td className="py-2.5 px-2 text-tea-text font-medium">
-                      {attendee.fullName}
+                      <span className="inline-flex items-center gap-0.5">
+                        {attendee.fullName}
+                        {attendee.customerId ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/admin/people?search=${encodeURIComponent(attendee.fullName)}`);
+                            }}
+                            className="ml-1.5 inline-flex items-center text-tea-gold hover:text-tea-gold-lt transition-colors"
+                            title="View customer profile"
+                          >
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                              <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCreateCustomer(attendee);
+                            }}
+                            className="ml-1.5 inline-flex items-center text-tea-text-dim hover:text-tea-gold transition-colors"
+                            title="Create customer record"
+                          >
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                              <circle cx="8.5" cy="7" r="4"/>
+                              <line x1="20" y1="8" x2="20" y2="14"/>
+                              <line x1="23" y1="11" x2="17" y2="11"/>
+                            </svg>
+                          </button>
+                        )}
+                      </span>
                     </td>
 
                     <td className="py-2.5 px-2 text-tea-text-sec text-xs">

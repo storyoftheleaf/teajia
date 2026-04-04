@@ -224,6 +224,28 @@ const AppContent = () => {
     return () => window.removeEventListener('navigate', handleNavigate);
   }, [setActiveSection]);
 
+  // Listen for openArticle CustomEvent dispatched from product detail cards
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const story = (e as CustomEvent).detail?.story as Story | undefined;
+      if (!story) return;
+      setReturnToSection(activeSection);
+      setReturnToTab(magazineDefaultTab);
+      setSelectedStory(story);
+      setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
+      if (story.type === ContentType.Article) {
+        setViewState('READER');
+      } else if (story.type === ContentType.PhotoEssay) {
+        setViewState('PHOTO_ESSAY');
+      } else {
+        setViewState('STORY_VIEW');
+      }
+    };
+    window.addEventListener('openArticle', handler);
+    return () => window.removeEventListener('openArticle', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, magazineDefaultTab]);
+
   // Cart persistence handled by Zustand persist middleware
 
   // Global search keyboard shortcut (Cmd/Ctrl+K)

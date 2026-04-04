@@ -852,8 +852,10 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
+  const paymentStatus = body.invoice.payment_status || 'unpaid';
+
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     body.invoice.invoice_number,
@@ -865,7 +867,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
     body.invoice.status || 'Pending',
     0,
     body.invoice.notes || null,
-    body.invoice.source_event_id || null
+    body.invoice.source_event_id || null,
+    paymentStatus
   );
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
@@ -978,6 +981,9 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
   }
 
+  // Clear stock holds since inventory is now deducted
+  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
+
   // Update invoice status
   stmts.push(
     env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id)
@@ -1046,6 +1052,9 @@ const handleVoidInvoice: Handler = async (request, env) => {
       }
     }
   }
+
+  // Clear stock holds (pending holds no longer needed after void)
+  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
 
   stmts.push(
     env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ?").bind(invoice_id)
@@ -1423,6 +1432,61 @@ const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
 
   return json({ success: true });
 };
+
+// ── Cross-reference junction table handlers (article_products, module_products, project_products) ──
+function makeXrefHandlers(tableName: string, fkColumn: string) {
+  const list: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    const id = params.id;
+    const { results } = await env.DB.prepare(
+      `SELECT xr.*, p.given_name, p.product_name, p.type, p.image_url, p.origin_region
+       FROM ${tableName} xr
+       LEFT JOIN products p ON xr.product_id = p.id
+       WHERE xr.${fkColumn} = ?
+       ORDER BY xr.created_at DESC`
+    ).bind(id).all();
+    return json(results);
+  };
+
+  const link: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    const body = await request.json() as any;
+    const productId = body.product_id;
+    if (!productId) return json({ error: 'product_id required' }, 400);
+
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO ${tableName} (id, ${fkColumn}, product_id) VALUES (?, ?, ?)`
+    ).bind(crypto.randomUUID(), params.id, productId).run();
+    return json({ success: true }, 201);
+  };
+
+  const unlink: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    await env.DB.prepare(
+      `DELETE FROM ${tableName} WHERE ${fkColumn} = ? AND product_id = ?`
+    ).bind(params.id, params.productId).run();
+    return json({ success: true });
+  };
+
+  // Reverse lookup: get all articles/modules/projects for a product
+  const listByProduct: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    const { results } = await env.DB.prepare(
+      `SELECT * FROM ${tableName} WHERE product_id = ? ORDER BY created_at DESC`
+    ).bind(params.id).all();
+    return json(results);
+  };
+
+  return { list, link, unlink, listByProduct };
+}
+
+const articleProductXref = makeXrefHandlers('article_products', 'article_id');
+const moduleProductXref = makeXrefHandlers('module_products', 'module_id');
+const projectProductXref = makeXrefHandlers('project_products', 'project_id');
 
 // ── Backfill: match existing invoices to customers ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
@@ -4030,6 +4094,98 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   return json(parseTastingRow(created as Record<string, any>), 201);
 };
 
+// Customer: GET /api/tasting-journal
+const handleGetTastingJournal: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+
+  const { results } = await env.DB.prepare(
+    'SELECT * FROM customer_tasting_journal WHERE user_id = ? ORDER BY created_at DESC'
+  ).bind(email).all();
+
+  return json(results.map(r => ({
+    ...r,
+    tasting: typeof r.tasting === 'string' ? JSON.parse(r.tasting as string) : r.tasting,
+  })));
+};
+
+// Customer: POST /api/tasting-journal
+const handleAddTastingEntry: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  const body = await request.json() as any;
+
+  const id = body.id || crypto.randomUUID();
+
+  await env.DB.prepare(`
+    INSERT INTO customer_tasting_journal (id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    email,
+    body.teaId || null,
+    body.teaName || null,
+    body.teaType || null,
+    body.teaImage || null,
+    JSON.stringify(body.tasting || {}),
+    body.personalNote || null,
+    body.rating || null,
+    body.eventId || null,
+    body.eventTitle || null
+  ).run();
+
+  return json({ id, success: true }, 201);
+};
+
+// Customer: DELETE /api/tasting-journal/:id
+const handleDeleteTastingEntry: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+
+  await env.DB.prepare(
+    'DELETE FROM customer_tasting_journal WHERE id = ? AND user_id = ?'
+  ).bind(params.id, email).run();
+
+  return json({ success: true });
+};
+
+// Customer: POST /api/tasting-journal/sync
+const handleSyncTastingJournal: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  const body = await request.json() as any;
+  const entries = body.entries || [];
+
+  if (!Array.isArray(entries)) return json({ error: 'entries must be an array' }, 400);
+
+  const stmts = entries.map((e: any) =>
+    env.DB.prepare(`
+      INSERT OR IGNORE INTO customer_tasting_journal (id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      e.id || crypto.randomUUID(),
+      email,
+      e.teaId || null,
+      e.teaName || null,
+      e.teaType || null,
+      e.teaImage || null,
+      JSON.stringify(e.tasting || {}),
+      e.personalNote || null,
+      e.rating || null,
+      e.eventId || null,
+      e.eventTitle || null,
+      e.createdAt || new Date().toISOString()
+    )
+  );
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  return json({ synced: stmts.length });
+};
+
 // Admin: GET /api/admin/samples
 const handleListSamples: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
@@ -4257,6 +4413,80 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Stock Holds ──
+
+const handleReserveStock: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as any;
+  const { invoice_id } = body;
+
+  if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
+
+  // Get invoice line items
+  const { results: items } = await env.DB.prepare(
+    'SELECT product_id, quantity FROM invoice_line_items WHERE invoice_id = ?'
+  ).bind(invoice_id).all();
+
+  if (!items.length) return json({ error: 'No line items found' }, 400);
+
+  // Clear any existing holds for this invoice first
+  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id).run();
+
+  // Create new holds
+  const stmts = items.map((item: any) =>
+    env.DB.prepare(
+      'INSERT INTO stock_holds (id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), invoice_id, item.product_id, item.quantity)
+  );
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+
+  return json({ held: items.length });
+};
+
+const handleReleaseStock: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as any;
+  const { invoice_id } = body;
+
+  if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
+
+  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id).run();
+
+  return json({ released: true });
+};
+
+const handleGetAvailableStock: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const productId = url.searchParams.get('product_id');
+
+  if (!productId) return json({ error: 'product_id required' }, 400);
+
+  const product = await env.DB.prepare(
+    'SELECT stock_grams FROM products WHERE id = ?'
+  ).bind(productId).first() as any;
+
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  const held = await env.DB.prepare(
+    'SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ?'
+  ).bind(productId).first() as any;
+
+  const totalStock = Number(product.stock_grams) || 0;
+  const totalHeld = Number(held.total_held) || 0;
+
+  return json({
+    stock_grams: totalStock,
+    held_grams: totalHeld,
+    available_grams: totalStock - totalHeld,
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -4318,6 +4548,9 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
   ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
   ['POST', '/api/rpc/reset-stock-verification', handleResetStockVerification],
+  ['POST', '/api/rpc/reserve-stock', handleReserveStock],
+  ['POST', '/api/rpc/release-stock', handleReleaseStock],
+  ['GET', '/api/stock/available', handleGetAvailableStock],
 
   // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
@@ -4425,6 +4658,12 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/samples/:id', handleGetSample],
   ['POST', '/api/samples/:id/tastings', handleAddSampleTasting],
 
+  // Tasting Journal
+  ['GET', '/api/tasting-journal', handleGetTastingJournal],
+  ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
+  ['POST', '/api/tasting-journal', handleAddTastingEntry],
+  ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
+
   // Samples — Admin
   ['GET', '/api/admin/samples', handleListSamples],
   ['POST', '/api/admin/samples', handleCreateSample],
@@ -4434,6 +4673,26 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/sample-sets', handleCreateSampleSet],
   ['PUT', '/api/admin/sample-sets/:id', handleUpdateSampleSet],
   ['DELETE', '/api/admin/sample-sets/:id', handleDeleteSampleSet],
+
+  // Article ↔ Product cross-references
+  ['GET', '/api/xref/articles/:id/products', articleProductXref.list],
+  ['POST', '/api/xref/articles/:id/products', articleProductXref.link],
+  ['DELETE', '/api/xref/articles/:id/products/:productId', articleProductXref.unlink],
+
+  // Module ↔ Product cross-references
+  ['GET', '/api/xref/modules/:id/products', moduleProductXref.list],
+  ['POST', '/api/xref/modules/:id/products', moduleProductXref.link],
+  ['DELETE', '/api/xref/modules/:id/products/:productId', moduleProductXref.unlink],
+
+  // Project ↔ Product cross-references
+  ['GET', '/api/xref/projects/:id/products', projectProductXref.list],
+  ['POST', '/api/xref/projects/:id/products', projectProductXref.link],
+  ['DELETE', '/api/xref/projects/:id/products/:productId', projectProductXref.unlink],
+
+  // Reverse: products → linked content
+  ['GET', '/api/products/:id/articles', articleProductXref.listByProduct],
+  ['GET', '/api/products/:id/modules', moduleProductXref.listByProduct],
+  ['GET', '/api/products/:id/projects', projectProductXref.listByProduct],
 ];
 
 export default {

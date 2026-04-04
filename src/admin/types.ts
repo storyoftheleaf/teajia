@@ -57,6 +57,26 @@ export interface Product {
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
 }
 
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  customer_name: string;
+  customer_whatsapp?: string;
+  customer_id?: string;
+  display_currency: string;
+  shipping_cost_usd?: number;
+  status: 'Draft' | 'Pending' | 'Filled' | 'Void';
+  payment_status: 'unpaid' | 'partial' | 'paid';
+  payment_date?: string;
+  payment_method?: string;
+  inventory_deducted: boolean;
+  notes?: string;
+  source_event_id?: string;
+  source_event_title?: string;
+  deleted_at?: string;
+  created_at: string;
+}
+
 export interface InvoiceItem {
   productId: string;
   quantity: number; // Grams or Units
