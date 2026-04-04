@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical } from 'lucide-react';
+import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical, UserCog, Settings } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
+import { AccountSwitcher } from './AccountSwitcher';
+import { useAppStore } from '../store';
 
 
 interface NavItem {
@@ -69,6 +71,16 @@ const NavButton: React.FC<{
   );
 };
 
+const AccountSwitcherMount: React.FC = () => {
+  const memberships = useAppStore((s) => s.memberships);
+  if (!memberships || memberships.length === 0) return null;
+  return (
+    <div className="px-3 pb-3">
+      <AccountSwitcher />
+    </div>
+  );
+};
+
 export const Sidebar = ({
   isAdmin,
   isLoggedIn,
@@ -110,6 +122,8 @@ export const Sidebar = ({
     { id: 'capture', path: '/admin/capture', label: 'Capture', icon: <Camera className="w-5 h-5" strokeWidth={2} /> },
     { id: 'compass', path: '/admin/compass', label: 'Tea Compass', icon: <Compass className="w-5 h-5" strokeWidth={2} /> },
     { id: 'samples', path: '/admin/samples', label: 'Samples', icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'team', path: '/admin/team', label: 'Team', icon: <UserCog className="w-5 h-5" strokeWidth={2} /> },
+    { id: 'account-settings', path: '/admin/account-settings', label: 'Account', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
   ];
 
   const handleNav = () => {
@@ -173,6 +187,9 @@ export const Sidebar = ({
 
       {/* Flexible spacing */}
       <div className="flex-1" />
+
+      {/* Account Switcher (multi-store) */}
+      {isAdmin && <AccountSwitcherMount />}
 
       {/* Close button */}
       <div className="py-4 px-3 md:hidden">

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
-import { CartItem as PublicCartItem, CustomerTasting } from '../types';
+import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting } from '../types';
 
 export interface InvoiceTemplate {
   id: string;
@@ -113,6 +113,15 @@ interface AppState {
   invoiceTemplates: InvoiceTemplate[];
   saveInvoiceTemplate: (template: InvoiceTemplate) => void;
   deleteInvoiceTemplate: (id: string) => void;
+
+  // Multi-Account (Multi-Store) state
+  memberships: AccountMembership[];
+  activeAccountId: string | null;
+  activeAccount: Account | null;
+  setMemberships: (m: AccountMembership[]) => void;
+  setActiveAccountId: (id: string | null) => void;
+  setActiveAccount: (a: Account | null) => void;
+  clearAccountState: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -328,6 +337,16 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           invoiceTemplates: state.invoiceTemplates.filter((t) => t.id !== id),
         })),
+
+      // Multi-Account state
+      memberships: [],
+      activeAccountId: null,
+      activeAccount: null,
+      setMemberships: (memberships) => set({ memberships }),
+      setActiveAccountId: (activeAccountId) => set({ activeAccountId }),
+      setActiveAccount: (activeAccount) => set({ activeAccount }),
+      clearAccountState: () =>
+        set({ memberships: [], activeAccountId: null, activeAccount: null }),
     }),
     {
       name: 'teajia-storage',
@@ -349,6 +368,8 @@ export const useAppStore = create<AppState>()(
         inventorySortConfig: state.inventorySortConfig,
         draftProduct: state.draftProduct,
         invoiceTemplates: state.invoiceTemplates,
+        memberships: state.memberships,
+        activeAccountId: state.activeAccountId,
       }),
     }
   )

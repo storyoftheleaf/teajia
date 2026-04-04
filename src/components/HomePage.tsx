@@ -1,10 +1,15 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
 import { useStories } from '../context/StoryContext';
 import { useInventory } from '../context/InventoryContext';
+import { fetchNetworkStores } from '../lib/storefrontApi';
+import type { Account } from '../types';
+import { Icons } from './Icons';
 
 // Track across mounts — animation plays once per session
 let hasAnimated = false;
@@ -271,6 +276,89 @@ const CharacterRevealCapture: React.FC = () => {
   );
 };
 
+/** Network directory strip — surfaces the lineage model on the home page. */
+const NetworkDirectoryStrip: React.FC = () => {
+  const { data: stores = [] } = useQuery<Account[]>({
+    queryKey: ['network', 'stores'],
+    queryFn: fetchNetworkStores,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (stores.length === 0) return null;
+
+  return (
+    <section
+      aria-label="Teajia network"
+      className="w-full max-w-5xl mx-auto px-6 py-16 md:py-24 text-center"
+    >
+      <p className="text-[11px] uppercase tracking-[0.3em] text-tea-text-dim mb-3">
+        The Teajia network
+      </p>
+      <h2
+        className="text-2xl md:text-4xl text-tea-text mb-3"
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        Find a table near you
+      </h2>
+      <p className="text-sm md:text-base text-tea-text-sec italic mb-8 max-w-xl mx-auto">
+        A lineage of tea houses — each independent, each with its own voice.
+      </p>
+
+      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 text-left mb-8">
+        {stores.slice(0, 4).map(store => (
+          <li key={store.id}>
+            <Link
+              to={`/store/${store.slug}`}
+              className="card-grid-item block p-5 group transition-colors hover:border-tea-gold"
+            >
+              <div className="flex items-start gap-4">
+                {store.logo_url ? (
+                  <img
+                    src={store.logo_url}
+                    alt=""
+                    className="w-12 h-12 object-contain flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 text-tea-gold">
+                    <Icons.Seal className="w-7 h-7" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="text-lg text-tea-text mb-0.5 group-hover:text-tea-gold transition-colors"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {store.name}
+                  </h3>
+                  {(store.location_city || store.location_country) && (
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+                      {[store.location_city, store.location_country].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  {store.tagline && (
+                    <p className="text-xs text-tea-text-sec italic leading-snug">
+                      {store.tagline}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      {stores.length > 4 && (
+        <Link
+          to="/find-a-table"
+          className="inline-block text-sm text-tea-gold hover:text-tea-gold-lt transition-colors"
+        >
+          Browse all {stores.length} tables &rarr;
+        </Link>
+      )}
+    </section>
+  );
+};
+
 export const HomePage: React.FC<HomePageProps> = ({
   onNavigateToSection,
   onAccountClick,
@@ -475,6 +563,9 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* ── Act 2: Character reveal + email capture ── */}
       <CharacterRevealCapture />
+
+      {/* ── Act 3: Network directory — Find a table ── */}
+      <NetworkDirectoryStrip />
     </div>
   );
 };

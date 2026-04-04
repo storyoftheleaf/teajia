@@ -1,0 +1,344 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Loader2, UserPlus, Trash2, X } from 'lucide-react';
+import { api, getTokenClaims } from '../../lib/api';
+import { useAppStore } from '../store';
+import type { AccountMember, AccountRole } from '../../types';
+
+const ROLES: AccountRole[] = ['owner', 'manager', 'staff', 'viewer'];
+
+const roleLabel: Record<AccountRole, string> = {
+  owner: 'Owner',
+  manager: 'Manager',
+  staff: 'Staff',
+  viewer: 'Viewer',
+};
+
+function useCurrentRole(): AccountRole | null {
+  const { memberships, activeAccountId } = useAppStore();
+  return useMemo(
+    () => memberships.find((m) => m.account_id === activeAccountId)?.role ?? null,
+    [memberships, activeAccountId],
+  );
+}
+
+export const TeamView: React.FC = () => {
+  const { activeAccountId, memberships } = useAppStore();
+  const currentRole = useCurrentRole();
+  const claims = getTokenClaims();
+  const currentUserId = claims?.sub ?? null;
+
+  const [members, setMembers] = useState<AccountMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<AccountRole>('staff');
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
+
+  const canManage = currentRole === 'owner' || currentRole === 'manager';
+  const canEditRoles = currentRole === 'owner';
+
+  const activeAccountName = memberships.find((m) => m.account_id === activeAccountId)?.account_name;
+
+  const loadMembers = async () => {
+    if (!activeAccountId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.accounts.listMembers(activeAccountId);
+      setMembers(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load team members');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId]);
+
+  if (!activeAccountId) {
+    return (
+      <div className="p-12 text-center text-tea-text-sec font-serif">
+        No active account selected.
+      </div>
+    );
+  }
+
+  if (!canManage) {
+    return (
+      <div className="p-12 text-center text-tea-text-sec font-serif">
+        You don't have permission to view the team.
+      </div>
+    );
+  }
+
+  const ownerCount = members.filter((m) => m.role === 'owner').length;
+
+  const handleRoleChange = async (userId: string, role: AccountRole) => {
+    if (!canEditRoles) return;
+    setRowBusy(userId);
+    try {
+      await api.accounts.updateMember(activeAccountId, userId, role);
+      setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role } : m)));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to update role');
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
+  const handleRemove = async (member: AccountMember) => {
+    if (!canEditRoles) return;
+    if (member.user_id === currentUserId) {
+      setError("You can't remove yourself.");
+      return;
+    }
+    if (member.role === 'owner' && ownerCount <= 1) {
+      setError("You can't remove the last owner.");
+      return;
+    }
+    if (!confirm(`Remove ${member.name || member.email} from this account?`)) return;
+    setRowBusy(member.user_id);
+    try {
+      await api.accounts.removeMember(activeAccountId, member.user_id);
+      setMembers((prev) => prev.filter((m) => m.user_id !== member.user_id));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to remove member');
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail) return;
+    setInviteBusy(true);
+    setInviteMsg(null);
+    try {
+      const added = await api.accounts.addMember(activeAccountId, inviteEmail, inviteRole);
+      setMembers((prev) => {
+        const existingIdx = prev.findIndex((m) => m.user_id === added.user_id);
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = added;
+          return next;
+        }
+        return [...prev, added];
+      });
+      setInviteMsg(`Invite sent to ${inviteEmail}`);
+      setInviteEmail('');
+      setInviteRole('staff');
+    } catch (err: any) {
+      setInviteMsg(err?.message || 'Failed to invite member');
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  return (
+    <div className="p-6 md:p-10 max-w-4xl mx-auto">
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+            Team
+          </h1>
+          {activeAccountName && (
+            <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+              {activeAccountName}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setInviteOpen(true);
+            setInviteMsg(null);
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity"
+        >
+          <UserPlus size={14} />
+          Invite
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-tea-surface rounded-lg overflow-hidden border border-tea-border">
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-tea-text-dim">
+            <Loader2 className="animate-spin" size={18} />
+          </div>
+        ) : members.length === 0 ? (
+          <div className="py-16 text-center text-tea-text-dim text-sm font-serif italic">
+            No team members yet.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">
+                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Name</th>
+                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Email</th>
+                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Role</th>
+                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Joined</th>
+                {canEditRoles && (
+                  <th className="text-right font-medium px-4 py-3 border-b border-tea-border"></th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m) => {
+                const isSelf = m.user_id === currentUserId;
+                const isLastOwner = m.role === 'owner' && ownerCount <= 1;
+                return (
+                  <tr key={m.user_id} className="hover:bg-tea-elevated/30 transition-colors">
+                    <td className="px-4 py-3 text-tea-text">
+                      {m.name || '—'}
+                      {isSelf && (
+                        <span className="ml-2 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">
+                          you
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-tea-text-sec">{m.email}</td>
+                    <td className="px-4 py-3">
+                      {canEditRoles && !isSelf ? (
+                        <select
+                          value={m.role}
+                          onChange={(e) => handleRoleChange(m.user_id, e.target.value as AccountRole)}
+                          disabled={rowBusy === m.user_id}
+                          className="bg-tea-bg text-tea-text text-xs px-2 py-1 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {roleLabel[r]}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-tea-text-sec text-xs uppercase tracking-[0.1em]">
+                          {roleLabel[m.role]}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-tea-text-dim text-xs">
+                      {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : '—'}
+                    </td>
+                    {canEditRoles && (
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(m)}
+                          disabled={isSelf || isLastOwner || rowBusy === m.user_id}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          aria-label="Remove member"
+                          title={
+                            isSelf
+                              ? "You can't remove yourself"
+                              : isLastOwner
+                                ? "Can't remove the last owner"
+                                : 'Remove member'
+                          }
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {inviteOpen && (
+        <div
+          className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/80 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Invite team member"
+        >
+          <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
+              <h2 className="text-lg text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+                Invite Member
+              </h2>
+              <button
+                type="button"
+                onClick={() => setInviteOpen(false)}
+                className="text-tea-text-dim hover:text-tea-text transition-colors"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleInvite} className="p-5 space-y-4">
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                  Role
+                </label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as AccountRole)}
+                  className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {roleLabel[r]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {inviteMsg && (
+                <div className="text-xs text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
+                  {inviteMsg}
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setInviteOpen(false)}
+                  className="px-4 py-2 text-xs uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={inviteBusy || !inviteEmail}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {inviteBusy && <Loader2 className="animate-spin" size={12} />}
+                  Send Invite
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TeamView;
