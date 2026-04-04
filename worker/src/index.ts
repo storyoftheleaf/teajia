@@ -1688,26 +1688,39 @@ const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
 
 // ── Cross-reference junction table handlers (article_products, module_products, project_products) ──
 function makeXrefHandlers(tableName: string, fkColumn: string) {
+  // These xref tables join articles/modules/projects (network-level content)
+  // to products (account-scoped). We only need to scope the product side —
+  // reads join through products.account_id, writes require the product
+  // belongs to the caller's account.
+
   const list: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
     const id = params.id;
     const { results } = await env.DB.prepare(
       `SELECT xr.*, p.given_name, p.product_name, p.type, p.image_url, p.origin_region
        FROM ${tableName} xr
        LEFT JOIN products p ON xr.product_id = p.id
-       WHERE xr.${fkColumn} = ?
+       WHERE xr.${fkColumn} = ? AND p.account_id = ?
        ORDER BY xr.created_at DESC`
-    ).bind(id).all();
+    ).bind(id, accountId).all();
     return json(results);
   };
 
   const link: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
     const body = await request.json() as any;
     const productId = body.product_id;
     if (!productId) return json({ error: 'product_id required' }, 400);
+
+    // Verify the product belongs to the caller's account before linking.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(productId, accountId).first();
+    if (!product) return json({ error: 'Product not found' }, 404);
 
     await env.DB.prepare(
       `INSERT OR IGNORE INTO ${tableName} (id, ${fkColumn}, product_id) VALUES (?, ?, ?)`
@@ -1716,18 +1729,30 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   };
 
   const unlink: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
+    // Only allow unlinking products that belong to the caller's account.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(params.productId, accountId).first();
+    if (!product) return json({ error: 'Product not found' }, 404);
     await env.DB.prepare(
       `DELETE FROM ${tableName} WHERE ${fkColumn} = ? AND product_id = ?`
     ).bind(params.id, params.productId).run();
     return json({ success: true });
   };
 
-  // Reverse lookup: get all articles/modules/projects for a product
+  // Reverse lookup: get all articles/modules/projects for a product.
   const listByProduct: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
+    // Verify the product is in the caller's account.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(params.id, accountId).first();
+    if (!product) return json([]);
     const { results } = await env.DB.prepare(
       `SELECT * FROM ${tableName} WHERE product_id = ? ORDER BY created_at DESC`
     ).bind(params.id).all();
@@ -1741,37 +1766,39 @@ const articleProductXref = makeXrefHandlers('article_products', 'article_id');
 const moduleProductXref = makeXrefHandlers('module_products', 'module_id');
 const projectProductXref = makeXrefHandlers('project_products', 'project_id');
 
-// ── Backfill: match existing invoices to customers ──
+// ── Backfill: match existing invoices to customers (scoped) ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Find invoices with no customer_id and try to match by name
   const unlinked = await env.DB.prepare(
-    `SELECT id, customer_name, customer_whatsapp FROM invoices WHERE customer_id IS NULL AND customer_name IS NOT NULL`
-  ).all();
+    `SELECT id, customer_name, customer_whatsapp FROM invoices
+     WHERE customer_id IS NULL AND customer_name IS NOT NULL AND account_id = ?`
+  ).bind(accountId).all();
 
-  const customers = await env.DB.prepare('SELECT id, name, whatsapp FROM customers').all();
+  const customers = await env.DB.prepare(
+    'SELECT id, name, whatsapp FROM customers WHERE account_id = ?'
+  ).bind(accountId).all();
 
   const updates: D1PreparedStatement[] = [];
-  for (const inv of unlinked.results) {
+  for (const inv of unlinked.results as any[]) {
     const name = (inv.customer_name as string || '').toLowerCase().trim();
     if (!name) continue;
 
-    // Try exact name match first, then WhatsApp match
-    let match = customers.results.find(
+    let match = (customers.results as any[]).find(
       (c: any) => (c.name as string).toLowerCase().trim() === name
     );
     if (!match && inv.customer_whatsapp) {
-      match = customers.results.find(
+      match = (customers.results as any[]).find(
         (c: any) => c.whatsapp && c.whatsapp === inv.customer_whatsapp
       );
     }
 
     if (match) {
       updates.push(
-        env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
-          .bind(match.id, inv.id)
+        env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ? AND account_id = ?')
+          .bind(match.id, inv.id, accountId)
       );
     }
   }
@@ -1785,23 +1812,24 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
   return json({ linked: updates.length, total_unlinked: unlinked.results.length });
 };
 
-// ── Auto-link vendors: create customer records from product vendor field ──
+// ── Auto-link vendors: create customer records from product vendor field (scoped) ──
 const handleAutoLinkVendors: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Get all distinct vendor names from products that have a vendor but no vendor_id
   const productsWithVendor = await env.DB.prepare(
-    `SELECT id, vendor, origin_country FROM products WHERE vendor IS NOT NULL AND vendor != '' AND (vendor_id IS NULL OR vendor_id = '')`
-  ).all();
+    `SELECT id, vendor, origin_country FROM products
+     WHERE vendor IS NOT NULL AND vendor != '' AND (vendor_id IS NULL OR vendor_id = '')
+       AND account_id = ?`
+  ).bind(accountId).all();
 
   if (productsWithVendor.results.length === 0) {
     return json({ created: 0, linked: 0, message: 'All products are already linked to vendor records.' });
   }
 
-  // Group products by vendor name (case-insensitive)
   const vendorGroups: Record<string, { normalizedName: string; originalName: string; country: string; productIds: string[] }> = {};
-  for (const p of productsWithVendor.results) {
+  for (const p of productsWithVendor.results as any[]) {
     const vendorName = (p.vendor as string).trim();
     const key = vendorName.toLowerCase();
     if (!vendorGroups[key]) {
@@ -1815,10 +1843,11 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
     vendorGroups[key].productIds.push(p.id as string);
   }
 
-  // Get existing customers to avoid duplicates
-  const existingCustomers = await env.DB.prepare('SELECT id, name, tags FROM customers').all();
+  const existingCustomers = await env.DB.prepare(
+    'SELECT id, name, tags FROM customers WHERE account_id = ?'
+  ).bind(accountId).all();
   const existingByName: Record<string, { id: string; tags: string }> = {};
-  for (const c of existingCustomers.results) {
+  for (const c of existingCustomers.results as any[]) {
     existingByName[(c.name as string).toLowerCase().trim()] = { id: c.id as string, tags: c.tags as string };
   }
 
@@ -1831,7 +1860,6 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
     let customerId: string;
 
     if (existingByName[key]) {
-      // Customer already exists — ensure they have the 'vendor' tag
       customerId = existingByName[key].id;
       let tags: string[] = [];
       try { tags = JSON.parse(existingByName[key].tags || '[]'); } catch { tags = []; }
@@ -1841,26 +1869,23 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
           .bind(JSON.stringify(tags), customerId).run();
       }
     } else {
-      // Create new customer record tagged as vendor
       customerId = crypto.randomUUID();
       await env.DB.prepare(
-        `INSERT INTO customers (id, name, country, tags, source, created_at, updated_at)
-         VALUES (?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
-      ).bind(customerId, group.originalName, group.country || null).run();
+        `INSERT INTO customers (id, account_id, name, country, tags, source, created_at, updated_at)
+         VALUES (?, ?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
+      ).bind(customerId, accountId, group.originalName, group.country || null).run();
       created++;
     }
 
-    // Link all products from this vendor
     for (const pid of group.productIds) {
       linkUpdates.push(
-        env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ?')
-          .bind(customerId, pid)
+        env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ? AND account_id = ?')
+          .bind(customerId, pid, accountId)
       );
       linked++;
     }
   }
 
-  // Batch the product updates
   if (linkUpdates.length > 0) {
     for (let i = 0; i < linkUpdates.length; i += 100) {
       await env.DB.batch(linkUpdates.slice(i, i + 100));
@@ -2096,8 +2121,9 @@ Return arrays of matching term IDs for each category. Only include terms that ar
 
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -2106,19 +2132,18 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   const search = url.searchParams.get('search');
   const entityId = url.searchParams.get('entity_id');
 
-  const conditions: string[] = [];
-  const binds: any[] = [];
+  const conditions: string[] = ['account_id = ?'];
+  const binds: any[] = [accountId];
 
   if (action) { conditions.push('action = ?'); binds.push(action); }
   if (search) { conditions.push('details LIKE ?'); binds.push(`%${search}%`); }
   if (entityId) { conditions.push('entity_id = ?'); binds.push(entityId); }
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = `WHERE ${conditions.join(' AND ')}`;
   const result = await env.DB.prepare(
     `SELECT * FROM activity_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
   ).bind(...binds, limit, offset).all();
 
-  // Also return total count for pagination
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM activity_logs ${where}`
   ).bind(...binds).first();
@@ -2126,10 +2151,11 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   return json({ logs: result.results, total: countResult?.total || 0 });
 };
 
-// ── Image Upload (R2) ──
+// ── Image Upload (R2) — partitioned by account ──
 const handleUploadImage: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -2146,7 +2172,7 @@ const handleUploadImage: Handler = async (request, env) => {
   if (!file) return json({ error: 'No file provided' }, 400);
 
   const ext = file.name.split('.').pop() || 'jpg';
-  const key = `products/${crypto.randomUUID()}.${ext}`;
+  const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
@@ -2159,8 +2185,9 @@ const handleUploadImage: Handler = async (request, env) => {
 
 // ── Extract Product Info from Image (Gemini Flash) ──
 const handleExtractFromImage: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.GEMINI_API_KEY) {
     return json({ error: 'GEMINI_API_KEY not configured' }, 503);
@@ -2180,11 +2207,11 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   const mimeType = file.type || 'image/jpeg';
 
-  // Also upload to R2 so the draft product has an image
+  // Also upload to R2 so the draft product has an image (account-partitioned)
   let imageUrl = '';
   if (env.MEDIA_BUCKET) {
     const ext = file.name.split('.').pop() || 'jpg';
-    const key = `products/${crypto.randomUUID()}.${ext}`;
+    const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
     await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
       httpMetadata: { contentType: mimeType },
     });
@@ -3176,10 +3203,11 @@ const handleGetTastingNotes: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
-// ── Flyer Upload (R2) ──
+// ── Flyer Upload (R2) — partitioned by account ──
 const handleUploadFlyer: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -3196,13 +3224,12 @@ const handleUploadFlyer: Handler = async (request, env) => {
   if (!file) return json({ error: 'No file provided' }, 400);
 
   const ext = file.name.split('.').pop() || 'jpg';
-  const key = `flyers/${crypto.randomUUID()}.${ext}`;
+  const key = `accounts/${accountId}/flyers/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
   });
 
-  // Return the public URL (assumes custom domain or R2 public access configured)
   const publicUrl = `https://media.teajia.co/${key}`;
 
   return json({ url: publicUrl, key }, 201);
