@@ -3352,7 +3352,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       ))}
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Vendor</span>
+                        <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Vendor</span>
+                          {panelProduct.vendor && (
+                            <button
+                              onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(panelProduct.vendor!)}`)}
+                              className="text-[10px] text-tea-gold hover:text-tea-gold-lt transition-colors leading-none"
+                              title="View vendor"
+                            >
+                              →
+                            </button>
+                          )}
+                        </div>
                         <VendorPicker
                           value={panelProduct.vendor || ''}
                           productId={panelProduct.id}
@@ -3363,6 +3374,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
                       </div>
+
+                      {/* Sourced badge — link to compass ledger entry */}
+                      {panelProduct.sourceCompassEntryId && (
+                        <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Source</span>
+                          <button
+                            onClick={() => navigate(`/admin/compass?tab=ledger&entry=${panelProduct.sourceCompassEntryId}`)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-sans bg-tea-accent-sub text-tea-gold hover:text-tea-gold-lt transition-colors"
+                          >
+                            <span>Sourced</span>
+                            <span>→</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Compass Origin — if this product came from a Tea Compass entry */}
                       {(() => {
