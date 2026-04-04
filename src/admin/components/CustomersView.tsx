@@ -211,6 +211,9 @@ const CustomerDetail = ({
   const [showSupplied, setShowSupplied] = useState(true);
   const [showLinkDropdown, setShowLinkDropdown] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
+  const [journey, setJourney] = useState<any>(null);
+  const [loadingJourney, setLoadingJourney] = useState(false);
+  const [showJourney, setShowJourney] = useState(false);
 
   const isVendor = customer.tags.includes('vendor');
 
@@ -226,6 +229,8 @@ const CustomerDetail = ({
     setLoadingOrders(true);
     setLoadingTeas(true);
     setLoadingEvents(true);
+    setJourney(null);
+    setShowJourney(false);
     api.customers.getOrders(customer.id)
       .then(setOrders)
       .catch(() => setOrders([]))
@@ -238,6 +243,11 @@ const CustomerDetail = ({
       .then(setEvents)
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));
+    setLoadingJourney(true);
+    api.events.getCustomerJourney(customer.id)
+      .then(data => setJourney(data))
+      .catch(() => {})
+      .finally(() => setLoadingJourney(false));
     if (isVendor) refreshSupplied();
     else setLoadingSupplied(false);
   }, [customer.id]);
