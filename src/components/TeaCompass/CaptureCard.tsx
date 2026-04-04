@@ -888,19 +888,28 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
       {/* ─── MODE: unified Sample + Status selector ─── */}
       {(() => {
-        type Mode = 'sample' | 'logged' | 'want' | 'buying' | 'bought';
+        type Mode = 'sample' | 'logged' | 'want' | 'buying';
         const MODES: { id: Mode; label: string; desc: string }[] = [
           { id: 'sample',  label: 'Sample',  desc: 'Tasting a small pour to decide — no commitment yet.' },
           { id: 'logged',  label: 'Logged',  desc: 'Recording a tea you tried or own, without buying intent.' },
           { id: 'want',    label: 'Want',    desc: 'On the wishlist — something to come back for.' },
           { id: 'buying',  label: 'Buying',  desc: 'Actively sourcing — add to a draft order in the ledger.' },
-          { id: 'bought',  label: 'Bought',  desc: 'Already acquired — sitting in your cabinet.' },
         ];
-        const currentMode: Mode = entry.isSample ? 'sample' : (entry.status as Mode) || 'logged';
+        const statusToMode = (): Mode => {
+          if (entry.isSample) return 'sample';
+          if (entry.status === 'want') return 'want';
+          if (entry.status === 'buying') return 'buying';
+          return 'logged';
+        };
+        const currentMode: Mode = statusToMode();
         const currentDesc = MODES.find((m) => m.id === currentMode)?.desc;
         const selectMode = (m: Mode) => {
           if (m === 'sample') update({ isSample: true });
           else update({ isSample: false, status: m });
+        };
+        const isInCabinet = !entry.isSample && entry.status === 'bought';
+        const toggleCabinet = () => {
+          update({ isSample: false, status: isInCabinet ? 'logged' : 'bought' });
         };
         return (
           <div className="space-y-2">
@@ -911,15 +920,30 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   key={m.id}
                   type="button"
                   onClick={() => selectMode(m.id)}
-                  className={`${currentMode === m.id ? 'tag-selectable-active' : 'tag-selectable'} text-xs flex items-center gap-1`}
+                  className={`${currentMode === m.id && !isInCabinet ? 'tag-selectable-active' : 'tag-selectable'} text-xs flex items-center gap-1`}
                 >
                   {m.id === 'sample' && <FlaskConical size={12} strokeWidth={1.5} />}
                   {m.label}
                 </button>
               ))}
             </div>
-            {currentDesc && (
+            {currentDesc && !isInCabinet && (
               <p className="text-[11px] text-tea-text-dim leading-snug">{currentDesc}</p>
+            )}
+            {currentMode === 'logged' && (
+              <button
+                type="button"
+                onClick={toggleCabinet}
+                className={`${isInCabinet ? 'tag-selectable-active' : 'tag-selectable'} text-[11px] flex items-center gap-1.5 mt-1`}
+              >
+                <Check size={11} strokeWidth={2} className={isInCabinet ? 'opacity-100' : 'opacity-40'} />
+                Already in cabinet
+              </button>
+            )}
+            {isInCabinet && (
+              <p className="text-[11px] text-tea-text-dim leading-snug">
+                Marked as owned — back-filled into your cabinet without going through a purchase order.
+              </p>
             )}
           </div>
         );
