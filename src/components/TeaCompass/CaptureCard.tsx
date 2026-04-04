@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Check, Droplets, FlaskConical, Heart, Minus, Plus, ShoppingCart, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { Camera, Check, ChevronDown, Droplets, FlaskConical, Heart, Minus, Plus, ShoppingCart, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
-import type { TeaType, TeaForm, Season, Storage, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
-import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, SEASONS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
+import type { TeaType, TeaForm, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
+import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
@@ -798,19 +798,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
         </div>
 
-        {/* Type chip — part of identity */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative" ref={typePopoverRef}>
+        {/* Type button + Region — part of identity */}
+        <div className="flex items-center gap-2">
+          <div className="relative shrink-0" ref={typePopoverRef}>
             <button
               type="button"
               onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
-              className="tag-selectable"
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium bg-tea-gold/[0.06] text-tea-text border border-tea-border hover:bg-tea-gold/[0.1] active:bg-tea-gold/[0.14] transition-colors"
               style={entry.type ? {
                 backgroundColor: getTypeChipStyle(entry.type).bg,
                 color: getTypeChipStyle(entry.type).text,
               } : undefined}
             >
-              {entry.type || 'Type'}
+              <span>{entry.type || 'Type'}</span>
+              <ChevronDown size={14} strokeWidth={2} />
             </button>
 
             <AnimatePresence>
@@ -838,6 +839,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               )}
             </AnimatePresence>
           </div>
+          <AutocompleteInput
+            value={entry.originRegion || ''}
+            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+            suggestions={availableRegions}
+            placeholder="Region"
+            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-sm rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+          />
         </div>
       </div>
 
@@ -878,33 +886,44 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
       <div className="border-t border-tea-border" />
 
-      {/* ─── MODE: Sample toggle + Status ─── */}
-      <div className="space-y-3">
-        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Mode</p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => update({ isSample: !entry.isSample })}
-            className={`pill text-xs flex items-center gap-1.5 ${isSample ? 'pill-active' : ''}`}
-          >
-            <FlaskConical size={13} strokeWidth={1.5} /> Sample
-          </button>
-          {!isSample && (
-            <div className="flex items-center gap-1.5 text-[11px] text-tea-text-dim">
-              {(['logged', 'want', 'buying', 'bought'] as const).map((s) => (
+      {/* ─── MODE: unified Sample + Status selector ─── */}
+      {(() => {
+        type Mode = 'sample' | 'logged' | 'want' | 'buying' | 'bought';
+        const MODES: { id: Mode; label: string; desc: string }[] = [
+          { id: 'sample',  label: 'Sample',  desc: 'Tasting a small pour to decide — no commitment yet.' },
+          { id: 'logged',  label: 'Logged',  desc: 'Recording a tea you tried or own, without buying intent.' },
+          { id: 'want',    label: 'Want',    desc: 'On the wishlist — something to come back for.' },
+          { id: 'buying',  label: 'Buying',  desc: 'Actively sourcing — add to a draft order in the ledger.' },
+          { id: 'bought',  label: 'Bought',  desc: 'Already acquired — sitting in your cabinet.' },
+        ];
+        const currentMode: Mode = entry.isSample ? 'sample' : (entry.status as Mode) || 'logged';
+        const currentDesc = MODES.find((m) => m.id === currentMode)?.desc;
+        const selectMode = (m: Mode) => {
+          if (m === 'sample') update({ isSample: true });
+          else update({ isSample: false, status: m });
+        };
+        return (
+          <div className="space-y-2">
+            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Mode</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {MODES.map((m) => (
                 <button
-                  key={s}
+                  key={m.id}
                   type="button"
-                  onClick={() => update({ status: s })}
-                  className={`pill text-xs ${entry.status === s ? 'pill-active' : ''}`}
+                  onClick={() => selectMode(m.id)}
+                  className={`${currentMode === m.id ? 'tag-selectable-active' : 'tag-selectable'} text-xs flex items-center gap-1`}
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {m.id === 'sample' && <FlaskConical size={12} strokeWidth={1.5} />}
+                  {m.label}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-      </div>
+            {currentDesc && (
+              <p className="text-[11px] text-tea-text-dim leading-snug">{currentDesc}</p>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="border-t border-tea-border" />
 
@@ -1069,35 +1088,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       <div className="border-t border-tea-border" />
       <div className="space-y-3">
         <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Details</p>
-
-        {/* Region */}
-        <div className="space-y-1">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Region</label>
-          <AutocompleteInput
-            value={entry.originRegion || ''}
-            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
-            suggestions={availableRegions}
-            placeholder="e.g. Alishan, Yiwu..."
-            className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base"
-          />
-        </div>
-
-        {/* Season */}
-        <div className="space-y-1">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Season</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {SEASONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => { userTapped.current.add('season'); update({ season: entry.season === s ? undefined : s }); }}
-                className={entry.season === s ? 'tag-selectable-active' : 'tag-selectable'}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Storage (only for Sheng/Shou/Dark) */}
         {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
