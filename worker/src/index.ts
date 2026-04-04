@@ -993,15 +993,18 @@ const handleGetRates: Handler = async (_request, env) => {
 
 // ── Invoices ──
 const handleGetInvoices: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '50');
   const offset = parseInt(url.searchParams.get('offset') || '0');
   const includeDeleted = url.searchParams.get('include_deleted') === '1';
 
-  const whereClause = includeDeleted ? '' : 'WHERE i.deleted_at IS NULL';
+  const whereClause = includeDeleted
+    ? 'WHERE i.account_id = ?'
+    : 'WHERE i.account_id = ? AND i.deleted_at IS NULL';
   const result = await env.DB.prepare(
     `SELECT i.*, COALESCE(t.line_total, 0) as computed_total,
        ev.title as source_event_title, ev.slug as source_event_slug
@@ -1013,25 +1016,43 @@ const handleGetInvoices: Handler = async (request, env) => {
      LEFT JOIN events ev ON ev.id = i.source_event_id
      ${whereClause}
      ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
-  ).bind(limit, offset).all();
+  ).bind(accountId, limit, offset).all();
   return json(result.results);
 };
 
+// Apply the active account's invoice_prefix (e.g. "TJB-", "TJA-") when the
+// caller didn't supply their own prefix. Leaves explicit values alone so
+// clients can still override.
+async function prefixInvoiceNumber(env: Env, accountId: string, raw: string): Promise<string> {
+  if (!raw) return raw;
+  try {
+    const acc = await env.DB.prepare('SELECT invoice_prefix FROM accounts WHERE id = ?')
+      .bind(accountId).first();
+    const prefix = (acc?.invoice_prefix as string) || '';
+    if (prefix && !raw.startsWith(prefix)) return `${prefix}-${raw}`;
+  } catch {}
+  return raw;
+}
+
 const handleCreateInvoice: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
+  const invoiceNumber = await prefixInvoiceNumber(env, accountId, body.invoice.invoice_number);
   const paymentStatus = body.invoice.payment_status || 'unpaid';
 
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
-    body.invoice.invoice_number,
+    accountId,
+    invoiceNumber,
     body.invoice.customer_name,
     body.invoice.customer_whatsapp || null,
     body.invoice.customer_id || null,
@@ -1046,58 +1067,65 @@ const handleCreateInvoice: Handler = async (request, env) => {
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
     env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), id, item.product_id, item.quantity, item.price_at_sale)
+      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), accountId, id, item.product_id, item.quantity, item.price_at_sale)
   );
 
   const logStmt = buildActivityLog(
     env, 'INVOICE_CREATED',
-    `Invoice ${body.invoice.invoice_number} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
-    userEmail, 'invoice', id
+    `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+    userEmail, 'invoice', id, accountId
   );
 
   await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
 
-  return json({ id, invoice_number: body.invoice.invoice_number }, 201);
+  return json({ id, invoice_number: invoiceNumber }, 201);
 };
 
 const handleGetInvoiceItems: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(
     `SELECT ili.*, p.given_name, p.product_name
      FROM invoice_line_items ili
      LEFT JOIN products p ON ili.product_id = p.id
-     WHERE ili.invoice_id = ?`
-  ).bind(params.id).all();
+     WHERE ili.invoice_id = ? AND ili.account_id = ?`
+  ).bind(params.id, accountId).all();
   return json(result.results);
 };
 
 const handleUpdateInvoice: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
   return json({ success: true });
 };
 
 const handleDeleteInvoice: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(params.id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Void') return json({ error: 'Only Void invoices can be deleted' }, 400);
 
   await env.DB.batch([
-    env.DB.prepare("UPDATE invoices SET deleted_at = datetime('now') WHERE id = ?").bind(params.id),
-    buildActivityLog(env, 'INVOICE_DELETED', `Invoice ${invoice.invoice_number} soft-deleted`, userEmail, 'invoice', params.id),
+    env.DB.prepare("UPDATE invoices SET deleted_at = datetime('now') WHERE id = ? AND account_id = ?")
+      .bind(params.id, accountId),
+    buildActivityLog(env, 'INVOICE_DELETED', `Invoice ${invoice.invoice_number} soft-deleted`, userEmail, 'invoice', params.id, accountId),
   ]);
   return json({ success: true });
 };
