@@ -4033,6 +4033,98 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   return json(parseTastingRow(created as Record<string, any>), 201);
 };
 
+// Customer: GET /api/tasting-journal
+const handleGetTastingJournal: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+
+  const { results } = await env.DB.prepare(
+    'SELECT * FROM customer_tasting_journal WHERE user_id = ? ORDER BY created_at DESC'
+  ).bind(email).all();
+
+  return json(results.map(r => ({
+    ...r,
+    tasting: typeof r.tasting === 'string' ? JSON.parse(r.tasting as string) : r.tasting,
+  })));
+};
+
+// Customer: POST /api/tasting-journal
+const handleAddTastingEntry: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  const body = await request.json() as any;
+
+  const id = body.id || crypto.randomUUID();
+
+  await env.DB.prepare(`
+    INSERT INTO customer_tasting_journal (id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    email,
+    body.teaId || null,
+    body.teaName || null,
+    body.teaType || null,
+    body.teaImage || null,
+    JSON.stringify(body.tasting || {}),
+    body.personalNote || null,
+    body.rating || null,
+    body.eventId || null,
+    body.eventTitle || null
+  ).run();
+
+  return json({ id, success: true }, 201);
+};
+
+// Customer: DELETE /api/tasting-journal/:id
+const handleDeleteTastingEntry: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+
+  await env.DB.prepare(
+    'DELETE FROM customer_tasting_journal WHERE id = ? AND user_id = ?'
+  ).bind(params.id, email).run();
+
+  return json({ success: true });
+};
+
+// Customer: POST /api/tasting-journal/sync
+const handleSyncTastingJournal: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  const body = await request.json() as any;
+  const entries = body.entries || [];
+
+  if (!Array.isArray(entries)) return json({ error: 'entries must be an array' }, 400);
+
+  const stmts = entries.map((e: any) =>
+    env.DB.prepare(`
+      INSERT OR IGNORE INTO customer_tasting_journal (id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      e.id || crypto.randomUUID(),
+      email,
+      e.teaId || null,
+      e.teaName || null,
+      e.teaType || null,
+      e.teaImage || null,
+      JSON.stringify(e.tasting || {}),
+      e.personalNote || null,
+      e.rating || null,
+      e.eventId || null,
+      e.eventTitle || null,
+      e.createdAt || new Date().toISOString()
+    )
+  );
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  return json({ synced: stmts.length });
+};
+
 // Admin: GET /api/admin/samples
 const handleListSamples: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
@@ -4427,6 +4519,12 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/samples/set/:setId', handleGetSamplesBySet],
   ['GET', '/api/samples/:id', handleGetSample],
   ['POST', '/api/samples/:id/tastings', handleAddSampleTasting],
+
+  // Tasting Journal
+  ['GET', '/api/tasting-journal', handleGetTastingJournal],
+  ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
+  ['POST', '/api/tasting-journal', handleAddTastingEntry],
+  ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
 
   // Samples — Admin
   ['GET', '/api/admin/samples', handleListSamples],

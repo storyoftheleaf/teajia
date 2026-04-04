@@ -1093,6 +1093,38 @@ export const api = {
     },
   },
 
+  tastingJournal: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    add: async (entry: any) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(entry),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    sync: async (entries: any[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tasting-journal/sync`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ entries }),
+      });
+      return handleResponse(res);
+    },
+  },
+
   sampleSets: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets`, {
