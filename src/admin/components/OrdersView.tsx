@@ -256,7 +256,7 @@ export const OrdersView = () => {
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
                         <button
-                          onClick={() => navigate(`/admin/customers?search=${encodeURIComponent(order.customer_name || '')}`)}
+                          onClick={() => navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
                           className="text-xs text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust truncate"
                           title="View customer profile"
                         >
@@ -438,7 +438,7 @@ export const OrdersView = () => {
                     <div className="flex justify-between border-b border-tea-border pb-3">
                         <span className="text-tea-text-sec">Customer</span>
                         <button
-                          onClick={() => { setViewingInvoice(null); navigate(`/admin/customers?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
+                          onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
                           className="text-tea-text font-medium hover:text-tea-accent transition-colors"
                         >
                           {viewingInvoice.customer_name}

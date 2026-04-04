@@ -290,10 +290,14 @@ const CustomerDetail = ({
 
           {/* Stats */}
           <div className={`grid gap-4 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-2xl font-serif text-tea-accent">{customer.orderCount || 0}</div>
+            <button
+              onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
+              className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
+              title="View orders for this customer"
+            >
+              <div className="text-2xl font-serif text-tea-accent group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
-            </div>
+            </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-2xl font-serif text-tea-accent">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
@@ -576,16 +580,17 @@ const CustomerDetail = ({
                   <p className="text-tea-text-sec text-sm italic">No orders yet.</p>
                 ) : (
                   orders.map((order: any) => (
-                    <div key={order.id} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
+                    <button
+                      key={order.id}
+                      onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
+                      className="w-full flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0 hover:bg-tea-accent-sub/50 rounded px-2 -mx-2 transition-colors group"
+                      title="View orders in Activity"
+                    >
                       <div>
-                        <button
-                          onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(order.invoice_number || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-accent transition-colors inline-flex items-center gap-1"
-                          title="View in Orders"
-                        >
+                        <span className="text-tea-text font-medium group-hover:text-tea-accent transition-colors inline-flex items-center gap-1">
                           {order.invoice_number}
-                          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100" />
-                        </button>
+                          <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </span>
                         <span className="text-tea-text-sec text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
                       <span className={`badge-status ${
@@ -595,7 +600,7 @@ const CustomerDetail = ({
                       }`}>
                         {order.status}
                       </span>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
