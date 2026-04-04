@@ -204,20 +204,22 @@ function getUserEmail(request: Request): string | null {
 
 function buildActivityLog(
   env: Env, action: string, details: string,
-  userEmail?: string | null, entityType?: string | null, entityId?: string | null
+  userEmail?: string | null, entityType?: string | null, entityId?: string | null,
+  accountId?: string | null
 ) {
   return env.DB.prepare(
-    'INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), action, details, userEmail || null, entityType || null, entityId || null);
+    'INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), action, details, userEmail || null, entityType || null, entityId || null, accountId || null);
 }
 
 function buildStockLedgerEntry(
   env: Env, productId: string, delta: number, balanceAfter: number, reason: string,
-  userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null
+  userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null,
+  accountId?: string | null
 ) {
   return env.DB.prepare(
-    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null);
+    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null);
 }
 
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
@@ -737,16 +739,21 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
   return cachedJson(products, 60);
 };
 
-// ── Auto-resolve vendor name → vendor_id (find-or-create customer) ──
-async function resolveVendorId(env: Env, vendorName: string | null | undefined, originCountry?: string): Promise<string | null> {
+// ── Auto-resolve vendor name → vendor_id (find-or-create customer, account-scoped) ──
+async function resolveVendorId(
+  env: Env,
+  vendorName: string | null | undefined,
+  originCountry: string | undefined,
+  accountId: string
+): Promise<string | null> {
   if (!vendorName || !vendorName.trim()) return null;
   const name = vendorName.trim();
   const key = name.toLowerCase();
 
-  // Check if a customer with this name already exists
+  // Check if a customer with this name already exists in this account
   const existing = await env.DB.prepare(
-    'SELECT id, tags FROM customers WHERE LOWER(name) = ?'
-  ).bind(key).first();
+    'SELECT id, tags FROM customers WHERE LOWER(name) = ? AND account_id = ?'
+  ).bind(key, accountId).first();
 
   if (existing) {
     // Ensure the vendor tag is present
@@ -760,21 +767,24 @@ async function resolveVendorId(env: Env, vendorName: string | null | undefined, 
     return existing.id as string;
   }
 
-  // Create new customer tagged as vendor
+  // Create new customer tagged as vendor, scoped to this account
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO customers (id, name, country, tags, source, created_at, updated_at)
-     VALUES (?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
-  ).bind(id, name, originCountry || null).run();
+    `INSERT INTO customers (id, account_id, name, country, tags, source, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
+  ).bind(id, accountId, name, originCountry || null).run();
 
   return id;
 }
 
 const handleCreateProduct: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  // Strip any client-supplied account_id — we force the current account.
+  delete body.account_id;
   // Set quantity_purchased: use quantity_units for teaware, stock_grams for tea
   if (body.quantity_purchased == null) {
     body.quantity_purchased = body.type === 'Teaware'
@@ -790,11 +800,12 @@ const handleCreateProduct: Handler = async (request, env) => {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
-  // Auto-resolve vendor → vendor_id
+  // Auto-resolve vendor → vendor_id (scoped to the active account)
   if (body.vendor && !body.vendor_id) {
-    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
+    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country, accountId);
   }
 
+  body.account_id = accountId;
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
@@ -805,29 +816,30 @@ const handleCreateProduct: Handler = async (request, env) => {
 };
 
 const handleBulkCreateProducts: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const { products } = await request.json() as { products: Record<string, any>[] };
 
-  // Pre-resolve all vendor names to vendor_ids (batch for efficiency)
+  // Pre-resolve all vendor names to vendor_ids (batch for efficiency, scoped)
   const vendorCache: Record<string, string> = {};
   for (const raw of products) {
     if (raw.vendor && !raw.vendor_id) {
       const key = (raw.vendor as string).trim().toLowerCase();
       if (!vendorCache[key]) {
-        const vid = await resolveVendorId(env, raw.vendor as string, raw.origin_country as string);
+        const vid = await resolveVendorId(env, raw.vendor as string, raw.origin_country as string, accountId);
         if (vid) vendorCache[key] = vid;
       }
     }
   }
 
-  // Duplicate check: fetch existing products to match against
+  // Duplicate check: fetch existing products for THIS account
   const existingProducts = await env.DB.prepare(
-    'SELECT id, product_name, given_name, chinese_name, type FROM products'
-  ).all();
+    'SELECT id, product_name, given_name, chinese_name, type FROM products WHERE account_id = ?'
+  ).bind(accountId).all();
   const existingSet = new Set(
-    existingProducts.results.map(p => {
+    (existingProducts.results as any[]).map(p => {
       const name = ((p.product_name || p.given_name || '') as string).toLowerCase().trim();
       const type = ((p.type || '') as string).toLowerCase().trim();
       return `${type}::${name}`;
@@ -843,6 +855,9 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     for (const [k, v] of Object.entries(raw)) {
       if (v !== null && v !== undefined && v !== '') body[k] = v;
     }
+    // Never let clients cross accounts.
+    delete body.account_id;
+    body.account_id = accountId;
 
     // Check for duplicate by type + product_name or given_name
     const name = ((body.product_name || body.given_name || '') as string).toLowerCase().trim();
@@ -887,11 +902,13 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
 };
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
@@ -901,29 +918,34 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
 
   // Auto-resolve vendor → vendor_id
   if (body.vendor !== undefined && !body.vendor_id) {
-    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
+    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country, accountId);
   }
 
-  // Stock change logging
+  // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
   if (body.stock_grams !== undefined) {
-    const current = await env.DB.prepare('SELECT stock_grams, given_name, product_name FROM products WHERE id = ?').bind(params.id).first();
+    const current = await env.DB.prepare(
+      'SELECT stock_grams, given_name, product_name FROM products WHERE id = ? AND account_id = ?'
+    ).bind(params.id, accountId).first();
     if (current) {
       const oldStock = Number(current.stock_grams) || 0;
       const newStock = Number(body.stock_grams);
       const delta = newStock - oldStock;
       if (delta !== 0) {
         const name = current.given_name || current.product_name || params.id;
-        extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`));
-        extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id));
+        extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`, accountId));
+        extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id, accountId));
       }
+    } else {
+      return json({ error: 'Product not found' }, 404);
     }
   }
 
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id);
+  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id, accountId);
 
   if (extraStmts.length > 0) {
     await env.DB.batch([updateStmt, ...extraStmts]);
@@ -935,24 +957,30 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
 };
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
   return json({ success: true });
 };
 
 // ── Product Events (cross-link: which events featured this product) ──
-const handleGetProductEvents: Handler = async (_request, env, params) => {
+const handleGetProductEvents: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
   const result = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
             e.location_name, e.status, e.flyer_image_url,
             etm.custom_name, etm.brew_order
      FROM event_tea_menu etm
      JOIN events e ON e.id = etm.event_id
-     WHERE etm.product_id = ?
+     WHERE etm.product_id = ? AND e.account_id = ?
      ORDER BY e.event_date DESC`
-  ).bind(params.id).all();
+  ).bind(params.id, accountId).all();
 
   return json(result.results);
 };
