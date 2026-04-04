@@ -1,14 +1,30 @@
 
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Story, ContentType } from '../types';
 import { Icons } from './Icons';
 import { CardContainer } from './shared/CardContainer';
 import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
+import { useInventory } from '../context/InventoryContext';
 
 interface LearnCurriculumProps {
   onStoryClick: (story: Story) => void;
   watchedStories: Record<string, boolean>;
 }
+
+// Map modules to the tea types they cover
+const MODULE_TEA_TYPES: Record<string, string[]> = {
+  'm1': [],  // Foundation — no specific type
+  'm2': ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark'],  // All six families
+  'm3': [],  // Water & Temperature — no specific type
+  'm4': [],  // The Palate — no specific type
+  'm5': [],  // Vessel Selection — teaware
+  'm6': [],  // Geography — all types by origin
+};
+
+const MODULE_CATEGORY: Record<string, 'tea' | 'ware' | null> = {
+  'm5': 'ware',  // Vessel module → show teaware
+};
 
 // Static icon maps - prevent recreation on every render
 const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
@@ -27,6 +43,8 @@ const PATH_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, watchedStories }) => {
+  const navigate = useNavigate();
+  const { inventory } = useInventory();
   const [viewMode, setViewMode] = useState<'courses' | 'paths'>('courses');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
@@ -301,6 +319,51 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                  );
                              })}
                          </div>
+
+                         {/* End-of-module product exploration */}
+                         {(() => {
+                           const teaTypes = MODULE_TEA_TYPES[module.id] || [];
+                           const category = MODULE_CATEGORY[module.id] ?? null;
+
+                           let relevantProducts: typeof inventory = [];
+                           if (category === 'ware') {
+                             relevantProducts = inventory.filter(p => p.category === 'ware').slice(0, 3);
+                           } else if (teaTypes.length > 0) {
+                             relevantProducts = inventory.filter(p =>
+                               teaTypes.includes(p.type) && p.category === 'tea'
+                             ).slice(0, 3);
+                           }
+
+                           if (relevantProducts.length === 0) return null;
+
+                           return (
+                             <div className="mt-4 pt-3 border-t border-tea-border pl-6 md:pl-24 pr-0 md:pr-8">
+                               <p className="text-xs font-sans text-tea-text-dim mb-2">
+                                 Explore in the collection
+                               </p>
+                               <div className="space-y-1.5">
+                                 {relevantProducts.map(product => (
+                                   <button
+                                     key={product.id}
+                                     onClick={() => navigate(`/shop/product/${product.id}`)}
+                                     className="flex items-center gap-2 text-left w-full py-1 group/explore"
+                                   >
+                                     {product.image && (
+                                       <img
+                                         src={product.image}
+                                         alt=""
+                                         className="w-7 h-7 rounded object-cover opacity-70 group-hover/explore:opacity-100 transition-opacity"
+                                       />
+                                     )}
+                                     <span className="text-sm font-sans text-tea-text-sec group-hover/explore:text-tea-gold transition-colors">
+                                       {product.name}
+                                     </span>
+                                   </button>
+                                 ))}
+                               </div>
+                             </div>
+                           );
+                         })()}
                      </div>
                  </div>
              );
