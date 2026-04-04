@@ -10,8 +10,32 @@ interface Env {
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
 
+// ── Multi-account types ──
+export interface AccountMembership {
+  account_id: string;
+  role: 'owner' | 'manager' | 'staff' | 'viewer';
+  slug: string;
+  name: string;
+}
+
+export interface TokenClaims {
+  sub: string;
+  email: string;
+  name: string;
+  // Legacy role field — kept for backwards compatibility with the old
+  // requireAdmin/requireOwner helpers. New code should use memberships.
+  role?: string;
+  memberships?: AccountMembership[];
+  active_account_id?: string | null;
+  iat?: number;
+  exp?: number;
+}
+
 // Simple JWT implementation using Web Crypto
-async function createToken(secret: string, claims: { sub: string; email: string; role: string; name: string }): Promise<string> {
+async function createToken(
+  secret: string,
+  claims: Omit<TokenClaims, 'iat' | 'exp'>
+): Promise<string> {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const payload = btoa(JSON.stringify({ ...claims, iat: now, exp: now + 86400 })); // 24h
@@ -57,14 +81,117 @@ function isAuthed(request: Request): string | null {
   return auth.slice(7);
 }
 
-function parseToken(token: string): Record<string, any> | null {
+function parseToken(token: string): TokenClaims | null {
   try {
     const [, payload] = token.split('.');
     if (!payload) return null;
-    return JSON.parse(atob(payload));
+    return JSON.parse(atob(payload)) as TokenClaims;
   } catch {
     return null;
   }
+}
+
+// ── Multi-account helpers ──
+async function loadMemberships(env: Env, userId: string): Promise<AccountMembership[]> {
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT am.account_id, am.role, a.slug, a.name
+       FROM account_members am
+       JOIN accounts a ON a.id = am.account_id
+       WHERE am.user_id = ? AND am.status = 'active'
+       ORDER BY am.joined_at ASC`
+    ).bind(userId).all();
+    return (results as any[]).map(r => ({
+      account_id: r.account_id as string,
+      role: r.role as AccountMembership['role'],
+      slug: r.slug as string,
+      name: r.name as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function getAccountIdBySlug(env: Env, slug: string): Promise<string | null> {
+  try {
+    const row = await env.DB.prepare('SELECT id FROM accounts WHERE slug = ?').bind(slug).first();
+    return row ? (row.id as string) : null;
+  } catch {
+    return null;
+  }
+}
+
+const BALI_ACCOUNT_ID = 'acc_teajia_bali';
+
+type AccountCtx = { accountId: string; userId: string; role: string; email: string; name: string };
+
+// Validate X-Teajia-Account header (or fall back to JWT active_account_id),
+// verify the user has an active membership. Returns the account context or
+// a Response to return to the caller.
+async function getActiveAccount(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  const token = isAuthed(request);
+  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
+    return { error: json({ error: 'Unauthorized' }, 401) };
+  }
+  const claims = parseToken(token);
+  if (!claims) return { error: json({ error: 'Invalid token' }, 401) };
+
+  const headerAccount = request.headers.get('X-Teajia-Account');
+  const requested = headerAccount || claims.active_account_id || null;
+  if (!requested) {
+    return { error: json({ error: 'Account access denied' }, 403) };
+  }
+
+  // Verify membership.
+  let membership: { role: string } | null = null;
+  // First try the embedded memberships list.
+  const inToken = (claims.memberships || []).find(m => m.account_id === requested);
+  if (inToken) {
+    membership = { role: inToken.role };
+  } else {
+    // Fallback: query the DB in case the token is stale.
+    try {
+      const row = await env.DB.prepare(
+        `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+      ).bind(claims.sub, requested).first();
+      if (row) membership = { role: row.role as string };
+    } catch {}
+  }
+
+  if (!membership) {
+    return { error: json({ error: 'Account access denied' }, 403) };
+  }
+
+  return {
+    accountId: requested,
+    userId: claims.sub,
+    role: membership.role,
+    email: claims.email,
+    name: claims.name,
+  };
+}
+
+async function requireAccount(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  return getActiveAccount(request, env);
+}
+
+async function requireAccountRole(
+  request: Request,
+  env: Env,
+  allowedRoles: string[]
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (!allowedRoles.includes(ctx.role)) {
+    return { error: json({ error: 'Insufficient role for this account' }, 403) };
+  }
+  return ctx;
 }
 
 // ── Audit & Ledger Helpers ──
@@ -224,13 +351,22 @@ const handleLogin: Handler = async (request, env) => {
   try {
     const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
     if (user && user.password_hash === computedHash) {
+      const memberships = await loadMemberships(env, user.id as string);
+      const activeAccountId = memberships[0]?.account_id || null;
       const token = await createToken(env.JWT_SECRET, {
         sub: user.id as string,
         email: user.email as string,
         role: user.role as string,
         name: user.name as string,
+        memberships,
+        active_account_id: activeAccountId,
       });
-      return json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+      return json({
+        token,
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+        memberships,
+        active_account_id: activeAccountId,
+      });
     }
   } catch {
     // Table may not exist yet — fall through to env-based auth
@@ -238,31 +374,59 @@ const handleLogin: Handler = async (request, env) => {
 
   // Dev admin shortcut: login "aaa" / password "asdfghjkl" → owner role
   if (email === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
-    // Ensure user exists in DB for consistency
+    // Ensure user exists in DB for consistency, and ensure they have a
+    // membership in the Bali account with owner role.
     try {
       await env.DB.prepare(
         "INSERT OR IGNORE INTO users (id, email, name, password_hash, role) VALUES ('dev-admin-aaa', 'aaa', 'Dev Admin', '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1', 'owner')"
       ).run();
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO account_members (id, account_id, user_id, role, joined_at, status)
+         VALUES (lower(hex(randomblob(16))), ?, 'dev-admin-aaa', 'owner', datetime('now'), 'active')`
+      ).bind(BALI_ACCOUNT_ID).run();
     } catch { /* table may not exist yet */ }
+    const memberships = await loadMemberships(env, 'dev-admin-aaa');
+    const activeAccountId = memberships[0]?.account_id || BALI_ACCOUNT_ID;
     const token = await createToken(env.JWT_SECRET, {
       sub: 'dev-admin-aaa',
       email: 'aaa',
       role: 'owner',
       name: 'Dev Admin',
+      memberships,
+      active_account_id: activeAccountId,
     });
-    return json({ token, user: { id: 'dev-admin-aaa', email: 'aaa', name: 'Dev Admin', role: 'owner' } });
+    return json({
+      token,
+      user: { id: 'dev-admin-aaa', email: 'aaa', name: 'Dev Admin', role: 'owner' },
+      memberships,
+      active_account_id: activeAccountId,
+    });
   }
 
   // Fallback: check against env var hash (single admin)
   const storedHash = env.ADMIN_PASSWORD_HASH?.trim();
   if (storedHash && computedHash === storedHash) {
+    // env-admin is mapped to Bali for legacy single-tenant behaviour.
+    const memberships: AccountMembership[] = [{
+      account_id: BALI_ACCOUNT_ID,
+      role: 'owner',
+      slug: 'teajia-bali',
+      name: 'Teajia Bali',
+    }];
     const token = await createToken(env.JWT_SECRET, {
       sub: 'env-admin',
       email,
       role: 'admin',
       name: 'Admin',
+      memberships,
+      active_account_id: BALI_ACCOUNT_ID,
     });
-    return json({ token, user: { id: 'env-admin', email, name: 'Admin', role: 'admin' } });
+    return json({
+      token,
+      user: { id: 'env-admin', email, name: 'Admin', role: 'admin' },
+      memberships,
+      active_account_id: BALI_ACCOUNT_ID,
+    });
   }
 
   return json({ error: 'Invalid credentials' }, 401);
@@ -284,14 +448,25 @@ const handleSignup: Handler = async (request, env) => {
     'INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)'
   ).bind(id, email, name || '', passwordHash, 'user').run();
 
+  // New users auto-join nothing — they must be invited to an account.
+  // The empty memberships array is intentional; the frontend should show a
+  // "waiting for invite" state until an account owner adds them.
+  const memberships: AccountMembership[] = [];
   const token = await createToken(env.JWT_SECRET, {
     sub: id,
     email,
     role: 'user',
     name: name || '',
+    memberships,
+    active_account_id: null,
   });
 
-  return json({ token, user: { id, email, name: name || '', role: 'user' } }, 201);
+  return json({
+    token,
+    user: { id, email, name: name || '', role: 'user' },
+    memberships,
+    active_account_id: null,
+  }, 201);
 };
 
 const handleGetMe: Handler = async (request, env) => {
@@ -365,12 +540,18 @@ const handleUpdateProfile: Handler = async (request, env) => {
 
   const updatedUser = await env.DB.prepare('SELECT id, email, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
 
-  // Issue fresh token with updated claims
+  // Issue fresh token with updated claims, preserving account context.
+  const memberships = await loadMemberships(env, updatedUser!.id as string);
+  const activeAccountId = (claims as TokenClaims).active_account_id
+    || memberships[0]?.account_id
+    || null;
   const newToken = await createToken(env.JWT_SECRET, {
     sub: updatedUser!.id as string,
     email: updatedUser!.email as string,
     role: updatedUser!.role as string,
     name: updatedUser!.name as string,
+    memberships,
+    active_account_id: activeAccountId,
   });
 
   return json({ token: newToken, user: updatedUser });
@@ -548,47 +729,10 @@ const PUBLIC_FIELDS = [
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting',
 ] as const;
 
+// Legacy alias: resolves to Adrian's Bali store. New callers should use
+// /api/s/teajia-bali/products.
 const handleGetPublicProducts: Handler = async (_request, env) => {
-  // Batch rates + products in a single D1 round-trip; select only needed columns
-  const [ratesResult, result] = await env.DB.batch([
-    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
-    env.DB.prepare(
-      `SELECT id, type, given_name, chinese_name, product_name, year,
-              origin_country, origin_region, stock_grams, description,
-              tasting_notes, image_url, additional_images, status,
-              is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
-              processing_notes, terroir, mood, experience,
-              cost_amount, cost_currency, quantity_purchased,
-              shipping_rate_per_kg, fixed_retail_price_usd,
-              material, capacity_ml, teaware_category, quantity_units, tasting
-       FROM products
-       WHERE is_public = 1 AND status = 'Active'
-       ORDER BY created_at DESC`
-    ),
-  ]);
-  const rates = new Map<string, number>();
-  for (const r of ratesResult.results) {
-    rates.set(r.currency as string, r.rate_to_usd as number);
-  }
-
-  const products = result.results.map(p => {
-    if (typeof p.tasting_notes === 'string') {
-      try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
-    }
-    if (typeof p.additional_images === 'string') {
-      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
-    }
-    if (typeof p.tasting === 'string') {
-      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
-    }
-    const withPricing = addPricingFields(p, rates);
-    // Strip sensitive fields — only return whitelisted public fields
-    const safe: Record<string, unknown> = {};
-    for (const key of PUBLIC_FIELDS) {
-      if (key in withPricing) safe[key] = withPricing[key];
-    }
-    return safe;
-  });
+  const products = await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID);
   return cachedJson(products, 60);
 };
 
@@ -4487,6 +4631,296 @@ const handleGetAvailableStock: Handler = async (request, env) => {
   });
 };
 
+// ── Accounts / Network ──
+
+// GET /api/accounts/me — current user's memberships + active_account_id
+const handleGetAccountsMe: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const memberships = await loadMemberships(env, claims.sub);
+  const activeAccountId = claims.active_account_id
+    || memberships[0]?.account_id
+    || null;
+  return json({ memberships, active_account_id: activeAccountId });
+};
+
+// POST /api/accounts/switch — body { account_id }; reissue token
+const handleSwitchAccount: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const body = await request.json() as { account_id?: string };
+  if (!body.account_id) return json({ error: 'account_id required' }, 400);
+
+  const memberships = await loadMemberships(env, claims.sub);
+  const isMember = memberships.some(m => m.account_id === body.account_id);
+  if (!isMember) return json({ error: 'Account access denied' }, 403);
+
+  const newToken = await createToken(env.JWT_SECRET, {
+    sub: claims.sub,
+    email: claims.email,
+    name: claims.name,
+    role: claims.role,
+    memberships,
+    active_account_id: body.account_id,
+  });
+
+  return json({ token: newToken, active_account_id: body.account_id, memberships });
+};
+
+// GET /api/accounts/:id — account profile (auth, must be member)
+const handleGetAccount: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) {
+    // Must be member of the requested account specifically.
+    const row = await env.DB.prepare(
+      `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+    ).bind(ctx.userId, params.id).first();
+    if (!row) return json({ error: 'Account access denied' }, 403);
+  }
+  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!acc) return json({ error: 'Account not found' }, 404);
+  return json(acc);
+};
+
+// PUT /api/accounts/:id — update account profile (owner/manager)
+const handleUpdateAccount: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner', 'manager']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as Record<string, any>;
+  // Guard against changing immutable/privileged fields.
+  delete body.id;
+  delete body.is_platform_owner;
+  delete body.created_at;
+
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE accounts SET ${sets}, updated_at = datetime('now') WHERE id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+
+  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
+  return json(acc);
+};
+
+// GET /api/accounts/:id/members
+const handleGetAccountMembers: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const { results } = await env.DB.prepare(
+    `SELECT am.id, am.account_id, am.user_id, am.role, am.status, am.joined_at, am.invited_at,
+            u.email, u.name
+     FROM account_members am
+     LEFT JOIN users u ON u.id = am.user_id
+     WHERE am.account_id = ?
+     ORDER BY am.joined_at ASC`
+  ).bind(params.id).all();
+  return json({ members: results });
+};
+
+// POST /api/accounts/:id/members — invite by email (owner/manager)
+const handleInviteAccountMember: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner', 'manager']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as { email?: string; role?: string };
+  const email = (body.email || '').trim().toLowerCase();
+  const role = body.role || 'staff';
+  if (!email) return json({ error: 'email required' }, 400);
+  if (!['owner', 'manager', 'staff', 'viewer'].includes(role)) {
+    return json({ error: 'invalid role' }, 400);
+  }
+
+  // Find or create user. Inactive users get a temporary password that they
+  // can reset via the standard reset-token flow.
+  let user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  let createdUser = false;
+  if (!user) {
+    const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const tempPassword = crypto.randomUUID().replace(/-/g, '');
+    const tempHash = await hashPassword(tempPassword);
+    await env.DB.prepare(
+      "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, '', ?, 'user')"
+    ).bind(uid, email, tempHash).run();
+    user = { id: uid };
+    createdUser = true;
+  }
+
+  // Create or update membership. Use 'invited' status for new users so the
+  // frontend can show pending state until they accept.
+  const membershipStatus = createdUser ? 'invited' : 'active';
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO account_members
+       (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
+     VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, datetime('now'), datetime('now'), ?)`
+  ).bind(params.id, user.id, role, ctx.userId, membershipStatus).run();
+
+  // Generate an invite/reset link for new users so they can set their password.
+  let inviteLink: string | null = null;
+  if (createdUser) {
+    const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+14 days'))"
+    ).bind(resetId, user.id, inviteToken).run();
+    inviteLink = `/invite/${inviteToken}`;
+  }
+
+  return json({ success: true, user_id: user.id, created_user: createdUser, invite_link: inviteLink }, 201);
+};
+
+// PUT /api/accounts/:id/members/:userId — update role (owner only)
+const handleUpdateAccountMember: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as { role?: string; status?: string };
+  const updates: string[] = [];
+  const binds: any[] = [];
+  if (body.role) {
+    if (!['owner', 'manager', 'staff', 'viewer'].includes(body.role)) {
+      return json({ error: 'invalid role' }, 400);
+    }
+    updates.push('role = ?');
+    binds.push(body.role);
+  }
+  if (body.status) {
+    updates.push('status = ?');
+    binds.push(body.status);
+  }
+  if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  binds.push(params.id, params.userId);
+  await env.DB.prepare(
+    `UPDATE account_members SET ${updates.join(', ')} WHERE account_id = ? AND user_id = ?`
+  ).bind(...binds).run();
+
+  return json({ success: true });
+};
+
+// DELETE /api/accounts/:id/members/:userId — remove (owner only)
+const handleDeleteAccountMember: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  if (params.userId === ctx.userId) {
+    return json({ error: 'Cannot remove yourself from an account' }, 400);
+  }
+
+  await env.DB.prepare(
+    'DELETE FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, params.userId).run();
+
+  return json({ success: true });
+};
+
+// GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
+const handleGetNetworkStores: Handler = async (_request, env) => {
+  const { results } = await env.DB.prepare(
+    `SELECT id, slug, name, tagline, logo_url, location_city, location_country
+     FROM accounts
+     WHERE public_enabled = 1 AND status = 'active'
+     ORDER BY is_platform_owner DESC, name ASC`
+  ).all();
+  return cachedJson(results, 300);
+};
+
+// GET /api/s/:slug — PUBLIC account profile
+const handleGetPublicAccount: Handler = async (_request, env, params) => {
+  const acc = await env.DB.prepare(
+    `SELECT id, slug, name, tagline, description, logo_url, cover_image_url,
+            location_city, location_country, whatsapp_number, currency_default
+     FROM accounts
+     WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
+  ).bind(params.slug).first();
+  if (!acc) return json({ error: 'Store not found' }, 404);
+  return cachedJson(acc, 300);
+};
+
+// Shared helper: fetch public products for an account (mirrors PUBLIC_FIELDS
+// whitelist used by the legacy /api/products/public endpoint).
+async function fetchPublicProductsForAccount(
+  env: Env,
+  accountId: string
+): Promise<Record<string, unknown>[]> {
+  const [ratesResult, result] = await env.DB.batch([
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
+    env.DB.prepare(
+      `SELECT id, type, given_name, chinese_name, product_name, year,
+              origin_country, origin_region, stock_grams, description,
+              tasting_notes, image_url, additional_images, status,
+              is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
+              processing_notes, terroir, mood, experience,
+              cost_amount, cost_currency, quantity_purchased,
+              shipping_rate_per_kg, fixed_retail_price_usd,
+              material, capacity_ml, teaware_category, quantity_units, tasting
+       FROM products
+       WHERE is_public = 1 AND status = 'Active' AND account_id = ?
+       ORDER BY created_at DESC`
+    ).bind(accountId),
+  ]);
+  const rates = new Map<string, number>();
+  for (const r of ratesResult.results) {
+    rates.set(r.currency as string, r.rate_to_usd as number);
+  }
+  return result.results.map(p => {
+    if (typeof p.tasting_notes === 'string') {
+      try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+    }
+    if (typeof p.additional_images === 'string') {
+      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
+    }
+    if (typeof p.tasting === 'string') {
+      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
+    }
+    const withPricing = addPricingFields(p, rates);
+    const safe: Record<string, unknown> = {};
+    for (const key of PUBLIC_FIELDS) {
+      if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
+    }
+    return safe;
+  });
+}
+
+// GET /api/s/:slug/products — PUBLIC products for a store
+const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
+  const accountId = await getAccountIdBySlug(env, params.slug);
+  if (!accountId) return json({ error: 'Store not found' }, 404);
+  const products = await fetchPublicProductsForAccount(env, accountId);
+  return cachedJson(products, 60);
+};
+
+// GET /api/s/:slug/events — PUBLIC active events for a store
+const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
+  const accountId = await getAccountIdBySlug(env, params.slug);
+  if (!accountId) return json({ error: 'Store not found' }, 404);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+            location_name, area_hint, total_capacity, timezone, status
+     FROM events
+     WHERE status = 'active' AND account_id = ?
+     ORDER BY event_date ASC`
+  ).bind(accountId).all();
+  return cachedJson(results, 60);
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -4497,6 +4931,22 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/auth/profile', handleUpdateProfile],
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
   ['POST', '/api/auth/reset-password', handleResetPassword],
+
+  // Accounts / Multi-store
+  ['GET', '/api/accounts/me', handleGetAccountsMe],
+  ['POST', '/api/accounts/switch', handleSwitchAccount],
+  ['GET', '/api/accounts/:id', handleGetAccount],
+  ['PUT', '/api/accounts/:id', handleUpdateAccount],
+  ['GET', '/api/accounts/:id/members', handleGetAccountMembers],
+  ['POST', '/api/accounts/:id/members', handleInviteAccountMember],
+  ['PUT', '/api/accounts/:id/members/:userId', handleUpdateAccountMember],
+  ['DELETE', '/api/accounts/:id/members/:userId', handleDeleteAccountMember],
+
+  // Network (public)
+  ['GET', '/api/network/stores', handleGetNetworkStores],
+  ['GET', '/api/s/:slug', handleGetPublicAccount],
+  ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
+  ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
 
   // User Management (admin/owner)
   ['GET', '/api/admin/users', handleListUsers],
