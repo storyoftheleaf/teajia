@@ -690,20 +690,21 @@ const handleResetPassword: Handler = async (request, env) => {
 };
 
 const handleGetProducts: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   // Batch rates + products in a single D1 round-trip
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
-    env.DB.prepare('SELECT * FROM products ORDER BY created_at DESC'),
+    env.DB.prepare('SELECT * FROM products WHERE account_id = ? ORDER BY created_at DESC').bind(accountId),
   ]);
   const rates = new Map<string, number>();
-  for (const r of ratesResult.results) {
+  for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
 
-  const products = result.results.map(p => {
+  const products = (result.results as any[]).map(p => {
     // Parse JSON array fields
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -4876,10 +4877,10 @@ async function fetchPublicProductsForAccount(
     ).bind(accountId),
   ]);
   const rates = new Map<string, number>();
-  for (const r of ratesResult.results) {
+  for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
-  return result.results.map(p => {
+  return (result.results as any[]).map(p => {
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
     }
