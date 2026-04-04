@@ -3337,6 +3337,8 @@ const handleDeleteSavedLocation: Handler = async (request, env, params) => {
 
 // ── Newsletter ──
 
+// Public: newsletter signup. We tag the subscription with an optional
+// store_slug from the body, and resolve it to account_id for scoping.
 const handleNewsletterSubscribe: Handler = async (request, env) => {
   const body = await request.json() as Record<string, any>;
   const email = (body.email || '').trim().toLowerCase();
@@ -3344,22 +3346,31 @@ const handleNewsletterSubscribe: Handler = async (request, env) => {
     return json({ error: 'Invalid email address' }, 400);
   }
   const source = typeof body.source === 'string' ? body.source.slice(0, 50) : 'website';
+  // Default the subscription to Adrian's Bali store unless a specific
+  // store_slug is provided in the body.
+  let accountId: string | null = BALI_ACCOUNT_ID;
+  if (typeof body.store_slug === 'string' && body.store_slug.trim()) {
+    accountId = await getAccountIdBySlug(env, body.store_slug.trim());
+    if (!accountId) return json({ error: 'Store not found' }, 404);
+  }
   await env.DB.prepare(
-    'INSERT OR IGNORE INTO newsletter_subscribers (email, source) VALUES (?, ?)'
-  ).bind(email, source).run();
+    'INSERT OR IGNORE INTO newsletter_subscribers (account_id, email, source) VALUES (?, ?, ?)'
+  ).bind(accountId, email, source).run();
   return json({ success: true });
 };
 
 const handleGetNewsletterSubscribers: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const { results } = await env.DB.prepare(
-    'SELECT id, email, subscribed_at, source FROM newsletter_subscribers ORDER BY subscribed_at DESC'
-  ).all();
+    'SELECT id, email, subscribed_at, source FROM newsletter_subscribers WHERE account_id = ? ORDER BY subscribed_at DESC'
+  ).bind(accountId).all();
   return json({ subscribers: results });
 };
 
-// ── User Favorites ──
+// ── User Favorites (customer-facing; scoped to the currently active
+// account so each store's product IDs don't collide with another's) ──
 const handleGetUserFavorites: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -3367,9 +3378,16 @@ const handleGetUserFavorites: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
   const userId = claims.sub;
-  const { results } = await env.DB.prepare(
-    'SELECT item_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC'
-  ).bind(userId).all();
+  // Favorites are scoped to the currently active account if one is set;
+  // callers without an account just see their global favorites.
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims.active_account_id || null;
+  const query = headerAccount
+    ? 'SELECT item_id FROM user_favorites WHERE user_id = ? AND account_id = ? ORDER BY created_at ASC'
+    : 'SELECT item_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC';
+  const stmt = headerAccount
+    ? env.DB.prepare(query).bind(userId, headerAccount)
+    : env.DB.prepare(query).bind(userId);
+  const { results } = await stmt.all();
   return json({ favorites: (results || []).map((r: any) => r.item_id) });
 };
 
@@ -3380,18 +3398,31 @@ const handlePutUserFavorites: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
   const userId = claims.sub;
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims.active_account_id || null;
   const body = await request.json() as { favorites: string[] };
   if (!Array.isArray(body.favorites)) {
     return json({ error: 'favorites must be an array of item IDs' }, 400);
   }
-  // Replace all favorites: delete existing, insert new
-  await env.DB.prepare('DELETE FROM user_favorites WHERE user_id = ?').bind(userId).run();
-  if (body.favorites.length > 0) {
-    const stmt = env.DB.prepare(
-      'INSERT OR IGNORE INTO user_favorites (user_id, item_id) VALUES (?, ?)'
-    );
-    const batch = body.favorites.map((itemId: string) => stmt.bind(userId, itemId));
-    await env.DB.batch(batch);
+  if (headerAccount) {
+    await env.DB.prepare(
+      'DELETE FROM user_favorites WHERE user_id = ? AND account_id = ?'
+    ).bind(userId, headerAccount).run();
+    if (body.favorites.length > 0) {
+      const stmt = env.DB.prepare(
+        'INSERT OR IGNORE INTO user_favorites (user_id, account_id, item_id) VALUES (?, ?, ?)'
+      );
+      const batch = body.favorites.map((itemId: string) => stmt.bind(userId, headerAccount, itemId));
+      await env.DB.batch(batch);
+    }
+  } else {
+    await env.DB.prepare('DELETE FROM user_favorites WHERE user_id = ?').bind(userId).run();
+    if (body.favorites.length > 0) {
+      const stmt = env.DB.prepare(
+        'INSERT OR IGNORE INTO user_favorites (user_id, item_id) VALUES (?, ?)'
+      );
+      const batch = body.favorites.map((itemId: string) => stmt.bind(userId, itemId));
+      await env.DB.batch(batch);
+    }
   }
   return json({ ok: true, count: body.favorites.length });
 };
@@ -3399,27 +3430,24 @@ const handlePutUserFavorites: Handler = async (request, env) => {
 // ── Teaware Collection ──
 
 const handleGetTeawareCollection: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const category = url.searchParams.get('category');
 
-  let query = 'SELECT * FROM teaware_collection';
-  const binds: string[] = [];
+  let query = 'SELECT * FROM teaware_collection WHERE account_id = ?';
+  const binds: any[] = [accountId];
   if (category) {
-    query += ' WHERE category = ?';
+    query += ' AND category = ?';
     binds.push(category);
   }
   query += ' ORDER BY category, name';
 
-  const stmt = binds.length > 0
-    ? env.DB.prepare(query).bind(...binds)
-    : env.DB.prepare(query);
-  const result = await stmt.all();
+  const result = await env.DB.prepare(query).bind(...binds).all();
 
-  // Attach photos for each item
-  const items = result.results;
+  const items = result.results as any[];
   if (items.length > 0) {
     const ids = items.map(i => i.id as string);
     const placeholders = ids.map(() => '?').join(',');
@@ -3428,13 +3456,13 @@ const handleGetTeawareCollection: Handler = async (request, env) => {
     ).bind(...ids).all();
 
     const photoMap = new Map<string, any[]>();
-    for (const p of photos.results) {
+    for (const p of photos.results as any[]) {
       const tid = p.teaware_id as string;
       if (!photoMap.has(tid)) photoMap.set(tid, []);
       photoMap.get(tid)!.push(p);
     }
     for (const item of items) {
-      (item as any).photos = photoMap.get(item.id as string) || [];
+      item.photos = photoMap.get(item.id as string) || [];
     }
   }
 
@@ -3442,10 +3470,13 @@ const handleGetTeawareCollection: Handler = async (request, env) => {
 };
 
 const handleGetTeawareItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  const item = await env.DB.prepare('SELECT * FROM teaware_collection WHERE id = ?').bind(params.id).first();
+  const item = await env.DB.prepare(
+    'SELECT * FROM teaware_collection WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   if (!item) return json({ error: 'Not found' }, 404);
 
   const photos = await env.DB.prepare(
@@ -3457,8 +3488,9 @@ const handleGetTeawareItem: Handler = async (request, env, params) => {
 };
 
 const handleCreateTeawareItem: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   if (!body.name || !body.category) {
@@ -3473,36 +3505,44 @@ const handleCreateTeawareItem: Handler = async (request, env) => {
   const placeholders = present.map(() => '?').join(', ');
 
   await env.DB.prepare(
-    `INSERT INTO teaware_collection (id, ${present.join(', ')}) VALUES (?, ${placeholders})`
-  ).bind(id, ...present.map(c => body[c] ?? null)).run();
+    `INSERT INTO teaware_collection (id, account_id, ${present.join(', ')}) VALUES (?, ?, ${placeholders})`
+  ).bind(id, accountId, ...present.map(c => body[c] ?? null)).run();
 
   return json({ id }, 201);
 };
 
 const handleUpdateTeawareItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
-    `UPDATE teaware_collection SET ${sets}, updated_at = datetime('now') WHERE id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+    `UPDATE teaware_collection SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleDeleteTeawareItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // CASCADE will delete photos via FK, but D1 may not enforce FK cascades, so do it explicitly
+  // Verify ownership first so we don't delete photos for another account's item.
+  const owned = await env.DB.prepare(
+    'SELECT id FROM teaware_collection WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!owned) return json({ error: 'Not found' }, 404);
+
   await env.DB.batch([
     env.DB.prepare('DELETE FROM teaware_photos WHERE teaware_id = ?').bind(params.id),
-    env.DB.prepare('DELETE FROM teaware_collection WHERE id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM teaware_collection WHERE id = ? AND account_id = ?').bind(params.id, accountId),
   ]);
 
   return json({ success: true });
@@ -3510,40 +3550,48 @@ const handleDeleteTeawareItem: Handler = async (request, env, params) => {
 
 // ── Teaware Photos ──
 
+async function assertTeawareInAccount(env: Env, teawareId: string, accountId: string): Promise<Response | null> {
+  const row = await env.DB.prepare(
+    'SELECT id FROM teaware_collection WHERE id = ? AND account_id = ?'
+  ).bind(teawareId, accountId).first();
+  if (!row) return json({ error: 'Teaware item not found' }, 404);
+  return null;
+}
+
 const handleAddTeawarePhoto: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertTeawareInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as { url: string; caption?: string; is_primary?: boolean };
   if (!body.url) return json({ error: 'url is required' }, 400);
 
-  // Verify the teaware item exists
-  const item = await env.DB.prepare('SELECT id FROM teaware_collection WHERE id = ?').bind(params.id).first();
-  if (!item) return json({ error: 'Teaware item not found' }, 404);
-
   const id = crypto.randomUUID();
 
-  // If marking as primary, unset other primaries first
   if (body.is_primary) {
     await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
   }
 
-  // Get next sort order
   const maxOrder = await env.DB.prepare(
     'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM teaware_photos WHERE teaware_id = ?'
   ).bind(params.id).first();
   const sortOrder = ((maxOrder?.max_order as number) || 0) + 1;
 
   await env.DB.prepare(
-    'INSERT INTO teaware_photos (id, teaware_id, url, caption, is_primary, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(id, params.id, body.url, body.caption || null, body.is_primary ? 1 : 0, sortOrder).run();
+    'INSERT INTO teaware_photos (id, account_id, teaware_id, url, caption, is_primary, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, accountId, params.id, body.url, body.caption || null, body.is_primary ? 1 : 0, sortOrder).run();
 
   return json({ id }, 201);
 };
 
 const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertTeawareInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   await env.DB.prepare('DELETE FROM teaware_photos WHERE id = ? AND teaware_id = ?')
     .bind(params.photoId, params.id).run();
@@ -3552,12 +3600,15 @@ const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertTeawareInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
-  // If setting as primary, unset others first
   if (body.is_primary) {
     await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
     body.is_primary = 1;
@@ -3577,30 +3628,30 @@ const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleGetTeawareCategories: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(
-    'SELECT category, COUNT(*) as count FROM teaware_collection GROUP BY category ORDER BY category'
-  ).all();
+    'SELECT category, COUNT(*) as count FROM teaware_collection WHERE account_id = ? GROUP BY category ORDER BY category'
+  ).bind(accountId).all();
 
   return json(result.results);
 };
 
-// ── Tea Compass ──
+// ── Tea Compass (personal field notes, scoped per account + user) ──
 
 const handleGetCompassEntries: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
   const vendorId = url.searchParams.get('vendor_id');
 
-  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ?';
-  const binds: any[] = [userId];
+  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ?';
+  const binds: any[] = [userId, accountId];
 
   if (status) {
     query += ' AND status = ?';
@@ -3617,12 +3668,12 @@ const handleGetCompassEntries: Handler = async (request, env) => {
 };
 
 const handleCreateCompassEntry: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
   const id = body.id || crypto.randomUUID();
   const cols = [
@@ -3634,69 +3685,68 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'draft_product_id', 'created_at', 'updated_at',
   ];
   const present = cols.filter(c => body[c] !== undefined);
-  const placeholders = ['id', 'user_id', ...present].map(() => '?').join(', ');
-  const colNames = ['id', 'user_id', ...present].join(', ');
+  const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
+  const colNames = ['id', 'user_id', 'account_id', ...present].join(', ');
 
   await env.DB.prepare(
     `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-  ).bind(id, userId, ...present.map(c => body[c] ?? null)).run();
+  ).bind(id, userId, accountId, ...present.map(c => body[c] ?? null)).run();
 
-  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(id).first();
+  const created = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+  ).bind(id, accountId).first();
   return json(created, 201);
 };
 
 const handleUpdateCompassEntry: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const body = await request.json() as Record<string, any>;
-
-  // Don't allow updating id or user_id
   delete body.id;
   delete body.user_id;
+  delete body.account_id;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
-    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, userId).run();
+    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now')
+     WHERE id = ? AND user_id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, userId, accountId).run();
 
-  const updated = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(params.id).first();
+  const updated = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   return json(updated);
 };
 
 const handleDeleteCompassEntry: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
-
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
   await env.DB.prepare(
-    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ?'
-  ).bind(params.id, userId).run();
+    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
+  ).bind(params.id, userId, accountId).run();
 
   return json({ success: true });
 };
 
 const handleSyncCompassEntries: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const body = await request.json() as { entries: Record<string, any>[] };
-
   if (!Array.isArray(body.entries)) {
     return json({ error: 'entries array required' }, 400);
   }
 
   const allCols = [
-    'id', 'user_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+    'id', 'user_id', 'account_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
@@ -3709,6 +3759,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
   const stmts = body.entries.map(entry => {
     const values = allCols.map(c => {
       if (c === 'user_id') return userId;
+      if (c === 'account_id') return accountId;
       return entry[c] ?? null;
     });
     return env.DB.prepare(
