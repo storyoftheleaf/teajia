@@ -3419,7 +3419,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       ))}
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Vendor</span>
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24 flex items-center gap-1">
+                          Vendor
+                          {panelProduct.vendor && (
+                            <button
+                              onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(panelProduct.vendor || '')}`)}
+                              className="ml-1 text-tea-gold hover:text-tea-gold-lt transition-colors"
+                              title="View vendor"
+                            >
+                              <svg className="w-3 h-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                              </svg>
+                            </button>
+                          )}
+                        </span>
                         <VendorPicker
                           value={panelProduct.vendor || ''}
                           productId={panelProduct.id}
@@ -3445,7 +3458,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
                             <button
-                              onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(linkId)}`)}
+                              onClick={() => navigate(`/admin/compass?tab=ledger&entry=${encodeURIComponent(linkId)}`)}
                               className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
                             >
                               <Globe size={10} />
