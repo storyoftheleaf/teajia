@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, PenLine, LayoutGrid, BookOpen } from 'lucide-react';
+import { ArrowLeft, Plus, PenLine, LayoutGrid, BookOpen, Check, ExternalLink } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { hasToken } from '../../lib/api';
@@ -19,11 +20,13 @@ interface TeaCompassProps {
   onBack?: () => void;
   /** Start directly on the ledger tab */
   initialMode?: CompassMode;
+  /** Open a specific entry by ID */
+  initialEntryId?: string;
 }
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId }) => {
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -31,8 +34,22 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
 
+  const navigate = useNavigate();
+
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
+
+  // Track just-committed entry for banner
+  const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Open specific entry if initialEntryId is provided
+  useEffect(() => {
+    if (initialEntryId && getEntry(initialEntryId)) {
+      setActiveEntry(initialEntryId);
+      setMode('capture');
+    }
+  }, [initialEntryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When activeEntryId changes externally, switch to capture mode
   useEffect(() => {
@@ -87,6 +104,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
   );
 
   const handleCommitEntry = useCallback(() => {
+    // Capture committed entry info before it's removed from session
+    const committed = activeEntryId ? getEntry(activeEntryId) : null;
+    if (committed) {
+      setJustCommitted({ name: committed.name || 'Entry', draftProductId: committed.draftProductId });
+      if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = setTimeout(() => setJustCommitted(null), 5000);
+    }
+
     // After commit removes the entry from session, check if there are remaining session entries
     const remaining = getSessionEntries().filter(
       (e) => e.id !== activeEntryId &&
@@ -259,6 +284,39 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode }) =
                   Teaware
                 </button>
               </div>
+
+              {/* Just-committed banner */}
+              <AnimatePresence>
+                {justCommitted && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-3"
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
+                      <Check size={14} strokeWidth={2.5} />
+                      <span className="flex-1 truncate">{justCommitted.name} saved</span>
+                      {justCommitted.draftProductId && (
+                        <button
+                          type="button"
+                          onClick={() => { setJustCommitted(null); navigate(`/admin/inventory?panel=${encodeURIComponent(justCommitted.draftProductId!)}`); }}
+                          className="flex items-center gap-1 text-tea-gold hover:text-tea-text transition-colors shrink-0"
+                        >
+                          <ExternalLink size={11} /> Inventory
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setJustCommitted(null); setMode('browse'); }}
+                        className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                      >
+                        Browse
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} onCommit={handleCommitEntry} />
             </motion.div>

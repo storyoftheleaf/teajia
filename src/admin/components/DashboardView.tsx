@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin } from 'lucide-react';
 import { Product } from '../types';
@@ -15,7 +16,12 @@ const TooltipWrapper = (props: any) => (
 );
 
 export const DashboardView = ({ products, isLoading }: { products: Product[], isLoading: boolean }) => {
+  const navigate = useNavigate();
   const { data: rates = [] } = useRates();
+
+  const handleChartClick = useCallback((dimension: string, value: string) => {
+    navigate(`/admin/inventory?search=${encodeURIComponent(value)}`);
+  }, [navigate]);
 
   const metrics = useMemo(() => {
     if (isLoading || products.length === 0) return null;
@@ -141,6 +147,8 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                 paddingAngle={2}
                 dataKey="value"
                 stroke="none"
+                style={{ cursor: 'pointer' }}
+                onClick={(data) => data && handleChartClick('currency', data.name)}
               >
                 {metrics.currencyExposure.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS_CURRENCY[index % COLORS_CURRENCY.length]} />
@@ -215,7 +223,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
               <XAxis type="number" stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
               <YAxis dataKey="name" type="category" stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false} width={80} />
               <TooltipWrapper formatter={(val: number) => `$${val.toLocaleString()}`} />
-              <Bar dataKey="value" fill="#26221D" radius={[0, 4, 4, 0]} barSize={20}>
+              <Bar dataKey="value" fill="#26221D" radius={[0, 4, 4, 0]} barSize={20} style={{ cursor: 'pointer' }} onClick={(data) => data && handleChartClick('region', data.name)}>
                 {metrics.regionValue.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={index < 3 ? '#C8A97E' : '#26221D'} />
                 ))}
@@ -233,7 +241,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
               <XAxis dataKey="name" stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false} />
               <YAxis stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
               <TooltipWrapper formatter={(val: number) => `$${val.toLocaleString()}`} />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="value" radius={[4, 4, 0, 0]} style={{ cursor: 'pointer' }} onClick={(data) => data && handleChartClick('type', data.name)}>
                  {metrics.typeValue.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS_TYPE[index % COLORS_TYPE.length]} />
                  ))}

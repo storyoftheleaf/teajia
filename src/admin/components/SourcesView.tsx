@@ -1638,7 +1638,12 @@ export const SourcesView = () => {
                       <div className="space-y-1.5">
                         <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Field Notes</div>
                         {vendorEntries.slice(0, 8).map((entry) => (
-                          <div key={entry.id} className="flex items-center gap-2 py-1 text-xs">
+                          <button
+                            key={entry.id}
+                            type="button"
+                            onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(entry.id)}`)}
+                            className="w-full flex items-center gap-2 py-1.5 text-xs rounded-md hover:bg-tea-surface/50 transition-colors text-left -mx-1 px-1"
+                          >
                             {entry.photos?.[0] && (
                               <img src={entry.photos[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" />
                             )}
@@ -1657,7 +1662,7 @@ export const SourcesView = () => {
                                 {fmtPrice(entry.priceAmount, entry.priceCurrency)}
                               </span>
                             )}
-                          </div>
+                          </button>
                         ))}
                         {vendorEntries.length > 8 && (
                           <p className="text-[10px] text-tea-text-dim">+{vendorEntries.length - 8} more entries</p>
