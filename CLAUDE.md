@@ -68,7 +68,7 @@ Teajia is professional tea infrastructure — sourcing, inventory, education, ev
 
 **Do NOT build:** streak trackers, gamification, engagement notifications, live tasting modes, algorithmic recommendations, social feeds/likes/followers, auto-replenish subscriptions.
 
-**Multi-tenancy:** Currently single-tenant. `account_id` will be added later — don't assume single global dataset, but don't add `account_id` yourself unless asked.
+**Multi-tenancy:** Multi-account (multi-store) rollout is active. Every entity table has an `account_id` column and every authenticated query is scoped by the caller's active account (via `X-Teajia-Account` header validated against `account_members`). Public storefronts live at `/store/:slug` and fetch from `/api/s/:slug/*`. See `MULTI_STORE_PLAN.md` for the full data model, roles, API catalog, and the `tea_reviews` cross-account collaboration model. When adding new tables with entity data, include `account_id TEXT REFERENCES accounts(id)` from the start.
 
 ## Key Files
 
