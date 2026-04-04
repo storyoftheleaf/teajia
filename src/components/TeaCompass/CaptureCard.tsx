@@ -804,7 +804,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium bg-tea-gold/[0.06] text-tea-text border border-tea-border hover:bg-tea-gold/[0.1] active:bg-tea-gold/[0.14] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors"
               style={entry.type ? {
                 backgroundColor: getTypeChipStyle(entry.type).bg,
                 color: getTypeChipStyle(entry.type).text,
