@@ -3403,14 +3403,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Field Note</span>
                             <button
-                              onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(linkId)}`)}
-                              className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
+                              onClick={() => navigate(`/admin/compass?tab=ledger&entry=${encodeURIComponent(linkId)}`)}
+                              className="inline-flex items-center gap-1.5 text-xs font-sans text-tea-gold hover:text-tea-gold-lt transition-colors"
                             >
-                              <Globe size={10} />
-                              {compassEntry?.vendorName || 'Compass Entry'}
-                              {compassEntry && (
-                                <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>
-                              )}
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/>
+                              </svg>
+                              <span>View sourcing entry</span>
                             </button>
                           </div>
                         );
