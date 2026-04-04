@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Currency } from '../../admin/types';
-import { GRAM_PRESETS, DEFAULT_GRAMS, TEA_FORMS, type TeaForm } from './types';
+import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
 
 interface PriceGramsProps {
   priceAmount?: number;
@@ -75,12 +75,9 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
   return (
     <div className="space-y-2">
       {/* Price (with currency dropdown) + Grams — one line */}
-      <div className="flex gap-3 items-end">
+      <div className="flex gap-3 items-center">
         {/* Price half */}
         <div className="flex-1 min-w-0">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">
-            Price
-          </label>
           <div className="flex items-center gap-1">
             <select
               value={priceCurrency}
@@ -95,7 +92,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             <input
               type="number"
               inputMode="decimal"
-              placeholder="0"
+              placeholder="cost"
               value={priceAmount ?? ''}
               onChange={handlePriceInput}
               style={noSpinnerStyle}
@@ -107,9 +104,6 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
 
         {/* Form + Grams half */}
         <div className="flex-1 min-w-0">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">
-            Grams
-          </label>
           <div className="flex items-center gap-1">
             {/* Form selector chip */}
             {onFormChange && (
@@ -155,7 +149,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             <input
               type="number"
               inputMode="numeric"
-              placeholder={form ? String(DEFAULT_GRAMS[form]) : '100'}
+              placeholder="grams"
               value={pricePerUnitGrams ?? ''}
               onChange={handleGramsInput}
               style={noSpinnerStyle}
