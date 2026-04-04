@@ -1433,6 +1433,61 @@ const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Cross-reference junction table handlers (article_products, module_products, project_products) ──
+function makeXrefHandlers(tableName: string, fkColumn: string) {
+  const list: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    const id = params.id;
+    const { results } = await env.DB.prepare(
+      `SELECT xr.*, p.given_name, p.product_name, p.type, p.image_url, p.origin_region
+       FROM ${tableName} xr
+       LEFT JOIN products p ON xr.product_id = p.id
+       WHERE xr.${fkColumn} = ?
+       ORDER BY xr.created_at DESC`
+    ).bind(id).all();
+    return json(results);
+  };
+
+  const link: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    const body = await request.json() as any;
+    const productId = body.product_id;
+    if (!productId) return json({ error: 'product_id required' }, 400);
+
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO ${tableName} (id, ${fkColumn}, product_id) VALUES (?, ?, ?)`
+    ).bind(crypto.randomUUID(), params.id, productId).run();
+    return json({ success: true }, 201);
+  };
+
+  const unlink: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    await env.DB.prepare(
+      `DELETE FROM ${tableName} WHERE ${fkColumn} = ? AND product_id = ?`
+    ).bind(params.id, params.productId).run();
+    return json({ success: true });
+  };
+
+  // Reverse lookup: get all articles/modules/projects for a product
+  const listByProduct: Handler = async (request, env, params) => {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+    const { results } = await env.DB.prepare(
+      `SELECT * FROM ${tableName} WHERE product_id = ? ORDER BY created_at DESC`
+    ).bind(params.id).all();
+    return json(results);
+  };
+
+  return { list, link, unlink, listByProduct };
+}
+
+const articleProductXref = makeXrefHandlers('article_products', 'article_id');
+const moduleProductXref = makeXrefHandlers('module_products', 'module_id');
+const projectProductXref = makeXrefHandlers('project_products', 'project_id');
+
 // ── Backfill: match existing invoices to customers ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
   const authErr = await requireAdmin(request, env);
@@ -4618,6 +4673,26 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/sample-sets', handleCreateSampleSet],
   ['PUT', '/api/admin/sample-sets/:id', handleUpdateSampleSet],
   ['DELETE', '/api/admin/sample-sets/:id', handleDeleteSampleSet],
+
+  // Article ↔ Product cross-references
+  ['GET', '/api/xref/articles/:id/products', articleProductXref.list],
+  ['POST', '/api/xref/articles/:id/products', articleProductXref.link],
+  ['DELETE', '/api/xref/articles/:id/products/:productId', articleProductXref.unlink],
+
+  // Module ↔ Product cross-references
+  ['GET', '/api/xref/modules/:id/products', moduleProductXref.list],
+  ['POST', '/api/xref/modules/:id/products', moduleProductXref.link],
+  ['DELETE', '/api/xref/modules/:id/products/:productId', moduleProductXref.unlink],
+
+  // Project ↔ Product cross-references
+  ['GET', '/api/xref/projects/:id/products', projectProductXref.list],
+  ['POST', '/api/xref/projects/:id/products', projectProductXref.link],
+  ['DELETE', '/api/xref/projects/:id/products/:productId', projectProductXref.unlink],
+
+  // Reverse: products → linked content
+  ['GET', '/api/products/:id/articles', articleProductXref.listByProduct],
+  ['GET', '/api/products/:id/modules', moduleProductXref.listByProduct],
+  ['GET', '/api/products/:id/projects', projectProductXref.listByProduct],
 ];
 
 export default {

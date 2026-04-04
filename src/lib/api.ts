@@ -1134,6 +1134,63 @@ export const api = {
     },
   },
 
+  xref: {
+    articles: {
+      list: async (articleId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/articles/${articleId}/products`, { headers: authHeaders() });
+        return handleResponse(res);
+      },
+      link: async (articleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/articles/${articleId}/products`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ product_id: productId }),
+        });
+        return handleResponse(res);
+      },
+      unlink: async (articleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/articles/${articleId}/products/${productId}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        return handleResponse(res);
+      },
+    },
+    modules: {
+      list: async (moduleId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/modules/${moduleId}/products`, { headers: authHeaders() });
+        return handleResponse(res);
+      },
+      link: async (moduleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/modules/${moduleId}/products`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ product_id: productId }),
+        });
+        return handleResponse(res);
+      },
+      unlink: async (moduleId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/modules/${moduleId}/products/${productId}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        return handleResponse(res);
+      },
+    },
+    projects: {
+      list: async (projectId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/projects/${projectId}/products`, { headers: authHeaders() });
+        return handleResponse(res);
+      },
+      link: async (projectId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/projects/${projectId}/products`, {
+          method: 'POST', headers: authHeaders(), body: JSON.stringify({ product_id: productId }),
+        });
+        return handleResponse(res);
+      },
+      unlink: async (projectId: string, productId: string) => {
+        const res = await fetchWithTimeout(`${API_URL}/api/xref/projects/${projectId}/products/${productId}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        return handleResponse(res);
+      },
+    },
+  },
+
   sampleSets: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets`, {
