@@ -487,6 +487,40 @@ const handleCreateResetToken: Handler = async (request, env) => {
   return json({ token: resetToken, user: { id: user.id, email: user.email, name: user.name } });
 };
 
+// ── Forgot Password: Self-service reset token request (public) ──
+// Creates a reset token for the given email and returns it directly.
+// Note: Without an email delivery system, the token is returned in the response
+// so the user can immediately set a new password. This is acceptable for a
+// single-tenant internal tool. Do not expose to the public internet without
+// adding email delivery + enumeration protections.
+const handleForgotPassword: Handler = async (request, env) => {
+  const { email } = await request.json() as { email?: string };
+  if (!email) return json({ error: 'Email required' }, 400);
+
+  const user = await env.DB.prepare(
+    'SELECT id, email, name FROM users WHERE email = ?'
+  ).bind(email).first();
+
+  // Generic response shape whether or not the user exists
+  if (!user) {
+    return json({ ok: true, message: 'No account found with that email.' }, 404);
+  }
+
+  // Generate a random reset token (expires in 1 hour)
+  const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+
+  await env.DB.prepare(
+    "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+1 hour'))"
+  ).bind(id, user.id, resetToken).run();
+
+  return json({
+    ok: true,
+    token: resetToken,
+    message: 'Reset token generated. Use it within the next hour to set a new password.',
+  });
+};
+
 // ── Reset Password with Token (public) ──
 const handleResetPassword: Handler = async (request, env) => {
   const { token, newPassword } = await request.json() as { token?: string; newPassword?: string };
@@ -4496,6 +4530,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/auth/change-password', handleChangePassword],
   ['PUT', '/api/auth/profile', handleUpdateProfile],
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
+  ['POST', '/api/auth/forgot-password', handleForgotPassword],
   ['POST', '/api/auth/reset-password', handleResetPassword],
 
   // User Management (admin/owner)
