@@ -784,7 +784,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
   const [panelHistoryOpen, setPanelHistoryOpen] = useState(false);
+  const [productEvents, setProductEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [showEvents, setShowEvents] = useState(false);
   useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
+
+  // Load events for the selected product
+  const loadProductEvents = useCallback(async (productId: string) => {
+    setLoadingEvents(true);
+    try {
+      const events = await api.products.getEvents(productId);
+      setProductEvents(events);
+    } catch (e) {
+      console.error('Failed to load product events:', e);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (panelProduct?.id) {
+      setProductEvents([]);
+      setShowEvents(false);
+      loadProductEvents(panelProduct.id);
+    }
+  }, [panelProduct?.id, loadProductEvents]);
 
   // Close row dropdown on outside click
   useEffect(() => {
@@ -3892,6 +3916,39 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       />
                     </div>
                   </div>
+                </CollapsibleSection>
+
+                {/* ── 8. Events ── */}
+                <CollapsibleSection title={`Events${productEvents.length > 0 ? ` (${productEvents.length})` : ''}`} defaultOpen={false}>
+                  {loadingEvents ? (
+                    <p className="text-xs text-tea-text-dim font-sans">Loading...</p>
+                  ) : productEvents.length === 0 ? (
+                    <p className="text-xs text-tea-text-dim font-sans italic">Not yet featured in any event</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {productEvents.map((event: any) => (
+                        <button
+                          key={event.id}
+                          onClick={() => navigate(`/admin/events/${event.id}`)}
+                          className="w-full text-left px-2 py-1.5 rounded hover:bg-tea-accent-sub/50 transition-colors group"
+                        >
+                          <div className="text-sm font-sans text-tea-text group-hover:text-tea-gold transition-colors">
+                            {event.title}
+                          </div>
+                          <div className="text-xs font-sans text-tea-text-dim flex items-center gap-2">
+                            <span>{event.event_date ? new Date(event.event_date).toLocaleDateString() : 'No date'}</span>
+                            {event.brew_order && <span>Brew #{event.brew_order}</span>}
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${
+                              event.status === 'active' ? 'bg-tea-accent-sub text-tea-gold' :
+                              'bg-tea-surface text-tea-text-dim'
+                            }`}>
+                              {event.status}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </CollapsibleSection>
 
                 {/* Bottom breathing room */}
