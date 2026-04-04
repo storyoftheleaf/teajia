@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Droplets } from 'lucide-react';
+import { Pencil, Trash2, Store, PackagePlus, ExternalLink, Check, Loader2, Heart, ThumbsDown, Beaker } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
@@ -62,27 +62,10 @@ function formatPrice(amount: number, currency: string): string {
   return `${symbol}${amount.toFixed(2)}`;
 }
 
-function getStatusConfig(status: string): { label: string; className: string } {
-  switch (status) {
-    case 'want':
-      return { label: 'Want', className: 'badge-status badge-status-amber' };
-    case 'bought':
-      return { label: 'Bought', className: 'badge-status badge-status-gold' };
-    case 'buying':
-      return { label: 'Buying', className: 'badge-status badge-status-green' };
-    case 'logged':
-    default:
-      return { label: 'Logged', className: 'badge-status badge-status-muted' };
-  }
-}
-
-function getTeaTypeBadgeStyle(type: string): React.CSSProperties {
-  const color = getTeaColor(type);
-  return {
-    '--type-color': color,
-    backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-    color,
-  } as React.CSSProperties;
+function getTypeLabel(entry: TeaCompassEntry): string {
+  if (entry.type) return entry.type;
+  if (entry.category === 'teaware') return 'Teaware';
+  return 'Tea';
 }
 
 export const BrowseCard: React.FC<BrowseCardProps> = ({
@@ -94,7 +77,6 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
-  const statusConfig = getStatusConfig(entry.status);
 
   const [draftState, setDraftState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [showBuyPrompt, setShowBuyPrompt] = useState(false);
@@ -175,19 +157,46 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
 
   const hasName = entry.name.trim().length > 0;
 
-  // Year + region line
-  const yearRegion = [entry.year && String(entry.year), entry.originRegion].filter(Boolean).join(' · ');
-
   const typeColor = entry.type ? getTeaColor(entry.type) : null;
   const hasPhoto = entry.photos.length > 0;
+  const isSample = !!entry.isSample;
+  const verdict = entry.sampleVerdict;
+  const hasPrice = entry.priceAmount != null && entry.priceAmount > 0;
+  const isBought = entry.status === 'bought';
+  const isBuying = entry.status === 'buying';
+
+  // Price shown inside the Buy button as the identifier
+  const buyButtonLabel = isBought
+    ? 'Bought'
+    : isBuying
+      ? 'Buying'
+      : hasPrice
+        ? `Buy · ${formatPrice(entry.priceAmount!, entry.priceCurrency)}`
+        : 'Buy';
 
   return (
     <div
       className="bg-tea-surface/40 rounded-lg overflow-hidden space-y-0 relative"
       style={typeColor ? { borderLeft: `2.5px solid color-mix(in srgb, ${typeColor} 25%, transparent)` } : undefined}
     >
+      {/* Sample toggle — upper right corner */}
+      <button
+        type="button"
+        onClick={() => updateEntry(entry.id, { isSample: !entry.isSample })}
+        className={`absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
+          isSample
+            ? 'bg-tea-gold/15 text-tea-gold'
+            : 'bg-tea-surface/60 text-tea-text-dim hover:text-tea-text-sec'
+        }`}
+        aria-pressed={isSample}
+        aria-label="Mark as sample"
+      >
+        <Beaker size={10} />
+        Sample
+      </button>
+
       {/* Main content area */}
-      <div className="flex gap-3 px-3 py-2.5">
+      <div className="flex gap-3 px-3 py-2.5 pr-20">
         {/* Photo thumbnail */}
         {hasPhoto && (
           <img
@@ -198,59 +207,36 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
         )}
 
         {/* Text content */}
-        <div className="flex-1 min-w-0 space-y-1">
-          {/* Line 1: Name + date */}
-          <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0 space-y-0.5">
+          {/* Line 1: Name · Region */}
+          <div className="flex items-baseline gap-2 min-w-0">
             <span
-              className={`flex-1 min-w-0 truncate text-sm font-serif ${
+              className={`min-w-0 truncate text-sm font-serif ${
                 hasName ? 'text-tea-text' : 'text-tea-text-dim italic'
               }`}
             >
               {hasName ? entry.name : 'Untitled'}
             </span>
-            <span className="text-[10px] text-tea-text-dim shrink-0 tabular-nums">
-              {formatRelativeDate(entry.createdAt)}
-            </span>
+            {entry.originRegion && (
+              <span className="text-[11px] text-tea-text-sec truncate shrink-0">
+                · {entry.originRegion}
+              </span>
+            )}
           </div>
 
-          {/* Chinese name — promoted above metadata when present */}
+          {/* Chinese name */}
           {entry.chineseName && (
-            <p className="text-[13px] text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
+            <p className="text-[12px] text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
           )}
 
-          {/* Line 2: Type + status + year/region + price */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {entry.type && (
-              <span
-                className="badge-status shrink-0 text-[10px]"
-                style={getTeaTypeBadgeStyle(entry.type)}
-              >
-                {entry.type}
-              </span>
-            )}
-            {entry.category === 'teaware' && !entry.type && (
-              <span className="badge-status badge-status-muted shrink-0 text-[10px]">Teaware</span>
-            )}
-
-            <span className={`${statusConfig.className} shrink-0 text-[10px]`}>
-              {statusConfig.label}
-              {(entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityGrams
-                ? ` ${entry.buyQuantityGrams}g`
-                : (entry.status === 'buying' || entry.status === 'bought') && entry.buyQuantityUnits
-                  ? ` ×${entry.buyQuantityUnits}`
-                  : ''}
-            </span>
-
-            {yearRegion && (
-              <span className="text-[10px] text-tea-text-sec shrink-0">{yearRegion}</span>
-            )}
-
-            {entry.priceAmount != null && entry.priceAmount > 0 && (
-              <span className="text-[10px] num text-tea-gold shrink-0 ml-auto">
-                {formatPrice(entry.priceAmount, entry.priceCurrency)}
-              </span>
-            )}
-          </div>
+          {/* Year + type quiet line */}
+          {(entry.year || (!hasName && entry.type)) && (
+            <p className="text-[10px] text-tea-text-dim tabular-nums">
+              {[entry.year && String(entry.year), getTypeLabel(entry), formatRelativeDate(entry.createdAt)]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
 
           {/* Notes preview */}
           {entry.notes.trim().length > 0 && (
@@ -261,47 +247,59 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
           {entry.vendorName && (
             <div className="flex items-center gap-1 text-[10px] text-tea-text-dim">
               <Store size={10} />
-              <span>{entry.vendorName}</span>
+              <span className="truncate">{entry.vendorName}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Compact Taste / Want / Buy row */}
-      <div className="flex items-center border-t border-tea-border gap-px bg-tea-gold/[0.06]">
+      {/* Rating + Buy row — no top border; price lives inside the Buy button */}
+      <div className="flex items-stretch gap-px px-2 pb-2">
         <button
           type="button"
-          onClick={() => onEdit(entry.id)}
-          className="flex-1 text-[11px] font-semibold text-center py-2 transition-all text-tea-text-sec active:bg-tea-elevated bg-tea-surface/40 flex items-center justify-center gap-1"
-        >
-          <Droplets size={12} />
-          Taste
-        </button>
-        <button
-          type="button"
-          onClick={() => updateEntry(entry.id, { status: entry.status === 'want' ? 'logged' : 'want' })}
-          className={`flex-1 text-[11px] font-semibold text-center py-2 transition-all ${
-            entry.status === 'want'
-              ? 'bg-tea-gold/10 text-tea-gold'
-              : 'text-tea-text-sec active:bg-tea-elevated bg-tea-surface/40'
-          }`}
-        >
-          Want
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowBuyPrompt(!showBuyPrompt)}
-          className={`flex-1 text-[11px] font-semibold text-center py-2 transition-all ${
-            entry.status === 'buying'
+          onClick={() =>
+            updateEntry(entry.id, { sampleVerdict: verdict === 'like' ? undefined : 'like' })
+          }
+          className={`flex-1 text-[11px] font-semibold py-1.5 rounded-l-md transition-all flex items-center justify-center gap-1 ${
+            verdict === 'like'
               ? 'bg-tea-gold/15 text-tea-gold'
-              : entry.status === 'bought'
-                ? 'bg-tea-gold/10 text-tea-gold'
-                : showBuyPrompt
-                  ? 'bg-tea-gold/10 text-tea-gold'
-                  : 'text-tea-text-sec active:bg-tea-elevated bg-tea-surface/40'
+              : 'bg-tea-surface/60 text-tea-text-sec hover:text-tea-text'
+          }`}
+          aria-pressed={verdict === 'like'}
+        >
+          <Heart size={12} />
+          Like
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            updateEntry(entry.id, { sampleVerdict: verdict === 'pass' ? undefined : 'pass' })
+          }
+          className={`flex-1 text-[11px] font-semibold py-1.5 transition-all flex items-center justify-center gap-1 ${
+            verdict === 'pass'
+              ? 'bg-tea-elevated text-tea-text'
+              : 'bg-tea-surface/60 text-tea-text-sec hover:text-tea-text'
+          }`}
+          aria-pressed={verdict === 'pass'}
+        >
+          <ThumbsDown size={12} />
+          Pass
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (isBought) return;
+            setShowBuyPrompt(!showBuyPrompt);
+          }}
+          className={`flex-[1.4] text-[11px] font-semibold py-1.5 rounded-r-md transition-all ${
+            isBought
+              ? 'bg-tea-gold/10 text-tea-gold'
+              : isBuying || showBuyPrompt
+                ? 'bg-tea-gold/20 text-tea-gold'
+                : 'bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15'
           }`}
         >
-          {entry.status === 'bought' ? 'Bought' : entry.status === 'buying' ? 'Buying' : 'Buy'}
+          {buyButtonLabel}
         </button>
       </div>
 
@@ -363,7 +361,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({
       </AnimatePresence>
 
       {/* Actions row — compact pill strip */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-tea-border">
+      <div className="flex items-center gap-1.5 px-3 pb-2">
         <button
           type="button"
           onClick={() => onEdit(entry.id)}
