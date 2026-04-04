@@ -443,6 +443,15 @@ export const api = {
     },
   },
 
+  stockHolds: {
+    available: async (productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/stock/available?product_id=${productId}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   purchaseOrders: {
     create: async (data: {
       po_number: string;

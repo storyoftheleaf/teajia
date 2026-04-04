@@ -981,6 +981,9 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
   }
 
+  // Clear stock holds since inventory is now deducted
+  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
+
   // Update invoice status
   stmts.push(
     env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id)
@@ -1049,6 +1052,9 @@ const handleVoidInvoice: Handler = async (request, env) => {
       }
     }
   }
+
+  // Clear stock holds (pending holds no longer needed after void)
+  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
 
   stmts.push(
     env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ?").bind(invoice_id)
@@ -4352,6 +4358,80 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Stock Holds ──
+
+const handleReserveStock: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as any;
+  const { invoice_id } = body;
+
+  if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
+
+  // Get invoice line items
+  const { results: items } = await env.DB.prepare(
+    'SELECT product_id, quantity FROM invoice_line_items WHERE invoice_id = ?'
+  ).bind(invoice_id).all();
+
+  if (!items.length) return json({ error: 'No line items found' }, 400);
+
+  // Clear any existing holds for this invoice first
+  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id).run();
+
+  // Create new holds
+  const stmts = items.map((item: any) =>
+    env.DB.prepare(
+      'INSERT INTO stock_holds (id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), invoice_id, item.product_id, item.quantity)
+  );
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+
+  return json({ held: items.length });
+};
+
+const handleReleaseStock: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as any;
+  const { invoice_id } = body;
+
+  if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
+
+  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id).run();
+
+  return json({ released: true });
+};
+
+const handleGetAvailableStock: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const productId = url.searchParams.get('product_id');
+
+  if (!productId) return json({ error: 'product_id required' }, 400);
+
+  const product = await env.DB.prepare(
+    'SELECT stock_grams FROM products WHERE id = ?'
+  ).bind(productId).first() as any;
+
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  const held = await env.DB.prepare(
+    'SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ?'
+  ).bind(productId).first() as any;
+
+  const totalStock = Number(product.stock_grams) || 0;
+  const totalHeld = Number(held.total_held) || 0;
+
+  return json({
+    stock_grams: totalStock,
+    held_grams: totalHeld,
+    available_grams: totalStock - totalHeld,
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -4413,6 +4493,9 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
   ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
   ['POST', '/api/rpc/reset-stock-verification', handleResetStockVerification],
+  ['POST', '/api/rpc/reserve-stock', handleReserveStock],
+  ['POST', '/api/rpc/release-stock', handleReleaseStock],
+  ['GET', '/api/stock/available', handleGetAvailableStock],
 
   // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
