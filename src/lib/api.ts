@@ -139,6 +139,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    forgotPassword: async (email: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return handleResponse(res);
+    },
     resetPassword: async (token: string, newPassword: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
