@@ -2346,27 +2346,26 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
+  // Public RSVP — resolve the event's account so all inserts (customer,
+  // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, total_capacity, claim_window_minutes FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity, claim_window_minutes FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
+  const accountId = event.account_id as string;
 
   const body = await request.json() as Record<string, any>;
   const {
     full_name, phone_number, email,
-    // V2 fields
     guest_requests, contact_method,
-    // Legacy fields (kept for backwards compat)
     plus_one, plus_one_name,
-    // Common fields
     photo_consent, notes, tea_preference, bringing_tea,
   } = body;
 
   if (!full_name) return json({ error: 'full_name is required' }, 400);
   if (!phone_number && !email) return json({ error: 'phone_number or email is required' }, 400);
 
-  // Check for duplicate by phone or email
   const contactField = phone_number ? 'phone_number' : 'email';
   const contactValue = phone_number || email;
   const existing = await env.DB.prepare(
@@ -2382,14 +2381,18 @@ const handleRSVP: Handler = async (request, env, params) => {
     });
   }
 
-  // Golden tier detection — match by phone or email
+  // Golden tier detection — look up customer within this account only.
   let accessTier = 'standard';
   let customerId: string | null = null;
 
   const customer = phone_number
-    ? await env.DB.prepare(`SELECT id, tags FROM customers WHERE phone = ? OR whatsapp = ?`).bind(phone_number, phone_number).first()
+    ? await env.DB.prepare(
+        `SELECT id, tags FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`
+      ).bind(phone_number, phone_number, accountId).first()
     : email
-    ? await env.DB.prepare(`SELECT id, tags FROM customers WHERE email = ?`).bind(email).first()
+    ? await env.DB.prepare(
+        `SELECT id, tags FROM customers WHERE email = ? AND account_id = ?`
+      ).bind(email, accountId).first()
     : null;
 
   if (customer) {
@@ -2401,13 +2404,13 @@ const handleRSVP: Handler = async (request, env, params) => {
       }
     } catch {}
   } else {
-    // Auto-create customer record
     const newCustomerId = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO customers (id, name, phone, email, whatsapp, contact_preference)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       newCustomerId,
+      accountId,
       full_name,
       phone_number || null,
       email || null,
@@ -2417,11 +2420,9 @@ const handleRSVP: Handler = async (request, env, params) => {
     customerId = newCustomerId;
   }
 
-  // V2: all new RSVPs get status 'requested' — admin approves/denies
   const status = 'requested';
   const magicToken = crypto.randomUUID();
 
-  // Normalise guest_requests: accept V2 array or fall back to legacy plus_one
   let guestRequestsJson: string | null = null;
   if (Array.isArray(guest_requests) && guest_requests.length > 0) {
     const normalised = guest_requests.map((g: any) => ({
@@ -2438,12 +2439,13 @@ const handleRSVP: Handler = async (request, env, params) => {
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO event_attendees
-         (id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
+         (id, account_id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
           access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea,
           guest_requests, contact_method, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       attendeeId,
+      accountId,
       event.id,
       customerId,
       full_name,
@@ -2462,7 +2464,7 @@ const handleRSVP: Handler = async (request, env, params) => {
       contact_method || 'whatsapp',
       'direct'
     ),
-    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId),
+    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId),
   ]);
 
   return json({
@@ -3286,40 +3288,50 @@ const handleUploadFlyer: Handler = async (request, env) => {
 
 // ── Saved Locations ──
 const handleGetSavedLocations: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
-  const result = await env.DB.prepare('SELECT * FROM saved_locations ORDER BY name ASC').all();
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const result = await env.DB.prepare(
+    'SELECT * FROM saved_locations WHERE account_id = ? ORDER BY name ASC'
+  ).bind(accountId).all();
   return json(result.results);
 };
 
 const handleCreateSavedLocation: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
   if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO saved_locations (id, name, address, map_link, guidelines, venue_guide) VALUES (?, ?, ?, ?, ?, ?)`
-  ).bind(id, body.name, body.address, body.map_link || null, body.guidelines || null, body.venue_guide || null).run();
+    `INSERT INTO saved_locations (id, account_id, name, address, map_link, guidelines, venue_guide)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, accountId, body.name, body.address, body.map_link || null, body.guidelines || null, body.venue_guide || null).run();
   return json({ id, name: body.name }, 201);
 };
 
 const handleUpdateSavedLocation: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(
+    `UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
   return json({ success: true });
 };
 
 const handleDeleteSavedLocation: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
-  await env.DB.prepare('DELETE FROM saved_locations WHERE id = ?').bind(params.id).run();
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  await env.DB.prepare('DELETE FROM saved_locations WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
   return json({ success: true });
 };
 
@@ -3715,14 +3727,15 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
 
 // PUT /api/admin/attendees/:id/approve
 const handleApproveAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.id as event_id FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.id = ?`
-  ).bind(params.id).first();
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -3744,11 +3757,10 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
       env,
       'attendee_approved',
       `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id
+      userEmail, 'event_attendee', params.id, accountId
     ),
   ];
 
-  // Create guest_invites rows if approved_guests > 0
   if (approvedGuests > 0) {
     let guestRequests: Array<{ nameHint: string; approved: boolean | null }> = [];
     if (attendee.guest_requests) {
@@ -3760,9 +3772,9 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
       const nameHint = guestRequests[i]?.nameHint || null;
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO guest_invites (id, event_id, parent_attendee_id, invite_token, name_hint)
-           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?)`
-        ).bind(attendee.event_id, params.id, inviteToken, nameHint)
+          `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint)
+           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
+        ).bind(accountId, attendee.event_id, params.id, inviteToken, nameHint)
       );
     }
   }
@@ -3774,12 +3786,15 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
 
 // PUT /api/admin/attendees/:id/deny
 const handleDenyAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT id, full_name FROM event_attendees WHERE id = ?`
-  ).bind(params.id).first();
+    `SELECT ea.id, ea.full_name FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -3794,7 +3809,7 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
       env,
       'attendee_denied',
       `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id
+      userEmail, 'event_attendee', params.id, accountId
     ),
   ]);
 
@@ -3803,16 +3818,18 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
 
 // PUT /api/admin/attendees/:id/waitlist
 const handleWaitlistAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT ea.id, ea.full_name, ea.event_id FROM event_attendees ea WHERE ea.id = ?`
-  ).bind(params.id).first();
+    `SELECT ea.id, ea.full_name, ea.event_id FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  // Find next waitlist position
   const posRow = await env.DB.prepare(
     `SELECT COALESCE(MAX(waitlist_position), 0) + 1 as next_pos
      FROM event_attendees WHERE event_id = ? AND status = 'waitlist'`
@@ -3829,7 +3846,7 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
       env,
       'attendee_waitlisted',
       `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
-      userEmail, 'event_attendee', params.id
+      userEmail, 'event_attendee', params.id, accountId
     ),
   ]);
 
@@ -3838,8 +3855,11 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
 
 // POST /api/admin/events/:id/approve-batch
 const handleApproveBatch: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as {
     attendee_ids: string[];
@@ -3872,7 +3892,7 @@ const handleApproveBatch: Handler = async (request, env, params) => {
         env,
         'attendee_approved',
         `Batch approved ${attendee.full_name}`,
-        userEmail, 'event_attendee', attendeeId
+        userEmail, 'event_attendee', attendeeId, accountId
       )
     );
 
@@ -3887,9 +3907,9 @@ const handleApproveBatch: Handler = async (request, env, params) => {
         const nameHint = guestRequests[i]?.nameHint || null;
         stmts.push(
           env.DB.prepare(
-            `INSERT INTO guest_invites (id, event_id, parent_attendee_id, invite_token, name_hint)
-             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?)`
-          ).bind(params.id, attendeeId, inviteToken, nameHint)
+            `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint)
+             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
+          ).bind(accountId, params.id, attendeeId, inviteToken, nameHint)
         );
       }
     }
@@ -3904,12 +3924,13 @@ const handleApproveBatch: Handler = async (request, env, params) => {
 
 // GET /api/admin/events/:id/share
 const handleGetEventShareMessages: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const event = await env.DB.prepare(
-    `SELECT id, slug, title, event_date, area_hint, flyer_image_url FROM events WHERE id = ?`
-  ).bind(params.id).first();
+    `SELECT id, slug, title, event_date, area_hint, flyer_image_url FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
@@ -3963,7 +3984,7 @@ const handleGetEventShareMessages: Handler = async (request, env, params) => {
 // POST /api/guest-invite/:token/claim
 const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const invite = await env.DB.prepare(
-    `SELECT gi.*, e.id as event_id, e.title as event_title
+    `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id
      WHERE gi.invite_token = ?`
@@ -3973,6 +3994,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   if (invite.status !== 'pending') {
     return json({ error: `Invite already ${invite.status}` }, 409);
   }
+  const accountId = invite.account_id as string;
 
   const body = await request.json() as { name: string; phone?: string; email?: string };
   if (!body.name) return json({ error: 'name is required' }, 400);
@@ -3985,10 +4007,11 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO event_attendees
-         (id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
-       VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
+         (id, account_id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
     ).bind(
       newAttendeeId,
+      accountId,
       invite.event_id,
       body.name,
       body.phone || null,
@@ -4012,7 +4035,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
       env,
       'guest_invite_claimed',
       `${body.name} claimed guest invite for event ${invite.event_title}`,
-      null, 'event_attendee', newAttendeeId
+      null, 'event_attendee', newAttendeeId, accountId
     ),
   ]);
 
@@ -4038,10 +4061,11 @@ const handleGetGuestInvite: Handler = async (_request, env, params) => {
 // POST /api/events/:slug/interest
 const handleEventInterest: Handler = async (request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id FROM events WHERE slug = ?`
+    `SELECT id, account_id FROM events WHERE slug = ?`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
+  const accountId = event.account_id as string;
 
   const body = await request.json() as { name?: string; phone?: string; email?: string };
   const name = body.name?.trim() || '';
@@ -4052,21 +4076,24 @@ const handleEventInterest: Handler = async (request, env, params) => {
     return json({ error: 'At least one of name, phone, or email is required' }, 400);
   }
 
-  // Try to match existing customer
+  // Match existing customer within the event's account only.
   let customerId: string | null = null;
   if (phone) {
-    const c = await env.DB.prepare(`SELECT id FROM customers WHERE phone = ? OR whatsapp = ?`)
-      .bind(phone, phone).first();
+    const c = await env.DB.prepare(
+      `SELECT id FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`
+    ).bind(phone, phone, accountId).first();
     if (c) customerId = c.id as string;
   } else if (email) {
-    const c = await env.DB.prepare(`SELECT id FROM customers WHERE email = ?`).bind(email).first();
+    const c = await env.DB.prepare(
+      `SELECT id FROM customers WHERE email = ? AND account_id = ?`
+    ).bind(email, accountId).first();
     if (c) customerId = c.id as string;
   }
 
   await env.DB.prepare(
-    `INSERT INTO interest_signups (id, event_id, customer_id, name, phone, email)
-     VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
-  ).bind(event.id, customerId, name || null, phone || null, email || null).run();
+    `INSERT INTO interest_signups (id, account_id, event_id, customer_id, name, phone, email)
+     VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
+  ).bind(accountId, event.id, customerId, name || null, phone || null, email || null).run();
 
   return json({ success: true }, 201);
 };
