@@ -1132,69 +1132,76 @@ const handleDeleteInvoice: Handler = async (request, env, params) => {
 
 // ── RPC: Fulfill Invoice ──
 const handleFulfillInvoice: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const { invoice_id } = await request.json() as { invoice_id: string };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 400);
 
-  const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+  const items = await env.DB.prepare(
+    'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).all();
 
-  // Fetch current stock for all affected products
-  const productIds = items.results.map(i => i.product_id);
+  // Fetch current stock for all affected products (account-scoped)
+  const productIds = (items.results as any[]).map(i => i.product_id);
   const products = new Map<string, any>();
   for (const pid of productIds) {
-    const p = await env.DB.prepare('SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ?').bind(pid).first();
+    const p = await env.DB.prepare(
+      'SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+    ).bind(pid, accountId).first();
     if (p) products.set(pid as string, p);
   }
 
   const stmts: D1PreparedStatement[] = [];
 
-  // Stock deductions + ledger entries
-  for (const item of items.results) {
+  for (const item of items.results as any[]) {
     const product = products.get(item.product_id as string);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
     const newBalance = currentStock - qty;
 
     stmts.push(
-      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ?').bind(qty, item.product_id)
+      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
+        .bind(qty, item.product_id, accountId)
     );
     stmts.push(buildStockLedgerEntry(
       env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
-      userEmail, invoice_id, invoice.invoice_number as string
+      userEmail, invoice_id, invoice.invoice_number as string, null, accountId
     ));
 
-    // Auto-archive if stock hits zero
     if (newBalance <= 0 && product && product.status !== 'Sold Out') {
       stmts.push(
-        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ?").bind(item.product_id)
+        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?")
+          .bind(item.product_id, accountId)
       );
       stmts.push(buildActivityLog(
         env, 'PRODUCT_SOLD_OUT',
         `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
-        userEmail, 'product', item.product_id as string
+        userEmail, 'product', item.product_id as string, accountId
       ));
     }
   }
 
-  // Clear stock holds since inventory is now deducted
-  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
-
-  // Update invoice status
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id)
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(invoice_id, accountId)
   );
 
-  // Activity log
+  stmts.push(
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ?")
+      .bind(invoice_id, accountId)
+  );
+
   stmts.push(buildActivityLog(
     env, 'FULFILLMENT',
     `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`,
-    userEmail, 'invoice', invoice_id
+    userEmail, 'invoice', invoice_id, accountId
   ));
 
   await env.DB.batch(stmts);
@@ -1202,68 +1209,78 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   return json({ success: true });
 };
 
-// ── RPC: Increment Stock (for void restore — legacy, kept for backwards compat) ──
+// ── RPC: Increment Stock (legacy, kept for backwards compat) ──
 const handleIncrementStock: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const { product_id, amount } = await request.json() as { product_id: string; amount: number };
-  await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ?')
-    .bind(amount, product_id).run();
+  await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+    .bind(amount, product_id, accountId).run();
   return json({ success: true });
 };
 
 // ── RPC: Void Invoice (atomic server-side) ──
 const handleVoidInvoice: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const { invoice_id } = await request.json() as { invoice_id: string };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status === 'Void') return json({ error: 'Invoice is already voided' }, 400);
 
   const stmts: D1PreparedStatement[] = [];
 
   if (invoice.inventory_deducted) {
-    const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+    const items = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(invoice_id, accountId).all();
 
-    for (const item of items.results) {
-      const product = await env.DB.prepare('SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ?')
-        .bind(item.product_id).first();
+    for (const item of items.results as any[]) {
+      const product = await env.DB.prepare(
+        'SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+      ).bind(item.product_id, accountId).first();
       const currentStock = product ? Number(product.stock_grams) || 0 : 0;
       const qty = Number(item.quantity) || 0;
       const newBalance = currentStock + qty;
 
       stmts.push(
-        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ?').bind(qty, item.product_id)
+        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+          .bind(qty, item.product_id, accountId)
       );
       stmts.push(buildStockLedgerEntry(
         env, item.product_id as string, qty, newBalance, 'VOID',
-        userEmail, invoice_id, invoice.invoice_number as string
+        userEmail, invoice_id, invoice.invoice_number as string, null, accountId
       ));
 
-      // If product was Sold Out and now has stock, reactivate
       if (product && product.status === 'Sold Out' && newBalance > 0) {
         stmts.push(
-          env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ?").bind(item.product_id)
+          env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ?")
+            .bind(item.product_id, accountId)
         );
       }
     }
   }
 
-  // Clear stock holds (pending holds no longer needed after void)
-  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
+  stmts.push(
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(invoice_id, accountId)
+  );
 
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ?").bind(invoice_id)
+    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ? AND account_id = ?")
+      .bind(invoice_id, accountId)
   );
   stmts.push(buildActivityLog(
     env, 'INVOICE_VOIDED',
     `Invoice ${invoice.invoice_number} voided.${invoice.inventory_deducted ? ' Stock restored.' : ''}`,
-    userEmail, 'invoice', invoice_id
+    userEmail, 'invoice', invoice_id, accountId
   ));
 
   await env.DB.batch(stmts);
@@ -1272,44 +1289,52 @@ const handleVoidInvoice: Handler = async (request, env) => {
 
 // ── RPC: Split Invoice ──
 const handleSplitInvoice: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const { invoice_id, line_item_ids } = await request.json() as { invoice_id: string; line_item_ids: string[] };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
 
-  const allItems = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+  const allItems = await env.DB.prepare(
+    'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).all();
   if (line_item_ids.length === 0 || line_item_ids.length >= allItems.results.length) {
     return json({ error: 'Must select a proper subset of items to split' }, 400);
   }
 
   const newId = crypto.randomUUID();
   const year = new Date().getFullYear();
-  const newNumber = `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+  const newNumber = await prefixInvoiceNumber(
+    env, accountId,
+    `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+  );
 
   const stmts: D1PreparedStatement[] = [];
 
-  // Create new invoice with same customer info
   stmts.push(env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
-     VALUES (?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
-  ).bind(newId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
+  ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
 
-  // Move selected line items to new invoice
   for (const itemId of line_item_ids) {
-    stmts.push(env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ?').bind(newId, itemId));
+    stmts.push(
+      env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
+        .bind(newId, itemId, accountId)
+    );
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
     `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
-    userEmail, 'invoice', invoice_id));
+    userEmail, 'invoice', invoice_id, accountId));
   stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
     `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
-    userEmail, 'invoice', newId));
+    userEmail, 'invoice', newId, accountId));
 
   await env.DB.batch(stmts);
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
@@ -1317,11 +1342,13 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
 // ── Update Invoice Items (edit pending order) ──
 const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(params.id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
@@ -1336,17 +1363,17 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   const stmts: D1PreparedStatement[] = [];
 
-  // Update line items if provided
   if (body.lineItems) {
-    stmts.push(env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?').bind(params.id));
+    stmts.push(env.DB.prepare(
+      'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(params.id, accountId));
     for (const item of body.lineItems) {
       stmts.push(env.DB.prepare(
-        'INSERT INTO invoice_line_items (id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?)'
-      ).bind(crypto.randomUUID(), params.id, item.product_id, item.quantity, item.price_at_sale));
+        'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
+      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id, item.quantity, item.price_at_sale));
     }
   }
 
-  // Update header fields
   const updates: string[] = [];
   const vals: any[] = [];
   for (const [key, val] of Object.entries(body)) {
@@ -1355,12 +1382,15 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     vals.push(val ?? null);
   }
   if (updates.length > 0) {
-    stmts.push(env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ?`).bind(...vals, params.id));
+    stmts.push(
+      env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`)
+        .bind(...vals, params.id, accountId)
+    );
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
     `Invoice ${invoice.invoice_number} edited.${body.lineItems ? ` ${body.lineItems.length} line items.` : ''}`,
-    userEmail, 'invoice', params.id));
+    userEmail, 'invoice', params.id, accountId));
 
   await env.DB.batch(stmts);
   return json({ success: true });
@@ -1368,8 +1398,9 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
 // ── Stock Ledger ──
 const handleGetStockLedger: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const productId = url.searchParams.get('product_id');
@@ -1381,51 +1412,54 @@ const handleGetStockLedger: Handler = async (request, env) => {
       `SELECT sl.*, p.given_name, p.product_name
        FROM stock_ledger sl
        LEFT JOIN products p ON sl.product_id = p.id
-       WHERE sl.product_id = ?
+       WHERE sl.product_id = ? AND sl.account_id = ?
        ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
-    ).bind(productId, limit, offset).all();
+    ).bind(productId, accountId, limit, offset).all();
     return json(result.results);
   }
 
-  // Global stock ledger (all products)
   const result = await env.DB.prepare(
     `SELECT sl.*, p.given_name, p.product_name
      FROM stock_ledger sl
      LEFT JOIN products p ON sl.product_id = p.id
+     WHERE sl.account_id = ?
      ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
-  ).bind(limit, offset).all();
+  ).bind(accountId, limit, offset).all();
   return json(result.results);
 };
 
 // ── RPC: Reset Stock Verification ──
 const handleResetStockVerification: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare('UPDATE products SET stock_verified_at = NULL').run();
+  await env.DB.prepare('UPDATE products SET stock_verified_at = NULL WHERE account_id = ?')
+    .bind(accountId).run();
   return json({ success: true });
 };
 
-// ── RPC: Truncate All Data ──
+// ── RPC: Truncate All Data (per-account) ──
 const handleTruncateAll: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM invoice_line_items'),
-    env.DB.prepare('DELETE FROM invoices'),
-    env.DB.prepare('DELETE FROM products'),
-    env.DB.prepare('DELETE FROM activity_logs'),
+    env.DB.prepare('DELETE FROM invoice_line_items WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM invoices WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM products WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM activity_logs WHERE account_id = ?').bind(accountId),
   ]);
   return json({ success: true });
 };
 
 // ── Customers ──
 const handleGetCustomers: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Join with invoices to get order stats + event attendance count
   let result;
   try {
     result = await env.DB.prepare(`
@@ -1439,55 +1473,61 @@ const handleGetCustomers: Handler = async (request, env) => {
          WHERE ea.customer_id = c.id AND ea.status = 'confirmed' AND ea.attended = 1
         ) as event_count
       FROM customers c
-      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
+      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void' AND i.account_id = ?
+      WHERE c.account_id = ?
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `).all();
+    `).bind(accountId, accountId).all();
   } catch {
-    // Fallback: customer_id column may not exist yet
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
+      WHERE c.account_id = ?
       ORDER BY c.created_at DESC
-    `).all();
+    `).bind(accountId).all();
   }
 
   return json(result.results);
 };
 
 const handleGetCustomer: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  const customer = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(params.id).first();
+  const customer = await env.DB.prepare(
+    'SELECT * FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   if (!customer) return json({ error: 'Customer not found' }, 404);
 
-  // Get their orders
   let orders: any[] = [];
   try {
     const result = await env.DB.prepare(
-      'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
-    ).bind(params.id).all();
-    orders = result.results;
+      'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
+    ).bind(params.id, accountId).all();
+    orders = result.results as any[];
   } catch { /* customer_id column may not exist yet */ }
 
   return json({ ...customer, orders });
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const id = crypto.randomUUID();
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
 
   await env.DB.prepare(
-    `INSERT INTO customers (id, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO customers (id, account_id, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
+    accountId,
     body.name,
     body.company || null,
     body.email || null,
@@ -1506,40 +1546,48 @@ const handleCreateCustomer: Handler = async (request, env) => {
 };
 
 const handleUpdateCustomer: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
 
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(
+    `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleDeleteCustomer: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Unlink invoices (set customer_id to null) rather than cascade delete
   try {
-    await env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id).run();
-  } catch { /* customer_id column may not exist yet */ }
-  await env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id).run();
+    await env.DB.prepare(
+      'UPDATE invoices SET customer_id = NULL WHERE customer_id = ? AND account_id = ?'
+    ).bind(params.id, accountId).run();
+  } catch {}
+  await env.DB.prepare('DELETE FROM customers WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
   return json({ success: true });
 };
 
 const handleGetCustomerOrders: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   try {
     const orders = await env.DB.prepare(
-      'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
-    ).bind(params.id).all();
+      'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
+    ).bind(params.id, accountId).all();
     return json(orders.results);
   } catch {
     return json([]);
@@ -1547,10 +1595,10 @@ const handleGetCustomerOrders: Handler = async (request, env, params) => {
 };
 
 const handleGetCustomerTeas: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Get all teas this customer has purchased, with quantities and dates
   try {
     const result = await env.DB.prepare(`
       SELECT
@@ -1563,10 +1611,10 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
       FROM invoice_line_items ili
       JOIN invoices i ON i.id = ili.invoice_id
       JOIN products p ON p.id = ili.product_id
-      WHERE i.customer_id = ? AND i.status != 'Void'
+      WHERE i.customer_id = ? AND i.status != 'Void' AND i.account_id = ?
       GROUP BY p.id
       ORDER BY last_purchased DESC
-    `).bind(params.id).all();
+    `).bind(params.id, accountId).all();
     return json(result.results);
   } catch {
     return json([]);
@@ -1574,8 +1622,9 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
 };
 
 const handleGetCustomerEvents: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   try {
     const result = await env.DB.prepare(`
@@ -1586,9 +1635,9 @@ const handleGetCustomerEvents: Handler = async (request, env, params) => {
         ea.plus_one, ea.created_at as rsvp_date
       FROM event_attendees ea
       JOIN events e ON e.id = ea.event_id
-      WHERE ea.customer_id = ? AND ea.status != 'cancelled'
+      WHERE ea.customer_id = ? AND ea.status != 'cancelled' AND ea.account_id = ?
       ORDER BY e.event_date DESC
-    `).bind(params.id).all();
+    `).bind(params.id, accountId).all();
     return json(result.results);
   } catch {
     return json([]);
@@ -1596,40 +1645,43 @@ const handleGetCustomerEvents: Handler = async (request, env, params) => {
 };
 
 const handleGetVendorProducts: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
       origin_country, origin_region, stock_grams, status, cost_amount, cost_currency
     FROM products
-    WHERE vendor_id = ?
+    WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
-  `).bind(params.id).all();
+  `).bind(params.id, accountId).all();
 
   return json(result.results);
 };
 
 const handleLinkVendorProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   const productId = body.product_id;
   if (!productId) return json({ error: 'product_id required' }, 400);
 
-  await env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ?')
-    .bind(params.id, productId).run();
+  await env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ? AND account_id = ?')
+    .bind(params.id, productId, accountId).run();
 
   return json({ success: true });
 };
 
 const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare('UPDATE products SET vendor_id = NULL WHERE id = ?')
-    .bind(params.productId).run();
+  await env.DB.prepare('UPDATE products SET vendor_id = NULL WHERE id = ? AND account_id = ?')
+    .bind(params.productId, accountId).run();
 
   return json({ success: true });
 };
