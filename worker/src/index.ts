@@ -852,8 +852,10 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
+  const paymentStatus = body.invoice.payment_status || 'unpaid';
+
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     body.invoice.invoice_number,
@@ -865,7 +867,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
     body.invoice.status || 'Pending',
     0,
     body.invoice.notes || null,
-    body.invoice.source_event_id || null
+    body.invoice.source_event_id || null,
+    paymentStatus
   );
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
