@@ -3,6 +3,7 @@ import { api, setToken, clearToken, hasToken, getTokenClaims, SESSION_EXPIRED_EV
 
 export interface AuthUser {
   email: string;
+  username: string | null;
   name: string;
   role: string;
 }
@@ -12,8 +13,8 @@ interface UseAuthReturn {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, username?: string | null) => Promise<void>;
   logout: () => void;
   checkSession: () => Promise<void>;
 }
@@ -23,7 +24,7 @@ export function useAuth(): UseAuthReturn {
     // Initialize from token claims if available
     const claims = getTokenClaims();
     if (claims) {
-      return { email: claims.email, name: claims.name, role: claims.role };
+      return { email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role };
     }
     return null;
   });
@@ -37,7 +38,7 @@ export function useAuth(): UseAuthReturn {
     try {
       setIsLoading(true);
       const data = await api.auth.me();
-      setUser({ email: data.email, name: data.name, role: data.role });
+      setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role });
     } catch {
       // Token expired or invalid
       clearToken();
@@ -63,21 +64,21 @@ export function useAuth(): UseAuthReturn {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await api.auth.login(email, password);
+  const login = useCallback(async (identifier: string, password: string) => {
+    const result = await api.auth.login(identifier, password);
     setToken(result.token);
     const claims = getTokenClaims();
     if (claims) {
-      setUser({ email: claims.email, name: claims.name, role: claims.role });
+      setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
     }
   }, []);
 
-  const signup = useCallback(async (email: string, password: string, name: string) => {
-    const result = await api.auth.signup(email, password, name);
+  const signup = useCallback(async (email: string, password: string, name: string, username?: string | null) => {
+    const result = await api.auth.signup(email, password, name, username);
     setToken(result.token);
     const claims = getTokenClaims();
     if (claims) {
-      setUser({ email: claims.email, name: claims.name, role: claims.role });
+      setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
     }
   }, []);
 
