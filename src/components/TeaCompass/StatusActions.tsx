@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Check, BookOpen } from 'lucide-react';
+import { Minus, Plus, Check, BookOpen, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { CompassStatus, TeaCompassEntry, TeaForm } from './types';
 import { DEFAULT_GRAMS } from './types';
@@ -51,7 +51,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
 
   const handleBuyClick = () => {
     if (!entry) {
-      onStatusChange(status === 'buying' ? 'logged' : 'buying');
+      onStatusChange(status === 'bought' ? 'logged' : 'bought');
       return;
     }
 
@@ -94,7 +94,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
       compassEntryId: entry.id,
     });
 
-    onStatusChange('buying');
+    onStatusChange('bought');
 
     setShowQtyPicker(false);
     setJustAdded(true);
@@ -113,13 +113,14 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleWant}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 transition-all ${
+          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             status === 'want'
               ? 'bg-tea-gold/20 text-tea-gold'
               : 'bg-tea-surface/80 text-tea-text-sec active:bg-tea-elevated hover:bg-tea-surface'
           }`}
         >
-          Want
+          {status === 'want' ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
+          Wishlist
         </button>
         <button
           type="button"
@@ -127,7 +128,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
           className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             isInLedger
               ? 'bg-tea-gold/20 text-tea-gold'
-              : status === 'buying'
+              : status === 'bought'
                 ? 'bg-tea-gold text-tea-bg'
                 : 'bg-tea-gold/8 text-tea-text-sec active:bg-tea-gold/15 hover:bg-tea-gold/12'
           }`}
@@ -136,6 +137,11 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             <>
               <BookOpen size={14} />
               In Ledger
+            </>
+          ) : status === 'bought' ? (
+            <>
+              <Check size={14} />
+              Bought
             </>
           ) : (
             'Buy'

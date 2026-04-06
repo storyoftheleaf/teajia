@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical, UserCog, Settings } from 'lucide-react';
+import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical, UserCog, Settings, ShieldCheck } from 'lucide-react';
+import type { PlatformRole } from '../../types';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -84,6 +85,7 @@ const AccountSwitcherMount: React.FC = () => {
 export const Sidebar = ({
   isAdmin,
   isLoggedIn,
+  platformRole,
   onLoginClick,
   onLogoutClick,
   isMobileOpen,
@@ -94,6 +96,7 @@ export const Sidebar = ({
 }: {
   isAdmin: boolean;
   isLoggedIn: boolean;
+  platformRole?: PlatformRole;
   onLoginClick: () => void;
   onLogoutClick: () => void;
   isMobileOpen: boolean;
@@ -124,6 +127,7 @@ export const Sidebar = ({
     { id: 'samples', path: '/admin/samples', label: 'Samples', icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
     { id: 'team', path: '/admin/team', label: 'Team', icon: <UserCog className="w-5 h-5" strokeWidth={2} /> },
     { id: 'account-settings', path: '/admin/account-settings', label: 'Account', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
+    ...(platformRole ? [{ id: 'platform', path: '/admin/platform', label: 'Platform', icon: <ShieldCheck className="w-5 h-5" strokeWidth={2} /> }] : []),
   ];
 
   const handleNav = () => {

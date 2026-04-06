@@ -1101,7 +1101,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       name: product.givenName || product.productName,
       chineseName: product.chineseName || undefined,
       type: product.type,
-      status: 'buying',
+      status: 'want',
       notes: `Restock from inventory — ${product.productName}`,
     };
     if (product.vendor) updates.vendorName = product.vendor;

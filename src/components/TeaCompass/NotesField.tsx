@@ -84,10 +84,6 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
 
   return (
     <div className="space-y-1">
-      <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-        Notes
-      </label>
-
       {/* Previous note entries */}
       {noteEntries.length > 0 && (
         <div className="space-y-1 mb-2">

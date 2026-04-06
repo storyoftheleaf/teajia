@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Plus, PenLine, LayoutGrid, BookOpen, Check, ExternalLink } from 'lucide-react';
+import { ArrowLeft, PenLine, Library, BookOpen, Check, ExternalLink, Mic, Square, Loader2 } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { hasToken } from '../../lib/api';
@@ -12,7 +12,8 @@ import { SessionStack } from './SessionStack';
 import { CaptureCard } from './CaptureCard';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
-import { VoiceRecorder } from './VoiceRecorder';
+import { useVoiceRecorder } from './useVoiceRecorder';
+import { usePlatformPrivilege } from '../../lib/permissions';
 
 export type CompassMode = 'capture' | 'browse' | 'ledger';
 
@@ -30,14 +31,24 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
+  const activeCategory: CompassCategory = useTeaCompassStore((s) => {
+    const id = s.activeEntryId;
+    if (!id) return 'tea';
+    const entry = s.pendingEntries.find((e) => e.id === id) ?? s.entries.find((e) => e.id === id);
+    return entry?.category || 'tea';
+  });
 
   const navigate = useNavigate();
 
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
+
+  // Track whether the user navigated to Capture from the Library (to show back link)
+  const [fromLibrary, setFromLibrary] = useState(false);
 
   // Track just-committed entry for banner
   const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
@@ -67,10 +78,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const sessionEntries = getSessionEntries();
   const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;
-  const activeCategory: CompassCategory = activeEntry?.category || 'tea';
 
   const handleNewCapture = useCallback((category?: CompassCategory) => {
     startNewCapture(category || activeCategory);
+    setFromLibrary(false);
     setMode('capture');
   }, [startNewCapture, activeCategory]);
 
@@ -98,6 +109,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleEditEntry = useCallback(
     (id: string) => {
       setActiveEntry(id);
+      setFromLibrary(true);
       setMode('capture');
     },
     [setActiveEntry]
@@ -118,10 +130,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'logged')
     );
     if (remaining.length > 0) {
-      // Switch to the most recent remaining session entry
       setActiveEntry(remaining[0].id);
     } else {
-      // Start a fresh capture
       startNewCapture(
         activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
       );
@@ -129,8 +139,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
+    if (newMode === 'capture' && !activeEntryId) {
+      startNewCapture(activeCategory);
+    }
     setMode(newMode);
-  }, []);
+  }, [activeEntryId, startNewCapture, activeCategory]);
 
   // ── Auto-sync & hydration ──
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -164,19 +177,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       const latest = useTeaCompassStore.getState().entries.find(e => e.id === activeEntryId);
       if (!latest) return;
       const currentNotes = latest.notes || '';
-      const delimiter = '\n\n';
-      const updated = currentNotes.trim()
-        ? currentNotes.trim() + delimiter + text
-        : text;
+      const updated = currentNotes.trim() ? currentNotes.trim() + '\n\n' + text : text;
       updateEntry(activeEntryId, { notes: updated });
     },
     [activeEntryId, updateEntry]
   );
 
+  const { state: voiceState, handlePress: handleVoicePress } = useVoiceRecorder(handleVoiceTranscript);
+  const isPlatformPrivileged = usePlatformPrivilege();
+
   // Tab config
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
-    { id: 'browse', label: 'Browse', icon: LayoutGrid },
+    { id: 'browse', label: 'Library', icon: Library },
     { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
@@ -238,7 +251,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 pb-[calc(180px+env(safe-area-inset-bottom,0px))]" role="tabpanel" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 pb-[calc(180px+env(safe-area-inset-bottom,0px))]"
+        role="tabpanel"
+        style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
+      >
         <AnimatePresence mode="wait">
           {mode === 'capture' ? (
             <motion.div
@@ -259,7 +276,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <motion.div
                   className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
                   animate={{ left: activeCategory === 'tea' ? '2px' : '50%', right: activeCategory === 'teaware' ? '2px' : '50%' }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                  transition={{ duration: 0.1, ease: 'easeOut' }}
                 />
                 <button
                   type="button"
@@ -311,14 +328,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onClick={() => { setJustCommitted(null); setMode('browse'); }}
                         className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                       >
-                        Browse
+                        Library
                       </button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <CaptureCard entryId={activeEntryId} onSwitchToLedger={() => handleSwitchMode('ledger')} onCommit={handleCommitEntry} />
+              <CaptureCard
+                entryId={activeEntryId}
+                onSwitchToLedger={() => handleSwitchMode('ledger')}
+                onCommit={handleCommitEntry}
+                onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('browse'); } : undefined}
+              />
             </motion.div>
           ) : mode === 'browse' ? (
             <motion.div
@@ -341,32 +363,91 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <LedgerView embedded />
+              <LedgerView
+                embedded
+                onOpenEntry={(entryId) => {
+                  setActiveEntry(entryId);
+                  setMode('capture');
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── Voice recorder (capture mode only) ── */}
+      {/* ── Unified action bar (capture mode only) ── */}
       {mode === 'capture' && (
-        <VoiceRecorder onTranscript={handleVoiceTranscript} />
-      )}
-
-      {/* ── Floating + button (capture mode only — browse has its own inline button) ── */}
-      {mode === 'capture' && (
-        <motion.button
-          type="button"
-          onClick={() => handleNewCapture()}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.92 }}
-          className="fixed right-5 z-30 w-11 h-11 rounded-full bg-tea-gold text-tea-bg
-                     shadow-[0_2px_12px_rgba(184,146,78,0.35)] flex items-center justify-center
-                     bottom-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]
-                     lg:bottom-5"
-          aria-label="New capture"
+        <div
+          className="fixed z-30 left-1/2 -translate-x-1/2
+                     bottom-[calc(0.875rem+44px+env(safe-area-inset-bottom,0px))]
+                     lg:bottom-3.5"
         >
-          <Plus size={20} strokeWidth={2.5} />
-        </motion.button>
+          <div className="flex items-center rounded-full bg-tea-elevated border border-tea-border shadow-[0_4px_20px_rgba(0,0,0,0.18)] overflow-hidden">
+            {isPlatformPrivileged && (<>
+            {/* Voice button */}
+            <motion.button
+              type="button"
+              onClick={handleVoicePress}
+              disabled={voiceState === 'transcribing'}
+              whileTap={voiceState !== 'transcribing' ? { scale: 0.9 } : undefined}
+              className={`relative h-10 px-4 flex items-center gap-2 transition-colors ${
+                voiceState === 'recording'
+                  ? 'text-tea-gold'
+                  : voiceState === 'transcribing'
+                    ? 'text-tea-text-dim cursor-wait'
+                    : 'text-tea-text-dim hover:text-tea-text'
+              }`}
+              aria-label={voiceState === 'recording' ? 'Stop recording' : 'Voice note'}
+            >
+              {voiceState === 'recording' && (
+                <motion.span
+                  className="absolute inset-0 rounded-full"
+                  animate={{ opacity: [0.08, 0.15, 0.08] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ background: 'var(--tea-gold)' }}
+                />
+              )}
+              <span className="relative">
+                {voiceState === 'recording' ? (
+                  <Square size={13} fill="currentColor" />
+                ) : voiceState === 'transcribing' ? (
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="block"
+                  >
+                    <Loader2 size={13} />
+                  </motion.span>
+                ) : (
+                  <Mic size={13} />
+                )}
+              </span>
+              {voiceState === 'recording' && (
+                <span className="relative text-[11px] font-medium tracking-wide">Recording</span>
+              )}
+            </motion.button>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-tea-border shrink-0" />
+            </>)}
+
+            {/* Save button */}
+            <motion.button
+              type="button"
+              onClick={() => {
+                if (!activeEntryId) return;
+                commitEntry(activeEntryId);
+                handleCommitEntry();
+              }}
+              disabled={!activeEntryId}
+              whileTap={{ scale: 0.97 }}
+              className="h-10 px-5 flex items-center text-[13px] font-semibold text-tea-gold tracking-wide disabled:opacity-40 transition-opacity"
+              aria-label="Save"
+            >
+              Save
+            </motion.button>
+          </div>
+        </div>
       )}
     </div>
   );

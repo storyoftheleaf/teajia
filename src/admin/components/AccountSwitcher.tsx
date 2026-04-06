@@ -7,7 +7,6 @@ import type { AccountMembership, AccountRole } from '../../types';
 
 const roleLabel: Record<AccountRole, string> = {
   owner: 'Owner',
-  manager: 'Manager',
   staff: 'Staff',
   viewer: 'Viewer',
 };

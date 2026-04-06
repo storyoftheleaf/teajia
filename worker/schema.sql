@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS account_members (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL,               -- owner | manager | staff | viewer
+    role TEXT NOT NULL,               -- owner | staff | viewer
+    permissions TEXT NOT NULL DEFAULT '{}', -- JSON: per-member feature flags e.g. '{"ai_wisdom": true}'
     invited_by_user_id TEXT,
     invited_at TEXT,
     joined_at TEXT DEFAULT (datetime('now')),
@@ -199,10 +200,36 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT,
     name TEXT NOT NULL DEFAULT '',
     password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user',  -- 'owner', 'admin', 'user'
+    role TEXT NOT NULL DEFAULT 'user',  -- legacy: 'owner', 'admin', 'user'
+    platform_role TEXT DEFAULT NULL,    -- NULL | 'platform_admin' | 'platform_owner' (one platform_owner max)
     admin_request_status TEXT NOT NULL DEFAULT 'none',  -- 'none', 'pending', 'approved', 'denied'
     admin_requested_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Platform-level audit log (cross-account admin actions)
+CREATE TABLE IF NOT EXISTS platform_audit_log (
+  id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  action      TEXT NOT NULL,
+  actor_id    TEXT,
+  actor_email TEXT,
+  target_type TEXT,
+  target_id   TEXT,
+  details     TEXT DEFAULT '{}',
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_platform_audit_created ON platform_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_platform_audit_actor   ON platform_audit_log(actor_id);
+CREATE INDEX IF NOT EXISTS idx_platform_audit_target  ON platform_audit_log(target_id);
+
+-- Account-level feature flags (platform owner enables per account)
+CREATE TABLE IF NOT EXISTS account_features (
+  account_id  TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  feature     TEXT NOT NULL,  -- e.g. 'ai_wisdom_generation'
+  enabled     INTEGER NOT NULL DEFAULT 0,
+  enabled_by  TEXT REFERENCES users(id),
+  enabled_at  TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (account_id, feature)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 

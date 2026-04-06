@@ -6,6 +6,9 @@ interface Env {
   ANTHROPIC_API_KEY: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
+  // Optional — set SENDER_EMAIL to enable invite emails via MailChannels
+  SENDER_EMAIL?: string;
+  SENDER_NAME?: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -13,10 +16,13 @@ type Handler = (request: Request, env: Env, params: Record<string, string>) => P
 // ── Multi-account types ──
 export interface AccountMembership {
   account_id: string;
-  role: 'owner' | 'manager' | 'staff' | 'viewer';
+  role: 'owner' | 'staff' | 'viewer';
   slug: string;
   account_name: string;
+  is_platform_account?: boolean;
 }
+
+export type PlatformRole = 'platform_owner' | 'platform_admin' | null;
 
 export interface TokenClaims {
   sub: string;
@@ -25,6 +31,7 @@ export interface TokenClaims {
   // Legacy role field — kept for backwards compatibility with the old
   // requireAdmin/requireOwner helpers. New code should use memberships.
   role?: string;
+  platform_role?: PlatformRole;
   memberships?: AccountMembership[];
   active_account_id?: string | null;
   iat?: number;
@@ -95,7 +102,7 @@ function parseToken(token: string): TokenClaims | null {
 async function loadMemberships(env: Env, userId: string): Promise<AccountMembership[]> {
   try {
     const { results } = await env.DB.prepare(
-      `SELECT am.account_id, am.role, a.slug, a.name
+      `SELECT am.account_id, am.role, a.slug, a.name, a.is_platform_owner
        FROM account_members am
        JOIN accounts a ON a.id = am.account_id
        WHERE am.user_id = ? AND am.status = 'active'
@@ -106,6 +113,7 @@ async function loadMemberships(env: Env, userId: string): Promise<AccountMembers
       role: r.role as AccountMembership['role'],
       slug: r.slug as string,
       account_name: r.name as string,
+      ...(r.is_platform_owner ? { is_platform_account: true } : {}),
     }));
   } catch {
     return [];
@@ -139,6 +147,21 @@ async function getActiveAccount(
   const claims = parseToken(token);
   if (!claims) return { error: json({ error: 'Invalid token' }, 401) };
 
+  // Platform owner and platform admin bypass account membership checks —
+  // they have access to every account.
+  if (claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') {
+    const headerAccount = request.headers.get('X-Teajia-Account');
+    const requested = headerAccount || claims.active_account_id || null;
+    if (!requested) return { error: json({ error: 'Account access denied' }, 403) };
+    return {
+      accountId: requested,
+      userId: claims.sub,
+      role: 'owner', // platform roles act as owner within any account
+      email: claims.email,
+      name: claims.name,
+    };
+  }
+
   const headerAccount = request.headers.get('X-Teajia-Account');
   const requested = headerAccount || claims.active_account_id || null;
   if (!requested) {
@@ -165,6 +188,14 @@ async function getActiveAccount(
     return { error: json({ error: 'Account access denied' }, 403) };
   }
 
+  // Block access to suspended accounts (platform roles bypass this)
+  try {
+    const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
+    if (acct && acct.status === 'suspended') {
+      return { error: json({ error: 'This account has been suspended' }, 403) };
+    }
+  } catch {}
+
   return {
     accountId: requested,
     userId: claims.sub,
@@ -188,10 +219,37 @@ async function requireAccountRole(
 ): Promise<AccountCtx | { error: Response }> {
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx;
+  // Platform roles already resolve as 'owner' from getActiveAccount — no extra check needed.
   if (!allowedRoles.includes(ctx.role)) {
     return { error: json({ error: 'Insufficient role for this account' }, 403) };
   }
   return ctx;
+}
+
+// Require the caller to be the platform owner (only one user).
+async function requirePlatformOwner(request: Request, env: Env): Promise<Response | null> {
+  const token = isAuthed(request);
+  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+  const claims = parseToken(token);
+  if (!claims || claims.platform_role !== 'platform_owner') {
+    return json({ error: 'Platform owner access required' }, 403);
+  }
+  return null;
+}
+
+// Require the caller to be platform owner or platform admin.
+async function requirePlatformAdmin(request: Request, env: Env): Promise<Response | null> {
+  const token = isAuthed(request);
+  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+  const claims = parseToken(token);
+  if (!claims || (claims.platform_role !== 'platform_owner' && claims.platform_role !== 'platform_admin')) {
+    return json({ error: 'Platform admin access required' }, 403);
+  }
+  return null;
 }
 
 // ── Audit & Ledger Helpers ──
@@ -360,10 +418,12 @@ const handleLogin: Handler = async (request, env) => {
     if (user && user.password_hash === computedHash) {
       const memberships = await loadMemberships(env, user.id as string);
       const activeAccountId = memberships[0]?.account_id || null;
+      const platformRole = (user.platform_role as PlatformRole) ?? null;
       const token = await createToken(env.JWT_SECRET, {
         sub: user.id as string,
         email: user.email as string,
         role: user.role as string,
+        platform_role: platformRole,
         name: user.name as string,
         username: (user.username as string | null) ?? null,
         memberships,
@@ -371,7 +431,7 @@ const handleLogin: Handler = async (request, env) => {
       });
       return json({
         token,
-        user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role },
+        user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role, platform_role: platformRole },
         memberships,
         active_account_id: activeAccountId,
       });
@@ -5250,9 +5310,9 @@ const handleGetAccount: Handler = async (request, env, params) => {
   return json(acc);
 };
 
-// PUT /api/accounts/:id — update account profile (owner/manager)
+// PUT /api/accounts/:id — update account profile (owner only)
 const handleUpdateAccount: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner', 'manager']);
+  const ctx = await requireAccountRole(request, env, ['owner']);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -5280,8 +5340,8 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
   const { results } = await env.DB.prepare(
-    `SELECT am.id, am.account_id, am.user_id, am.role, am.status, am.joined_at, am.invited_at,
-            u.email, u.name
+    `SELECT am.id, am.account_id, am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
+            u.email, u.name, u.platform_role
      FROM account_members am
      LEFT JOIN users u ON u.id = am.user_id
      WHERE am.account_id = ?
@@ -5290,9 +5350,9 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
   return json({ members: results });
 };
 
-// POST /api/accounts/:id/members — invite by email (owner/manager)
+// POST /api/accounts/:id/members — invite by email (owner only)
 const handleInviteAccountMember: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner', 'manager']);
+  const ctx = await requireAccountRole(request, env, ['owner']);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -5300,7 +5360,7 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
   const email = (body.email || '').trim().toLowerCase();
   const role = body.role || 'staff';
   if (!email) return json({ error: 'email required' }, 400);
-  if (!['owner', 'manager', 'staff', 'viewer'].includes(role)) {
+  if (!['owner', 'staff', 'viewer'].includes(role)) {
     return json({ error: 'invalid role' }, 400);
   }
 
@@ -5387,6 +5447,457 @@ const handleDeleteAccountMember: Handler = async (request, env, params) => {
   ).bind(params.id, params.userId).run();
 
   return json({ success: true });
+};
+
+// ── Platform Audit Log Helper ─────────────────────────────────────────────────
+
+async function logPlatformAction(
+  env: Env,
+  action: string,
+  actorId: string,
+  actorEmail: string,
+  targetType: string,
+  targetId: string,
+  details: Record<string, any> = {}
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO platform_audit_log (action, actor_id, actor_email, target_type, target_id, details)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(action, actorId, actorEmail, targetType, targetId, JSON.stringify(details)).run();
+  } catch {
+    // Non-critical — never let logging failure break the actual operation
+  }
+}
+
+// ── Email Helper (MailChannels — optional) ────────────────────────────────────
+
+async function sendEmail(
+  env: Env,
+  to: string,
+  subject: string,
+  html: string
+): Promise<boolean> {
+  if (!env.SENDER_EMAIL) return false;
+  try {
+    const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: env.SENDER_EMAIL, name: env.SENDER_NAME || 'Teajia' },
+        subject,
+        content: [{ type: 'text/html', value: html }],
+      }),
+    });
+    return res.status === 202;
+  } catch {
+    return false;
+  }
+}
+
+function inviteEmailHtml(inviteUrl: string, accountName: string): string {
+  return `
+    <div style="font-family:serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#2a2a2a">
+      <h2 style="font-size:20px;margin-bottom:8px">You've been invited to Teajia</h2>
+      <p style="color:#666;margin-bottom:24px">You've been added as an owner of <strong>${accountName}</strong>.</p>
+      <a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background:#b8924e;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">
+        Set up your account
+      </a>
+      <p style="color:#999;font-size:12px;margin-top:24px">This link expires in 14 days.</p>
+    </div>`;
+}
+
+// ── Platform Admin Endpoints ─────────────────────────────────────────────────
+
+// GET /api/platform/users — all users with platform_role + account memberships summary
+const handlePlatformListUsers: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const { results } = await env.DB.prepare(
+    `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
+            GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
+     FROM users u
+     LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
+     GROUP BY u.id
+     ORDER BY
+       CASE u.platform_role
+         WHEN 'platform_owner' THEN 0
+         WHEN 'platform_admin' THEN 1
+         ELSE 2
+       END, u.created_at ASC`
+  ).all();
+
+  const users = (results as any[]).map(u => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    username: u.username,
+    platform_role: u.platform_role ?? null,
+    created_at: u.created_at,
+    memberships: u.memberships_raw
+      ? u.memberships_raw.split(',').map((s: string) => {
+          const [account_id, role] = s.split(':');
+          return { account_id, role };
+        })
+      : [],
+  }));
+
+  return json({ users });
+};
+
+// PUT /api/platform/users/:id/platform-role — set platform_role (platform_owner only)
+const handlePlatformSetUserRole: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  if (params.id === claims.sub) {
+    return json({ error: 'Cannot change your own platform role' }, 400);
+  }
+
+  const body = await request.json() as { platform_role?: string | null };
+  const allowed = [null, 'platform_admin'];
+  // platform_owner cannot be granted via API — only via direct DB access
+  if (!allowed.includes(body.platform_role as any)) {
+    return json({ error: 'Invalid platform_role. Allowed: null, platform_admin' }, 400);
+  }
+
+  const user = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(params.id).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  const prev = await env.DB.prepare('SELECT platform_role, email FROM users WHERE id = ?').bind(params.id).first();
+  await env.DB.prepare('UPDATE users SET platform_role = ? WHERE id = ?')
+    .bind(body.platform_role ?? null, params.id).run();
+
+  await logPlatformAction(env, 'platform_role.changed', claims.sub, claims.email,
+    'user', params.id, { from: (prev as any)?.platform_role ?? null, to: body.platform_role ?? null, email: (prev as any)?.email });
+
+  return json({ success: true, platform_role: body.platform_role ?? null });
+};
+
+// GET /api/platform/accounts — all accounts with their enabled features
+const handlePlatformListAccounts: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const { results: accounts } = await env.DB.prepare(
+    `SELECT a.id, a.slug, a.name, a.location_city, a.location_country,
+            a.is_platform_owner, a.public_enabled, a.status, a.trust_tier, a.created_at,
+            COUNT(am.user_id) as member_count
+     FROM accounts a
+     LEFT JOIN account_members am ON am.account_id = a.id AND am.status = 'active'
+     GROUP BY a.id
+     ORDER BY a.is_platform_owner DESC, a.name ASC`
+  ).all();
+
+  const { results: features } = await env.DB.prepare(
+    'SELECT account_id, feature, enabled FROM account_features'
+  ).all();
+
+  const featuresByAccount = (features as any[]).reduce((acc, f) => {
+    if (!acc[f.account_id]) acc[f.account_id] = {};
+    acc[f.account_id][f.feature] = f.enabled === 1;
+    return acc;
+  }, {} as Record<string, Record<string, boolean>>);
+
+  const result = (accounts as any[]).map(a => ({
+    ...a,
+    is_platform_owner: a.is_platform_owner === 1,
+    public_enabled: a.public_enabled === 1,
+    member_count: a.member_count ?? 0,
+    features: featuresByAccount[a.id] ?? {},
+  }));
+
+  return json({ accounts: result });
+};
+
+// PUT /api/platform/accounts/:id/features/:feature — toggle a feature on/off
+const handlePlatformToggleFeature: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as { enabled: boolean };
+
+  const account = await env.DB.prepare('SELECT id FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!account) return json({ error: 'Account not found' }, 404);
+
+  await env.DB.prepare(
+    `INSERT INTO account_features (account_id, feature, enabled, enabled_by, enabled_at)
+     VALUES (?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(account_id, feature) DO UPDATE SET
+       enabled = excluded.enabled,
+       enabled_by = excluded.enabled_by,
+       enabled_at = excluded.enabled_at`
+  ).bind(params.id, params.feature, body.enabled ? 1 : 0, claims.sub).run();
+
+  await logPlatformAction(env, 'feature.toggled', claims.sub, claims.email,
+    'feature', `${params.id}:${params.feature}`, { feature: params.feature, enabled: body.enabled });
+
+  return json({ success: true, account_id: params.id, feature: params.feature, enabled: body.enabled });
+};
+
+// PUT /api/platform/accounts/:id/status — suspend or reactivate an account
+const handlePlatformSetAccountStatus: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as { status: 'active' | 'suspended' };
+  if (!['active', 'suspended'].includes(body.status)) {
+    return json({ error: 'status must be active or suspended' }, 400);
+  }
+
+  const account = await env.DB.prepare('SELECT id, name, is_platform_owner FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!account) return json({ error: 'Account not found' }, 404);
+  if (account.is_platform_owner) return json({ error: 'Cannot suspend the primary platform account' }, 400);
+
+  await env.DB.prepare('UPDATE accounts SET status = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    .bind(body.status, params.id).run();
+
+  await logPlatformAction(env, `account.${body.status}`, claims.sub, claims.email,
+    'account', params.id, { name: account.name });
+
+  return json({ success: true, status: body.status });
+};
+
+// PUT /api/platform/accounts/:id/trust-tier — set trust tier
+const handlePlatformSetTrustTier: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as { trust_tier: string };
+  const allowed = ['basic', 'verified', 'partner'];
+  if (!allowed.includes(body.trust_tier)) {
+    return json({ error: `trust_tier must be one of: ${allowed.join(', ')}` }, 400);
+  }
+
+  const account = await env.DB.prepare('SELECT id, name, trust_tier FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!account) return json({ error: 'Account not found' }, 404);
+
+  await env.DB.prepare('UPDATE accounts SET trust_tier = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    .bind(body.trust_tier, params.id).run();
+
+  await logPlatformAction(env, 'account.trust_tier_changed', claims.sub, claims.email,
+    'account', params.id, { from: account.trust_tier, to: body.trust_tier, name: account.name });
+
+  return json({ success: true, trust_tier: body.trust_tier });
+};
+
+// POST /api/platform/users/:id/resend-invite — generate a new invite link
+const handlePlatformResendInvite: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const user = await env.DB.prepare('SELECT id, email, name FROM users WHERE id = ?').bind(params.id).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  // Invalidate old tokens
+  await env.DB.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(params.id).run();
+
+  const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  await env.DB.prepare(
+    "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+14 days'))"
+  ).bind(resetId, params.id, inviteToken).run();
+
+  const inviteLink = `/invite/${inviteToken}`;
+
+  // Try to send email if configured
+  let emailSent = false;
+  const body = await request.json().catch(() => ({})) as { account_name?: string };
+  if (env.SENDER_EMAIL && user.email) {
+    const inviteUrl = `https://teajia.app${inviteLink}`;
+    emailSent = await sendEmail(
+      env,
+      user.email as string,
+      'Your Teajia invite',
+      inviteEmailHtml(inviteUrl, body.account_name || 'Teajia')
+    );
+  }
+
+  await logPlatformAction(env, 'user.invite_resent', claims.sub, claims.email,
+    'user', params.id, { email: user.email, email_sent: emailSent });
+
+  return json({ success: true, invite_link: inviteLink, email_sent: emailSent });
+};
+
+// GET /api/platform/audit-log — recent platform actions
+const handlePlatformAuditLog: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at
+     FROM platform_audit_log
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all();
+
+  return json({ entries: results, limit, offset });
+};
+
+// PUT /api/accounts/:id/members/:userId/permissions — account owner sets per-member feature permissions
+const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as Record<string, boolean>;
+
+  // Only allow toggling features that are actually enabled for this account
+  const { results: featureRows } = await env.DB.prepare(
+    'SELECT feature FROM account_features WHERE account_id = ? AND enabled = 1'
+  ).bind(params.id).all();
+  const enabledFeatures = new Set((featureRows as any[]).map(r => r.feature as string));
+
+  const sanitised: Record<string, boolean> = {};
+  for (const [feature, enabled] of Object.entries(body)) {
+    if (enabledFeatures.has(feature)) sanitised[feature] = Boolean(enabled);
+  }
+
+  await env.DB.prepare(
+    'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
+  ).bind(JSON.stringify(sanitised), params.id, params.userId).run();
+
+  return json({ success: true, permissions: sanitised });
+};
+
+// POST /api/accounts/:id/transfer-ownership — owner transfers account ownership to another member
+const handleTransferOwnership: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as { new_owner_user_id: string };
+  if (!body.new_owner_user_id) return json({ error: 'new_owner_user_id required' }, 400);
+  if (body.new_owner_user_id === ctx.userId) return json({ error: 'You are already the owner' }, 400);
+
+  // Verify the target is an active member of this account
+  const target = await env.DB.prepare(
+    `SELECT user_id, role FROM account_members WHERE account_id = ? AND user_id = ? AND status = 'active'`
+  ).bind(params.id, body.new_owner_user_id).first();
+  if (!target) return json({ error: 'Target user is not an active member of this account' }, 404);
+
+  // Demote current owner to staff, promote target to owner
+  await env.DB.batch([
+    env.DB.prepare('UPDATE account_members SET role = \'staff\' WHERE account_id = ? AND user_id = ?')
+      .bind(params.id, ctx.userId),
+    env.DB.prepare('UPDATE account_members SET role = \'owner\' WHERE account_id = ? AND user_id = ?')
+      .bind(params.id, body.new_owner_user_id),
+  ]);
+
+  return json({ success: true, new_owner_user_id: body.new_owner_user_id });
+};
+
+// POST /api/platform/accounts — create a new account + assign first owner
+const handlePlatformCreateAccount: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as {
+    slug?: string;
+    name?: string;
+    invoice_prefix?: string;
+    location_city?: string;
+    location_country?: string;
+    currency_default?: string;
+    timezone?: string;
+    whatsapp_number?: string;
+    contact_email?: string;
+    public_enabled?: boolean;
+    owner_email?: string;
+  };
+
+  const slug = (body.slug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const name = (body.name || '').trim();
+  if (!slug || !name) return json({ error: 'slug and name are required' }, 400);
+  if (!body.invoice_prefix) return json({ error: 'invoice_prefix is required' }, 400);
+
+  // Check slug uniqueness
+  const existing = await env.DB.prepare('SELECT id FROM accounts WHERE slug = ?').bind(slug).first();
+  if (existing) return json({ error: `Slug "${slug}" is already taken` }, 409);
+
+  const accountId = `acc_${slug.replace(/-/g, '_')}`;
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO accounts (id, slug, name, invoice_prefix, location_city, location_country,
+       currency_default, timezone, whatsapp_number, contact_email, public_enabled,
+       status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`
+  ).bind(
+    accountId, slug, name,
+    (body.invoice_prefix || '').toUpperCase(),
+    body.location_city || null,
+    body.location_country || null,
+    body.currency_default || 'USD',
+    body.timezone || 'UTC',
+    body.whatsapp_number || null,
+    body.contact_email || null,
+    body.public_enabled !== false ? 1 : 0,
+    now, now
+  ).run();
+
+  // Seed ai_wisdom_generation as disabled (platform admin can enable later)
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO account_features (account_id, feature, enabled, enabled_by)
+     VALUES (?, 'ai_wisdom_generation', 0, ?)`
+  ).bind(accountId, claims.sub).run();
+
+  // Find or create owner user
+  let inviteLink: string | null = null;
+  if (body.owner_email) {
+    const ownerEmail = body.owner_email.trim().toLowerCase();
+    let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?').bind(ownerEmail).first();
+    let createdUser = false;
+
+    if (!user) {
+      const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+      const tempHash = await hashPassword(crypto.randomUUID().replace(/-/g, ''));
+      await env.DB.prepare(
+        "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, '', ?, 'user')"
+      ).bind(uid, ownerEmail, tempHash).run();
+      user = { id: uid };
+      createdUser = true;
+    }
+
+    await env.DB.prepare(
+      `INSERT OR REPLACE INTO account_members
+         (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
+       VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
+    ).bind(accountId, user.id, claims.sub, createdUser ? 'invited' : 'active').run();
+
+    if (createdUser) {
+      const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+      const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+      await env.DB.prepare(
+        "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+14 days'))"
+      ).bind(resetId, user.id, inviteToken).run();
+      inviteLink = `/invite/${inviteToken}`;
+    }
+  }
+
+  // Try to send invite email if owner was newly created
+  let emailSent = false;
+  if (inviteLink && body.owner_email && env.SENDER_EMAIL) {
+    const inviteUrl = `https://teajia.app${inviteLink}`;
+    emailSent = await sendEmail(env, body.owner_email, `You've been invited to manage ${name} on Teajia`, inviteEmailHtml(inviteUrl, name));
+  }
+
+  await logPlatformAction(env, 'account.created', claims.sub, claims.email,
+    'account', accountId, { slug, name, owner_email: body.owner_email || null });
+
+  return json({ success: true, account_id: accountId, slug, invite_link: inviteLink, email_sent: emailSent }, 201);
 };
 
 // GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
@@ -5501,6 +6012,20 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/accounts/:id/members', handleInviteAccountMember],
   ['PUT', '/api/accounts/:id/members/:userId', handleUpdateAccountMember],
   ['DELETE', '/api/accounts/:id/members/:userId', handleDeleteAccountMember],
+
+  // Platform admin
+  ['GET',  '/api/platform/users', handlePlatformListUsers],
+  ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
+  ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
+  ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
+  ['POST', '/api/platform/accounts', handlePlatformCreateAccount],
+  ['PUT',  '/api/platform/accounts/:id/status', handlePlatformSetAccountStatus],
+  ['PUT',  '/api/platform/accounts/:id/trust-tier', handlePlatformSetTrustTier],
+  ['PUT',  '/api/platform/accounts/:id/features/:feature', handlePlatformToggleFeature],
+  ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
+  // Account member management
+  ['PUT',  '/api/accounts/:id/members/:userId/permissions', handleUpdateMemberPermissions],
+  ['POST', '/api/accounts/:id/transfer-ownership', handleTransferOwnership],
 
   // Network (public)
   ['GET', '/api/network/stores', handleGetNetworkStores],

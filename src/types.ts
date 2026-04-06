@@ -429,7 +429,8 @@ export interface Account {
   invoice_prefix?: string;
 }
 
-export type AccountRole = 'owner' | 'manager' | 'staff' | 'viewer';
+export type AccountRole = 'owner' | 'staff' | 'viewer';
+export type PlatformRole = 'platform_owner' | 'platform_admin' | null;
 
 export interface AccountMembership {
   account_id: string;
@@ -437,6 +438,7 @@ export interface AccountMembership {
   slug: string;
   role: AccountRole;
   logo_url?: string;
+  is_platform_account?: boolean;
 }
 
 export interface AccountMember {
@@ -444,6 +446,8 @@ export interface AccountMember {
   email: string;
   name: string;
   role: AccountRole;
+  platform_role?: PlatformRole;
+  permissions?: Record<string, boolean>;
   joined_at?: string;
   status?: string;
 }

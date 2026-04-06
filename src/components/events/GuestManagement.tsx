@@ -126,6 +126,7 @@ const GuestManagement: React.FC = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [showTasting, setShowTasting] = useState(true);
 
   // ---- Loading ----
   if (isLoading) {
@@ -205,6 +206,37 @@ const GuestManagement: React.FC = () => {
 
   // ---- POST-EVENT ----
   if (isCompleted) {
+    // Full-screen tasting form — shown first before the post-event summary
+    if (showTasting && data.teaMenu && data.teaMenu.length > 0 && magicToken) {
+      return (
+        <div className="fixed inset-0 z-50 bg-tea-bg overflow-y-auto animate-[fadeIn_0.4s_ease-out]">
+          <div className="max-w-xl mx-auto px-6 py-10 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2.5rem)]">
+            <div className="text-center mb-8">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-2">
+                {formatEventDate(event.eventDate)}
+              </p>
+              <h1 className="font-serif text-2xl text-tea-text">{event.title}</h1>
+            </div>
+            <Suspense fallback={null}>
+              <TastingNotesForm
+                teaMenu={data.teaMenu}
+                token={magicToken}
+                eventId={event.id}
+                eventTitle={event.title}
+                onClose={() => setShowTasting(false)}
+              />
+            </Suspense>
+            <button
+              onClick={() => setShowTasting(false)}
+              className="w-full mt-4 py-3 text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
         <div className="max-w-xl mx-auto px-6 py-10">
@@ -227,7 +259,12 @@ const GuestManagement: React.FC = () => {
           {data.teaMenu && data.teaMenu.length > 0 && magicToken && (
             <Suspense fallback={null}>
               <div className="border-t border-tea-border pt-10">
-                <TastingNotesForm teaMenu={data.teaMenu} token={magicToken} eventId={event.id} eventTitle={event.title} />
+                <button
+                  onClick={() => setShowTasting(true)}
+                  className="text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+                >
+                  Rate the session
+                </button>
               </div>
             </Suspense>
           )}

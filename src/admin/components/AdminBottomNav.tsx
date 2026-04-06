@@ -11,8 +11,7 @@ import {
   FlaskConical,
   X,
 } from 'lucide-react';
-import { useLedgerStore } from '../../lib/ledgerStore';
-import { LogoEmblem, LogoText } from '../../components/Logos';
+import { LogoText } from '../../components/Logos';
 
 interface AdminBottomNavProps {
   onSearchClick: () => void;
@@ -50,10 +49,6 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   const location = useLocation();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
-  const draftItemCount = useLedgerStore((s) =>
-    s.transactions.filter((tx) => tx.status === 'draft').reduce((sum, tx) => sum + tx.items.length, 0)
-  );
-
   const isActive = (path: string) => {
     if (path === '/') return false;
     // Strip query params for path matching
@@ -65,7 +60,6 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
 
   const renderTab = (tab: { id: string; label: string; icon: React.ComponentType<any>; path: string }, index: number) => {
     const active = isActive(tab.path);
-    const showBadge = tab.id === 'ledger' && draftItemCount > 0;
 
     return (
       <div key={tab.id} className="flex items-center h-full flex-1">
@@ -84,11 +78,6 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           >
             {tab.label.toLowerCase()}
           </span>
-          {showBadge && (
-            <span className="absolute top-1.5 right-1/2 translate-x-[calc(50%+16px)] min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-tea-gold text-tea-bg font-bold text-[9px] px-1 pointer-events-none select-none">
-              {draftItemCount}
-            </span>
-          )}
         </button>
       </div>
     );

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
-import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting } from '../types';
+import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 
 export interface InvoiceTemplate {
   id: string;
@@ -122,9 +122,11 @@ interface AppState {
   memberships: AccountMembership[];
   activeAccountId: string | null;
   activeAccount: Account | null;
+  platformRole: PlatformRole;
   setMemberships: (m: AccountMembership[]) => void;
   setActiveAccountId: (id: string | null) => void;
   setActiveAccount: (a: Account | null) => void;
+  setPlatformRole: (role: PlatformRole) => void;
   clearAccountState: () => void;
 }
 
@@ -350,11 +352,13 @@ export const useAppStore = create<AppState>()(
       memberships: [],
       activeAccountId: null,
       activeAccount: null,
+      platformRole: null,
       setMemberships: (memberships) => set({ memberships }),
       setActiveAccountId: (activeAccountId) => set({ activeAccountId }),
       setActiveAccount: (activeAccount) => set({ activeAccount }),
+      setPlatformRole: (platformRole) => set({ platformRole }),
       clearAccountState: () =>
-        set({ memberships: [], activeAccountId: null, activeAccount: null }),
+        set({ memberships: [], activeAccountId: null, activeAccount: null, platformRole: null }),
     }),
     {
       name: 'teajia-storage',

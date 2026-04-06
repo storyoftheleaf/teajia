@@ -735,7 +735,7 @@ const AppContent = () => {
         onDismiss={dismissCartToast}
       />
 
-      <div role="status" aria-live="polite" className={`fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+      <div role="status" aria-live="polite" className={`fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>

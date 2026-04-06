@@ -14,6 +14,8 @@ interface TastingNotesFormProps {
   eventId?: string;
   /** Event title shown as context in the journal */
   eventTitle?: string;
+  /** Called when the user dismisses the thank-you screen */
+  onClose?: () => void;
 }
 
 interface NoteState {
@@ -22,7 +24,7 @@ interface NoteState {
   isFavorite: boolean;
 }
 
-const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '', eventId, eventTitle }) => {
+const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '', eventId, eventTitle, onClose }) => {
   const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
   const { addTasting } = useAppStore();
 
@@ -106,9 +108,17 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           <TeaLeafIcon className="w-7 h-7 text-tea-gold" filled />
         </div>
         <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Thank You</h3>
-        <p className="text-sm text-tea-text-sec max-w-xs mx-auto">
+        <p className="text-sm text-tea-text-sec max-w-xs mx-auto mb-8">
           Your impressions have been shared. They help us curate even better sessions.
         </p>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] font-semibold hover:bg-tea-gold/90 transition-colors"
+          >
+            Done
+          </button>
+        )}
       </div>
     );
   }
@@ -150,13 +160,13 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                   Rating
                 </p>
                 <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((level) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
                     <button
                       key={level}
                       type="button"
                       onClick={() => updateNote(item.id, 'rating', note.rating === level ? 0 : level)}
                       className="min-h-[44px] min-w-[44px] flex items-center justify-center transition-all duration-200 hover:scale-110"
-                      aria-label={`Rate ${level} out of 5`}
+                      aria-label={`Rate ${level} out of 10`}
                     >
                       <Leaf
                         size={22}

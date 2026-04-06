@@ -161,13 +161,17 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
       </div>
 
       {/* Gram presets */}
-      <div className="flex gap-1.5 flex-wrap">
+      <div className="flex gap-1 flex-wrap">
         {presets.map((g) => (
           <button
             key={g}
             type="button"
             onClick={() => onGramsChange(g)}
-            className={`${pricePerUnitGrams === g ? 'tag-selectable-active' : 'tag-selectable'} py-1.5 px-3 text-[11px]`}
+            className={`py-0.5 px-2 rounded text-[10px] transition-colors ${
+              pricePerUnitGrams === g
+                ? 'bg-tea-gold/15 text-tea-gold'
+                : 'text-tea-text-dim hover:text-tea-text-sec'
+            }`}
           >
             {g}g
           </button>

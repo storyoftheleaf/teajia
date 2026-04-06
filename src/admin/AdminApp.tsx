@@ -23,6 +23,7 @@ import { DashboardView } from './components/DashboardView';
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { TeamView } from './views/TeamView';
 import { AccountSettingsView } from './views/AccountSettingsView';
+import { PlatformAdminView } from './views/PlatformAdminView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingNotesView } from './components/TastingNotesView';
@@ -79,7 +80,7 @@ const AdminContent = () => {
   const {
     cart, isCartOpen, currency, isDevAdmin, cartDirection,
     addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart, openPurchaseOrder,
-    memberships, activeAccountId, clearAccountState,
+    memberships, activeAccountId, clearAccountState, platformRole,
   } = useAppStore();
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -285,6 +286,7 @@ const AdminContent = () => {
       <Sidebar
         isAdmin={isAdmin}
         isLoggedIn={isLoggedIn}
+        platformRole={platformRole}
         onLoginClick={() => setIsLoginOpen(true)}
         onLogoutClick={handleLogout}
         isMobileOpen={isMobileOpen}
@@ -484,6 +486,9 @@ const AdminContent = () => {
               {/* Multi-account: team + account settings */}
               <Route path="team" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TeamView /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
+
+              {/* Platform admin — only accessible to platform_owner / platform_admin */}
+              <Route path="platform" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />

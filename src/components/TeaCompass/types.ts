@@ -12,7 +12,7 @@ export type TeawareMaterial = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcela
 export type TeawareEra = 'Modern' | '90s' | '80s' | '70s' | 'Pre-70s' | 'Republic' | 'Qing' | 'Unknown';
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'want' | 'bought' | 'sample';
+export type BrowseFilter = 'all' | 'want' | 'bought';
 
 export interface VendorDetails {
   businessCardUrl?: string;

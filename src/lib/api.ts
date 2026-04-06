@@ -1,4 +1,39 @@
-import type { Account, AccountMember, AccountMembership, AccountRole } from '../types';
+import type { Account, AccountMember, AccountMembership, AccountRole, PlatformRole } from '../types';
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  actor_id: string;
+  actor_email: string;
+  target_type: string;
+  target_id: string;
+  details: string; // JSON string
+  created_at: string;
+}
+
+export interface PlatformUser {
+  id: string;
+  email: string;
+  name: string;
+  username?: string | null;
+  platform_role: PlatformRole;
+  created_at: string;
+  memberships: { account_id: string; role: string }[];
+}
+
+export interface PlatformAccount {
+  id: string;
+  slug: string;
+  name: string;
+  location_city?: string;
+  location_country?: string;
+  is_platform_owner: boolean;
+  public_enabled: boolean;
+  status: 'active' | 'suspended';
+  trust_tier: 'basic' | 'verified' | 'partner';
+  member_count: number;
+  features: Record<string, boolean>;
+}
 import { useAppStore } from './store';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -107,6 +142,7 @@ export interface TokenClaims {
   sub: string;
   email: string;
   role: string;
+  platform_role?: import('../types').PlatformRole;
   name: string;
   username?: string | null;
   exp?: number;
@@ -142,6 +178,7 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
       account_name: m.account_name || m.name || '',
     }));
     store.setMemberships(memberships);
+    store.setPlatformRole(claims.platform_role ?? null);
     if (claims.active_account_id) {
       store.setActiveAccountId(claims.active_account_id);
     } else if (memberships.length === 1) {
@@ -1314,6 +1351,93 @@ export const api = {
         headers: authHeaders(),
       });
       await handleResponse(res);
+    },
+    updateMemberPermissions: async (accountId: string, userId: string, permissions: Record<string, boolean>): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/members/${userId}/permissions`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify(permissions),
+      });
+      await handleResponse(res);
+    },
+    transferOwnership: async (accountId: string, newOwnerUserId: string): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/transfer-ownership`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ new_owner_user_id: newOwnerUserId }),
+      });
+      await handleResponse(res);
+    },
+  },
+
+  platform: {
+    listUsers: async (): Promise<{ users: PlatformUser[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/users`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    setUserPlatformRole: async (userId: string, platform_role: import('../types').PlatformRole): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/users/${userId}/platform-role`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ platform_role }),
+      });
+      await handleResponse(res);
+    },
+    listAccounts: async (): Promise<{ accounts: PlatformAccount[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    toggleFeature: async (accountId: string, feature: string, enabled: boolean): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts/${accountId}/features/${feature}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ enabled }),
+      });
+      await handleResponse(res);
+    },
+    setAccountStatus: async (accountId: string, status: 'active' | 'suspended'): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts/${accountId}/status`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify({ status }),
+      });
+      await handleResponse(res);
+    },
+    setTrustTier: async (accountId: string, trust_tier: 'basic' | 'verified' | 'partner'): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts/${accountId}/trust-tier`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify({ trust_tier }),
+      });
+      await handleResponse(res);
+    },
+    resendInvite: async (userId: string, account_name?: string): Promise<{ invite_link: string; email_sent: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/users/${userId}/resend-invite`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ account_name }),
+      });
+      return handleResponse(res);
+    },
+    getAuditLog: async (limit = 50, offset = 0): Promise<{ entries: AuditLogEntry[]; limit: number; offset: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/audit-log?limit=${limit}&offset=${offset}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    createAccount: async (data: {
+      slug: string;
+      name: string;
+      invoice_prefix: string;
+      location_city?: string;
+      location_country?: string;
+      currency_default?: string;
+      timezone?: string;
+      whatsapp_number?: string;
+      contact_email?: string;
+      public_enabled?: boolean;
+      owner_email?: string;
+    }): Promise<{ account_id: string; slug: string; invite_link: string | null }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
     },
   },
 

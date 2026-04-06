@@ -1,20 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Check, ChevronDown, Droplets, FlaskConical, Heart, Minus, Plus, ShoppingCart, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, Droplets, FlaskConical, Minus, Plus, ShoppingCart, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
-import type { TeaType, TeaForm, CompassStatus, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
+import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
 import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
 import { PriceGrams } from './PriceGrams';
 import { NotesField } from './NotesField';
-import { StatusActions } from './StatusActions';
+import { useLedgerStore } from '../../lib/ledgerStore';
 import { TastingFlow } from '../tasting/TastingFlow';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { parseTeaInput } from './InputParser';
@@ -42,6 +42,8 @@ interface CaptureCardProps {
   onSwitchToLedger?: () => void;
   /** Called when user commits/finalizes an entry */
   onCommit?: () => void;
+  /** When set, shows a "← Library" back link at the top (navigated from Library via Edit) */
+  onReturnToLibrary?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -52,7 +54,7 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -63,8 +65,35 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
 
+  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
+  const addLineItem = useLedgerStore((s) => s.addLineItem);
+  const transactions = useLedgerStore((s) => s.transactions);
+
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
+
+  // Buying quantity picker state
+  const [buyingQty, setBuyingQty] = useState(100);
+  const [justAddedToLedger, setJustAddedToLedger] = useState(false);
+  const [showBuyPicker, setShowBuyPicker] = useState(false);
+
+  // Sync price changes back to any matching draft ledger line items
+  useEffect(() => {
+    if (!entry) return;
+    const { transactions, updateLineItem: updItem } = useLedgerStore.getState();
+    for (const tx of transactions) {
+      if (tx.status !== 'draft') continue;
+      for (const item of tx.items) {
+        if (item.compassEntryId !== entry.id) continue;
+        const newPrice = entry.priceAmount ?? 0;
+        const unitBased = entry.category === 'teaware' || (['Cake','Brick','Tuo'] as string[]).includes(entry.form || '');
+        const newIsPerGram = !unitBased && !!entry.pricePerUnitGrams;
+        if (item.pricePerUnit !== newPrice || item.priceIsPerGram !== newIsPerGram) {
+          updItem(tx.id, item.id, { pricePerUnit: newPrice, priceIsPerGram: newIsPerGram });
+        }
+      }
+    }
+  }, [entry?.priceAmount, entry?.pricePerUnitGrams, entry?.form, entry?.category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parser state
   const userTapped = useRef<Set<ParseableField>>(new Set());
@@ -436,17 +465,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const handleCommit = useCallback(() => {
     commitEntry(entryId);
-    // Auto-start a new capture with the same vendor
-    const cat = entry?.category || 'tea';
-    const newId = startNewCapture(cat);
-    setActiveEntry(newId);
-    onCommit?.();
-  }, [commitEntry, entryId, entry?.category, startNewCapture, setActiveEntry, onCommit]);
-
-  // "Would buy" graduation: flip sample off, carry all data, move to acquisition
-  const handleWouldBuyGraduation = useCallback(() => {
-    update({ isSample: false, sampleWouldBuy: true, status: 'want' });
-  }, [update]);
+    if (onReturnToLibrary) {
+      // Came from Library — return there rather than starting a new capture
+      onReturnToLibrary();
+    } else {
+      // Normal flow — auto-start a new capture with the same vendor
+      const cat = entry?.category || 'tea';
+      const newId = startNewCapture(cat);
+      setActiveEntry(newId);
+      onCommit?.();
+    }
+  }, [commitEntry, entryId, entry?.category, startNewCapture, setActiveEntry, onCommit, onReturnToLibrary]);
 
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
@@ -646,12 +675,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               <Plus size={14} />
             </button>
           </div>
-          <StatusActions
-            status={entry.status}
-            onStatusChange={(status: CompassStatus) => update({ status })}
-            entry={entry}
-            onAddedToLedger={onSwitchToLedger}
-          />
         </div>
 
         <div className="border-t border-tea-border" />
@@ -752,16 +775,65 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     );
   }
 
-  // Verdict is positive (love or like)
-  const isPositiveVerdict = entry.sampleVerdict === 'love' || entry.sampleVerdict === 'like';
-  const isNegativeVerdict = entry.sampleVerdict === 'pass';
+  // ── Status helpers ────────────────────────
+  const isWant = entry.status === 'want';
+  const isBought = entry.status === 'bought' || entry.status === 'buying';
+  const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+  const isInLedger = transactions.some(
+    (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
+  );
+  const pricePerGram = entry.priceAmount && entry.pricePerUnitGrams && !unitBased
+    ? entry.priceAmount / entry.pricePerUnitGrams
+    : null;
+  const totalPrice = pricePerGram ? buyingQty * pricePerGram : null;
+  const buyStep = unitBased ? 1 : 25;
+
+  const handleAddToLedger = () => {
+    const vendorName = entry.vendorName || 'Unknown Vendor';
+    const currency = (entry.priceCurrency || 'NT') as Currency;
+    const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
+    addLineItem(txId, {
+      name: entry.name || 'Unnamed',
+      chineseName: entry.chineseName,
+      type: entry.type,
+      form: entry.form,
+      year: entry.year,
+      quantityGrams: unitBased ? undefined : buyingQty,
+      quantityUnits: unitBased ? buyingQty : undefined,
+      unitWeightGrams: (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '')
+        ? (DEFAULT_GRAMS[entry.form!] ?? 100)
+        : undefined,
+      pricePerUnit: entry.priceAmount ?? 0,
+      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
+      currency,
+      compassEntryId: entry.id,
+    });
+    update({ status: 'bought' });
+    setShowBuyPicker(false);
+    setJustAddedToLedger(true);
+    setTimeout(() => {
+      setJustAddedToLedger(false);
+      onSwitchToLedger?.();
+    }, 800);
+  };
 
   // ── Tea card layout ────────────────────────
   return (
     <div className="bg-tea-surface rounded-lg p-3 space-y-4">
+      {/* ← Library back link — shown when navigated from Library */}
+      {onReturnToLibrary && (
+        <button
+          type="button"
+          onClick={onReturnToLibrary}
+          className="flex items-center gap-1.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
+        >
+          <ArrowLeft size={12} />
+          Library
+        </button>
+      )}
+
       {/* ─── IDENTITY ─── */}
       <div className="space-y-3">
-        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Identity</p>
         <VendorStrip
           vendorName={entry.vendorName}
           vendorId={entry.vendorId}
@@ -844,9 +916,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
             suggestions={availableRegions}
             placeholder="Region"
-            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-sm rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-sm rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
           />
         </div>
+
+        <PriceGrams
+          priceAmount={entry.priceAmount}
+          priceCurrency={entry.priceCurrency}
+          pricePerUnitGrams={entry.pricePerUnitGrams}
+          form={entry.form}
+          onPriceChange={(priceAmount) => update({ priceAmount })}
+          onCurrencyChange={handleCurrencyChange}
+          onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
+          onFormChange={handleFormSelect}
+        />
       </div>
 
       {/* Duplicate nudge */}
@@ -886,267 +969,207 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
       <div className="border-t border-tea-border" />
 
-      {/* ─── MODE: unified Sample + Status selector ─── */}
-      {(() => {
-        type Mode = 'sample' | 'logged' | 'want' | 'buying';
-        const MODES: { id: Mode; label: string; desc: string }[] = [
-          { id: 'sample',  label: 'Sample',  desc: 'Tasting a small pour to decide — no commitment yet.' },
-          { id: 'logged',  label: 'Logged',  desc: 'Recording a tea you tried or own, without buying intent.' },
-          { id: 'want',    label: 'Want',    desc: 'On the wishlist — something to come back for.' },
-          { id: 'buying',  label: 'Buying',  desc: 'Actively sourcing — add to a draft order in the ledger.' },
-        ];
-        const statusToMode = (): Mode => {
-          if (entry.isSample) return 'sample';
-          if (entry.status === 'want') return 'want';
-          if (entry.status === 'buying') return 'buying';
-          return 'logged';
-        };
-        const currentMode: Mode = statusToMode();
-        const currentDesc = MODES.find((m) => m.id === currentMode)?.desc;
-        const selectMode = (m: Mode) => {
-          if (m === 'sample') update({ isSample: true });
-          else update({ isSample: false, status: m });
-        };
-        const isInCabinet = !entry.isSample && entry.status === 'bought';
-        const toggleCabinet = () => {
-          update({ isSample: false, status: isInCabinet ? 'logged' : 'bought' });
-        };
-        return (
-          <div className="space-y-2">
-            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Mode</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => selectMode(m.id)}
-                  className={`${currentMode === m.id && !isInCabinet ? 'tag-selectable-active' : 'tag-selectable'} text-xs flex items-center gap-1`}
-                >
-                  {m.id === 'sample' && <FlaskConical size={12} strokeWidth={1.5} />}
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            {currentDesc && !isInCabinet && (
-              <p className="text-[11px] text-tea-text-dim leading-snug">{currentDesc}</p>
-            )}
-            {currentMode === 'logged' && (
-              <button
-                type="button"
-                onClick={toggleCabinet}
-                className={`${isInCabinet ? 'tag-selectable-active' : 'tag-selectable'} text-[11px] flex items-center gap-1.5 mt-1`}
-              >
-                <Check size={11} strokeWidth={2} className={isInCabinet ? 'opacity-100' : 'opacity-40'} />
-                Already in cabinet
-              </button>
-            )}
-            {isInCabinet && (
-              <p className="text-[11px] text-tea-text-dim leading-snug">
-                Marked as owned — back-filled into your cabinet without going through a purchase order.
-              </p>
-            )}
-          </div>
-        );
-      })()}
-
-      <div className="border-t border-tea-border" />
-
-      {/* ═══ SAMPLE PATH ═══ */}
-      {isSample && (
-        <>
-          <div className="space-y-3">
-            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Impression</p>
-
-            {/* Notes first — quick capture for samples */}
-            <NotesField
-              notes={entry.notes}
-              onNotesChange={(notes) => update({ notes })}
-            />
-
-            {/* Tasting — optional deeper capture */}
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={openTastingOverlay}
-                className="tag-selectable flex items-center gap-1.5 text-xs"
-              >
-                <Droplets size={14} strokeWidth={1.5} />
-                {hasTasting ? 'Edit tasting' : 'Record tasting'}
-              </button>
-
-              {hasTasting && entry.tasting && (
-                <TastingProfileStrip
-                  value={entry.tasting}
-                  onRemove={handleTastingStripRemove}
-                />
-              )}
-            </div>
-
-            {/* Verdict */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Verdict</label>
-              <div className="flex gap-1.5">
-                {([['love', Heart], ['like', ThumbsUp], ['neutral', Minus], ['pass', ThumbsDown]] as const).map(([v, Icon]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => update({ sampleVerdict: entry.sampleVerdict === v ? undefined : v })}
-                    className={`pill text-xs flex items-center gap-1 ${entry.sampleVerdict === v ? 'pill-active' : ''}`}
-                  >
-                    <Icon size={12} strokeWidth={1.5} /> {v.charAt(0).toUpperCase() + v.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Reference price (optional, for samples) */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Reference price</label>
-              <PriceGrams
-                priceAmount={entry.priceAmount}
-                priceCurrency={entry.priceCurrency}
-                pricePerUnitGrams={entry.pricePerUnitGrams}
-                form={entry.form}
-                onPriceChange={(priceAmount) => update({ priceAmount })}
-                onCurrencyChange={handleCurrencyChange}
-                onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
-                onFormChange={handleFormSelect}
-              />
-            </div>
-          </div>
-
-          {/* Verdict-driven actions */}
-          <div className="space-y-2">
-            {/* Positive verdict: "Would buy" graduates to acquisition */}
-            {isPositiveVerdict && hasName && (
-              <button
-                type="button"
-                onClick={handleWouldBuyGraduation}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                           bg-tea-gold/15 text-tea-gold text-sm font-semibold
-                           hover:bg-tea-gold/20 active:bg-tea-gold/25
-                           transition-all"
-              >
-                <ShoppingCart size={15} strokeWidth={2} />
-                Would buy
-              </button>
-            )}
-
-            {/* Negative verdict or no verdict: Done */}
-            {hasName && (isNegativeVerdict || !isPositiveVerdict) && (
-              <button
-                type="button"
-                onClick={handleCommit}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all ${
-                  isNegativeVerdict
-                    ? 'bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 active:bg-tea-gold/20'
-                    : 'bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
-                }`}
-              >
-                <Check size={15} strokeWidth={2.5} />
-                Done
-              </button>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ═══ ACQUISITION PATH (direct or graduated from sample) ═══ */}
-      {!isSample && (
-        <>
-          {/* ─── ACQUISITION ─── */}
-          <div className="space-y-3">
-            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Acquisition</p>
-            <PriceGrams
-              priceAmount={entry.priceAmount}
-              priceCurrency={entry.priceCurrency}
-              pricePerUnitGrams={entry.pricePerUnitGrams}
-              form={entry.form}
-              onPriceChange={(priceAmount) => update({ priceAmount })}
-              onCurrencyChange={handleCurrencyChange}
-              onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
-              onFormChange={handleFormSelect}
-            />
-            <StatusActions
-              status={entry.status}
-              onStatusChange={(status: CompassStatus) => update({ status })}
-              entry={entry}
-              onAddedToLedger={onSwitchToLedger}
-            />
-          </div>
-
-          <div className="border-t border-tea-border" />
-
-          {/* ─── TASTING & NOTES ─── */}
-          <div className="space-y-3">
-            <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Tasting & Notes</p>
-
-            {/* Tasting button + strip (pre-filled if graduated from sample) */}
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={openTastingOverlay}
-                className="tag-selectable flex items-center gap-1.5 text-xs"
-              >
-                <Droplets size={14} strokeWidth={1.5} />
-                {hasTasting ? 'Edit tasting' : 'Record tasting'}
-              </button>
-
-              {hasTasting && entry.tasting && (
-                <TastingProfileStrip
-                  value={entry.tasting}
-                  onRemove={handleTastingStripRemove}
-                />
-              )}
-            </div>
-
-            <NotesField
-              notes={entry.notes}
-              onNotesChange={(notes) => update({ notes })}
-            />
-          </div>
-        </>
-      )}
-
-      {/* ─── DETAILS (inline, shared) ─── */}
-      <div className="border-t border-tea-border" />
-      <div className="space-y-3">
-        <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Details</p>
-
-        {/* Storage (only for Sheng/Shou/Dark) */}
-        {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
-          <div className="space-y-1">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Storage</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {STORAGE_OPTIONS.map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
-                  className={entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Chinese name */}
-        <div className="space-y-1">
-          <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Chinese name</label>
-          <input
-            type="text"
-            value={entry.chineseName || ''}
-            onChange={(e) => update({ chineseName: e.target.value || undefined })}
-            placeholder="e.g. &#32769;&#29677;&#31456;"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+      {/* ─── Tasting ─── */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={openTastingOverlay}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-tea-surface text-tea-text-sec text-sm font-medium hover:bg-tea-elevated hover:text-tea-text active:bg-tea-elevated transition-colors"
+        >
+          <Droplets size={15} strokeWidth={1.5} />
+          {hasTasting ? 'Edit tasting' : 'Record tasting'}
+        </button>
+        {hasTasting && entry.tasting && (
+          <TastingProfileStrip
+            value={entry.tasting}
+            onRemove={handleTastingStripRemove}
           />
-        </div>
+        )}
       </div>
 
-      {/* Done — acquisition path */}
-      {!isSample && hasName && (
+      <NotesField
+        notes={entry.notes}
+        onNotesChange={(notes) => update({ notes })}
+      />
+
+      <div className="border-t border-tea-border" />
+
+      {/* ─── Status actions ─── */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          {/* Want toggle */}
+          <button
+            type="button"
+            onClick={() => update({ status: isWant ? 'logged' : 'want' })}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors ${
+              isWant
+                ? 'bg-tea-gold/10 text-tea-gold'
+                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            }`}
+          >
+            {isWant ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
+            {isWant ? 'Wanted' : 'Want'}
+          </button>
+
+          {/* Buy / In Ledger / Bought */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isInLedger) {
+                onSwitchToLedger?.();
+              } else if (isBought) {
+                update({ status: 'logged' });
+                setShowBuyPicker(false);
+              } else {
+                const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
+                setBuyingQty(defaultQty);
+                setShowBuyPicker((v) => !v);
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors ${
+              isBought || isInLedger
+                ? 'bg-tea-gold/10 text-tea-gold'
+                : showBuyPicker
+                  ? 'bg-tea-gold/10 text-tea-gold'
+                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            }`}
+          >
+            {isInLedger ? (
+              <><BookOpen size={13} /> In Ledger</>
+            ) : isBought ? (
+              <><Check size={13} /> Bought</>
+            ) : (
+              <><ShoppingCart size={13} /> Buy</>
+            )}
+          </button>
+        </div>
+
+        {/* Buy quantity picker */}
+        <AnimatePresence>
+          {showBuyPicker && !isBought && !justAddedToLedger && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-lg bg-tea-gold/[0.07] px-3 py-2.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBuyingQty(Math.max(buyStep, buyingQty - buyStep))}
+                      className="w-7 h-7 rounded-full bg-tea-surface/80 flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <div className="flex items-baseline gap-0.5">
+                      <input
+                        type="number"
+                        value={buyingQty}
+                        onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-11 text-center text-tea-text text-sm font-semibold bg-transparent border-none outline-none"
+                      />
+                      <span className="text-tea-text-dim text-[11px]">
+                        {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBuyingQty(buyingQty + buyStep)}
+                      className="w-7 h-7 rounded-full bg-tea-surface/80 flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                  {totalPrice != null ? (
+                    <span className="text-tea-text-dim text-xs">
+                      = <span className="text-tea-text-sec font-medium">{totalPrice.toFixed(0)}</span> {entry.priceCurrency || 'NT'}
+                    </span>
+                  ) : entry.priceAmount && unitBased ? (
+                    <span className="text-tea-text-dim text-xs">
+                      = <span className="text-tea-text-sec font-medium">{(buyingQty * entry.priceAmount).toFixed(0)}</span> {entry.priceCurrency || 'NT'}
+                    </span>
+                  ) : null}
+                </div>
+
+                {!unitBased && (
+                  <div className="flex flex-wrap gap-1">
+                    {[50, 100, 150, 250, 357, 500].map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setBuyingQty(g)}
+                        className={`py-0.5 px-2 rounded text-[10px] transition-colors ${
+                          buyingQty === g ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        }`}
+                      >
+                        {g}g
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleAddToLedger}
+                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-[11px] uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                >
+                  Add to Ledger
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {justAddedToLedger && (
+            <motion.div
+              key="added"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center justify-center gap-2 py-2 rounded-lg bg-tea-gold/15 text-tea-gold text-sm font-medium"
+            >
+              <Check size={16} />
+              Added to Ledger
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Already own it — for back-filling without a purchase order */}
+        {!isBought && !isInLedger && (
+          <button
+            type="button"
+            onClick={() => { update({ status: 'bought' }); setShowBuyPicker(false); }}
+            className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+          >
+            <Check size={10} strokeWidth={2.5} className="opacity-40" />
+            Already own it
+          </button>
+        )}
+      </div>
+
+      {/* Storage (only for Sheng/Shou/Dark) */}
+      {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
+        <>
+          <div className="border-t border-tea-border" />
+          <div className="flex gap-1.5 flex-wrap">
+            {STORAGE_OPTIONS.map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
+                className={entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Done */}
+      {hasName && (
         <button
           type="button"
           onClick={handleCommit}

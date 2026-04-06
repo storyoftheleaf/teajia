@@ -36,7 +36,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         navigate('/admin');
       }
     },
-    onClick: () => { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+    onClick: () => {
+      onNavigate('HOME');
+      // Scroll after navigation completes (setActiveSection has a 120ms delay before navigate)
+      setTimeout(() => window.scrollTo({ top: 0 }), 150);
+    },
   });
 
   const leftSections = [
@@ -63,7 +67,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
         style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
@@ -108,46 +112,40 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           userSelect: 'none',
         }}
       >
-        <div className="flex items-center w-full px-0 h-full">
+        <div className="flex w-full px-0 h-full">
           {/* Left sections */}
           {leftSections.map((section, index) => (
             <React.Fragment key={section.id}>
-              <div className="flex items-center h-full flex-1">
-                {renderTabButton(section, index)}
-              </div>
-              <div className="w-px h-5 bg-tea-border/30" />
+              {renderTabButton(section, index)}
+              <div className="w-px h-4 bg-tea-gold/10 self-center flex-shrink-0" />
             </React.Fragment>
           ))}
 
           {/* Center - HOME */}
-          <div className="flex items-center h-full flex-1">
-            <button
-              {...centerLongPress}
-              className="flex-1 h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] select-none"
-              style={{
-                animationDelay: `${leftSections.length * 50}ms`,
-                WebkitTouchCallout: 'none',
-                WebkitUserSelect: 'none',
-                touchAction: 'manipulation',
-              }}
-              title="Home · Long press for admin"
-              aria-label="Return to home, long press to toggle admin"
-            >
-              <LogoText
-                size="sm"
-                color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
-                className="transition-all duration-300 pointer-events-none"
-              />
-            </button>
-          </div>
+          <button
+            {...centerLongPress}
+            className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] select-none"
+            style={{
+              animationDelay: `${leftSections.length * 50}ms`,
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'manipulation',
+            }}
+            title="Home · Long press for admin"
+            aria-label="Return to home, long press to toggle admin"
+          >
+            <LogoText
+              size="sm"
+              color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
+              className="transition-all duration-300 pointer-events-none"
+            />
+          </button>
 
           {/* Right sections */}
           {rightSections.map((section, index) => (
             <React.Fragment key={section.id}>
-              <div className="w-px h-5 bg-tea-border/30" />
-              <div className="flex items-center h-full flex-1">
-                {renderTabButton(section, index + leftSections.length + 1)}
-              </div>
+              <div className="w-px h-4 bg-tea-gold/10 self-center flex-shrink-0" />
+              {renderTabButton(section, index + leftSections.length + 1)}
             </React.Fragment>
           ))}
         </div>

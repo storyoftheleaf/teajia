@@ -1,17 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, UserPlus, Trash2, X } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, X, ShieldCheck, Shield, Settings } from 'lucide-react';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../store';
-import type { AccountMember, AccountRole } from '../../types';
+import type { AccountMember, AccountRole, PlatformRole } from '../../types';
 
-const ROLES: AccountRole[] = ['owner', 'manager', 'staff', 'viewer'];
+const ROLES: AccountRole[] = ['owner', 'staff', 'viewer'];
 
 const roleLabel: Record<AccountRole, string> = {
   owner: 'Owner',
-  manager: 'Manager',
   staff: 'Staff',
   viewer: 'Viewer',
 };
+
+const KNOWN_PERMISSIONS: { key: string; label: string; description: string }[] = [
+  { key: 'ai_wisdom', label: 'AI Wisdom Generation', description: 'Can generate lore, terroir, and experience descriptions for teas' },
+];
 
 function useCurrentRole(): AccountRole | null {
   const { memberships, activeAccountId } = useAppStore();
@@ -20,6 +23,164 @@ function useCurrentRole(): AccountRole | null {
     [memberships, activeAccountId],
   );
 }
+
+interface MemberSettingsModalProps {
+  member: AccountMember;
+  accountId: string;
+  ownerCount: number;
+  currentUserId: string | null;
+  onClose: () => void;
+  onPermissionsUpdated: (userId: string, permissions: Record<string, boolean>) => void;
+  onOwnershipTransferred: () => void;
+}
+
+const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
+  member,
+  accountId,
+  ownerCount,
+  currentUserId,
+  onClose,
+  onPermissionsUpdated,
+  onOwnershipTransferred,
+}) => {
+  const [permissions, setPermissions] = useState<Record<string, boolean>>(member.permissions ?? {});
+  const [permBusy, setPermBusy] = useState(false);
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const isSelf = member.user_id === currentUserId;
+  const isLastOwner = member.role === 'owner' && ownerCount <= 1;
+
+  const handlePermissionToggle = async (key: string, value: boolean) => {
+    const next = { ...permissions, [key]: value };
+    setPermissions(next);
+    setPermBusy(true);
+    setMsg(null);
+    try {
+      await api.accounts.updateMemberPermissions(accountId, member.user_id, next);
+      onPermissionsUpdated(member.user_id, next);
+      setMsg('Permissions saved.');
+    } catch (err: any) {
+      setMsg(err?.message || 'Failed to save permissions');
+      setPermissions(permissions); // revert
+    } finally {
+      setPermBusy(false);
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!confirm(`Transfer account ownership to ${member.name || member.email}? They will become owner and your role will change to staff.`)) return;
+    setTransferBusy(true);
+    setMsg(null);
+    try {
+      await api.accounts.transferOwnership(accountId, member.user_id);
+      onOwnershipTransferred();
+      onClose();
+    } catch (err: any) {
+      setMsg(err?.message || 'Failed to transfer ownership');
+      setTransferBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/80 backdrop-blur-sm p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Member settings"
+    >
+      <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
+          <div>
+            <h2 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+              {member.name || member.email}
+            </h2>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-0.5">
+              {roleLabel[member.role]}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-tea-text-dim hover:text-tea-text transition-colors"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Feature Permissions */}
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+              Feature Access
+            </p>
+            <div className="space-y-3">
+              {KNOWN_PERMISSIONS.map(({ key, label, description }) => (
+                <label
+                  key={key}
+                  className="flex items-start gap-3 cursor-pointer group"
+                >
+                  <div className="relative mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={!!permissions[key]}
+                      onChange={(e) => handlePermissionToggle(key, e.target.checked)}
+                      disabled={permBusy}
+                      className="sr-only"
+                    />
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                        permissions[key]
+                          ? 'bg-tea-gold border-tea-gold'
+                          : 'bg-tea-bg border-tea-border group-hover:border-tea-gold/50'
+                      }`}
+                      onClick={() => !permBusy && handlePermissionToggle(key, !permissions[key])}
+                    >
+                      {permissions[key] && (
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                          <path d="M1 3L3 5L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-tea-bg" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-tea-text leading-tight">{label}</p>
+                    <p className="text-[10px] text-tea-text-dim mt-0.5 leading-relaxed">{description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {msg && (
+            <div className="text-xs text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
+              {msg}
+            </div>
+          )}
+
+          {/* Transfer Ownership — only for non-self members who aren't already the only owner */}
+          {!isSelf && !isLastOwner && (
+            <div className="pt-2 border-t border-tea-border">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                Ownership
+              </p>
+              <button
+                type="button"
+                onClick={handleTransferOwnership}
+                disabled={transferBusy}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-tea-text-sec border border-tea-border hover:border-tea-gold/50 hover:text-tea-text transition-colors disabled:opacity-50"
+              >
+                {transferBusy && <Loader2 className="animate-spin" size={11} />}
+                Transfer Ownership to {member.name || member.email}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const TeamView: React.FC = () => {
   const { activeAccountId, memberships } = useAppStore();
@@ -36,8 +197,9 @@ export const TeamView: React.FC = () => {
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
+  const [settingsMember, setSettingsMember] = useState<AccountMember | null>(null);
 
-  const canManage = currentRole === 'owner' || currentRole === 'manager';
+  const canManage = currentRole === 'owner';
   const canEditRoles = currentRole === 'owner';
 
   const activeAccountName = memberships.find((m) => m.account_id === activeAccountId)?.account_name;
@@ -48,7 +210,8 @@ export const TeamView: React.FC = () => {
     setError(null);
     try {
       const data = await api.accounts.listMembers(activeAccountId);
-      setMembers(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : (data as any)?.members ?? [];
+      setMembers(list);
     } catch (err: any) {
       setError(err?.message || 'Failed to load team members');
     } finally {
@@ -201,12 +364,22 @@ export const TeamView: React.FC = () => {
                 return (
                   <tr key={m.user_id} className="hover:bg-tea-elevated/30 transition-colors">
                     <td className="px-4 py-3 text-tea-text">
-                      {m.name || '—'}
-                      {isSelf && (
-                        <span className="ml-2 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">
-                          you
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {m.name || '—'}
+                        {isSelf && (
+                          <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">you</span>
+                        )}
+                        {m.platform_role === 'platform_owner' && (
+                          <span className="badge-status badge-status-gold flex items-center gap-0.5">
+                            <ShieldCheck size={9} />Super Owner
+                          </span>
+                        )}
+                        {m.platform_role === 'platform_admin' && (
+                          <span className="badge-status badge-status-default flex items-center gap-0.5">
+                            <Shield size={9} />Platform Admin
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-tea-text-sec">{m.email}</td>
                     <td className="px-4 py-3">
@@ -234,22 +407,33 @@ export const TeamView: React.FC = () => {
                     </td>
                     {canEditRoles && (
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(m)}
-                          disabled={isSelf || isLastOwner || rowBusy === m.user_id}
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                          aria-label="Remove member"
-                          title={
-                            isSelf
-                              ? "You can't remove yourself"
-                              : isLastOwner
-                                ? "Can't remove the last owner"
-                                : 'Remove member'
-                          }
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setSettingsMember(m)}
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors"
+                            aria-label="Member settings"
+                            title="Permissions & ownership"
+                          >
+                            <Settings size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(m)}
+                            disabled={isSelf || isLastOwner || rowBusy === m.user_id}
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            aria-label="Remove member"
+                            title={
+                              isSelf
+                                ? "You can't remove yourself"
+                                : isLastOwner
+                                  ? "Can't remove the last owner"
+                                  : 'Remove member'
+                            }
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -336,6 +520,22 @@ export const TeamView: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {settingsMember && activeAccountId && (
+        <MemberSettingsModal
+          member={settingsMember}
+          accountId={activeAccountId}
+          ownerCount={ownerCount}
+          currentUserId={currentUserId}
+          onClose={() => setSettingsMember(null)}
+          onPermissionsUpdated={(userId, permissions) => {
+            setMembers((prev) =>
+              prev.map((m) => (m.user_id === userId ? { ...m, permissions } : m)),
+            );
+          }}
+          onOwnershipTransferred={loadMembers}
+        />
       )}
     </div>
   );

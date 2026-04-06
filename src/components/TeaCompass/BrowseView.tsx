@@ -1,13 +1,12 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { ChevronDown, Store, Plus } from 'lucide-react';
+import { ChevronDown, Store, Plus, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { BrowseCard } from './BrowseCard';
-import { VendorHistory } from './VendorHistory';
 import { VendorInfoPanel } from './VendorInfoPanel';
 import { CompassIcon } from './CompassIcon';
-import type { TeaCompassEntry, BrowseGrouping, BrowseFilter, TeaType, TeaForm, VendorDetails } from './types';
-import type { Currency } from '../../admin/types';
+import type { TeaCompassEntry, BrowseGrouping, BrowseFilter, VendorDetails } from './types';
 
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
@@ -27,16 +26,14 @@ function getDateGroup(dateStr: string): string {
 }
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
-  const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter, lastVendorId, lastVendorName } = useTeaCompassStore();
-  const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter } = useTeaCompassStore();
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
-  // collapsedIds kept for potential future use but no longer drives UI
 
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get vendor details from the most recent entry for a given vendor name
   const getVendorDetailsForGroup = useCallback((vendorNameKey: string): { details?: VendorDetails; vendorId?: string } => {
-    // Find the most recent entry with vendorDetails for this vendor
     for (const e of entries) {
       if ((e.vendorName || 'No Vendor') === vendorNameKey && e.vendorDetails) {
         const hasInfo = e.vendorDetails.businessCardUrl || e.vendorDetails.storefrontUrl ||
@@ -45,12 +42,10 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         if (hasInfo) return { details: e.vendorDetails, vendorId: e.vendorId };
       }
     }
-    // Return vendorId even if no details
     const withId = entries.find((e) => (e.vendorName || 'No Vendor') === vendorNameKey && e.vendorId);
     return { details: undefined, vendorId: withId?.vendorId };
   }, [entries]);
 
-  // Update vendor details across all entries for this vendor
   const handleVendorDetailsChange = useCallback((vendorNameKey: string, details: VendorDetails) => {
     for (const e of entries) {
       if ((e.vendorName || 'No Vendor') === vendorNameKey) {
@@ -59,39 +54,47 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     }
   }, [entries, updateEntry]);
 
-  const handleBuyAgain = useCallback((item: {
-    name: string;
-    type?: string;
-    form?: string;
-    priceAmount?: number;
-    priceCurrency: string;
-    pricePerUnitGrams?: number;
-  }) => {
-    const newId = startNewCapture();
-    updateEntry(newId, {
-      name: item.name,
-      type: item.type as TeaType | undefined,
-      form: item.form as TeaForm | undefined,
-      priceAmount: item.priceAmount,
-      priceCurrency: item.priceCurrency as Currency,
-      pricePerUnitGrams: item.pricePerUnitGrams,
-      status: 'buying',
-    });
-  }, [startNewCapture, updateEntry]);
+  // Fuse.js instance for fuzzy search
+  const fuseInstance = useMemo(() => new Fuse(entries, {
+    keys: [
+      { name: 'name', weight: 2 },
+      { name: 'chineseName', weight: 1.5 },
+      { name: 'vendorName', weight: 1 },
+      { name: 'originRegion', weight: 1 },
+      { name: 'type', weight: 1 },
+      { name: 'notes', weight: 0.5 },
+    ],
+    threshold: 0.35,
+    includeScore: true,
+    getFn: (entry, path) => {
+      if (path[0] === 'tasting.flavor') {
+        return (entry.tasting?.flavor || []).join(' ');
+      }
+      return Fuse.config.getFn(entry, path);
+    },
+  }), [entries]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    return new Set(fuseInstance.search(searchQuery.trim()).map((r) => r.item.id));
+  }, [searchQuery, fuseInstance]);
 
   const filteredEntries = useMemo(() => {
-    if (browseFilter === 'all') return entries;
-    if (browseFilter === 'want') return entries.filter((e) => e.status === 'want');
-    if (browseFilter === 'bought') return entries.filter((e) => e.status === 'bought');
-    if (browseFilter === 'sample') return entries.filter((e) => e.isSample);
-    return entries;
-  }, [entries, browseFilter]);
+    let result = entries;
+    // Apply text search
+    if (searchResults !== null) {
+      result = result.filter((e) => searchResults.has(e.id));
+    }
+    // Apply status filter
+    if (browseFilter === 'want') return result.filter((e) => e.status === 'want');
+    if (browseFilter === 'bought') return result.filter((e) => e.status === 'bought' || e.status === 'buying');
+    return result;
+  }, [entries, browseFilter, searchResults]);
 
   const counts = useMemo(() => ({
     all: entries.length,
     want: entries.filter((e) => e.status === 'want').length,
-    bought: entries.filter((e) => e.status === 'bought').length,
-    sample: entries.filter((e) => e.isSample).length,
+    bought: entries.filter((e) => e.status === 'bought' || e.status === 'buying').length,
   }), [entries]);
 
   const groups = useMemo(() => {
@@ -116,9 +119,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   const filterOptions: { value: BrowseFilter; label: string; count: number }[] = [
     { value: 'all', label: 'All', count: counts.all },
-    { value: 'want', label: 'Want', count: counts.want },
+    { value: 'want', label: 'Wishlist', count: counts.want },
     { value: 'bought', label: 'Bought', count: counts.bought },
-    { value: 'sample', label: 'Samples', count: counts.sample },
   ];
 
   if (entries.length === 0) {
@@ -142,19 +144,31 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   }
 
   return (
-    <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
-      {lastVendorName && (
-        <div className="mb-4">
-          <VendorHistory
-            vendorId={lastVendorId || undefined}
-            vendorName={lastVendorName}
-            onBuyAgain={handleBuyAgain}
-          />
-        </div>
-      )}
+    <div className="space-y-3 animate-[fadeIn_0.3s_ease-out]">
+      {/* Search bar */}
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search teas, vendors, regions…"
+          className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2
+                     outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
 
-      <div className="space-y-2.5">
-        {/* Controls row: grouping + filter + new capture */}
+      {/* Controls row: grouping + filter + new capture */}
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <div className="flex gap-1 flex-1">
             {groupingOptions.map((opt) => (
@@ -188,6 +202,13 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         </div>
       </div>
 
+      {/* Search empty state */}
+      {searchQuery && filteredEntries.length === 0 && (
+        <div className="py-10 text-center">
+          <p className="text-[13px] text-tea-text-dim">No teas matching "{searchQuery}"</p>
+        </div>
+      )}
+
       <div className="space-y-5">
         {groups.map(([groupName, groupEntries]) => {
           const isVendorGrouping = browseGrouping === 'vendor';
@@ -195,84 +216,84 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
           const vendorInfo = isVendorGrouping ? getVendorDetailsForGroup(groupName) : null;
 
           return (
-          <div key={groupName}>
-            {isVendorGrouping && groupName !== 'No Vendor' ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setExpandedVendors((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(groupName)) next.delete(groupName);
-                    else next.add(groupName);
-                    return next;
-                  })}
-                  className="flex items-center justify-between w-full mb-2.5 group"
-                >
-                  <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium group-hover:text-tea-gold transition-colors">
-                    <Store size={12} className="text-tea-gold/50" />
+            <div key={groupName}>
+              {isVendorGrouping && groupName !== 'No Vendor' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedVendors((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(groupName)) next.delete(groupName);
+                      else next.add(groupName);
+                      return next;
+                    })}
+                    className="flex items-center justify-between w-full mb-2.5 group"
+                  >
+                    <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium group-hover:text-tea-gold transition-colors">
+                      <Store size={12} className="text-tea-gold/50" />
+                      {groupName}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-[10px] text-tea-text-dim num">
+                        {groupEntries.length}
+                      </span>
+                      <motion.span
+                        animate={{ rotate: vendorExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-tea-text-dim"
+                      >
+                        <ChevronDown size={12} />
+                      </motion.span>
+                    </span>
+                  </button>
+                  <AnimatePresence>
+                    {vendorExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden mb-3"
+                      >
+                        <VendorInfoPanel
+                          vendorName={groupName}
+                          vendorId={vendorInfo?.vendorId}
+                          vendorDetails={vendorInfo?.details}
+                          onDetailsChange={(details) => handleVendorDetailsChange(groupName, details)}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              ) : (
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
                     {groupName}
                   </span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-[10px] text-tea-text-dim num">
-                      {groupEntries.length}
-                    </span>
-                    <motion.span
-                      animate={{ rotate: vendorExpanded ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-tea-text-dim"
-                    >
-                      <ChevronDown size={12} />
-                    </motion.span>
+                  <span className="text-[10px] text-tea-text-dim num">
+                    {groupEntries.length}
                   </span>
-                </button>
-                <AnimatePresence>
-                  {vendorExpanded && (
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <AnimatePresence initial={false}>
+                  {groupEntries.map((entry) => (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
+                      key={entry.id}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden mb-3"
                     >
-                      <VendorInfoPanel
-                        vendorName={groupName}
-                        vendorId={vendorInfo?.vendorId}
-                        vendorDetails={vendorInfo?.details}
-                        onDetailsChange={(details) => handleVendorDetailsChange(groupName, details)}
+                      <BrowseCard
+                        entry={entry}
+                        onEdit={onEditEntry}
                       />
                     </motion.div>
-                  )}
+                  ))}
                 </AnimatePresence>
-              </>
-            ) : (
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
-                  {groupName}
-                </span>
-                <span className="text-[10px] text-tea-text-dim num">
-                  {groupEntries.length}
-                </span>
               </div>
-            )}
-            <div className="space-y-1.5">
-              <AnimatePresence initial={false}>
-                {groupEntries.map((entry) => (
-                  <motion.div
-                    key={entry.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <BrowseCard
-                      entry={entry}
-                      onEdit={onEditEntry}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
             </div>
-          </div>
           );
         })}
       </div>

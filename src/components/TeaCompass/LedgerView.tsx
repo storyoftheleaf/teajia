@@ -15,6 +15,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Tag,
 } from 'lucide-react';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
@@ -48,7 +49,8 @@ const LineItemRow: React.FC<{
   item: LedgerLineItem;
   txId: string;
   onRemove: () => void;
-}> = ({ item, txId, onRemove }) => {
+  onOpenEntry?: (entryId: string) => void;
+}> = ({ item, txId, onRemove, onOpenEntry }) => {
   const navigate = useNavigate();
   const updateLineItem = useLedgerStore((s) => s.updateLineItem);
   const total = lineTotal(item);
@@ -69,82 +71,75 @@ const LineItemRow: React.FC<{
   const currentQty = isUnitBased ? (item.quantityUnits ?? 1) : (item.quantityGrams ?? 100);
 
   return (
-    <div className="py-3 border-b border-tea-border last:border-b-0">
-      <div className="flex items-start justify-between gap-3">
+    <div className="py-2.5 border-b border-tea-border last:border-b-0">
+      <div className="flex items-center gap-2">
+        {/* Name + meta */}
         <div className="flex-1 min-w-0">
-          {item.chineseName && (
-            item.productId ? (
-              <button onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)} className="text-tea-text hover:text-tea-accent text-lg font-chinese tracking-wide leading-[1.3] text-left transition-colors">
-                {item.chineseName}
-              </button>
-            ) : (
-              <p className="text-tea-text text-lg font-chinese tracking-wide leading-[1.3]">
-                {item.chineseName}
-              </p>
-            )
-          )}
-          {item.productId ? (
-            <button onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)} className="text-tea-text hover:text-tea-accent font-serif text-[13px] text-left transition-colors">
+          {item.compassEntryId && onOpenEntry ? (
+            <button
+              onClick={() => onOpenEntry(item.compassEntryId!)}
+              className="text-tea-text hover:text-tea-accent font-serif text-[13px] text-left transition-colors truncate block w-full"
+            >
+              {item.name || 'Unnamed'}
+            </button>
+          ) : item.productId ? (
+            <button
+              onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)}
+              className="text-tea-text hover:text-tea-accent font-serif text-[13px] text-left transition-colors truncate block w-full"
+            >
               {item.name || 'Unnamed'}
             </button>
           ) : (
-            <p className="text-tea-text font-serif text-[13px]">
+            <p className="text-tea-text font-serif text-[13px] truncate">
               {item.name || 'Unnamed'}
             </p>
           )}
           {(item.type || item.form || item.year) && (
-            <p className="text-tea-text-sec text-[11px] mt-0.5 num">
+            <p className="text-tea-text-dim text-[10px] num mt-0.5">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
             </p>
           )}
         </div>
 
         {/* Quantity control */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => handleQtyChange(currentQty - (isUnitBased ? 1 : 25))}
-            aria-label="Decrease quantity"
-            className="w-10 h-10 rounded-full bg-tea-surface flex items-center justify-center
-                       text-tea-text-sec active:bg-tea-elevated transition-colors"
+            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
           >
-            <Minus size={14} />
+            <Minus size={11} />
           </button>
-          <input
-            type="number"
-            value={currentQty}
-            aria-label={isUnitBased ? 'Number of units' : 'Quantity in grams'}
-            onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
-            onWheel={(e) => (e.target as HTMLElement).blur()}
-            className="w-14 text-center text-tea-text text-sm font-medium bg-transparent num
-                       border-none outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg py-0.5"
-          />
-          <span className="text-tea-text-sec text-[10px] num w-3">{isUnitBased ? '×' : 'g'}</span>
+          <div className="flex items-baseline gap-0.5">
+            <input
+              type="number"
+              value={currentQty}
+              onChange={(e) => handleQtyChange(Math.max(1, parseInt(e.target.value) || 1))}
+              onWheel={(e) => (e.target as HTMLElement).blur()}
+              className="w-10 text-center text-tea-text text-xs font-medium bg-transparent num border-none outline-none"
+            />
+            <span className="text-tea-text-dim text-[10px] num">{isUnitBased ? '×' : 'g'}</span>
+          </div>
           <button
             type="button"
             onClick={() => handleQtyChange(currentQty + (isUnitBased ? 1 : 25))}
-            aria-label="Increase quantity"
-            className="w-10 h-10 rounded-full bg-tea-surface flex items-center justify-center
-                       text-tea-text-sec active:bg-tea-elevated transition-colors"
+            className="w-7 h-7 rounded-full bg-tea-surface flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
           >
-            <Plus size={14} />
+            <Plus size={11} />
           </button>
         </div>
-      </div>
 
-      {/* Price + remove */}
-      <div className="flex items-center justify-between mt-1.5">
-        <button
-          type="button"
-          onClick={onRemove}
-          className="pill flex items-center gap-1"
-        >
-          <Trash2 size={10} />
-          Remove
-        </button>
-        <span className="text-tea-text text-sm font-serif num">
-          {fmtPrice(total, item.currency)}
-        </span>
+        {/* Price + remove */}
+        <div className="shrink-0 text-right">
+          <p className="text-tea-text text-[13px] font-serif num">{fmtPrice(total, item.currency)}</p>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-tea-text-dim hover:text-tea-text-sec text-[10px] uppercase tracking-wide transition-colors mt-0.5"
+          >
+            remove
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -317,12 +312,14 @@ const TransactionCard: React.FC<{
   tx: LedgerTransaction;
   isExpanded: boolean;
   onToggle: () => void;
-}> = ({ tx, isExpanded, onToggle }) => {
+  onOpenEntry?: (entryId: string) => void;
+}> = ({ tx, isExpanded, onToggle, onOpenEntry }) => {
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const confirmTransaction = useLedgerStore((s) => s.confirmTransaction);
   const removeTransaction = useLedgerStore((s) => s.removeTransaction);
   const [justConfirmed, setJustConfirmed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [showTagSheet, setShowTagSheet] = useState(false);
 
   const handleSharePdf = useCallback(async () => {
     setPdfLoading(true);
@@ -498,6 +495,7 @@ const TransactionCard: React.FC<{
                     item={item}
                     txId={tx.id}
                     onRemove={() => removeLineItem(tx.id, item.id)}
+                    onOpenEntry={onOpenEntry}
                   />
                 ))
               )}
@@ -543,6 +541,19 @@ const TransactionCard: React.FC<{
                   </AnimatePresence>
                 )}
 
+                {/* Print Tags — for purchase transactions with compass-linked items */}
+                {isPurchase && tx.items.some((i) => i.compassEntryId) && (
+                  <button
+                    type="button"
+                    onClick={() => setShowTagSheet(true)}
+                    className="pill flex items-center gap-1"
+                    aria-label="Print tea tags"
+                  >
+                    <Tag size={12} />
+                    Tags
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleSharePdf}
@@ -585,9 +596,18 @@ const TransactionCard: React.FC<{
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Tag sheet overlay */}
+      {showTagSheet && (
+        <React.Suspense fallback={null}>
+          <LazyTeaTagSheet transaction={tx} onClose={() => setShowTagSheet(false)} />
+        </React.Suspense>
+      )}
     </div>
   );
 };
+
+const LazyTeaTagSheet = React.lazy(() => import('./TeaTagSheet'));
 
 // ─── Filter Tabs ────────────────────────────────────────────────────────────
 
@@ -597,9 +617,10 @@ type LedgerFilter = 'all' | 'purchase' | 'sale' | 'draft' | 'confirmed';
 
 interface LedgerViewProps {
   embedded?: boolean;
+  onOpenEntry?: (entryId: string) => void;
 }
 
-export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
+export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
@@ -706,6 +727,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded }) => {
                   if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id);
                   return next;
                 })}
+                onOpenEntry={onOpenEntry}
               />
             </motion.div>
           ))}

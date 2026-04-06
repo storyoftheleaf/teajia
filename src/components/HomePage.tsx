@@ -27,11 +27,23 @@ interface HomePageProps {
 
 
 /** Character reveal + email capture — scroll-driven, reversible */
-const CharacterRevealCapture: React.FC = () => {
+interface CharacterRevealCaptureProps {
+  act3Ref: React.RefObject<HTMLElement | null>;
+}
+
+const CharacterRevealCapture: React.FC<CharacterRevealCaptureProps> = ({ act3Ref }) => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0); // 0 = off screen, 1 = fully revealed
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [email, setEmail] = useState('');
+  const isSnapping = useRef(false);
+  const rafRef = useRef<number>(0);
+  const snapIdxRef = useRef(0);
+  const wheelCooldownRef = useRef(false);
+  const wheelCooldownTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Discrete stops: Act1 → characters → email capture → exit to Act3
+  // Stop 1=Act1, Stop 2=characters+email fully settled, Stop 3=Act3
+  const SNAP_POINTS = [0, 0.91, 1.0];
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -44,20 +56,145 @@ const CharacterRevealCapture: React.FC = () => {
   useEffect(() => {
     if (prefersReducedMotion) { setProgress(1); return; }
 
-    const handleScroll = () => {
-      // Use raw page scroll — progress starts from the very first pixel of scrolling
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const getScrollable = () => {
       const el = sectionRef.current;
-      if (!el) return;
-      const totalScrollable = el.offsetTop + el.offsetHeight - window.innerHeight;
-      const raw = scrollTop / totalScrollable;
-      setProgress(Math.max(0, Math.min(1, raw)));
+      if (!el) return null;
+      return { el, total: el.offsetTop + el.offsetHeight - window.innerHeight };
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [prefersReducedMotion]);
+    // Always animate from the current clean snap point to the target.
+    // Never start mid-animation — lock scroll position first so stray
+    // scroll events read the right value throughout.
+    const animateTo = (targetIdx: number, s: { total: number }) => {
+      const startP = SNAP_POINTS[snapIdxRef.current];
+      const targetP = SNAP_POINTS[targetIdx];
+      if (startP === targetP) return;
+
+      isSnapping.current = true;
+      snapIdxRef.current = targetIdx;
+      cancelAnimationFrame(rafRef.current);
+
+      // Lock scroll immediately so scroll events are harmless during animation
+      window.scrollTo({ top: startP * s.total, behavior: 'instant' });
+
+      const startTime = performance.now();
+      // Snappy: ~700ms for full range, never longer than 900ms
+      // Reveal snap (0→0.91) plays out the full sequence; exit snap is quicker
+      const isExit = targetIdx === SNAP_POINTS.length - 1;
+      const duration = Math.max(isExit ? 500 : 1200, Math.abs(targetP - startP) * 1000);
+
+      // Act 3 starts immediately after the spacer: spacer.offsetTop + spacer.offsetHeight
+      // = s.total + window.innerHeight. No ref needed — pure geometry.
+      const act3ScrollTarget = targetP === 1 ? s.total + window.innerHeight : null;
+      const scrollStart = startP * s.total;
+
+      const animate = (now: number) => {
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        setProgress(startP + (targetP - startP) * eased);
+
+        // During the exit snap, move the page in sync with the overlay fade —
+        // Act 3 is already in position the moment the overlay becomes transparent
+        if (act3ScrollTarget !== null) {
+          window.scrollTo({
+            top: scrollStart + (act3ScrollTarget - scrollStart) * eased,
+            behavior: 'instant',
+          });
+        }
+
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(animate);
+        } else {
+          setProgress(targetP);
+          if (act3ScrollTarget === null) {
+            window.scrollTo({ top: targetP * s.total, behavior: 'instant' });
+          }
+          isSnapping.current = false;
+          // Don't clear cooldown immediately — restart it from landing
+          // so residual mouse momentum can't fire the next snap
+          clearTimeout(wheelCooldownTimerRef.current);
+          wheelCooldownTimerRef.current = setTimeout(() => {
+            wheelCooldownRef.current = false;
+          }, 700);
+        }
+      };
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    // ── Mouse wheel: one burst = one stop, period ──
+    // Intercept the wheel entirely while in Act 2. Each distinct gesture
+    // (detected by a pause between events) advances exactly one stop.
+    const onWheel = (e: WheelEvent) => {
+      const s = getScrollable();
+      if (!s) return;
+
+      const atTop = snapIdxRef.current === 0 && e.deltaY < 0;
+      const pastAct2 = snapIdxRef.current === SNAP_POINTS.length - 1 && e.deltaY > 0;
+      if (atTop || pastAct2) return;
+
+      e.preventDefault();
+
+      if (isSnapping.current || wheelCooldownRef.current) return;
+
+      const dir = e.deltaY > 0 ? 'down' : 'up';
+      const nextIdx = dir === 'down'
+        ? Math.min(SNAP_POINTS.length - 1, snapIdxRef.current + 1)
+        : Math.max(0, snapIdxRef.current - 1);
+
+      if (nextIdx === snapIdxRef.current) return;
+
+      wheelCooldownRef.current = true;
+      clearTimeout(wheelCooldownTimerRef.current);
+      // Safety fallback in case animateTo never completes
+      wheelCooldownTimerRef.current = setTimeout(() => { wheelCooldownRef.current = false; }, 3000);
+
+      animateTo(nextIdx, s);
+    };
+
+    // ── Touch / trackpad: free scroll, snap to nearest on settle ──
+    const onScroll = () => {
+      if (isSnapping.current) return;
+      const s = getScrollable();
+      if (!s) return;
+      const p = Math.max(0, Math.min(1, window.scrollY / s.total));
+      setProgress(p);
+      snapIdxRef.current = SNAP_POINTS.reduce((ci, _, i) =>
+        Math.abs(SNAP_POINTS[i] - p) < Math.abs(SNAP_POINTS[ci] - p) ? i : ci, 0);
+    };
+
+    const snapToNearest = () => {
+      if (isSnapping.current) return;
+      const s = getScrollable();
+      if (!s) return;
+      const p = Math.max(0, Math.min(1, window.scrollY / s.total));
+      if (p <= 0.01 || p >= 0.99) return;
+      const nearestIdx = SNAP_POINTS.reduce((ci, _, i) =>
+        Math.abs(SNAP_POINTS[i] - p) < Math.abs(SNAP_POINTS[ci] - p) ? i : ci, 0);
+      if (Math.abs(SNAP_POINTS[nearestIdx] - p) < 0.01) return;
+      animateTo(nearestIdx, s);
+    };
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const onScrollDebounced = () => {
+      onScroll();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(snapToNearest, 220);
+    };
+
+    const supportsScrollEnd = 'onscrollend' in window;
+    window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('scroll', onScrollDebounced, { passive: true });
+    if (supportsScrollEnd) window.addEventListener('scrollend', snapToNearest, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('scroll', onScrollDebounced);
+      if (supportsScrollEnd) window.removeEventListener('scrollend', snapToNearest);
+      clearTimeout(debounceTimer);
+      clearTimeout(wheelCooldownTimerRef.current);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [prefersReducedMotion, act3Ref]);
 
   // Ease-out curve
   const ease = (t: number) => 1 - Math.pow(1 - t, 2.5);
@@ -80,8 +217,8 @@ const CharacterRevealCapture: React.FC = () => {
   const leftP = ease(Math.max(0, Math.min(1, (progress - 0.60) / 0.10)));
   // 4. 嘉 right: slides in (70% → 80%)
   const rightP = ease(Math.max(0, Math.min(1, (progress - 0.70) / 0.10)));
-  // 5. Email: rises from below (82% → 95%)
-  const emailP = ease(Math.max(0, Math.min(1, (progress - 0.82) / 0.13)));
+  // 5. Email: rises from below (82% → 90%), starts immediately on snap 2→3, done by stop 3
+  const emailP = ease(Math.max(0, Math.min(1, (progress - 0.82) / 0.08)));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,11 +231,11 @@ const CharacterRevealCapture: React.FC = () => {
 
   // Show the overlay as soon as any scrolling happens, fade out at the end
   const isVisible = progress > 0;
-  // Fade out the entire overlay as user scrolls past Act 2 (progress 0.92 → 1.05)
-  const exitP = Math.max(0, Math.min(1, (progress - 0.92) / 0.13));
+  // Exit only after stop 3 (0.93 → 1.0) — email stop is always fully opaque
+  const exitP = Math.max(0, Math.min(1, (progress - 0.93) / 0.07));
   const overlayOpacity = 1 - exitP;
-  // Scroll-hint: appears after email is visible, fades out with the overlay
-  const hintP = Math.max(0, Math.min(1, (progress - 0.90) / 0.05)) * overlayOpacity;
+  // Scroll hint appears partway through the email stop
+  const hintP = Math.max(0, Math.min(1, (progress - 0.89) / 0.04)) * overlayOpacity;
 
   return (
     <>
@@ -112,8 +249,20 @@ const CharacterRevealCapture: React.FC = () => {
       {isVisible && overlayOpacity > 0.01 && (
         <div
           className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(44px+env(safe-area-inset-bottom,0px))]"
-          style={{ opacity: overlayOpacity }}
+          style={{
+            opacity: overlayOpacity,
+            background: 'color-mix(in srgb, black 18%, rgb(var(--tea-bg-rgb)))',
+          }}
         >
+          {/* Grain texture for depth */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='5' stitchTiles='stitch' seed='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E")`,
+              opacity: 0.07,
+              mixBlendMode: 'overlay',
+            }}
+          />
           {/* Logo — drops from top, lands above the teaser lines */}
           <div
             className="mb-8"
@@ -301,8 +450,7 @@ const CharacterRevealCapture: React.FC = () => {
 };
 
 /** Network directory strip — surfaces the lineage model on the home page. */
-const NetworkDirectoryStrip: React.FC = () => {
-  const sectionRef = useRef<HTMLElement>(null);
+const NetworkDirectoryStrip: React.FC<{ sectionRef: React.RefObject<HTMLElement | null> }> = ({ sectionRef }) => {
   const [revealProgress, setRevealProgress] = useState(0);
 
   useEffect(() => {
@@ -311,14 +459,14 @@ const NetworkDirectoryStrip: React.FC = () => {
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const vh = window.innerHeight;
-      // Progress: 0 when top of section is at bottom of viewport, 1 when top reaches 60% up
-      const raw = (vh - rect.top) / (vh * 0.4);
+      // Progress: 0 when top of section is at bottom of viewport, 1 when top reaches 80% up
+      const raw = (vh - rect.top) / (vh * 0.6);
       setRevealProgress(Math.max(0, Math.min(1, raw)));
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [sectionRef]);
 
   const { data: stores = [] } = useQuery<Account[]>({
     queryKey: ['network', 'stores'],
@@ -333,9 +481,9 @@ const NetworkDirectoryStrip: React.FC = () => {
 
   return (
     <section
-      ref={sectionRef}
+      ref={sectionRef as React.RefObject<HTMLElement>}
       aria-label="Teajia network"
-      className="w-full max-w-5xl mx-auto px-6 py-16 md:py-24 text-center"
+      className="w-full max-w-5xl mx-auto px-6 pt-0 pb-16 md:pb-24 text-center"
       style={{
         opacity: easedProgress,
         transform: `translateY(${(1 - easedProgress) * 40}px)`,
@@ -421,6 +569,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const shouldAnimate = !hasAnimated;
   const mountRef = useRef(false);
+  const act3Ref = useRef<HTMLElement>(null);
   if (!mountRef.current) {
     mountRef.current = true;
     requestAnimationFrame(() => { hasAnimated = true; });
@@ -613,10 +762,10 @@ export const HomePage: React.FC<HomePageProps> = ({
       </div>
 
       {/* ── Act 2: Character reveal + email capture ── */}
-      <CharacterRevealCapture />
+      <CharacterRevealCapture act3Ref={act3Ref} />
 
       {/* ── Act 3: Network directory — Find a table ── */}
-      <NetworkDirectoryStrip />
+      <NetworkDirectoryStrip sectionRef={act3Ref} />
     </div>
   );
 };

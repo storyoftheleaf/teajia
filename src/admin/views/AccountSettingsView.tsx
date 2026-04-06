@@ -15,7 +15,7 @@ function useCurrentRole(): AccountRole | null {
 export const AccountSettingsView: React.FC = () => {
   const { activeAccountId, setActiveAccount } = useAppStore();
   const currentRole = useCurrentRole();
-  const canEdit = currentRole === 'owner' || currentRole === 'manager';
+  const canEdit = currentRole === 'owner';
 
   const [account, setAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
