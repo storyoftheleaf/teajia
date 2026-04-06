@@ -360,6 +360,8 @@ const NetworkDirectoryStrip: React.FC = () => {
 export const HomePage: React.FC<HomePageProps> = ({
   onNavigateToSection,
   onAccountClick,
+  onCartClick,
+  cartItemCount = 0,
 }) => {
   const shouldAnimate = !hasAnimated;
   const mountRef = useRef(false);
@@ -370,9 +372,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const initial = (vals: Record<string, any>) => shouldAnimate ? vals : false;
 
-  // Scroll-driven fade-out for Act 1 + glow position
+  // Scroll-driven fade-out for Act 1 + glow position + sticky bar visibility
   const [fadeOpacity, setFadeOpacity] = useState(1);
   const [glowY, setGlowY] = useState(1); // 1 = bottom, 0 = top
+  const [showStickyBar, setShowStickyBar] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
@@ -383,6 +386,8 @@ export const HomePage: React.FC<HomePageProps> = ({
       // Glow travels from bottom to top over the first 60% of viewport scroll
       const glowEnd = vh * 0.6;
       setGlowY(Math.max(0, 1 - scrollY / glowEnd));
+      // Show sticky bar once scrolled past the hero (80% of vh)
+      setShowStickyBar(scrollY > vh * 0.8);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
@@ -395,6 +400,39 @@ export const HomePage: React.FC<HomePageProps> = ({
         <title>Teajia — Fine Tea & Teaware</title>
         <meta name="description" content="Every culture brings wisdom to the table. Teajia is where it is served." />
       </Helmet>
+
+      {/* Sticky utility bar — appears on mobile after scrolling past hero */}
+      <div
+        className={`lg:hidden fixed top-[env(safe-area-inset-top)] left-0 right-0 z-sticky flex items-center justify-end px-4 h-11 transition-all duration-300 ${
+          showStickyBar
+            ? 'opacity-100 translate-y-0 pointer-events-auto bg-tea-bg/90 backdrop-blur-md border-b border-tea-border'
+            : 'opacity-0 -translate-y-full pointer-events-none'
+        }`}
+      >
+        {onCartClick && (
+          <button
+            onClick={onCartClick}
+            className="relative min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label={cartItemCount > 0 ? `View cart, ${cartItemCount} item${cartItemCount !== 1 ? 's' : ''}` : 'View cart'}
+          >
+            <Icons.Bag className="w-5 h-5 text-tea-text-sec" strokeWidth={1.8} />
+            {cartItemCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-tea-gold text-white text-[8px] font-bold rounded-full flex items-center justify-center leading-none">
+                {cartItemCount > 9 ? '9+' : cartItemCount}
+              </span>
+            )}
+          </button>
+        )}
+        {onAccountClick && (
+          <button
+            onClick={onAccountClick}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label="Account"
+          >
+            <Icons.User className="w-5 h-5 text-tea-text-sec" strokeWidth={1.8} />
+          </button>
+        )}
+      </div>
 
       {/* Act 1 bottom glow — fixed to viewport bottom, fades out on scroll */}
       <div
