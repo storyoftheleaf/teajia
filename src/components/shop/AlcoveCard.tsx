@@ -114,11 +114,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
-  // Stock status
   const stockStatus = getStockStatus(item.stock_g, undefined, item.isOneOfAKind, item.isCurated);
   const isSoldOut = stockStatus.level === 'out';
 
-  // Quantity presets - only show values that are <= stock
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
   // Snap to nearest marked point on release
@@ -1268,7 +1266,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   letterSpacing: "0.08em", textTransform: "uppercase",
                   color: isSoldOut
                     ? 'var(--tea-text-sec)'
-                    : added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.bg : alcoveColors.bg),
+                    : added ? alcoveColors.bg : alcoveColors.bg,
                   background: isSoldOut
                     ? 'var(--tea-accent-sub)'
                     : added

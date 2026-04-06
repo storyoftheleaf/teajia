@@ -1,8 +1,10 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
-import { Check, Loader2 } from 'lucide-react';
-import { InventoryItem } from '../types';
+import { Check, Loader2, ChevronDown } from 'lucide-react';
+import { InventoryItem, Account } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
 import { TeaInventory } from './TeaInventory';
 import { TeawareCatalog } from './TeawareCatalog';
@@ -17,6 +19,7 @@ import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useRates } from '../admin/hooks/useAdminData';
 import { ToastProvider } from '../admin/components/Toast';
 import { useAppStore } from '../lib/store';
+import { fetchNetworkStores } from '../lib/storefrontApi';
 
 import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
@@ -60,8 +63,45 @@ export const Shop: React.FC<ShopProps> = ({
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
+  const [storePickerOpen, setStorePickerOpen] = useState(false);
+  const storePickerRef = useRef<HTMLDivElement>(null);
 
   const recentlyViewed = useAppStore(state => state.recentlyViewed);
+  const shopStoreSlug = useAppStore(state => state.shopStoreSlug);
+  const setShopStoreSlug = useAppStore(state => state.setShopStoreSlug);
+
+  // URL param support: ?store=slug overrides persisted selection
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStore = searchParams.get('store');
+  useEffect(() => {
+    if (urlStore && urlStore !== shopStoreSlug) {
+      setShopStoreSlug(urlStore);
+      // Clean the param from URL after applying
+      searchParams.delete('store');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [urlStore]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch available stores
+  const { data: networkStores = [] } = useQuery<Account[]>({
+    queryKey: ['network', 'stores'],
+    queryFn: fetchNetworkStores,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const activeStore = networkStores.find(s => s.slug === shopStoreSlug) || networkStores[0];
+  const activeStoreLabel = activeStore?.location_city || activeStore?.name || 'Bali';
+
+  // Close picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (storePickerRef.current && !storePickerRef.current.contains(e.target as Node)) {
+        setStorePickerOpen(false);
+      }
+    };
+    if (storePickerOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [storePickerOpen]);
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -255,6 +295,48 @@ export const Shop: React.FC<ShopProps> = ({
         onCartClick={onCartClick}
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}
+        rightContent={networkStores.length > 1 ? (
+          <div ref={storePickerRef} className="relative">
+            <button
+              onClick={() => setStorePickerOpen(p => !p)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-tea-text-sec hover:bg-tea-surface transition-colors"
+            >
+              <Icons.Location className="w-3.5 h-3.5 text-tea-gold" />
+              <span className="tracking-wide">{activeStoreLabel}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {storePickerOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[180px] z-50 animate-[fadeIn_0.15s_ease-out]">
+                {networkStores.map(store => {
+                  const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
+                  return (
+                    <button
+                      key={store.slug}
+                      onClick={() => {
+                        setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
+                        setStorePickerOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-sm transition-colors ${
+                        isActive
+                          ? 'text-tea-gold bg-tea-surface'
+                          : 'text-tea-text hover:bg-tea-surface/60'
+                      }`}
+                    >
+                      <Icons.Location className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-tea-gold' : 'text-tea-text-dim'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium text-xs">{store.location_city || store.name}</div>
+                        {store.location_country && (
+                          <div className="text-[10px] text-tea-text-dim truncate">{store.location_country}</div>
+                        )}
+                      </div>
+                      {isActive && <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : undefined}
       >
         <PageHeaderTabs
           tabs={TABS}
