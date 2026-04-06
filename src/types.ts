@@ -405,3 +405,45 @@ export interface Resource {
 export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'ACCOUNT' | 'ABOUT';
 export type MainNavSection = Exclude<Section, 'HOME' | 'ACCOUNT'>;
 export type UtilitySection = Extract<Section, 'ACCOUNT'>;
+
+// ─── Multi-Account (Multi-Store) Types ───────────────────────────────────────
+// A Teajia "account" is a tea house / store. Users belong to one or more
+// accounts via memberships with per-account roles.
+
+export interface Account {
+  id: string;
+  slug: string;
+  name: string;
+  tagline?: string;
+  description?: string;
+  logo_url?: string;
+  cover_image_url?: string;
+  location_city?: string;
+  location_country?: string;
+  timezone?: string;
+  currency_default?: string;
+  whatsapp_number?: string;
+  contact_email?: string;
+  public_enabled?: boolean;
+  is_platform_owner?: boolean;
+  invoice_prefix?: string;
+}
+
+export type AccountRole = 'owner' | 'manager' | 'staff' | 'viewer';
+
+export interface AccountMembership {
+  account_id: string;
+  account_name: string;
+  slug: string;
+  role: AccountRole;
+  logo_url?: string;
+}
+
+export interface AccountMember {
+  user_id: string;
+  email: string;
+  name: string;
+  role: AccountRole;
+  joined_at?: string;
+  status?: string;
+}

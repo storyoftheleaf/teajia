@@ -32,9 +32,14 @@ const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
 const GuestInviteClaimPage = lazy(() => import('./pages/GuestInviteClaimPage'));
 const SamplePage = lazy(() => import('./pages/SamplePage'));
+const Storefront = lazy(() => import('./components/storefront/Storefront').then(m => ({ default: m.Storefront })));
+const FindATable = lazy(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
 
+import { useQuery } from '@tanstack/react-query';
+import { fetchStore } from './lib/storefrontApi';
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
+import type { Account } from './types';
 import { useAppStore } from './lib/store';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
@@ -112,6 +117,20 @@ const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const activeSection = pathToSection(location.pathname);
+
+  // Detect active storefront from pathname to route checkout to that store's
+  // WhatsApp number. Shares the react-query cache with <Storefront /> itself.
+  const storefrontSlug = useMemo(() => {
+    const m = location.pathname.match(/^\/store\/([^/?#]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }, [location.pathname]);
+
+  const { data: activeStore } = useQuery<Account>({
+    queryKey: ['storefront', 'store', storefrontSlug],
+    queryFn: () => fetchStore(storefrontSlug as string),
+    enabled: !!storefrontSlug,
+    staleTime: 1000 * 60 * 5,
+  });
 
   const [magazineDefaultTab, setMagazineDefaultTab] = useState<'articles' | 'visual' | 'tea-inspire'>('articles');
   const [isSectionTransitioning, setIsSectionTransitioning] = useState(false);
@@ -565,6 +584,25 @@ const AppContent = () => {
                 <Route path="/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JourneyPage /></Suspense></ErrorBoundary>} />
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SamplePage /></Suspense></ErrorBoundary>} />
+                <Route path="/find-a-table" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="grid" />}>
+                      <FindATable />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/store/:slug" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <Storefront
+                        onAddToCart={handleAddToCart}
+                        onCartClick={handleOpenCart}
+                        onAccountClick={handleOpenAccount}
+                        cartItemCount={cart.length}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
                 {/* 404 Page */}
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
@@ -653,6 +691,7 @@ const AppContent = () => {
          onRemoveItem={handleRemoveFromCart}
          onUpdateQuantity={handleUpdateCartQuantity}
          onAddItem={addToPublicCart}
+         whatsappNumber={activeStore?.whatsapp_number}
       />
 
       {/* --- GLOBAL SEARCH --- */}

@@ -4,7 +4,7 @@ import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, 
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isConfigured, hasToken, clearToken, getTokenClaims, isTokenExpired, SESSION_EXPIRED_EVENT } from '../lib/api';
+import { isConfigured, hasToken, clearToken, getTokenClaims, isTokenExpired, SESSION_EXPIRED_EVENT, ACCOUNT_MISMATCH_EVENT, hydrateAccountStateFromToken } from '../lib/api';
 import { Product } from './types';
 import { useProducts, useRates } from './hooks/useAdminData';
 import { useAppStore } from './store';
@@ -20,6 +20,9 @@ import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AdminBottomNav } from './components/AdminBottomNav';
 import { DashboardView } from './components/DashboardView';
+import { NoMembershipGate } from './components/NoMembershipGate';
+import { TeamView } from './views/TeamView';
+import { AccountSettingsView } from './views/AccountSettingsView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingNotesView } from './components/TastingNotesView';
@@ -75,7 +78,8 @@ const AdminContent = () => {
   // Zustand Store
   const {
     cart, isCartOpen, currency, isDevAdmin, cartDirection,
-    addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart, openPurchaseOrder
+    addToCart, clearCart, setIsCartOpen, setCurrency, toggleDevAdmin, setCart, openPurchaseOrder,
+    memberships, activeAccountId, clearAccountState,
   } = useAppStore();
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -97,12 +101,28 @@ const AdminContent = () => {
   // Listen for session expiry (401 responses clear the token in api.ts)
   useEffect(() => {
     const handleSessionExpired = () => {
+      clearAccountState();
       setIsAuthenticated(false);
       setIsLoginOpen(true);
     };
+    const handleAccountMismatch = () => {
+      // Re-hydrate from JWT; if membership really is gone, user lands on the gate.
+      hydrateAccountStateFromToken();
+    };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
-    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
-  }, []);
+    window.addEventListener(ACCOUNT_MISMATCH_EVENT, handleAccountMismatch);
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+      window.removeEventListener(ACCOUNT_MISMATCH_EVENT, handleAccountMismatch);
+    };
+  }, [clearAccountState]);
+
+  // Hydrate account state from JWT on mount (and whenever auth changes)
+  useEffect(() => {
+    if (isAuthenticated) {
+      hydrateAccountStateFromToken();
+    }
+  }, [isAuthenticated]);
 
   // Modals
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -179,6 +199,10 @@ const AdminContent = () => {
     setIsCartOpen(false);
   }, [location.pathname]);
 
+  // Gate: authenticated user with no memberships yet — show waiting screen
+  const needsMembershipGate =
+    isAuthenticated && !isDevAdmin && memberships.length === 0;
+
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
     return (
@@ -207,8 +231,22 @@ const AdminContent = () => {
     );
   }
 
+  if (needsMembershipGate) {
+    return (
+      <NoMembershipGate
+        onLogout={() => {
+          clearToken();
+          clearAccountState();
+          setIsAuthenticated(false);
+          navigate('/');
+        }}
+      />
+    );
+  }
+
   const handleLogout = () => {
     clearToken();
+    clearAccountState();
     setIsAuthenticated(false);
     if (isDevAdmin) toggleDevAdmin();
     navigate('/');
@@ -333,6 +371,23 @@ const AdminContent = () => {
              </button>
            )}
 
+           {/* Current account badge — so staff never forget which store they're acting on */}
+           {(() => {
+             const activeMembership = memberships.find((m) => m.account_id === activeAccountId);
+             if (!activeMembership) return null;
+             return (
+               <div
+                 className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-gold-lt shrink-0"
+                 title={`Active account: ${activeMembership.account_name}`}
+               >
+                 <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" />
+                 <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
+                   {activeMembership.account_name}
+                 </span>
+               </div>
+             );
+           })()}
+
            {/* Right: Currency selector */}
            <div className="flex items-center ml-auto shrink-0 relative">
              <select
@@ -426,6 +481,10 @@ const AdminContent = () => {
               <Route path="events" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
 
+              {/* Multi-account: team + account settings */}
+              <Route path="team" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TeamView /></PageTransition></ProtectedRoute>} />
+              <Route path="account-settings" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
+
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />
               <Route path="teaware" element={<Navigate to="/admin/inventory" replace />} />
@@ -479,7 +538,7 @@ const AdminContent = () => {
           rates={rates}
         />
 
-        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onAuthSuccess={() => { setIsAuthenticated(true); refetchProducts(); refetchRates(); }} />
+        <AuthModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onAuthSuccess={() => { hydrateAccountStateFromToken(); setIsAuthenticated(true); refetchProducts(); refetchRates(); }} />
         <CsvImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onComplete={refetchProducts} />
 
         <AddProductModal

@@ -10,8 +10,32 @@ interface Env {
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
 
+// ── Multi-account types ──
+export interface AccountMembership {
+  account_id: string;
+  role: 'owner' | 'manager' | 'staff' | 'viewer';
+  slug: string;
+  name: string;
+}
+
+export interface TokenClaims {
+  sub: string;
+  email: string;
+  name: string;
+  // Legacy role field — kept for backwards compatibility with the old
+  // requireAdmin/requireOwner helpers. New code should use memberships.
+  role?: string;
+  memberships?: AccountMembership[];
+  active_account_id?: string | null;
+  iat?: number;
+  exp?: number;
+}
+
 // Simple JWT implementation using Web Crypto
-async function createToken(secret: string, claims: { sub: string; email: string; role: string; name: string; username?: string | null }): Promise<string> {
+async function createToken(
+  secret: string,
+  claims: Omit<TokenClaims, 'iat' | 'exp'>
+): Promise<string> {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const payload = btoa(JSON.stringify({ ...claims, iat: now, exp: now + 86400 })); // 24h
@@ -57,14 +81,117 @@ function isAuthed(request: Request): string | null {
   return auth.slice(7);
 }
 
-function parseToken(token: string): Record<string, any> | null {
+function parseToken(token: string): TokenClaims | null {
   try {
     const [, payload] = token.split('.');
     if (!payload) return null;
-    return JSON.parse(atob(payload));
+    return JSON.parse(atob(payload)) as TokenClaims;
   } catch {
     return null;
   }
+}
+
+// ── Multi-account helpers ──
+async function loadMemberships(env: Env, userId: string): Promise<AccountMembership[]> {
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT am.account_id, am.role, a.slug, a.name
+       FROM account_members am
+       JOIN accounts a ON a.id = am.account_id
+       WHERE am.user_id = ? AND am.status = 'active'
+       ORDER BY am.joined_at ASC`
+    ).bind(userId).all();
+    return (results as any[]).map(r => ({
+      account_id: r.account_id as string,
+      role: r.role as AccountMembership['role'],
+      slug: r.slug as string,
+      name: r.name as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function getAccountIdBySlug(env: Env, slug: string): Promise<string | null> {
+  try {
+    const row = await env.DB.prepare('SELECT id FROM accounts WHERE slug = ?').bind(slug).first();
+    return row ? (row.id as string) : null;
+  } catch {
+    return null;
+  }
+}
+
+const BALI_ACCOUNT_ID = 'acc_teajia_bali';
+
+type AccountCtx = { accountId: string; userId: string; role: string; email: string; name: string };
+
+// Validate X-Teajia-Account header (or fall back to JWT active_account_id),
+// verify the user has an active membership. Returns the account context or
+// a Response to return to the caller.
+async function getActiveAccount(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  const token = isAuthed(request);
+  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
+    return { error: json({ error: 'Unauthorized' }, 401) };
+  }
+  const claims = parseToken(token);
+  if (!claims) return { error: json({ error: 'Invalid token' }, 401) };
+
+  const headerAccount = request.headers.get('X-Teajia-Account');
+  const requested = headerAccount || claims.active_account_id || null;
+  if (!requested) {
+    return { error: json({ error: 'Account access denied' }, 403) };
+  }
+
+  // Verify membership.
+  let membership: { role: string } | null = null;
+  // First try the embedded memberships list.
+  const inToken = (claims.memberships || []).find(m => m.account_id === requested);
+  if (inToken) {
+    membership = { role: inToken.role };
+  } else {
+    // Fallback: query the DB in case the token is stale.
+    try {
+      const row = await env.DB.prepare(
+        `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+      ).bind(claims.sub, requested).first();
+      if (row) membership = { role: row.role as string };
+    } catch {}
+  }
+
+  if (!membership) {
+    return { error: json({ error: 'Account access denied' }, 403) };
+  }
+
+  return {
+    accountId: requested,
+    userId: claims.sub,
+    role: membership.role,
+    email: claims.email,
+    name: claims.name,
+  };
+}
+
+async function requireAccount(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  return getActiveAccount(request, env);
+}
+
+async function requireAccountRole(
+  request: Request,
+  env: Env,
+  allowedRoles: string[]
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (!allowedRoles.includes(ctx.role)) {
+    return { error: json({ error: 'Insufficient role for this account' }, 403) };
+  }
+  return ctx;
 }
 
 // ── Audit & Ledger Helpers ──
@@ -77,20 +204,22 @@ function getUserEmail(request: Request): string | null {
 
 function buildActivityLog(
   env: Env, action: string, details: string,
-  userEmail?: string | null, entityType?: string | null, entityId?: string | null
+  userEmail?: string | null, entityType?: string | null, entityId?: string | null,
+  accountId?: string | null
 ) {
   return env.DB.prepare(
-    'INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), action, details, userEmail || null, entityType || null, entityId || null);
+    'INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), action, details, userEmail || null, entityType || null, entityId || null, accountId || null);
 }
 
 function buildStockLedgerEntry(
   env: Env, productId: string, delta: number, balanceAfter: number, reason: string,
-  userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null
+  userEmail?: string | null, invoiceId?: string | null, invoiceNumber?: string | null, note?: string | null,
+  accountId?: string | null
 ) {
   return env.DB.prepare(
-    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null);
+    'INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null);
 }
 
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
@@ -229,14 +358,23 @@ const handleLogin: Handler = async (request, env) => {
       'SELECT * FROM users WHERE lower(email) = lower(?) OR lower(username) = lower(?) LIMIT 1'
     ).bind(identifier, identifier).first();
     if (user && user.password_hash === computedHash) {
+      const memberships = await loadMemberships(env, user.id as string);
+      const activeAccountId = memberships[0]?.account_id || null;
       const token = await createToken(env.JWT_SECRET, {
         sub: user.id as string,
         email: user.email as string,
         role: user.role as string,
         name: user.name as string,
         username: (user.username as string | null) ?? null,
+        memberships,
+        active_account_id: activeAccountId,
       });
-      return json({ token, user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role } });
+      return json({
+        token,
+        user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role },
+        memberships,
+        active_account_id: activeAccountId,
+      });
     }
   } catch {
     // Table may not exist yet — fall through to env-based auth
@@ -244,31 +382,59 @@ const handleLogin: Handler = async (request, env) => {
 
   // Dev admin shortcut: login "aaa" / password "asdfghjkl" → owner role
   if (identifier === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
-    // Ensure user exists in DB for consistency
+    // Ensure user exists in DB for consistency, and ensure they have a
+    // membership in the Bali account with owner role.
     try {
       await env.DB.prepare(
         "INSERT OR IGNORE INTO users (id, email, name, password_hash, role) VALUES ('dev-admin-aaa', 'aaa', 'Dev Admin', '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1', 'owner')"
       ).run();
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO account_members (id, account_id, user_id, role, joined_at, status)
+         VALUES (lower(hex(randomblob(16))), ?, 'dev-admin-aaa', 'owner', datetime('now'), 'active')`
+      ).bind(BALI_ACCOUNT_ID).run();
     } catch { /* table may not exist yet */ }
+    const memberships = await loadMemberships(env, 'dev-admin-aaa');
+    const activeAccountId = memberships[0]?.account_id || BALI_ACCOUNT_ID;
     const token = await createToken(env.JWT_SECRET, {
       sub: 'dev-admin-aaa',
       email: 'aaa',
       role: 'owner',
       name: 'Dev Admin',
+      memberships,
+      active_account_id: activeAccountId,
     });
-    return json({ token, user: { id: 'dev-admin-aaa', email: 'aaa', name: 'Dev Admin', role: 'owner' } });
+    return json({
+      token,
+      user: { id: 'dev-admin-aaa', email: 'aaa', name: 'Dev Admin', role: 'owner' },
+      memberships,
+      active_account_id: activeAccountId,
+    });
   }
 
   // Fallback: check against env var hash (single admin)
   const storedHash = env.ADMIN_PASSWORD_HASH?.trim();
   if (storedHash && computedHash === storedHash) {
+    // env-admin is mapped to Bali for legacy single-tenant behaviour.
+    const memberships: AccountMembership[] = [{
+      account_id: BALI_ACCOUNT_ID,
+      role: 'owner',
+      slug: 'teajia-bali',
+      name: 'Teajia Bali',
+    }];
     const token = await createToken(env.JWT_SECRET, {
       sub: 'env-admin',
       email: identifier,
       role: 'admin',
       name: 'Admin',
+      memberships,
+      active_account_id: BALI_ACCOUNT_ID,
     });
-    return json({ token, user: { id: 'env-admin', email: identifier, name: 'Admin', role: 'admin' } });
+    return json({
+      token,
+      user: { id: 'env-admin', email, name: 'Admin', role: 'admin' },
+      memberships,
+      active_account_id: BALI_ACCOUNT_ID,
+    });
   }
 
   return json({ error: 'Invalid credentials' }, 401);
@@ -305,15 +471,26 @@ const handleSignup: Handler = async (request, env) => {
     'INSERT INTO users (id, email, username, name, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, email, username, name || '', passwordHash, 'user').run();
 
+  // New users auto-join nothing — they must be invited to an account.
+  // The empty memberships array is intentional; the frontend should show a
+  // "waiting for invite" state until an account owner adds them.
+  const memberships: AccountMembership[] = [];
   const token = await createToken(env.JWT_SECRET, {
     sub: id,
     email,
     role: 'user',
     name: name || '',
     username,
+    memberships,
+    active_account_id: null,
   });
 
-  return json({ token, user: { id, email, username, name: name || '', role: 'user' } }, 201);
+  return json({
+    token,
+    user: { id, email, username, name: name || '', role: 'user' },
+    memberships,
+    active_account_id: null,
+  }, 201);
 };
 
 const handleGetMe: Handler = async (request, env) => {
@@ -404,13 +581,19 @@ const handleUpdateProfile: Handler = async (request, env) => {
 
   const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
 
-  // Issue fresh token with updated claims
+  // Issue fresh token with updated claims, preserving account context.
+  const memberships = await loadMemberships(env, updatedUser!.id as string);
+  const activeAccountId = (claims as TokenClaims).active_account_id
+    || memberships[0]?.account_id
+    || null;
   const newToken = await createToken(env.JWT_SECRET, {
     sub: updatedUser!.id as string,
     email: updatedUser!.email as string,
     role: updatedUser!.role as string,
     name: updatedUser!.name as string,
     username: (updatedUser!.username as string | null) ?? null,
+    memberships,
+    active_account_id: activeAccountId,
   });
 
   return json({ token: newToken, user: updatedUser });
@@ -583,20 +766,21 @@ const handleResetPassword: Handler = async (request, env) => {
 };
 
 const handleGetProducts: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   // Batch rates + products in a single D1 round-trip
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
-    env.DB.prepare('SELECT * FROM products ORDER BY created_at DESC'),
+    env.DB.prepare('SELECT * FROM products WHERE account_id = ? ORDER BY created_at DESC').bind(accountId),
   ]);
   const rates = new Map<string, number>();
-  for (const r of ratesResult.results) {
+  for (const r of ratesResult.results as any[]) {
     rates.set(r.currency as string, r.rate_to_usd as number);
   }
 
-  const products = result.results.map(p => {
+  const products = (result.results as any[]).map(p => {
     // Parse JSON array fields
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
@@ -622,60 +806,28 @@ const PUBLIC_FIELDS = [
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting',
 ] as const;
 
+// Legacy alias: resolves to Adrian's Bali store. New callers should use
+// /api/s/teajia-bali/products.
 const handleGetPublicProducts: Handler = async (_request, env) => {
-  // Batch rates + products in a single D1 round-trip; select only needed columns
-  const [ratesResult, result] = await env.DB.batch([
-    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
-    env.DB.prepare(
-      `SELECT id, type, given_name, chinese_name, product_name, year,
-              origin_country, origin_region, stock_grams, description,
-              tasting_notes, image_url, additional_images, status,
-              is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
-              processing_notes, terroir, mood, experience,
-              cost_amount, cost_currency, quantity_purchased,
-              shipping_rate_per_kg, fixed_retail_price_usd,
-              material, capacity_ml, teaware_category, quantity_units, tasting
-       FROM products
-       WHERE is_public = 1 AND status = 'Active'
-       ORDER BY created_at DESC`
-    ),
-  ]);
-  const rates = new Map<string, number>();
-  for (const r of ratesResult.results) {
-    rates.set(r.currency as string, r.rate_to_usd as number);
-  }
-
-  const products = result.results.map(p => {
-    if (typeof p.tasting_notes === 'string') {
-      try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
-    }
-    if (typeof p.additional_images === 'string') {
-      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
-    }
-    if (typeof p.tasting === 'string') {
-      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
-    }
-    const withPricing = addPricingFields(p, rates);
-    // Strip sensitive fields — only return whitelisted public fields
-    const safe: Record<string, unknown> = {};
-    for (const key of PUBLIC_FIELDS) {
-      if (key in withPricing) safe[key] = withPricing[key];
-    }
-    return safe;
-  });
+  const products = await fetchPublicProductsForAccount(env, BALI_ACCOUNT_ID);
   return cachedJson(products, 60);
 };
 
-// ── Auto-resolve vendor name → vendor_id (find-or-create customer) ──
-async function resolveVendorId(env: Env, vendorName: string | null | undefined, originCountry?: string): Promise<string | null> {
+// ── Auto-resolve vendor name → vendor_id (find-or-create customer, account-scoped) ──
+async function resolveVendorId(
+  env: Env,
+  vendorName: string | null | undefined,
+  originCountry: string | undefined,
+  accountId: string
+): Promise<string | null> {
   if (!vendorName || !vendorName.trim()) return null;
   const name = vendorName.trim();
   const key = name.toLowerCase();
 
-  // Check if a customer with this name already exists
+  // Check if a customer with this name already exists in this account
   const existing = await env.DB.prepare(
-    'SELECT id, tags FROM customers WHERE LOWER(name) = ?'
-  ).bind(key).first();
+    'SELECT id, tags FROM customers WHERE LOWER(name) = ? AND account_id = ?'
+  ).bind(key, accountId).first();
 
   if (existing) {
     // Ensure the vendor tag is present
@@ -689,21 +841,24 @@ async function resolveVendorId(env: Env, vendorName: string | null | undefined, 
     return existing.id as string;
   }
 
-  // Create new customer tagged as vendor
+  // Create new customer tagged as vendor, scoped to this account
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO customers (id, name, country, tags, source, created_at, updated_at)
-     VALUES (?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
-  ).bind(id, name, originCountry || null).run();
+    `INSERT INTO customers (id, account_id, name, country, tags, source, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
+  ).bind(id, accountId, name, originCountry || null).run();
 
   return id;
 }
 
 const handleCreateProduct: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  // Strip any client-supplied account_id — we force the current account.
+  delete body.account_id;
   // Set quantity_purchased: use quantity_units for teaware, stock_grams for tea
   if (body.quantity_purchased == null) {
     body.quantity_purchased = body.type === 'Teaware'
@@ -719,11 +874,12 @@ const handleCreateProduct: Handler = async (request, env) => {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
-  // Auto-resolve vendor → vendor_id
+  // Auto-resolve vendor → vendor_id (scoped to the active account)
   if (body.vendor && !body.vendor_id) {
-    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
+    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country, accountId);
   }
 
+  body.account_id = accountId;
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
@@ -734,29 +890,30 @@ const handleCreateProduct: Handler = async (request, env) => {
 };
 
 const handleBulkCreateProducts: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const { products } = await request.json() as { products: Record<string, any>[] };
 
-  // Pre-resolve all vendor names to vendor_ids (batch for efficiency)
+  // Pre-resolve all vendor names to vendor_ids (batch for efficiency, scoped)
   const vendorCache: Record<string, string> = {};
   for (const raw of products) {
     if (raw.vendor && !raw.vendor_id) {
       const key = (raw.vendor as string).trim().toLowerCase();
       if (!vendorCache[key]) {
-        const vid = await resolveVendorId(env, raw.vendor as string, raw.origin_country as string);
+        const vid = await resolveVendorId(env, raw.vendor as string, raw.origin_country as string, accountId);
         if (vid) vendorCache[key] = vid;
       }
     }
   }
 
-  // Duplicate check: fetch existing products to match against
+  // Duplicate check: fetch existing products for THIS account
   const existingProducts = await env.DB.prepare(
-    'SELECT id, product_name, given_name, chinese_name, type FROM products'
-  ).all();
+    'SELECT id, product_name, given_name, chinese_name, type FROM products WHERE account_id = ?'
+  ).bind(accountId).all();
   const existingSet = new Set(
-    existingProducts.results.map(p => {
+    (existingProducts.results as any[]).map(p => {
       const name = ((p.product_name || p.given_name || '') as string).toLowerCase().trim();
       const type = ((p.type || '') as string).toLowerCase().trim();
       return `${type}::${name}`;
@@ -772,6 +929,9 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     for (const [k, v] of Object.entries(raw)) {
       if (v !== null && v !== undefined && v !== '') body[k] = v;
     }
+    // Never let clients cross accounts.
+    delete body.account_id;
+    body.account_id = accountId;
 
     // Check for duplicate by type + product_name or given_name
     const name = ((body.product_name || body.given_name || '') as string).toLowerCase().trim();
@@ -816,11 +976,13 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
 };
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
@@ -830,29 +992,34 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
 
   // Auto-resolve vendor → vendor_id
   if (body.vendor !== undefined && !body.vendor_id) {
-    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country);
+    body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country, accountId);
   }
 
-  // Stock change logging
+  // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
   if (body.stock_grams !== undefined) {
-    const current = await env.DB.prepare('SELECT stock_grams, given_name, product_name FROM products WHERE id = ?').bind(params.id).first();
+    const current = await env.DB.prepare(
+      'SELECT stock_grams, given_name, product_name FROM products WHERE id = ? AND account_id = ?'
+    ).bind(params.id, accountId).first();
     if (current) {
       const oldStock = Number(current.stock_grams) || 0;
       const newStock = Number(body.stock_grams);
       const delta = newStock - oldStock;
       if (delta !== 0) {
         const name = current.given_name || current.product_name || params.id;
-        extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`));
-        extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id));
+        extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`, accountId));
+        extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id, accountId));
       }
+    } else {
+      return json({ error: 'Product not found' }, 404);
     }
   }
 
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id);
+  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id, accountId);
 
   if (extraStmts.length > 0) {
     await env.DB.batch([updateStmt, ...extraStmts]);
@@ -864,24 +1031,30 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
 };
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare('DELETE FROM products WHERE id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
   return json({ success: true });
 };
 
 // ── Product Events (cross-link: which events featured this product) ──
-const handleGetProductEvents: Handler = async (_request, env, params) => {
+const handleGetProductEvents: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
   const result = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
             e.location_name, e.status, e.flyer_image_url,
             etm.custom_name, etm.brew_order
      FROM event_tea_menu etm
      JOIN events e ON e.id = etm.event_id
-     WHERE etm.product_id = ?
+     WHERE etm.product_id = ? AND e.account_id = ?
      ORDER BY e.event_date DESC`
-  ).bind(params.id).all();
+  ).bind(params.id, accountId).all();
 
   return json(result.results);
 };
@@ -894,15 +1067,18 @@ const handleGetRates: Handler = async (_request, env) => {
 
 // ── Invoices ──
 const handleGetInvoices: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '50');
   const offset = parseInt(url.searchParams.get('offset') || '0');
   const includeDeleted = url.searchParams.get('include_deleted') === '1';
 
-  const whereClause = includeDeleted ? '' : 'WHERE i.deleted_at IS NULL';
+  const whereClause = includeDeleted
+    ? 'WHERE i.account_id = ?'
+    : 'WHERE i.account_id = ? AND i.deleted_at IS NULL';
   const result = await env.DB.prepare(
     `SELECT i.*, COALESCE(t.line_total, 0) as computed_total,
        ev.title as source_event_title, ev.slug as source_event_slug
@@ -914,25 +1090,43 @@ const handleGetInvoices: Handler = async (request, env) => {
      LEFT JOIN events ev ON ev.id = i.source_event_id
      ${whereClause}
      ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
-  ).bind(limit, offset).all();
+  ).bind(accountId, limit, offset).all();
   return json(result.results);
 };
 
+// Apply the active account's invoice_prefix (e.g. "TJB-", "TJA-") when the
+// caller didn't supply their own prefix. Leaves explicit values alone so
+// clients can still override.
+async function prefixInvoiceNumber(env: Env, accountId: string, raw: string): Promise<string> {
+  if (!raw) return raw;
+  try {
+    const acc = await env.DB.prepare('SELECT invoice_prefix FROM accounts WHERE id = ?')
+      .bind(accountId).first();
+    const prefix = (acc?.invoice_prefix as string) || '';
+    if (prefix && !raw.startsWith(prefix)) return `${prefix}-${raw}`;
+  } catch {}
+  return raw;
+}
+
 const handleCreateInvoice: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
+  const invoiceNumber = await prefixInvoiceNumber(env, accountId, body.invoice.invoice_number);
   const paymentStatus = body.invoice.payment_status || 'unpaid';
 
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
-    body.invoice.invoice_number,
+    accountId,
+    invoiceNumber,
     body.invoice.customer_name,
     body.invoice.customer_whatsapp || null,
     body.invoice.customer_id || null,
@@ -947,127 +1141,141 @@ const handleCreateInvoice: Handler = async (request, env) => {
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
     env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), id, item.product_id, item.quantity, item.price_at_sale)
+      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), accountId, id, item.product_id, item.quantity, item.price_at_sale)
   );
 
   const logStmt = buildActivityLog(
     env, 'INVOICE_CREATED',
-    `Invoice ${body.invoice.invoice_number} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
-    userEmail, 'invoice', id
+    `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+    userEmail, 'invoice', id, accountId
   );
 
   await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
 
-  return json({ id, invoice_number: body.invoice.invoice_number }, 201);
+  return json({ id, invoice_number: invoiceNumber }, 201);
 };
 
 const handleGetInvoiceItems: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(
     `SELECT ili.*, p.given_name, p.product_name
      FROM invoice_line_items ili
      LEFT JOIN products p ON ili.product_id = p.id
-     WHERE ili.invoice_id = ?`
-  ).bind(params.id).all();
+     WHERE ili.invoice_id = ? AND ili.account_id = ?`
+  ).bind(params.id, accountId).all();
   return json(result.results);
 };
 
 const handleUpdateInvoice: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
   return json({ success: true });
 };
 
 const handleDeleteInvoice: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(params.id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Void') return json({ error: 'Only Void invoices can be deleted' }, 400);
 
   await env.DB.batch([
-    env.DB.prepare("UPDATE invoices SET deleted_at = datetime('now') WHERE id = ?").bind(params.id),
-    buildActivityLog(env, 'INVOICE_DELETED', `Invoice ${invoice.invoice_number} soft-deleted`, userEmail, 'invoice', params.id),
+    env.DB.prepare("UPDATE invoices SET deleted_at = datetime('now') WHERE id = ? AND account_id = ?")
+      .bind(params.id, accountId),
+    buildActivityLog(env, 'INVOICE_DELETED', `Invoice ${invoice.invoice_number} soft-deleted`, userEmail, 'invoice', params.id, accountId),
   ]);
   return json({ success: true });
 };
 
 // ── RPC: Fulfill Invoice ──
 const handleFulfillInvoice: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const { invoice_id } = await request.json() as { invoice_id: string };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 400);
 
-  const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+  const items = await env.DB.prepare(
+    'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).all();
 
-  // Fetch current stock for all affected products
-  const productIds = items.results.map(i => i.product_id);
+  // Fetch current stock for all affected products (account-scoped)
+  const productIds = (items.results as any[]).map(i => i.product_id);
   const products = new Map<string, any>();
   for (const pid of productIds) {
-    const p = await env.DB.prepare('SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ?').bind(pid).first();
+    const p = await env.DB.prepare(
+      'SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+    ).bind(pid, accountId).first();
     if (p) products.set(pid as string, p);
   }
 
   const stmts: D1PreparedStatement[] = [];
 
-  // Stock deductions + ledger entries
-  for (const item of items.results) {
+  for (const item of items.results as any[]) {
     const product = products.get(item.product_id as string);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
     const newBalance = currentStock - qty;
 
     stmts.push(
-      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ?').bind(qty, item.product_id)
+      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
+        .bind(qty, item.product_id, accountId)
     );
     stmts.push(buildStockLedgerEntry(
       env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
-      userEmail, invoice_id, invoice.invoice_number as string
+      userEmail, invoice_id, invoice.invoice_number as string, null, accountId
     ));
 
-    // Auto-archive if stock hits zero
     if (newBalance <= 0 && product && product.status !== 'Sold Out') {
       stmts.push(
-        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ?").bind(item.product_id)
+        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?")
+          .bind(item.product_id, accountId)
       );
       stmts.push(buildActivityLog(
         env, 'PRODUCT_SOLD_OUT',
         `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
-        userEmail, 'product', item.product_id as string
+        userEmail, 'product', item.product_id as string, accountId
       ));
     }
   }
 
-  // Clear stock holds since inventory is now deducted
-  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
-
-  // Update invoice status
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ?").bind(invoice_id)
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(invoice_id, accountId)
   );
 
-  // Activity log
+  stmts.push(
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ?")
+      .bind(invoice_id, accountId)
+  );
+
   stmts.push(buildActivityLog(
     env, 'FULFILLMENT',
     `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`,
-    userEmail, 'invoice', invoice_id
+    userEmail, 'invoice', invoice_id, accountId
   ));
 
   await env.DB.batch(stmts);
@@ -1075,68 +1283,78 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   return json({ success: true });
 };
 
-// ── RPC: Increment Stock (for void restore — legacy, kept for backwards compat) ──
+// ── RPC: Increment Stock (legacy, kept for backwards compat) ──
 const handleIncrementStock: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const { product_id, amount } = await request.json() as { product_id: string; amount: number };
-  await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ?')
-    .bind(amount, product_id).run();
+  await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+    .bind(amount, product_id, accountId).run();
   return json({ success: true });
 };
 
 // ── RPC: Void Invoice (atomic server-side) ──
 const handleVoidInvoice: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const { invoice_id } = await request.json() as { invoice_id: string };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status === 'Void') return json({ error: 'Invoice is already voided' }, 400);
 
   const stmts: D1PreparedStatement[] = [];
 
   if (invoice.inventory_deducted) {
-    const items = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+    const items = await env.DB.prepare(
+      'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(invoice_id, accountId).all();
 
-    for (const item of items.results) {
-      const product = await env.DB.prepare('SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ?')
-        .bind(item.product_id).first();
+    for (const item of items.results as any[]) {
+      const product = await env.DB.prepare(
+        'SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+      ).bind(item.product_id, accountId).first();
       const currentStock = product ? Number(product.stock_grams) || 0 : 0;
       const qty = Number(item.quantity) || 0;
       const newBalance = currentStock + qty;
 
       stmts.push(
-        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ?').bind(qty, item.product_id)
+        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+          .bind(qty, item.product_id, accountId)
       );
       stmts.push(buildStockLedgerEntry(
         env, item.product_id as string, qty, newBalance, 'VOID',
-        userEmail, invoice_id, invoice.invoice_number as string
+        userEmail, invoice_id, invoice.invoice_number as string, null, accountId
       ));
 
-      // If product was Sold Out and now has stock, reactivate
       if (product && product.status === 'Sold Out' && newBalance > 0) {
         stmts.push(
-          env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ?").bind(item.product_id)
+          env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ?")
+            .bind(item.product_id, accountId)
         );
       }
     }
   }
 
-  // Clear stock holds (pending holds no longer needed after void)
-  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id));
+  stmts.push(
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(invoice_id, accountId)
+  );
 
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ?").bind(invoice_id)
+    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ? AND account_id = ?")
+      .bind(invoice_id, accountId)
   );
   stmts.push(buildActivityLog(
     env, 'INVOICE_VOIDED',
     `Invoice ${invoice.invoice_number} voided.${invoice.inventory_deducted ? ' Stock restored.' : ''}`,
-    userEmail, 'invoice', invoice_id
+    userEmail, 'invoice', invoice_id, accountId
   ));
 
   await env.DB.batch(stmts);
@@ -1145,44 +1363,52 @@ const handleVoidInvoice: Handler = async (request, env) => {
 
 // ── RPC: Split Invoice ──
 const handleSplitInvoice: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
   const { invoice_id, line_item_ids } = await request.json() as { invoice_id: string; line_item_ids: string[] };
 
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(invoice_id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
 
-  const allItems = await env.DB.prepare('SELECT * FROM invoice_line_items WHERE invoice_id = ?').bind(invoice_id).all();
+  const allItems = await env.DB.prepare(
+    'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).all();
   if (line_item_ids.length === 0 || line_item_ids.length >= allItems.results.length) {
     return json({ error: 'Must select a proper subset of items to split' }, 400);
   }
 
   const newId = crypto.randomUUID();
   const year = new Date().getFullYear();
-  const newNumber = `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+  const newNumber = await prefixInvoiceNumber(
+    env, accountId,
+    `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+  );
 
   const stmts: D1PreparedStatement[] = [];
 
-  // Create new invoice with same customer info
   stmts.push(env.DB.prepare(
-    `INSERT INTO invoices (id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
-     VALUES (?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
-  ).bind(newId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
+  ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
 
-  // Move selected line items to new invoice
   for (const itemId of line_item_ids) {
-    stmts.push(env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ?').bind(newId, itemId));
+    stmts.push(
+      env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
+        .bind(newId, itemId, accountId)
+    );
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
     `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
-    userEmail, 'invoice', invoice_id));
+    userEmail, 'invoice', invoice_id, accountId));
   stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
     `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
-    userEmail, 'invoice', newId));
+    userEmail, 'invoice', newId, accountId));
 
   await env.DB.batch(stmts);
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
@@ -1190,11 +1416,13 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
 // ── Update Invoice Items (edit pending order) ──
 const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
-  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ?').bind(params.id).first();
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
@@ -1209,17 +1437,17 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   const stmts: D1PreparedStatement[] = [];
 
-  // Update line items if provided
   if (body.lineItems) {
-    stmts.push(env.DB.prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?').bind(params.id));
+    stmts.push(env.DB.prepare(
+      'DELETE FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+    ).bind(params.id, accountId));
     for (const item of body.lineItems) {
       stmts.push(env.DB.prepare(
-        'INSERT INTO invoice_line_items (id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?)'
-      ).bind(crypto.randomUUID(), params.id, item.product_id, item.quantity, item.price_at_sale));
+        'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
+      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id, item.quantity, item.price_at_sale));
     }
   }
 
-  // Update header fields
   const updates: string[] = [];
   const vals: any[] = [];
   for (const [key, val] of Object.entries(body)) {
@@ -1228,12 +1456,15 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     vals.push(val ?? null);
   }
   if (updates.length > 0) {
-    stmts.push(env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ?`).bind(...vals, params.id));
+    stmts.push(
+      env.DB.prepare(`UPDATE invoices SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`)
+        .bind(...vals, params.id, accountId)
+    );
   }
 
   stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
     `Invoice ${invoice.invoice_number} edited.${body.lineItems ? ` ${body.lineItems.length} line items.` : ''}`,
-    userEmail, 'invoice', params.id));
+    userEmail, 'invoice', params.id, accountId));
 
   await env.DB.batch(stmts);
   return json({ success: true });
@@ -1241,8 +1472,9 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
 // ── Stock Ledger ──
 const handleGetStockLedger: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const productId = url.searchParams.get('product_id');
@@ -1254,51 +1486,54 @@ const handleGetStockLedger: Handler = async (request, env) => {
       `SELECT sl.*, p.given_name, p.product_name
        FROM stock_ledger sl
        LEFT JOIN products p ON sl.product_id = p.id
-       WHERE sl.product_id = ?
+       WHERE sl.product_id = ? AND sl.account_id = ?
        ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
-    ).bind(productId, limit, offset).all();
+    ).bind(productId, accountId, limit, offset).all();
     return json(result.results);
   }
 
-  // Global stock ledger (all products)
   const result = await env.DB.prepare(
     `SELECT sl.*, p.given_name, p.product_name
      FROM stock_ledger sl
      LEFT JOIN products p ON sl.product_id = p.id
+     WHERE sl.account_id = ?
      ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
-  ).bind(limit, offset).all();
+  ).bind(accountId, limit, offset).all();
   return json(result.results);
 };
 
 // ── RPC: Reset Stock Verification ──
 const handleResetStockVerification: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare('UPDATE products SET stock_verified_at = NULL').run();
+  await env.DB.prepare('UPDATE products SET stock_verified_at = NULL WHERE account_id = ?')
+    .bind(accountId).run();
   return json({ success: true });
 };
 
-// ── RPC: Truncate All Data ──
+// ── RPC: Truncate All Data (per-account) ──
 const handleTruncateAll: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM invoice_line_items'),
-    env.DB.prepare('DELETE FROM invoices'),
-    env.DB.prepare('DELETE FROM products'),
-    env.DB.prepare('DELETE FROM activity_logs'),
+    env.DB.prepare('DELETE FROM invoice_line_items WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM invoices WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM products WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM activity_logs WHERE account_id = ?').bind(accountId),
   ]);
   return json({ success: true });
 };
 
 // ── Customers ──
 const handleGetCustomers: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Join with invoices to get order stats + event attendance count
   let result;
   try {
     result = await env.DB.prepare(`
@@ -1312,55 +1547,61 @@ const handleGetCustomers: Handler = async (request, env) => {
          WHERE ea.customer_id = c.id AND ea.status = 'confirmed' AND ea.attended = 1
         ) as event_count
       FROM customers c
-      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void'
+      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void' AND i.account_id = ?
+      WHERE c.account_id = ?
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `).all();
+    `).bind(accountId, accountId).all();
   } catch {
-    // Fallback: customer_id column may not exist yet
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
+      WHERE c.account_id = ?
       ORDER BY c.created_at DESC
-    `).all();
+    `).bind(accountId).all();
   }
 
   return json(result.results);
 };
 
 const handleGetCustomer: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  const customer = await env.DB.prepare('SELECT * FROM customers WHERE id = ?').bind(params.id).first();
+  const customer = await env.DB.prepare(
+    'SELECT * FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   if (!customer) return json({ error: 'Customer not found' }, 404);
 
-  // Get their orders
   let orders: any[] = [];
   try {
     const result = await env.DB.prepare(
-      'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
-    ).bind(params.id).all();
-    orders = result.results;
+      'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
+    ).bind(params.id, accountId).all();
+    orders = result.results as any[];
   } catch { /* customer_id column may not exist yet */ }
 
   return json({ ...customer, orders });
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const id = crypto.randomUUID();
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
 
   await env.DB.prepare(
-    `INSERT INTO customers (id, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO customers (id, account_id, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
+    accountId,
     body.name,
     body.company || null,
     body.email || null,
@@ -1379,40 +1620,48 @@ const handleCreateCustomer: Handler = async (request, env) => {
 };
 
 const handleUpdateCustomer: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
 
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(
+    `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleDeleteCustomer: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Unlink invoices (set customer_id to null) rather than cascade delete
   try {
-    await env.DB.prepare('UPDATE invoices SET customer_id = NULL WHERE customer_id = ?').bind(params.id).run();
-  } catch { /* customer_id column may not exist yet */ }
-  await env.DB.prepare('DELETE FROM customers WHERE id = ?').bind(params.id).run();
+    await env.DB.prepare(
+      'UPDATE invoices SET customer_id = NULL WHERE customer_id = ? AND account_id = ?'
+    ).bind(params.id, accountId).run();
+  } catch {}
+  await env.DB.prepare('DELETE FROM customers WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
   return json({ success: true });
 };
 
 const handleGetCustomerOrders: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   try {
     const orders = await env.DB.prepare(
-      'SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC'
-    ).bind(params.id).all();
+      'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
+    ).bind(params.id, accountId).all();
     return json(orders.results);
   } catch {
     return json([]);
@@ -1420,10 +1669,10 @@ const handleGetCustomerOrders: Handler = async (request, env, params) => {
 };
 
 const handleGetCustomerTeas: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Get all teas this customer has purchased, with quantities and dates
   try {
     const result = await env.DB.prepare(`
       SELECT
@@ -1436,10 +1685,10 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
       FROM invoice_line_items ili
       JOIN invoices i ON i.id = ili.invoice_id
       JOIN products p ON p.id = ili.product_id
-      WHERE i.customer_id = ? AND i.status != 'Void'
+      WHERE i.customer_id = ? AND i.status != 'Void' AND i.account_id = ?
       GROUP BY p.id
       ORDER BY last_purchased DESC
-    `).bind(params.id).all();
+    `).bind(params.id, accountId).all();
     return json(result.results);
   } catch {
     return json([]);
@@ -1447,8 +1696,9 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
 };
 
 const handleGetCustomerEvents: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   try {
     const result = await env.DB.prepare(`
@@ -1459,9 +1709,9 @@ const handleGetCustomerEvents: Handler = async (request, env, params) => {
         ea.plus_one, ea.created_at as rsvp_date
       FROM event_attendees ea
       JOIN events e ON e.id = ea.event_id
-      WHERE ea.customer_id = ? AND ea.status != 'cancelled'
+      WHERE ea.customer_id = ? AND ea.status != 'cancelled' AND ea.account_id = ?
       ORDER BY e.event_date DESC
-    `).bind(params.id).all();
+    `).bind(params.id, accountId).all();
     return json(result.results);
   } catch {
     return json([]);
@@ -1469,66 +1719,82 @@ const handleGetCustomerEvents: Handler = async (request, env, params) => {
 };
 
 const handleGetVendorProducts: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(`
     SELECT id, product_name, given_name, chinese_name, type, image_url,
       origin_country, origin_region, stock_grams, status, cost_amount, cost_currency
     FROM products
-    WHERE vendor_id = ?
+    WHERE vendor_id = ? AND account_id = ?
     ORDER BY product_name ASC
-  `).bind(params.id).all();
+  `).bind(params.id, accountId).all();
 
   return json(result.results);
 };
 
 const handleLinkVendorProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   const productId = body.product_id;
   if (!productId) return json({ error: 'product_id required' }, 400);
 
-  await env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ?')
-    .bind(params.id, productId).run();
+  await env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ? AND account_id = ?')
+    .bind(params.id, productId, accountId).run();
 
   return json({ success: true });
 };
 
 const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare('UPDATE products SET vendor_id = NULL WHERE id = ?')
-    .bind(params.productId).run();
+  await env.DB.prepare('UPDATE products SET vendor_id = NULL WHERE id = ? AND account_id = ?')
+    .bind(params.productId, accountId).run();
 
   return json({ success: true });
 };
 
 // ── Cross-reference junction table handlers (article_products, module_products, project_products) ──
 function makeXrefHandlers(tableName: string, fkColumn: string) {
+  // These xref tables join articles/modules/projects (network-level content)
+  // to products (account-scoped). We only need to scope the product side —
+  // reads join through products.account_id, writes require the product
+  // belongs to the caller's account.
+
   const list: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
     const id = params.id;
     const { results } = await env.DB.prepare(
       `SELECT xr.*, p.given_name, p.product_name, p.type, p.image_url, p.origin_region
        FROM ${tableName} xr
        LEFT JOIN products p ON xr.product_id = p.id
-       WHERE xr.${fkColumn} = ?
+       WHERE xr.${fkColumn} = ? AND p.account_id = ?
        ORDER BY xr.created_at DESC`
-    ).bind(id).all();
+    ).bind(id, accountId).all();
     return json(results);
   };
 
   const link: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
     const body = await request.json() as any;
     const productId = body.product_id;
     if (!productId) return json({ error: 'product_id required' }, 400);
+
+    // Verify the product belongs to the caller's account before linking.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(productId, accountId).first();
+    if (!product) return json({ error: 'Product not found' }, 404);
 
     await env.DB.prepare(
       `INSERT OR IGNORE INTO ${tableName} (id, ${fkColumn}, product_id) VALUES (?, ?, ?)`
@@ -1537,18 +1803,30 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   };
 
   const unlink: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
+    // Only allow unlinking products that belong to the caller's account.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(params.productId, accountId).first();
+    if (!product) return json({ error: 'Product not found' }, 404);
     await env.DB.prepare(
       `DELETE FROM ${tableName} WHERE ${fkColumn} = ? AND product_id = ?`
     ).bind(params.id, params.productId).run();
     return json({ success: true });
   };
 
-  // Reverse lookup: get all articles/modules/projects for a product
+  // Reverse lookup: get all articles/modules/projects for a product.
   const listByProduct: Handler = async (request, env, params) => {
-    const authErr = await requireAdmin(request, env);
-    if (authErr) return authErr;
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    const { accountId } = ctx;
+    // Verify the product is in the caller's account.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(params.id, accountId).first();
+    if (!product) return json([]);
     const { results } = await env.DB.prepare(
       `SELECT * FROM ${tableName} WHERE product_id = ? ORDER BY created_at DESC`
     ).bind(params.id).all();
@@ -1562,37 +1840,39 @@ const articleProductXref = makeXrefHandlers('article_products', 'article_id');
 const moduleProductXref = makeXrefHandlers('module_products', 'module_id');
 const projectProductXref = makeXrefHandlers('project_products', 'project_id');
 
-// ── Backfill: match existing invoices to customers ──
+// ── Backfill: match existing invoices to customers (scoped) ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Find invoices with no customer_id and try to match by name
   const unlinked = await env.DB.prepare(
-    `SELECT id, customer_name, customer_whatsapp FROM invoices WHERE customer_id IS NULL AND customer_name IS NOT NULL`
-  ).all();
+    `SELECT id, customer_name, customer_whatsapp FROM invoices
+     WHERE customer_id IS NULL AND customer_name IS NOT NULL AND account_id = ?`
+  ).bind(accountId).all();
 
-  const customers = await env.DB.prepare('SELECT id, name, whatsapp FROM customers').all();
+  const customers = await env.DB.prepare(
+    'SELECT id, name, whatsapp FROM customers WHERE account_id = ?'
+  ).bind(accountId).all();
 
   const updates: D1PreparedStatement[] = [];
-  for (const inv of unlinked.results) {
+  for (const inv of unlinked.results as any[]) {
     const name = (inv.customer_name as string || '').toLowerCase().trim();
     if (!name) continue;
 
-    // Try exact name match first, then WhatsApp match
-    let match = customers.results.find(
+    let match = (customers.results as any[]).find(
       (c: any) => (c.name as string).toLowerCase().trim() === name
     );
     if (!match && inv.customer_whatsapp) {
-      match = customers.results.find(
+      match = (customers.results as any[]).find(
         (c: any) => c.whatsapp && c.whatsapp === inv.customer_whatsapp
       );
     }
 
     if (match) {
       updates.push(
-        env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ?')
-          .bind(match.id, inv.id)
+        env.DB.prepare('UPDATE invoices SET customer_id = ? WHERE id = ? AND account_id = ?')
+          .bind(match.id, inv.id, accountId)
       );
     }
   }
@@ -1606,23 +1886,24 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
   return json({ linked: updates.length, total_unlinked: unlinked.results.length });
 };
 
-// ── Auto-link vendors: create customer records from product vendor field ──
+// ── Auto-link vendors: create customer records from product vendor field (scoped) ──
 const handleAutoLinkVendors: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Get all distinct vendor names from products that have a vendor but no vendor_id
   const productsWithVendor = await env.DB.prepare(
-    `SELECT id, vendor, origin_country FROM products WHERE vendor IS NOT NULL AND vendor != '' AND (vendor_id IS NULL OR vendor_id = '')`
-  ).all();
+    `SELECT id, vendor, origin_country FROM products
+     WHERE vendor IS NOT NULL AND vendor != '' AND (vendor_id IS NULL OR vendor_id = '')
+       AND account_id = ?`
+  ).bind(accountId).all();
 
   if (productsWithVendor.results.length === 0) {
     return json({ created: 0, linked: 0, message: 'All products are already linked to vendor records.' });
   }
 
-  // Group products by vendor name (case-insensitive)
   const vendorGroups: Record<string, { normalizedName: string; originalName: string; country: string; productIds: string[] }> = {};
-  for (const p of productsWithVendor.results) {
+  for (const p of productsWithVendor.results as any[]) {
     const vendorName = (p.vendor as string).trim();
     const key = vendorName.toLowerCase();
     if (!vendorGroups[key]) {
@@ -1636,10 +1917,11 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
     vendorGroups[key].productIds.push(p.id as string);
   }
 
-  // Get existing customers to avoid duplicates
-  const existingCustomers = await env.DB.prepare('SELECT id, name, tags FROM customers').all();
+  const existingCustomers = await env.DB.prepare(
+    'SELECT id, name, tags FROM customers WHERE account_id = ?'
+  ).bind(accountId).all();
   const existingByName: Record<string, { id: string; tags: string }> = {};
-  for (const c of existingCustomers.results) {
+  for (const c of existingCustomers.results as any[]) {
     existingByName[(c.name as string).toLowerCase().trim()] = { id: c.id as string, tags: c.tags as string };
   }
 
@@ -1652,7 +1934,6 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
     let customerId: string;
 
     if (existingByName[key]) {
-      // Customer already exists — ensure they have the 'vendor' tag
       customerId = existingByName[key].id;
       let tags: string[] = [];
       try { tags = JSON.parse(existingByName[key].tags || '[]'); } catch { tags = []; }
@@ -1662,26 +1943,23 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
           .bind(JSON.stringify(tags), customerId).run();
       }
     } else {
-      // Create new customer record tagged as vendor
       customerId = crypto.randomUUID();
       await env.DB.prepare(
-        `INSERT INTO customers (id, name, country, tags, source, created_at, updated_at)
-         VALUES (?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
-      ).bind(customerId, group.originalName, group.country || null).run();
+        `INSERT INTO customers (id, account_id, name, country, tags, source, created_at, updated_at)
+         VALUES (?, ?, ?, ?, '["vendor"]', 'auto-linked from inventory', datetime('now'), datetime('now'))`
+      ).bind(customerId, accountId, group.originalName, group.country || null).run();
       created++;
     }
 
-    // Link all products from this vendor
     for (const pid of group.productIds) {
       linkUpdates.push(
-        env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ?')
-          .bind(customerId, pid)
+        env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ? AND account_id = ?')
+          .bind(customerId, pid, accountId)
       );
       linked++;
     }
   }
 
-  // Batch the product updates
   if (linkUpdates.length > 0) {
     for (let i = 0; i < linkUpdates.length; i += 100) {
       await env.DB.batch(linkUpdates.slice(i, i + 100));
@@ -1797,18 +2075,20 @@ Liquor color: pale-gold, gold, amber, honey-color, copper, orange, reddish-brown
 Brewing: high-temp, medium-temp, low-temp, short-steeps, patient-steeps, flash-steeps, many-infusions, few-infusions, gaiwan, yixing, porcelain, glass, opens-slowly, peaks-mid-session`;
 
 const handleMigrateTasting: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.ANTHROPIC_API_KEY) {
     return json({ error: 'ANTHROPIC_API_KEY not configured' }, 503);
   }
 
-  // Fetch all products that have legacy tasting data but no structured tasting
+  // Fetch only this account's products that still have legacy tasting data.
   const result = await env.DB.prepare(
     `SELECT id, given_name, product_name, type, tasting_notes, mood, experience, description, terroir, processing_notes, tasting
-     FROM products WHERE tasting IS NULL OR tasting = '{}' OR tasting = ''`
-  ).all();
+     FROM products
+     WHERE account_id = ? AND (tasting IS NULL OR tasting = '{}' OR tasting = '')`
+  ).bind(accountId).all();
 
   const products = result.results;
   if (!products.length) {
@@ -1899,8 +2179,8 @@ Return arrays of matching term IDs for each category. Only include terms that ar
         }
 
         if (Object.keys(tasting).length > 0) {
-          await env.DB.prepare('UPDATE products SET tasting = ? WHERE id = ?')
-            .bind(JSON.stringify(tasting), p.id)
+          await env.DB.prepare('UPDATE products SET tasting = ? WHERE id = ? AND account_id = ?')
+            .bind(JSON.stringify(tasting), p.id, accountId)
             .run();
           migrated.push(p.id as string);
         }
@@ -1917,8 +2197,9 @@ Return arrays of matching term IDs for each category. Only include terms that ar
 
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -1927,19 +2208,18 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   const search = url.searchParams.get('search');
   const entityId = url.searchParams.get('entity_id');
 
-  const conditions: string[] = [];
-  const binds: any[] = [];
+  const conditions: string[] = ['account_id = ?'];
+  const binds: any[] = [accountId];
 
   if (action) { conditions.push('action = ?'); binds.push(action); }
   if (search) { conditions.push('details LIKE ?'); binds.push(`%${search}%`); }
   if (entityId) { conditions.push('entity_id = ?'); binds.push(entityId); }
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = `WHERE ${conditions.join(' AND ')}`;
   const result = await env.DB.prepare(
     `SELECT * FROM activity_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
   ).bind(...binds, limit, offset).all();
 
-  // Also return total count for pagination
   const countResult = await env.DB.prepare(
     `SELECT COUNT(*) as total FROM activity_logs ${where}`
   ).bind(...binds).first();
@@ -1947,10 +2227,11 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   return json({ logs: result.results, total: countResult?.total || 0 });
 };
 
-// ── Image Upload (R2) ──
+// ── Image Upload (R2) — partitioned by account ──
 const handleUploadImage: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -1967,7 +2248,7 @@ const handleUploadImage: Handler = async (request, env) => {
   if (!file) return json({ error: 'No file provided' }, 400);
 
   const ext = file.name.split('.').pop() || 'jpg';
-  const key = `products/${crypto.randomUUID()}.${ext}`;
+  const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
@@ -1980,8 +2261,9 @@ const handleUploadImage: Handler = async (request, env) => {
 
 // ── Extract Product Info from Image (Gemini Flash) ──
 const handleExtractFromImage: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.GEMINI_API_KEY) {
     return json({ error: 'GEMINI_API_KEY not configured' }, 503);
@@ -2001,11 +2283,11 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   const mimeType = file.type || 'image/jpeg';
 
-  // Also upload to R2 so the draft product has an image
+  // Also upload to R2 so the draft product has an image (account-partitioned)
   let imageUrl = '';
   if (env.MEDIA_BUCKET) {
     const ext = file.name.split('.').pop() || 'jpg';
-    const key = `products/${crypto.randomUUID()}.${ext}`;
+    const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
     await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
       httpMetadata: { contentType: mimeType },
     });
@@ -2140,27 +2422,26 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
+  // Public RSVP — resolve the event's account so all inserts (customer,
+  // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, total_capacity, claim_window_minutes FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity, claim_window_minutes FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
+  const accountId = event.account_id as string;
 
   const body = await request.json() as Record<string, any>;
   const {
     full_name, phone_number, email,
-    // V2 fields
     guest_requests, contact_method,
-    // Legacy fields (kept for backwards compat)
     plus_one, plus_one_name,
-    // Common fields
     photo_consent, notes, tea_preference, bringing_tea,
   } = body;
 
   if (!full_name) return json({ error: 'full_name is required' }, 400);
   if (!phone_number && !email) return json({ error: 'phone_number or email is required' }, 400);
 
-  // Check for duplicate by phone or email
   const contactField = phone_number ? 'phone_number' : 'email';
   const contactValue = phone_number || email;
   const existing = await env.DB.prepare(
@@ -2176,14 +2457,18 @@ const handleRSVP: Handler = async (request, env, params) => {
     });
   }
 
-  // Golden tier detection — match by phone or email
+  // Golden tier detection — look up customer within this account only.
   let accessTier = 'standard';
   let customerId: string | null = null;
 
   const customer = phone_number
-    ? await env.DB.prepare(`SELECT id, tags FROM customers WHERE phone = ? OR whatsapp = ?`).bind(phone_number, phone_number).first()
+    ? await env.DB.prepare(
+        `SELECT id, tags FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`
+      ).bind(phone_number, phone_number, accountId).first()
     : email
-    ? await env.DB.prepare(`SELECT id, tags FROM customers WHERE email = ?`).bind(email).first()
+    ? await env.DB.prepare(
+        `SELECT id, tags FROM customers WHERE email = ? AND account_id = ?`
+      ).bind(email, accountId).first()
     : null;
 
   if (customer) {
@@ -2195,13 +2480,13 @@ const handleRSVP: Handler = async (request, env, params) => {
       }
     } catch {}
   } else {
-    // Auto-create customer record
     const newCustomerId = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO customers (id, name, phone, email, whatsapp, contact_preference)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       newCustomerId,
+      accountId,
       full_name,
       phone_number || null,
       email || null,
@@ -2211,11 +2496,9 @@ const handleRSVP: Handler = async (request, env, params) => {
     customerId = newCustomerId;
   }
 
-  // V2: all new RSVPs get status 'requested' — admin approves/denies
   const status = 'requested';
   const magicToken = crypto.randomUUID();
 
-  // Normalise guest_requests: accept V2 array or fall back to legacy plus_one
   let guestRequestsJson: string | null = null;
   if (Array.isArray(guest_requests) && guest_requests.length > 0) {
     const normalised = guest_requests.map((g: any) => ({
@@ -2232,12 +2515,13 @@ const handleRSVP: Handler = async (request, env, params) => {
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO event_attendees
-         (id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
+         (id, account_id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
           access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea,
           guest_requests, contact_method, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       attendeeId,
+      accountId,
       event.id,
       customerId,
       full_name,
@@ -2256,7 +2540,7 @@ const handleRSVP: Handler = async (request, env, params) => {
       contact_method || 'whatsapp',
       'direct'
     ),
-    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId),
+    buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId),
   ]);
 
   return json({
@@ -2593,8 +2877,9 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 // ── Event Admin Routes ──
 
 const handleGetEvents: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(`
     SELECT e.*,
@@ -2604,35 +2889,39 @@ const handleGetEvents: Handler = async (request, env) => {
       COUNT(ea.id) as total_attendees
     FROM events e
     LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.status != 'cancelled'
+    WHERE e.account_id = ?
     GROUP BY e.id
     ORDER BY e.event_date DESC
-  `).all();
+  `).bind(accountId).all();
 
   return json(result.results);
 };
 
 const handleCreateEvent: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   if (!body.slug || !body.title || !body.event_date || !body.total_capacity) {
     return json({ error: 'slug, title, event_date, and total_capacity are required' }, 400);
   }
 
-  // Check slug uniqueness
+  // Event slug must be unique globally (it's used in /api/events/:slug/public
+  // and in shareable URLs across the network).
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
   if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
 
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
-    `INSERT INTO events (id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+    `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, location_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
+    accountId,
     body.slug,
     body.title,
     body.subtitle || null,
@@ -2658,12 +2947,13 @@ const handleCreateEvent: Handler = async (request, env) => {
 };
 
 const handleUpdateEvent: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
-  // Stringify JSON fields if needed
   if (body.session_flow && typeof body.session_flow !== 'string') {
     body.session_flow = JSON.stringify(body.session_flow);
   }
@@ -2672,33 +2962,38 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(
+    `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleDeleteEvent: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  await env.DB.prepare(`UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ?`)
-    .bind(params.id).run();
+  await env.DB.prepare(
+    `UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleGetAttendees: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(
     `SELECT ea.*, c.name as customer_name_linked, c.tags as customer_tags
      FROM event_attendees ea
      LEFT JOIN customers c ON c.id = ea.customer_id
-     WHERE ea.event_id = ?
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.event_id = ? AND e.account_id = ?
      ORDER BY ea.status ASC, ea.created_at ASC`
-  ).bind(params.id).all();
+  ).bind(params.id, accountId).all();
 
   // Attach journey preview per attendee (sessions_attended + last_attended)
   const attendeesWithJourney = await Promise.all(
@@ -2732,27 +3027,40 @@ const handleGetAttendees: Handler = async (request, env, params) => {
   return json(attendeesWithJourney);
 };
 
+// Helper: verify event belongs to the caller's account. Returns a 404-style
+// response when not found, so cross-account attempts look the same as
+// non-existent events.
+async function assertEventInAccount(env: Env, eventId: string, accountId: string): Promise<Response | null> {
+  const row = await env.DB.prepare(
+    'SELECT id FROM events WHERE id = ? AND account_id = ?'
+  ).bind(eventId, accountId).first();
+  if (!row) return json({ error: 'Event not found' }, 404);
+  return null;
+}
+
 const handleUpdateAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.claim_window_minutes, e.id as eid
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.id = ?`
-  ).bind(params.id).first();
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
   const cols = Object.keys(body);
+  if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
     .bind(...cols.map(c => body[c] ?? null), params.id).run();
 
-  // If status changed to cancelled, cascade waitlist
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
     await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
   }
@@ -2761,8 +3069,11 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
 };
 
 const handleGetNotifications: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const result = await env.DB.prepare(
     `SELECT en.*, ea.full_name, ea.phone_number
@@ -2776,19 +3087,21 @@ const handleGetNotifications: Handler = async (request, env, params) => {
 };
 
 const handleCreateNotifications: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
-  // Generate checkin reminders for all confirmed attendees
   const attendees = await env.DB.prepare(
     `SELECT id FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
   ).bind(params.id).all();
 
-  const stmts = attendees.results.map(a =>
+  const stmts = (attendees.results as any[]).map(a =>
     env.DB.prepare(
-      `INSERT INTO event_notifications (id, event_id, attendee_id, type, message_template, status)
-       VALUES (?, ?, ?, 'checkin_reminder', 'Reminder: Your tea session is coming up soon!', 'pending')`
-    ).bind(crypto.randomUUID(), params.id, a.id)
+      `INSERT INTO event_notifications (id, account_id, event_id, attendee_id, type, message_template, status)
+       VALUES (?, ?, ?, ?, 'checkin_reminder', 'Reminder: Your tea session is coming up soon!', 'pending')`
+    ).bind(crypto.randomUUID(), accountId, params.id, a.id)
   );
 
   if (stmts.length > 0) {
@@ -2799,12 +3112,14 @@ const handleCreateNotifications: Handler = async (request, env, params) => {
 };
 
 const handleUpsertPostSession: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as Record<string, any>;
 
-  // Stringify JSON fields
   const teaLedger = body.tea_ledger ? (typeof body.tea_ledger === 'string' ? body.tea_ledger : JSON.stringify(body.tea_ledger)) : null;
   const galleryImages = body.gallery_images ? (typeof body.gallery_images === 'string' ? body.gallery_images : JSON.stringify(body.gallery_images)) : null;
 
@@ -2818,17 +3133,18 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
     ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, params.id).run();
   } else {
     await env.DB.prepare(
-      `INSERT INTO event_post_session (id, event_id, tea_ledger, playlist_url, gallery_images, session_notes)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null).run();
+      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null).run();
   }
 
   return json({ success: true });
 };
 
 const handleDuplicateEvent: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as { slug: string; event_date: string };
   if (!body.slug || !body.event_date) return json({ error: 'slug and event_date are required' }, 400);
@@ -2836,18 +3152,20 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
   if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
 
-  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ?').bind(params.id).first();
+  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
   if (!source) return json({ error: 'Source event not found' }, 404);
 
   const newId = crypto.randomUUID();
 
   await env.DB.prepare(
-    `INSERT INTO events (id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+    `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`
   ).bind(
     newId,
+    accountId,
     body.slug,
     source.title,
     source.subtitle,
@@ -2867,14 +3185,15 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.playlist_url
   ).run();
 
-  // Copy tea menu
-  const menu = await env.DB.prepare('SELECT * FROM event_tea_menu WHERE event_id = ?').bind(params.id).all();
+  const menu = await env.DB.prepare(
+    'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
+  ).bind(params.id, accountId).all();
   if (menu.results.length > 0) {
-    const menuStmts = menu.results.map(m =>
+    const menuStmts = (menu.results as any[]).map(m =>
       env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).bind(crypto.randomUUID(), newId, m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order)
+        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), accountId, newId, m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order)
     );
     await env.DB.batch(menuStmts);
   }
@@ -2883,8 +3202,11 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
 };
 
 const handleBatchAttendance: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as { attendee_ids: string[]; attended: boolean };
   if (!Array.isArray(body.attendee_ids)) return json({ error: 'attendee_ids must be an array' }, 400);
@@ -2903,8 +3225,11 @@ const handleBatchAttendance: Handler = async (request, env, params) => {
 };
 
 const handleGetTeaMenu: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const result = await env.DB.prepare(
     `SELECT etm.*, p.given_name, p.product_name, p.chinese_name, p.type, p.image_url
@@ -2918,8 +3243,11 @@ const handleGetTeaMenu: Handler = async (request, env, params) => {
 };
 
 const handleUpsertTeaMenu: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const items = await request.json() as Array<Record<string, any>>;
   if (!Array.isArray(items)) return json({ error: 'Expected an array of menu items' }, 400);
@@ -2928,7 +3256,6 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
 
   for (const item of items) {
     if (item.id) {
-      // Update existing
       stmts.push(
         env.DB.prepare(
           `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
@@ -2944,13 +3271,13 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
         )
       );
     } else {
-      // Insert new
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO event_tea_menu (id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           crypto.randomUUID(),
+          accountId,
           params.id,
           item.product_id || null,
           item.custom_name || null,
@@ -2970,8 +3297,11 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
 };
 
 const handleDeleteTeaMenuItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   await env.DB.prepare(
     'DELETE FROM event_tea_menu WHERE id = ? AND event_id = ?'
@@ -2981,8 +3311,11 @@ const handleDeleteTeaMenuItem: Handler = async (request, env, params) => {
 };
 
 const handleGetTastingNotes: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const result = await env.DB.prepare(
     `SELECT etn.*, ea.full_name, ea.phone_number, etm.custom_name, p.given_name, p.product_name
@@ -2997,10 +3330,11 @@ const handleGetTastingNotes: Handler = async (request, env, params) => {
   return json(result.results);
 };
 
-// ── Flyer Upload (R2) ──
+// ── Flyer Upload (R2) — partitioned by account ──
 const handleUploadFlyer: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -3017,13 +3351,12 @@ const handleUploadFlyer: Handler = async (request, env) => {
   if (!file) return json({ error: 'No file provided' }, 400);
 
   const ext = file.name.split('.').pop() || 'jpg';
-  const key = `flyers/${crypto.randomUUID()}.${ext}`;
+  const key = `accounts/${accountId}/flyers/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type },
   });
 
-  // Return the public URL (assumes custom domain or R2 public access configured)
   const publicUrl = `https://media.teajia.co/${key}`;
 
   return json({ url: publicUrl, key }, 201);
@@ -3031,45 +3364,57 @@ const handleUploadFlyer: Handler = async (request, env) => {
 
 // ── Saved Locations ──
 const handleGetSavedLocations: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
-  const result = await env.DB.prepare('SELECT * FROM saved_locations ORDER BY name ASC').all();
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const result = await env.DB.prepare(
+    'SELECT * FROM saved_locations WHERE account_id = ? ORDER BY name ASC'
+  ).bind(accountId).all();
   return json(result.results);
 };
 
 const handleCreateSavedLocation: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
   if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO saved_locations (id, name, address, map_link, guidelines, venue_guide) VALUES (?, ?, ?, ?, ?, ?)`
-  ).bind(id, body.name, body.address, body.map_link || null, body.guidelines || null, body.venue_guide || null).run();
+    `INSERT INTO saved_locations (id, account_id, name, address, map_link, guidelines, venue_guide)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, accountId, body.name, body.address, body.map_link || null, body.guidelines || null, body.venue_guide || null).run();
   return json({ id, name: body.name }, 201);
 };
 
 const handleUpdateSavedLocation: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(`UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await env.DB.prepare(
+    `UPDATE saved_locations SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
   return json({ success: true });
 };
 
 const handleDeleteSavedLocation: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
-  await env.DB.prepare('DELETE FROM saved_locations WHERE id = ?').bind(params.id).run();
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  await env.DB.prepare('DELETE FROM saved_locations WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
   return json({ success: true });
 };
 
 // ── Newsletter ──
 
+// Public: newsletter signup. We tag the subscription with an optional
+// store_slug from the body, and resolve it to account_id for scoping.
 const handleNewsletterSubscribe: Handler = async (request, env) => {
   const body = await request.json() as Record<string, any>;
   const email = (body.email || '').trim().toLowerCase();
@@ -3077,22 +3422,31 @@ const handleNewsletterSubscribe: Handler = async (request, env) => {
     return json({ error: 'Invalid email address' }, 400);
   }
   const source = typeof body.source === 'string' ? body.source.slice(0, 50) : 'website';
+  // Default the subscription to Adrian's Bali store unless a specific
+  // store_slug is provided in the body.
+  let accountId: string | null = BALI_ACCOUNT_ID;
+  if (typeof body.store_slug === 'string' && body.store_slug.trim()) {
+    accountId = await getAccountIdBySlug(env, body.store_slug.trim());
+    if (!accountId) return json({ error: 'Store not found' }, 404);
+  }
   await env.DB.prepare(
-    'INSERT OR IGNORE INTO newsletter_subscribers (email, source) VALUES (?, ?)'
-  ).bind(email, source).run();
+    'INSERT OR IGNORE INTO newsletter_subscribers (account_id, email, source) VALUES (?, ?, ?)'
+  ).bind(accountId, email, source).run();
   return json({ success: true });
 };
 
 const handleGetNewsletterSubscribers: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const { results } = await env.DB.prepare(
-    'SELECT id, email, subscribed_at, source FROM newsletter_subscribers ORDER BY subscribed_at DESC'
-  ).all();
+    'SELECT id, email, subscribed_at, source FROM newsletter_subscribers WHERE account_id = ? ORDER BY subscribed_at DESC'
+  ).bind(accountId).all();
   return json({ subscribers: results });
 };
 
-// ── User Favorites ──
+// ── User Favorites (customer-facing; scoped to the currently active
+// account so each store's product IDs don't collide with another's) ──
 const handleGetUserFavorites: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -3100,9 +3454,16 @@ const handleGetUserFavorites: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
   const userId = claims.sub;
-  const { results } = await env.DB.prepare(
-    'SELECT item_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC'
-  ).bind(userId).all();
+  // Favorites are scoped to the currently active account if one is set;
+  // callers without an account just see their global favorites.
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims.active_account_id || null;
+  const query = headerAccount
+    ? 'SELECT item_id FROM user_favorites WHERE user_id = ? AND account_id = ? ORDER BY created_at ASC'
+    : 'SELECT item_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC';
+  const stmt = headerAccount
+    ? env.DB.prepare(query).bind(userId, headerAccount)
+    : env.DB.prepare(query).bind(userId);
+  const { results } = await stmt.all();
   return json({ favorites: (results || []).map((r: any) => r.item_id) });
 };
 
@@ -3113,18 +3474,31 @@ const handlePutUserFavorites: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
   const userId = claims.sub;
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims.active_account_id || null;
   const body = await request.json() as { favorites: string[] };
   if (!Array.isArray(body.favorites)) {
     return json({ error: 'favorites must be an array of item IDs' }, 400);
   }
-  // Replace all favorites: delete existing, insert new
-  await env.DB.prepare('DELETE FROM user_favorites WHERE user_id = ?').bind(userId).run();
-  if (body.favorites.length > 0) {
-    const stmt = env.DB.prepare(
-      'INSERT OR IGNORE INTO user_favorites (user_id, item_id) VALUES (?, ?)'
-    );
-    const batch = body.favorites.map((itemId: string) => stmt.bind(userId, itemId));
-    await env.DB.batch(batch);
+  if (headerAccount) {
+    await env.DB.prepare(
+      'DELETE FROM user_favorites WHERE user_id = ? AND account_id = ?'
+    ).bind(userId, headerAccount).run();
+    if (body.favorites.length > 0) {
+      const stmt = env.DB.prepare(
+        'INSERT OR IGNORE INTO user_favorites (user_id, account_id, item_id) VALUES (?, ?, ?)'
+      );
+      const batch = body.favorites.map((itemId: string) => stmt.bind(userId, headerAccount, itemId));
+      await env.DB.batch(batch);
+    }
+  } else {
+    await env.DB.prepare('DELETE FROM user_favorites WHERE user_id = ?').bind(userId).run();
+    if (body.favorites.length > 0) {
+      const stmt = env.DB.prepare(
+        'INSERT OR IGNORE INTO user_favorites (user_id, item_id) VALUES (?, ?)'
+      );
+      const batch = body.favorites.map((itemId: string) => stmt.bind(userId, itemId));
+      await env.DB.batch(batch);
+    }
   }
   return json({ ok: true, count: body.favorites.length });
 };
@@ -3132,27 +3506,24 @@ const handlePutUserFavorites: Handler = async (request, env) => {
 // ── Teaware Collection ──
 
 const handleGetTeawareCollection: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const category = url.searchParams.get('category');
 
-  let query = 'SELECT * FROM teaware_collection';
-  const binds: string[] = [];
+  let query = 'SELECT * FROM teaware_collection WHERE account_id = ?';
+  const binds: any[] = [accountId];
   if (category) {
-    query += ' WHERE category = ?';
+    query += ' AND category = ?';
     binds.push(category);
   }
   query += ' ORDER BY category, name';
 
-  const stmt = binds.length > 0
-    ? env.DB.prepare(query).bind(...binds)
-    : env.DB.prepare(query);
-  const result = await stmt.all();
+  const result = await env.DB.prepare(query).bind(...binds).all();
 
-  // Attach photos for each item
-  const items = result.results;
+  const items = result.results as any[];
   if (items.length > 0) {
     const ids = items.map(i => i.id as string);
     const placeholders = ids.map(() => '?').join(',');
@@ -3161,13 +3532,13 @@ const handleGetTeawareCollection: Handler = async (request, env) => {
     ).bind(...ids).all();
 
     const photoMap = new Map<string, any[]>();
-    for (const p of photos.results) {
+    for (const p of photos.results as any[]) {
       const tid = p.teaware_id as string;
       if (!photoMap.has(tid)) photoMap.set(tid, []);
       photoMap.get(tid)!.push(p);
     }
     for (const item of items) {
-      (item as any).photos = photoMap.get(item.id as string) || [];
+      item.photos = photoMap.get(item.id as string) || [];
     }
   }
 
@@ -3175,10 +3546,13 @@ const handleGetTeawareCollection: Handler = async (request, env) => {
 };
 
 const handleGetTeawareItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  const item = await env.DB.prepare('SELECT * FROM teaware_collection WHERE id = ?').bind(params.id).first();
+  const item = await env.DB.prepare(
+    'SELECT * FROM teaware_collection WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   if (!item) return json({ error: 'Not found' }, 404);
 
   const photos = await env.DB.prepare(
@@ -3190,8 +3564,9 @@ const handleGetTeawareItem: Handler = async (request, env, params) => {
 };
 
 const handleCreateTeawareItem: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   if (!body.name || !body.category) {
@@ -3206,36 +3581,44 @@ const handleCreateTeawareItem: Handler = async (request, env) => {
   const placeholders = present.map(() => '?').join(', ');
 
   await env.DB.prepare(
-    `INSERT INTO teaware_collection (id, ${present.join(', ')}) VALUES (?, ${placeholders})`
-  ).bind(id, ...present.map(c => body[c] ?? null)).run();
+    `INSERT INTO teaware_collection (id, account_id, ${present.join(', ')}) VALUES (?, ?, ${placeholders})`
+  ).bind(id, accountId, ...present.map(c => body[c] ?? null)).run();
 
   return json({ id }, 201);
 };
 
 const handleUpdateTeawareItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
-    `UPDATE teaware_collection SET ${sets}, updated_at = datetime('now') WHERE id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+    `UPDATE teaware_collection SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   return json({ success: true });
 };
 
 const handleDeleteTeawareItem: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // CASCADE will delete photos via FK, but D1 may not enforce FK cascades, so do it explicitly
+  // Verify ownership first so we don't delete photos for another account's item.
+  const owned = await env.DB.prepare(
+    'SELECT id FROM teaware_collection WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!owned) return json({ error: 'Not found' }, 404);
+
   await env.DB.batch([
     env.DB.prepare('DELETE FROM teaware_photos WHERE teaware_id = ?').bind(params.id),
-    env.DB.prepare('DELETE FROM teaware_collection WHERE id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM teaware_collection WHERE id = ? AND account_id = ?').bind(params.id, accountId),
   ]);
 
   return json({ success: true });
@@ -3243,40 +3626,48 @@ const handleDeleteTeawareItem: Handler = async (request, env, params) => {
 
 // ── Teaware Photos ──
 
+async function assertTeawareInAccount(env: Env, teawareId: string, accountId: string): Promise<Response | null> {
+  const row = await env.DB.prepare(
+    'SELECT id FROM teaware_collection WHERE id = ? AND account_id = ?'
+  ).bind(teawareId, accountId).first();
+  if (!row) return json({ error: 'Teaware item not found' }, 404);
+  return null;
+}
+
 const handleAddTeawarePhoto: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertTeawareInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as { url: string; caption?: string; is_primary?: boolean };
   if (!body.url) return json({ error: 'url is required' }, 400);
 
-  // Verify the teaware item exists
-  const item = await env.DB.prepare('SELECT id FROM teaware_collection WHERE id = ?').bind(params.id).first();
-  if (!item) return json({ error: 'Teaware item not found' }, 404);
-
   const id = crypto.randomUUID();
 
-  // If marking as primary, unset other primaries first
   if (body.is_primary) {
     await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
   }
 
-  // Get next sort order
   const maxOrder = await env.DB.prepare(
     'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM teaware_photos WHERE teaware_id = ?'
   ).bind(params.id).first();
   const sortOrder = ((maxOrder?.max_order as number) || 0) + 1;
 
   await env.DB.prepare(
-    'INSERT INTO teaware_photos (id, teaware_id, url, caption, is_primary, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(id, params.id, body.url, body.caption || null, body.is_primary ? 1 : 0, sortOrder).run();
+    'INSERT INTO teaware_photos (id, account_id, teaware_id, url, caption, is_primary, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, accountId, params.id, body.url, body.caption || null, body.is_primary ? 1 : 0, sortOrder).run();
 
   return json({ id }, 201);
 };
 
 const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertTeawareInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   await env.DB.prepare('DELETE FROM teaware_photos WHERE id = ? AND teaware_id = ?')
     .bind(params.photoId, params.id).run();
@@ -3285,12 +3676,15 @@ const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertTeawareInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
-  // If setting as primary, unset others first
   if (body.is_primary) {
     await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
     body.is_primary = 1;
@@ -3310,30 +3704,30 @@ const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleGetTeawareCategories: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const result = await env.DB.prepare(
-    'SELECT category, COUNT(*) as count FROM teaware_collection GROUP BY category ORDER BY category'
-  ).all();
+    'SELECT category, COUNT(*) as count FROM teaware_collection WHERE account_id = ? GROUP BY category ORDER BY category'
+  ).bind(accountId).all();
 
   return json(result.results);
 };
 
-// ── Tea Compass ──
+// ── Tea Compass (personal field notes, scoped per account + user) ──
 
 const handleGetCompassEntries: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
   const vendorId = url.searchParams.get('vendor_id');
 
-  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ?';
-  const binds: any[] = [userId];
+  let query = 'SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ?';
+  const binds: any[] = [userId, accountId];
 
   if (status) {
     query += ' AND status = ?';
@@ -3350,12 +3744,12 @@ const handleGetCompassEntries: Handler = async (request, env) => {
 };
 
 const handleCreateCompassEntry: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
 
   const id = body.id || crypto.randomUUID();
   const cols = [
@@ -3367,69 +3761,68 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'draft_product_id', 'created_at', 'updated_at',
   ];
   const present = cols.filter(c => body[c] !== undefined);
-  const placeholders = ['id', 'user_id', ...present].map(() => '?').join(', ');
-  const colNames = ['id', 'user_id', ...present].join(', ');
+  const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
+  const colNames = ['id', 'user_id', 'account_id', ...present].join(', ');
 
   await env.DB.prepare(
     `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-  ).bind(id, userId, ...present.map(c => body[c] ?? null)).run();
+  ).bind(id, userId, accountId, ...present.map(c => body[c] ?? null)).run();
 
-  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(id).first();
+  const created = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+  ).bind(id, accountId).first();
   return json(created, 201);
 };
 
 const handleUpdateCompassEntry: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const body = await request.json() as Record<string, any>;
-
-  // Don't allow updating id or user_id
   delete body.id;
   delete body.user_id;
+  delete body.account_id;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
-    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, userId).run();
+    `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now')
+     WHERE id = ? AND user_id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, userId, accountId).run();
 
-  const updated = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(params.id).first();
+  const updated = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   return json(updated);
 };
 
 const handleDeleteCompassEntry: Handler = async (request, env, params) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
-
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
   await env.DB.prepare(
-    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ?'
-  ).bind(params.id, userId).run();
+    'DELETE FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
+  ).bind(params.id, userId, accountId).run();
 
   return json({ success: true });
 };
 
 const handleSyncCompassEntries: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
   const body = await request.json() as { entries: Record<string, any>[] };
-
   if (!Array.isArray(body.entries)) {
     return json({ error: 'entries array required' }, 400);
   }
 
   const allCols = [
-    'id', 'user_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+    'id', 'user_id', 'account_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
@@ -3442,6 +3835,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
   const stmts = body.entries.map(entry => {
     const values = allCols.map(c => {
       if (c === 'user_id') return userId;
+      if (c === 'account_id') return accountId;
       return entry[c] ?? null;
     });
     return env.DB.prepare(
@@ -3460,14 +3854,15 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
 
 // PUT /api/admin/attendees/:id/approve
 const handleApproveAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
     `SELECT ea.*, e.id as event_id FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.id = ?`
-  ).bind(params.id).first();
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -3489,11 +3884,10 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
       env,
       'attendee_approved',
       `Approved ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id
+      userEmail, 'event_attendee', params.id, accountId
     ),
   ];
 
-  // Create guest_invites rows if approved_guests > 0
   if (approvedGuests > 0) {
     let guestRequests: Array<{ nameHint: string; approved: boolean | null }> = [];
     if (attendee.guest_requests) {
@@ -3505,9 +3899,9 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
       const nameHint = guestRequests[i]?.nameHint || null;
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO guest_invites (id, event_id, parent_attendee_id, invite_token, name_hint)
-           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?)`
-        ).bind(attendee.event_id, params.id, inviteToken, nameHint)
+          `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint)
+           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
+        ).bind(accountId, attendee.event_id, params.id, inviteToken, nameHint)
       );
     }
   }
@@ -3519,12 +3913,15 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
 
 // PUT /api/admin/attendees/:id/deny
 const handleDenyAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT id, full_name FROM event_attendees WHERE id = ?`
-  ).bind(params.id).first();
+    `SELECT ea.id, ea.full_name FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -3539,7 +3936,7 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
       env,
       'attendee_denied',
       `Denied ${attendee.full_name}${body.message ? ': ' + body.message : ''}`,
-      userEmail, 'event_attendee', params.id
+      userEmail, 'event_attendee', params.id, accountId
     ),
   ]);
 
@@ -3548,16 +3945,18 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
 
 // PUT /api/admin/attendees/:id/waitlist
 const handleWaitlistAttendee: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT ea.id, ea.full_name, ea.event_id FROM event_attendees ea WHERE ea.id = ?`
-  ).bind(params.id).first();
+    `SELECT ea.id, ea.full_name, ea.event_id FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.id = ? AND e.account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  // Find next waitlist position
   const posRow = await env.DB.prepare(
     `SELECT COALESCE(MAX(waitlist_position), 0) + 1 as next_pos
      FROM event_attendees WHERE event_id = ? AND status = 'waitlist'`
@@ -3574,7 +3973,7 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
       env,
       'attendee_waitlisted',
       `Moved ${attendee.full_name} to waitlist position ${waitlistPosition}`,
-      userEmail, 'event_attendee', params.id
+      userEmail, 'event_attendee', params.id, accountId
     ),
   ]);
 
@@ -3583,8 +3982,11 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
 
 // POST /api/admin/events/:id/approve-batch
 const handleApproveBatch: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
 
   const body = await request.json() as {
     attendee_ids: string[];
@@ -3617,7 +4019,7 @@ const handleApproveBatch: Handler = async (request, env, params) => {
         env,
         'attendee_approved',
         `Batch approved ${attendee.full_name}`,
-        userEmail, 'event_attendee', attendeeId
+        userEmail, 'event_attendee', attendeeId, accountId
       )
     );
 
@@ -3632,9 +4034,9 @@ const handleApproveBatch: Handler = async (request, env, params) => {
         const nameHint = guestRequests[i]?.nameHint || null;
         stmts.push(
           env.DB.prepare(
-            `INSERT INTO guest_invites (id, event_id, parent_attendee_id, invite_token, name_hint)
-             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?)`
-          ).bind(params.id, attendeeId, inviteToken, nameHint)
+            `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint)
+             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
+          ).bind(accountId, params.id, attendeeId, inviteToken, nameHint)
         );
       }
     }
@@ -3649,12 +4051,13 @@ const handleApproveBatch: Handler = async (request, env, params) => {
 
 // GET /api/admin/events/:id/share
 const handleGetEventShareMessages: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const event = await env.DB.prepare(
-    `SELECT id, slug, title, event_date, area_hint, flyer_image_url FROM events WHERE id = ?`
-  ).bind(params.id).first();
+    `SELECT id, slug, title, event_date, area_hint, flyer_image_url FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
@@ -3708,7 +4111,7 @@ const handleGetEventShareMessages: Handler = async (request, env, params) => {
 // POST /api/guest-invite/:token/claim
 const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const invite = await env.DB.prepare(
-    `SELECT gi.*, e.id as event_id, e.title as event_title
+    `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id
      WHERE gi.invite_token = ?`
@@ -3718,6 +4121,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   if (invite.status !== 'pending') {
     return json({ error: `Invite already ${invite.status}` }, 409);
   }
+  const accountId = invite.account_id as string;
 
   const body = await request.json() as { name: string; phone?: string; email?: string };
   if (!body.name) return json({ error: 'name is required' }, 400);
@@ -3730,10 +4134,11 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO event_attendees
-         (id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
-       VALUES (?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
+         (id, account_id, event_id, full_name, phone_number, email, contact_method, status, magic_token, source, access_tier)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'guest_invite', 'standard')`
     ).bind(
       newAttendeeId,
+      accountId,
       invite.event_id,
       body.name,
       body.phone || null,
@@ -3757,7 +4162,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
       env,
       'guest_invite_claimed',
       `${body.name} claimed guest invite for event ${invite.event_title}`,
-      null, 'event_attendee', newAttendeeId
+      null, 'event_attendee', newAttendeeId, accountId
     ),
   ]);
 
@@ -3783,10 +4188,11 @@ const handleGetGuestInvite: Handler = async (_request, env, params) => {
 // POST /api/events/:slug/interest
 const handleEventInterest: Handler = async (request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id FROM events WHERE slug = ?`
+    `SELECT id, account_id FROM events WHERE slug = ?`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
+  const accountId = event.account_id as string;
 
   const body = await request.json() as { name?: string; phone?: string; email?: string };
   const name = body.name?.trim() || '';
@@ -3797,21 +4203,24 @@ const handleEventInterest: Handler = async (request, env, params) => {
     return json({ error: 'At least one of name, phone, or email is required' }, 400);
   }
 
-  // Try to match existing customer
+  // Match existing customer within the event's account only.
   let customerId: string | null = null;
   if (phone) {
-    const c = await env.DB.prepare(`SELECT id FROM customers WHERE phone = ? OR whatsapp = ?`)
-      .bind(phone, phone).first();
+    const c = await env.DB.prepare(
+      `SELECT id FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`
+    ).bind(phone, phone, accountId).first();
     if (c) customerId = c.id as string;
   } else if (email) {
-    const c = await env.DB.prepare(`SELECT id FROM customers WHERE email = ?`).bind(email).first();
+    const c = await env.DB.prepare(
+      `SELECT id FROM customers WHERE email = ? AND account_id = ?`
+    ).bind(email, accountId).first();
     if (c) customerId = c.id as string;
   }
 
   await env.DB.prepare(
-    `INSERT INTO interest_signups (id, event_id, customer_id, name, phone, email)
-     VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
-  ).bind(event.id, customerId, name || null, phone || null, email || null).run();
+    `INSERT INTO interest_signups (id, account_id, event_id, customer_id, name, phone, email)
+     VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
+  ).bind(accountId, event.id, customerId, name || null, phone || null, email || null).run();
 
   return json({ success: true }, 201);
 };
@@ -4125,9 +4534,13 @@ const handleGetSamplesBySet: Handler = async (request, env, params) => {
 };
 
 // Public/Guest: POST /api/samples/:id/tastings
+// Resolve account from the sample row so tastings carry the same account_id.
 const handleAddSampleTasting: Handler = async (request, env, params) => {
-  const sample = await env.DB.prepare('SELECT id FROM tea_samples WHERE id = ?').bind(params.id).first();
+  const sample = await env.DB.prepare(
+    'SELECT id, account_id FROM tea_samples WHERE id = ?'
+  ).bind(params.id).first();
   if (!sample) return json({ error: 'Sample not found' }, 404);
+  const accountId = (sample.account_id as string) || BALI_ACCOUNT_ID;
 
   const body = await request.json() as Record<string, any>;
   const id = crypto.randomUUID();
@@ -4145,10 +4558,11 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   }
 
   await env.DB.prepare(
-    `INSERT INTO tea_sample_tastings (id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
+    accountId,
     params.id,
     tasterId,
     tasterName,
@@ -4159,7 +4573,6 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     body.personalNote || null,
   ).run();
 
-  // Update sample updated_at
   await env.DB.prepare(
     "UPDATE tea_samples SET updated_at = datetime('now') WHERE id = ?"
   ).bind(params.id).run();
@@ -4168,17 +4581,153 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   return json(parseTastingRow(created as Record<string, any>), 201);
 };
 
-// Customer: GET /api/tasting-journal
+// ── Tea Reviews (cross-account, keyed by tea_key) ──────────────────────────
+
+// GET /api/tea-reviews?tea_key=&product_id=&visibility=
+// Public to network reviews when unauthenticated; auth unlocks account-private reviews.
+const handleGetTeaReviews: Handler = async (request, env) => {
+  const url = new URL(request.url);
+  const tea_key = url.searchParams.get('tea_key');
+  const product_id = url.searchParams.get('product_id');
+  const visibility = url.searchParams.get('visibility');
+
+  if (!tea_key && !product_id) return json({ error: 'tea_key or product_id required' }, 400);
+
+  const token = isAuthed(request);
+  const claims = token ? parseToken(token) : null;
+  const authorAccountId = claims?.active_account_id || null;
+
+  // Build visibility filter
+  let visFilter = `r.visibility = 'network'`;
+  if (authorAccountId) {
+    visFilter = `(r.visibility = 'network' OR (r.visibility = 'account' AND r.author_account_id = ?) OR (r.visibility = 'private' AND r.author_user_id = ?))`;
+  }
+
+  let where = tea_key ? `r.tea_key = ?` : `r.product_id = ?`;
+  const keyVal = (tea_key || product_id) as string;
+
+  let query: string;
+  let binds: any[];
+  if (authorAccountId) {
+    query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
+             FROM tea_reviews r
+             LEFT JOIN users u ON u.id = r.author_user_id
+             LEFT JOIN accounts a ON a.id = r.author_account_id
+             WHERE ${where} AND ${visFilter}
+             ORDER BY r.created_at DESC`;
+    binds = [keyVal, authorAccountId, claims?.sub];
+  } else {
+    query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
+             FROM tea_reviews r
+             LEFT JOIN users u ON u.id = r.author_user_id
+             LEFT JOIN accounts a ON a.id = r.author_account_id
+             WHERE ${where} AND r.visibility = 'network'
+             ORDER BY r.created_at DESC`;
+    binds = [keyVal];
+  }
+
+  const result = await env.DB.prepare(query).bind(...binds).all();
+  return json(result.results);
+};
+
+// POST /api/tea-reviews
+const handleCreateTeaReview: Handler = async (request, env) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId, userId } = auth as any;
+
+  const body: any = await request.json();
+  if (!body.tea_key) return json({ error: 'tea_key required' }, 400);
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO tea_reviews (id, tea_key, product_id, product_account_id, author_user_id, author_account_id,
+      visibility, session_date, rating, notes, tasting, brew_params, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, body.tea_key, body.product_id || null, body.product_id ? accountId : null,
+    userId, accountId,
+    body.visibility || 'network',
+    body.session_date || null,
+    body.rating || null,
+    body.notes || null,
+    body.tasting ? JSON.stringify(body.tasting) : null,
+    body.brew_params ? JSON.stringify(body.brew_params) : null,
+    now, now
+  ).run();
+
+  const created = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(id).first();
+  return json(created, 201);
+};
+
+// PUT /api/tea-reviews/:id
+const handleUpdateTeaReview: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { userId } = auth as any;
+
+  const existing = await env.DB.prepare(
+    'SELECT * FROM tea_reviews WHERE id = ? AND author_user_id = ?'
+  ).bind(params.id, userId).first();
+  if (!existing) return json({ error: 'Not found or not your review' }, 404);
+
+  const body: any = await request.json();
+  const allowed = ['visibility', 'session_date', 'rating', 'notes', 'tasting', 'brew_params'];
+  const updates: string[] = [];
+  const vals: any[] = [];
+  for (const k of allowed) {
+    if (body[k] !== undefined) {
+      updates.push(`${k} = ?`);
+      vals.push(typeof body[k] === 'object' ? JSON.stringify(body[k]) : body[k]);
+    }
+  }
+  if (!updates.length) return json({ error: 'Nothing to update' }, 400);
+  updates.push('updated_at = ?');
+  vals.push(new Date().toISOString(), params.id, userId);
+
+  await env.DB.prepare(
+    `UPDATE tea_reviews SET ${updates.join(', ')} WHERE id = ? AND author_user_id = ?`
+  ).bind(...vals).run();
+
+  const updated = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(params.id).first();
+  return json(updated);
+};
+
+// DELETE /api/tea-reviews/:id
+const handleDeleteTeaReview: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { userId } = auth as any;
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM tea_reviews WHERE id = ? AND author_user_id = ?'
+  ).bind(params.id, userId).first();
+  if (!existing) return json({ error: 'Not found or not your review' }, 404);
+
+  await env.DB.prepare('DELETE FROM tea_reviews WHERE id = ?').bind(params.id).run();
+  return json({ ok: true });
+};
+
+// Customer: GET /api/tasting-journal — scoped to current account if one set.
 const handleGetTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
   const email = getUserEmail(request);
+  const claims = parseToken(isAuthed(request)!);
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
 
-  const { results } = await env.DB.prepare(
-    'SELECT * FROM customer_tasting_journal WHERE user_id = ? ORDER BY created_at DESC'
-  ).bind(email).all();
+  let query = 'SELECT * FROM customer_tasting_journal WHERE user_id = ?';
+  const binds: any[] = [email];
+  if (headerAccount) {
+    query += ' AND account_id = ?';
+    binds.push(headerAccount);
+  }
+  query += ' ORDER BY created_at DESC';
 
-  return json(results.map(r => ({
+  const { results } = await env.DB.prepare(query).bind(...binds).all();
+
+  return json((results as any[]).map(r => ({
     ...r,
     tasting: typeof r.tasting === 'string' ? JSON.parse(r.tasting as string) : r.tasting,
   })));
@@ -4189,15 +4738,18 @@ const handleAddTastingEntry: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
   const email = getUserEmail(request);
+  const claims = parseToken(isAuthed(request)!);
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
   const body = await request.json() as any;
 
   const id = body.id || crypto.randomUUID();
 
   await env.DB.prepare(`
-    INSERT INTO customer_tasting_journal (id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO customer_tasting_journal (id, account_id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
+    headerAccount,
     email,
     body.teaId || null,
     body.teaName || null,
@@ -4231,6 +4783,8 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
   const email = getUserEmail(request);
+  const claims = parseToken(isAuthed(request)!);
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
   const body = await request.json() as any;
   const entries = body.entries || [];
 
@@ -4238,10 +4792,11 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
 
   const stmts = entries.map((e: any) =>
     env.DB.prepare(`
-      INSERT OR IGNORE INTO customer_tasting_journal (id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR IGNORE INTO customer_tasting_journal (id, account_id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       e.id || crypto.randomUUID(),
+      headerAccount,
       email,
       e.teaId || null,
       e.teaName || null,
@@ -4262,15 +4817,16 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
 
 // Admin: GET /api/admin/samples
 const handleListSamples: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const setId = url.searchParams.get('setId');
   const status = url.searchParams.get('status');
 
-  let query = 'SELECT * FROM tea_samples WHERE 1=1';
-  const binds: any[] = [];
+  let query = 'SELECT * FROM tea_samples WHERE account_id = ?';
+  const binds: any[] = [accountId];
 
   if (setId) {
     query += ' AND set_id = ?';
@@ -4288,15 +4844,14 @@ const handleListSamples: Handler = async (request, env) => {
 
 // Admin: POST /api/admin/samples
 const handleCreateSample: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const id = body.id || crypto.randomUUID();
   const userEmail = getUserEmail(request);
-
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
 
   const cols = [
     'name', 'chinese_name', 'type', 'form', 'year', 'origin_region',
@@ -4305,14 +4860,14 @@ const handleCreateSample: Handler = async (request, env) => {
     'created_by', 'user_id',
   ];
   const present = cols.filter(c => body[c] !== undefined);
-  const allCols = ['id', ...present];
+  const allCols = ['id', 'account_id', ...present];
   if (!present.includes('user_id')) allCols.push('user_id');
   if (!present.includes('created_by')) allCols.push('created_by');
 
   const placeholders = allCols.map(() => '?').join(', ');
   const colNames = allCols.join(', ');
 
-  const values: any[] = [id];
+  const values: any[] = [id, accountId];
   for (const c of present) {
     let val = body[c] ?? null;
     if ((c === 'photos' || c === 'source_contact') && typeof val === 'object') {
@@ -4327,26 +4882,29 @@ const handleCreateSample: Handler = async (request, env) => {
     `INSERT INTO tea_samples (${colNames}) VALUES (${placeholders})`
   ).bind(...values).run();
 
-  buildActivityLog(env, 'sample_created', `Sample ${body.name || id} created`, userEmail, 'sample', id);
+  await buildActivityLog(env, 'sample_created', `Sample ${body.name || id} created`, userEmail, 'sample', id, accountId).run();
 
-  const created = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(id).first();
+  const created = await env.DB.prepare(
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
+  ).bind(id, accountId).first();
   return json(parseSampleRow(created as Record<string, any>), 201);
 };
 
 // Admin: PUT /api/admin/samples/:id
 const handleUpdateSample: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   delete body.id;
   delete body.user_id;
   delete body.created_by;
+  delete body.account_id;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
-  // Serialize JSON fields
   for (const c of cols) {
     if ((c === 'photos' || c === 'source_contact') && typeof body[c] === 'object') {
       body[c] = JSON.stringify(body[c]);
@@ -4355,61 +4913,72 @@ const handleUpdateSample: Handler = async (request, env, params) => {
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
-    `UPDATE tea_samples SET ${sets}, updated_at = datetime('now') WHERE id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+    `UPDATE tea_samples SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   const userEmail = getUserEmail(request);
-  buildActivityLog(env, 'sample_updated', `Sample ${params.id} updated`, userEmail, 'sample', params.id);
+  await buildActivityLog(env, 'sample_updated', `Sample ${params.id} updated`, userEmail, 'sample', params.id, accountId).run();
 
-  const updated = await env.DB.prepare('SELECT * FROM tea_samples WHERE id = ?').bind(params.id).first();
+  const updated = await env.DB.prepare(
+    'SELECT * FROM tea_samples WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   if (!updated) return json({ error: 'Sample not found' }, 404);
   return json(parseSampleRow(updated as Record<string, any>));
 };
 
 // Admin: DELETE /api/admin/samples/:id
 const handleDeleteSample: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Delete tastings first
+  // Verify ownership before deleting joined tastings.
+  const owned = await env.DB.prepare(
+    'SELECT id FROM tea_samples WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!owned) return json({ error: 'Sample not found' }, 404);
+
   await env.DB.prepare('DELETE FROM tea_sample_tastings WHERE sample_id = ?').bind(params.id).run();
-  await env.DB.prepare('DELETE FROM tea_samples WHERE id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM tea_samples WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
 
   const userEmail = getUserEmail(request);
-  buildActivityLog(env, 'sample_deleted', `Sample ${params.id} deleted`, userEmail, 'sample', params.id);
+  await buildActivityLog(env, 'sample_deleted', `Sample ${params.id} deleted`, userEmail, 'sample', params.id, accountId).run();
 
   return json({ success: true });
 };
 
 // Admin: GET /api/admin/sample-sets
 const handleListSampleSets: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  const result = await env.DB.prepare('SELECT * FROM tea_sample_sets ORDER BY created_at DESC').all();
+  const result = await env.DB.prepare(
+    'SELECT * FROM tea_sample_sets WHERE account_id = ? ORDER BY created_at DESC'
+  ).bind(accountId).all();
   return json({ sets: (result.results as Record<string, any>[]).map(parseSampleSetRow) });
 };
 
 // Admin: POST /api/admin/sample-sets
 const handleCreateSampleSet: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  delete body.account_id;
   const id = body.id || crypto.randomUUID();
-
-  const claims = parseToken(isAuthed(request)!);
-  const userId = claims?.sub || 'admin';
 
   const cols = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'user_id'];
   const present = cols.filter(c => body[c] !== undefined);
-  const allCols = ['id', ...present];
+  const allCols = ['id', 'account_id', ...present];
   if (!present.includes('user_id')) allCols.push('user_id');
 
   const placeholders = allCols.map(() => '?').join(', ');
   const colNames = allCols.join(', ');
 
-  const values: any[] = [id];
+  const values: any[] = [id, accountId];
   for (const c of present) {
     let val = body[c] ?? null;
     if (c === 'shared_with' && typeof val === 'object') {
@@ -4424,20 +4993,24 @@ const handleCreateSampleSet: Handler = async (request, env) => {
   ).bind(...values).run();
 
   const userEmail = getUserEmail(request);
-  buildActivityLog(env, 'sample_set_created', `Sample set ${body.name || id} created`, userEmail, 'sample_set', id);
+  await buildActivityLog(env, 'sample_set_created', `Sample set ${body.name || id} created`, userEmail, 'sample_set', id, accountId).run();
 
-  const created = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(id).first();
+  const created = await env.DB.prepare(
+    'SELECT * FROM tea_sample_sets WHERE id = ? AND account_id = ?'
+  ).bind(id, accountId).first();
   return json(parseSampleSetRow(created as Record<string, any>), 201);
 };
 
 // Admin: PUT /api/admin/sample-sets/:id
 const handleUpdateSampleSet: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
   delete body.id;
   delete body.user_id;
+  delete body.account_id;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
@@ -4448,27 +5021,35 @@ const handleUpdateSampleSet: Handler = async (request, env, params) => {
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
-    `UPDATE tea_sample_sets SET ${sets}, updated_at = datetime('now') WHERE id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+    `UPDATE tea_sample_sets SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
 
   const userEmail = getUserEmail(request);
-  buildActivityLog(env, 'sample_set_updated', `Sample set ${params.id} updated`, userEmail, 'sample_set', params.id);
+  await buildActivityLog(env, 'sample_set_updated', `Sample set ${params.id} updated`, userEmail, 'sample_set', params.id, accountId).run();
 
-  const updated = await env.DB.prepare('SELECT * FROM tea_sample_sets WHERE id = ?').bind(params.id).first();
+  const updated = await env.DB.prepare(
+    'SELECT * FROM tea_sample_sets WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
   if (!updated) return json({ error: 'Sample set not found' }, 404);
   return json(parseSampleSetRow(updated as Record<string, any>));
 };
 
 // Admin: DELETE /api/admin/sample-sets/:id
 const handleDeleteSampleSet: Handler = async (request, env, params) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
-  // Get all samples in this set
-  const samples = await env.DB.prepare('SELECT id FROM tea_samples WHERE set_id = ?').bind(params.id).all();
+  const owned = await env.DB.prepare(
+    'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!owned) return json({ error: 'Sample set not found' }, 404);
+
+  const samples = await env.DB.prepare(
+    'SELECT id FROM tea_samples WHERE set_id = ? AND account_id = ?'
+  ).bind(params.id, accountId).all();
   const sampleIds = (samples.results as Record<string, any>[]).map(s => s.id);
 
-  // Delete tastings for all samples in the set
   if (sampleIds.length > 0) {
     const placeholders = sampleIds.map(() => '?').join(', ');
     await env.DB.prepare(
@@ -4476,13 +5057,13 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
     ).bind(...sampleIds).run();
   }
 
-  // Delete all samples in the set
-  await env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ?').bind(params.id).run();
-  // Delete the set itself
-  await env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ?').bind(params.id).run();
+  await env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
+  await env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
 
   const userEmail = getUserEmail(request);
-  buildActivityLog(env, 'sample_set_deleted', `Sample set ${params.id} deleted (${sampleIds.length} samples)`, userEmail, 'sample_set', params.id);
+  await buildActivityLog(env, 'sample_set_deleted', `Sample set ${params.id} deleted (${sampleIds.length} samples)`, userEmail, 'sample_set', params.id, accountId).run();
 
   return json({ success: true });
 };
@@ -4490,28 +5071,33 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
 // ── Stock Holds ──
 
 const handleReserveStock: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const body = await request.json() as any;
   const { invoice_id } = body;
 
   if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
 
-  // Get invoice line items
+  // Verify the invoice is in our account.
+  const invoice = await env.DB.prepare(
+    'SELECT id FROM invoices WHERE id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+
   const { results: items } = await env.DB.prepare(
-    'SELECT product_id, quantity FROM invoice_line_items WHERE invoice_id = ?'
-  ).bind(invoice_id).all();
+    'SELECT product_id, quantity FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(invoice_id, accountId).all();
 
   if (!items.length) return json({ error: 'No line items found' }, 400);
 
-  // Clear any existing holds for this invoice first
-  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id).run();
+  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).run();
 
-  // Create new holds
-  const stmts = items.map((item: any) =>
+  const stmts = (items as any[]).map((item: any) =>
     env.DB.prepare(
-      'INSERT INTO stock_holds (id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), invoice_id, item.product_id, item.quantity)
+      'INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), accountId, invoice_id, item.product_id, item.quantity)
   );
 
   if (stmts.length > 0) await env.DB.batch(stmts);
@@ -4520,21 +5106,24 @@ const handleReserveStock: Handler = async (request, env) => {
 };
 
 const handleReleaseStock: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
   const body = await request.json() as any;
   const { invoice_id } = body;
 
   if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
 
-  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ?').bind(invoice_id).run();
+  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).run();
 
   return json({ released: true });
 };
 
 const handleGetAvailableStock: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
 
   const url = new URL(request.url);
   const productId = url.searchParams.get('product_id');
@@ -4542,14 +5131,14 @@ const handleGetAvailableStock: Handler = async (request, env) => {
   if (!productId) return json({ error: 'product_id required' }, 400);
 
   const product = await env.DB.prepare(
-    'SELECT stock_grams FROM products WHERE id = ?'
-  ).bind(productId).first() as any;
+    'SELECT stock_grams FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, accountId).first() as any;
 
   if (!product) return json({ error: 'Product not found' }, 404);
 
   const held = await env.DB.prepare(
-    'SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ?'
-  ).bind(productId).first() as any;
+    'SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ? AND account_id = ?'
+  ).bind(productId, accountId).first() as any;
 
   const totalStock = Number(product.stock_grams) || 0;
   const totalHeld = Number(held.total_held) || 0;
@@ -4559,6 +5148,296 @@ const handleGetAvailableStock: Handler = async (request, env) => {
     held_grams: totalHeld,
     available_grams: totalStock - totalHeld,
   });
+};
+
+// ── Accounts / Network ──
+
+// GET /api/accounts/me — current user's memberships + active_account_id
+const handleGetAccountsMe: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const memberships = await loadMemberships(env, claims.sub);
+  const activeAccountId = claims.active_account_id
+    || memberships[0]?.account_id
+    || null;
+  return json({ memberships, active_account_id: activeAccountId });
+};
+
+// POST /api/accounts/switch — body { account_id }; reissue token
+const handleSwitchAccount: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const body = await request.json() as { account_id?: string };
+  if (!body.account_id) return json({ error: 'account_id required' }, 400);
+
+  const memberships = await loadMemberships(env, claims.sub);
+  const isMember = memberships.some(m => m.account_id === body.account_id);
+  if (!isMember) return json({ error: 'Account access denied' }, 403);
+
+  const newToken = await createToken(env.JWT_SECRET, {
+    sub: claims.sub,
+    email: claims.email,
+    name: claims.name,
+    role: claims.role,
+    memberships,
+    active_account_id: body.account_id,
+  });
+
+  return json({ token: newToken, active_account_id: body.account_id, memberships });
+};
+
+// GET /api/accounts/:id — account profile (auth, must be member)
+const handleGetAccount: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) {
+    // Must be member of the requested account specifically.
+    const row = await env.DB.prepare(
+      `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+    ).bind(ctx.userId, params.id).first();
+    if (!row) return json({ error: 'Account access denied' }, 403);
+  }
+  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!acc) return json({ error: 'Account not found' }, 404);
+  return json(acc);
+};
+
+// PUT /api/accounts/:id — update account profile (owner/manager)
+const handleUpdateAccount: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner', 'manager']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as Record<string, any>;
+  // Guard against changing immutable/privileged fields.
+  delete body.id;
+  delete body.is_platform_owner;
+  delete body.created_at;
+
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE accounts SET ${sets}, updated_at = datetime('now') WHERE id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id).run();
+
+  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
+  return json(acc);
+};
+
+// GET /api/accounts/:id/members
+const handleGetAccountMembers: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const { results } = await env.DB.prepare(
+    `SELECT am.id, am.account_id, am.user_id, am.role, am.status, am.joined_at, am.invited_at,
+            u.email, u.name
+     FROM account_members am
+     LEFT JOIN users u ON u.id = am.user_id
+     WHERE am.account_id = ?
+     ORDER BY am.joined_at ASC`
+  ).bind(params.id).all();
+  return json({ members: results });
+};
+
+// POST /api/accounts/:id/members — invite by email (owner/manager)
+const handleInviteAccountMember: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner', 'manager']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as { email?: string; role?: string };
+  const email = (body.email || '').trim().toLowerCase();
+  const role = body.role || 'staff';
+  if (!email) return json({ error: 'email required' }, 400);
+  if (!['owner', 'manager', 'staff', 'viewer'].includes(role)) {
+    return json({ error: 'invalid role' }, 400);
+  }
+
+  // Find or create user. Inactive users get a temporary password that they
+  // can reset via the standard reset-token flow.
+  let user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  let createdUser = false;
+  if (!user) {
+    const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const tempPassword = crypto.randomUUID().replace(/-/g, '');
+    const tempHash = await hashPassword(tempPassword);
+    await env.DB.prepare(
+      "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, '', ?, 'user')"
+    ).bind(uid, email, tempHash).run();
+    user = { id: uid };
+    createdUser = true;
+  }
+
+  // Create or update membership. Use 'invited' status for new users so the
+  // frontend can show pending state until they accept.
+  const membershipStatus = createdUser ? 'invited' : 'active';
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO account_members
+       (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
+     VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, datetime('now'), datetime('now'), ?)`
+  ).bind(params.id, user.id, role, ctx.userId, membershipStatus).run();
+
+  // Generate an invite/reset link for new users so they can set their password.
+  let inviteLink: string | null = null;
+  if (createdUser) {
+    const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+14 days'))"
+    ).bind(resetId, user.id, inviteToken).run();
+    inviteLink = `/invite/${inviteToken}`;
+  }
+
+  return json({ success: true, user_id: user.id, created_user: createdUser, invite_link: inviteLink }, 201);
+};
+
+// PUT /api/accounts/:id/members/:userId — update role (owner only)
+const handleUpdateAccountMember: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as { role?: string; status?: string };
+  const updates: string[] = [];
+  const binds: any[] = [];
+  if (body.role) {
+    if (!['owner', 'manager', 'staff', 'viewer'].includes(body.role)) {
+      return json({ error: 'invalid role' }, 400);
+    }
+    updates.push('role = ?');
+    binds.push(body.role);
+  }
+  if (body.status) {
+    updates.push('status = ?');
+    binds.push(body.status);
+  }
+  if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  binds.push(params.id, params.userId);
+  await env.DB.prepare(
+    `UPDATE account_members SET ${updates.join(', ')} WHERE account_id = ? AND user_id = ?`
+  ).bind(...binds).run();
+
+  return json({ success: true });
+};
+
+// DELETE /api/accounts/:id/members/:userId — remove (owner only)
+const handleDeleteAccountMember: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  if (params.userId === ctx.userId) {
+    return json({ error: 'Cannot remove yourself from an account' }, 400);
+  }
+
+  await env.DB.prepare(
+    'DELETE FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, params.userId).run();
+
+  return json({ success: true });
+};
+
+// GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
+const handleGetNetworkStores: Handler = async (_request, env) => {
+  const { results } = await env.DB.prepare(
+    `SELECT id, slug, name, tagline, logo_url, location_city, location_country
+     FROM accounts
+     WHERE public_enabled = 1 AND status = 'active'
+     ORDER BY is_platform_owner DESC, name ASC`
+  ).all();
+  return cachedJson(results, 300);
+};
+
+// GET /api/s/:slug — PUBLIC account profile
+const handleGetPublicAccount: Handler = async (_request, env, params) => {
+  const acc = await env.DB.prepare(
+    `SELECT id, slug, name, tagline, description, logo_url, cover_image_url,
+            location_city, location_country, whatsapp_number, currency_default
+     FROM accounts
+     WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
+  ).bind(params.slug).first();
+  if (!acc) return json({ error: 'Store not found' }, 404);
+  return cachedJson(acc, 300);
+};
+
+// Shared helper: fetch public products for an account (mirrors PUBLIC_FIELDS
+// whitelist used by the legacy /api/products/public endpoint).
+async function fetchPublicProductsForAccount(
+  env: Env,
+  accountId: string
+): Promise<Record<string, unknown>[]> {
+  const [ratesResult, result] = await env.DB.batch([
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
+    env.DB.prepare(
+      `SELECT id, type, given_name, chinese_name, product_name, year,
+              origin_country, origin_region, stock_grams, description,
+              tasting_notes, image_url, additional_images, status,
+              is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
+              processing_notes, terroir, mood, experience,
+              cost_amount, cost_currency, quantity_purchased,
+              shipping_rate_per_kg, fixed_retail_price_usd,
+              material, capacity_ml, teaware_category, quantity_units, tasting
+       FROM products
+       WHERE is_public = 1 AND status = 'Active' AND account_id = ?
+       ORDER BY created_at DESC`
+    ).bind(accountId),
+  ]);
+  const rates = new Map<string, number>();
+  for (const r of ratesResult.results as any[]) {
+    rates.set(r.currency as string, r.rate_to_usd as number);
+  }
+  return (result.results as any[]).map(p => {
+    if (typeof p.tasting_notes === 'string') {
+      try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+    }
+    if (typeof p.additional_images === 'string') {
+      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
+    }
+    if (typeof p.tasting === 'string') {
+      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
+    }
+    const withPricing = addPricingFields(p, rates);
+    const safe: Record<string, unknown> = {};
+    for (const key of PUBLIC_FIELDS) {
+      if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
+    }
+    return safe;
+  });
+}
+
+// GET /api/s/:slug/products — PUBLIC products for a store
+const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
+  const accountId = await getAccountIdBySlug(env, params.slug);
+  if (!accountId) return json({ error: 'Store not found' }, 404);
+  const products = await fetchPublicProductsForAccount(env, accountId);
+  return cachedJson(products, 60);
+};
+
+// GET /api/s/:slug/events — PUBLIC active events for a store
+const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
+  const accountId = await getAccountIdBySlug(env, params.slug);
+  if (!accountId) return json({ error: 'Store not found' }, 404);
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+            location_name, area_hint, total_capacity, timezone, status
+     FROM events
+     WHERE status = 'active' AND account_id = ?
+     ORDER BY event_date ASC`
+  ).bind(accountId).all();
+  return cachedJson(results, 60);
 };
 
 // ── Routes ──
@@ -4572,6 +5451,22 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
   ['POST', '/api/auth/forgot-password', handleForgotPassword],
   ['POST', '/api/auth/reset-password', handleResetPassword],
+
+  // Accounts / Multi-store
+  ['GET', '/api/accounts/me', handleGetAccountsMe],
+  ['POST', '/api/accounts/switch', handleSwitchAccount],
+  ['GET', '/api/accounts/:id', handleGetAccount],
+  ['PUT', '/api/accounts/:id', handleUpdateAccount],
+  ['GET', '/api/accounts/:id/members', handleGetAccountMembers],
+  ['POST', '/api/accounts/:id/members', handleInviteAccountMember],
+  ['PUT', '/api/accounts/:id/members/:userId', handleUpdateAccountMember],
+  ['DELETE', '/api/accounts/:id/members/:userId', handleDeleteAccountMember],
+
+  // Network (public)
+  ['GET', '/api/network/stores', handleGetNetworkStores],
+  ['GET', '/api/s/:slug', handleGetPublicAccount],
+  ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
+  ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
 
   // User Management (admin/owner)
   ['GET', '/api/admin/users', handleListUsers],
@@ -4734,6 +5629,12 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/samples/:id/tastings', handleAddSampleTasting],
 
   // Tasting Journal
+  // Tea Reviews (cross-account, keyed by tea_key)
+  ['GET', '/api/tea-reviews', handleGetTeaReviews],
+  ['POST', '/api/tea-reviews', handleCreateTeaReview],
+  ['PUT', '/api/tea-reviews/:id', handleUpdateTeaReview],
+  ['DELETE', '/api/tea-reviews/:id', handleDeleteTeaReview],
+
   ['GET', '/api/tasting-journal', handleGetTastingJournal],
   ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
   ['POST', '/api/tasting-journal', handleAddTastingEntry],

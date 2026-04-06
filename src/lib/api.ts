@@ -1,3 +1,6 @@
+import type { Account, AccountMember, AccountMembership, AccountRole } from '../types';
+import { useAppStore } from './store';
+
 const API_URL = import.meta.env.VITE_API_URL || '';
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -36,7 +39,16 @@ function authHeaders(): Record<string, string> {
   }
   const currentToken = getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (currentToken) headers['Authorization'] = `Bearer ${currentToken}`;
+  if (currentToken) {
+    headers['Authorization'] = `Bearer ${currentToken}`;
+    // Inject active account header for every authenticated request
+    try {
+      const activeAccountId = useAppStore.getState().activeAccountId;
+      if (activeAccountId) headers['X-Teajia-Account'] = activeAccountId;
+    } catch {
+      /* store not ready yet — ignore */
+    }
+  }
   return headers;
 }
 
@@ -59,6 +71,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
 /** Custom event name dispatched when a 401 response indicates session expiry. */
 export const SESSION_EXPIRED_EVENT = 'teajia:session-expired';
 
+/** Dispatched when the server rejects the active account (e.g., membership revoked). */
+export const ACCOUNT_MISMATCH_EVENT = 'teajia:account-mismatch';
+
 async function handleResponse(res: Response) {
   let data: any;
   try {
@@ -72,6 +87,14 @@ async function handleResponse(res: Response) {
       clearToken();
       window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
     }
+    // Detect account access denial — clear active account and prompt UI reload
+    if (res.status === 403 && data?.error === 'Account access denied') {
+      try {
+        useAppStore.getState().setActiveAccountId(null);
+        useAppStore.getState().setActiveAccount(null);
+      } catch { /* ignore */ }
+      window.dispatchEvent(new CustomEvent(ACCOUNT_MISMATCH_EVENT));
+    }
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;
@@ -80,7 +103,18 @@ async function handleResponse(res: Response) {
   return data;
 }
 
-export function getTokenClaims(): { sub: string; email: string; role: string; name: string; username?: string | null; exp?: number } | null {
+export interface TokenClaims {
+  sub: string;
+  email: string;
+  role: string;
+  name: string;
+  username?: string | null;
+  exp?: number;
+  memberships?: AccountMembership[];
+  active_account_id?: string;
+}
+
+export function getTokenClaims(): TokenClaims | null {
   const token = getToken();
   if (!token) return null;
   try {
@@ -90,6 +124,28 @@ export function getTokenClaims(): { sub: string; email: string; role: string; na
   } catch {
     return null;
   }
+}
+
+/**
+ * Hydrate the Zustand store from the current JWT's memberships + active_account_id.
+ * Safe to call multiple times. Returns the parsed claims (or null).
+ */
+export function hydrateAccountStateFromToken(): TokenClaims | null {
+  const claims = getTokenClaims();
+  if (!claims) return null;
+  try {
+    const store = useAppStore.getState();
+    const memberships = Array.isArray(claims.memberships) ? claims.memberships : [];
+    store.setMemberships(memberships);
+    if (claims.active_account_id) {
+      store.setActiveAccountId(claims.active_account_id);
+    } else if (memberships.length === 1) {
+      store.setActiveAccountId(memberships[0].account_id);
+    } else if (memberships.length === 0) {
+      store.setActiveAccountId(null);
+    }
+  } catch { /* ignore */ }
+  return claims;
 }
 
 export const api = {
@@ -937,17 +993,6 @@ export const api = {
     },
   },
 
-  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
-    const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData,
-    });
-    return handleResponse(res);
-  },
-
   compass: {
     list: async (params?: { status?: string; vendor_id?: string }) => {
       const qp = new URLSearchParams();
@@ -1199,6 +1244,68 @@ export const api = {
     },
   },
 
+  accounts: {
+    getMine: async (): Promise<{ memberships: AccountMembership[]; active_account_id: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/me`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    switch: async (accountId: string): Promise<{ token: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/switch`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ account_id: accountId }),
+      });
+      const data = await handleResponse(res);
+      if (data?.token) setToken(data.token);
+      return data;
+    },
+    get: async (id: string): Promise<Account> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${id}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, updates: Partial<Account>): Promise<Account> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(updates),
+      });
+      return handleResponse(res);
+    },
+    listMembers: async (id: string): Promise<AccountMember[]> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${id}/members`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    addMember: async (id: string, email: string, role: AccountRole): Promise<AccountMember> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${id}/members`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ email, role }),
+      });
+      return handleResponse(res);
+    },
+    updateMember: async (accountId: string, userId: string, role: AccountRole): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/members/${userId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ role }),
+      });
+      await handleResponse(res);
+    },
+    removeMember: async (accountId: string, userId: string): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/members/${userId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      await handleResponse(res);
+    },
+  },
+
   sampleSets: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets`, {
@@ -1224,6 +1331,51 @@ export const api = {
     },
     remove: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  teaReviews: {
+    list: async (params: { tea_key?: string; product_id?: string; visibility?: string }) => {
+      const qp = new URLSearchParams();
+      if (params.tea_key) qp.set('tea_key', params.tea_key);
+      if (params.product_id) qp.set('product_id', params.product_id);
+      if (params.visibility) qp.set('visibility', params.visibility);
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews?${qp.toString()}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (review: {
+      tea_key: string;
+      product_id?: string;
+      visibility?: string;
+      session_date?: string;
+      rating?: number;
+      notes?: string;
+      tasting?: Record<string, unknown>;
+      brew_params?: Record<string, unknown>;
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(review),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, updates: Record<string, unknown>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(updates),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });

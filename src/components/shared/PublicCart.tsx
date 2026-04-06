@@ -21,13 +21,20 @@ export interface PublicCartProps {
   onUpdateQuantity: (id: string, grams: number) => void;
   onAddItem: (item: PublicCartItem) => void;
   isOpen: boolean;
+  /**
+   * Optional override for the WhatsApp destination phone. When present,
+   * checkout messages are routed to this number instead of the platform
+   * default. Used by per-store storefronts under /store/:slug.
+   */
+  whatsappNumber?: string;
 }
 
 type CheckoutStep = 'CART' | 'INQUIRY' | 'CONFIRM';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen }) => {
+export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber }) => {
+  const effectiveWhatsAppNumber = whatsappNumber && whatsappNumber.trim() ? whatsappNumber : TEAJIA_WHATSAPP_NUMBER;
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -178,7 +185,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const handleWhatsApp = () => {
-    window.open(buildWhatsAppUrl(String(TEAJIA_WHATSAPP_NUMBER), orderMessage));
+    window.open(buildWhatsAppUrl(String(effectiveWhatsAppNumber), orderMessage));
     showSuccess('whatsapp');
     persistInquiry('whatsapp');
   };

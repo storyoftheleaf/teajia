@@ -1,11 +1,80 @@
 -- Teajia D1 Schema (SQLite)
 -- Converted from Postgres db_setup.sql
+--
+-- Multi-account: every tenant-scoped table below has an `account_id TEXT`
+-- column (added by migration 017). See migration 017_multi_account.sql for
+-- the full list of scoped tables and the accounts/account_members tables.
 
 -- TODO: Migrate existing Matcha and Flower products to Herbal
 -- UPDATE products SET type = 'Herbal' WHERE type IN ('Matcha', 'Flower');
 
--- 1. Products Table
+-- 0. Accounts (multi-tenant root — see migration 017)
+CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    legal_name TEXT,
+    tagline TEXT,
+    description TEXT,
+    logo_url TEXT,
+    cover_image_url TEXT,
+    location_city TEXT,
+    location_country TEXT,
+    timezone TEXT DEFAULT 'UTC',
+    currency_default TEXT DEFAULT 'USD',
+    whatsapp_number TEXT,
+    contact_email TEXT,
+    public_enabled INTEGER DEFAULT 1,
+    public_shop_path TEXT,
+    invoice_prefix TEXT,
+    owner_user_id TEXT,
+    status TEXT DEFAULT 'active',
+    trust_tier TEXT DEFAULT 'basic',
+    is_platform_owner INTEGER DEFAULT 0,
+    ships_to_countries TEXT DEFAULT '[]',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS account_members (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,               -- owner | manager | staff | viewer
+    invited_by_user_id TEXT,
+    invited_at TEXT,
+    joined_at TEXT DEFAULT (datetime('now')),
+    status TEXT DEFAULT 'active',
+    UNIQUE(account_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_account_members_user ON account_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_account_members_account ON account_members(account_id);
+
+-- Network-wide tea reviews (cross-account, keyed by tea_key)
+CREATE TABLE IF NOT EXISTS tea_reviews (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    tea_key TEXT NOT NULL,
+    product_id TEXT,
+    product_account_id TEXT,
+    author_user_id TEXT NOT NULL,
+    author_account_id TEXT NOT NULL,
+    visibility TEXT DEFAULT 'network',  -- network | private | account
+    session_date TEXT,
+    rating INTEGER,
+    notes TEXT,
+    tasting TEXT,
+    brew_params TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tea_reviews_key ON tea_reviews(tea_key);
+CREATE INDEX IF NOT EXISTS idx_tea_reviews_author ON tea_reviews(author_user_id);
+CREATE INDEX IF NOT EXISTS idx_tea_reviews_product ON tea_reviews(product_id);
+
+-- 1. Products Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS products (
+    account_id TEXT,
+    tea_key TEXT,                                 -- Shared fingerprint across accounts
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     type TEXT NOT NULL,
     form TEXT,
@@ -58,8 +127,9 @@ CREATE TABLE IF NOT EXISTS products (
     last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
 
--- 1b. Customers Table
+-- 1b. Customers Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS customers (
+    account_id TEXT,
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     name TEXT NOT NULL,
     company TEXT,
@@ -92,10 +162,12 @@ INSERT OR IGNORE INTO exchange_rates (currency, rate_to_usd) VALUES
 ('IDR', 16210),
 ('JPY', 150.0),
 ('MYR', 4.7),
-('HKD', 7.8);
+('HKD', 7.8),
+('AUD', 1.52);
 
--- 3. Invoices Table
+-- 3. Invoices Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS invoices (
+    account_id TEXT,
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     invoice_number TEXT NOT NULL,
     customer_name TEXT,
