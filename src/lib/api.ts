@@ -80,7 +80,7 @@ async function handleResponse(res: Response) {
   return data;
 }
 
-export function getTokenClaims(): { sub: string; email: string; role: string; name: string; exp?: number } | null {
+export function getTokenClaims(): { sub: string; email: string; role: string; name: string; username?: string | null; exp?: number } | null {
   const token = getToken();
   if (!token) return null;
   try {
@@ -94,19 +94,19 @@ export function getTokenClaims(): { sub: string; email: string; role: string; na
 
 export const api = {
   auth: {
-    login: async (email: string, password: string) => {
+    login: async (identifier: string, password: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
       return handleResponse(res);
     },
-    signup: async (email: string, password: string, name: string) => {
+    signup: async (email: string, password: string, name: string, username?: string | null) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, username: username || undefined }),
       });
       return handleResponse(res);
     },
@@ -124,7 +124,7 @@ export const api = {
       });
       return handleResponse(res);
     },
-    updateProfile: async (data: { name?: string; email?: string }) => {
+    updateProfile: async (data: { name?: string; email?: string; username?: string | null }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: authHeaders(),

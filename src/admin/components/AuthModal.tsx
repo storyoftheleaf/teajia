@@ -11,6 +11,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [info, setInfo] = useState('');
@@ -26,6 +27,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
     setEmail('');
     setPassword('');
     setName('');
+    setUsername('');
     setResetToken('');
     setNewPassword('');
     setError('');
@@ -84,7 +86,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
       } else {
         const result = mode === 'login'
           ? await api.auth.login(email, password)
-          : await api.auth.signup(email, password, name);
+          : await api.auth.signup(email, password, name, username.trim() || null);
         setToken(result.token);
         if (rememberMe) {
           localStorage.setItem('teajia_remember_me', 'true');
@@ -135,16 +137,22 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
-            </div>
+            <>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Username <span className="text-tea-text-dim normal-case tracking-normal font-normal">(optional)</span></label>
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" pattern="[a-zA-Z0-9_.\-]{3,32}" className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Letters, numbers, . _ -" />
+              </div>
+            </>
           )}
 
           {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
             <div>
-               <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
-               <input type={mode === 'signup' || mode === 'forgot' ? 'email' : 'text'} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="you@example.com" required />
+               <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">{mode === 'login' ? 'Email or Username' : 'Email'}</label>
+               <input type={mode === 'signup' || mode === 'forgot' ? 'email' : 'text'} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete={mode === 'login' ? 'username' : 'email'} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder={mode === 'login' ? 'you@example.com or username' : 'you@example.com'} required />
             </div>
           )}
 

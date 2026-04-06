@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     email TEXT UNIQUE NOT NULL,
+    username TEXT,
     name TEXT NOT NULL DEFAULT '',
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',  -- 'owner', 'admin', 'user'
@@ -131,6 +132,7 @@ CREATE TABLE IF NOT EXISTS users (
     admin_requested_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (

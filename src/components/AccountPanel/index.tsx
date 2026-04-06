@@ -66,6 +66,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [signinIdentifier, setSigninIdentifier] = useState('');
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -78,6 +80,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   // Edit profile state
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editUsername, setEditUsername] = useState('');
 
   // Admin request state
   const [adminRequestLoading, setAdminRequestLoading] = useState(false);
@@ -152,6 +155,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setEmail('');
     setPassword('');
     setName('');
+    setUsername('');
+    setSigninIdentifier('');
     setFormError('');
     setFormLoading(false);
     setShowPassword(false);
@@ -160,6 +165,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setConfirmNewPassword('');
     setEditName('');
     setEditEmail('');
+    setEditUsername('');
   };
 
 
@@ -173,7 +179,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setFormError('');
     setFormLoading(true);
     try {
-      await auth.login(email, password);
+      await auth.login(signinIdentifier.trim(), password);
       resetForm();
       setPanelView('main');
     } catch (err: any) {
@@ -192,7 +198,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     }
     setFormLoading(true);
     try {
-      await auth.signup(email, password, name);
+      await auth.signup(email, password, name, username.trim() || null);
       resetForm();
       setPanelView('main');
     } catch (err: any) {
@@ -235,9 +241,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setFormError('');
     setFormLoading(true);
     try {
-      const updates: { name?: string; email?: string } = {};
+      const updates: { name?: string; email?: string; username?: string | null } = {};
       if (editName && editName !== auth.user?.name) updates.name = editName;
       if (editEmail && editEmail !== auth.user?.email) updates.email = editEmail;
+      const trimmedUsername = editUsername.trim();
+      const currentUsername = auth.user?.username ?? '';
+      if (trimmedUsername !== currentUsername) {
+        updates.username = trimmedUsername === '' ? null : trimmedUsername;
+      }
       if (Object.keys(updates).length === 0) {
         setFormError('No changes to save.');
         setFormLoading(false);
@@ -376,14 +387,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email or Username</label>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type="text"
+                      value={signinIdentifier}
+                      onChange={(e) => setSigninIdentifier(e.target.value)}
+                      autoComplete="username"
                       className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
                       style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
-                      placeholder="you@example.com"
+                      placeholder="you@example.com or username"
                       required
                       autoFocus
                     />
@@ -467,6 +479,22 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       required
                       autoFocus
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                      Username <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      autoComplete="username"
+                      pattern="[a-zA-Z0-9_.\-]{3,32}"
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      placeholder="Letters, numbers, . _ -"
+                    />
+                    <p className="text-[11px] text-tea-text/40 mt-1.5">Sign in with either your email or username.</p>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
@@ -615,7 +643,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     <Icons.User className="w-7 h-7 text-tea-gold" />
                   </div>
                   <h3 className="font-serif text-xl text-tea-text">Edit Profile</h3>
-                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Update your name or email</p>
+                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Update your name, username, or email</p>
                 </div>
 
                 <form onSubmit={handleEditProfile} className="space-y-4">
@@ -630,6 +658,22 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       placeholder={auth.user?.name || 'Your name'}
                       autoFocus
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                      Username <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editUsername}
+                      onChange={(e) => setEditUsername(e.target.value)}
+                      autoComplete="username"
+                      pattern="[a-zA-Z0-9_.\-]{3,32}"
+                      className="w-full bg-tea-surface border border-[var(--tea-border)] p-3.5 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm"
+                      style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' }}
+                      placeholder={auth.user?.username || 'Pick a username'}
+                    />
+                    <p className="text-[11px] text-tea-text/40 mt-1.5">Leave blank to remove. Sign in with email or username.</p>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Email</label>
@@ -849,7 +893,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         { action: () => handleGoToAdmin('/admin/orders'), label: 'Orders', icon: <Icons.Clock className="w-4 h-4" />, gold: true },
                         { action: () => handleGoToAdmin('/admin/records'), label: 'Records', icon: <Icons.BookOpen className="w-4 h-4" />, gold: true },
                       ] : []),
-                      { action: () => { setEditName(auth.user?.name || ''); setEditEmail(auth.user?.email || ''); setPanelView('edit-profile'); }, label: 'Edit Profile', icon: <Icons.User className="w-4 h-4" /> },
+                      { action: () => { setEditName(auth.user?.name || ''); setEditEmail(auth.user?.email || ''); setEditUsername(auth.user?.username || ''); setPanelView('edit-profile'); }, label: 'Edit Profile', icon: <Icons.User className="w-4 h-4" /> },
                       { action: () => { resetForm(); setPanelView('change-password'); }, label: 'Change Password', icon: <Icons.Lock className="w-4 h-4" /> },
                     ].map((item, i, arr) => (
                       <button
