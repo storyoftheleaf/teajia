@@ -106,7 +106,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   const sliderMin = 5;
-  const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
+  // Cap slider at 500g — never reveal actual stock quantity to customers
+  const sliderMax = Math.min(500, Math.max(25, Math.floor(item.stock_g || 500)));
   const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
   const pricePerGram = parseFloat(item.price_per_gram || '0');
@@ -114,12 +115,13 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
-  // Stock status
+  // Stock status — hide exact quantity, only show availability level
   const stockStatus = getStockStatus(item.stock_g, undefined, item.isOneOfAKind, item.isCurated);
   const isSoldOut = stockStatus.level === 'out';
 
-  // Quantity presets - only show values that are <= stock
-  const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
+  // Quantity presets — cap at 250g regardless of stock
+  const PRESET_VALUES = [25, 50, 100, 250];
+  const presets = PRESET_VALUES.filter(p => p <= sliderMax);
 
   // Snap to nearest marked point on release
   const snapToNearest = (val: number) => {

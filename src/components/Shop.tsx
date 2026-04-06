@@ -434,8 +434,8 @@ export const Shop: React.FC<ShopProps> = ({
                     <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
                     <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
                       {item.category === 'tea'
-                        ? `$${(parseFloat(item.price_per_gram || '0') * 50).toFixed(0)}`
-                        : `$${parseFloat(item.price_50g || '0').toFixed(0)}`}
+                        ? `$${parseFloat(item.price_per_gram || '0').toFixed(2)}/g`
+                        : `$${parseFloat(item.price_50g || '0').toFixed(2)} each`}
                     </p>
                   </div>
                 ))}

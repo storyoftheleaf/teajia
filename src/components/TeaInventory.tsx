@@ -403,8 +403,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* LIST VIEW — tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
-               {/* Spacer */}
-               <div className="pb-2" />
+               {/* Price basis note — centered */}
+               <div className="text-center pb-2">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">All prices per 50g</span>
+               </div>
 
                {groupedInventory.map((group) => (
                 <React.Fragment key={group.type}>
