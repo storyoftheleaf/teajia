@@ -122,7 +122,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         className={`fixed top-0 right-0 h-full w-full z-toast shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] glass-grain ${
           isAdmin
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
-            : 'md:w-[450px] bg-tea-bg'
+            : 'md:w-[450px] bg-tea-surface border-l border-tea-border backdrop-blur-xl'
         }`}
         initial={{ x: '100%' }}
         animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : panelControls}
