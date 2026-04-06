@@ -92,8 +92,13 @@ const CharacterRevealCapture: React.FC = () => {
   };
 
 
-  // Show the overlay as soon as any scrolling happens
+  // Show the overlay as soon as any scrolling happens, fade out at the end
   const isVisible = progress > 0;
+  // Fade out the entire overlay as user scrolls past Act 2 (progress 0.92 → 1.05)
+  const exitP = Math.max(0, Math.min(1, (progress - 0.92) / 0.13));
+  const overlayOpacity = 1 - exitP;
+  // Scroll-hint: appears after email is visible, fades out with the overlay
+  const hintP = Math.max(0, Math.min(1, (progress - 0.90) / 0.05)) * overlayOpacity;
 
   return (
     <>
@@ -104,9 +109,10 @@ const CharacterRevealCapture: React.FC = () => {
       />
 
       {/* Fixed overlay — viewport-locked, immune to overflow/layout issues */}
-      {isVisible && (
+      {isVisible && overlayOpacity > 0.01 && (
         <div
           className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(44px+env(safe-area-inset-bottom,0px))]"
+          style={{ opacity: overlayOpacity }}
         >
           {/* Logo — drops from top, lands above the teaser lines */}
           <div
@@ -268,6 +274,26 @@ const CharacterRevealCapture: React.FC = () => {
               </button>
             </form>
           </div>
+
+          {/* Scroll hint — teases Act 3 */}
+          <div
+            className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2"
+            style={{ opacity: hintP }}
+          >
+            <p
+              className="text-[11px] uppercase tracking-[0.25em] text-tea-text-dim"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              find a table
+            </p>
+            <svg
+              width="16" height="16" viewBox="0 0 16 16" fill="none"
+              className="text-tea-gold/40"
+              style={{ animation: 'teaserBreath 3s ease-in-out infinite' }}
+            >
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
       )}
     </>
@@ -276,6 +302,24 @@ const CharacterRevealCapture: React.FC = () => {
 
 /** Network directory strip — surfaces the lineage model on the home page. */
 const NetworkDirectoryStrip: React.FC = () => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [revealProgress, setRevealProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // Progress: 0 when top of section is at bottom of viewport, 1 when top reaches 60% up
+      const raw = (vh - rect.top) / (vh * 0.4);
+      setRevealProgress(Math.max(0, Math.min(1, raw)));
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const { data: stores = [] } = useQuery<Account[]>({
     queryKey: ['network', 'stores'],
     queryFn: fetchNetworkStores,
@@ -284,10 +328,18 @@ const NetworkDirectoryStrip: React.FC = () => {
 
   if (stores.length === 0) return null;
 
+  const ease = (t: number) => 1 - Math.pow(1 - t, 2.5);
+  const easedProgress = ease(revealProgress);
+
   return (
     <section
+      ref={sectionRef}
       aria-label="Teajia network"
       className="w-full max-w-5xl mx-auto px-6 py-16 md:py-24 text-center"
+      style={{
+        opacity: easedProgress,
+        transform: `translateY(${(1 - easedProgress) * 40}px)`,
+      }}
     >
       <p className="text-[11px] uppercase tracking-[0.3em] text-tea-text-dim mb-3">
         The Teajia network
@@ -303,8 +355,11 @@ const NetworkDirectoryStrip: React.FC = () => {
       </p>
 
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 text-left mb-8">
-        {stores.slice(0, 4).map(store => (
-          <li key={store.id}>
+        {stores.slice(0, 4).map((store, i) => {
+          // Stagger each card: starts after section is 40% revealed, each card 8% apart
+          const cardP = ease(Math.max(0, Math.min(1, (revealProgress - 0.4 - i * 0.08) / 0.2)));
+          return (
+          <li key={store.id} style={{ opacity: cardP, transform: `translateY(${(1 - cardP) * 20}px)` }}>
             <Link
               to={`/store/${store.slug}`}
               className="card-grid-item block p-5 group transition-colors hover:border-tea-gold"
@@ -342,7 +397,8 @@ const NetworkDirectoryStrip: React.FC = () => {
               </div>
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {stores.length > 4 && (
