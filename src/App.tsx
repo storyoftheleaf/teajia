@@ -680,20 +680,6 @@ const AppContent = () => {
          <ShareModal story={sharingStory} onClose={() => setSharingStory(null)} />
       )}
 
-      {/* Floating cart indicator — mobile only, all pages */}
-      <CartIndicator itemCount={cart.length} onOpen={handleOpenCart} />
-
-      <CartPanel
-         mode="public"
-         isOpen={isCartOpen}
-         onClose={handleCloseCart}
-         cart={cart}
-         onRemoveItem={handleRemoveFromCart}
-         onUpdateQuantity={handleUpdateCartQuantity}
-         onAddItem={addToPublicCart}
-         whatsappNumber={activeStore?.whatsapp_number}
-      />
-
       {/* --- GLOBAL SEARCH --- */}
       <GlobalSearch isOpen={showGlobalSearch} onClose={() => setShowGlobalSearch(false)} />
 
@@ -759,6 +745,19 @@ const AppContent = () => {
       <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} hidden={false} onAccountClick={handleOpenAccount} />
 
       </div>
+
+      {/* Cart — rendered outside content wrapper so fixed positioning is viewport-relative */}
+      <CartIndicator itemCount={cart.length} onOpen={handleOpenCart} />
+      <CartPanel
+         mode="public"
+         isOpen={isCartOpen}
+         onClose={handleCloseCart}
+         cart={cart}
+         onRemoveItem={handleRemoveFromCart}
+         onUpdateQuantity={handleUpdateCartQuantity}
+         onAddItem={addToPublicCart}
+         whatsappNumber={activeStore?.whatsapp_number}
+      />
     </div>
   );
 };
