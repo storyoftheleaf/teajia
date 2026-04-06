@@ -4,6 +4,11 @@ import { InventoryItem } from '../types';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { publicProductToInventoryItem } from '../lib/adapters';
 import { SAMPLE_PRODUCTS } from '../data/sampleProducts';
+import { useAppStore } from '../lib/store';
+import { useQuery } from '@tanstack/react-query';
+import { fetchStoreProducts } from '../lib/storefrontApi';
+
+const DEFAULT_SLUG = 'teajia-bali';
 
 interface InventoryContextType {
   inventory: InventoryItem[];
@@ -19,27 +24,54 @@ interface InventoryContextType {
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data: products = [], isLoading, isError, error, refetch } = usePublicProducts();
+  const shopStoreSlug = useAppStore(state => state.shopStoreSlug);
+  const activeSlug = shopStoreSlug || DEFAULT_SLUG;
+
+  // Default path: legacy endpoint (no slug or Bali slug)
+  const defaultQuery = usePublicProducts();
+
+  // Store-specific path: fetch via /api/s/:slug/products
+  const storeQuery = useQuery<InventoryItem[]>({
+    queryKey: ['storefront', 'products', activeSlug],
+    queryFn: () => fetchStoreProducts(activeSlug),
+    enabled: !!shopStoreSlug && shopStoreSlug !== DEFAULT_SLUG,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Pick which query result to use
+  const isStoreMode = !!shopStoreSlug && shopStoreSlug !== DEFAULT_SLUG;
+  const activeQuery = isStoreMode ? storeQuery : defaultQuery;
 
   const inventory = useMemo(() => {
-    const apiItems = products.map(publicProductToInventoryItem);
-    // Only show sample items when the API returned no products AND there was no error
-    // (i.e. the database is genuinely empty). On errors, show empty so error UI can appear.
-    if (apiItems.length === 0 && !isLoading && !isError) {
+    if (isStoreMode) {
+      // storeQuery already returns InventoryItem[]
+      return activeQuery.data ?? [];
+    }
+    // Default path: map PublicProduct → InventoryItem
+    const apiItems = (defaultQuery.data || []).map(publicProductToInventoryItem);
+    if (apiItems.length === 0 && !defaultQuery.isLoading && !defaultQuery.isError) {
       return SAMPLE_PRODUCTS.map(publicProductToInventoryItem);
     }
     return apiItems;
-  }, [products, isLoading, isError]);
+  }, [isStoreMode, activeQuery.data, defaultQuery.data, defaultQuery.isLoading, defaultQuery.isError]);
 
   // CRUD operations are no-ops on the public side.
-  // Inventory is managed through the admin interface via the Worker API.
   const addInventoryItem = () => {};
   const updateInventoryItem = () => {};
   const deleteInventoryItem = () => {};
 
   const value = useMemo(
-    () => ({ inventory, isLoading, isError, error: error as Error | null, refetch, addInventoryItem, updateInventoryItem, deleteInventoryItem }),
-    [inventory, isLoading, isError, error, refetch]
+    () => ({
+      inventory,
+      isLoading: activeQuery.isLoading,
+      isError: activeQuery.isError,
+      error: activeQuery.error as Error | null,
+      refetch: activeQuery.refetch,
+      addInventoryItem,
+      updateInventoryItem,
+      deleteInventoryItem,
+    }),
+    [inventory, activeQuery.isLoading, activeQuery.isError, activeQuery.error, activeQuery.refetch]
   );
 
   return (

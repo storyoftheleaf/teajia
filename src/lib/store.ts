@@ -114,6 +114,10 @@ interface AppState {
   saveInvoiceTemplate: (template: InvoiceTemplate) => void;
   deleteInvoiceTemplate: (id: string) => void;
 
+  // Public shop — selected store location (null = default Bali)
+  shopStoreSlug: string | null;
+  setShopStoreSlug: (slug: string | null) => void;
+
   // Multi-Account (Multi-Store) state
   memberships: AccountMembership[];
   activeAccountId: string | null;
@@ -338,6 +342,10 @@ export const useAppStore = create<AppState>()(
           invoiceTemplates: state.invoiceTemplates.filter((t) => t.id !== id),
         })),
 
+      // Public shop location
+      shopStoreSlug: null,
+      setShopStoreSlug: (slug) => set({ shopStoreSlug: slug }),
+
       // Multi-Account state
       memberships: [],
       activeAccountId: null,
@@ -368,6 +376,7 @@ export const useAppStore = create<AppState>()(
         inventorySortConfig: state.inventorySortConfig,
         draftProduct: state.draftProduct,
         invoiceTemplates: state.invoiceTemplates,
+        shopStoreSlug: state.shopStoreSlug,
         memberships: state.memberships,
         activeAccountId: state.activeAccountId,
       }),
