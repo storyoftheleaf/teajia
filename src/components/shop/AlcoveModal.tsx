@@ -171,8 +171,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               left: `calc(50% - min(240px, 42.5vw) - ${peekGap}px - min(480px, 85vw) + 100px)`,
               transform: `translateX(${swipeOffset * 0.5}px) scale(0.88)`,
               transition: touchStart ? 'none' : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-              opacity: 0.35,
-              filter: 'blur(1px)',
+              opacity: 0.2,
+              filter: 'blur(8px)',
             }}
             onClick={(e) => { e.stopPropagation(); goPrev(); }}
           >
@@ -214,7 +214,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         >
           <div
             ref={cardRef}
-            className="relative w-full md:max-w-[560px]"
+            className="relative w-full md:max-w-[560px] md:flex md:items-center md:justify-center"
             style={{
               height: '100%',
               maxHeight: '100dvh',
@@ -275,8 +275,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               right: `calc(50% - min(240px, 42.5vw) - ${peekGap}px - min(480px, 85vw) + 100px)`,
               transform: `translateX(${swipeOffset * 0.5}px) scale(0.88)`,
               transition: touchStart ? 'none' : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-              opacity: 0.35,
-              filter: 'blur(1px)',
+              opacity: 0.2,
+              filter: 'blur(8px)',
             }}
             onClick={(e) => { e.stopPropagation(); goNext(); }}
           >
