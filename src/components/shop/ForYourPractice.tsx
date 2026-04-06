@@ -294,7 +294,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
         showQuantityControls={true}
         quantityStep={1}
         defaultQuantity={1}
-        maxQuantity={Math.min(10, parseInt(viewItem?.stock_g || '10'))}
+        maxQuantity={20}
         itemType="teaware"
       />
     </div>

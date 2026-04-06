@@ -106,22 +106,20 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   const sliderMin = 5;
-  // Cap slider at 500g — never reveal actual stock quantity to customers
-  const sliderMax = Math.min(500, Math.max(25, Math.floor(item.stock_g || 500)));
+  // Fixed max — never reveal actual stock to customers
+  const sliderMax = 1000;
   const sliderStep = 5;
-  const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
+  const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 750, 1000];
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(pricePerGram * grams);
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
-  // Stock status — hide exact quantity, only show availability level
   const stockStatus = getStockStatus(item.stock_g, undefined, item.isOneOfAKind, item.isCurated);
   const isSoldOut = stockStatus.level === 'out';
+  const exceedsStock = grams > item.stock_g && !isSoldOut;
 
-  // Quantity presets — cap at 250g regardless of stock
-  const PRESET_VALUES = [25, 50, 100, 250];
-  const presets = PRESET_VALUES.filter(p => p <= sliderMax);
+  const presets = [25, 50, 100, 250];
 
   // Snap to nearest marked point on release
   const snapToNearest = (val: number) => {
@@ -220,7 +218,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   }, []);
 
   const handleAdd = () => {
-    if (isSoldOut) return;
+    if (isSoldOut || exceedsStock) return;
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
     if (onAddToCart) {
@@ -1260,7 +1258,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
               <button
                 onClick={handleAdd}
-                disabled={isSoldOut}
+                disabled={isSoldOut || exceedsStock}
                 onMouseEnter={() => setHovered("cart")}
                 onMouseLeave={() => setHovered(null)}
                 style={{
@@ -1268,30 +1266,30 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   fontFamily: "var(--font-sans)",
                   fontSize: "12px", fontWeight: 700,
                   letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: isSoldOut
+                  color: (isSoldOut || exceedsStock)
                     ? 'var(--tea-text-sec)'
-                    : added ? alcoveColors.bg : (hovered === "cart" ? alcoveColors.bg : alcoveColors.bg),
-                  background: isSoldOut
+                    : added ? alcoveColors.bg : alcoveColors.bg,
+                  background: (isSoldOut || exceedsStock)
                     ? 'var(--tea-accent-sub)'
                     : added
                       ? alcoveColors.success
                       : hovered === "cart"
                         ? 'var(--tea-gold-lt, #bfa06a)'
                         : 'var(--tea-gold, #a8874d)',
-                  border: isSoldOut
+                  border: (isSoldOut || exceedsStock)
                     ? '1px solid var(--tea-border)'
                     : added
                       ? `1px solid ${alcoveColors.success}`
                       : '1px solid transparent',
                   borderRadius: "4px",
-                  cursor: isSoldOut ? "not-allowed" : "pointer",
+                  cursor: (isSoldOut || exceedsStock) ? "not-allowed" : "pointer",
                   transition: "all 0.25s ease",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                  opacity: isSoldOut ? 0.6 : 1,
+                  opacity: (isSoldOut || exceedsStock) ? 0.6 : 1,
                 }}
               >
-                <span>{isSoldOut ? "Sold Out" : added ? "Added" : "Add"}</span>
-                {!isSoldOut && (
+                <span>{isSoldOut ? "Sold Out" : exceedsStock ? "Not enough in stock" : added ? "Added" : "Add"}</span>
+                {!isSoldOut && !exceedsStock && (
                   <span style={{
                     fontFamily: "var(--font-mono)",
                     fontWeight: 500, fontStyle: "normal", opacity: 0.85, fontSize: "12px",
