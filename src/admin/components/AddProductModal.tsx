@@ -10,6 +10,7 @@ import { useAppStore } from '../store';
 import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { TeaReviewsPanel } from './TeaReviewsPanel';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -226,6 +227,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     terroir: '',
     mood: '',
     experience: '',
+    teaKey: '',
   });
 
   const isEditMode = !!initialData;
@@ -282,6 +284,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         terroir: initialData.terroir || '',
         mood: initialData.mood || '',
         experience: initialData.experience || '',
+        teaKey: (initialData as any).tea_key || '',
       });
       setTastingData(initialData.tasting || {});
       setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes || initialData.tasting));
@@ -321,6 +324,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         terroir: '',
         mood: '',
         experience: '',
+        teaKey: '',
       });
       setTastingData({});
       setWisdomOpen(false);
@@ -499,6 +503,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             terroir: formData.terroir,
             mood: formData.mood,
             experience: formData.experience,
+            tea_key: formData.teaKey || null,
             recheck_stock: formData.recheckStock ? 1 : 0,
             in_transit: formData.inTransit ? 1 : 0,
         };
@@ -1066,11 +1071,43 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 placeholder="Pine resin, dried longan, campfire"
                             />
                         </div>
+
+                        {/* Tea Key — cross-account review anchor */}
+                        <div className="pt-2 border-t border-tea-border">
+                            <label className={labelStyle}>
+                                Network Tea Key
+                                <span className="text-tea-text-dim text-xs font-normal ml-2">for shared reviews across stores</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="teaKey"
+                                value={formData.teaKey}
+                                onChange={handleChange}
+                                className={wisdomInputStyle}
+                                placeholder="silver-needle-fuding-2024"
+                            />
+                            <p className="text-tea-text-dim text-xs mt-1">
+                                When partner stores tag their product with the same key, team members at both stores can share tasting notes on this tea.
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>
           </div>
         </form>
+
+        {/* Network Reviews — edit mode only when tea_key is set */}
+        {isEditMode && formData.teaKey && (
+          <div className="px-6 py-4 border-t border-tea-border">
+            <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold mb-3">
+              Network Reviews
+            </h3>
+            <TeaReviewsPanel
+              teaKey={formData.teaKey}
+              productId={initialData?.id}
+            />
+          </div>
+        )}
 
         {/* STICKY FOOTER */}
         <div className="px-6 py-3.5 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">

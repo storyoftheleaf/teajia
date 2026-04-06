@@ -984,17 +984,6 @@ export const api = {
     },
   },
 
-  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
-    const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
-      body: formData,
-    });
-    return handleResponse(res);
-  },
-
   compass: {
     list: async (params?: { status?: string; vendor_id?: string }) => {
       const qp = new URLSearchParams();
@@ -1333,6 +1322,51 @@ export const api = {
     },
     remove: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  teaReviews: {
+    list: async (params: { tea_key?: string; product_id?: string; visibility?: string }) => {
+      const qp = new URLSearchParams();
+      if (params.tea_key) qp.set('tea_key', params.tea_key);
+      if (params.product_id) qp.set('product_id', params.product_id);
+      if (params.visibility) qp.set('visibility', params.visibility);
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews?${qp.toString()}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (review: {
+      tea_key: string;
+      product_id?: string;
+      visibility?: string;
+      session_date?: string;
+      rating?: number;
+      notes?: string;
+      tasting?: Record<string, unknown>;
+      brew_params?: Record<string, unknown>;
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(review),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, updates: Record<string, unknown>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(updates),
+      });
+      return handleResponse(res);
+    },
+    remove: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
       });

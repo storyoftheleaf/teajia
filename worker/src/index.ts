@@ -4507,6 +4507,134 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   return json(parseTastingRow(created as Record<string, any>), 201);
 };
 
+// ── Tea Reviews (cross-account, keyed by tea_key) ──────────────────────────
+
+// GET /api/tea-reviews?tea_key=&product_id=&visibility=
+// Public to network reviews when unauthenticated; auth unlocks account-private reviews.
+const handleGetTeaReviews: Handler = async (request, env) => {
+  const url = new URL(request.url);
+  const tea_key = url.searchParams.get('tea_key');
+  const product_id = url.searchParams.get('product_id');
+  const visibility = url.searchParams.get('visibility');
+
+  if (!tea_key && !product_id) return json({ error: 'tea_key or product_id required' }, 400);
+
+  const token = isAuthed(request);
+  const claims = token ? parseToken(token) : null;
+  const authorAccountId = claims?.active_account_id || null;
+
+  // Build visibility filter
+  let visFilter = `r.visibility = 'network'`;
+  if (authorAccountId) {
+    visFilter = `(r.visibility = 'network' OR (r.visibility = 'account' AND r.author_account_id = ?) OR (r.visibility = 'private' AND r.author_user_id = ?))`;
+  }
+
+  let where = tea_key ? `r.tea_key = ?` : `r.product_id = ?`;
+  const keyVal = (tea_key || product_id) as string;
+
+  let query: string;
+  let binds: any[];
+  if (authorAccountId) {
+    query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
+             FROM tea_reviews r
+             LEFT JOIN users u ON u.id = r.author_user_id
+             LEFT JOIN accounts a ON a.id = r.author_account_id
+             WHERE ${where} AND ${visFilter}
+             ORDER BY r.created_at DESC`;
+    binds = [keyVal, authorAccountId, claims?.sub];
+  } else {
+    query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
+             FROM tea_reviews r
+             LEFT JOIN users u ON u.id = r.author_user_id
+             LEFT JOIN accounts a ON a.id = r.author_account_id
+             WHERE ${where} AND r.visibility = 'network'
+             ORDER BY r.created_at DESC`;
+    binds = [keyVal];
+  }
+
+  const result = await env.DB.prepare(query).bind(...binds).all();
+  return json(result.results);
+};
+
+// POST /api/tea-reviews
+const handleCreateTeaReview: Handler = async (request, env) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId, userId } = auth as any;
+
+  const body: any = await request.json();
+  if (!body.tea_key) return json({ error: 'tea_key required' }, 400);
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO tea_reviews (id, tea_key, product_id, product_account_id, author_user_id, author_account_id,
+      visibility, session_date, rating, notes, tasting, brew_params, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, body.tea_key, body.product_id || null, body.product_id ? accountId : null,
+    userId, accountId,
+    body.visibility || 'network',
+    body.session_date || null,
+    body.rating || null,
+    body.notes || null,
+    body.tasting ? JSON.stringify(body.tasting) : null,
+    body.brew_params ? JSON.stringify(body.brew_params) : null,
+    now, now
+  ).run();
+
+  const created = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(id).first();
+  return json(created, 201);
+};
+
+// PUT /api/tea-reviews/:id
+const handleUpdateTeaReview: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { userId } = auth as any;
+
+  const existing = await env.DB.prepare(
+    'SELECT * FROM tea_reviews WHERE id = ? AND author_user_id = ?'
+  ).bind(params.id, userId).first();
+  if (!existing) return json({ error: 'Not found or not your review' }, 404);
+
+  const body: any = await request.json();
+  const allowed = ['visibility', 'session_date', 'rating', 'notes', 'tasting', 'brew_params'];
+  const updates: string[] = [];
+  const vals: any[] = [];
+  for (const k of allowed) {
+    if (body[k] !== undefined) {
+      updates.push(`${k} = ?`);
+      vals.push(typeof body[k] === 'object' ? JSON.stringify(body[k]) : body[k]);
+    }
+  }
+  if (!updates.length) return json({ error: 'Nothing to update' }, 400);
+  updates.push('updated_at = ?');
+  vals.push(new Date().toISOString(), params.id, userId);
+
+  await env.DB.prepare(
+    `UPDATE tea_reviews SET ${updates.join(', ')} WHERE id = ? AND author_user_id = ?`
+  ).bind(...vals).run();
+
+  const updated = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(params.id).first();
+  return json(updated);
+};
+
+// DELETE /api/tea-reviews/:id
+const handleDeleteTeaReview: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { userId } = auth as any;
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM tea_reviews WHERE id = ? AND author_user_id = ?'
+  ).bind(params.id, userId).first();
+  if (!existing) return json({ error: 'Not found or not your review' }, 404);
+
+  await env.DB.prepare('DELETE FROM tea_reviews WHERE id = ?').bind(params.id).run();
+  return json({ ok: true });
+};
+
 // Customer: GET /api/tasting-journal — scoped to current account if one set.
 const handleGetTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -5426,6 +5554,12 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/samples/:id/tastings', handleAddSampleTasting],
 
   // Tasting Journal
+  // Tea Reviews (cross-account, keyed by tea_key)
+  ['GET', '/api/tea-reviews', handleGetTeaReviews],
+  ['POST', '/api/tea-reviews', handleCreateTeaReview],
+  ['PUT', '/api/tea-reviews/:id', handleUpdateTeaReview],
+  ['DELETE', '/api/tea-reviews/:id', handleDeleteTeaReview],
+
   ['GET', '/api/tasting-journal', handleGetTastingJournal],
   ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
   ['POST', '/api/tasting-journal', handleAddTastingEntry],
