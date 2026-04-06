@@ -1,10 +1,8 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
-import { useStories } from '../context/StoryContext';
-import { useInventory } from '../context/InventoryContext';
 
 // Track across mounts — animation plays once per session
 let hasAnimated = false;
@@ -247,7 +245,7 @@ const CharacterRevealCapture: React.FC = () => {
                 style={{
                   fontFamily: 'var(--font-display)',
                   border: 'none',
-                  borderBottom: '2px solid rgb(var(--tea-gold-rgb) / 0.25)',
+                  borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)',
                   borderRadius: 0,
                   letterSpacing: '0.04em',
                 }}
@@ -259,8 +257,8 @@ const CharacterRevealCapture: React.FC = () => {
                 className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold"
                 aria-label="Submit email"
               >
-                <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </form>
@@ -275,23 +273,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigateToSection,
   onAccountClick,
 }) => {
-  const { stories } = useStories();
-  const { inventory } = useInventory();
-
-  const latestArticle = useMemo(() =>
-    stories
-      .filter(s => s.status === 'published' && s.type === 'Article')
-      .sort((a, b) => (b.publishedDate || '').localeCompare(a.publishedDate || ''))
-      [0],
-    [stories]
-  );
-
-  const featuredProduct = useMemo(() =>
-    inventory.find(p => p.isFeatured && p.category === 'tea') ||
-    inventory.find(p => p.category === 'tea'),
-    [inventory]
-  );
-
   const shouldAnimate = !hasAnimated;
   const mountRef = useRef(false);
   if (!mountRef.current) {
@@ -384,6 +365,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <LogoEmblem
                 size={76}
                 color="var(--tea-gold)"
+                className="opacity-70"
               />
             </button>
           </motion.div>
@@ -407,30 +389,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             transition={shouldAnimate ? { duration: 0.6, delay: 0.75 } : { duration: 0 }}
           >
             {[
-              {
-                accent: 'Source',
-                rest: ' your tea.',
-                section: 'SHOP' as const,
-                preview: featuredProduct ? `${featuredProduct.name} · ${featuredProduct.origin}` : null,
-              },
-              {
-                accent: 'Discover',
-                rest: ' the stories.',
-                section: 'MAGAZINE' as const,
-                preview: latestArticle ? latestArticle.title : null,
-              },
-              {
-                accent: 'Deepen',
-                rest: ' your practice.',
-                section: 'LEARN' as const,
-                preview: '6 modules · 24 lessons',
-              },
-              {
-                accent: 'Create',
-                rest: ' the spaces to share.',
-                section: 'OFFERINGS' as const,
-                preview: null,
-              },
+              { accent: 'Source', rest: ' your tea.', section: 'SHOP' as const },
+              { accent: 'Discover', rest: ' the stories.', section: 'MAGAZINE' as const },
+              { accent: 'Deepen', rest: ' your practice.', section: 'LEARN' as const },
+              { accent: 'Create', rest: ' the spaces to share.', section: 'OFFERINGS' as const },
             ].map((item) => (
               <button
                 key={item.section}
@@ -439,11 +401,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 <span className="font-semibold text-tea-gold">{item.accent}</span>{item.rest}
-                {item.preview && (
-                  <span className="block text-xs font-sans text-tea-text-dim mt-0.5 font-normal tracking-normal">
-                    {item.preview}
-                  </span>
-                )}
               </button>
             ))}
           </motion.div>
