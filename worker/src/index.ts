@@ -281,7 +281,7 @@ function cors(response: Response, origin: string): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, headers });
 }
@@ -2897,6 +2897,27 @@ const handleGetEvents: Handler = async (request, env) => {
   return json(result.results);
 };
 
+const handleGetEvent: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const result = await env.DB.prepare(`
+    SELECT e.*,
+      COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
+      COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
+      COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
+      COUNT(ea.id) as total_attendees
+    FROM events e
+    LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.status != 'cancelled'
+    WHERE e.id = ? AND e.account_id = ?
+    GROUP BY e.id
+  `).bind(params.id, accountId).first();
+
+  if (!result) return json({ error: 'Event not found' }, 404);
+  return json(result);
+};
+
 const handleCreateEvent: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -2995,34 +3016,53 @@ const handleGetAttendees: Handler = async (request, env, params) => {
      ORDER BY ea.status ASC, ea.created_at ASC`
   ).bind(params.id, accountId).all();
 
-  // Attach journey preview per attendee (sessions_attended + last_attended)
-  const attendeesWithJourney = await Promise.all(
-    (result.results as Record<string, any>[]).map(async (attendee) => {
-      if (!attendee.phone_number && !attendee.email) return attendee;
-      let journeyRow: Record<string, any> | null = null;
-      if (attendee.phone_number) {
-        journeyRow = await env.DB.prepare(
-          `SELECT COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
-           FROM event_attendees ea2
-           JOIN events e ON e.id = ea2.event_id
-           WHERE ea2.phone_number = ? AND ea2.status = 'confirmed' AND ea2.attended = 1`
-        ).bind(attendee.phone_number).first();
-      } else if (attendee.email) {
-        journeyRow = await env.DB.prepare(
-          `SELECT COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
-           FROM event_attendees ea2
-           JOIN events e ON e.id = ea2.event_id
-           WHERE ea2.email = ? AND ea2.status = 'confirmed' AND ea2.attended = 1`
-        ).bind(attendee.email).first();
-      }
-      return {
-        ...attendee,
-        journey_preview: journeyRow
-          ? { sessions_attended: journeyRow.sessions_attended || 0, last_attended: journeyRow.last_attended || null }
-          : { sessions_attended: 0, last_attended: null },
-      };
-    })
-  );
+  // Batch journey preview: collect unique phones/emails, run 2 queries instead of N
+  const attendees = result.results as Record<string, any>[];
+  const phones = Array.from(new Set(attendees.map(a => a.phone_number).filter(Boolean))) as string[];
+  const emails = Array.from(new Set(attendees.filter(a => !a.phone_number).map(a => a.email).filter(Boolean))) as string[];
+
+  const journeyByPhone: Record<string, { sessions_attended: number; last_attended: string | null }> = {};
+  const journeyByEmail: Record<string, { sessions_attended: number; last_attended: string | null }> = {};
+
+  if (phones.length > 0) {
+    const placeholders = phones.map(() => '?').join(',');
+    const phoneRows = await env.DB.prepare(
+      `SELECT ea2.phone_number, COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
+       FROM event_attendees ea2
+       JOIN events e ON e.id = ea2.event_id
+       WHERE ea2.phone_number IN (${placeholders}) AND ea2.status = 'confirmed' AND ea2.attended = 1
+       GROUP BY ea2.phone_number`
+    ).bind(...phones).all();
+    for (const row of phoneRows.results as Record<string, any>[]) {
+      journeyByPhone[row.phone_number] = { sessions_attended: row.sessions_attended || 0, last_attended: row.last_attended || null };
+    }
+  }
+
+  if (emails.length > 0) {
+    const placeholders = emails.map(() => '?').join(',');
+    const emailRows = await env.DB.prepare(
+      `SELECT ea2.email, COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
+       FROM event_attendees ea2
+       JOIN events e ON e.id = ea2.event_id
+       WHERE ea2.email IN (${placeholders}) AND ea2.status = 'confirmed' AND ea2.attended = 1
+       GROUP BY ea2.email`
+    ).bind(...emails).all();
+    for (const row of emailRows.results as Record<string, any>[]) {
+      journeyByEmail[row.email] = { sessions_attended: row.sessions_attended || 0, last_attended: row.last_attended || null };
+    }
+  }
+
+  const attendeesWithJourney = attendees.map((attendee) => {
+    const journey = attendee.phone_number
+      ? journeyByPhone[attendee.phone_number]
+      : attendee.email
+        ? journeyByEmail[attendee.email]
+        : null;
+    return {
+      ...attendee,
+      journey_preview: journey || { sessions_attended: 0, last_attended: null },
+    };
+  });
 
   return json(attendeesWithJourney);
 };
@@ -5568,6 +5608,7 @@ const routes: [string, string, Handler][] = [
 
   // Events — Admin
   ['GET', '/api/admin/events', handleGetEvents],
+  ['GET', '/api/admin/events/:id', handleGetEvent],
   ['POST', '/api/admin/events', handleCreateEvent],
   ['PUT', '/api/admin/events/:id', handleUpdateEvent],
   ['DELETE', '/api/admin/events/:id', handleDeleteEvent],
@@ -5683,7 +5724,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account',
           'Access-Control-Max-Age': '86400',
         },
       });

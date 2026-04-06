@@ -12,46 +12,50 @@ export const useEvents = () => {
     refetchOnWindowFocus: false,
     queryFn: async () => {
       const data = await api.events.listAdmin();
-      return (data || []).map((e: any) => ({
-        id: e.id,
-        slug: e.slug,
-        title: e.title,
-        subtitle: e.subtitle || undefined,
-        description: e.description || undefined,
-        flyerImageUrl: e.flyer_image_url || undefined,
-        eventDate: e.event_date,
-        eventEndDate: e.event_end_date || undefined,
-        locationName: e.location_name || undefined,
-        addressText: e.address_text || undefined,
-        mapLink: e.map_link || undefined,
-        guidelinesText: e.guidelines_text || undefined,
-        venueGuide: e.venue_guide ? JSON.parse(e.venue_guide) : undefined,
-        totalCapacity: Number(e.total_capacity) || 0,
-        claimWindowMinutes: Number(e.claim_window_minutes) || 30,
-        timezone: e.timezone || 'Asia/Taipei',
-        status: e.status || 'draft',
-        sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
-        playlistUrl: e.playlist_url || undefined,
-        // V2 fields
-        briefingCards: e.briefing_cards
-          ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
-          : undefined,
-        areaHint: e.area_hint || undefined,
-        moodHints: e.mood_hints
-          ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
-          : undefined,
-        createdAt: e.created_at,
-        updatedAt: e.updated_at,
-        confirmedCount: Number(e.confirmed_count) || 0,
-        waitlistCount: Number(e.waitlist_count) || 0,
-        requestedCount: Number(e.requested_count) || 0,
-        seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
-      })) as TeaEvent[];
+      return (data || []).map(mapEvent) as TeaEvent[];
     },
   });
 };
 
-// Fetch a single event by ID (admin)
+// Helper to map raw event row to TeaEvent
+function mapEvent(e: any): TeaEvent {
+  return {
+    id: e.id,
+    slug: e.slug,
+    title: e.title,
+    subtitle: e.subtitle || undefined,
+    description: e.description || undefined,
+    flyerImageUrl: e.flyer_image_url || undefined,
+    eventDate: e.event_date,
+    eventEndDate: e.event_end_date || undefined,
+    locationName: e.location_name || undefined,
+    addressText: e.address_text || undefined,
+    mapLink: e.map_link || undefined,
+    guidelinesText: e.guidelines_text || undefined,
+    venueGuide: e.venue_guide ? JSON.parse(e.venue_guide) : undefined,
+    totalCapacity: Number(e.total_capacity) || 0,
+    claimWindowMinutes: Number(e.claim_window_minutes) || 30,
+    timezone: e.timezone || 'Asia/Taipei',
+    status: e.status || 'draft',
+    sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
+    playlistUrl: e.playlist_url || undefined,
+    briefingCards: e.briefing_cards
+      ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
+      : undefined,
+    areaHint: e.area_hint || undefined,
+    moodHints: e.mood_hints
+      ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
+      : undefined,
+    createdAt: e.created_at,
+    updatedAt: e.updated_at,
+    confirmedCount: Number(e.confirmed_count) || 0,
+    waitlistCount: Number(e.waitlist_count) || 0,
+    requestedCount: Number(e.requested_count) || 0,
+    seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
+  };
+}
+
+// Fetch a single event by ID (admin) — dedicated endpoint, no full list fetch
 export const useEvent = (id: string) => {
   return useQuery({
     queryKey: ['events', id],
@@ -59,45 +63,9 @@ export const useEvent = (id: string) => {
     refetchOnWindowFocus: false,
     enabled: !!id,
     queryFn: async () => {
-      // Fetch from list and filter, or use a dedicated endpoint if available
-      const data = await api.events.listAdmin();
-      const e = (data || []).find((ev: any) => ev.id === id);
+      const e = await api.events.getAdmin(id);
       if (!e) throw new Error('Event not found');
-      return {
-        id: e.id,
-        slug: e.slug,
-        title: e.title,
-        subtitle: e.subtitle || undefined,
-        description: e.description || undefined,
-        flyerImageUrl: e.flyer_image_url || undefined,
-        eventDate: e.event_date,
-        eventEndDate: e.event_end_date || undefined,
-        locationName: e.location_name || undefined,
-        addressText: e.address_text || undefined,
-        mapLink: e.map_link || undefined,
-        guidelinesText: e.guidelines_text || undefined,
-        venueGuide: e.venue_guide ? JSON.parse(e.venue_guide) : undefined,
-        totalCapacity: Number(e.total_capacity) || 0,
-        claimWindowMinutes: Number(e.claim_window_minutes) || 30,
-        timezone: e.timezone || 'Asia/Taipei',
-        status: e.status || 'draft',
-        sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
-        playlistUrl: e.playlist_url || undefined,
-        // V2 fields
-        briefingCards: e.briefing_cards
-          ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
-          : undefined,
-        areaHint: e.area_hint || undefined,
-        moodHints: e.mood_hints
-          ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
-          : undefined,
-        createdAt: e.created_at,
-        updatedAt: e.updated_at,
-        confirmedCount: Number(e.confirmed_count) || 0,
-        waitlistCount: Number(e.waitlist_count) || 0,
-        requestedCount: Number(e.requested_count) || 0,
-        seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
-      } as TeaEvent;
+      return mapEvent(e);
     },
   });
 };
