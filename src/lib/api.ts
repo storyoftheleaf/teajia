@@ -643,6 +643,12 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getAdmin: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${id}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
     create: async (data: Record<string, any>) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/events`, {
         method: 'POST',
