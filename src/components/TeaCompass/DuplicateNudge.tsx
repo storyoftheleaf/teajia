@@ -44,9 +44,9 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
       className="overflow-hidden"
     >
-      <div className="bg-tea-surface border border-tea-border rounded px-2.5 py-1.5 flex items-center gap-2">
-        <p className="text-[11px] text-tea-text-sec leading-snug flex-1 min-w-0">
-          You logged <span className="text-tea-text">"{matchedEntry.name}"</span>{vendor} {date}
+      <div className="bg-tea-surface border border-tea-border rounded px-2.5 py-1.5 flex items-center gap-2 min-w-0">
+        <p className="text-[11px] text-tea-text-sec flex-1 min-w-0 truncate whitespace-nowrap" title={`Logged "${matchedEntry.name}"${vendor} ${date}`}>
+          Logged <span className="text-tea-text">"{matchedEntry.name}"</span>{vendor} &middot; {date}
         </p>
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -54,15 +54,14 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
             onClick={onSameTea}
             className="pill text-[11px] text-tea-gold px-2 py-0.5"
           >
-            Same tea
+            Same
           </button>
-          <span className="text-tea-text-dim text-[11px]">&middot;</span>
           <button
             type="button"
             onClick={onDifferentTea}
             className="pill text-[11px] text-tea-gold px-2 py-0.5"
           >
-            Different tea
+            Different
           </button>
           <button
             type="button"

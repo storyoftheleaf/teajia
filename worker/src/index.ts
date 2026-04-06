@@ -344,14 +344,19 @@ function addPricingFields(product: any, rates: Map<string, number>): any {
 // ── Route Handlers ──
 
 const handleLogin: Handler = async (request, env) => {
-  const { email, password } = await request.json() as { email?: string; password?: string };
-  if (!email || !password) return json({ error: 'Email and password required' }, 400);
+  const body = await request.json() as { email?: string; identifier?: string; password?: string };
+  // `identifier` is the preferred field (email or username); `email` kept for backwards compat.
+  const identifier = (body.identifier ?? body.email ?? '').trim();
+  const password = body.password;
+  if (!identifier || !password) return json({ error: 'Email/username and password required' }, 400);
 
   const computedHash = await hashPassword(password);
 
-  // Try DB-based auth (users table)
+  // Try DB-based auth (users table) — match on email OR username (case-insensitive)
   try {
-    const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+    const user = await env.DB.prepare(
+      'SELECT * FROM users WHERE lower(email) = lower(?) OR lower(username) = lower(?) LIMIT 1'
+    ).bind(identifier, identifier).first();
     if (user && user.password_hash === computedHash) {
       const memberships = await loadMemberships(env, user.id as string);
       const activeAccountId = memberships[0]?.account_id || null;
@@ -360,12 +365,13 @@ const handleLogin: Handler = async (request, env) => {
         email: user.email as string,
         role: user.role as string,
         name: user.name as string,
+        username: (user.username as string | null) ?? null,
         memberships,
         active_account_id: activeAccountId,
       });
       return json({
         token,
-        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+        user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role },
         memberships,
         active_account_id: activeAccountId,
       });
@@ -375,7 +381,7 @@ const handleLogin: Handler = async (request, env) => {
   }
 
   // Dev admin shortcut: login "aaa" / password "asdfghjkl" → owner role
-  if (email === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
+  if (identifier === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
     // Ensure user exists in DB for consistency, and ensure they have a
     // membership in the Bali account with owner role.
     try {
@@ -417,7 +423,7 @@ const handleLogin: Handler = async (request, env) => {
     }];
     const token = await createToken(env.JWT_SECRET, {
       sub: 'env-admin',
-      email,
+      email: identifier,
       role: 'admin',
       name: 'Admin',
       memberships,
@@ -434,21 +440,36 @@ const handleLogin: Handler = async (request, env) => {
   return json({ error: 'Invalid credentials' }, 401);
 };
 
+const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{3,32}$/;
+
 const handleSignup: Handler = async (request, env) => {
-  const { email, password, name } = await request.json() as { email?: string; password?: string; name?: string };
+  const body = await request.json() as { email?: string; password?: string; name?: string; username?: string };
+  const email = body.email?.trim();
+  const password = body.password;
+  const name = body.name;
+  const username = body.username?.trim() || null;
+
   if (!email || !password) return json({ error: 'Email and password required' }, 400);
   if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+  if (username !== null && !USERNAME_PATTERN.test(username)) {
+    return json({ error: 'Username must be 3–32 chars, letters/numbers/._- only' }, 400);
+  }
 
   // Check if email already exists
-  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-  if (existing) return json({ error: 'An account with this email already exists' }, 409);
+  const existingEmail = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = lower(?)').bind(email).first();
+  if (existingEmail) return json({ error: 'An account with this email already exists' }, 409);
+
+  if (username) {
+    const existingUsername = await env.DB.prepare('SELECT id FROM users WHERE lower(username) = lower(?)').bind(username).first();
+    if (existingUsername) return json({ error: 'That username is already taken' }, 409);
+  }
 
   const passwordHash = await hashPassword(password);
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
 
   await env.DB.prepare(
-    'INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)'
-  ).bind(id, email, name || '', passwordHash, 'user').run();
+    'INSERT INTO users (id, email, username, name, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(id, email, username, name || '', passwordHash, 'user').run();
 
   // New users auto-join nothing — they must be invited to an account.
   // The empty memberships array is intentional; the frontend should show a
@@ -459,13 +480,14 @@ const handleSignup: Handler = async (request, env) => {
     email,
     role: 'user',
     name: name || '',
+    username,
     memberships,
     active_account_id: null,
   });
 
   return json({
     token,
-    user: { id, email, name: name || '', role: 'user' },
+    user: { id, email, username, name: name || '', role: 'user' },
     memberships,
     active_account_id: null,
   }, 201);
@@ -481,12 +503,12 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) return json(user);
   } catch {}
 
   // Fallback to token claims
-  return json({ id: claims.sub, email: claims.email, name: claims.name, role: claims.role });
+  return json({ id: claims.sub, email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
 };
 
 // ── Change Password ──
@@ -523,24 +545,41 @@ const handleUpdateProfile: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
 
-  const { name, email } = await request.json() as { name?: string; email?: string };
+  const { name, email, username } = await request.json() as { name?: string; email?: string; username?: string | null };
 
   if (email && email !== claims.email) {
-    const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(email, claims.sub).first();
+    const existing = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?').bind(email, claims.sub).first();
     if (existing) return json({ error: 'Email already in use' }, 409);
+  }
+
+  // Normalize username: empty string → null (clear); trim otherwise.
+  let normalizedUsername: string | null | undefined = undefined;
+  if (username !== undefined) {
+    const trimmed = (username ?? '').toString().trim();
+    if (trimmed === '') {
+      normalizedUsername = null;
+    } else {
+      if (!USERNAME_PATTERN.test(trimmed)) {
+        return json({ error: 'Username must be 3–32 chars, letters/numbers/._- only' }, 400);
+      }
+      const existing = await env.DB.prepare('SELECT id FROM users WHERE lower(username) = lower(?) AND id != ?').bind(trimmed, claims.sub).first();
+      if (existing) return json({ error: 'That username is already taken' }, 409);
+      normalizedUsername = trimmed;
+    }
   }
 
   const updates: string[] = [];
   const binds: any[] = [];
   if (name !== undefined) { updates.push('name = ?'); binds.push(name); }
   if (email !== undefined) { updates.push('email = ?'); binds.push(email); }
+  if (normalizedUsername !== undefined) { updates.push('username = ?'); binds.push(normalizedUsername); }
 
   if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
 
   binds.push(claims.sub);
   await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
 
-  const updatedUser = await env.DB.prepare('SELECT id, email, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
 
   // Issue fresh token with updated claims, preserving account context.
   const memberships = await loadMemberships(env, updatedUser!.id as string);
@@ -552,6 +591,7 @@ const handleUpdateProfile: Handler = async (request, env) => {
     email: updatedUser!.email as string,
     role: updatedUser!.role as string,
     name: updatedUser!.name as string,
+    username: (updatedUser!.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
   });
@@ -589,7 +629,7 @@ const handleListUsers: Handler = async (request, env) => {
   if (authErr) return authErr;
 
   const users = await env.DB.prepare(
-    'SELECT id, email, name, role, admin_request_status, admin_requested_at, created_at FROM users ORDER BY created_at DESC'
+    'SELECT id, email, username, name, role, admin_request_status, admin_requested_at, created_at FROM users ORDER BY created_at DESC'
   ).all();
 
   return json(users.results);
@@ -627,7 +667,7 @@ const handleUpdateUserRole: Handler = async (request, env, params) => {
   await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
 
   const updated = await env.DB.prepare(
-    'SELECT id, email, name, role, admin_request_status, admin_requested_at, created_at FROM users WHERE id = ?'
+    'SELECT id, email, username, name, role, admin_request_status, admin_requested_at, created_at FROM users WHERE id = ?'
   ).bind(userId).first();
 
   return json(updated);
@@ -668,6 +708,40 @@ const handleCreateResetToken: Handler = async (request, env) => {
   ).bind(id, userId, resetToken).run();
 
   return json({ token: resetToken, user: { id: user.id, email: user.email, name: user.name } });
+};
+
+// ── Forgot Password: Self-service reset token request (public) ──
+// Creates a reset token for the given email and returns it directly.
+// Note: Without an email delivery system, the token is returned in the response
+// so the user can immediately set a new password. This is acceptable for a
+// single-tenant internal tool. Do not expose to the public internet without
+// adding email delivery + enumeration protections.
+const handleForgotPassword: Handler = async (request, env) => {
+  const { email } = await request.json() as { email?: string };
+  if (!email) return json({ error: 'Email required' }, 400);
+
+  const user = await env.DB.prepare(
+    'SELECT id, email, name FROM users WHERE email = ?'
+  ).bind(email).first();
+
+  // Generic response shape whether or not the user exists
+  if (!user) {
+    return json({ ok: true, message: 'No account found with that email.' }, 404);
+  }
+
+  // Generate a random reset token (expires in 1 hour)
+  const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+
+  await env.DB.prepare(
+    "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+1 hour'))"
+  ).bind(id, user.id, resetToken).run();
+
+  return json({
+    ok: true,
+    token: resetToken,
+    message: 'Reset token generated. Use it within the next hour to set a new password.',
+  });
 };
 
 // ── Reset Password with Token (public) ──
@@ -5375,6 +5449,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/auth/change-password', handleChangePassword],
   ['PUT', '/api/auth/profile', handleUpdateProfile],
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
+  ['POST', '/api/auth/forgot-password', handleForgotPassword],
   ['POST', '/api/auth/reset-password', handleResetPassword],
 
   // Accounts / Multi-store
