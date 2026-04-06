@@ -135,7 +135,12 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
   if (!claims) return null;
   try {
     const store = useAppStore.getState();
-    const memberships = Array.isArray(claims.memberships) ? claims.memberships : [];
+    const rawMemberships = Array.isArray(claims.memberships) ? claims.memberships : [];
+    // Normalize: older JWTs may contain 'name' instead of 'account_name'
+    const memberships = rawMemberships.map((m: any) => ({
+      ...m,
+      account_name: m.account_name || m.name || '',
+    }));
     store.setMemberships(memberships);
     if (claims.active_account_id) {
       store.setActiveAccountId(claims.active_account_id);

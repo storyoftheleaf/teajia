@@ -13,7 +13,7 @@ const roleLabel: Record<AccountRole, string> = {
 };
 
 function initialsOf(name: string): string {
-  return name
+  return (name || '')
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
