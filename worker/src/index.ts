@@ -15,7 +15,7 @@ export interface AccountMembership {
   account_id: string;
   role: 'owner' | 'manager' | 'staff' | 'viewer';
   slug: string;
-  name: string;
+  account_name: string;
 }
 
 export interface TokenClaims {
@@ -105,7 +105,7 @@ async function loadMemberships(env: Env, userId: string): Promise<AccountMembers
       account_id: r.account_id as string,
       role: r.role as AccountMembership['role'],
       slug: r.slug as string,
-      name: r.name as string,
+      account_name: r.name as string,
     }));
   } catch {
     return [];
@@ -419,7 +419,7 @@ const handleLogin: Handler = async (request, env) => {
       account_id: BALI_ACCOUNT_ID,
       role: 'owner',
       slug: 'teajia-bali',
-      name: 'Teajia Bali',
+      account_name: 'Teajia Bali',
     }];
     const token = await createToken(env.JWT_SECRET, {
       sub: 'env-admin',
