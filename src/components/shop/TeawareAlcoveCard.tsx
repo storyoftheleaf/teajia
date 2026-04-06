@@ -48,9 +48,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   const currentImage = allImages[activeImageIndex] || '';
 
   const isSoldOut = (item.stock_g || 0) <= 0;
-  // Fixed max — don't reveal exact stock to customers
-  const maxStock = 20;
-  const exceedsStock = quantity > (item.stock_g || 0) && !isSoldOut;
+  const maxStock = Math.max(1, Math.floor(item.stock_g || 1));
   // price_50g is per-unit price for teaware (legacy field name)
   const unitPrice = parseFloat(item.price_50g || '0');
   const total = fmtNum(unitPrice * quantity);
@@ -100,7 +98,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   }, []);
 
   const handleAdd = () => {
-    if (isSoldOut || exceedsStock) return;
+    if (isSoldOut) return;
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
     if (onAddToCart) {
@@ -505,7 +503,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
 
           <button
             onClick={handleAdd}
-            disabled={isSoldOut || exceedsStock}
+            disabled={isSoldOut}
             onMouseEnter={() => setHovered("cart")}
             onMouseLeave={() => setHovered(null)}
             style={{
@@ -513,30 +511,30 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
               fontFamily: "var(--font-sans)",
               fontSize: "11px", fontWeight: 400,
               letterSpacing: "0.06em", textTransform: "uppercase",
-              color: (isSoldOut || exceedsStock)
+              color: isSoldOut
                 ? 'var(--tea-text-sec)'
                 : added ? colors.bg : (hovered === "cart" ? colors.note : colors.muted),
-              background: (isSoldOut || exceedsStock)
+              background: isSoldOut
                 ? 'var(--tea-accent-sub)'
                 : added
                   ? colors.success
                   : hovered === "cart"
                     ? "var(--tea-accent-sub)"
                     : "transparent",
-              border: (isSoldOut || exceedsStock)
+              border: isSoldOut
                 ? '1px solid var(--tea-border)'
                 : added
                   ? `1px solid ${colors.success}`
                   : `1px solid rgba(200,170,120,${hovered === "cart" ? 0.3 : 0.18})`,
               borderRadius: "3px",
-              cursor: (isSoldOut || exceedsStock) ? "not-allowed" : "pointer",
+              cursor: isSoldOut ? "not-allowed" : "pointer",
               transition: "all 0.25s ease",
               display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-              opacity: (isSoldOut || exceedsStock) ? 0.6 : 1,
+              opacity: isSoldOut ? 0.6 : 1,
             }}
           >
-            <span>{isSoldOut ? "Sold Out" : exceedsStock ? "Not enough in stock" : added ? "Added" : "Add"}</span>
-            {!isSoldOut && !exceedsStock && (
+            <span>{isSoldOut ? "Sold Out" : added ? "Added" : "Add"}</span>
+            {!isSoldOut && (
               <span style={{
                 fontFamily: "var(--font-mono)",
                 fontWeight: 300, fontStyle: "italic", opacity: 0.7, fontSize: "11px",

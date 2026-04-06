@@ -48,8 +48,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
     ? parseFloat(item.price_per_gram || '0')
     : parseFloat(item.price_50g || '0'); // price_50g is per-unit price for teaware (legacy field name)
   const total = pricePerUnit * quantity;
-  // Fixed max — don't reveal exact stock to customers. Validated at cart time.
-  const maxQty = isTea ? 1000 : 20;
+  const maxQty = isTea ? Math.min(item.stock_g, 500) : Math.min(item.stock_g, 10);
 
   const handleAdd = () => {
     onAddToCart(item, quantity, total);
