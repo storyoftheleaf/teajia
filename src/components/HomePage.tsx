@@ -418,7 +418,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* ── Act 1: Above the fold ── */}
       <div
         className="relative flex flex-col items-center justify-between px-8"
-        style={{ minHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px))', opacity: fadeOpacity }}
+        style={{ minHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px))', opacity: fadeOpacity }}
       >
 
         {/* Top spacer */}
