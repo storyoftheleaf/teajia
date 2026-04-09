@@ -5,7 +5,8 @@ import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import type { TastingData } from '../../types';
 import { calculatePricing } from '../utils';
 import { TeaIllustration } from './TeaIllustration';
-import { TastingFlow } from '../../components/tasting/TastingFlow';
+import { TastingSession } from '../../components/tasting/TastingSession';
+import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
 import { useAppStore } from '../store';
 import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
@@ -191,6 +192,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const { aiPromptTemplate, draftProduct, setDraftProduct } = useAppStore();
 
   const [tastingData, setTastingData] = useState<TastingData>({});
+  const [tastingOpen, setTastingOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     type: 'Dark',
@@ -1009,7 +1011,50 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         {/* Tasting Taxonomy Picker */}
                         <div>
                             <label className={labelStyle}>Tasting Notes</label>
-                            <TastingFlow mode="admin" value={tastingData} onChange={setTastingData} />
+                            <button
+                                type="button"
+                                onClick={() => setTastingOpen(true)}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-xl text-sm text-tea-text hover:bg-tea-elevated transition-colors"
+                            >
+                                <span style={{ fontFamily: 'var(--font-body)' }}>
+                                    {flattenTastingNotes(tastingData).length > 0
+                                        ? `${flattenTastingNotes(tastingData).length} notes selected`
+                                        : 'Open tasting session'}
+                                </span>
+                                <Edit size={14} className="text-tea-text-dim" />
+                            </button>
+                            {flattenTastingNotes(tastingData).length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                    {flattenTastingNotes(tastingData).slice(0, 6).map(termId => {
+                                        const Icon = resolveTermIcon(termId);
+                                        return (
+                                            <span key={termId} className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold">
+                                                <Icon size={10} />
+                                                {resolveTermLabel(termId)}
+                                            </span>
+                                        );
+                                    })}
+                                    {flattenTastingNotes(tastingData).length > 6 && (
+                                        <span className="text-[11px] px-1.5 py-0.5 text-tea-text-dim">
+                                            +{flattenTastingNotes(tastingData).length - 6} more
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            {tastingOpen && (
+                                <TastingSession
+                                    item={{
+                                        id: initialData?.id ?? 'new',
+                                        name: formData.givenName || formData.productName || 'New Tea',
+                                        type: formData.type,
+                                        image: formData.imageUrl || undefined,
+                                    }}
+                                    adminMode
+                                    initialData={tastingData}
+                                    onClose={() => setTastingOpen(false)}
+                                    onSave={(data) => { setTastingData(data); setTastingOpen(false); }}
+                                />
+                            )}
                         </div>
 
                         {/* Terroir */}

@@ -68,10 +68,6 @@ export function isTokenExpired(): boolean {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = getToken();
-  if (token && isTokenExpired()) {
-    clearToken();
-  }
   const currentToken = getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (currentToken) {
@@ -635,7 +631,7 @@ export const api = {
   extractFromImage: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('teajia_token');
     const res = await fetchWithTimeout(`${API_URL}/api/extract-from-image`, {
       method: 'POST',
       headers: {
@@ -648,7 +644,8 @@ export const api = {
 
   transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
     const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.webm');
+    const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
+    formData.append('file', audioBlob, `recording.${ext}`);
     const token = getToken();
     const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
       method: 'POST',
@@ -1142,7 +1139,7 @@ export const api = {
     // Public: get a single sample (source info stripped for non-admin)
     get: async (id: string) => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia-token');
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia_token');
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetchWithTimeout(`${API_URL}/api/samples/${id}`, { headers });
       return handleResponse(res);
@@ -1150,7 +1147,7 @@ export const api = {
     // Public: get all samples in a set
     getSet: async (setId: string) => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia-token');
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia_token');
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetchWithTimeout(`${API_URL}/api/samples/set/${setId}`, { headers });
       return handleResponse(res);
@@ -1158,7 +1155,7 @@ export const api = {
     // Public/guest: add a tasting to a sample
     addTasting: async (sampleId: string, data: { tasting: Record<string, any>; rating?: number; verdict: string; wouldBuy: boolean; personalNote?: string; tasterName?: string }) => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia-token');
+      const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia_token');
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetchWithTimeout(`${API_URL}/api/samples/${sampleId}/tastings`, {
         method: 'POST',

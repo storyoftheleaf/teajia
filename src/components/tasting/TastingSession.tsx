@@ -1,27 +1,67 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { X, Check, ShoppingCart, Leaf, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
-import type { TastingData, CustomerTasting, InventoryItem } from '../../types';
-import { TastingCapture } from './TastingCapture';
-import { useAppStore } from '../../lib/store';
+import { createPortal } from 'react-dom';
 import {
-  resolveTermLabel,
-  resolveTermIcon,
-} from '../../data/tastingTaxonomy';
+  Check, Leaf, Sparkles, Mic,
+  Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
+} from 'lucide-react';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import type { TastingData, CustomerTasting } from '../../types';
+import { TastingFlow, ALL_SECTIONS, type SectionId } from './TastingFlow';
+import { useAppStore } from '../../lib/store';
+import { syncTastingJournal } from '../../lib/tastingJournalSync';
+import { hasToken } from '../../lib/api';
+import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
 
-interface TastingSessionProps {
-  item: InventoryItem;
-  onClose: () => void;
-  onOrderTea?: (item: InventoryItem) => void;
+export interface TastingItem {
+  id: string;
+  name: string;
+  type?: string;
+  image?: string;
+  /** Stamps sourceType on every journal entry automatically */
+  sourceType?: 'product' | 'compass' | 'event' | 'sample';
+  compassEntryId?: string;
+  eventId?: string;
+  eventTitle?: string;
 }
 
-/** Render 1-5 tea leaf rating */
+type Verdict = 'love' | 'like' | 'neutral' | 'pass';
+
+const VERDICT_OPTIONS: {
+  id: Verdict;
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+}[] = [
+  { id: 'love',    label: 'Love it',  icon: Heart },
+  { id: 'like',    label: 'Like it',  icon: ThumbsUp },
+  { id: 'neutral', label: 'Neutral',  icon: Minus },
+  { id: 'pass',    label: 'Pass',     icon: ThumbsDown },
+];
+
+interface TastingSessionProps {
+  item: TastingItem;
+  onClose: () => void;
+  /**
+   * ADMIN ONLY: bypasses the journal entirely and writes to the product record.
+   * When provided with adminMode=true, the journal is never touched.
+   */
+  onSave?: (data: TastingData, verdict?: Verdict, wouldBuy?: boolean) => void;
+  /**
+   * CUSTOMER: fires after the journal write for domain-specific side effects
+   * (e.g. updating the compass store entry, sample store).
+   */
+  onAfterSave?: (data: TastingData) => void;
+  /** When true, onSave is the only write — no journal entry is created */
+  adminMode?: boolean;
+  /** Pre-populate with existing tasting data (admin edit flows) */
+  initialData?: TastingData;
+  showVerdict?: boolean;
+  onOrderTea?: (item: TastingItem) => void;
+}
+
 const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
   <div className="flex items-center gap-0.5">
     {Array.from({ length: 5 }, (_, i) => (
-      <Leaf
-        key={i}
-        size={14}
+      <Leaf key={i} size={14}
         className={i < rating ? 'text-tea-gold fill-tea-gold' : 'text-tea-text-dim'}
         style={{ opacity: i < rating ? 1 : 0.25 }}
       />
@@ -29,173 +69,287 @@ const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
   </div>
 );
 
-export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, onOrderTea }) => {
-  const { addTasting } = useAppStore();
-  const [tastingData, setTastingData] = useState<TastingData>({});
-  const [personalNote] = useState('');
+export const TastingSession: React.FC<TastingSessionProps> = ({
+  item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea,
+}) => {
+  const { addTasting, updateTasting, activeAccountId, tastingJournal } = useAppStore();
+  const isGuest = !hasToken();
+  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? {});
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  // Drag-to-dismiss state
-  const dragY = useMotionValue(0);
-  const modalOpacity = useTransform(dragY, [0, 200], [1, 0.5]);
-  const touchStartY = useRef<number | null>(null);
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
-  // Timer ref for save timeout cleanup
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [wouldBuy, setWouldBuy] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
+  const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
+  const [showNote, setShowNote] = useState(false);
+  const [startNoteSignal, setStartNoteSignal] = useState(0);
+  const [stopNoteSignal, setStopNoteSignal] = useState(0);
+  const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
+    body: 0, throat: 0, flavor: 0, state: 0,
+  });
+
+  // Long-press on Note
+  const noteHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteDidLongPress = useRef(false);
+
+  const handleNotePointerDown = useCallback((e: React.PointerEvent) => {
+    noteDidLongPress.current = false;
+    noteHoldTimer.current = setTimeout(() => {
+      noteDidLongPress.current = true;
+      setShowNote(true);
+      setStartNoteSignal(s => s + 1); // fires every hold, not just first mount
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 350);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
+  const handleNotePointerUp = useCallback(() => {
+    if (noteHoldTimer.current) { clearTimeout(noteHoldTimer.current); noteHoldTimer.current = null; }
+    if (!noteDidLongPress.current) {
+      setShowNote(v => !v);
+    } else {
+      // Release after long-press: stop the recording
+      setStopNoteSignal(s => s + 1);
+    }
+    noteDidLongPress.current = false;
+  }, []);
+
+  const handleNotePointerCancel = useCallback(() => {
+    if (noteHoldTimer.current) { clearTimeout(noteHoldTimer.current); noteHoldTimer.current = null; }
+    noteDidLongPress.current = false;
+  }, []);
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
+
   const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
-  const hasCaptureData = tastingData.quality != null || tastingData.cleanliness != null ||
-    tastingData.patience != null || tastingData.mood != null || tastingData.huiGan != null ||
-    (tastingData.voiceNote?.trim()?.length ?? 0) > 0;
+  const hasCaptureData =
+    tastingData.quality != null ||
+    tastingData.cleanliness != null ||
+    tastingData.clarity != null ||
+    tastingData.huiGan != null ||
+    (tastingData.notes?.length ?? 0) > 0;
   const hasNotes = hasArrayNotes || hasCaptureData;
 
   const handleSave = useCallback(() => {
     if (saveState !== 'idle') return;
     setSaveState('saving');
 
-    const note = tastingData.voiceNote?.trim() || personalNote.trim() || undefined;
-    const entryRating = tastingData.quality ?? tastingData.rating;
-
-    const entry: CustomerTasting = {
-      id: crypto.randomUUID(),
-      teaId: item.id,
-      teaName: item.name,
-      teaType: item.type || '',
-      teaImage: item.image || undefined,
-      tasting: tastingData,
-      personalNote: note,
-      rating: entryRating,
-      createdAt: new Date().toISOString(),
-    };
     try {
-      addTasting(entry);
+      if (adminMode && onSave) {
+        // Admin flow: write to product record only, no journal entry
+        onSave(tastingData);
+      } else {
+        // Customer flow: always write to journal
+        const entryId = crypto.randomUUID();
+        const entry: CustomerTasting = {
+          id: entryId,
+          teaId: item.id,
+          teaName: item.name,
+          teaType: item.type || '',
+          teaImage: item.image,
+          tasting: tastingData,
+          personalNote: tastingData.notes?.join('\n') || tastingData.voiceNote?.trim() || undefined,
+          rating: tastingData.quality ?? tastingData.rating,
+          createdAt: new Date().toISOString(),
+          sourceType: item.sourceType,
+          compassEntryId: item.compassEntryId,
+          eventId: item.eventId,
+          eventTitle: item.eventTitle,
+          accountId: activeAccountId ?? undefined,
+        };
+        addTasting(entry);
+        setSavedEntryId(entryId);
+        // Domain side effect (e.g. update compass store entry)
+        onAfterSave?.(tastingData);
+        // Fire-and-forget sync to server
+        syncTastingJournal().catch(() => {});
+      }
     } catch {
       setSaveState('idle');
       return;
     }
 
     setSaveState('saved');
-    saveTimerRef.current = setTimeout(() => {
-      setPhase('saved');
-    }, 400);
-  }, [item, tastingData, personalNote, addTasting, saveState]);
+    saveTimerRef.current = setTimeout(() => setPhase('saved'), 400);
+  }, [item, tastingData, addTasting, onSave, onAfterSave, adminMode, activeAccountId, saveState]);
 
-  // Drag handle touch handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current === null) return;
-    const dy = Math.max(0, e.touches[0].clientY - touchStartY.current);
-    dragY.set(dy);
-  };
-  const handleTouchEnd = () => {
-    const currentY = dragY.get();
-    const dismissThreshold = hasNotes ? 200 : 80;
-    if (currentY > dismissThreshold) {
-      onClose();
-    } else {
-      animate(dragY, 0, { type: 'spring', stiffness: 400, damping: 30 });
+  const handleVerdictSelect = useCallback((v: Verdict) => {
+    setVerdict(v);
+    if (adminMode && onSave) {
+      onSave(tastingData, v, wouldBuy);
+    } else if (savedEntryId) {
+      updateTasting(savedEntryId, { verdict: v, wouldBuy });
     }
-    touchStartY.current = null;
-  };
+  }, [savedEntryId, wouldBuy, updateTasting, onSave, adminMode, tastingData]);
 
-  return (
+  const handleWouldBuyToggle = useCallback(() => {
+    const next = !wouldBuy;
+    setWouldBuy(next);
+    if (savedEntryId) updateTasting(savedEntryId, { wouldBuy: next });
+  }, [wouldBuy, savedEntryId, updateTasting]);
+
+  return createPortal(
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-priority flex items-end md:items-center justify-center"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 24 }}
+      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+      className="fixed inset-0 z-priority bg-tea-bg flex flex-col"
+      style={{
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal - full height on mobile, auto height with max on desktop */}
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        style={{ y: dragY, opacity: modalOpacity }}
-        className="relative w-full max-w-lg md:max-w-2xl lg:max-w-4xl h-[100dvh] md:h-auto md:max-h-[90vh] bg-tea-bg md:rounded-2xl overflow-hidden flex flex-col"
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0"
+        style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}
       >
-        {/* iOS-style drag handle - mobile only */}
-        <div
-          className="flex justify-center pt-2 pb-1 md:hidden cursor-grab active:cursor-grabbing"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className="w-8 h-1 rounded-full bg-tea-border" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-border">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <div
-                className="text-sm font-medium text-tea-text truncate"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {phase === 'tasting' ? 'Tasting Session' : 'Saved'}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <div className="text-xs text-tea-text-dim truncate">{item.name}</div>
-              {item.type && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold font-medium shrink-0">
-                  {item.type}
-                </span>
-              )}
-            </div>
-          </div>
+        <div className="flex items-center gap-2 min-w-0">
           {item.image && (
-            <img
-              src={item.image}
-              alt=""
-              className="w-10 h-10 rounded-lg object-cover shrink-0"
-            />
+            <img src={item.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
           )}
-          <button
-            onClick={onClose}
-            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors"
-            aria-label="Close tasting session"
-          >
-            <X size={18} />
-          </button>
+          <div className="min-w-0">
+            <div
+              className="text-sm font-medium text-tea-text truncate"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {item.name}
+            </div>
+            {item.type && (
+              <div className="text-[10px] text-tea-text-dim">{item.type}</div>
+            )}
+          </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {phase === 'tasting' ? (
-            <motion.div
-              key="tasting"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 overflow-auto flex flex-col min-h-0"
-            >
-              {/* Tasting content area */}
-              <div className="flex-1 overflow-auto px-5 py-4">
-                <TastingCapture
-                  value={tastingData}
-                  onChange={setTastingData}
-                  teaType={item.type}
-                />
-              </div>
+        <button
+          onClick={onClose}
+          className="pill text-xs text-tea-text-sec shrink-0 ml-3"
+          style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+        >
+          Cancel
+        </button>
+      </div>
 
-              {/* Sticky bottom bar: save */}
-              <div className="px-5 py-3 border-t border-tea-border bg-tea-surface/80 backdrop-blur-sm shrink-0">
-                {/* Save button with state transitions */}
+      <AnimatePresence mode="wait">
+        {phase === 'tasting' ? (
+
+          /* ── Tasting phase ── */
+          <motion.div
+            key="tasting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 min-h-0 flex flex-col"
+          >
+            {/* TastingFlow fills all available space — fade bottom edge as scroll hint (#8) */}
+            <div className="flex-1 min-h-0 overflow-hidden relative">
+              <div className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
+                style={{ background: 'linear-gradient(to bottom, transparent, var(--tea-bg))' }}
+              />
+              <TastingFlow
+                mode="customer"
+                value={tastingData}
+                onChange={setTastingData}
+                teaType={item.type}
+                activeSectionId={activeSectionId}
+                onSectionChange={setActiveSectionId}
+                showNote={showNote}
+                startNoteSignal={startNoteSignal}
+                stopNoteSignal={stopNoteSignal}
+                onCountsChange={setSectionCounts}
+              />
+            </div>
+
+            {/* Bottom bar — elevated surface (#10) */}
+            <div
+              className="shrink-0 border-t border-tea-border bg-tea-bg"
+              style={{
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                boxShadow: '0 -4px 16px rgba(0,0,0,0.25)',
+              }}
+            >
+              {/* Section tabs */}
+              <LayoutGroup>
+                <div className="flex justify-center">
+                  {ALL_SECTIONS.map((section) => {
+                    const isActive = section.id === activeSectionId;
+                    const count = sectionCounts[section.id];
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => {
+                          setActiveSectionId(section.id);
+                          setShowNote(false);
+                          setAutoStartNote(false);
+                        }}
+                        className={`relative px-4 py-3 flex items-center gap-1.5 transition-colors duration-200 ${
+                          isActive ? 'text-tea-gold font-semibold' : 'text-tea-text/40 hover:text-tea-text/70'
+                        }`}
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '11px',
+                          letterSpacing: '0.15em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {/* Active pill background */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="tasting-tab-bg"
+                            className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
+                            style={{ background: 'rgb(var(--tea-gold-rgb) / 0.08)' }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                          />
+                        )}
+                        <span className="relative z-[1]">{section.label}</span>
+                        {count > 0 && (
+                          <span className={`relative z-[1] text-[9px] font-bold ${isActive ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </LayoutGroup>
+
+              {/* Note + Save */}
+              <div className="flex items-center gap-2 px-3 py-3">
+                <button
+                  onPointerDown={handleNotePointerDown}
+                  onPointerUp={handleNotePointerUp}
+                  onPointerCancel={handleNotePointerCancel}
+                  aria-pressed={showNote}
+                  title="Tap to type · Hold to record"
+                  className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all duration-200 border shrink-0 select-none ${
+                    showNote
+                      ? 'text-tea-gold border-tea-gold/30 bg-tea-gold/5'
+                      : (tastingData.notes?.length ?? 0) > 0
+                        ? 'text-tea-gold/70 border-tea-gold/20'
+                        : 'border-tea-border text-tea-text-sec hover:text-tea-text'
+                  }`}
+                  style={{ fontFamily: 'var(--font-display)', touchAction: 'none' }}
+                >
+                  <div className="flex items-center gap-1.5" style={{ fontSize: '12px', letterSpacing: '0.06em' }}>
+                    <Mic size={13} />
+                    Note
+                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
+                      <span className="text-[9px] text-tea-gold/60 font-semibold">{tastingData.notes!.length}</span>
+                    )}
+                  </div>
+                  <span className="text-[9px] tracking-wide opacity-50" style={{ letterSpacing: '0.04em' }}>
+                    hold to record
+                  </span>
+                </button>
+
                 <button
                   onClick={handleSave}
                   disabled={!hasNotes || saveState !== 'idle'}
-                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     saveState === 'saved'
                       ? 'bg-tea-gold text-tea-bg scale-[0.98]'
                       : hasNotes
@@ -210,176 +364,213 @@ export const TastingSession: React.FC<TastingSessionProps> = ({ item, onClose, o
                     transition={{ duration: 0.2 }}
                     className="flex items-center gap-2"
                   >
-                    <Check size={16} />
+                    <Check size={15} />
                     {saveState === 'idle' && 'Save to Journal'}
-                    {saveState === 'saving' && 'Saving...'}
-                    {saveState === 'saved' && 'Saved \u2713'}
+                    {saveState === 'saving' && 'Saving…'}
+                    {saveState === 'saved' && 'Saved ✓'}
                   </motion.span>
                 </button>
               </div>
-            </motion.div>
-          ) : (
-            /* Saved confirmation view */
-            <motion.div
-              key="saved"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex-1 overflow-auto px-5 py-6"
-            >
-              {/* CSS-only particle animation: gold dots that fade and fall */}
-              <div className="relative">
-                <style>{`
-                  @keyframes goldParticleFall {
-                    0% { opacity: 1; transform: translateY(0) scale(1); }
-                    50% { opacity: 0.7; }
-                    100% { opacity: 0; transform: translateY(28px) scale(0.3); }
-                  }
-                  .gold-particle {
-                    position: absolute;
-                    width: 4px;
-                    height: 4px;
-                    border-radius: 50%;
-                    background: var(--tea-gold);
-                    animation: goldParticleFall 0.9s ease-out forwards;
-                    pointer-events: none;
-                  }
-                `}</style>
-                <div className="gold-particle" style={{ top: '10px', left: 'calc(50% - 20px)', animationDelay: '0s' }} />
-                <div className="gold-particle" style={{ top: '6px', left: 'calc(50% + 14px)', animationDelay: '0.1s' }} />
-                <div className="gold-particle" style={{ top: '12px', left: 'calc(50% - 8px)', animationDelay: '0.2s' }} />
-                <div className="gold-particle" style={{ top: '8px', left: 'calc(50% + 24px)', animationDelay: '0.15s' }} />
-              </div>
+            </div>
+          </motion.div>
 
-              <div className="text-center mb-6">
-                {/* Large gold check circle */}
-                <div className="w-16 h-16 rounded-full bg-tea-gold/15 flex items-center justify-center mx-auto mb-3">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
-                  >
-                    <Check size={28} className="text-tea-gold" />
-                  </motion.div>
+        ) : (
+
+          /* ── Confirmation phase ── */
+          <motion.div
+            key="saved"
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex-1 overflow-auto px-4 py-8"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 32px)' }}
+          >
+            {/* Particles */}
+            <div className="relative">
+              <style>{`
+                @keyframes goldParticleFall {
+                  0% { opacity: 1; transform: translateY(0) scale(1); }
+                  50% { opacity: 0.7; }
+                  100% { opacity: 0; transform: translateY(28px) scale(0.3); }
+                }
+                .gold-particle {
+                  position: absolute; width: 4px; height: 4px;
+                  border-radius: 50%; background: var(--tea-gold);
+                  animation: goldParticleFall 0.9s ease-out forwards;
+                  pointer-events: none;
+                }
+              `}</style>
+              <div className="gold-particle" style={{ top: '10px', left: 'calc(50% - 20px)', animationDelay: '0s' }} />
+              <div className="gold-particle" style={{ top: '6px',  left: 'calc(50% + 14px)', animationDelay: '0.1s' }} />
+              <div className="gold-particle" style={{ top: '12px', left: 'calc(50% - 8px)',  animationDelay: '0.2s' }} />
+              <div className="gold-particle" style={{ top: '8px',  left: 'calc(50% + 24px)', animationDelay: '0.15s' }} />
+            </div>
+
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-tea-gold/15 flex items-center justify-center mx-auto mb-3">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+                >
+                  <Check size={28} className="text-tea-gold" />
+                </motion.div>
+              </div>
+              <div className="text-sm font-medium text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+                Tasting Saved
+              </div>
+              <div className="text-xs text-tea-text-dim">Added to your journal</div>
+
+              {tastingData.quality != null && (
+                <div className="mt-2 flex justify-center">
+                  <span className="text-tea-gold text-lg font-semibold" style={{ fontFamily: 'var(--font-mono)' }}>
+                    {tastingData.quality}
+                  </span>
+                  <span className="text-tea-text-dim text-xs ml-1 self-end mb-0.5">/10</span>
                 </div>
+              )}
+              {!tastingData.quality && tastingData.rating != null && tastingData.rating > 0 && (
+                <div className="mt-2 flex justify-center">
+                  <TeaLeafRating rating={tastingData.rating} />
+                </div>
+              )}
+            </div>
+
+            {(tastingData.cleanliness || tastingData.clarity || tastingData.body?.length || tastingData.huiGan) && (
+              <div className="rounded-xl p-4 mb-3 bg-tea-surface/50">
+                <div className="flex flex-wrap gap-1.5">
+                  {tastingData.cleanliness && <span className="tag" style={{ textTransform: 'capitalize' }}>{tastingData.cleanliness}</span>}
+                  {tastingData.clarity && <span className="tag" style={{ textTransform: 'capitalize' }}>{tastingData.clarity}</span>}
+                  {tastingData.body?.map(b => <span key={b} className="tag" style={{ textTransform: 'capitalize' }}>{b}</span>)}
+                  {tastingData.huiGan && <span className="tag"><Sparkles size={10} className="shrink-0 text-tea-gold" />Hui Gan</span>}
+                </div>
+              </div>
+            )}
+
+            {(tastingData.flavor?.length ?? 0) > 0 && (
+              <div className="rounded-xl p-4 mb-3 bg-tea-surface/50">
+                <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
+                  Taste
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {tastingData.flavor!.map(termId => {
+                    const Icon = resolveTermIcon(termId);
+                    return (
+                      <span key={termId} className="tag">
+                        <Icon size={11} className="shrink-0 text-tea-gold" style={{ opacity: 0.7 }} />
+                        {resolveTermLabel(termId)}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {(tastingData.notes?.length ?? 0) > 0 && (
+              <div className="flex flex-col gap-1.5 mb-4">
+                {tastingData.notes!.map((note, i) => (
+                  <div key={i} className="text-xs text-tea-text-dim italic px-1" style={{ fontFamily: 'var(--font-body)' }}>
+                    &ldquo;{note}&rdquo;
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Account nudge — shown to guests after 3+ tastings */}
+            {isGuest && !adminMode && tastingJournal.length >= 3 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mb-4 rounded-xl border border-tea-gold/20 bg-tea-gold/5 px-4 py-3"
+              >
+                <div className="text-xs font-medium text-tea-text mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
+                  Keep your tastings
+                </div>
+                <div className="text-[11px] text-tea-text-dim mb-2.5" style={{ fontFamily: 'var(--font-body)' }}>
+                  You have {tastingJournal.length} tastings saved locally. Create a free account to sync them across devices and never lose them.
+                </div>
+                <button
+                  onClick={() => window.dispatchEvent(new Event('open-account-panel'))}
+                  className="text-[11px] font-semibold text-tea-gold hover:opacity-80 transition-opacity"
+                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+                >
+                  Create account →
+                </button>
+              </motion.div>
+            )}
+
+            {/* Verdict — sourcing flows */}
+            {showVerdict && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mt-2 mb-4"
+              >
                 <div
-                  className="text-sm font-medium text-tea-text mb-1"
+                  className="text-[10px] uppercase tracking-[0.18em] text-tea-text-dim font-medium mb-3"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  Tasting Saved
+                  Would you stock this?
                 </div>
-                <div className="text-xs text-tea-text-dim">Added to your tasting journal</div>
-
-                {/* Quality score display */}
-                {tastingData.quality != null && (
-                  <div className="mt-2 flex justify-center">
-                    <span className="text-tea-gold text-lg font-semibold num" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {tastingData.quality}
-                    </span>
-                    <span className="text-tea-text-dim text-xs ml-1 self-end mb-0.5">/10</span>
-                  </div>
-                )}
-                {/* Legacy rating display */}
-                {!tastingData.quality && tastingData.rating != null && tastingData.rating > 0 && (
-                  <div className="mt-2 flex justify-center">
-                    <TeaLeafRating rating={tastingData.rating} />
-                  </div>
-                )}
-              </div>
-
-              {/* Capture-mode summary */}
-              {(tastingData.cleanliness != null || tastingData.patience != null || tastingData.mood || tastingData.huiGan) && (
-                <div className="rounded-xl p-4 mb-4 bg-tea-surface/50 space-y-2">
-                  {/* Score row */}
-                  <div className="flex gap-4 text-[12px]" style={{ fontFamily: 'var(--font-body)' }}>
-                    {tastingData.cleanliness != null && (
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="tasting-capture-label">Clean</span>
-                        <span className="text-tea-gold font-semibold num">{tastingData.cleanliness}</span>
-                      </div>
-                    )}
-                    {tastingData.patience != null && (
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="tasting-capture-label">Patient</span>
-                        <span className="text-tea-gold font-semibold num">{tastingData.patience}</span>
-                      </div>
-                    )}
-                  </div>
-                  {/* Mood + Hui Gan */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {tastingData.mood && (
-                      <span className="tag" style={{ textTransform: 'capitalize' }}>{tastingData.mood}</span>
-                    )}
-                    {tastingData.body?.length ? tastingData.body.map(b => (
-                      <span key={b} className="tag" style={{ textTransform: 'capitalize' }}>{b}</span>
-                    )) : null}
-                    {tastingData.huiGan && (
-                      <span className="tag">
-                        <Sparkles size={10} className="shrink-0 text-tea-gold" />
-                        Hui Gan
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Flavor terms */}
-              {(tastingData.flavor?.length ?? 0) > 0 && (
-                <div className="rounded-xl p-4 mb-4 bg-tea-surface/50">
-                  <div
-                    className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
-                    Taste
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tastingData.flavor!.map(termId => {
-                      const Icon = resolveTermIcon(termId);
-                      return (
-                        <span key={termId} className="tag">
-                          <Icon size={11} className="shrink-0 text-tea-gold" style={{ opacity: 0.7 }} />
-                          {resolveTermLabel(termId)}
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {VERDICT_OPTIONS.map(({ id, label, icon: Icon }) => {
+                    const isActive = verdict === id;
+                    return (
+                      <motion.button
+                        key={id}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleVerdictSelect(id)}
+                        aria-pressed={isActive}
+                        className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all duration-150 ${
+                          isActive
+                            ? 'text-tea-gold border-tea-gold/40 bg-tea-gold/8'
+                            : 'border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span className="text-[11px] font-medium" style={{ fontFamily: 'var(--font-display)' }}>
+                          {label}
                         </span>
-                      );
-                    })}
-                  </div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
-              )}
-
-              {/* Voice note / personal note display */}
-              {(tastingData.voiceNote?.trim() || personalNote.trim()) && (
-                <div
-                  className="text-xs text-tea-text-dim italic mb-4 px-2"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  &ldquo;{(tastingData.voiceNote?.trim() || personalNote.trim())}&rdquo;
-                </div>
-              )}
-
-              {/* Post-save actions */}
-              <div className="flex flex-col gap-2">
-                {onOrderTea && (
-                  <button
-                    onClick={() => {
-                      onOrderTea(item);
-                      onClose();
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98] transition-all"
-                  >
-                    <ShoppingCart size={16} />
-                    Order This Tea
-                  </button>
-                )}
                 <button
-                  onClick={onClose}
-                  className="w-full py-3 rounded-xl text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+                  onClick={handleWouldBuyToggle}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm transition-all border ${
+                    wouldBuy
+                      ? 'border-tea-gold/30 bg-tea-gold/8 text-tea-gold font-medium'
+                      : 'border-tea-border text-tea-text-dim hover:text-tea-text-sec'
+                  }`}
                 >
-                  Done
+                  <ShoppingCart size={15} />
+                  {wouldBuy ? 'Would order this' : 'Would you order it?'}
                 </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </motion.div>
+              </motion.div>
+            )}
+
+            <div className="flex flex-col gap-2 mt-2">
+              {onOrderTea && (
+                <button
+                  onClick={() => { onOrderTea(item); onClose(); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98] transition-all"
+                >
+                  <ShoppingCart size={16} />
+                  Order This Tea
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>,
+    document.body
   );
 };

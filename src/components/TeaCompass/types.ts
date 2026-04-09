@@ -39,9 +39,10 @@ export interface TeaCompassEntry {
   originRegion?: string;
 
   // Pricing
-  priceAmount?: number;
+  priceAmount?: number;        // Cost price (what you paid)
   priceCurrency: Currency;
   pricePerUnitGrams?: number;
+  sellPrice?: number;          // Retail sell price per gram (on tags + flows to inventory)
 
   // Category
   category: CompassCategory;

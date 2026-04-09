@@ -15,7 +15,7 @@ import { useAppStore } from '../lib/store';
 import { useProductUrl } from '../hooks/useProductUrl';
 import { CompareView } from './shop/CompareView';
 import { useTastingCounts } from '../hooks/useTastingCount';
-import { TastingSession } from './tasting/TastingSession';
+import { TastingSession, type TastingItem } from './tasting/TastingSession';
 import { AnimatePresence } from 'framer-motion';
 import type { Product } from '../admin/types';
 
@@ -120,9 +120,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setViewItem(null); // close AlcoveModal
     setTastingItem(item);
   }, []);
-  const handleOrderFromTasting = useCallback((item: TeaItem) => {
+  const handleOrderFromTasting = useCallback((item: TastingItem) => {
     setTastingItem(null);
-    setViewItem(item); // open AlcoveModal for ordering
+    setViewItem(item as TeaItem); // item is always a full TeaItem at runtime
   }, []);
 
   // Sync modal state with URL (?product=ID) for shareability and back-button support

@@ -15,7 +15,7 @@ import { VendorStrip } from './VendorStrip';
 import { PriceGrams } from './PriceGrams';
 import { NotesField } from './NotesField';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { TastingFlow } from '../tasting/TastingFlow';
+import { TastingSession } from '../tasting/TastingSession';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { parseTeaInput } from './InputParser';
 import { PhotoCapture } from './PhotoCapture';
@@ -48,6 +48,74 @@ interface CaptureCardProps {
 
 const EMPTY_TASTING: TastingData = {};
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  NT: 'NT$', USD: '$', Yuan: '¥', MYR: 'RM', IDR: 'Rp', JPY: '¥', HKD: 'HK$', UNK: '?',
+};
+
+/** Retail price preview: shows cost/g and projected retail/g using 3× formula */
+function RetailPricePreview({
+  costAmount, grams, currency, shippingRatePerKg, onShippingRateChange,
+}: {
+  costAmount: number;
+  grams: number;
+  currency: string;
+  shippingRatePerKg: number;
+  onShippingRateChange: (rate: number) => void;
+}) {
+  const [editingShipping, setEditingShipping] = useState(false);
+  const [shippingInput, setShippingInput] = useState('');
+  const sym = CURRENCY_SYMBOLS[currency] || currency;
+
+  const costPerGram = costAmount / grams;
+  const shippingPerGram = shippingRatePerKg / 1000;
+  const retailPerGram = (costPerGram + shippingPerGram) * 3;
+
+  const fmtGram = (v: number) => v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toString();
+
+  return (
+    <div className="flex items-center gap-2 px-1 text-[11px] text-tea-text-dim">
+      <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
+      <span className="text-tea-border">→</span>
+      <span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
+      <span className="text-tea-border">·</span>
+      {editingShipping ? (
+        <span className="flex items-center gap-1">
+          <span className="text-tea-text-dim">ship</span>
+          <input
+            autoFocus
+            type="number"
+            inputMode="decimal"
+            value={shippingInput}
+            onChange={(e) => setShippingInput(e.target.value)}
+            onBlur={() => {
+              const v = parseFloat(shippingInput);
+              onShippingRateChange(isNaN(v) ? 0 : v);
+              setEditingShipping(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === 'Escape') {
+                const v = parseFloat(shippingInput);
+                onShippingRateChange(isNaN(v) ? 0 : v);
+                setEditingShipping(false);
+              }
+            }}
+            className="w-16 bg-tea-elevated text-tea-text text-[11px] px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="text-tea-text-dim">/kg</span>
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { setShippingInput(shippingRatePerKg > 0 ? String(shippingRatePerKg) : ''); setEditingShipping(true); }}
+          className="text-tea-text-dim hover:text-tea-text-sec transition-colors underline underline-offset-2 decoration-dashed"
+        >
+          {shippingRatePerKg > 0 ? `+${sym}${shippingRatePerKg}/kg ship` : 'add ship cost'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Get chip color for a tea type */
 function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   const color = TEA_TYPE_COLORS[type as keyof typeof TEA_TYPE_COLORS]?.card ?? '#737373';
@@ -61,6 +129,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const setLastCurrency = useTeaCompassStore((s) => s.setLastCurrency);
   const setLastVendor = useTeaCompassStore((s) => s.setLastVendor);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
+  const shippingRatePerKg = useTeaCompassStore((s) => s.shippingRatePerKg);
+  const setShippingRatePerKg = useTeaCompassStore((s) => s.setShippingRatePerKg);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
@@ -558,8 +628,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   };
 
   const closeTastingOverlay = () => {
-    // Persist local tasting data to the store
-    update({ tasting: localTasting });
     setTastingOverlayOpen(false);
   };
 
@@ -930,6 +998,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
           onFormChange={handleFormSelect}
         />
+
+        {/* Retail price preview — only for tea with cost + grams entered */}
+        {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
+          <RetailPricePreview
+            costAmount={entry.priceAmount}
+            grams={entry.pricePerUnitGrams}
+            currency={entry.priceCurrency}
+            shippingRatePerKg={shippingRatePerKg}
+            onShippingRateChange={setShippingRatePerKg}
+          />
+        )}
       </div>
 
       {/* Duplicate nudge */}
@@ -1186,41 +1265,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>
         {tastingOverlayOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-tea-bg flex flex-col"
-            style={{
-              paddingTop: 'env(safe-area-inset-top, 0px)',
-              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-              paddingLeft: 'env(safe-area-inset-left, 0px)',
-              paddingRight: 'env(safe-area-inset-right, 0px)',
+          <TastingSession
+            item={{
+              id: entry.id,
+              name: entry.name,
+              type: entry.type,
+              image: entry.photos?.[0],
+              sourceType: 'compass',
+              compassEntryId: entry.id,
             }}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-          >
-            {/* Header bar */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0">
-              <h2 className="text-tea-text text-sm font-medium tracking-wide">Tasting</h2>
-              <button
-                type="button"
-                onClick={closeTastingOverlay}
-                className="pill text-xs text-tea-text-sec"
-              >
-                Done
-              </button>
-            </div>
-
-            {/* TastingFlow body */}
-            <div className="flex-1 overflow-y-auto">
-              <TastingFlow
-                mode="customer"
-                value={localTasting}
-                onChange={setLocalTasting}
-                teaType={entry.type}
-              />
-            </div>
-          </motion.div>
+            onClose={closeTastingOverlay}
+            onAfterSave={(data: TastingData) => {
+              setLocalTasting(data);
+              update({ tasting: data });
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

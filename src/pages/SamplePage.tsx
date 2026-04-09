@@ -3,9 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, Leaf, MessageCircle, Phone, Star,
-  ShoppingCart, Edit3, Check, Heart,
-  ThumbsUp, Minus, ThumbsDown, ExternalLink,
-  ChevronDown,
+  ShoppingCart, Edit3, Check, ExternalLink,
+  Heart, ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
 import { useSampleStore } from '../samples/sampleStore';
 import { useAuth } from '../hooks/useAuth';
@@ -13,7 +12,7 @@ import { api } from '../lib/api';
 import type { TeaSample, SampleTasting, TastingVerdict, SampleStatus } from '../samples/types';
 import { VERDICT_CONFIG, SAMPLE_STATUS_CONFIG } from '../samples/types';
 import type { TastingData } from '../types';
-import { TastingFlow } from '../components/tasting/TastingFlow';
+import { TastingSession } from '../components/tasting/TastingSession';
 import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
 
 /* ─── Verdict icons ─── */
@@ -41,15 +40,8 @@ const SamplePage: React.FC = () => {
   const [loading, setLoading] = useState(!storeSample);
   const [error, setError] = useState<string | null>(null);
 
-  // Tasting capture state
+  // Tasting session state
   const [showTasting, setShowTasting] = useState(false);
-  const [tastingData, setTastingData] = useState<TastingData>({});
-  const [rating, setRating] = useState<number>(0);
-  const [verdict, setVerdict] = useState<TastingVerdict>('neutral');
-  const [wouldBuy, setWouldBuy] = useState(false);
-  const [personalNote, setPersonalNote] = useState('');
-  const [tasterName, setTasterName] = useState('');
-  const [saving, setSaving] = useState(false);
 
   // Admin edit mode
   const [editing, setEditing] = useState(false);
@@ -93,51 +85,49 @@ const SamplePage: React.FC = () => {
     }
   }, [sample?.id]);
 
-  const handleSaveTasting = useCallback(async () => {
+  // Called by TastingSession — first on "Save to Journal", then optionally with verdict
+  const handleTastingSave = useCallback(async (
+    tastingData: TastingData,
+    verdict?: TastingVerdict,
+    wouldBuy?: boolean,
+  ) => {
     if (!sample) return;
-    setSaving(true);
 
     const tasting: SampleTasting = {
       id: crypto.randomUUID(),
-      tasterId: isAdmin ? 'admin' : tasterName || 'guest',
-      tasterName: isAdmin ? 'Adrian' : tasterName || undefined,
+      tasterId: isAdmin ? 'admin' : 'guest',
+      tasterName: isAdmin ? 'Adrian' : undefined,
       tasting: tastingData,
-      rating: rating || undefined,
-      verdict,
-      wouldBuy,
-      personalNote: personalNote || undefined,
+      rating: tastingData.quality ?? tastingData.rating,
+      verdict: verdict ?? 'neutral',
+      wouldBuy: wouldBuy ?? false,
+      personalNote: tastingData.voiceNote?.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
 
+    // Write to sample store (sourcing record)
     addTastingToStore(sample.id, tasting);
 
+    // Sync to server
     try {
       await api.samples.addTasting(sample.id, {
         tasting: tastingData,
-        rating: rating || undefined,
-        verdict,
-        wouldBuy,
-        personalNote: personalNote || undefined,
-        tasterName: isAdmin ? 'Adrian' : tasterName || undefined,
+        rating: tasting.rating,
+        verdict: verdict ?? 'neutral',
+        wouldBuy: wouldBuy ?? false,
+        personalNote: tasting.personalNote,
+        tasterName: tasting.tasterName,
       });
     } catch {
       console.warn('Sample tasting failed to sync — saved locally');
     }
-
-    setTastingData({});
-    setRating(0);
-    setVerdict('neutral');
-    setWouldBuy(false);
-    setPersonalNote('');
-    setShowTasting(false);
-    setSaving(false);
 
     setSample((prev) => prev ? {
       ...prev,
       tastings: [...(prev.tastings || []), tasting],
       status: prev.status === 'untasted' ? 'tasted' : prev.status,
     } : prev);
-  }, [sample, tastingData, rating, verdict, wouldBuy, personalNote, tasterName, isAdmin, addTastingToStore]);
+  }, [sample, isAdmin, addTastingToStore]);
 
   const handleStatusChange = useCallback((newStatus: SampleStatus) => {
     if (!sample) return;
@@ -442,130 +432,26 @@ const SamplePage: React.FC = () => {
           transition={{ delay: 0.4 }}
         >
           <button
-            onClick={() => setShowTasting(!showTasting)}
+            onClick={() => setShowTasting(true)}
             className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-lg text-sm font-medium text-tea-text hover:bg-tea-elevated transition-colors"
           >
             <span className="flex items-center gap-2">
               <Leaf size={16} className="text-tea-gold" />
-              {showTasting ? 'Hide tasting notes' : 'Add your tasting notes'}
+              Add tasting notes
             </span>
-            <ChevronDown size={16} className={`text-tea-text-sec transition-transform ${showTasting ? 'rotate-180' : ''}`} />
           </button>
-
-          <AnimatePresence>
-            {showTasting && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-4 space-y-4">
-                  {/* Guest name (customer mode only) */}
-                  {!isAdmin && (
-                    <div>
-                      <label className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-1 block">Your name</label>
-                      <input
-                        value={tasterName}
-                        onChange={(e) => setTasterName(e.target.value)}
-                        className="w-full bg-tea-surface rounded-lg px-3 py-2 text-sm text-tea-text outline-none border border-tea-border focus:border-tea-gold/50 transition-colors"
-                        placeholder="Optional"
-                      />
-                    </div>
-                  )}
-
-                  {/* Tasting Flow */}
-                  <TastingFlow
-                    mode={isAdmin ? 'admin' : 'customer'}
-                    value={tastingData}
-                    onChange={setTastingData}
-                    teaType={sample.type}
-                  />
-
-                  {/* Rating */}
-                  <div>
-                    <label className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2 block">Rating</label>
-                    <div className="flex gap-1">
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => setRating(n)}
-                          aria-label={`Rate ${n} out of 10`}
-                          aria-pressed={n <= rating}
-                          className={`w-8 h-8 rounded-full text-xs font-medium transition-all ${
-                            n <= rating
-                              ? 'bg-tea-gold text-white'
-                              : 'bg-tea-surface text-tea-text-dim hover:bg-tea-elevated'
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Verdict */}
-                  <div>
-                    <label className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2 block">Verdict</label>
-                    <div className="flex gap-2" role="radiogroup" aria-label="Verdict">
-                      {(['love', 'like', 'neutral', 'pass'] as TastingVerdict[]).map((v) => {
-                        const cfg = VERDICT_CONFIG[v];
-                        const VIcon = VERDICT_ICONS[v];
-                        const active = verdict === v;
-                        return (
-                          <button
-                            key={v}
-                            onClick={() => setVerdict(v)}
-                            aria-pressed={active}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all ${
-                              active
-                                ? `${cfg.color} bg-tea-surface ring-1 ring-tea-gold/20`
-                                : 'bg-tea-surface/50 text-tea-text-dim hover:bg-tea-surface'
-                            }`}
-                          >
-                            <VIcon size={14} /> {cfg.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Would buy */}
-                  <button
-                    onClick={() => setWouldBuy(!wouldBuy)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all ${
-                      wouldBuy
-                        ? 'bg-tea-gold/10 text-tea-gold'
-                        : 'bg-tea-surface text-tea-text-dim hover:bg-tea-elevated'
-                    }`}
-                  >
-                    <ShoppingCart size={14} />
-                    {wouldBuy ? 'Would buy this!' : 'Would you buy this?'}
-                  </button>
-
-                  {/* Personal Note */}
-                  <textarea
-                    value={personalNote}
-                    onChange={(e) => setPersonalNote(e.target.value)}
-                    rows={2}
-                    className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold/50 transition-colors"
-                    placeholder="Any personal notes..."
-                  />
-
-                  {/* Save */}
-                  <button
-                    onClick={handleSaveTasting}
-                    disabled={saving}
-                    className="w-full py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Save Tasting'}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
+
+        <AnimatePresence>
+          {showTasting && (
+            <TastingSession
+              item={{ id: sample.id, name: sample.name, type: sample.type, sourceType: 'sample' }}
+              onClose={() => setShowTasting(false)}
+              onAfterSave={handleTastingSave}
+              showVerdict
+            />
+          )}
+        </AnimatePresence>
 
         {/* Order CTA */}
         {!isAdmin && (

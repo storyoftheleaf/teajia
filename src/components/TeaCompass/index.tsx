@@ -47,6 +47,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
 
+  // Sync mode when the route's ?tab= param changes (e.g. bottom nav Ledger → Compass)
+  useEffect(() => {
+    setMode(initialMode || 'capture');
+  }, [initialMode]);
+
   // Track whether the user navigated to Capture from the Library (to show back link)
   const [fromLibrary, setFromLibrary] = useState(false);
 

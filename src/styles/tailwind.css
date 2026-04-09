@@ -372,6 +372,11 @@ p {
   50% { color: var(--tea-text-sec); opacity: 0.85; }
 }
 
+@keyframes arrowFloat {
+  0%, 100% { transform: translateY(0px); opacity: 0.35; }
+  50% { transform: translateY(5px); opacity: 0.6; }
+}
+
 @keyframes glowDrift {
   0% { transform: translateY(-8px); opacity: 0.5; }
   60% { transform: translateY(12px); opacity: 1; }

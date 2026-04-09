@@ -9,7 +9,8 @@ import type { TastingData } from '../types';
 
 export const TASTING_TAXONOMY = taxonomyJson;
 
-export type TastingCategoryId = keyof TastingData;
+/** Only the array-valued categories in TastingData — used by useTastingFlow and taxonomy lookups */
+export type TastingCategoryId = 'flavor' | 'body' | 'finish' | 'feeling' | 'liquor-color' | 'brewing';
 
 export const TASTING_CATEGORY_ORDER: TastingCategoryId[] = [
   'brewing', 'liquor-color', 'flavor', 'body', 'finish', 'feeling',
@@ -40,6 +41,11 @@ export const GROUP_ICON_MAP: Record<string, LucideIcon> = {
   'Duration': Timer,
   'Character': Sparkles,
   'Throat': Wind,
+  'Settling': Moon,
+  'Lifting': Zap,
+  'Body': Thermometer,
+  'Mind': Maximize2,
+  // legacy keys kept for old entries
   'Calming': Moon,
   'Activating': Zap,
   'Physical': Thermometer,
@@ -148,10 +154,10 @@ export const TEA_TYPE_SUGGESTIONS: Record<string, string[]> = {
   'White': ['floral', 'honey', 'peach', 'vanilla'],
   'Yellow': ['chestnut', 'honey', 'floral', 'vanilla'],
   'Oolong': ['floral', 'orchid', 'stone-fruit', 'honey', 'toasted'],
-  'Red': ['honey', 'cocoa', 'dried-fruit', 'caramel', 'lychee'],
+  'Red': ['honey', 'malt', 'cocoa', 'dried-fruit', 'caramel', 'lychee'],
   'Dark': ['earthy', 'mushroom', 'leather', 'woody', 'aged'],
-  'Sheng': ['floral', 'honey', 'bitter', 'astringent', 'camphor'],
-  'Shou': ['earthy', 'woody', 'aged', 'cocoa', 'mushroom'],
+  'Sheng': ['floral', 'honey', 'bitter', 'camphor', 'mineral'],
+  'Shou': ['earthy', 'woody', 'aged', 'date', 'fig', 'cocoa', 'mushroom'],
   'Herbal': ['floral', 'herbaceous', 'honey', 'citrus', 'vanilla'],
 };
 

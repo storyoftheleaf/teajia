@@ -2021,6 +2021,15 @@ input[type="number"]::-webkit-outer-spin-button {
     rgba(0, 0, 0, 0.02);
 }
 
+/* Vertical divider between segment toggle items — uses absolute rgba so it persists against any selection background */
+.weight-seg-div {
+  border-right: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+.light .weight-seg-div {
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 /* ── Segment toggle (weight/finish) — warm recessed track ── */
 .tasting-segment-toggle {
   display: flex;
@@ -2446,7 +2455,94 @@ input[type="number"]::-webkit-outer-spin-button {
    Tasting Capture — Single-page tasting flow
    ============================================ */
 
-/* ── Slider track ── */
+/* ── Step-node quality scale ── */
+.tasting-step-track {
+  position: relative;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Base line */
+.tasting-step-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: var(--tea-border);
+}
+
+/* Filled portion of the line */
+.tasting-step-line-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: rgb(var(--tea-gold-rgb) / 0.5);
+  pointer-events: none;
+  transition: width 80ms ease-out;
+}
+
+/* Each node — number lives inside */
+.tasting-step-node {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--tea-surface);
+  border: 1px solid var(--tea-border);
+  pointer-events: none;
+  transition: background 120ms ease, border-color 120ms ease, width 120ms ease, height 120ms ease, border-radius 120ms ease, box-shadow 120ms ease;
+}
+
+.tasting-step-node-filled {
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+  border-color: rgb(var(--tea-gold-rgb) / 0.3);
+}
+
+.tasting-step-node-active {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--tea-gold);
+  border-color: var(--tea-gold);
+  box-shadow: 0 2px 8px rgb(var(--tea-gold-rgb) / 0.35);
+}
+
+.tasting-step-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--tea-text-dim);
+  opacity: 0.5;
+  transition: opacity 120ms ease, color 120ms ease, font-size 120ms ease, font-weight 120ms ease;
+}
+
+.tasting-step-node-filled .tasting-step-number {
+  opacity: 0.8;
+  color: rgb(var(--tea-gold-rgb) / 0.85);
+}
+
+.tasting-step-node-active .tasting-step-number {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 1;
+  color: var(--tea-bg);
+}
+
+/* ── Legacy slider (kept for any remaining references) ── */
 .tasting-slider-track {
   position: relative;
   height: 4px;
@@ -2579,6 +2675,10 @@ input[type="number"]::-webkit-outer-spin-button {
 .tasting-huigan-toggle-active {
   background: rgb(var(--tea-gold-rgb) / 0.12);
   color: var(--tea-gold);
+  box-shadow:
+    0 0 0 1px rgb(var(--tea-gold-rgb) / 0.18),
+    0 0 18px rgb(var(--tea-gold-rgb) / 0.10),
+    inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.15);
 }
 
 /* ── Flavor family card ── */
@@ -2623,6 +2723,15 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .tasting-voice-field:focus-within {
   box-shadow: 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.2);
+}
+
+/* ── Tasting scroll area — hide scrollbar on all platforms ── */
+.tasting-scroll {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / Edge legacy */
+}
+.tasting-scroll::-webkit-scrollbar {
+  display: none;                /* Chrome, Safari, iOS */
 }
 
 .tasting-voice-btn {

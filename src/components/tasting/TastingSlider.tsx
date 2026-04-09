@@ -1,4 +1,5 @@
 import React, { useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 interface TastingSliderProps {
   label: string;
@@ -10,9 +11,9 @@ interface TastingSliderProps {
 }
 
 /**
- * Horizontal 1-10 slider with tick marks.
- * Tap a tick to jump, or drag the thumb.
- * Tap the current value again to deselect.
+ * Step-node quality scale 1–10.
+ * Numbered nodes connected by a line — tap any node to select,
+ * tap the active node again to deselect. Drag across nodes to scrub.
  */
 const TastingSliderInner: React.FC<TastingSliderProps> = ({
   label,
@@ -24,7 +25,9 @@ const TastingSliderInner: React.FC<TastingSliderProps> = ({
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  const lastEmitted = useRef<number | null>(null);
   const range = max - min;
+  const steps = Array.from({ length: range + 1 }, (_, i) => min + i);
 
   const valueFromClientX = useCallback(
     (clientX: number): number => {
@@ -39,71 +42,59 @@ const TastingSliderInner: React.FC<TastingSliderProps> = ({
     (e: React.PointerEvent) => {
       e.preventDefault();
       dragging.current = true;
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      lastEmitted.current = null;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       const v = valueFromClientX(e.clientX);
-      // Tap same value to deselect
-      if (v === value) {
-        onChange(undefined);
-      } else {
-        onChange(v);
-      }
-      // Haptic
+      onChange(v);
+      lastEmitted.current = v;
       if (navigator.vibrate) navigator.vibrate(8);
     },
-    [value, valueFromClientX, onChange],
+    [valueFromClientX, onChange],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragging.current) return;
       const v = valueFromClientX(e.clientX);
-      if (v !== value) {
+      if (v !== lastEmitted.current) {
         onChange(v);
+        lastEmitted.current = v;
         if (navigator.vibrate) navigator.vibrate(6);
       }
     },
-    [value, valueFromClientX, onChange],
+    [valueFromClientX, onChange],
   );
 
   const handlePointerUp = useCallback(() => {
     dragging.current = false;
+    lastEmitted.current = null;
   }, []);
 
-  const fillPercent = value != null ? ((value - min) / range) * 100 : 0;
-  const thumbPercent = value != null ? ((value - min) / range) * 100 : -10;
-
-  const ticks = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+  // How many nodes are "filled" (at or below selected value)
+  const filledUpTo = value ?? 0;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-3">
       {/* Label row */}
-      <div className="flex items-baseline justify-between">
-        <div>
-          <span className="tasting-capture-label">{label}</span>
-          {sublabel && (
-            <span className="text-[10px] text-tea-text-dim ml-2 tracking-normal lowercase" style={{ fontFamily: 'var(--font-body)' }}>
-              {sublabel}
-            </span>
-          )}
-        </div>
-        {value != null && (
-          <span
-            className="text-tea-gold text-sm font-semibold num"
-            style={{ fontFamily: 'var(--font-mono)' }}
-          >
-            {value}
+      <div className="flex items-baseline gap-2">
+        <span className="tasting-capture-label">{label}</span>
+        {sublabel && (
+          <span className="text-[10px] text-tea-text-dim tracking-normal lowercase" style={{ fontFamily: 'var(--font-body)' }}>
+            {sublabel}
           </span>
         )}
       </div>
 
-      {/* Track */}
+      {/* Node track — stop touch propagation so parent swipe handler doesn't intercept drags */}
       <div
         ref={trackRef}
-        className="tasting-slider-track"
+        className="tasting-step-track"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onTouchStart={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
         role="slider"
         aria-label={label}
         aria-valuemin={min}
@@ -111,24 +102,26 @@ const TastingSliderInner: React.FC<TastingSliderProps> = ({
         aria-valuenow={value ?? undefined}
         tabIndex={0}
       >
-        {value != null && (
-          <>
-            <div className="tasting-slider-fill" style={{ width: `${fillPercent}%` }} />
-            <div className="tasting-slider-thumb" style={{ left: `${thumbPercent}%` }} />
-          </>
-        )}
-      </div>
+        {/* Connecting line */}
+        <div className="tasting-step-line" />
 
-      {/* Tick labels */}
-      <div className="tasting-slider-ticks">
-        {ticks.map((t) => (
-          <span
-            key={t}
-            className={`tasting-slider-tick ${t === value ? 'tasting-slider-tick-active' : ''}`}
-          >
-            {t}
-          </span>
-        ))}
+        {/* Nodes — number lives inside */}
+        {steps.map((step) => {
+          const isFilled = step <= filledUpTo;
+          const isActive = step === value;
+          const pct = ((step - min) / range) * 100;
+          return (
+            <motion.div
+              key={step}
+              className={`tasting-step-node ${isFilled ? 'tasting-step-node-filled' : ''} ${isActive ? 'tasting-step-node-active' : ''}`}
+              style={{ left: `${pct}%` }}
+              animate={isActive ? { scale: 1 } : { scale: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <span className="tasting-step-number">{step}</span>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

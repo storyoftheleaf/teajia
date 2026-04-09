@@ -167,39 +167,59 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         )}
       </div>
 
-      {/* Controls row: grouping + filter + new capture */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1 flex-1">
-            {groupingOptions.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setBrowseGrouping(opt.value)}
-                className={browseGrouping === opt.value ? 'pill-active' : 'pill'}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={onNewCapture}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors hover:bg-tea-gold/15"
-          >
-            <Plus size={12} />
-            New
-          </button>
-        </div>
-        <div className="flex gap-1">
-          {filterOptions.map((opt) => (
+      {/* Controls row: grouping segment + filter pills + new capture */}
+      <div className="flex items-center gap-2">
+        {/* Grouping — segment control (same style as Tea/Teaware toggle in Capture) */}
+        <div className="relative flex rounded-md bg-tea-surface p-0.5 shrink-0">
+          <motion.div
+            className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-elevated shadow-sm"
+            animate={{
+              left: browseGrouping === 'date' ? '2px' : '50%',
+              right: browseGrouping === 'vendor' ? '2px' : '50%',
+            }}
+            transition={{ duration: 0.12, ease: 'easeOut' }}
+          />
+          {groupingOptions.map((opt) => (
             <button
               key={opt.value}
-              onClick={() => setBrowseFilter(opt.value)}
-              className={browseFilter === opt.value ? 'pill-active' : 'pill'}
+              type="button"
+              onClick={() => setBrowseGrouping(opt.value)}
+              className={`relative z-[1] px-3 py-1 text-[11px] font-medium rounded-[5px] transition-colors ${
+                browseGrouping === opt.value ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
+              }`}
             >
-              {opt.label}{opt.count > 0 ? ` (${opt.count})` : ''}
+              {opt.label}
             </button>
           ))}
         </div>
+
+        {/* Filter pills */}
+        <div className="flex gap-1 flex-1 overflow-x-auto">
+          {filterOptions.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setBrowseFilter(opt.value)}
+              className={`shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                browseFilter === opt.value
+                  ? 'bg-tea-elevated text-tea-text-sec'
+                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+              }`}
+            >
+              {opt.label}{opt.count > 0 ? ` ${opt.count}` : ''}
+            </button>
+          ))}
+        </div>
+
+        {/* New capture */}
+        <button
+          type="button"
+          onClick={onNewCapture}
+          className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold transition-colors hover:bg-tea-gold/15"
+        >
+          <Plus size={11} />
+          New
+        </button>
       </div>
 
       {/* Search empty state */}

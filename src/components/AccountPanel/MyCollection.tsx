@@ -6,7 +6,7 @@ import { useAppStore } from '../../lib/store';
 import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
 import { fmtPricePerGram } from '../../utils/formatNumber';
-import { TastingSession } from '../tasting/TastingSession';
+import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 
 interface MyCollectionProps {
   onBack: () => void;
@@ -135,7 +135,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           <TastingSession
             item={tastingItem}
             onClose={() => setTastingItem(null)}
-            onOrderTea={(item) => { setTastingItem(null); onViewItem?.(item); }}
+            onOrderTea={(item: TastingItem) => { setTastingItem(null); onViewItem?.(item as InventoryItem); }}
           />
         )}
       </AnimatePresence>

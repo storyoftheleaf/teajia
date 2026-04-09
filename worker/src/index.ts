@@ -45,7 +45,7 @@ async function createToken(
 ): Promise<string> {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const payload = btoa(JSON.stringify({ ...claims, iat: now, exp: now + 86400 })); // 24h
+  const payload = btoa(JSON.stringify({ ...claims, iat: now, exp: now + 604800 })); // 7 days
   const data = `${header}.${payload}`;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));

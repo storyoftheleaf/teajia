@@ -44,6 +44,7 @@ import { useAppStore } from './lib/store';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
+import { useTastingJournalSync } from './hooks/useTastingJournalSync';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
@@ -110,6 +111,7 @@ const AppContent = () => {
   const { isAdmin, isAuthenticated } = useAuth();
   useFavoritesSync(isAuthenticated);
   useOfflineSync(isAuthenticated);
+  useTastingJournalSync(isAuthenticated);
   const showAdminBar = false;
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
@@ -425,6 +427,13 @@ const AppContent = () => {
   const handleOpenAccount = () => {
     setShowAccountModal(true);
   };
+
+  // Allow any component to open the account panel via a custom event
+  useEffect(() => {
+    const handler = () => setShowAccountModal(true);
+    window.addEventListener('open-account-panel', handler);
+    return () => window.removeEventListener('open-account-panel', handler);
+  }, []);
 
   const handleCloseCart = () => {
     setIsCartOpen(false);

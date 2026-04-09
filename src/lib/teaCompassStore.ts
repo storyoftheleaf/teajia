@@ -23,6 +23,10 @@ interface TeaCompassState {
   browseGrouping: BrowseGrouping;
   browseFilter: BrowseFilter;
 
+  // Pricing formula — shipping rate used in retail preview (same currency as entry cost)
+  shippingRatePerKg: number;
+  setShippingRatePerKg: (rate: number) => void;
+
   // Actions
   addEntry: (entry: TeaCompassEntry) => void;
   updateEntry: (id: string, updates: Partial<TeaCompassEntry>) => void;
@@ -74,6 +78,9 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       lastCurrency: 'NT',
       browseGrouping: 'date',
       browseFilter: 'all',
+      shippingRatePerKg: 0,
+
+      setShippingRatePerKg: (rate) => set({ shippingRatePerKg: rate }),
 
       addEntry: (entry) =>
         set((state) => ({
@@ -183,6 +190,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         lastCurrency: state.lastCurrency,
         browseGrouping: state.browseGrouping,
         browseFilter: state.browseFilter,
+        shippingRatePerKg: state.shippingRatePerKg,
         // pendingEntries, activeEntryId, sessionEntryIds are intentionally NOT persisted
       }),
     }

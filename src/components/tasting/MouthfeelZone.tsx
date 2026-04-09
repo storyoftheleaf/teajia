@@ -121,7 +121,7 @@ const MouthfeelZoneInner: React.FC<MouthfeelZoneProps> = ({ flow }) => {
                 selectedWeight === w.id
                   ? 'tag-selectable-active'
                   : 'text-tea-text-sec hover:text-tea-text'
-              }${i < WEIGHTS.length - 1 ? ' weight-segment-border' : ''}`}
+              }${i < WEIGHTS.length - 1 ? ' weight-seg-div' : ''}`}
               style={{ fontFamily: 'var(--font-body)' }}
             >
               {w.label}
@@ -176,7 +176,7 @@ const MouthfeelZoneInner: React.FC<MouthfeelZoneProps> = ({ flow }) => {
                 selectedDuration === d.id
                   ? 'tag-selectable-active'
                   : 'text-tea-text-sec hover:text-tea-text'
-              }${i < FINISH_DURATIONS.length - 1 ? ' weight-segment-border' : ''}`}
+              }${i < FINISH_DURATIONS.length - 1 ? ' weight-seg-div' : ''}`}
               style={{ fontFamily: 'var(--font-body)' }}
             >
               {d.label}
@@ -214,13 +214,6 @@ const MouthfeelZoneInner: React.FC<MouthfeelZoneProps> = ({ flow }) => {
           </div>
         </div>
       )}
-
-      {/* CSS for weight/finish segment borders via CSS variables */}
-      <style>{`
-        .weight-segment-border {
-          border-right: 1px solid var(--tea-border);
-        }
-      `}</style>
 
       {/* Part 5: Throat — pill row */}
       {finishThroatGroup && (

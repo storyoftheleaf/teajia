@@ -433,7 +433,7 @@ const TransactionCard: React.FC<{
   }, [tx.id, isPurchase, removeTransaction]);
 
   return (
-    <div className="inset-panel overflow-hidden transition-colors">
+    <div className="bg-tea-surface rounded-lg overflow-hidden transition-colors">
       {/* Header — always visible */}
       <button
         type="button"
@@ -507,7 +507,7 @@ const TransactionCard: React.FC<{
               {tx.items.length > 0 && (
                 <div className="flex items-baseline justify-between pt-3 border-t border-tea-border" aria-label="Grand total">
                   <span className="text-tea-text-sec text-[11px] uppercase tracking-[0.15em]">Total</span>
-                  <span className="text-tea-text text-lg font-serif font-semibold num">
+                  <span className="text-tea-text text-sm font-serif num">
                     {fmtPrice(total, tx.currency)}
                   </span>
                 </div>
@@ -522,9 +522,9 @@ const TransactionCard: React.FC<{
                         key="confirmed"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/20 text-tea-gold text-sm font-medium"
+                        className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md bg-tea-gold/20 text-tea-gold text-xs font-medium"
                       >
-                        <Check size={16} />
+                        <Check size={12} />
                         Confirmed
                       </motion.div>
                     ) : (
@@ -533,9 +533,9 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={handleConfirm}
                         whileTap={{ scale: 0.98 }}
-                        className="flex-1 py-2.5 rounded-lg bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] shadow-[0_2px_8px_rgba(184,146,78,0.3)] active:shadow-[0_1px_4px_rgba(184,146,78,0.2)] transition-all"
+                        className="py-1.5 px-3 rounded-md bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-all"
                       >
-                        {isPurchase ? 'Confirm Purchase' : 'Confirm Sale'}
+                        {isPurchase ? 'Purchase' : 'Sale'}
                       </motion.button>
                     )}
                   </AnimatePresence>

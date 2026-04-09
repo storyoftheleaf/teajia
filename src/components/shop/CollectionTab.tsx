@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { AlcoveModal } from './AlcoveModal';
 import { TeaPlaceholder } from './TeaPlaceholder';
-import { TastingSession } from '../tasting/TastingSession';
+import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import { Icons } from '../Icons';
 import { SectionDivider } from '../shared/SectionDivider';
 import { useProductUrl } from '../../hooks/useProductUrl';
@@ -182,9 +182,9 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
     setTastingItem(item);
   }, []);
 
-  const handleOrderFromTasting = useCallback((item: InventoryItem) => {
+  const handleOrderFromTasting = useCallback((item: TastingItem) => {
     setTastingItem(null);
-    setViewItem(item);
+    setViewItem(item as InventoryItem); // item is always a full InventoryItem at runtime
   }, []);
 
   // Saved items — resolved from favorite IDs

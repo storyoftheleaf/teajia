@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { LIQUOR_COLORS, TASTING_TAXONOMY } from '../../data/tastingTaxonomy';
@@ -9,27 +9,137 @@ const colorTerms = colorCategory.groups[0].terms;
 
 interface ColorSwatchesProps {
   flow: TastingFlowState;
+  compact?: boolean;
 }
 
-const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
+const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = false }) => {
   const selected = flow.value['liquor-color'] || [];
   const colorCount = flow.getCategoryCount('liquor-color');
   const clearCategory = flow.clearCategory;
+  const isDragging = useRef(false);
 
   const handleSelect = (termId: string) => {
-    // Single-select — deselect old, select new (or toggle off)
     if (selected.includes(termId)) {
       flow.toggleTerm('liquor-color', termId);
     } else {
-      // Remove any existing selection first
       selected.forEach(id => flow.toggleTerm('liquor-color', id));
       flow.toggleTerm('liquor-color', termId);
     }
   };
 
+  const pickColorAt = (clientX: number, rect: DOMRect) => {
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const idx = Math.round(x * (colorTerms.length - 1));
+    handleSelect(colorTerms[idx].id);
+  };
+
+  if (compact) {
+    const selectedId = selected[0] ?? null;
+    const selectedIdx = selectedId ? colorTerms.findIndex(t => t.id === selectedId) : -1;
+    const n = colorTerms.length;
+
+    return (
+      <div role="radiogroup" aria-label="Liquor color">
+        {/* Label row */}
+        <div className="flex items-center justify-between mb-2.5">
+          <span
+            className="text-[13px] text-tea-text font-medium"
+            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
+          >
+            Liquor color
+          </span>
+          {selectedId && (
+            <motion.div
+              initial={{ opacity: 0, x: 4 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-1.5"
+            >
+              <div
+                className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/20"
+                style={{ background: LIQUOR_COLORS[selectedId] || '#888' }}
+              />
+              <span className="text-[11px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+                {colorTerms.find(t => t.id === selectedId)?.label}
+              </span>
+              <button
+                type="button"
+                onClick={() => clearCategory('liquor-color')}
+                className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
+                aria-label="Clear color"
+              >
+                <X size={11} />
+              </button>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Segmented color bar */}
+        <div
+          className="relative flex cursor-pointer select-none outline-none"
+          style={{
+            height: 32,
+            borderRadius: 8,
+            overflow: 'hidden',
+            touchAction: 'none',
+            /* #3: ink fallback so rounding never shows a gap */
+            background: '#1a1a1a',
+          }}
+          onPointerDown={(e) => {
+            isDragging.current = true;
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            pickColorAt(e.clientX, e.currentTarget.getBoundingClientRect());
+          }}
+          onPointerMove={(e) => {
+            if (!isDragging.current) return;
+            pickColorAt(e.clientX, e.currentTarget.getBoundingClientRect());
+          }}
+          onPointerUp={() => { isDragging.current = false; }}
+          onPointerCancel={() => { isDragging.current = false; }}
+        >
+          {colorTerms.map((term, i) => {
+            const isSelected = term.id === selectedId;
+            const hex = LIQUOR_COLORS[term.id] || '#888';
+            return (
+              <div
+                key={term.id}
+                style={{
+                  flex: 1,
+                  background: hex,
+                  borderRight: i < n - 1 ? '1.5px solid rgba(0,0,0,0.2)' : undefined,
+                  boxShadow: isSelected ? 'inset 0 0 0 2.5px rgba(255,255,255,0.95)' : undefined,
+                  transition: 'box-shadow 0.1s ease',
+                }}
+              />
+            );
+          })}
+
+          {/* Thumb — wider pill that spans the full bar height */}
+          {selectedIdx >= 0 && (
+            <motion.div
+              className="absolute pointer-events-none"
+              layoutId="color-bar-thumb"
+              style={{
+                top: '50%',
+                left: `${(selectedIdx / n) * 100 + (100 / n / 2)}%`,
+                transform: 'translate(-50%, -50%)',
+                width: 10,
+                height: 40,
+                borderRadius: 5,
+                background: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 1px 8px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(0,0,0,0.15)',
+              }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Non-compact: swatch grid
   return (
     <div role="radiogroup" aria-label="Liquor color">
-      {/* Section header */}
       <div className="flex items-center justify-between mb-2">
         <div
           className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium"
@@ -49,7 +159,6 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
         )}
       </div>
 
-      {/* Description — only when nothing selected */}
       {colorCount === 0 && (
         <p
           className="text-xs text-tea-text-dim italic mb-3"
@@ -59,12 +168,10 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
         </p>
       )}
 
-      {/* Swatch grid: 2 rows x 5 columns */}
       <div className="grid grid-cols-5 gap-3">
         {colorTerms.map(term => {
           const isSelected = selected.includes(term.id);
           const hex = LIQUOR_COLORS[term.id] || '#888';
-
           return (
             <motion.button
               key={term.id}
@@ -85,14 +192,8 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow }) => {
                 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 className="rounded-full"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: hex,
-                }}
+                style={{ width: 44, height: 44, borderRadius: '50%', background: hex }}
               />
-              {/* Label always visible */}
               <span
                 className={`text-[11px] leading-tight text-center transition-colors duration-150 ${
                   isSelected ? 'text-tea-gold' : 'text-tea-text-dim'

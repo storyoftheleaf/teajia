@@ -1,7 +1,7 @@
 
 import '../styles/reader-animations.css';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
 import { Story, LayoutVariant } from '../types';
 import { Icons } from './Icons';
@@ -112,38 +112,23 @@ const useShakeDetector = (onShake: () => void) => {
 //
 const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; pageWeight?: 'text-heavy' | 'image-heavy' | 'spacious' | 'mixed' }> = ({ children, isActive, pageWeight }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(0);
 
   const BASE_WIDTH = 800;
   const BASE_HEIGHT = 1000;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const calculateScale = () => {
       if (containerRef.current) {
         const { clientWidth, clientHeight } = containerRef.current;
-        const scaleX = clientWidth / BASE_WIDTH;
-        const scaleY = clientHeight / BASE_HEIGHT;
-        const newScale = Math.min(scaleX, scaleY);
-        setScale(newScale);
+        setScale(Math.min(clientWidth / BASE_WIDTH, clientHeight / BASE_HEIGHT));
       }
     };
 
     calculateScale();
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(calculateScale, 100);
-    };
-
-    window.addEventListener('resize', handleResize);
     const observer = new ResizeObserver(calculateScale);
     if (containerRef.current) observer.observe(containerRef.current);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      observer.disconnect();
-      clearTimeout(timeoutId);
-    };
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -154,6 +139,7 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; page
           height: BASE_HEIGHT,
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
+          opacity: scale === 0 ? 0 : 1,
           boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(0,0,0,0.1)',
           contain: 'layout style paint',
           willChange: 'transform',
@@ -914,7 +900,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           </div>
 
           {/* Page container */}
-          <div className="relative flex-1 lg:flex-none h-full lg:h-auto" style={{ maxHeight: isDesktop ? 'calc(100vh - 160px)' : undefined, aspectRatio: isDesktop ? '4/5' : undefined }}>
+          <div className="relative" style={{ aspectRatio: '4/5', height: '100%', maxHeight: 'calc(100dvh - 160px)' }}>
             {/* Swipe zone overlay */}
             <div
               className="absolute inset-0 z-40 cursor-pointer"
@@ -993,18 +979,27 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
         {/* --- BOTTOM BAR --- */}
         <div
           className="absolute left-0 w-full z-50 pointer-events-none"
-          style={{ bottom: 0, paddingBottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 16px)' }}
+          style={{ bottom: 0, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
         >
-          {/* Mobile: Share icon + Scrubber */}
-          <div className="lg:hidden flex items-center px-6 pb-4 gap-3 pointer-events-auto">
+          {/* Mobile: Prev + Scrubber + Next */}
+          <div className="lg:hidden flex items-center px-4 pb-4 gap-2 pointer-events-auto">
             <button
-              onClick={handleShare}
-              className="p-2 text-tea-text-dim hover:text-tea-text transition-colors shrink-0 rounded-full"
-              aria-label="Share"
+              onClick={prev}
+              disabled={currentPageIndex === 0}
+              className="p-3 text-tea-text-dim hover:text-tea-text transition-colors shrink-0 rounded-full disabled:opacity-20"
+              aria-label="Previous page"
             >
-              <Icons.ExternalLink className="w-4 h-4" />
+              <Icons.Back className="w-5 h-5" />
             </button>
             <ProgressScrubber className="flex-1" />
+            <button
+              onClick={next}
+              disabled={currentPageIndex >= pages.length - 1}
+              className="p-3 text-tea-text-dim hover:text-tea-text transition-colors shrink-0 rounded-full disabled:opacity-20"
+              aria-label="Next page"
+            >
+              <Icons.Next className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Desktop: Scrubber only */}

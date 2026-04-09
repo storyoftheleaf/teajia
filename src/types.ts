@@ -1,22 +1,36 @@
 
 export interface TastingData {
-  flavor?: string[];
-  body?: string[];
-  finish?: string[];
-  feeling?: string[];
-  'liquor-color'?: string[];
-  brewing?: string[];
-  rating?: number;           // 1-5 overall rating (legacy) or 1-10
-  primaryNotes?: string[];   // Emphasized notes (shown larger/first)
-  overallImpression?: string; // Quick one-word impression
+  // ── Section 1: Color ──
+  // (stored in 'liquor-color' below)
 
-  // ── Capture-mode fields ──
-  quality?: number;          // 1-10 overall quality
-  cleanliness?: number;      // 1-10 how clean/pure the liquor tastes
-  patience?: number;         // 1-10 how many steepings it rewards (耐泡度)
-  huiGan?: boolean;          // Returning sweetness (回甘)
-  mood?: string;             // Single energy descriptor (e.g. "calm", "focused")
-  voiceNote?: string;        // Transcribed voice note
+  // ── Section 2: Body ──
+  body?: string[];            // weight + texture terms
+
+  // ── Section 3: Flavor ──
+  flavor?: string[];          // family-level or specific sub-terms
+
+  // ── Section 4: Throat ──
+  finish?: string[];          // throat sensations + finish character/duration terms
+  cleanliness?: string;       // 'clean' | 'some-edge' | 'rough' — throat quality verdict
+  huiGan?: boolean;           // Returning sweetness (回甘)
+
+  // ── Section 5: State ──
+  feeling?: string[];         // qi / mood / effect terms (flat)
+  clarity?: 'clear' | 'hazy' | 'cloudy'; // head clarity
+  quality?: number;           // 1-10 overall verdict (answered last)
+  'liquor-color'?: string[];  // color swatch
+  notes?: string[];           // separate note entries (text / transcribed voice)
+  voiceNote?: string;         // legacy — single concatenated note (kept for backward compat)
+
+  // ── Admin only ──
+  brewing?: string[];
+
+  // ── Legacy (kept for backward compatibility, not written by new flow) ──
+  rating?: number;            // old 1-5 scale
+  overallImpression?: string; // old comma-joined mood strings
+  primaryNotes?: string[];
+  patience?: number;          // removed from UI
+  mood?: string;              // old single energy descriptor
 }
 
 export interface CustomerTasting {
@@ -33,6 +47,20 @@ export interface CustomerTasting {
   eventId?: string;
   /** Human-readable event title for display in the journal */
   eventTitle?: string;
+  /** Origin context */
+  sourceType?: 'product' | 'compass' | 'event' | 'sample';
+  /** Cross-link to a TeaCompassEntry */
+  compassEntryId?: string;
+  /** Sourcing verdict — would we stock/order this tea? */
+  verdict?: 'love' | 'like' | 'neutral' | 'pass';
+  /** Would you buy/order this tea? */
+  wouldBuy?: boolean;
+  /** Name of the person who tasted (group cuppings) */
+  tasterName?: string;
+  /** Whether this entry has been synced to the server */
+  synced?: boolean;
+  /** Account this tasting belongs to (for multi-account filtering) */
+  accountId?: string;
 }
 
 export enum ContentType {

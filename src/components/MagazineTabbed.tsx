@@ -124,90 +124,21 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     { id: 'visual' as MagazineTab, label: 'Visual' },
   ];
 
-  /** Estimate word count from story content paragraphs */
-  const getWordCount = (story: Story): number | undefined => {
-    if (!story.content || story.content.length === 0) return undefined;
-    return story.content.join(' ').split(/\s+/).filter(Boolean).length;
-  };
-
-  const renderArticleCards = (storiesList: Story[]) => {
-    const [hero, ...rest] = storiesList;
+  const renderCards = (storiesList: Story[]) => {
     return (
-      <div className="max-w-[900px] mx-auto px-4 md:px-6">
-        {/* Hero card */}
-        {hero && (
+      <div className="flex flex-col border-t border-tea-text/15">
+        {storiesList.map((story, index) => (
           <ArticleCard
-            key={hero.id}
-            title={hero.title}
-            description={hero.subtitle}
-            imageUrl={hero.thumbnailUrl}
-            aspectRatio="portrait"
-            onClick={() => onCardClick(hero)}
-            isFeatured={true}
-            wordCount={getWordCount(hero)}
-            pageCount={hero.content?.length || 0}
+            key={story.id}
+            title={story.title}
+            description={story.subtitle}
+            imageUrl={story.thumbnailUrl}
+            onClick={() => onCardClick(story)}
+            contentType={story.category ?? story.type}
+            cardIndex={index}
+            isSaved={savedStoryIds[story.id]}
           />
-        )}
-
-        {/* Grid */}
-        {rest.length > 0 && (
-          <div className="grid grid-cols-2 gap-5 md:gap-6 mt-8 stagger-grid">
-            {rest.map((story, index) => (
-              <ArticleCard
-                key={story.id}
-                title={story.title}
-                description={story.subtitle}
-                imageUrl={story.thumbnailUrl}
-                aspectRatio="portrait"
-                onClick={() => onCardClick(story)}
-                wordCount={getWordCount(story)}
-                pageCount={story.content?.length || 0}
-                cardIndex={index}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderVisualCards = (storiesList: Story[]) => {
-    const [hero, ...rest] = storiesList;
-    return (
-      <div className="max-w-[900px] mx-auto px-4 md:px-6">
-        {/* Hero card */}
-        {hero && (
-          <ArticleCard
-            key={hero.id}
-            title={hero.title}
-            description={hero.subtitle}
-            imageUrl={hero.thumbnailUrl}
-            aspectRatio="portrait"
-            onClick={() => onCardClick(hero)}
-            isFeatured={true}
-            wordCount={getWordCount(hero)}
-            pageCount={hero.content?.length || 0}
-          />
-        )}
-
-        {/* Grid */}
-        {rest.length > 0 && (
-          <div className="grid grid-cols-2 gap-5 md:gap-6 mt-8 stagger-grid">
-            {rest.map((story, index) => (
-              <ArticleCard
-                key={story.id}
-                title={story.title}
-                description={story.subtitle}
-                imageUrl={story.thumbnailUrl}
-                aspectRatio="portrait"
-                onClick={() => onCardClick(story)}
-                wordCount={getWordCount(story)}
-                pageCount={story.content?.length || 0}
-                cardIndex={index}
-              />
-            ))}
-          </div>
-        )}
+        ))}
       </div>
     );
   };
@@ -216,25 +147,19 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     if (activeTab === 'articles') {
       return (
         <>
-          {renderArticleCards(displayedArticles)}
+          {renderCards(displayedArticles)}
           {isLoading && (
-            <div className="pt-6">
-              <div className="grid grid-cols-2 gap-5 md:gap-6 max-w-[900px] mx-auto px-4 md:px-6">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex flex-col gap-2 animate-pulse">
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm aspect-[4/5] w-full">
-                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
-                    </div>
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-4 w-4/5">
-                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
-                    </div>
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-3 w-3/5">
-                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
-                    </div>
+            <div className="flex flex-col border-t border-tea-text/15">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-stretch border-b border-tea-text/15 animate-pulse">
+                  <div className="flex-1 py-4 pl-5 pr-4 flex flex-col gap-2">
+                    <div className="h-2 w-16 bg-tea-text/10 rounded-sm" />
+                    <div className="h-4 w-4/5 bg-tea-text/10 rounded-sm" />
+                    <div className="h-3 w-3/5 bg-tea-text/5 rounded-sm" />
                   </div>
-                ))}
-              </div>
-              <p className="text-center text-tea-text-dim text-xs uppercase tracking-[0.12em] mt-4 pb-4">Loading more...</p>
+                  <div className="w-[88px] bg-tea-text/5 shrink-0" />
+                </div>
+              ))}
             </div>
           )}
         </>
@@ -244,31 +169,24 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     if (activeTab === 'visual') {
       return (
         <>
-          {renderVisualCards(displayedPhotoEssays)}
+          {renderCards(displayedPhotoEssays)}
           {isLoading && (
-            <div className="pt-6">
-              <div className="grid grid-cols-2 gap-5 md:gap-6 max-w-[900px] mx-auto px-4 md:px-6">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex flex-col gap-2 animate-pulse">
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm aspect-[4/5] w-full">
-                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
-                    </div>
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-4 w-4/5">
-                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
-                    </div>
-                    <div className="relative overflow-hidden bg-tea-text/5 rounded-sm h-3 w-3/5">
-                      <div className="absolute inset-0 animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent, var(--tea-accent-sub), transparent)' }} />
-                    </div>
+            <div className="flex flex-col border-t border-tea-text/15">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-stretch border-b border-tea-text/15 animate-pulse">
+                  <div className="flex-1 py-4 pl-5 pr-4 flex flex-col gap-2">
+                    <div className="h-2 w-16 bg-tea-text/10 rounded-sm" />
+                    <div className="h-4 w-4/5 bg-tea-text/10 rounded-sm" />
+                    <div className="h-3 w-3/5 bg-tea-text/5 rounded-sm" />
                   </div>
-                ))}
-              </div>
-              <p className="text-center text-tea-text-dim text-xs uppercase tracking-[0.12em] mt-4 pb-4">Loading more...</p>
+                  <div className="w-[88px] bg-tea-text/5 shrink-0" />
+                </div>
+              ))}
             </div>
           )}
         </>
       );
     }
-
   };
 
   const renderEmptyState = (type: string) => {
@@ -329,7 +247,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       </PageHeader>
 
       {/* Tab Content */}
-      <div className="mt-10 md:mt-12">
+      <div className="mt-2 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
