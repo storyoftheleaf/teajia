@@ -1,14 +1,295 @@
 {
-  "version": "1.1",
-  "description": "TeajiA tea tasting taxonomy. Single source of truth for all tasting terms used across the catalog, admin interface, and frontend.",
+  "version": "2.0",
+  "description": "TeajiA tea tasting taxonomy. Structured around somatic awareness: sensation first, naming last. Hints appear only on terms where the word alone is not enough.",
   "categories": [
+    {
+      "id": "body",
+      "name": "Sensation",
+      "description": "What your mouth reports. Temperature, weight, texture.",
+      "groups": [
+        {
+          "label": "Temperature",
+          "terms": [
+            {
+              "id": "hot",
+              "label": "Hot"
+            },
+            {
+              "id": "warm",
+              "label": "Warm"
+            },
+            {
+              "id": "cool",
+              "label": "Cool"
+            },
+            {
+              "id": "room",
+              "label": "Room"
+            }
+          ]
+        },
+        {
+          "label": "Weight",
+          "hint": "How much space does the tea take up in your mouth? Like water, or like broth?",
+          "terms": [
+            {
+              "id": "light",
+              "label": "Light"
+            },
+            {
+              "id": "medium",
+              "label": "Medium"
+            },
+            {
+              "id": "full",
+              "label": "Full"
+            }
+          ]
+        },
+        {
+          "label": "Texture",
+          "hint": "How does it move? Does it slide, grip, coat, or prickle?",
+          "terms": [
+            {
+              "id": "silky",
+              "label": "Silky",
+              "hint": "The tea slides across your tongue with no resistance."
+            },
+            {
+              "id": "smooth",
+              "label": "Smooth",
+              "hint": "Even and gentle, nothing catches. Easy to drink."
+            },
+            {
+              "id": "velvety",
+              "label": "Velvety",
+              "hint": "Soft and plush, a little more weight than silky."
+            },
+            {
+              "id": "oily",
+              "label": "Oily",
+              "hint": "Coats your mouth, feels rich. Almost buttery."
+            },
+            {
+              "id": "crisp",
+              "label": "Taut",
+              "hint": "Crisp structure, a little tension. Like biting into a fresh apple."
+            },
+            {
+              "id": "dry",
+              "label": "Astringent",
+              "hint": "Drying, puckering. The same feeling as strong black tea or unripe fruit."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "finish",
+      "name": "Movement",
+      "description": "What happens as you swallow. Follow the tea down.",
+      "groups": [
+        {
+          "label": "Throat",
+          "hint": "Follow the tea past your tongue. Does your throat feel open, narrow, coated?",
+          "terms": [
+            {
+              "id": "throat-opening",
+              "label": "Opens",
+              "hint": "Your throat feels wider, more relaxed after swallowing. The tea opens a path."
+            },
+            {
+              "id": "throat-depth",
+              "label": "Deep reach",
+              "hint": "You feel the tea not just in your mouth but deep in your throat. It travels."
+            },
+            {
+              "id": "coating",
+              "label": "Coats",
+              "hint": "A layer stays behind on your tongue and throat after swallowing."
+            },
+            {
+              "id": "salivating",
+              "label": "Mouth waters",
+              "hint": "Your mouth produces saliva in response. The tea makes you want more."
+            }
+          ]
+        },
+        {
+          "label": "Duration",
+          "hint": "After swallowing, is the sensation already gone? Or still here?",
+          "terms": [
+            {
+              "id": "finish-short",
+              "label": "Short"
+            },
+            {
+              "id": "finish-medium",
+              "label": "Medium"
+            },
+            {
+              "id": "finish-long",
+              "label": "Long"
+            },
+            {
+              "id": "lingering",
+              "label": "Lingering",
+              "hint": "The taste stays and stays. Minutes later, you can still find it."
+            }
+          ]
+        },
+        {
+          "label": "Character",
+          "hint": "Wait a few seconds after swallowing. Is something coming back?",
+          "terms": [
+            {
+              "id": "hui-gan",
+              "label": "Hui gan",
+              "hint": "Wait 10 seconds. A sweetness rising in the back of your throat that was not there before. The most prized quality in Chinese tea."
+            },
+            {
+              "id": "sweet-return",
+              "label": "Sweet return",
+              "hint": "Similar to hui gan. A gentle sweetness that appears after the initial taste fades."
+            },
+            {
+              "id": "finish-clean",
+              "label": "Clean",
+              "hint": "After swallowing, the taste disappears completely. No residue, no aftertaste hanging around."
+            },
+            {
+              "id": "finish-dry",
+              "label": "Dry",
+              "hint": "A dryness settles in after swallowing. Your mouth feels like it needs water."
+            },
+            {
+              "id": "finish-cooling",
+              "label": "Cooling",
+              "hint": "A coolness appears in your throat after swallowing, like menthol but gentler."
+            },
+            {
+              "id": "finish-warming",
+              "label": "Warming",
+              "hint": "Warmth spreads from your throat after swallowing. A slow, pleasant heat."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feeling",
+      "name": "Feeling",
+      "description": "What the tea does to your state. Beyond flavor, into presence.",
+      "groups": [
+        {
+          "label": "Settling",
+          "hint": "Did your breathing change? Do you feel more still than before you drank?",
+          "terms": [
+            {
+              "id": "calming",
+              "label": "Calming",
+              "hint": "The busy mind slows down. Breathing gets easier."
+            },
+            {
+              "id": "grounding",
+              "label": "Grounding",
+              "hint": "Notice your feet and your seat. You feel more here, more settled."
+            },
+            {
+              "id": "centering",
+              "label": "Centering",
+              "hint": "Scattered energy draws inward. You feel collected, gathered."
+            }
+          ]
+        },
+        {
+          "label": "Lifting",
+          "hint": "Do you feel more awake? Is your mind sharper or brighter?",
+          "terms": [
+            {
+              "id": "energizing",
+              "label": "Energizing",
+              "hint": "Brightness without jitteriness. You want to move."
+            },
+            {
+              "id": "uplifting",
+              "label": "Uplifting",
+              "hint": "Your mood lifts. Things feel lighter than before."
+            },
+            {
+              "id": "focusing",
+              "label": "Focusing",
+              "hint": "Thoughts sharpen. One thing at a time."
+            },
+            {
+              "id": "clarifying",
+              "label": "Clarifying",
+              "hint": "Mental fog lifts. Things feel simpler."
+            }
+          ]
+        },
+        {
+          "label": "Body",
+          "hint": "Scan from your throat to your belly. Any warmth spreading? Any tightness letting go?",
+          "terms": [
+            {
+              "id": "feeling-warming",
+              "label": "Warming",
+              "hint": "Warmth spreading through your chest or belly. Not from the temperature, from the tea itself."
+            },
+            {
+              "id": "feeling-cooling",
+              "label": "Cooling",
+              "hint": "A coolness moving through you. Refreshing, opening."
+            },
+            {
+              "id": "chest-opens",
+              "label": "Chest opens",
+              "hint": "A physical warmth or expansion in the chest. Like taking a deep breath became easier."
+            },
+            {
+              "id": "tension-releases",
+              "label": "Tension releases",
+              "hint": "Shoulders drop, jaw unclenches. You did not know you were holding."
+            }
+          ]
+        },
+        {
+          "label": "Mind",
+          "hint": "Where is your mind right now? Quiet? Busy? Somewhere in between?",
+          "terms": [
+            {
+              "id": "present",
+              "label": "Present",
+              "hint": "You are here. Not thinking about later or before. Just now."
+            },
+            {
+              "id": "contemplative",
+              "label": "Contemplative",
+              "hint": "Thoughts are moving slowly and with weight. Reflective, not rushed."
+            },
+            {
+              "id": "expansive",
+              "label": "Expansive",
+              "hint": "Your sense of space widens. Things feel open, spacious."
+            },
+            {
+              "id": "restless",
+              "label": "Restless",
+              "hint": "Hard to settle. The tea stirred something up rather than calming it down."
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "flavor",
       "name": "Flavor",
-      "description": "Everything you perceive when you drink. What you smell and taste, together.",
+      "description": "What you taste. Pick the family first, then get specific if you want.",
       "groups": [
         {
           "label": "Floral",
+          "hint": "Anything fragrant or perfumed? Like passing a garden.",
           "terms": [
             {
               "id": "floral",
@@ -24,7 +305,8 @@
             },
             {
               "id": "osmanthus",
-              "label": "Osmanthus"
+              "label": "Osmanthus",
+              "hint": "A sweet, apricot-like fragrance. Common in oolong and some white teas."
             },
             {
               "id": "rose",
@@ -38,6 +320,7 @@
         },
         {
           "label": "Sweet",
+          "hint": "Not added sweetness. Does the tea itself carry any sweetness?",
           "terms": [
             {
               "id": "honey",
@@ -54,15 +337,22 @@
             {
               "id": "vanilla",
               "label": "Vanilla"
+            },
+            {
+              "id": "cream",
+              "label": "Cream",
+              "hint": "A dairy-like richness. Common in high-mountain oolongs and some white teas."
             }
           ]
         },
         {
           "label": "Fruity",
+          "hint": "Bright, juicy, ripe? Fresh fruit or dried fruit?",
           "terms": [
             {
               "id": "stone-fruit",
-              "label": "Stone fruit"
+              "label": "Stone fruit",
+              "hint": "Peach, plum, apricot territory. A broad family if you are not sure which one."
             },
             {
               "id": "peach",
@@ -95,11 +385,21 @@
             {
               "id": "plum",
               "label": "Plum"
+            },
+            {
+              "id": "berry",
+              "label": "Berry"
+            },
+            {
+              "id": "tropical",
+              "label": "Tropical",
+              "hint": "Mango, passionfruit, pineapple territory. Lush and exotic."
             }
           ]
         },
         {
           "label": "Nutty & grain",
+          "hint": "Warm and toasted? Like roasted nuts or fresh bread.",
           "terms": [
             {
               "id": "chestnut",
@@ -125,6 +425,7 @@
         },
         {
           "label": "Roasted & warm",
+          "hint": "Deep warmth from fire. Cocoa, toast, smoke.",
           "terms": [
             {
               "id": "charcoal",
@@ -153,11 +454,36 @@
           ]
         },
         {
+          "label": "Spice",
+          "hint": "Warm spice notes. Think kitchen spice rack, not chili heat.",
+          "terms": [
+            {
+              "id": "cinnamon",
+              "label": "Cinnamon",
+              "hint": "Fundamental to Wuyi yancha. Rou gui literally means cinnamon."
+            },
+            {
+              "id": "clove",
+              "label": "Clove"
+            },
+            {
+              "id": "ginger",
+              "label": "Ginger"
+            },
+            {
+              "id": "pepper",
+              "label": "Pepper"
+            }
+          ]
+        },
+        {
           "label": "Woody",
+          "hint": "Forest notes. Bark, sap, temple incense.",
           "terms": [
             {
               "id": "camphor",
-              "label": "Camphor"
+              "label": "Camphor",
+              "hint": "A cooling, medicinal wood note. Common in aged puerh and some aged oolongs."
             },
             {
               "id": "sandalwood",
@@ -169,7 +495,8 @@
             },
             {
               "id": "resinous",
-              "label": "Resinous"
+              "label": "Resinous",
+              "hint": "Sticky, sappy. Like tree resin or amber."
             },
             {
               "id": "cedar",
@@ -204,6 +531,7 @@
         },
         {
           "label": "Mineral",
+          "hint": "Stone and rock. Like the smell after rain on pavement.",
           "terms": [
             {
               "id": "mineral",
@@ -225,6 +553,7 @@
         },
         {
           "label": "Fresh & vegetal",
+          "hint": "Green and alive. Cut grass, steamed vegetables, the garden.",
           "terms": [
             {
               "id": "fresh-grass",
@@ -249,11 +578,18 @@
           ]
         },
         {
-          "label": "Other qualities",
+          "label": "Taste & character",
+          "hint": "Fundamental tastes and qualities beyond flavor. Does it bite, deepen, or pucker?",
           "terms": [
             {
               "id": "bitter",
-              "label": "Bitter"
+              "label": "Bitter",
+              "hint": "Not a flaw in Chinese tea. Bitterness that transforms into sweetness is highly prized."
+            },
+            {
+              "id": "sour",
+              "label": "Sour",
+              "hint": "A tangy, tart edge. Common in young sheng puerh and some oolongs."
             },
             {
               "id": "savory",
@@ -261,7 +597,8 @@
             },
             {
               "id": "umami",
-              "label": "Umami"
+              "label": "Umami",
+              "hint": "A deep, brothy savoriness. Like the richness in seaweed or aged cheese."
             },
             {
               "id": "medicinal",
@@ -269,225 +606,13 @@
             },
             {
               "id": "aged",
-              "label": "Aged"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "body",
-      "name": "Body",
-      "description": "How heavy and how textured. Two simple questions.",
-      "groups": [
-        {
-          "label": "Weight",
-          "terms": [
-            {
-              "id": "light",
-              "label": "Light"
+              "label": "Aged",
+              "hint": "The taste of time. A depth and complexity that only comes from years of storage."
             },
             {
-              "id": "medium",
-              "label": "Medium"
-            },
-            {
-              "id": "full",
-              "label": "Full"
-            }
-          ]
-        },
-        {
-          "label": "Texture",
-          "terms": [
-            {
-              "id": "silky",
-              "label": "Silky"
-            },
-            {
-              "id": "smooth",
-              "label": "Smooth"
-            },
-            {
-              "id": "velvety",
-              "label": "Velvety"
-            },
-            {
-              "id": "oily",
-              "label": "Oily"
-            },
-            {
-              "id": "crisp",
-              "label": "Taut"
-            },
-            {
-              "id": "dry",
-              "label": "Astringent"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "finish",
-      "name": "Finish",
-      "description": "What remains after you swallow. Where Chinese tea reveals its true character.",
-      "groups": [
-        {
-          "label": "Duration",
-          "terms": [
-            {
-              "id": "finish-short",
-              "label": "Short"
-            },
-            {
-              "id": "finish-medium",
-              "label": "Medium"
-            },
-            {
-              "id": "finish-long",
-              "label": "Long"
-            },
-            {
-              "id": "lingering",
-              "label": "Lingering"
-            }
-          ]
-        },
-        {
-          "label": "Character",
-          "terms": [
-            {
-              "id": "hui-gan",
-              "label": "Hui gan"
-            },
-            {
-              "id": "sweet-return",
-              "label": "Sweet return"
-            },
-            {
-              "id": "finish-clean",
-              "label": "Clean"
-            },
-            {
-              "id": "finish-dry",
-              "label": "Dry"
-            },
-            {
-              "id": "finish-cooling",
-              "label": "Cooling"
-            },
-            {
-              "id": "finish-warming",
-              "label": "Warming"
-            }
-          ]
-        },
-        {
-          "label": "Throat",
-          "terms": [
-            {
-              "id": "throat-opening",
-              "label": "Opens"
-            },
-            {
-              "id": "throat-depth",
-              "label": "Deep reach"
-            },
-            {
-              "id": "coating",
-              "label": "Coats"
-            },
-            {
-              "id": "salivating",
-              "label": "Mouth waters"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "feeling",
-      "name": "Feeling",
-      "description": "What the tea does to your state. Beyond flavor, into presence.",
-      "groups": [
-        {
-          "label": "Settling",
-          "terms": [
-            {
-              "id": "calming",
-              "label": "Calming"
-            },
-            {
-              "id": "grounding",
-              "label": "Grounding"
-            },
-            {
-              "id": "centering",
-              "label": "Centering"
-            }
-          ]
-        },
-        {
-          "label": "Lifting",
-          "terms": [
-            {
-              "id": "energizing",
-              "label": "Energizing"
-            },
-            {
-              "id": "uplifting",
-              "label": "Uplifting"
-            },
-            {
-              "id": "focusing",
-              "label": "Focusing"
-            },
-            {
-              "id": "clarifying",
-              "label": "Clarifying"
-            }
-          ]
-        },
-        {
-          "label": "Body",
-          "terms": [
-            {
-              "id": "feeling-warming",
-              "label": "Warming"
-            },
-            {
-              "id": "feeling-cooling",
-              "label": "Cooling"
-            },
-            {
-              "id": "chest-opens",
-              "label": "Chest opens"
-            },
-            {
-              "id": "tension-releases",
-              "label": "Tension releases"
-            }
-          ]
-        },
-        {
-          "label": "Mind",
-          "terms": [
-            {
-              "id": "present",
-              "label": "Present"
-            },
-            {
-              "id": "contemplative",
-              "label": "Contemplative"
-            },
-            {
-              "id": "expansive",
-              "label": "Expansive"
-            },
-            {
-              "id": "restless",
-              "label": "Restless"
+              "id": "fermented",
+              "label": "Fermented",
+              "hint": "Distinct from aged. The result of microbial transformation, as in shou puerh or liu bao."
             }
           ]
         }
@@ -495,11 +620,11 @@
     },
     {
       "id": "liquor-color",
-      "name": "Liquor color",
-      "description": "The color in the cup. The simplest, most visual quality.",
+      "name": "Appearance",
+      "description": "What you see in the cup.",
       "groups": [
         {
-          "label": "",
+          "label": "Color",
           "terms": [
             {
               "id": "pale-gold",
@@ -614,15 +739,28 @@
           ]
         },
         {
-          "label": "Character",
+          "label": "Session arc",
+          "hint": "How does the tea change across steeps?",
           "terms": [
             {
               "id": "opens-slowly",
-              "label": "Opens slowly"
+              "label": "Opens slowly",
+              "hint": "The tea holds back at first, then reveals itself over several steeps."
             },
             {
               "id": "peaks-mid-session",
-              "label": "Peaks mid-session"
+              "label": "Peaks mid-session",
+              "hint": "The best steeps come in the middle, not the beginning."
+            },
+            {
+              "id": "consistent",
+              "label": "Consistent",
+              "hint": "The tea stays steady from steep to steep. Reliable, no big surprises."
+            },
+            {
+              "id": "fades-gracefully",
+              "label": "Fades gracefully",
+              "hint": "As the tea thins, it remains pleasant. A gentle ending, not an abrupt drop."
             }
           ]
         }

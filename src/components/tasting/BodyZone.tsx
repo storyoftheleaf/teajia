@@ -1,8 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { ColorSwatches } from './ColorSwatches';
 import type { TastingFlowState } from './useTastingFlow';
+
+const TEMPERATURES = [
+  { id: 'hot', label: 'Hot' },
+  { id: 'warm', label: 'Warm' },
+  { id: 'cool', label: 'Cool' },
+  { id: 'room', label: 'Room' },
+] as const;
 
 const WEIGHTS = [
   { id: 'light', label: 'Light' },
@@ -11,12 +17,12 @@ const WEIGHTS = [
 ] as const;
 
 const TEXTURES = [
-  { id: 'silky', label: 'Silky' },
-  { id: 'smooth', label: 'Smooth' },
-  { id: 'velvety', label: 'Velvety' },
-  { id: 'oily', label: 'Oily' },
-  { id: 'crisp', label: 'Taut' },
-  { id: 'dry', label: 'Astringent' },
+  { id: 'silky', label: 'Silky', hint: 'The tea slides across your tongue with no resistance.' },
+  { id: 'smooth', label: 'Smooth', hint: 'Even and gentle, nothing catches. Easy to drink.' },
+  { id: 'velvety', label: 'Velvety', hint: 'Soft and plush, a little more weight than silky.' },
+  { id: 'oily', label: 'Oily', hint: 'Coats your mouth, feels rich. Almost buttery.' },
+  { id: 'crisp', label: 'Taut', hint: 'Crisp structure, a little tension. Like biting into a fresh apple.' },
+  { id: 'dry', label: 'Astringent', hint: 'Drying, puckering. The same feeling as strong black tea or unripe fruit.' },
 ] as const;
 
 interface BodyZoneProps {
@@ -27,25 +33,29 @@ interface BodyZoneProps {
 
 const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
   const bodySelected = flow.value.body || [];
+  const selectedTemp = TEMPERATURES.find(t => bodySelected.includes(t.id))?.id ?? null;
   const selectedWeight = WEIGHTS.find(w => bodySelected.includes(w.id))?.id ?? null;
-  const colorCount = flow.getCategoryCount('liquor-color');
-  const totalCount = bodySelected.length + colorCount;
+  const totalCount = bodySelected.length;
 
-  const toggleWeight = (id: string) => {
+  const toggleSingleSelect = (id: string, options: ReadonlyArray<{ id: string }>) => {
     const current = value.body || [];
-    const withoutWeights = current.filter(t => !WEIGHTS.some(w => w.id === t));
-    const next = selectedWeight === id ? withoutWeights : [...withoutWeights, id];
+    const withoutGroup = current.filter(t => !options.some(o => o.id === t));
+    const currentlySelected = options.find(o => bodySelected.includes(o.id))?.id;
+    const next = currentlySelected === id ? withoutGroup : [...withoutGroup, id];
     onChange({ ...value, body: next.length ? next : undefined });
   };
 
   const handleClearAll = () => {
     for (const id of bodySelected) flow.toggleTerm('body', id);
-    flow.clearCategory('liquor-color');
   };
 
+  // Track which texture term was last selected for showing its hint
+  const [lastSelectedTexture, setLastSelectedTexture] = React.useState<string | null>(null);
+  const lastHint = TEXTURES.find(t => t.id === lastSelectedTexture && bodySelected.includes(t.id))?.hint;
+
   return (
-    <div role="group" aria-label="Body weight and texture">
-      {/* Clear — fades in/out */}
+    <div role="group" aria-label="Sensation: temperature, weight, and texture">
+      {/* Clear */}
       <div className="flex justify-end mb-1 -mt-1">
         <motion.button
           type="button"
@@ -54,21 +64,51 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
           transition={{ duration: 0.18 }}
           style={{ pointerEvents: totalCount > 0 ? 'auto' : 'none' }}
           className="text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1"
-          aria-label="Clear all body selections"
+          aria-label="Clear all sensation selections"
         >
           <X size={10} />
           Clear
         </motion.button>
       </div>
 
-      {/* ── #6: Color with divider after ── */}
-      <div className="mb-3">
-        <ColorSwatches flow={flow} compact />
+      {/* Temperature */}
+      <div className="mb-4">
+        <div
+          className="text-[13px] text-tea-text font-medium mb-2"
+          style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
+        >
+          Temperature
+        </div>
+        <div className="tasting-segment-toggle" role="radiogroup" aria-label="Temperature">
+          {TEMPERATURES.map((t, i) => (
+            <motion.button
+              key={t.id}
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => toggleSingleSelect(t.id, TEMPERATURES)}
+              role="radio"
+              aria-checked={selectedTemp === t.id}
+              className={`flex-1 py-2.5 text-[15px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
+                selectedTemp === t.id
+                  ? 'text-tea-gold'
+                  : 'text-tea-text-sec hover:text-tea-text'
+              }${i < TEMPERATURES.length - 1 ? ' weight-seg-div' : ''}`}
+              style={{
+                fontFamily: 'var(--font-body)',
+                background: selectedTemp === t.id
+                  ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.18) 0%, rgb(var(--tea-gold-rgb) / 0.06) 70%)'
+                  : 'transparent',
+              }}
+            >
+              {t.label}
+            </motion.button>
+          ))}
+        </div>
       </div>
 
       <div className="divider-warm mb-4" />
 
-      {/* ── #2: Stronger section header ── */}
+      {/* Weight */}
       <div className="mb-4">
         <div
           className="text-[13px] text-tea-text font-medium mb-2"
@@ -82,7 +122,7 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
               key={w.id}
               type="button"
               whileTap={{ scale: 0.97 }}
-              onClick={() => toggleWeight(w.id)}
+              onClick={() => toggleSingleSelect(w.id, WEIGHTS)}
               role="radio"
               aria-checked={selectedWeight === w.id}
               className={`flex-1 py-2.5 text-[15px] font-medium transition-all duration-200 min-h-[44px] relative z-[1] ${
@@ -92,7 +132,6 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
               }${i < WEIGHTS.length - 1 ? ' weight-seg-div' : ''}`}
               style={{
                 fontFamily: 'var(--font-body)',
-                /* #5: more visible selected bg */
                 background: selectedWeight === w.id
                   ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.18) 0%, rgb(var(--tea-gold-rgb) / 0.06) 70%)'
                   : 'transparent',
@@ -104,7 +143,9 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
         </div>
       </div>
 
-      {/* ── #2 & #4: Texture ── */}
+      <div className="divider-warm mb-4" />
+
+      {/* Texture */}
       <div>
         <div
           className="text-[13px] text-tea-text font-medium mb-2"
@@ -112,7 +153,6 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
         >
           Texture
         </div>
-        {/* #4: tighter gap so tags stay on one line */}
         <div className="flex flex-wrap gap-1.5">
           {TEXTURES.map(t => {
             const isSelected = bodySelected.includes(t.id);
@@ -123,7 +163,11 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
                 whileTap={{ scale: 0.93 }}
                 whileHover={{ scale: 1.04 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                onClick={() => flow.toggleTerm('body', t.id)}
+                onClick={() => {
+                  flow.toggleTerm('body', t.id);
+                  if (!isSelected) setLastSelectedTexture(t.id);
+                  else if (lastSelectedTexture === t.id) setLastSelectedTexture(null);
+                }}
                 className={`tag-selectable ${isSelected ? 'tag-selectable-active' : ''}`}
                 style={{ fontFamily: 'var(--font-body)', fontSize: '12px' }}
                 aria-pressed={isSelected}
@@ -133,6 +177,23 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
             );
           })}
         </div>
+
+        {/* Hint sentence for selected texture */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: lastHint ? 1 : 0, height: lastHint ? 'auto' : 0 }}
+          transition={{ duration: 0.2 }}
+          className="overflow-hidden"
+        >
+          {lastHint && (
+            <p
+              className="text-[12px] text-tea-text-sec mt-2 px-1"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              {lastHint}
+            </p>
+          )}
+        </motion.div>
       </div>
 
     </div>

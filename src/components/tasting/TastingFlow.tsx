@@ -1,20 +1,21 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Circle, Leaf, Wind, Moon,
+  Circle, Leaf, Wind, Moon, Palette,
   Undo2,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
 import { useTastingFlow } from './useTastingFlow';
 import { BodyZone } from './BodyZone';
 import { ThroatZone } from './ThroatZone';
-import { FlavorSection } from './FlavorSection';
 import { StateZone } from './StateZone';
+import { FlavorSection } from './FlavorSection';
+import { AppearanceZone } from './AppearanceZone';
 import { VoiceNoteField } from './VoiceNoteField';
 
 /* ─── Section definition (exported so TastingSession can render the tab bar) ─── */
 
-export type SectionId = 'body' | 'throat' | 'flavor' | 'state';
+export type SectionId = 'body' | 'throat' | 'state' | 'flavor' | 'appearance';
 
 export interface SectionDef {
   id: SectionId;
@@ -22,11 +23,13 @@ export interface SectionDef {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
 }
 
+/** Somatic flow: sensation first, naming last */
 export const ALL_SECTIONS: SectionDef[] = [
-  { id: 'body',   label: 'Body',   icon: Circle },
-  { id: 'throat', label: 'Finish', icon: Wind },
-  { id: 'flavor', label: 'Flavor', icon: Leaf },
-  { id: 'state',  label: 'State',  icon: Moon },
+  { id: 'body',       label: 'Sensation', icon: Circle },
+  { id: 'throat',     label: 'Movement',  icon: Wind },
+  { id: 'state',      label: 'Feeling',   icon: Moon },
+  { id: 'flavor',     label: 'Flavor',    icon: Leaf },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
 ];
 
 /* ─── Transition variants ─── */
@@ -120,21 +123,22 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     (sectionId: SectionId): number => {
       switch (sectionId) {
         case 'body':
-          return flow.getCategoryCount('body') + flow.getCategoryCount('liquor-color');
+          return flow.getCategoryCount('body');
         case 'throat':
           return (
             flow.getCategoryCount('finish') +
             (value.cleanliness ? 1 : 0) +
             (value.huiGan ? 1 : 0)
           );
-        case 'flavor':
-          return flow.getCategoryCount('flavor');
         case 'state':
           return (
             flow.getCategoryCount('feeling') +
-            (value.clarity ? 1 : 0) +
             (value.quality != null ? 1 : 0)
           );
+        case 'flavor':
+          return flow.getCategoryCount('flavor');
+        case 'appearance':
+          return flow.getCategoryCount('liquor-color') + (value.clarity ? 1 : 0);
         default:
           return 0;
       }
@@ -146,10 +150,11 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   useEffect(() => {
     if (!onCountsChange) return;
     onCountsChange({
-      body:   getSectionCount('body'),
-      throat: getSectionCount('throat'),
-      flavor: getSectionCount('flavor'),
-      state:  getSectionCount('state'),
+      body:       getSectionCount('body'),
+      throat:     getSectionCount('throat'),
+      state:      getSectionCount('state'),
+      flavor:     getSectionCount('flavor'),
+      appearance: getSectionCount('appearance'),
     });
   }, [getSectionCount, onCountsChange]);
 
@@ -199,10 +204,12 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
         return <BodyZone flow={flow} value={value} onChange={onChange} />;
       case 'throat':
         return <ThroatZone flow={flow} value={value} onChange={onChange} />;
-      case 'flavor':
-        return <FlavorSection flow={flow} value={value} onChange={onChange} teaType={teaType} />;
       case 'state':
         return <StateZone flow={flow} value={value} onChange={onChange} />;
+      case 'flavor':
+        return <FlavorSection flow={flow} value={value} onChange={onChange} teaType={teaType} />;
+      case 'appearance':
+        return <AppearanceZone flow={flow} value={value} onChange={onChange} />;
       default:
         return null;
     }
