@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { LayoutVariant, Story, InventoryItem } from '../types';
+import { LayoutVariant, Story } from '../types';
 import { Icons } from './Icons';
 import { SkeletonLoader } from './shared/SkeletonLoader';
 import { sanitizeHTML } from '../utils/sanitize';
@@ -34,7 +34,6 @@ interface SinglePageRendererProps {
   readOnly?: boolean;
   onPageUpdate?: (updates: { content?: string; images?: string[]; textColor?: 'light' | 'dark' }) => void;
   onStoryUpdate?: (field: string, value: string) => void;
-  linkedProduct?: InventoryItem | null;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -604,7 +603,7 @@ const VideoPosterFrame: React.FC<{
   );
 };
 
-export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, storyTitle, storySubtitle, isEditable, readOnly = false, onPageUpdate, onStoryUpdate, recommendations, onNavigate, linkedProduct }) => {
+export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, storyTitle, storySubtitle, isEditable, readOnly = false, onPageUpdate, onStoryUpdate, recommendations, onNavigate }) => {
     if (!page) return <div className="w-full h-full bg-tea-bg"></div>;
     const { variant, content = '', images = [], textColor = 'light' } = page;
     const isDarkText = textColor === 'dark'; 
@@ -1184,39 +1183,9 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <span className={`${FOLIO_CLASS}`}>Issue 03</span>
                         </div>
 
-                        {linkedProduct && (
-                            <div className="mb-8 pb-6 border-b border-tea-border">
-                                <p className="text-[13px] font-caption uppercase tracking-[0.18em] text-tea-text-dim mb-4">
-                                    Mentioned in this piece
-                                </p>
-                                <a
-                                    href={`/shop/product/${linkedProduct.id}`}
-                                    className="flex items-center gap-[18px] text-left group"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    {linkedProduct.image && (
-                                        <img
-                                            src={linkedProduct.image}
-                                            alt={linkedProduct.name}
-                                            className="w-[44px] h-[44px] rounded object-cover opacity-70 group-hover:opacity-100 transition-opacity shrink-0"
-                                        />
-                                    )}
-                                    <div className="min-w-0">
-                                        <span className="block text-[22px] font-display leading-tight text-tea-text group-hover:text-tea-gold transition-colors">
-                                            {linkedProduct.name}
-                                        </span>
-                                        {(linkedProduct.origin || linkedProduct.year) && (
-                                            <span className="block text-[14px] font-caption text-tea-text-dim mt-1">
-                                                {linkedProduct.origin}{linkedProduct.year ? ` · ${linkedProduct.year}` : ''}
-                                            </span>
-                                        )}
-                                        <span className="text-[14px] font-caption text-tea-gold mt-1 inline-block">
-                                            Find in shop →
-                                        </span>
-                                    </div>
-                                </a>
-                            </div>
-                        )}
+                        {/* Legacy "Mentioned in this piece" removed — the
+                            ArticleColophon component in Reader.tsx now handles
+                            teas-in-this-piece via the article_products xref. */}
 
                         <div className="flex-1 overflow-y-auto hide-scrollbar">
                             <div className="flex flex-col">
