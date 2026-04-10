@@ -91,7 +91,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
                 transition-colors duration-150
                 ${isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}
               `}
-              style={{ fontFamily: 'var(--font-display)', fontSize: '15px', letterSpacing: '0.02em' }}
+              style={{ fontFamily: 'var(--font-display)', fontSize: '16px', letterSpacing: '0.02em' }}
             >
               {isActive && (
                 <motion.div
@@ -104,11 +104,17 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
 
               <span className="pl-3 whitespace-nowrap">{shortLabel}</span>
 
-              <motion.span
-                animate={{ opacity: count > 0 ? 1 : 0, scale: count > 0 ? 1 : 0.5 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="shrink-0 w-1.5 h-1.5 rounded-full bg-tea-gold/60 ml-1"
-              />
+              {count > 0 && (
+                <motion.span
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  className="absolute z-10 flex items-center justify-center w-5 h-5 rounded-full bg-tea-gold text-[9px] font-bold"
+                  style={{ right: -18, top: '50%', marginTop: -10, color: 'var(--tea-bg)' }}
+                >
+                  {count}
+                </motion.span>
+              )}
             </button>
           );
         })}
@@ -147,18 +153,43 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
               </div>
             )}
 
-            {/* Remaining terms */}
-            {activeGroup.terms
-              .filter(term => !(activeSuggestions.length > 0 && activeSuggestions.some(s => s.id === term.id)))
-              .map(term => (
-                <SubTermButton
-                  key={term.id}
-                  termId={term.id}
-                  label={term.label}
-                  isSelected={selectedSet.has(term.id)}
-                  onToggle={onToggle}
-                />
-              ))}
+            {/* General / root term — shown first with a divider if it matches the group name */}
+            {(() => {
+              const remaining = activeGroup.terms
+                .filter(term => !(activeSuggestions.length > 0 && activeSuggestions.some(s => s.id === term.id)));
+              const rootTerm = remaining[0];
+              const isRootGeneral = rootTerm && activeGroup.label.toLowerCase().includes(rootTerm.label.toLowerCase());
+              const specificTerms = isRootGeneral ? remaining.slice(1) : remaining;
+
+              return (
+                <>
+                  {isRootGeneral && rootTerm && (
+                    <>
+                      <SubTermButton
+                        key={rootTerm.id}
+                        termId={rootTerm.id}
+                        label={rootTerm.label}
+                        isSelected={selectedSet.has(rootTerm.id)}
+                        onToggle={onToggle}
+                        general
+                      />
+                      {specificTerms.length > 0 && (
+                        <div className="border-b border-tea-border my-1" />
+                      )}
+                    </>
+                  )}
+                  {specificTerms.map(term => (
+                    <SubTermButton
+                      key={term.id}
+                      termId={term.id}
+                      label={term.label}
+                      isSelected={selectedSet.has(term.id)}
+                      onToggle={onToggle}
+                    />
+                  ))}
+                </>
+              );
+            })()}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -174,9 +205,10 @@ interface SubTermButtonProps {
   isSelected: boolean;
   onToggle: (id: string) => void;
   suggested?: boolean;
+  general?: boolean;
 }
 
-const SubTermButton: React.FC<SubTermButtonProps> = ({ termId, label, isSelected, onToggle, suggested }) => {
+const SubTermButton: React.FC<SubTermButtonProps> = ({ termId, label, isSelected, onToggle, suggested, general }) => {
   const termInfo = TERM_MAP.get(termId);
   const Icon = termInfo?.icon;
 
@@ -194,12 +226,12 @@ const SubTermButton: React.FC<SubTermButtonProps> = ({ termId, label, isSelected
         transition-colors duration-150
         ${isSelected
           ? 'text-tea-gold font-medium'
-          : suggested
+          : suggested || general
             ? 'text-tea-text-sec hover:text-tea-text'
             : 'text-tea-text-dim hover:text-tea-text-sec'
         }
       `}
-      style={{ fontFamily: 'var(--font-body)', fontSize: '15px' }}
+      style={{ fontFamily: 'var(--font-body)', fontSize: '16px' }}
     >
       {Icon && (
         <Icon
