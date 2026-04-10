@@ -20,13 +20,13 @@ import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AdminBottomNav } from './components/AdminBottomNav';
 import { DashboardView } from './components/DashboardView';
+import { AdminHomeView } from './components/AdminHomeView';
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { TeamView } from './views/TeamView';
 import { AccountSettingsView } from './views/AccountSettingsView';
 import { PlatformAdminView } from './views/PlatformAdminView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
-import { TastingNotesView } from './components/TastingNotesView';
 import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
@@ -62,9 +62,8 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-const ProtectedRoute = ({ isAdmin, isLoggingIn, children }: { isAdmin: boolean; isLoggingIn?: boolean; children: React.ReactNode }) => {
-  if (!isAdmin) {
-    // Don't flash "Access Restricted" when the login modal is about to open or is open
+const ProtectedRoute = ({ hasAccess, isLoggingIn, children }: { hasAccess: boolean; isLoggingIn?: boolean; children: React.ReactNode }) => {
+  if (!hasAccess) {
     if (isLoggingIn) return null;
     return <div className="p-12 text-center text-tea-text-sec font-serif">Access Restricted</div>;
   }
@@ -97,7 +96,10 @@ const AdminContent = () => {
 
   const claims = getTokenClaims();
   const userRole = claims?.role || (isDevAdmin ? 'owner' : null);
-  const isAdmin = (isAuthenticated && (userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
+  // Role tiers — each tier is a superset of the one below
+  const isMember = (isAuthenticated && !!userRole) || isDevAdmin;
+  const isStaff  = (isAuthenticated && (userRole === 'staff' || userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
+  const isAdmin  = (isAuthenticated && (userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
 
   // Listen for session expiry (401 responses clear the token in api.ts)
   useEffect(() => {
@@ -141,6 +143,7 @@ const AdminContent = () => {
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/inventory');
+  const isOnHome = location.pathname === '/admin/home' || location.pathname === '/admin/';
 
   // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
@@ -189,11 +192,11 @@ const AdminContent = () => {
   // Redirect when entering admin at root, or prompt login if not authenticated
   useEffect(() => {
     if (isLoggedIn && location.pathname === '/admin') {
-      navigate('/admin/inventory');
+      navigate('/admin/home');
     } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
       setIsLoginOpen(true);
     }
-  }, [isLoggedIn, isAdmin, navigate, location.pathname]);
+  }, [isLoggedIn, isMember, navigate, location.pathname]);
 
   // Close registry drawer when navigating to a different route
   useEffect(() => {
@@ -285,6 +288,8 @@ const AdminContent = () => {
 
       <Sidebar
         isAdmin={isAdmin}
+        isStaff={isStaff}
+        isMember={isMember}
         isLoggedIn={isLoggedIn}
         platformRole={platformRole}
         onLoginClick={() => setIsLoginOpen(true)}
@@ -297,7 +302,7 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
+        {!isOnHome && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -413,16 +418,59 @@ const AdminContent = () => {
                <MoreHorizontal size={17} />
              </button>
            )}
-        </div>
+        </div>}
 
         <div className="flex-1 relative overflow-hidden pb-[calc(40px+env(safe-area-inset-bottom,0px))] md:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-              <Route path="/" element={<Navigate to="inventory" replace />} />
+              <Route path="/" element={<Navigate to="home" replace />} />
+              <Route path="home" element={
+                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <AdminHomeView platformRole={platformRole} isStaff={isStaff} isAdmin={isAdmin} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
 
-              {/* Core admin views */}
+              {/* Member tools — all authenticated members */}
+              <Route path="compass" element={
+                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <CompassWithMode onBack={() => navigate('/admin/home')} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="capture" element={
+                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <QuickCapture
+                      products={products}
+                      isLoading={loading}
+                      onDraftCreated={refetchProducts}
+                      onImportClick={() => setIsImportOpen(true)}
+                      onAddClick={() => setIsCreateModalOpen(true)}
+                      rates={rates}
+                    />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+
+              {/* Member tools — events + samples open to all members */}
+              <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="samples" element={
+                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition><SampleSetCreator /></PageTransition>
+                </ProtectedRoute>
+              } />
+
+              {/* Operations — staff, admin, owner */}
+              <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="people" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
+
+              {/* Management — admin, owner */}
               <Route path="inventory" element={
-                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <InventoryView
                       products={products}
@@ -440,55 +488,10 @@ const AdminContent = () => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
-              <Route path="activity" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
-              <Route path="people" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
-              <Route path="dashboard" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
-
-              {/* Quick Capture — Intake Hub */}
-              <Route path="capture" element={
-                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
-                  <PageTransition>
-                    <QuickCapture
-                      products={products}
-                      isLoading={loading}
-                      onDraftCreated={refetchProducts}
-                      onImportClick={() => setIsImportOpen(true)}
-                      onAddClick={() => setIsCreateModalOpen(true)}
-                      rates={rates}
-                    />
-                  </PageTransition>
-                </ProtectedRoute>
-              } />
-
-              {/* Tea Compass + Ledger — full page */}
-              <Route path="compass" element={
-                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
-                  <PageTransition>
-                    <CompassWithMode onBack={() => navigate('/admin/inventory')} />
-                  </PageTransition>
-                </ProtectedRoute>
-              } />
-
-              {/* Samples */}
-              <Route path="samples" element={
-                <ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}>
-                  <PageTransition>
-                    <SampleSetCreator />
-                  </PageTransition>
-                </ProtectedRoute>
-              } />
-
-              {/* Supplementary views */}
-              <Route path="tasting" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingNotesView products={products} isLoading={loading} onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
-              <Route path="events" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
-              <Route path="events/:id" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
-
-              {/* Multi-account: team + account settings */}
-              <Route path="team" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TeamView /></PageTransition></ProtectedRoute>} />
-              <Route path="account-settings" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
-
-              {/* Platform admin — only accessible to platform_owner / platform_admin */}
-              <Route path="platform" element={<ProtectedRoute isAdmin={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
+              <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="team" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TeamView /></PageTransition></ProtectedRoute>} />
+              <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
+              <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />
@@ -500,7 +503,7 @@ const AdminContent = () => {
               <Route path="records" element={<Navigate to="/admin/activity" replace />} />
               <Route path="settings" element={<Navigate to="/admin/people" replace />} />
 
-              <Route path="*" element={<Navigate to="inventory" replace />} />
+              <Route path="*" element={<Navigate to="home" replace />} />
             </Routes>
           </AnimatePresence>
         </div>
@@ -560,6 +563,8 @@ const AdminContent = () => {
           onSearchClick={() => setIsCommandPaletteOpen(true)}
           onCartClick={() => setIsCartOpen(true)}
           cartItemCount={cart.length}
+          isMember={isMember}
+          isStaff={isStaff}
           isAdmin={isAdmin}
           onAddProduct={() => setIsCreateModalOpen(true)}
         />

@@ -21,21 +21,21 @@ const TEXTURES = [
 
 interface BodyZoneProps {
   flow: TastingFlowState;
+  value: import('../../types').TastingData;
+  onChange: (data: import('../../types').TastingData) => void;
 }
 
-const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow }) => {
+const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
   const bodySelected = flow.value.body || [];
   const selectedWeight = WEIGHTS.find(w => bodySelected.includes(w.id))?.id ?? null;
   const colorCount = flow.getCategoryCount('liquor-color');
   const totalCount = bodySelected.length + colorCount;
 
   const toggleWeight = (id: string) => {
-    if (selectedWeight === id) {
-      flow.toggleTerm('body', id);
-    } else {
-      if (selectedWeight) flow.toggleTerm('body', selectedWeight);
-      flow.toggleTerm('body', id);
-    }
+    const current = value.body || [];
+    const withoutWeights = current.filter(t => !WEIGHTS.some(w => w.id === t));
+    const next = selectedWeight === id ? withoutWeights : [...withoutWeights, id];
+    onChange({ ...value, body: next.length ? next : undefined });
   };
 
   const handleClearAll = () => {

@@ -119,11 +119,13 @@ const VoiceNoteFieldInner: React.FC<VoiceNoteFieldProps> = ({
         } catch (err: unknown) {
           if (!isMountedRef.current) return;
           const msg = err instanceof Error ? err.message : '';
-          // Bug #8 fix: distinguish timeout from other errors
           if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('timed out')) {
             setError('Took too long to transcribe. Try recording again or type instead.');
+          } else if (msg.toLowerCase().includes('unauthorized') || msg.includes('401')) {
+            setError('Sign in to use voice notes.');
           } else {
-            setError('Transcription failed. Try typing instead.');
+            // Surface the actual server error so issues can be diagnosed
+            setError(msg || 'Transcription failed. Try typing instead.');
           }
         }
 

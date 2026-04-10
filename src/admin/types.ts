@@ -55,6 +55,7 @@ export interface Product {
   quantityUnits?: number; // Unit count (used instead of stockGrams for teaware)
   tasting?: TastingData;
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
+  teaKey?: string; // Normalised tea identity key — shared across accounts for cross-store review aggregation
 }
 
 export interface Invoice {

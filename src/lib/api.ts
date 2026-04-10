@@ -68,6 +68,7 @@ export function isTokenExpired(): boolean {
 }
 
 function authHeaders(): Record<string, string> {
+  if (isTokenExpired()) clearToken();
   const currentToken = getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (currentToken) {
@@ -646,6 +647,7 @@ export const api = {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
+    if (isTokenExpired()) clearToken();
     const token = getToken();
     const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
       method: 'POST',
@@ -1080,6 +1082,61 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** Share a capture card to known accounts and/or generate an invite link for external tasters */
+    share: async (params: {
+      entryId: string;
+      targetAccountIds?: string[];
+      generateInviteLink?: boolean;
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/share`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          entry_id: params.entryId,
+          target_account_ids: params.targetAccountIds,
+          generate_invite_link: params.generateInviteLink,
+        }),
+      });
+      return handleResponse(res);
+    },
+    /** List pending incoming shares for the current account */
+    getIncoming: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/incoming`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    /** Accept a direct-push share — creates a compass entry in caller's account */
+    acceptShare: async (shareId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/shares/${shareId}/accept`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    /** Decline a direct-push share */
+    declineShare: async (shareId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/shares/${shareId}/decline`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    /** Public — fetch share metadata from an invite token (no auth required) */
+    getInvite: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/invite/${token}`, {
+        headers: authHeaders(), // send token if present, stripped metadata if not
+      });
+      return handleResponse(res);
+    },
+    /** Authenticated — claim an invite link into the caller's compass */
+    claimInvite: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/invite/${token}/claim`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
   },
 
   inquiries: {
@@ -1471,10 +1528,16 @@ export const api = {
   },
 
   teaReviews: {
-    list: async (params: { tea_key?: string; product_id?: string; visibility?: string }) => {
+    list: async (params: {
+      tea_key?: string;
+      product_id?: string;
+      source_sample_id?: string;
+      visibility?: string;
+    }) => {
       const qp = new URLSearchParams();
       if (params.tea_key) qp.set('tea_key', params.tea_key);
       if (params.product_id) qp.set('product_id', params.product_id);
+      if (params.source_sample_id) qp.set('source_sample_id', params.source_sample_id);
       if (params.visibility) qp.set('visibility', params.visibility);
       const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews?${qp.toString()}`, {
         headers: authHeaders(),
@@ -1484,12 +1547,17 @@ export const api = {
     create: async (review: {
       tea_key: string;
       product_id?: string;
+      source_sample_id?: string;
       visibility?: string;
       session_date?: string;
       rating?: number;
       notes?: string;
+      voice_notes?: string[];
       tasting?: Record<string, unknown>;
       brew_params?: Record<string, unknown>;
+      status?: 'draft' | 'submitted';
+      verdict?: string;
+      would_buy?: boolean;
     }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews`, {
         method: 'POST',
@@ -1498,7 +1566,18 @@ export const api = {
       });
       return handleResponse(res);
     },
-    update: async (id: string, updates: Record<string, unknown>) => {
+    update: async (id: string, updates: {
+      visibility?: string;
+      session_date?: string;
+      rating?: number;
+      notes?: string;
+      voice_notes?: string[];
+      tasting?: Record<string, unknown>;
+      brew_params?: Record<string, unknown>;
+      status?: 'draft' | 'submitted';
+      verdict?: string;
+      would_buy?: boolean;
+    }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/tea-reviews/${id}`, {
         method: 'PUT',
         headers: authHeaders(),

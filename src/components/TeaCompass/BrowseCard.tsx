@@ -177,6 +177,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
   // Include 'buying' for backwards compatibility with persisted data
   const isBought = entry.status === 'bought' || entry.status === 'buying';
   const isWishlisted = entry.status === 'want';
+  const isIncoming = entry.status === 'incoming';
   const pricePerGram = formatPricePerGram(entry);
   const rating = entry.tasting?.quality ?? entry.tasting?.rating;
   const flavorTags = (entry.tasting?.flavor || []).slice(0, 3);
@@ -236,7 +237,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
               </p>
 
               {/* Rating + status badge */}
-              {(rating != null || isBought || isWishlisted) && (
+              {(rating != null || isBought || isWishlisted || isIncoming) && (
                 <div className="flex items-center gap-2">
                   {rating != null && (
                     <span className="text-[11px] font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
@@ -248,6 +249,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
                   )}
                   {isWishlisted && !isBought && (
                     <span className="text-[10px] text-tea-text-dim font-medium">Wishlist</span>
+                  )}
+                  {isIncoming && (
+                    <span className="text-[10px] text-tea-accent-sub font-medium">Incoming</span>
                   )}
                 </div>
               )}

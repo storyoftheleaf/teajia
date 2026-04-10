@@ -73,12 +73,65 @@ interface CreateWizardProps {
 const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const { showToast } = useToast();
   const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [eventEndDate, setEventEndDate] = useState('');
   const [totalCapacity, setTotalCapacity] = useState(12);
+  const [status, setStatus] = useState<EventStatus>('draft');
   const [flyerImageUrl, setFlyerImageUrl] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [addressText, setAddressText] = useState('');
+  const [mapLink, setMapLink] = useState('');
+  const [areaHint, setAreaHint] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [showSaveLocation, setShowSaveLocation] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+
+  useEffect(() => {
+    api.savedLocations.list().then(setSavedLocations).catch(() => {});
+  }, []);
+
+  const handleSelectLocation = (locationId: string) => {
+    setSelectedLocationId(locationId);
+    if (!locationId) return;
+    const loc = savedLocations.find(l => l.id === locationId);
+    if (!loc) return;
+    setLocationName(loc.name);
+    setAddressText(loc.address);
+    setMapLink(loc.mapLink || '');
+  };
+
+  const handleSaveLocation = async () => {
+    if (!locationName.trim() || !addressText.trim()) {
+      showToast('Location name and address are required to save', 'error');
+      return;
+    }
+    setSavingLocation(true);
+    try {
+      const result = await api.savedLocations.create({
+        name: locationName,
+        address: addressText,
+        map_link: mapLink || null,
+        guidelines: null,
+        venue_guide: null,
+      });
+      const refreshed = await api.savedLocations.list();
+      setSavedLocations(refreshed);
+      setSelectedLocationId(result.id);
+      setShowSaveLocation(false);
+      showToast('Location saved', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save location', 'error');
+    } finally {
+      setSavingLocation(false);
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,11 +160,18 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
       const result = await api.events.create({
         slug: slugify(title),
         title: title.trim(),
+        subtitle: subtitle.trim() || undefined,
+        description: description.trim() || undefined,
         event_date: eventDate,
+        event_end_date: eventEndDate || undefined,
         total_capacity: totalCapacity,
         claim_window_minutes: 60,
-        status: 'draft',
+        status,
         flyer_image_url: flyerImageUrl || null,
+        location_name: locationName.trim() || undefined,
+        address_text: addressText.trim() || undefined,
+        map_link: mapLink.trim() || undefined,
+        area_hint: areaHint.trim() || undefined,
       });
       showToast('Event created', 'success');
       onSuccess(result?.id);
@@ -123,84 +183,243 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <form onSubmit={handleCreate} className="p-6 space-y-6">
-      {/* Flyer drop zone — prominent, full width */}
-      <div>
-        {flyerImageUrl ? (
-          <div className="relative w-full rounded-md overflow-hidden border border-tea-border" style={{ maxHeight: 320 }}>
-            <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" style={{ maxHeight: 320 }} />
-            <button
-              type="button"
-              onClick={() => setFlyerImageUrl('')}
-              className="absolute top-3 right-3 bg-tea-bg/80 text-tea-text p-1.5 rounded-full hover:bg-tea-bg transition-colors"
-            >
-              <X size={13} />
-            </button>
+    <form onSubmit={handleCreate} className="flex flex-col h-full min-h-0">
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+
+          {/* ── Left column: details ── */}
+          <div className="divide-y divide-tea-border">
+
+            {/* Identity */}
+            <section className="space-y-5 pb-8">
+              <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Event Details</h3>
+              <Field label="Title *">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className={inputClass}
+                  placeholder="Spring Tea Tasting"
+                  required
+                  autoFocus
+                />
+              </Field>
+              <Field label="Subtitle">
+                <input
+                  type="text"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  className={inputClass}
+                  placeholder="A curated afternoon of aged puerh"
+                />
+              </Field>
+              <Field label="Description">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className={textareaClass}
+                  placeholder="Describe the experience, what guests can expect…"
+                  rows={4}
+                />
+              </Field>
+            </section>
+
+            {/* Scheduling */}
+            <section className="space-y-5 py-8">
+              <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Scheduling</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Start Date & Time *">
+                  <input
+                    type="datetime-local"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className={inputClass}
+                    required
+                  />
+                </Field>
+                <Field label="End Date & Time">
+                  <input
+                    type="datetime-local"
+                    value={eventEndDate}
+                    onChange={(e) => setEventEndDate(e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Seats">
+                  <input
+                    type="number"
+                    value={totalCapacity}
+                    onChange={(e) => setTotalCapacity(parseInt(e.target.value) || 12)}
+                    className={inputClass}
+                    min={1}
+                    max={200}
+                  />
+                </Field>
+                <Field label="Status">
+                  <div className="relative">
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as EventStatus)}
+                      className={selectClass}
+                    >
+                      {STATUS_OPTIONS.map(s => (
+                        <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                  </div>
+                </Field>
+              </div>
+            </section>
+
+            {/* Location */}
+            <section className="space-y-4 pt-8">
+              <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Location</h3>
+
+              {/* Saved locations picker */}
+              {savedLocations.length > 0 && (
+                <div className="relative">
+                  <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
+                  <select
+                    value={selectedLocationId}
+                    onChange={(e) => handleSelectLocation(e.target.value)}
+                    className={`${selectClass} pl-5`}
+                  >
+                    <option value="">Choose a saved location…</option>
+                    {savedLocations.map(loc => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                </div>
+              )}
+
+              <Field label="Area Hint">
+                <input
+                  type="text"
+                  value={areaHint}
+                  onChange={(e) => setAreaHint(e.target.value)}
+                  className={inputClass}
+                  placeholder="Central, Hong Kong"
+                />
+              </Field>
+              <Field label="Venue Name">
+                <input
+                  type="text"
+                  value={locationName}
+                  onChange={(e) => { setLocationName(e.target.value); setSelectedLocationId(''); }}
+                  className={inputClass}
+                  placeholder="The Studio at Sheung Wan"
+                />
+              </Field>
+              <Field label="Address">
+                <input
+                  type="text"
+                  value={addressText}
+                  onChange={(e) => { setAddressText(e.target.value); setSelectedLocationId(''); }}
+                  className={inputClass}
+                  placeholder="123 Hollywood Road, Sheung Wan"
+                />
+              </Field>
+              <Field label="Map Link">
+                <input
+                  type="url"
+                  value={mapLink}
+                  onChange={(e) => setMapLink(e.target.value)}
+                  className={inputClass}
+                  placeholder="https://maps.google.com/…"
+                />
+              </Field>
+
+              {/* Save as location prompt */}
+              {locationName && addressText && !selectedLocationId && (
+                <>
+                  {showSaveLocation ? (
+                    <div className="bg-tea-bg/50 border border-tea-border rounded-md p-3 space-y-2">
+                      <p className="text-xs text-tea-text-sec">Save "{locationName}" as a reusable location?</p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSaveLocation}
+                          disabled={savingLocation}
+                          className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                        >
+                          {savingLocation ? <Loader2 size={10} className="animate-spin" /> : <Bookmark size={10} />}
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowSaveLocation(false)}
+                          className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveLocation(true)}
+                      className="flex items-center gap-1.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      <Bookmark size={11} />
+                      Save as reusable location
+                    </button>
+                  )}
+                </>
+              )}
+            </section>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="w-full border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-3 py-12 text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text-sec transition-colors"
-          >
-            {uploading ? (
-              <Loader2 size={24} className="animate-spin text-tea-gold" />
+
+          {/* ── Right column: flyer ── */}
+          <div className="space-y-4">
+            <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Flyer</h3>
+            {flyerImageUrl ? (
+              <div className="relative w-full rounded-md overflow-hidden border border-tea-border">
+                <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setFlyerImageUrl('')}
+                  className="absolute top-3 right-3 bg-tea-bg/80 text-tea-text p-1.5 rounded-full hover:bg-tea-bg transition-colors"
+                >
+                  <X size={13} />
+                </button>
+              </div>
             ) : (
-              <Image size={24} className="text-tea-text-dim" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-3 py-16 text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text-sec transition-colors"
+              >
+                {uploading ? (
+                  <Loader2 size={24} className="animate-spin text-tea-gold" />
+                ) : (
+                  <Image size={24} className="text-tea-text-dim" />
+                )}
+                <span className="text-xs tracking-wide">
+                  {uploading ? 'Uploading flyer...' : 'Upload flyer image'}
+                </span>
+                <span className="text-[10px] text-tea-text-dim">JPG, PNG, WebP</span>
+              </button>
             )}
-            <span className="text-xs tracking-wide">
-              {uploading ? 'Uploading flyer...' : 'Upload flyer image'}
-            </span>
-            <span className="text-[10px] text-tea-text-dim">JPG, PNG, WebP</span>
-          </button>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
+
+        </div>
       </div>
 
-      {/* Three fields */}
-      <div className="space-y-5">
-        <Field label="Title *">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className={inputClass}
-            placeholder="Spring Tea Tasting"
-            required
-            autoFocus
-          />
-        </Field>
-
-        <Field label="Date & Time *">
-          <input
-            type="datetime-local"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            className={inputClass}
-            required
-          />
-        </Field>
-
-        <Field label="Seats">
-          <input
-            type="number"
-            value={totalCapacity}
-            onChange={(e) => setTotalCapacity(parseInt(e.target.value) || 12)}
-            className={inputClass}
-            min={1}
-            max={200}
-          />
-        </Field>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-2 border-t border-tea-border">
+      {/* Sticky footer */}
+      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border">
         <button
           type="button"
           onClick={onClose}
@@ -891,6 +1110,32 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
 
   if (!isOpen) return null;
 
+  // Create mode: full-screen panel
+  if (!isEdit) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          className="fixed inset-0 bg-tea-bg z-50 flex flex-col"
+        >
+          {/* Header */}
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
+            <h2 className="text-lg font-serif text-tea-text">Create Event</h2>
+            <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            <CreateWizard onClose={onClose} onSuccess={onSuccess} />
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // Edit mode: centered modal (existing behaviour)
   return (
     <AnimatePresence>
       <motion.div
@@ -910,26 +1155,16 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
-            <h2 className="text-lg font-serif text-tea-text">
-              {isEdit ? 'Edit Event' : 'Create Event'}
-            </h2>
+            <h2 className="text-lg font-serif text-tea-text">Edit Event</h2>
             <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
               <X size={18} />
             </button>
           </div>
-
-          {isEdit ? (
-            <EditForm
-              initialData={initialData!}
-              onClose={onClose}
-              onSuccess={onSuccess}
-            />
-          ) : (
-            <CreateWizard
-              onClose={onClose}
-              onSuccess={onSuccess}
-            />
-          )}
+          <EditForm
+            initialData={initialData!}
+            onClose={onClose}
+            onSuccess={onSuccess}
+          />
         </motion.div>
       </motion.div>
     </AnimatePresence>

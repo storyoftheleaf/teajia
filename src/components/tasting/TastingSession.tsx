@@ -9,7 +9,7 @@ import type { TastingData, CustomerTasting } from '../../types';
 import { TastingFlow, ALL_SECTIONS, type SectionId } from './TastingFlow';
 import { useAppStore } from '../../lib/store';
 import { syncTastingJournal } from '../../lib/tastingJournalSync';
-import { hasToken } from '../../lib/api';
+import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
 
 export interface TastingItem {
@@ -22,6 +22,10 @@ export interface TastingItem {
   compassEntryId?: string;
   eventId?: string;
   eventTitle?: string;
+  /** When set in adminMode, writes a live draft tea_review as the session progresses */
+  teaKey?: string;
+  /** Links the review back to the originating sample */
+  sourceSampleId?: string;
 }
 
 type Verdict = 'love' | 'like' | 'neutral' | 'pass';
@@ -79,6 +83,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
+  // Live draft review (admin + teaKey only) — Mode 3 async collaborative tasting
+  const draftReviewIdRef = useRef<string | null>(null);
+  const isCreatingDraftRef = useRef(false);
+  const draftDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedStateRef = useRef(saveState);
+  useEffect(() => { savedStateRef.current = saveState; }, [saveState]);
+
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [wouldBuy, setWouldBuy] = useState(false);
 
@@ -124,6 +135,49 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
+  // Cleanup draft on unmount if session was abandoned (not saved)
+  useEffect(() => {
+    return () => {
+      if (draftReviewIdRef.current && savedStateRef.current !== 'saved') {
+        api.teaReviews.remove(draftReviewIdRef.current).catch(() => {});
+      }
+      if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
+    };
+  }, []);
+
+  // Draft-aware onChange — writes live state to tea_reviews when adminMode + teaKey
+  const handleTastingChange = useCallback((data: TastingData) => {
+    setTastingData(data);
+    if (!adminMode || !item.teaKey) return;
+
+    if (!draftReviewIdRef.current && !isCreatingDraftRef.current) {
+      isCreatingDraftRef.current = true;
+      api.teaReviews.create({
+        tea_key: item.teaKey,
+        source_sample_id: item.sourceSampleId,
+        tasting: data as Record<string, unknown>,
+        voice_notes: data.notes,
+        status: 'draft',
+        visibility: 'network',
+      }).then((review: any) => {
+        draftReviewIdRef.current = review.id;
+        isCreatingDraftRef.current = false;
+      }).catch(() => {
+        isCreatingDraftRef.current = false;
+      });
+    } else if (draftReviewIdRef.current) {
+      if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
+      draftDebounceRef.current = setTimeout(() => {
+        if (draftReviewIdRef.current) {
+          api.teaReviews.update(draftReviewIdRef.current, {
+            tasting: data as Record<string, unknown>,
+            voice_notes: data.notes,
+          }).catch(() => {});
+        }
+      }, 2000);
+    }
+  }, [adminMode, item.teaKey, item.sourceSampleId]);
+
   const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
   const hasCaptureData =
     tastingData.quality != null ||
@@ -138,6 +192,17 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     setSaveState('saving');
 
     try {
+      // Submit draft review if one was created during this session
+      if (draftReviewIdRef.current) {
+        if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
+        api.teaReviews.update(draftReviewIdRef.current, {
+          tasting: tastingData as Record<string, unknown>,
+          voice_notes: tastingData.notes,
+          status: 'submitted',
+        }).catch(() => {});
+        draftReviewIdRef.current = null; // prevent cleanup on unmount from deleting it
+      }
+
       if (adminMode && onSave) {
         // Admin flow: write to product record only, no journal entry
         onSave(tastingData);
@@ -253,7 +318,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               <TastingFlow
                 mode="customer"
                 value={tastingData}
-                onChange={setTastingData}
+                onChange={handleTastingChange}
                 teaType={item.type}
                 activeSectionId={activeSectionId}
                 onSectionChange={setActiveSectionId}
@@ -272,9 +337,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 boxShadow: '0 -4px 16px rgba(0,0,0,0.25)',
               }}
             >
-              {/* Section tabs */}
+              {/* Section tabs + mic */}
               <LayoutGroup>
-                <div className="flex justify-center">
+                <div className="flex">
                   {ALL_SECTIONS.map((section) => {
                     const isActive = section.id === activeSectionId;
                     const count = sectionCounts[section.id];
@@ -284,9 +349,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         onClick={() => {
                           setActiveSectionId(section.id);
                           setShowNote(false);
-                          setAutoStartNote(false);
                         }}
-                        className={`relative px-4 py-3 flex items-center gap-1.5 transition-colors duration-200 ${
+                        className={`relative flex-1 flex items-center justify-center gap-1.5 py-3 transition-colors duration-200 ${
                           isActive ? 'text-tea-gold font-semibold' : 'text-tea-text/40 hover:text-tea-text/70'
                         }`}
                         style={{
@@ -296,8 +360,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                           textTransform: 'uppercase',
                         }}
                       >
-                        {/* Active pill background */}
-                        {isActive && (
+                        {/* Active pill — hidden when note panel is open so it can slide to mic */}
+                        {isActive && !showNote && (
                           <motion.div
                             layoutId="tasting-tab-bg"
                             className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
@@ -314,47 +378,52 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       </button>
                     );
                   })}
+
+                  {/* Mic — lives in the tab row as a 5th equal cell */}
+                  <button
+                    onPointerDown={handleNotePointerDown}
+                    onPointerUp={handleNotePointerUp}
+                    onPointerCancel={handleNotePointerCancel}
+                    aria-pressed={showNote}
+                    title="Tap to type · Hold to record"
+                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 select-none ${
+                      showNote
+                        ? 'text-tea-gold'
+                        : (tastingData.notes?.length ?? 0) > 0
+                          ? 'text-tea-gold/60'
+                          : 'text-tea-text/40 hover:text-tea-text/70'
+                    }`}
+                    style={{ touchAction: 'none' }}
+                  >
+                    {showNote && (
+                      <motion.div
+                        layoutId="tasting-tab-bg"
+                        className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
+                        style={{ background: 'rgb(var(--tea-gold-rgb) / 0.08)' }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                      />
+                    )}
+                    <span className="relative z-[1] flex items-center gap-1">
+                      <Mic size={14} />
+                      {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
+                        <span className="text-[9px] font-bold">{tastingData.notes!.length}</span>
+                      )}
+                    </span>
+                  </button>
                 </div>
               </LayoutGroup>
 
-              {/* Note + Save */}
-              <div className="flex items-center gap-2 px-3 py-3">
-                <button
-                  onPointerDown={handleNotePointerDown}
-                  onPointerUp={handleNotePointerUp}
-                  onPointerCancel={handleNotePointerCancel}
-                  aria-pressed={showNote}
-                  title="Tap to type · Hold to record"
-                  className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all duration-200 border shrink-0 select-none ${
-                    showNote
-                      ? 'text-tea-gold border-tea-gold/30 bg-tea-gold/5'
-                      : (tastingData.notes?.length ?? 0) > 0
-                        ? 'text-tea-gold/70 border-tea-gold/20'
-                        : 'border-tea-border text-tea-text-sec hover:text-tea-text'
-                  }`}
-                  style={{ fontFamily: 'var(--font-display)', touchAction: 'none' }}
-                >
-                  <div className="flex items-center gap-1.5" style={{ fontSize: '12px', letterSpacing: '0.06em' }}>
-                    <Mic size={13} />
-                    Note
-                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
-                      <span className="text-[9px] text-tea-gold/60 font-semibold">{tastingData.notes!.length}</span>
-                    )}
-                  </div>
-                  <span className="text-[9px] tracking-wide opacity-50" style={{ letterSpacing: '0.04em' }}>
-                    hold to record
-                  </span>
-                </button>
-
+              {/* Save */}
+              <div className="px-3 pb-3">
                 <button
                   onClick={handleSave}
                   disabled={!hasNotes || saveState !== 'idle'}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    saveState === 'saved'
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    saveState === 'saving' || saveState === 'saved'
                       ? 'bg-tea-gold text-tea-bg scale-[0.98]'
                       : hasNotes
-                        ? 'bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98]'
-                        : 'bg-tea-border text-tea-text-dim cursor-not-allowed'
+                        ? 'border border-tea-gold/40 text-tea-gold hover:bg-tea-gold/8 active:scale-[0.98]'
+                        : 'border border-tea-border text-tea-text-dim cursor-not-allowed'
                   }`}
                 >
                   <motion.span
@@ -365,7 +434,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     className="flex items-center gap-2"
                   >
                     <Check size={15} />
-                    {saveState === 'idle' && 'Save to Journal'}
+                    {saveState === 'idle' && 'Save'}
                     {saveState === 'saving' && 'Saving…'}
                     {saveState === 'saved' && 'Saved ✓'}
                   </motion.span>

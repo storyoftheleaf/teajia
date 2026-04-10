@@ -162,21 +162,31 @@ export const OrdersView = () => {
             </h2>
           </div>
 
-          {/* Pipeline Summary — scrollable on mobile */}
-          <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar">
-            {(['all', 'Pending', 'Filled', 'Void'] as StatusFilter[]).map(status => {
-              const count = status === 'all' ? orders.length
-                : status === 'Pending' ? summary.pending
-                : status === 'Filled' ? summary.filled
+          {/* Pipeline Summary — segmented filter */}
+          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar shrink-0">
+            {([
+              { id: 'all',     label: 'All',     dot: null },
+              { id: 'Pending', label: 'Pending', dot: 'bg-amber-400' },
+              { id: 'Filled',  label: 'Filled',  dot: 'bg-tea-gold' },
+              { id: 'Void',    label: 'Void',    dot: 'bg-tea-text-dim' },
+            ] as { id: StatusFilter; label: string; dot: string | null }[]).map(({ id, label, dot }) => {
+              const count = id === 'all' ? orders.length
+                : id === 'Pending' ? summary.pending
+                : id === 'Filled' ? summary.filled
                 : summary.voided;
               return (
                 <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`${statusFilter === status ? 'pill-active' : 'pill'} flex items-center gap-1`}
+                  key={id}
+                  onClick={() => setStatusFilter(id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+                    statusFilter === id
+                      ? 'bg-tea-bg text-tea-text shadow-sm'
+                      : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
                 >
-                  {status === 'all' ? 'All' : status}
-                  <span className="text-[9px] opacity-70">{count}</span>
+                  {dot && <span className={`w-1.5 h-1.5 rounded-full ${dot} opacity-70`} />}
+                  {label}
+                  <span className={`text-[9px] tabular-nums ${statusFilter === id ? 'text-tea-text-dim' : 'text-tea-text-dim/60'}`}>{count}</span>
                 </button>
               );
             })}

@@ -3,7 +3,7 @@ import type { Currency } from '../../admin/types';
 
 export type TeaType = 'Green' | 'White' | 'Yellow' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware';
 export type TeaForm = 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag';
-export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought';
+export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought' | 'incoming';
 export type CompassCategory = 'tea' | 'teaware';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
@@ -70,6 +70,9 @@ export interface TeaCompassEntry {
   buyQuantityGrams?: number;
   buyQuantityUnits?: number;
   buyTotal?: number;
+
+  // Panel sharing — normalised identity key, shared across accounts so reviews pool
+  teaKey?: string;
 
   // Sample flag — tea entries can be marked as samples (small tasting portions)
   isSample?: boolean;
@@ -141,6 +144,44 @@ export const COMMON_REGIONS = [
 ];
 
 /**
+ * Derives a normalised tea_key from identity fields.
+ * Both accounts capturing the same tea should produce the same key if they use consistent naming.
+ * e.g. "Silver Needle", "White", 2024, "Fuding" → "silver-needle-white-2024-fuding"
+ */
+export function generateTeaKey(entry: Pick<TeaCompassEntry, 'name' | 'type' | 'year' | 'originRegion'>): string {
+  return [entry.name, entry.type, entry.year, entry.originRegion]
+    .filter(Boolean)
+    .join('-')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * Returns the public-safe metadata to include in a compass share.
+ * Strips vendor costs, private notes, and buying details.
+ */
+export function compassShareMetadata(entry: TeaCompassEntry): Record<string, unknown> {
+  return {
+    name: entry.name,
+    chineseName: entry.chineseName,
+    type: entry.type,
+    form: entry.form,
+    year: entry.year,
+    season: entry.season,
+    originRegion: entry.originRegion,
+    category: entry.category,
+    teaKey: entry.teaKey,
+    photo: entry.photos?.[0] || null,
+    teawareCategory: entry.teawareCategory,
+    material: entry.material,
+    capacityMl: entry.capacityMl,
+  };
+}
+
+/**
  * Maps a Tea Compass entry to a product draft payload matching the API's expected format.
  * Used when promoting a "bought" compass entry to a Draft product in inventory.
  */
@@ -205,6 +246,7 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
     terroir: '',
     // Persistent cross-link back to this compass entry
     source_compass_entry_id: entry.id,
+    tea_key: entry.teaKey || null,
     // Teaware-specific
     ...(entry.category === 'teaware' ? {
       teaware_category: entry.teawareCategory || null,

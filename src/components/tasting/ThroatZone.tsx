@@ -116,7 +116,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange }) =
                 aria-checked={isSelected}
                 className={`flex flex-col items-center justify-center px-2 py-3 rounded-xl min-h-[60px] text-center transition-all duration-200 ${
                   isSelected
-                    ? 'bg-tea-gold/12 text-tea-gold'
+                    ? 'bg-tea-gold/20 ring-1 ring-inset ring-tea-gold/50 text-tea-gold'
                     : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
                 }`}
                 style={{ fontFamily: 'var(--font-body)' }}
@@ -213,7 +213,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange }) =
                 aria-pressed={isSelected}
                 className={`flex flex-col items-start px-3 py-3 rounded-xl min-h-[60px] transition-all duration-200 ${
                   isSelected
-                    ? 'bg-tea-gold/12 text-tea-gold'
+                    ? 'bg-tea-gold/20 ring-1 ring-inset ring-tea-gold/50 text-tea-gold'
                     : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
                 }`}
                 style={{ fontFamily: 'var(--font-body)' }}

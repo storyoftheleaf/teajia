@@ -10,11 +10,12 @@ interface VoiceRecorderProps {
 type RecorderState = 'idle' | 'recording' | 'transcribing' | 'error';
 
 function getSupportedMimeType(): string {
-  if (typeof MediaRecorder === 'undefined') return 'audio/webm';
+  if (typeof MediaRecorder === 'undefined') return 'audio/mp4';
+  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
   if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
   if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
   if (MediaRecorder.isTypeSupported('audio/wav')) return 'audio/wav';
-  return 'audio/webm';
+  return 'audio/mp4'; // iOS Safari fallback
 }
 
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) => {
@@ -23,11 +24,15 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
       }
     };
   }, []);
@@ -43,6 +48,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!isMountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
       streamRef.current = stream;
 
       const mimeType = getSupportedMimeType();
@@ -55,6 +61,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
       };
 
       recorder.onstop = async () => {
+        // Stop stream before async work
         stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
 
@@ -62,19 +69,20 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
         chunksRef.current = [];
 
         if (blob.size < 100) {
-          setState('idle');
+          if (isMountedRef.current) setState('idle');
           return;
         }
 
-        setState('transcribing');
+        if (isMountedRef.current) setState('transcribing');
         try {
           const result = await api.transcribeAudio(blob);
+          if (!isMountedRef.current) return;
           if (result.text && result.text.trim()) {
             onTranscript(result.text.trim());
           }
           setState('idle');
         } catch {
-          setState('error');
+          if (isMountedRef.current) setState('error');
         }
       };
 

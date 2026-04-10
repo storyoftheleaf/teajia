@@ -82,8 +82,8 @@ const ResponseZoneInner: React.FC<ResponseZoneProps> = ({ value, onChange }) => 
         >
           Cleanliness
         </div>
-        <div className="tasting-segment-toggle" role="radiogroup" aria-label="Cleanliness">
-          {CLEANLINESS_OPTIONS.map((opt, i) => {
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Cleanliness">
+          {CLEANLINESS_OPTIONS.map((opt) => {
             const isSelected = value.cleanliness === opt.id;
             return (
               <motion.button
@@ -93,23 +93,15 @@ const ResponseZoneInner: React.FC<ResponseZoneProps> = ({ value, onChange }) => 
                 onClick={() => setCleanliness(opt.id)}
                 role="radio"
                 aria-checked={isSelected}
-                className={`flex-1 flex flex-col items-center justify-center py-3.5 text-center transition-all duration-200 min-h-[60px] relative z-[1] ${
+                className={`flex flex-col items-center justify-center py-3.5 rounded-xl text-center transition-all duration-200 min-h-[60px] ${
                   isSelected
-                    ? 'text-tea-gold'
-                    : 'text-tea-text-sec hover:text-tea-text'
-                }${i < CLEANLINESS_OPTIONS.length - 1 ? ' weight-seg-div' : ''}`}
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  background: isSelected
-                    ? 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.12) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
-                    : 'transparent',
-                }}
+                    ? 'bg-tea-gold/20 ring-1 ring-inset ring-tea-gold/50 text-tea-gold'
+                    : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
+                }`}
+                style={{ fontFamily: 'var(--font-body)' }}
               >
                 <span className="text-[14px] font-medium leading-tight">{opt.label}</span>
-                <span
-                  className={`text-[11px] mt-0.5 leading-tight ${isSelected ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
+                <span className={`text-[11px] mt-0.5 leading-tight ${isSelected ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
                   {opt.sub}
                 </span>
               </motion.button>

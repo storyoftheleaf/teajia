@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, PenLine, Library, BookOpen, Check, ExternalLink, Mic, Square, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
-import { hasToken } from '../../lib/api';
+import { api, hasToken } from '../../lib/api';
 import type { CompassCategory } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
@@ -43,9 +44,66 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
 
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Mode: capture (editing an entry), browse (list), or ledger (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
+
+  // Incoming pending shares (not yet accepted into compass)
+  // Track dismissed IDs locally for instant UI removal before refetch
+  const [dismissedShareIds, setDismissedShareIds] = useState<Set<string>>(new Set());
+  // Track which share ID is being acted on for per-card loading state
+  const [actingShareId, setActingShareId] = useState<string | null>(null);
+
+  const { data: incomingShares } = useQuery({
+    queryKey: ['compass-incoming'],
+    queryFn: () => api.compass.getIncoming(),
+    enabled: hasToken(),
+    refetchInterval: 60_000,
+    select: (data: any) => (data?.shares || []) as Array<{
+      id: string;
+      tea_key: string;
+      shared_metadata: any;
+      source_user_name?: string;
+      source_account_name?: string;
+    }>,
+  });
+
+  // Visible shares = server list minus optimistically dismissed ones
+  const visibleShares = (incomingShares || []).filter(s => !dismissedShareIds.has(s.id));
+
+  const acceptShareMutation = useMutation({
+    mutationFn: (shareId: string) => api.compass.acceptShare(shareId),
+    onMutate: (shareId) => {
+      setActingShareId(shareId);
+      // Optimistically remove from UI immediately
+      setDismissedShareIds(prev => new Set([...prev, shareId]));
+    },
+    onSuccess: async () => {
+      await hydrateCompassEntries();
+      queryClient.invalidateQueries({ queryKey: ['compass-incoming'] });
+    },
+    onError: (_, shareId) => {
+      // Restore if failed
+      setDismissedShareIds(prev => { const s = new Set(prev); s.delete(shareId); return s; });
+    },
+    onSettled: () => setActingShareId(null),
+  });
+
+  const declineShareMutation = useMutation({
+    mutationFn: (shareId: string) => api.compass.declineShare(shareId),
+    onMutate: (shareId) => {
+      setActingShareId(shareId);
+      setDismissedShareIds(prev => new Set([...prev, shareId]));
+    },
+    onError: (_, shareId) => {
+      setDismissedShareIds(prev => { const s = new Set(prev); s.delete(shareId); return s; });
+    },
+    onSettled: () => {
+      setActingShareId(null);
+      queryClient.invalidateQueries({ queryKey: ['compass-incoming'] });
+    },
+  });
 
   // Sync mode when the route's ?tab= param changes (e.g. bottom nav Ledger → Compass)
   useEffect(() => {
@@ -191,10 +249,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const { state: voiceState, handlePress: handleVoicePress } = useVoiceRecorder(handleVoiceTranscript);
   const isPlatformPrivileged = usePlatformPrivilege();
 
+  const pendingIncomingCount = visibleShares.length;
+
   // Tab config
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
-    { id: 'browse', label: 'Library', icon: Library },
+    { id: 'browse', label: 'Library', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
@@ -355,6 +415,65 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
+              {/* Pending incoming shares — require explicit accept/decline */}
+              {visibleShares.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium px-0.5">
+                    Incoming — {visibleShares.length}
+                  </p>
+                  {visibleShares.map((share) => {
+                    const meta = share.shared_metadata || {};
+                    const from = share.source_user_name || share.source_account_name || 'A taster';
+                    const isActing = actingShareId === share.id;
+                    return (
+                      <div
+                        key={share.id}
+                        className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
+                            <p className="text-sm font-medium text-tea-text truncate">
+                              {meta.name || 'Unnamed card'}
+                            </p>
+                            {(meta.type || meta.year) && (
+                              <p className="text-[11px] text-tea-text-dim">
+                                {[meta.type, meta.year].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                          {meta.photo && (
+                            <img
+                              src={meta.photo}
+                              alt={meta.name}
+                              className="w-12 h-12 rounded-md object-cover shrink-0 border border-tea-border"
+                            />
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={isActing}
+                            onClick={() => acceptShareMutation.mutate(share.id)}
+                            className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
+                          >
+                            {isActing ? '…' : 'Accept'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isActing}
+                            onClick={() => declineShareMutation.mutate(share.id)}
+                            className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-[11px] font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <BrowseView
                 onEditEntry={handleEditEntry}
                 onNewCapture={handleNewCapture}

@@ -101,7 +101,7 @@ const SamplePage: React.FC = () => {
       rating: tastingData.quality ?? tastingData.rating,
       verdict: verdict ?? 'neutral',
       wouldBuy: wouldBuy ?? false,
-      personalNote: tastingData.voiceNote?.trim() || undefined,
+      personalNote: tastingData.notes?.join('\n') || tastingData.voiceNote?.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
 
@@ -445,7 +445,14 @@ const SamplePage: React.FC = () => {
         <AnimatePresence>
           {showTasting && (
             <TastingSession
-              item={{ id: sample.id, name: sample.name, type: sample.type, sourceType: 'sample' }}
+              item={{
+                id: sample.id,
+                name: sample.name,
+                type: sample.type,
+                sourceType: 'sample',
+                teaKey: (sample as any).tea_key || (sample as any).teaKey,
+                sourceSampleId: sample.id,
+              }}
               onClose={() => setShowTasting(false)}
               onAfterSave={handleTastingSave}
               showVerdict

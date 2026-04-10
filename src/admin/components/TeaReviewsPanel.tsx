@@ -1,25 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Radio } from 'lucide-react';
 import { api } from '../../lib/api';
-import { useAppStore } from '../../lib/store';
+import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
+import type { TastingData } from '../../types';
+import { TastingSession } from '../../components/tasting/TastingSession';
 
 interface TeaReview {
   id: string;
   tea_key: string;
+  source_sample_id?: string;
   author_name?: string;
   author_account_name?: string;
   author_account_slug?: string;
   visibility: string;
+  status: 'draft' | 'submitted';
   session_date?: string;
   rating?: number;
   notes?: string;
+  voice_notes?: string[];
+  tasting?: TastingData;
+  verdict?: string;
+  would_buy?: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 interface TeaReviewsPanelProps {
   teaKey: string;
   productId?: string;
+  productName?: string;
+  productType?: string;
 }
+
+const VERDICT_COLORS: Record<string, string> = {
+  love: 'text-rose-400',
+  like: 'text-emerald-400',
+  neutral: 'text-tea-text-sec',
+  pass: 'text-tea-text-dim',
+};
 
 const VISIBILITY_LABELS: Record<string, string> = {
   network: 'Network',
@@ -27,172 +47,285 @@ const VISIBILITY_LABELS: Record<string, string> = {
   private: 'Only me',
 };
 
-const inputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors";
-const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 font-bold";
+function buildSynthesisPrompt(reviews: TeaReview[], productName: string, productType: string): string {
+  const submitted = reviews.filter(r => r.status === 'submitted');
+  if (submitted.length === 0) return '';
 
-export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({ teaKey, productId }) => {
+  const lines: string[] = [
+    `Tea: ${productName} (${productType})`,
+    '',
+    'Tasting panel notes:',
+    '',
+  ];
+
+  for (const r of submitted) {
+    const taster = [r.author_name, r.author_account_name].filter(Boolean).join(' · ');
+    const date = r.session_date || r.created_at.slice(0, 10);
+    lines.push(`${taster} — tasted ${date}:`);
+
+    if (r.tasting) {
+      const terms = flattenTastingNotes(r.tasting);
+      if (terms.length > 0) {
+        lines.push(`  Flavor: ${terms.map(id => resolveTermLabel(id)).join(', ')}`);
+      }
+      if (r.tasting.body?.length) lines.push(`  Body: ${r.tasting.body.join(', ')}`);
+      if (r.tasting.finish?.length) lines.push(`  Finish: ${r.tasting.finish.join(', ')}`);
+      if (r.tasting.feeling?.length) lines.push(`  State: ${r.tasting.feeling.map(id => resolveTermLabel(id)).join(', ')}`);
+    }
+
+    if (r.voice_notes?.length) {
+      for (const note of r.voice_notes) {
+        lines.push(`  "${note}"`);
+      }
+    }
+    if (r.notes) lines.push(`  Notes: ${r.notes}`);
+    if (r.rating) lines.push(`  Rating: ${r.rating}/10`);
+    if (r.verdict) lines.push(`  Verdict: ${r.verdict}`);
+    lines.push('');
+  }
+
+  lines.push('Write 2–3 paragraphs of lore, terroir, and tasting description for this tea. Draw directly from the panel notes above. Poetic but grounded. Return JSON with keys: lore, terroir, processingNotes, mood, experience, tastingNotes.');
+  return lines.join('\n');
+}
+
+export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
+  teaKey,
+  productId,
+  productName = '',
+  productType = '',
+}) => {
   const qc = useQueryClient();
-  const { activeAccountId } = useAppStore();
-  const [composing, setComposing] = useState(false);
-  const [form, setForm] = useState({
-    notes: '',
-    rating: '',
-    session_date: '',
-    visibility: 'network' as 'network' | 'account' | 'private',
-  });
+  const [tastingOpen, setTastingOpen] = useState(false);
+  const [synthesizing, setSynthesizing] = useState(false);
+  const [synthesis, setSynthesis] = useState<Record<string, unknown> | null>(null);
 
   const { data: reviews = [], isLoading } = useQuery<TeaReview[]>({
-    queryKey: ['tea-reviews', teaKey, activeAccountId],
+    queryKey: ['tea-reviews', teaKey],
     queryFn: () => api.teaReviews.list({ tea_key: teaKey }),
     enabled: !!teaKey,
+    refetchInterval: 10_000,
   });
 
-  const createMutation = useMutation({
-    mutationFn: () => api.teaReviews.create({
-      tea_key: teaKey,
-      product_id: productId,
-      notes: form.notes || undefined,
-      rating: form.rating ? Number(form.rating) : undefined,
-      session_date: form.session_date || undefined,
-      visibility: form.visibility,
-    }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tea-reviews', teaKey] });
-      setForm({ notes: '', rating: '', session_date: '', visibility: 'network' });
-      setComposing(false);
-    },
-  });
+  const submittedCount = useMemo(() => reviews.filter(r => r.status === 'submitted').length, [reviews]);
+  const draftReviews = useMemo(() => reviews.filter(r => r.status === 'draft'), [reviews]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.teaReviews.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tea-reviews', teaKey] }),
   });
 
-  const ratingStars = (r?: number) => r
-    ? '★'.repeat(r) + '☆'.repeat(5 - r)
-    : null;
+  const handleSynthesize = async () => {
+    const prompt = buildSynthesisPrompt(reviews, productName, productType);
+    if (!prompt) return;
+    setSynthesizing(true);
+    setSynthesis(null);
+    try {
+      const data = await api.generateWisdom(prompt);
+      setSynthesis(data);
+    } catch {
+      // error handled below
+    } finally {
+      setSynthesizing(false);
+    }
+  };
 
   return (
-    <div className="space-y-3">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-tea-text-dim">
-          {isLoading ? 'Loading…' : `${reviews.length} review${reviews.length !== 1 ? 's' : ''} across the network`}
-        </p>
-        {!composing && (
-          <button
-            type="button"
-            onClick={() => setComposing(true)}
-            className="text-xs px-3 py-1 rounded-lg bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors"
-          >
-            + Post review
-          </button>
-        )}
-      </div>
+    <div className="space-y-4">
+      {/* TastingSession — opens full-screen when adding a review */}
+      {tastingOpen && (
+        <TastingSession
+          item={{
+            id: productId || teaKey,
+            name: productName,
+            type: productType,
+            teaKey,
+          }}
+          adminMode
+          onClose={() => setTastingOpen(false)}
+          onSave={() => {
+            qc.invalidateQueries({ queryKey: ['tea-reviews', teaKey] });
+            setTastingOpen(false);
+          }}
+        />
+      )}
 
-      {/* Compose form */}
-      {composing && (
-        <div className="rounded-lg border border-tea-border bg-tea-surface p-4 space-y-3">
-          <div>
-            <label className={labelStyle}>Tasting notes</label>
-            <textarea
-              value={form.notes}
-              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-              rows={3}
-              className={`${inputStyle} resize-y min-h-[60px]`}
-              placeholder="How did this tea pour today?"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelStyle}>Rating (1–5)</label>
-              <input
-                type="number" min={1} max={5}
-                value={form.rating}
-                onChange={e => setForm(p => ({ ...p, rating: e.target.value }))}
-                className={inputStyle}
-                placeholder="—"
-              />
-            </div>
-            <div>
-              <label className={labelStyle}>Session date</label>
-              <input
-                type="date"
-                value={form.session_date}
-                onChange={e => setForm(p => ({ ...p, session_date: e.target.value }))}
-                className={inputStyle}
-              />
-            </div>
-          </div>
-          <div>
-            <label className={labelStyle}>Visibility</label>
-            <select
-              value={form.visibility}
-              onChange={e => setForm(p => ({ ...p, visibility: e.target.value as any }))}
-              className={inputStyle}
-            >
-              {Object.entries(VISIBILITY_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => setComposing(false)}
-              className="text-xs px-3 py-1.5 text-tea-text-sec hover:text-tea-text transition-colors">
-              Cancel
-            </button>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs text-tea-text-dim">
+            {isLoading
+              ? 'Loading…'
+              : `${submittedCount} review${submittedCount !== 1 ? 's' : ''}${draftReviews.length ? ` · ${draftReviews.length} in progress` : ''}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {submittedCount >= 2 && (
             <button
               type="button"
-              onClick={() => createMutation.mutate()}
-              disabled={!form.notes || createMutation.isPending}
-              className="text-xs px-4 py-1.5 rounded-lg bg-tea-gold text-tea-bg hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
+              onClick={handleSynthesize}
+              disabled={synthesizing}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50"
             >
-              {createMutation.isPending ? 'Posting…' : 'Post'}
+              <Sparkles size={12} />
+              {synthesizing ? 'Generating…' : 'Synthesize'}
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setTastingOpen(true)}
+            className="text-xs px-3 py-1 rounded-lg bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+          >
+            + Add review
+          </button>
         </div>
-      )}
+      </div>
+
+      {/* Synthesis result */}
+      <AnimatePresence>
+        {synthesis && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="rounded-xl border border-tea-gold/20 bg-tea-gold/5 p-4 space-y-2"
+          >
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-tea-gold font-medium mb-2">
+              <Sparkles size={10} />
+              Synthesized from {submittedCount} reviews
+            </div>
+            {(synthesis.lore as string) && (
+              <p className="text-xs text-tea-text leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+                {synthesis.lore as string}
+              </p>
+            )}
+            {(synthesis.mood as string) && (
+              <p className="text-[11px] text-tea-gold/70 italic">{synthesis.mood as string}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setSynthesis(null)}
+              className="text-[11px] text-tea-text-dim hover:text-tea-text transition-colors"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Review list */}
-      {!isLoading && reviews.length === 0 && !composing && (
+      {!isLoading && reviews.length === 0 && (
         <p className="text-xs text-tea-text-dim py-2">
-          No reviews yet. Be the first to post one.
+          No reviews yet. Taste it and add the first one.
         </p>
       )}
-      <div className="space-y-2">
+
+      <div className="space-y-3">
         {reviews.map(r => (
-          <div key={r.id} className="rounded-lg border border-tea-border bg-tea-surface p-3 space-y-1">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="text-xs font-medium text-tea-text">{r.author_name || 'Unknown'}</span>
-                {r.author_account_name && (
-                  <span className="text-xs text-tea-text-dim ml-1.5">· {r.author_account_name}</span>
-                )}
-                {r.rating && (
-                  <span className="text-xs text-tea-gold ml-2">{ratingStars(r.rating)}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="pill text-tea-text-dim text-[10px]">{VISIBILITY_LABELS[r.visibility]}</span>
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(r.id)}
-                  className="text-[10px] text-tea-text-dim hover:text-red-400 transition-colors"
-                  title="Delete review"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            {r.notes && (
-              <p className="text-xs text-tea-text-sec leading-relaxed">{r.notes}</p>
-            )}
-            <p className="text-[10px] text-tea-text-dim">
-              {r.session_date || r.created_at.slice(0, 10)}
-            </p>
-          </div>
+          <ReviewCard
+            key={r.id}
+            review={r}
+            onDelete={() => deleteMutation.mutate(r.id)}
+          />
         ))}
       </div>
     </div>
+  );
+};
+
+/* ─── Individual review card ─── */
+
+const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ review: r, onDelete }) => {
+  const termIds = r.tasting ? flattenTastingNotes(r.tasting) : [];
+  const isDraft = r.status === 'draft';
+
+  return (
+    <motion.div
+      layout
+      className={`rounded-xl border p-3 space-y-2 transition-colors ${
+        isDraft ? 'border-tea-gold/20 bg-tea-gold/3' : 'border-tea-border bg-tea-surface'
+      }`}
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+            {r.author_name || 'Unknown'}
+          </span>
+          {r.author_account_name && (
+            <span className="text-[10px] text-tea-text-dim">· {r.author_account_name}</span>
+          )}
+          {r.rating != null && (
+            <span className="text-[11px] text-tea-gold font-mono">{r.rating}/10</span>
+          )}
+          {r.verdict && (
+            <span className={`text-[10px] capitalize ${VERDICT_COLORS[r.verdict] || 'text-tea-text-dim'}`}>
+              {r.verdict}
+            </span>
+          )}
+          {isDraft && (
+            <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] text-tea-gold/60 font-medium">
+              <motion.span
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <Radio size={9} />
+              </motion.span>
+              Live
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="pill text-tea-text-dim text-[10px]">{VISIBILITY_LABELS[r.visibility] || r.visibility}</span>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-[10px] text-tea-text-dim hover:text-red-400 transition-colors"
+            title="Delete review"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Structured tasting tags */}
+      {termIds.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {termIds.map(termId => {
+            const Icon = resolveTermIcon(termId);
+            return (
+              <span
+                key={termId}
+                className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold"
+              >
+                <Icon size={10} />
+                {resolveTermLabel(termId)}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Voice notes */}
+      {r.voice_notes && r.voice_notes.length > 0 && (
+        <div className="space-y-1">
+          {r.voice_notes.map((note, i) => (
+            <p key={i} className="text-[12px] text-tea-text-sec italic leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+              &ldquo;{note}&rdquo;
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Written notes */}
+      {r.notes && (
+        <p className="text-xs text-tea-text-sec leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+          {r.notes}
+        </p>
+      )}
+
+      <p className="text-[10px] text-tea-text-dim">
+        {r.session_date || r.updated_at.slice(0, 10)}
+      </p>
+    </motion.div>
   );
 };

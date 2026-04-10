@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, Droplets, FlaskConical, Minus, Plus, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, Droplets, FlaskConical, Minus, Plus, Share2, ShoppingCart, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -8,7 +8,9 @@ import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
-import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS } from './types';
+import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS, generateTeaKey } from './types';
+import { CompassShareModal } from './CompassShareModal';
+import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
@@ -141,6 +143,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
@@ -488,6 +491,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (duplicateDebounceRef.current) clearTimeout(duplicateDebounceRef.current);
     };
   }, []);
+
+  // Auto-derive teaKey when identity fields settle
+  useEffect(() => {
+    if (!entry || entry.category !== 'tea') return;
+    if (!entry.name) return;
+    const derived = generateTeaKey({ name: entry.name, type: entry.type, year: entry.year, originRegion: entry.originRegion });
+    if (derived && derived !== entry.teaKey) {
+      updateEntry(entryId, { teaKey: derived });
+    }
+  }, [entry?.name, entry?.type, entry?.year, entry?.originRegion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── All useCallback hooks must be above the guard ─────────────────────
 
@@ -1048,46 +1061,43 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
       <div className="border-t border-tea-border" />
 
-      {/* ─── Tasting ─── */}
+      {/* ─── Actions row: Tasting · Want · Own · Buy ─── */}
       <div className="space-y-2">
-        <button
-          type="button"
-          onClick={openTastingOverlay}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-tea-surface text-tea-text-sec text-sm font-medium hover:bg-tea-elevated hover:text-tea-text active:bg-tea-elevated transition-colors"
-        >
-          <Droplets size={15} strokeWidth={1.5} />
-          {hasTasting ? 'Edit tasting' : 'Record tasting'}
-        </button>
-        {hasTasting && entry.tasting && (
-          <TastingProfileStrip
-            value={entry.tasting}
-            onRemove={handleTastingStripRemove}
-          />
-        )}
-      </div>
+        <div className="grid gap-px rounded-lg overflow-hidden border border-tea-border" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+          {/* Tasting */}
+          <button
+            type="button"
+            onClick={openTastingOverlay}
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors ${
+              hasTasting ? 'text-tea-gold bg-tea-gold/8' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            }`}
+          >
+            <Droplets size={14} strokeWidth={1.5} />
+            Tasting
+          </button>
 
-      <NotesField
-        notes={entry.notes}
-        onNotesChange={(notes) => update({ notes })}
-      />
-
-      <div className="border-t border-tea-border" />
-
-      {/* ─── Status actions ─── */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          {/* Want toggle */}
+          {/* Want */}
           <button
             type="button"
             onClick={() => update({ status: isWant ? 'logged' : 'want' })}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors ${
-              isWant
-                ? 'bg-tea-gold/10 text-tea-gold'
-                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors border-l border-tea-border ${
+              isWant ? 'text-tea-gold bg-tea-gold/8' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
             }`}
           >
-            {isWant ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
+            {isWant ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
             {isWant ? 'Wanted' : 'Want'}
+          </button>
+
+          {/* Own */}
+          <button
+            type="button"
+            onClick={() => { update({ status: isBought ? 'logged' : 'bought' }); setShowBuyPicker(false); }}
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors border-l border-tea-border ${
+              isBought ? 'text-tea-gold bg-tea-gold/8' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            }`}
+          >
+            <Check size={14} strokeWidth={2} />
+            {isBought ? 'Owned' : 'Own'}
           </button>
 
           {/* Buy / In Ledger / Bought */}
@@ -1105,21 +1115,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 setShowBuyPicker((v) => !v);
               }
             }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors ${
-              isBought || isInLedger
-                ? 'bg-tea-gold/10 text-tea-gold'
-                : showBuyPicker
-                  ? 'bg-tea-gold/10 text-tea-gold'
-                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors border-l border-tea-border ${
+              isBought || isInLedger || showBuyPicker
+                ? 'text-tea-gold bg-tea-gold/8'
+                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
             }`}
           >
-            {isInLedger ? (
-              <><BookOpen size={13} /> In Ledger</>
-            ) : isBought ? (
-              <><Check size={13} /> Bought</>
-            ) : (
-              <><ShoppingCart size={13} /> Buy</>
-            )}
+            {isInLedger ? <BookOpen size={14} /> : isBought ? <Check size={14} /> : <ShoppingCart size={14} />}
+            {isInLedger ? 'Ledger' : isBought ? 'Bought' : 'Buy'}
           </button>
         </div>
 
@@ -1215,18 +1218,19 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
         </AnimatePresence>
 
-        {/* Already own it — for back-filling without a purchase order */}
-        {!isBought && !isInLedger && (
-          <button
-            type="button"
-            onClick={() => { update({ status: 'bought' }); setShowBuyPicker(false); }}
-            className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
-          >
-            <Check size={10} strokeWidth={2.5} className="opacity-40" />
-            Already own it
-          </button>
-        )}
       </div>
+
+      {hasTasting && entry.tasting && (
+        <TastingProfileStrip
+          value={entry.tasting}
+          onRemove={handleTastingStripRemove}
+        />
+      )}
+
+      <NotesField
+        notes={entry.notes}
+        onNotesChange={(notes) => update({ notes })}
+      />
 
       {/* Storage (only for Sheng/Shou/Dark) */}
       {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
@@ -1247,19 +1251,33 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </>
       )}
 
-      {/* Done */}
+      {/* Done + Share */}
       {hasName && (
-        <button
-          type="button"
-          onClick={handleCommit}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                     bg-tea-gold/10 text-tea-gold text-sm font-semibold
-                     hover:bg-tea-gold/15 active:bg-tea-gold/20
-                     transition-all"
-        >
-          <Check size={15} strokeWidth={2.5} />
-          Done
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleCommit}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg
+                       bg-tea-gold/10 text-tea-gold text-sm font-semibold
+                       hover:bg-tea-gold/15 active:bg-tea-gold/20
+                       transition-all"
+          >
+            <Check size={15} strokeWidth={2.5} />
+            Done
+          </button>
+          {hasToken() && (
+            <button
+              type="button"
+              onClick={() => setShareModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-lg
+                         bg-tea-surface text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated
+                         transition-colors"
+              aria-label="Share card"
+            >
+              <Share2 size={14} strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
       )}
 
       {/* ─── Tasting overlay ─── */}
@@ -1273,12 +1291,24 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               image: entry.photos?.[0],
               sourceType: 'compass',
               compassEntryId: entry.id,
+              teaKey: entry.teaKey,
             }}
             onClose={closeTastingOverlay}
             onAfterSave={(data: TastingData) => {
               setLocalTasting(data);
               update({ tasting: data });
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ─── Share modal ─── */}
+      <AnimatePresence>
+        {shareModalOpen && (
+          <CompassShareModal
+            entryId={entry.id}
+            entryName={entry.name}
+            onClose={() => setShareModalOpen(false)}
           />
         )}
       </AnimatePresence>

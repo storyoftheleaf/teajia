@@ -196,7 +196,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   function renderSectionContent(sectionId: SectionId) {
     switch (sectionId) {
       case 'body':
-        return <BodyZone flow={flow} />;
+        return <BodyZone flow={flow} value={value} onChange={onChange} />;
       case 'throat':
         return <ThroatZone flow={flow} value={value} onChange={onChange} />;
       case 'flavor':

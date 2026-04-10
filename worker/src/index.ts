@@ -3858,7 +3858,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
     'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
-    'draft_product_id', 'created_at', 'updated_at',
+    'draft_product_id', 'tea_key', 'created_at', 'updated_at',
   ];
   const present = cols.filter(c => body[c] !== undefined);
   const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
@@ -4576,6 +4576,7 @@ function parseSampleSetRow(row: Record<string, any>): Record<string, any> {
   return {
     ...row,
     shared_with: row.shared_with ? JSON.parse(row.shared_with) : [],
+    panel_account_ids: row.panel_account_ids ? JSON.parse(row.panel_account_ids) : [],
   };
 }
 
@@ -4677,34 +4678,291 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     "UPDATE tea_samples SET updated_at = datetime('now') WHERE id = ?"
   ).bind(params.id).run();
 
+  // Mirror to tea_reviews for authenticated admins so tastings aggregate cross-account
+  const authedToken = isAuthed(request);
+  if (authedToken) {
+    const authedClaims = parseToken(authedToken);
+    const reviewUserId = authedClaims?.sub;
+    const reviewAccountId = authedClaims?.active_account_id || accountId;
+    // Derive tea_key from the sample (use stored tea_key or fall back to sample id)
+    const sampleFull = await env.DB.prepare(
+      'SELECT tea_key, name, type, year FROM tea_samples WHERE id = ?'
+    ).bind(params.id).first() as Record<string, any> | null;
+    const teaKey = sampleFull?.tea_key ||
+      `${(sampleFull?.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${sampleFull?.year || 'unknown'}`;
+
+    if (reviewUserId && teaKey) {
+      const reviewId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const voiceNotes = body.voiceNotes || (body.personalNote ? [body.personalNote] : null);
+      await env.DB.prepare(
+        `INSERT INTO tea_reviews (id, tea_key, author_user_id, author_account_id,
+          visibility, tasting, voice_notes, rating, verdict, would_buy,
+          source_sample_id, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'network', ?, ?, ?, ?, ?, ?, 'submitted', ?, ?)`
+      ).bind(
+        reviewId, teaKey, reviewUserId, reviewAccountId,
+        JSON.stringify(body.tasting || {}),
+        voiceNotes ? JSON.stringify(voiceNotes) : null,
+        body.rating ?? null,
+        body.verdict || 'neutral',
+        body.wouldBuy ? 1 : 0,
+        params.id,
+        now, now,
+      ).run();
+    }
+  }
+
   const created = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(id).first();
   return json(parseTastingRow(created as Record<string, any>), 201);
 };
 
+// ── Compass Sharing ─────────────────────────────────────────────────────────
+
+// POST /api/compass/share
+// Share a capture card to known accounts (direct push) and/or generate an invite link.
+const handleCompassShare: Handler = async (request, env) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId, userId } = auth as any;
+
+  const body = await request.json() as {
+    entry_id: string;
+    target_account_ids?: string[];
+    generate_invite_link?: boolean;
+  };
+  if (!body.entry_id) return json({ error: 'entry_id required' }, 400);
+
+  // Fetch the compass entry (must belong to caller)
+  const entry = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
+  ).bind(body.entry_id, userId, accountId).first() as Record<string, any> | null;
+  if (!entry) return json({ error: 'Entry not found or not yours' }, 404);
+
+  // Get caller identity for the invite page
+  const caller = await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(userId).first() as any;
+  const account = await env.DB.prepare('SELECT name FROM accounts WHERE id = ?').bind(accountId).first() as any;
+
+  const teaKey = entry.tea_key || [entry.name, entry.type, entry.year, entry.origin_region]
+    .filter(Boolean).join('-').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+
+  const sharedMetadata = JSON.stringify({
+    name: entry.name,
+    chineseName: entry.chinese_name,
+    type: entry.type,
+    form: entry.form,
+    year: entry.year,
+    season: entry.season,
+    originRegion: entry.origin_region,
+    category: entry.category,
+    teaKey,
+    photo: entry.photos ? JSON.parse(entry.photos)?.[0] : null,
+    teawareCategory: entry.teaware_category,
+    material: entry.material,
+    capacityMl: entry.capacity_ml,
+  });
+
+  const now = new Date().toISOString();
+  const shares: any[] = [];
+  let inviteLink: string | null = null;
+
+  // Direct push to known accounts
+  const targetAccountIds: string[] = body.target_account_ids || [];
+  for (const targetId of targetAccountIds) {
+    const shareId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO compass_shares (id, source_entry_id, source_account_id, source_user_id,
+        source_user_name, source_account_name, tea_key, shared_metadata,
+        target_account_id, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
+    ).bind(shareId, body.entry_id, accountId, userId,
+      caller?.name || null, account?.name || null,
+      teaKey, sharedMetadata, targetId, now).run();
+    shares.push({ id: shareId, target_account_id: targetId });
+  }
+
+  // Invite link for external/unregistered tasters
+  if (body.generate_invite_link) {
+    const token = crypto.randomUUID().replace(/-/g, '');
+    const shareId = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO compass_shares (id, source_entry_id, source_account_id, source_user_id,
+        source_user_name, source_account_name, tea_key, shared_metadata,
+        invite_token, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
+    ).bind(shareId, body.entry_id, accountId, userId,
+      caller?.name || null, account?.name || null,
+      teaKey, sharedMetadata, token, now).run();
+    shares.push({ id: shareId, invite_token: token });
+    inviteLink = `/share/${token}`;
+  }
+
+  return json({ shares, invite_link: inviteLink }, 201);
+};
+
+// GET /api/compass/incoming — pending shares for the caller's active account
+const handleCompassIncoming: Handler = async (request, env) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId } = auth as any;
+
+  const result = await env.DB.prepare(
+    `SELECT * FROM compass_shares WHERE target_account_id = ? AND status = 'pending' ORDER BY created_at DESC`
+  ).bind(accountId).all();
+
+  const shares = (result.results as Record<string, any>[]).map(s => ({
+    ...s,
+    shared_metadata: s.shared_metadata ? JSON.parse(s.shared_metadata) : {},
+  }));
+  return json({ shares });
+};
+
+// POST /api/compass/shares/:id/accept — create a compass entry, mark share accepted
+const handleCompassAcceptShare: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId, userId } = auth as any;
+
+  const share = await env.DB.prepare(
+    `SELECT * FROM compass_shares WHERE id = ? AND target_account_id = ? AND status = 'pending'`
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!share) return json({ error: 'Share not found or already handled' }, 404);
+
+  const meta = share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {};
+  const entryId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO tea_compass_entries
+       (id, user_id, account_id, name, chinese_name, type, form, year, season,
+        origin_region, category, teaware_category, material, capacity_ml,
+        photos, tea_key, status, notes, quantity, price_currency, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
+  ).bind(
+    entryId, userId, accountId,
+    meta.name || '', meta.chineseName || null, meta.type || null, meta.form || null,
+    meta.year || null, meta.season || null, meta.originRegion || null,
+    meta.category || 'tea', meta.teawareCategory || null, meta.material || null, meta.capacityMl || null,
+    meta.photo ? JSON.stringify([meta.photo]) : '[]',
+    meta.teaKey || share.tea_key,
+    now, now
+  ).run();
+
+  await env.DB.prepare(
+    `UPDATE compass_shares SET status = 'accepted', claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
+  ).bind(userId, now, params.id).run();
+
+  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(entryId).first();
+  return json({ entry: created, share_id: params.id });
+};
+
+// POST /api/compass/shares/:id/decline
+const handleCompassDeclineShare: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId } = auth as any;
+
+  const share = await env.DB.prepare(
+    `SELECT id FROM compass_shares WHERE id = ? AND target_account_id = ? AND status = 'pending'`
+  ).bind(params.id, accountId).first();
+  if (!share) return json({ error: 'Share not found or already handled' }, 404);
+
+  await env.DB.prepare(
+    `UPDATE compass_shares SET status = 'declined' WHERE id = ?`
+  ).bind(params.id).run();
+  return json({ success: true });
+};
+
+// GET /api/compass/invite/:token — public, returns share metadata
+const handleCompassGetInvite: Handler = async (request, env, params) => {
+  const share = await env.DB.prepare(
+    `SELECT * FROM compass_shares WHERE invite_token = ? AND status = 'pending'`
+  ).bind(params.token).first() as Record<string, any> | null;
+  if (!share) return json({ error: 'Invite not found or already used' }, 404);
+
+  return json({
+    id: share.id,
+    tea_key: share.tea_key,
+    shared_metadata: share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {},
+    source_user_name: share.source_user_name,
+    source_account_name: share.source_account_name,
+    created_at: share.created_at,
+  });
+};
+
+// POST /api/compass/invite/:token/claim — authenticated user claims into their compass
+const handleCompassClaimInvite: Handler = async (request, env, params) => {
+  const auth = await requireAccount(request, env);
+  if ('error' in auth) return (auth as any).error;
+  const { accountId, userId } = auth as any;
+
+  const share = await env.DB.prepare(
+    `SELECT * FROM compass_shares WHERE invite_token = ? AND status = 'pending'`
+  ).bind(params.token).first() as Record<string, any> | null;
+  if (!share) return json({ error: 'Invite not found or already used' }, 404);
+
+  const meta = share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {};
+  const entryId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO tea_compass_entries
+       (id, user_id, account_id, name, chinese_name, type, form, year, season,
+        origin_region, category, teaware_category, material, capacity_ml,
+        photos, tea_key, status, notes, quantity, price_currency, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
+  ).bind(
+    entryId, userId, accountId,
+    meta.name || '', meta.chineseName || null, meta.type || null, meta.form || null,
+    meta.year || null, meta.season || null, meta.originRegion || null,
+    meta.category || 'tea', meta.teawareCategory || null, meta.material || null, meta.capacityMl || null,
+    meta.photo ? JSON.stringify([meta.photo]) : '[]',
+    meta.teaKey || share.tea_key,
+    now, now
+  ).run();
+
+  // Mark claimed — keep share open for other claimers (invite links are multi-use by default)
+  await env.DB.prepare(
+    `UPDATE compass_shares SET claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
+  ).bind(userId, now, share.id).run();
+
+  const created = await env.DB.prepare('SELECT * FROM tea_compass_entries WHERE id = ?').bind(entryId).first();
+  return json({ entry: created });
+};
+
 // ── Tea Reviews (cross-account, keyed by tea_key) ──────────────────────────
 
-// GET /api/tea-reviews?tea_key=&product_id=&visibility=
-// Public to network reviews when unauthenticated; auth unlocks account-private reviews.
+// GET /api/tea-reviews?tea_key=&product_id=&source_sample_id=&visibility=
+// Public to network reviews when unauthenticated; auth unlocks account-private reviews and drafts from others.
 const handleGetTeaReviews: Handler = async (request, env) => {
   const url = new URL(request.url);
   const tea_key = url.searchParams.get('tea_key');
   const product_id = url.searchParams.get('product_id');
+  const source_sample_id = url.searchParams.get('source_sample_id');
   const visibility = url.searchParams.get('visibility');
 
-  if (!tea_key && !product_id) return json({ error: 'tea_key or product_id required' }, 400);
+  if (!tea_key && !product_id && !source_sample_id) return json({ error: 'tea_key, product_id, or source_sample_id required' }, 400);
 
   const token = isAuthed(request);
   const claims = token ? parseToken(token) : null;
   const authorAccountId = claims?.active_account_id || null;
+  const userId = claims?.sub || null;
 
   // Build visibility filter
-  let visFilter = `r.visibility = 'network'`;
+  // Authenticated users see network + their account-private + their own private + drafts from others in network
+  let visFilter = `r.visibility = 'network' AND r.status = 'submitted'`;
   if (authorAccountId) {
     visFilter = `(r.visibility = 'network' OR (r.visibility = 'account' AND r.author_account_id = ?) OR (r.visibility = 'private' AND r.author_user_id = ?))`;
   }
 
-  let where = tea_key ? `r.tea_key = ?` : `r.product_id = ?`;
-  const keyVal = (tea_key || product_id) as string;
+  // Build WHERE clause — support filtering by any of the three keys
+  const whereParts: string[] = [];
+  const keyBinds: any[] = [];
+  if (tea_key) { whereParts.push(`r.tea_key = ?`); keyBinds.push(tea_key); }
+  if (product_id) { whereParts.push(`r.product_id = ?`); keyBinds.push(product_id); }
+  if (source_sample_id) { whereParts.push(`r.source_sample_id = ?`); keyBinds.push(source_sample_id); }
+  if (visibility) { whereParts.push(`r.visibility = ?`); keyBinds.push(visibility); }
+  const where = whereParts.join(' AND ');
 
   let query: string;
   let binds: any[];
@@ -4714,20 +4972,27 @@ const handleGetTeaReviews: Handler = async (request, env) => {
              LEFT JOIN users u ON u.id = r.author_user_id
              LEFT JOIN accounts a ON a.id = r.author_account_id
              WHERE ${where} AND ${visFilter}
-             ORDER BY r.created_at DESC`;
-    binds = [keyVal, authorAccountId, claims?.sub];
+             ORDER BY r.status ASC, r.updated_at DESC`;
+    binds = [...keyBinds, authorAccountId, userId];
   } else {
     query = `SELECT r.*, u.name as author_name, a.name as author_account_name, a.slug as author_account_slug
              FROM tea_reviews r
              LEFT JOIN users u ON u.id = r.author_user_id
              LEFT JOIN accounts a ON a.id = r.author_account_id
-             WHERE ${where} AND r.visibility = 'network'
-             ORDER BY r.created_at DESC`;
-    binds = [keyVal];
+             WHERE ${where} AND r.visibility = 'network' AND r.status = 'submitted'
+             ORDER BY r.updated_at DESC`;
+    binds = [...keyBinds];
   }
 
   const result = await env.DB.prepare(query).bind(...binds).all();
-  return json(result.results);
+  // Parse JSON fields
+  const rows = (result.results as Record<string, any>[]).map(r => ({
+    ...r,
+    tasting: r.tasting ? JSON.parse(r.tasting) : null,
+    voice_notes: r.voice_notes ? JSON.parse(r.voice_notes) : [],
+    brew_params: r.brew_params ? JSON.parse(r.brew_params) : null,
+  }));
+  return json(rows);
 };
 
 // POST /api/tea-reviews
@@ -4743,8 +5008,9 @@ const handleCreateTeaReview: Handler = async (request, env) => {
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO tea_reviews (id, tea_key, product_id, product_account_id, author_user_id, author_account_id,
-      visibility, session_date, rating, notes, tasting, brew_params, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      visibility, session_date, rating, notes, voice_notes, tasting, brew_params,
+      source_sample_id, verdict, would_buy, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, body.tea_key, body.product_id || null, body.product_id ? accountId : null,
     userId, accountId,
@@ -4752,13 +5018,23 @@ const handleCreateTeaReview: Handler = async (request, env) => {
     body.session_date || null,
     body.rating || null,
     body.notes || null,
+    body.voice_notes ? JSON.stringify(body.voice_notes) : null,
     body.tasting ? JSON.stringify(body.tasting) : null,
     body.brew_params ? JSON.stringify(body.brew_params) : null,
+    body.source_sample_id || null,
+    body.verdict || null,
+    body.would_buy ? 1 : 0,
+    body.status || 'submitted',
     now, now
   ).run();
 
-  const created = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(id).first();
-  return json(created, 201);
+  const created = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(id).first() as Record<string, any>;
+  return json({
+    ...created,
+    tasting: created?.tasting ? JSON.parse(created.tasting) : null,
+    voice_notes: created?.voice_notes ? JSON.parse(created.voice_notes) : [],
+    brew_params: created?.brew_params ? JSON.parse(created.brew_params) : null,
+  }, 201);
 };
 
 // PUT /api/tea-reviews/:id
@@ -4773,13 +5049,15 @@ const handleUpdateTeaReview: Handler = async (request, env, params) => {
   if (!existing) return json({ error: 'Not found or not your review' }, 404);
 
   const body: any = await request.json();
-  const allowed = ['visibility', 'session_date', 'rating', 'notes', 'tasting', 'brew_params'];
+  const allowed = ['visibility', 'session_date', 'rating', 'notes', 'tasting', 'brew_params',
+                   'voice_notes', 'status', 'verdict', 'would_buy'];
   const updates: string[] = [];
   const vals: any[] = [];
   for (const k of allowed) {
     if (body[k] !== undefined) {
       updates.push(`${k} = ?`);
-      vals.push(typeof body[k] === 'object' ? JSON.stringify(body[k]) : body[k]);
+      const v = body[k];
+      vals.push(Array.isArray(v) || (v !== null && typeof v === 'object') ? JSON.stringify(v) : v);
     }
   }
   if (!updates.length) return json({ error: 'Nothing to update' }, 400);
@@ -4790,8 +5068,13 @@ const handleUpdateTeaReview: Handler = async (request, env, params) => {
     `UPDATE tea_reviews SET ${updates.join(', ')} WHERE id = ? AND author_user_id = ?`
   ).bind(...vals).run();
 
-  const updated = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(params.id).first();
-  return json(updated);
+  const updated = await env.DB.prepare('SELECT * FROM tea_reviews WHERE id = ?').bind(params.id).first() as Record<string, any>;
+  return json({
+    ...updated,
+    tasting: updated?.tasting ? JSON.parse(updated.tasting) : null,
+    voice_notes: updated?.voice_notes ? JSON.parse(updated.voice_notes) : [],
+    brew_params: updated?.brew_params ? JSON.parse(updated.brew_params) : null,
+  });
 };
 
 // DELETE /api/tea-reviews/:id
@@ -6188,6 +6471,14 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],
   ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
   ['POST', '/api/compass/sync', handleSyncCompassEntries],
+
+  // Compass Sharing
+  ['POST', '/api/compass/share', handleCompassShare],
+  ['GET', '/api/compass/incoming', handleCompassIncoming],
+  ['POST', '/api/compass/shares/:id/accept', handleCompassAcceptShare],
+  ['POST', '/api/compass/shares/:id/decline', handleCompassDeclineShare],
+  ['GET', '/api/compass/invite/:token', handleCompassGetInvite],
+  ['POST', '/api/compass/invite/:token/claim', handleCompassClaimInvite],
 
   // Samples — Public
   ['GET', '/api/samples/set/:setId', handleGetSamplesBySet],

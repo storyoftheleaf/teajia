@@ -32,6 +32,7 @@ const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
 const GuestInviteClaimPage = lazy(() => import('./pages/GuestInviteClaimPage'));
 const SamplePage = lazy(() => import('./pages/SamplePage'));
+const ShareCardPage = lazy(() => import('./pages/ShareCardPage'));
 const Storefront = lazy(() => import('./components/storefront/Storefront').then(m => ({ default: m.Storefront })));
 const FindATable = lazy(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
 
@@ -593,6 +594,7 @@ const AppContent = () => {
                 <Route path="/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JourneyPage /></Suspense></ErrorBoundary>} />
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SamplePage /></Suspense></ErrorBoundary>} />
+                <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShareCardPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="grid" />}>

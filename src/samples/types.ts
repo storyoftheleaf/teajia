@@ -3,7 +3,7 @@ import type { Currency } from '../admin/types';
 import type { TeaType, TeaForm, VendorDetails } from '../components/TeaCompass/types';
 
 export type SampleStatus = 'untasted' | 'tasted' | 'favorite' | 'ordering' | 'ordered' | 'passed';
-export type SampleSetPurpose = 'sourcing' | 'customer-gifted' | 'event';
+export type SampleSetPurpose = 'sourcing' | 'customer-gifted' | 'event' | 'panel';
 export type TastingVerdict = 'love' | 'like' | 'neutral' | 'pass';
 
 export interface SampleTasting {
@@ -35,6 +35,7 @@ export interface TeaSample {
   sourceContact?: VendorDetails;
 
   // Linkages
+  teaKey?: string;             // Normalised identity key — used to aggregate reviews across accounts/locations
   productId?: string;          // If maps to existing inventory item
   compassEntryId?: string;     // If captured via Tea Compass
 
@@ -65,6 +66,7 @@ export interface SampleSet {
   sampleIds: string[];
   purpose: SampleSetPurpose;
   sharedWith?: string[];       // Customer tokens
+  panelAccountIds?: string[];  // Account IDs invited to taste as a panel
   notes?: string;
   createdAt: string;
   updatedAt: string;

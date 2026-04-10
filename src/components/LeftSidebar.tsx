@@ -164,7 +164,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     { id: 'inventory', label: 'Inventory', icon: <Settings size={20} strokeWidth={2} />, path: '/admin/inventory', children: [
       { id: 'catalog', path: '/admin/catalog', label: 'Tea Glossary', icon: <Leaf className="w-4 h-4" strokeWidth={2} /> },
       { id: 'teaware', path: '/admin/teaware', label: 'Equipment', icon: <Coffee className="w-4 h-4" strokeWidth={2} /> },
-      { id: 'tasting', path: '/admin/tasting', label: 'Tasting Notes', icon: <Sparkles className="w-4 h-4" strokeWidth={2} /> },
       { id: 'sources', path: '/admin/sources', label: 'Sources', icon: <Store className="w-4 h-4" strokeWidth={2} /> },
       { id: 'personal', path: '/admin/personal', label: 'Collection', icon: <UserCheck className="w-4 h-4" strokeWidth={2} /> },
     ]},

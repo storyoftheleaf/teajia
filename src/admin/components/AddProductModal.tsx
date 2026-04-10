@@ -1150,6 +1150,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             <TeaReviewsPanel
               teaKey={formData.teaKey}
               productId={initialData?.id}
+              productName={formData.givenName || formData.productName || ''}
+              productType={formData.type || ''}
             />
           </div>
         )}

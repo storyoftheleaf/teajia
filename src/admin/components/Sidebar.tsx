@@ -84,6 +84,8 @@ const AccountSwitcherMount: React.FC = () => {
 
 export const Sidebar = ({
   isAdmin,
+  isStaff,
+  isMember,
   isLoggedIn,
   platformRole,
   onLoginClick,
@@ -95,6 +97,8 @@ export const Sidebar = ({
   onOpenPurchase
 }: {
   isAdmin: boolean;
+  isStaff: boolean;
+  isMember: boolean;
   isLoggedIn: boolean;
   platformRole?: PlatformRole;
   onLoginClick: () => void;
@@ -116,19 +120,25 @@ export const Sidebar = ({
     { id: 'shop', path: '/shop', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} /> },
   ];
 
-  const adminItems: NavItem[] = [
-    { id: 'dashboard', path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'inventory', path: '/admin/inventory', label: 'Inventory', icon: <Package className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <ClipboardList className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'people', path: '/admin/people', label: 'People', icon: <Users className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'events', path: '/admin/events', label: 'Events', icon: <Calendar className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'capture', path: '/admin/capture', label: 'Capture', icon: <Camera className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'compass', path: '/admin/compass', label: 'Tea Compass', icon: <Compass className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'samples', path: '/admin/samples', label: 'Samples', icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'team', path: '/admin/team', label: 'Team', icon: <UserCog className="w-5 h-5" strokeWidth={2} /> },
-    { id: 'account-settings', path: '/admin/account-settings', label: 'Account', icon: <Settings className="w-5 h-5" strokeWidth={2} /> },
-    ...(platformRole ? [{ id: 'platform', path: '/admin/platform', label: 'Platform', icon: <ShieldCheck className="w-5 h-5" strokeWidth={2} /> }] : []),
-  ];
+  // Back-of-house nav filtered by role tier
+  const bohItems: NavItem[] = [
+    // Member tools
+    isMember && { id: 'compass',  path: '/admin/compass',  label: 'Tea Compass', icon: <Compass    className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'capture',  path: '/admin/capture',  label: 'Capture',     icon: <Camera     className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'samples',  path: '/admin/samples',  label: 'Samples',     icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'events',   path: '/admin/events',   label: 'Events',      icon: <Calendar   className="w-5 h-5" strokeWidth={2} /> },
+    // Operations
+    isStaff  && { id: 'activity', path: '/admin/activity', label: 'Activity',    icon: <ClipboardList className="w-5 h-5" strokeWidth={2} /> },
+    isStaff  && { id: 'people',   path: '/admin/people',   label: 'People',      icon: <Users      className="w-5 h-5" strokeWidth={2} /> },
+    // Management
+    isAdmin  && { id: 'inventory',        path: '/admin/inventory',        label: 'Inventory', icon: <Package        className="w-5 h-5" strokeWidth={2} /> },
+    isAdmin  && { id: 'dashboard',        path: '/admin/dashboard',        label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" strokeWidth={2} /> },
+    isAdmin  && { id: 'team',             path: '/admin/team',             label: 'Team',      icon: <UserCog        className="w-5 h-5" strokeWidth={2} /> },
+    isAdmin  && { id: 'account-settings', path: '/admin/account-settings', label: 'Account',   icon: <Settings       className="w-5 h-5" strokeWidth={2} /> },
+    (isAdmin && platformRole) && { id: 'platform', path: '/admin/platform', label: 'Platform', icon: <ShieldCheck className="w-5 h-5" strokeWidth={2} /> },
+  ].filter(Boolean) as NavItem[];
+
+  const bohLabel = isAdmin ? 'Admin' : 'Back of House';
 
   const handleNav = () => {
     setIsMobileOpen(false);
@@ -173,11 +183,11 @@ export const Sidebar = ({
         ))}
       </nav>
 
-      {/* Admin Navigation */}
-      {isAdmin && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" aria-label="Admin" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">Admin</span>
-          {adminItems.map((item, index) => (
+      {/* Back of House Navigation */}
+      {isMember && bohItems.length > 0 && (
+        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" aria-label="Back of house" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">{bohLabel}</span>
+          {bohItems.map((item, index) => (
             <NavButton
               key={item.id}
               item={item}
@@ -193,7 +203,7 @@ export const Sidebar = ({
       <div className="flex-1" />
 
       {/* Account Switcher (multi-store) */}
-      {isAdmin && <AccountSwitcherMount />}
+      {isMember && <AccountSwitcherMount />}
 
       {/* Close button */}
       <div className="py-4 px-3 md:hidden">
