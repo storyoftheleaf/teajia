@@ -1,11 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Story, ContentType } from '../types';
+import { Story, ContentType, InventoryItem } from '../types';
 import { Icons } from './Icons';
 import { CardContainer } from './shared/CardContainer';
 import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
 import { useInventory } from '../context/InventoryContext';
+import { useProductReferences } from './reader/ProductReferences';
+import { api } from '../lib/api';
 
 interface LearnCurriculumProps {
   onStoryClick: (story: Story) => void;
@@ -40,6 +42,56 @@ const PATH_ICONS: Record<string, React.ReactNode> = {
   'Location': <Icons.Location className="w-8 h-8" />,
   'Teapot': <Icons.Teapot className="w-8 h-8" />,
   'Box': <Icons.Box className="w-8 h-8" />,
+};
+
+// ----------------------------------------------------------------
+// Per-module "Explore in the collection" block. Prefers the
+// `module_products` xref table (editor-curated) and falls back to
+// the hardcoded MODULE_TEA_TYPES / MODULE_CATEGORY type filter so
+// existing modules keep a sensible default until they're curated.
+// Links use the /shop?product=<id> modal convention (Task 2).
+// ----------------------------------------------------------------
+const ModuleExplore: React.FC<{ moduleId: string; fallbackIds: string[] }> = ({
+  moduleId,
+  fallbackIds,
+}) => {
+  const navigate = useNavigate();
+  const resolved = useProductReferences({
+    sourceId: moduleId,
+    queryKey: 'module-products',
+    fetcher: api.publicXref.modules,
+    fallbackIds,
+  });
+  const products = resolved.slice(0, 3);
+  if (products.length === 0) return null;
+
+  return (
+    <div className="mt-4 pt-3 border-t border-tea-border pl-6 md:pl-24 pr-0 md:pr-8">
+      <p className="text-xs font-sans text-tea-text-dim mb-2">
+        Explore in the collection
+      </p>
+      <div className="space-y-1.5">
+        {products.map(product => (
+          <button
+            key={product.id}
+            onClick={() => navigate(`/shop?product=${encodeURIComponent(product.id)}`)}
+            className="flex items-center gap-2 text-left w-full py-1 group/explore"
+          >
+            {product.image && (
+              <img
+                src={product.image}
+                alt=""
+                className="w-7 h-7 rounded object-cover opacity-70 group-hover/explore:opacity-100 transition-opacity"
+              />
+            )}
+            <span className="text-sm font-sans text-tea-text-sec group-hover/explore:text-tea-gold transition-colors">
+              {product.name}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, watchedStories }) => {
@@ -320,49 +372,24 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                              })}
                          </div>
 
-                         {/* End-of-module product exploration */}
+                         {/* End-of-module product exploration —
+                             prefers module_products xref, falls back
+                             to the hardcoded type/category filter. */}
                          {(() => {
                            const teaTypes = MODULE_TEA_TYPES[module.id] || [];
                            const category = MODULE_CATEGORY[module.id] ?? null;
 
-                           let relevantProducts: typeof inventory = [];
+                           let fallbackProducts: InventoryItem[] = [];
                            if (category === 'ware') {
-                             relevantProducts = inventory.filter(p => p.category === 'ware').slice(0, 3);
+                             fallbackProducts = inventory.filter(p => p.category === 'ware').slice(0, 3);
                            } else if (teaTypes.length > 0) {
-                             relevantProducts = inventory.filter(p =>
+                             fallbackProducts = inventory.filter(p =>
                                teaTypes.includes(p.type) && p.category === 'tea'
                              ).slice(0, 3);
                            }
+                           const fallbackIds = fallbackProducts.map(p => p.id);
 
-                           if (relevantProducts.length === 0) return null;
-
-                           return (
-                             <div className="mt-4 pt-3 border-t border-tea-border pl-6 md:pl-24 pr-0 md:pr-8">
-                               <p className="text-xs font-sans text-tea-text-dim mb-2">
-                                 Explore in the collection
-                               </p>
-                               <div className="space-y-1.5">
-                                 {relevantProducts.map(product => (
-                                   <button
-                                     key={product.id}
-                                     onClick={() => navigate(`/shop/product/${product.id}`)}
-                                     className="flex items-center gap-2 text-left w-full py-1 group/explore"
-                                   >
-                                     {product.image && (
-                                       <img
-                                         src={product.image}
-                                         alt=""
-                                         className="w-7 h-7 rounded object-cover opacity-70 group-hover/explore:opacity-100 transition-opacity"
-                                       />
-                                     )}
-                                     <span className="text-sm font-sans text-tea-text-sec group-hover/explore:text-tea-gold transition-colors">
-                                       {product.name}
-                                     </span>
-                                   </button>
-                                 ))}
-                               </div>
-                             </div>
-                           );
+                           return <ModuleExplore moduleId={module.id} fallbackIds={fallbackIds} />;
                          })()}
                      </div>
                  </div>

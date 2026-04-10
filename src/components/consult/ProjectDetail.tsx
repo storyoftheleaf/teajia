@@ -5,6 +5,54 @@ import { CardContainer } from '../shared/CardContainer';
 import { useSectionReveal } from '../../hooks/useSectionReveal';
 import { SECTION_GAP_LG } from '../shared/spacing';
 import { useParallax } from '../../hooks/useParallax';
+import { useProductReferences } from '../reader/ProductReferences';
+import { api } from '../../lib/api';
+
+/**
+ * "Vessels and teas in this space" — editorial provenance block
+ * linking a Consult project to the teas and teaware it featured.
+ * Uses the project_products xref (no fallback). Renders nothing if
+ * no products are linked.
+ */
+const ProjectProvenance: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const products = useProductReferences({
+    sourceId: projectId,
+    queryKey: 'project-products',
+    fetcher: api.publicXref.projects,
+  });
+  if (products.length === 0) return null;
+
+  return (
+    <div className={`${SECTION_GAP_LG} max-w-[640px]`}>
+      <h2 className="font-serif text-xl font-medium mb-4 text-tea-text">
+        Vessels and teas in this space
+      </h2>
+      <ul className="space-y-2">
+        {products.map(product => {
+          const descriptor = [product.type, product.origin, product.year]
+            .filter(part => !!part && String(part).trim().length > 0)
+            .join(' \u00b7 ');
+          return (
+            <li key={product.id}>
+              <a
+                href={`/shop?product=${encodeURIComponent(product.id)}`}
+                className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-[14px] leading-snug text-tea-text hover:text-tea-gold transition-colors"
+              >
+                <span className="italic">{product.name}</span>
+                {descriptor && (
+                  <>
+                    <span className="text-tea-text-dim">&middot;</span>
+                    <span className="not-italic text-tea-text-sec">{descriptor}</span>
+                  </>
+                )}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
 
 const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-sm';
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
@@ -148,6 +196,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
           {project.result}
         </p>
       </div>
+
+      {/* Provenance — teas and vessels featured in this project.
+          Renders only if the project_products xref has rows. */}
+      <ProjectProvenance projectId={project.id} />
 
       {/* Closing CTAs */}
       <div className={`pt-16 md:pt-20 ${SECTION_GAP_LG}`}>
