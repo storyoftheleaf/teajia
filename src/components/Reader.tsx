@@ -3,9 +3,10 @@ import '../styles/reader-animations.css';
 
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
-import { Story, LayoutVariant } from '../types';
+import { Story, LayoutVariant, ContentType } from '../types';
 import { Icons } from './Icons';
 import { SinglePageRenderer, PageData, videoPlayerRegistry } from './SinglePageRenderer';
+import ArticleColophon from './reader/ArticleColophon';
 import { useImagePreloader } from '../context/ImagePreloaderContext';
 import { useInventory } from '../context/InventoryContext';
 
@@ -975,6 +976,18 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             </>
           )}
         </div>
+
+        {/* --- ARTICLE COLOPHON (final page of articles only) --- */}
+        {story.type === ContentType.Article && currentPageIndex >= pages.length - 1 && (
+          <div
+            className="absolute left-0 right-0 z-40 pointer-events-none flex justify-center"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
+          >
+            <div className="pointer-events-auto w-full">
+              <ArticleColophon articleId={story.id} fallbackTeaId={story.teaId} />
+            </div>
+          </div>
+        )}
 
         {/* --- BOTTOM BAR --- */}
         <div
