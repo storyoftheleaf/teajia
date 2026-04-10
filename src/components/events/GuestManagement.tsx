@@ -1,5 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark } from 'lucide-react';
 import {
   useGuestManagement,
@@ -7,6 +8,7 @@ import {
   useClaimSeat,
   useMarkBriefed,
 } from '../../hooks/useEventPolling';
+import { api } from '../../lib/api';
 import EventCountdown from './EventCountdown';
 import CalendarDownload from './CalendarDownload';
 import StoryCardsBriefing from './StoryCardsBriefing';
@@ -122,6 +124,22 @@ const GuestManagement: React.FC = () => {
   const cancelRSVP = useCancelRSVP(magicToken || '');
   const claimSeat = useClaimSeat(magicToken || '');
   const markBriefed = useMarkBriefed(magicToken || '');
+
+  // Post-session archive data (gallery, session notes, aggregated tasting
+  // impressions). Fetched lazily for the post-event recap view. Returns
+  // null silently if the host hasn't published post-session data yet.
+  const { data: postSession } = useQuery({
+    queryKey: ['guest-post-session', magicToken],
+    queryFn: async () => {
+      try {
+        return await api.rsvp.getPostSession(magicToken!);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!magicToken && !!data && new Date(data.event.eventDate).getTime() < Date.now(),
+    staleTime: 60_000,
+  });
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
@@ -251,7 +269,15 @@ const GuestManagement: React.FC = () => {
           <Suspense fallback={null}>
             <PostSessionArchive
               teaMenu={data.teaMenu}
-              playlistUrl={event.playlistUrl}
+              playlistUrl={postSession?.playlist_url || event.playlistUrl}
+              galleryImages={Array.isArray(postSession?.gallery_images) ? postSession.gallery_images : undefined}
+              aggregatedNotes={
+                Array.isArray(postSession?.tasting_notes)
+                  ? (postSession.tasting_notes as Array<{ impression?: string | null }>)
+                      .map(n => n.impression)
+                      .filter((imp): imp is string => typeof imp === 'string' && imp.trim().length > 0)
+                  : undefined
+              }
               className="mb-10"
             />
           </Suspense>
