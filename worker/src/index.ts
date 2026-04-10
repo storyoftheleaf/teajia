@@ -1933,6 +1933,59 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   return { list, link, unlink, listByProduct };
 }
 
+// Public (no-auth) xref list — used by Magazine / Learn / Consult colophons.
+// Always scoped to the platform-owner (Bali) account, same as the legacy
+// `/api/products/public` alias. Returns only PUBLIC_FIELDS — no cost, no
+// vendor, no sourcing references. Network-level content (articles, modules,
+// projects) is platform-wide, so the colophon always reads from Bali.
+function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
+  return async (_request, env, params) => {
+    const id = params.id;
+    const [ratesResult, result] = await env.DB.batch([
+      env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
+      env.DB.prepare(
+        `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
+                p.origin_country, p.origin_region, p.stock_grams, p.description,
+                p.tasting_notes, p.image_url, p.additional_images, p.status,
+                p.is_personal, p.can_reorder, p.is_featured, p.is_curated, p.lore,
+                p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
+                p.cost_amount, p.cost_currency, p.quantity_purchased,
+                p.shipping_rate_per_kg, p.fixed_retail_price_usd,
+                p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting
+         FROM ${tableName} xr
+         JOIN products p ON xr.product_id = p.id
+         WHERE xr.${fkColumn} = ?
+           AND p.account_id = ?
+           AND p.is_public = 1
+           AND p.status = 'Active'
+         ORDER BY xr.created_at DESC`
+      ).bind(id, BALI_ACCOUNT_ID),
+    ]);
+    const rates = new Map<string, number>();
+    for (const r of ratesResult.results as any[]) {
+      rates.set(r.currency as string, r.rate_to_usd as number);
+    }
+    const products = (result.results as any[]).map(p => {
+      if (typeof p.tasting_notes === 'string') {
+        try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+      }
+      if (typeof p.additional_images === 'string') {
+        try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
+      }
+      if (typeof p.tasting === 'string') {
+        try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
+      }
+      const withPricing = addPricingFields(p, rates);
+      const safe: Record<string, unknown> = {};
+      for (const key of PUBLIC_FIELDS) {
+        if (key in withPricing) safe[key] = (withPricing as Record<string, unknown>)[key];
+      }
+      return safe;
+    });
+    return cachedJson(products, 60);
+  };
+}
+
 const articleProductXref = makeXrefHandlers('article_products', 'article_id');
 const moduleProductXref = makeXrefHandlers('module_products', 'module_id');
 const projectProductXref = makeXrefHandlers('project_products', 'project_id');
@@ -6569,6 +6622,13 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
   ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
+
+  // Public xref (Magazine / Learn / Consult colophons)
+  // No-auth reads of article/module/project → product links, scoped to the
+  // platform-owner (Bali) account and returning PUBLIC_FIELDS only.
+  ['GET', '/api/public/xref/articles/:id/products', makePublicXrefHandler('article_products', 'article_id')],
+  ['GET', '/api/public/xref/modules/:id/products', makePublicXrefHandler('module_products', 'module_id')],
+  ['GET', '/api/public/xref/projects/:id/products', makePublicXrefHandler('project_products', 'project_id')],
 
   // User Management (admin/owner)
   ['GET', '/api/admin/users', handleListUsers],
