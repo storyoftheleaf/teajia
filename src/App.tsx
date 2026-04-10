@@ -46,6 +46,7 @@ import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useTastingJournalSync } from './hooks/useTastingJournalSync';
+import { useCompassSync } from './hooks/useCompassSync';
 import { pathToSection, sectionToPath } from './lib/routes';
 import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
@@ -113,6 +114,7 @@ const AppContent = () => {
   useFavoritesSync(isAuthenticated);
   useOfflineSync(isAuthenticated);
   useTastingJournalSync(isAuthenticated);
+  useCompassSync(isAuthenticated);
   const showAdminBar = false;
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();

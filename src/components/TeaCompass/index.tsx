@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, PenLine, Library, BookOpen, Check, Mic, Square, Loader2, Share2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { hydrateNotes, syncNotes } from '../../lib/notesSync';
 import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
@@ -216,32 +216,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setMode(newMode);
   }, [activeEntryId, startNewCapture, activeCategory]);
 
-  // ── Auto-sync & hydration ──
-  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
+  // ── Notes hydration ──
+  // Compass hydration / debounced push / online-retry all live in
+  // `useCompassSync` (mounted at the app root in `App.tsx`), mirroring
+  // `useFavoritesSync` / `useTastingJournalSync` / `useOfflineSync`. That
+  // hook runs while authenticated regardless of whether this view is
+  // mounted, so compass data stays fresh across navigation. Notes still
+  // hydrate/push from here until a parallel `useNotesSync` hook exists.
   useEffect(() => {
     if (!hasToken()) return;
-    hydrateCompassEntries();
     hydrateNotes();
-    syncCompassEntries();
     syncNotes();
-    syncIntervalRef.current = setInterval(() => {
-      const unsynced = useTeaCompassStore.getState().entries.filter(e => !e.synced);
-      if (unsynced.length > 0) {
-        syncCompassEntries();
-      }
-    }, 30_000);
-    return () => {
-      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleOnline = () => {
-      if (hasToken()) syncCompassEntries();
-    };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
   }, []);
 
   const handleVoiceTranscript = useCallback(
