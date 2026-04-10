@@ -1,36 +1,37 @@
 
 export interface TastingData {
-  // ── Section 1: Color ──
-  // (stored in 'liquor-color' below)
+  // Section 1: Sensation (temperature, weight, texture)
+  body?: string[];              // temperature + weight + texture terms
 
-  // ── Section 2: Body ──
-  body?: string[];            // weight + texture terms
+  // Section 2: Movement (throat, duration, finish character)
+  finish?: string[];            // throat sensations + finish character/duration terms
+  cleanliness?: string;         // 'clean' | 'some-edge' | 'rough'
+  huiGan?: boolean;             // Returning sweetness
 
-  // ── Section 3: Flavor ──
-  flavor?: string[];          // family-level or specific sub-terms
+  // Section 3: Feeling (settling, lifting, body, mind)
+  feeling?: string[];           // qi / mood / effect terms
+  clarity?: 'clear' | 'hazy' | 'cloudy';
+  quality?: number;             // 1-10 overall verdict
 
-  // ── Section 4: Throat ──
-  finish?: string[];          // throat sensations + finish character/duration terms
-  cleanliness?: string;       // 'clean' | 'some-edge' | 'rough' — throat quality verdict
-  huiGan?: boolean;           // Returning sweetness (回甘)
+  // Section 4: Flavor (families + specific terms)
+  flavor?: string[];            // family-level or specific sub-terms
 
-  // ── Section 5: State ──
-  feeling?: string[];         // qi / mood / effect terms (flat)
-  clarity?: 'clear' | 'hazy' | 'cloudy'; // head clarity
-  quality?: number;           // 1-10 overall verdict (answered last)
-  'liquor-color'?: string[];  // color swatch
-  notes?: string[];           // separate note entries (text / transcribed voice)
-  voiceNote?: string;         // legacy — single concatenated note (kept for backward compat)
+  // Section 5: Appearance (color + clarity)
+  'liquor-color'?: string[];    // color swatch
 
-  // ── Admin only ──
+  // Notes
+  notes?: string[];             // separate note entries (text / transcribed voice)
+  voiceNote?: string;           // legacy single concatenated note
+
+  // Admin only
   brewing?: string[];
 
-  // ── Legacy (kept for backward compatibility, not written by new flow) ──
-  rating?: number;            // old 1-5 scale
-  overallImpression?: string; // old comma-joined mood strings
+  // Legacy (kept for backward compatibility, not written by new flow)
+  rating?: number;
+  overallImpression?: string;
   primaryNotes?: string[];
-  patience?: number;          // removed from UI
-  mood?: string;              // old single energy descriptor
+  patience?: number;
+  mood?: string;
 }
 
 export interface CustomerTasting {

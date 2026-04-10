@@ -14,10 +14,13 @@ const SHORT_FAMILY_LABEL: Record<string, string> = {
   'Fruity': 'Fruity',
   'Nutty & grain': 'Nutty',
   'Roasted & warm': 'Roasted',
+  'Spice': 'Spice',
   'Woody': 'Woody',
   'Earthy': 'Earthy',
   'Mineral': 'Mineral',
   'Fresh & vegetal': 'Fresh',
+  'Taste & character': 'Taste',
+  // Legacy
   'Other qualities': 'Other',
 };
 

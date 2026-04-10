@@ -98,7 +98,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [startNoteSignal, setStartNoteSignal] = useState(0);
   const [stopNoteSignal, setStopNoteSignal] = useState(0);
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
-    body: 0, throat: 0, flavor: 0, state: 0,
+    body: 0, throat: 0, state: 0, flavor: 0, appearance: 0,
   });
 
   // Long-press on Note
