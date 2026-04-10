@@ -9,23 +9,20 @@ interface ArticleColophonProps {
   fallbackTeaId?: string;
 }
 
-interface XrefRow {
-  product_id?: string;
-  productId?: string;
+interface PublicXrefProduct {
+  id: string;
 }
 
 const ArticleColophon: React.FC<ArticleColophonProps> = ({ articleId, fallbackTeaId }) => {
   const { inventory } = useInventory();
 
-  const { data: xrefRows } = useQuery<XrefRow[]>({
-    queryKey: ['xref', 'article-products', articleId],
+  // Use the public xref endpoint so unauthenticated Magazine readers
+  // (the actual audience) see the colophon too.
+  const { data: xrefProducts } = useQuery<PublicXrefProduct[]>({
+    queryKey: ['public-xref', 'article-products', articleId],
     queryFn: async () => {
-      try {
-        const result = await api.xref.articles.list(articleId);
-        return Array.isArray(result) ? result : [];
-      } catch {
-        return [];
-      }
+      const result = await api.publicXref.articles(articleId);
+      return Array.isArray(result) ? result : [];
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!articleId,
@@ -33,8 +30,8 @@ const ArticleColophon: React.FC<ArticleColophonProps> = ({ articleId, fallbackTe
 
   const products: InventoryItem[] = useMemo(() => {
     const ids: string[] = [];
-    const xrefIds = (xrefRows || [])
-      .map(row => row.product_id || row.productId)
+    const xrefIds = (xrefProducts || [])
+      .map(p => p.id)
       .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
     if (xrefIds.length > 0) {
@@ -52,7 +49,7 @@ const ArticleColophon: React.FC<ArticleColophonProps> = ({ articleId, fallbackTe
       if (item) resolved.push(item);
     }
     return resolved;
-  }, [xrefRows, fallbackTeaId, inventory]);
+  }, [xrefProducts, fallbackTeaId, inventory]);
 
   if (products.length === 0) return null;
 
@@ -69,7 +66,7 @@ const ArticleColophon: React.FC<ArticleColophonProps> = ({ articleId, fallbackTe
           return (
             <li key={product.id}>
               <a
-                href={`/shop/product/${product.id}`}
+                href={`/shop?product=${encodeURIComponent(product.id)}`}
                 onClick={e => e.stopPropagation()}
                 className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-[13px] leading-snug text-tea-text hover:text-tea-gold transition-colors"
               >
