@@ -129,7 +129,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         subtitle: [item.variant, item.type, item.origin].filter(Boolean).join(' · '),
         category: item.category === 'ware' ? 'Teaware' : item.type,
         image: item.image,
-        action: () => navigateAndClose('/shop'),
+        // Open the specific product via Shop's ?product=<id> modal flow
+        // (handled by useProductUrl in TeaInventory/TeawareCatalog/CollectionTab).
+        action: () => navigateAndClose(`/shop?product=${encodeURIComponent(item.id)}`),
       };
     });
 
@@ -146,12 +148,19 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         subtitle: story.subtitle || story.description?.slice(0, 80) || '',
         category: story.type === ContentType.Article ? 'Article' : story.type === ContentType.PhotoEssay ? 'Photo Essay' : story.type,
         image: story.thumbnailUrl,
-        action: () => navigateAndClose('/magazine'),
+        // Navigate to /magazine to set section context, then dispatch the
+        // existing openArticle CustomEvent that App.tsx listens for — same
+        // contract used by AlcoveCard's "From the journal" links.
+        action: () => {
+          navigate('/magazine');
+          window.dispatchEvent(new CustomEvent('openArticle', { detail: { story } }));
+          onClose();
+        },
       };
     });
 
     return [...productHits, ...storyHits];
-  }, [query, productFuse, storyFuse, navigateAndClose]);
+  }, [query, productFuse, storyFuse, navigateAndClose, navigate, onClose]);
 
   // Group results by type
   const groupedResults = useMemo(() => {

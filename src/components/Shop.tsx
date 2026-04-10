@@ -82,6 +82,23 @@ export const Shop: React.FC<ShopProps> = ({
     }
   }, [urlStore]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // URL param support: ?product=<id> — switch to the tab matching the product's
+  // category so the active tab's useProductUrl hook can pick it up and open the
+  // modal. Entry points: GlobalSearch results, shared links, page reloads.
+  const urlProduct = searchParams.get('product');
+  useEffect(() => {
+    if (!urlProduct) return;
+    // Only switch tabs if the user is on a tab that can't show this product.
+    if (activeTab !== 'tea' && activeTab !== 'teaware') return;
+    const inTea = teaInventory.some(i => i.id === urlProduct);
+    const inWare = teawareInventory.some(i => i.id === urlProduct);
+    if (inTea && activeTab !== 'tea') {
+      setActiveTab('tea');
+    } else if (inWare && activeTab !== 'teaware') {
+      setActiveTab('teaware');
+    }
+  }, [urlProduct, teaInventory, teawareInventory]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch available stores
   const { data: networkStores = [] } = useQuery<Account[]>({
     queryKey: ['network', 'stores'],
