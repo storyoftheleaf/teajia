@@ -27,6 +27,7 @@ import { AccountSettingsView } from './views/AccountSettingsView';
 import { PlatformAdminView } from './views/PlatformAdminView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
+import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
@@ -144,6 +145,7 @@ const AdminContent = () => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/inventory');
   const isOnHome = location.pathname === '/admin/home' || location.pathname === '/admin/';
+  const isOnCompass = location.pathname.includes('/admin/compass');
 
   // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
@@ -302,7 +304,7 @@ const AdminContent = () => {
       />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        {!isOnHome && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
+        {!isOnHome && !isOnCompass && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -458,6 +460,7 @@ const AdminContent = () => {
               {/* Member tools — events + samples open to all members */}
               <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="venues" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
               <Route path="samples" element={
                 <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition><SampleSetCreator /></PageTransition>

@@ -8,13 +8,11 @@ interface FlavorSectionProps {
   flow: TastingFlowState;
   value: TastingData;
   onChange: (data: TastingData) => void;
-  teaType?: string;
 }
 
 const FlavorSectionInner: React.FC<FlavorSectionProps> = ({
   flow,
   value: _value,
-  teaType,
 }) => {
   const flavorCount = flow.getCategoryCount('flavor');
 
@@ -39,7 +37,6 @@ const FlavorSectionInner: React.FC<FlavorSectionProps> = ({
       <FlavorSplit
         selected={_value.flavor || []}
         onToggle={(termId) => flow.toggleTerm('flavor', termId)}
-        teaType={teaType}
       />
     </div>
   );

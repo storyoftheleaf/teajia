@@ -2,26 +2,25 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Pencil, Trash2, Store, PackagePlus, Check, Loader2, Camera,
+  Pencil, Trash2, Store, Check, Loader2, Camera,
   Mic, BookmarkPlus, BookmarkCheck, ChevronDown, ChevronUp,
-  ShoppingBag, Droplets, AlertTriangle,
+  ShoppingBag, Droplets, AlertTriangle, Star,
 } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { compassEntryToProductDraft, GRAM_PRESETS, DEFAULT_GRAMS } from './types';
-import { api, isConfigured, hasToken } from '../../lib/api';
+import { api } from '../../lib/api';
 import { TastingSession } from '../tasting/TastingSession';
-import { useAppStore } from '../../lib/store';
 import type { TastingData } from '../../types';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { compressImage } from '../../lib/imageCompressor';
-import type { TeaCompassEntry, TeaForm } from './types';
-import type { Currency } from '../../admin/types';
+import type { TeaCompassEntry } from './types';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
   onEdit: (id: string) => void;
+  /** Shows a queue/prioritise button — used in the To Taste filter */
+  tasteQueueActive?: boolean;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -74,28 +73,18 @@ function getTypeLabel(entry: TeaCompassEntry): string {
 }
 
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive }) => {
   const navigate = useNavigate();
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const transactions = useLedgerStore((s) => s.transactions);
-  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
-  const addLineItem = useLedgerStore((s) => s.addLineItem);
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
 
   const [expanded, setExpanded] = useState(false);
-  const [draftState, setDraftState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [showBuyPrompt, setShowBuyPrompt] = useState(false);
-  const [buyAmount, setBuyAmount] = useState('');
-  const buyInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (showBuyPrompt && buyInputRef.current) buyInputRef.current.focus();
-  }, [showBuyPrompt]);
 
   // Reset confirm-delete after 3s of no interaction
   useEffect(() => {
@@ -105,56 +94,13 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
   }, [confirmDelete]);
 
 
-  const handleCreateDraft = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isConfigured || !hasToken()) { setDraftState('error'); setTimeout(() => setDraftState('idle'), 2000); return; }
-    setDraftState('loading');
-    try {
-      const payload = compassEntryToProductDraft(entry);
-      const created = await api.products.create(payload);
-      if (created?.id) {
-        const updates: Record<string, unknown> = { draftProductId: created.id };
-        if (created.pricePerGramUSD) updates.sellPrice = created.pricePerGramUSD;
-        updateEntry(entry.id, updates);
-        setDraftState('success');
-      } else { setDraftState('error'); setTimeout(() => setDraftState('idle'), 2000); }
-    } catch { setDraftState('error'); setTimeout(() => setDraftState('idle'), 2000); }
-  }, [entry, updateEntry]);
-
-  const handleConfirmBuy = useCallback((amount: number) => {
-    if (amount <= 0) return;
-    const isTeaware = entry.category === 'teaware';
-    const buyTotal = entry.priceAmount && entry.pricePerUnitGrams
-      ? (amount / entry.pricePerUnitGrams) * entry.priceAmount : undefined;
-    updateEntry(entry.id, {
-      status: 'bought',
-      ...(isTeaware ? { buyQuantityUnits: amount } : { buyQuantityGrams: amount }),
-      buyTotal,
-    });
-    if (entry.vendorName) {
-      const currency = (entry.priceCurrency || 'NT') as Currency;
-      const txId = getOrCreatePurchaseTransaction(entry.vendorName, currency, entry.vendorId);
-      const pricePerUnit = entry.pricePerUnitGrams || (entry.priceAmount || 0);
-      addLineItem(txId, {
-        name: entry.name || 'Untitled', chineseName: entry.chineseName,
-        type: entry.type, form: entry.form, year: entry.year,
-        ...(isTeaware
-          ? { quantityUnits: amount, pricePerUnit: entry.priceAmount || 0, priceIsPerGram: false }
-          : { quantityGrams: amount, pricePerUnit, priceIsPerGram: !!entry.pricePerUnitGrams }),
-        currency, compassEntryId: entry.id,
-      });
-    }
-    setShowBuyPrompt(false);
-    setBuyAmount('');
-  }, [entry, updateEntry, getOrCreatePurchaseTransaction, addLineItem]);
 
   const handleUnbuy = useCallback(() => {
     for (const tx of transactions) {
       const item = tx.items.find((i) => i.compassEntryId === entry.id);
       if (item) { removeLineItem(tx.id, item.id); break; }
     }
-    updateEntry(entry.id, { status: 'logged', buyQuantityGrams: undefined, buyQuantityUnits: undefined, buyTotal: undefined });
-    setShowBuyPrompt(false);
+    updateEntry(entry.id, { status: 'noted', buyQuantityGrams: undefined, buyQuantityUnits: undefined, buyTotal: undefined });
   }, [entry.id, transactions, removeLineItem, updateEntry]);
 
   const handleAddPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,14 +116,13 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
     } catch { /* silently fail */ } finally { setPhotoUploading(false); }
   }, [entry.id, entry.photos, updateEntry]);
 
-  const gramPresets = entry.form ? GRAM_PRESETS[entry.form as TeaForm] || GRAM_PRESETS.Loose : GRAM_PRESETS.Loose;
-
   const hasName = entry.name.trim().length > 0;
   const typeColor = entry.type ? getTeaColor(entry.type) : null;
-  // Include 'buying' for backwards compatibility with persisted data
-  const isBought = entry.status === 'bought' || entry.status === 'buying';
+  // Include 'buying'/'bought' for backwards compatibility with persisted data
+  const isBought = entry.status === 'in_stock' || entry.status === 'buying';
   const isWishlisted = entry.status === 'want';
   const isIncoming = entry.status === 'incoming';
+  const isPassed = entry.status === 'pass';
   const pricePerGram = formatPricePerGram(entry);
   const rating = entry.tasting?.quality ?? entry.tasting?.rating;
   const flavorTags = (entry.tasting?.flavor || []).slice(0, 3);
@@ -237,7 +182,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
               </p>
 
               {/* Rating + status badge */}
-              {(rating != null || isBought || isWishlisted || isIncoming) && (
+              {(rating != null || isBought || isWishlisted || isIncoming || isPassed) && (
                 <div className="flex items-center gap-2">
                   {rating != null && (
                     <span className="text-[11px] font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
@@ -245,7 +190,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
                     </span>
                   )}
                   {isBought && (
-                    <span className="text-[10px] text-tea-gold/70 font-medium">Bought</span>
+                    <span className="text-[10px] text-tea-gold/70 font-medium">In Stock</span>
+                  )}
+                  {isPassed && (
+                    <span className="text-[10px] text-tea-text-dim font-medium">Passed</span>
                   )}
                   {isWishlisted && !isBought && (
                     <span className="text-[10px] text-tea-text-dim font-medium">Wishlist</span>
@@ -350,14 +298,6 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
                       {pricePerGram && ` · ${pricePerGram}`}
                     </span>
                   )}
-                  {/* Draft to inventory */}
-                  {isBought && !entry.draftProductId && (
-                    <button type="button" onClick={handleCreateDraft} disabled={draftState === 'loading'} className="pill flex items-center gap-1">
-                      {draftState === 'loading' ? <Loader2 size={10} className="animate-spin" /> :
-                       draftState === 'success' ? <Check size={10} /> : <PackagePlus size={10} />}
-                      {draftState === 'idle' ? '→ Inventory draft' : draftState === 'loading' ? '…' : draftState === 'success' ? 'Done' : 'Error'}
-                    </button>
-                  )}
                   {entry.draftProductId && (
                     <button
                       type="button"
@@ -369,60 +309,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
                         <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
                         <line x1="12" y1="22.08" x2="12" y2="12"/>
                       </svg>
-                      View in inventory
+                      In Inventory →
                     </button>
                   )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Buy quantity prompt (slides in above action bar) ── */}
-        <AnimatePresence>
-          {showBuyPrompt && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-              className="overflow-hidden"
-            >
-              <div className="inset-panel mx-3 mb-2 px-3 py-2.5 space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-tea-text-sec">
-                  {entry.category === 'teaware' ? 'How many?' : 'How many grams?'}
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {(entry.category !== 'teaware' ? gramPresets : [1, 2, 3]).map((val) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => handleConfirmBuy(val)}
-                      className="px-3 py-1.5 text-xs rounded-md bg-tea-surface text-tea-text-sec hover:text-tea-text transition-colors"
-                    >
-                      {entry.category === 'teaware' ? val : `${val}g`}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2 items-center">
-                  <input
-                    ref={buyInputRef}
-                    type="number"
-                    inputMode="numeric"
-                    value={buyAmount}
-                    onChange={(e) => setBuyAmount(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && Number(buyAmount) > 0) handleConfirmBuy(Number(buyAmount)); }}
-                    placeholder={entry.category === 'teaware' ? 'Units' : 'Grams'}
-                    className="flex-1 bg-tea-surface text-tea-text text-sm rounded-lg px-3 py-1.5 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { if (Number(buyAmount) > 0) handleConfirmBuy(Number(buyAmount)); }}
-                    disabled={!buyAmount || Number(buyAmount) <= 0}
-                    className="px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] rounded-lg bg-tea-gold text-tea-bg disabled:opacity-40 transition-all"
-                  >
-                    Confirm
-                  </button>
                 </div>
               </div>
             </motion.div>
@@ -434,7 +323,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
           {/* Wishlist toggle */}
           <button
             type="button"
-            onClick={() => updateEntry(entry.id, { status: isWishlisted ? 'logged' : 'want' })}
+            onClick={() => updateEntry(entry.id, { status: isWishlisted ? 'noted' : 'want' })}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
               isWishlisted
                 ? 'bg-tea-gold/10 text-tea-gold'
@@ -448,23 +337,15 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
           {/* Buy / Bought — label is always "Buy" or "Bought", never a price string */}
           <button
             type="button"
-            onClick={() => {
-              if (isBought) {
-                handleUnbuy();
-              } else {
-                setShowBuyPrompt((v) => !v);
-              }
-            }}
+            onClick={() => { if (isBought) handleUnbuy(); }}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
               isBought
                 ? 'bg-tea-gold/10 text-tea-gold'
-                : showBuyPrompt
-                  ? 'bg-tea-elevated text-tea-text-sec'
-                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
             }`}
           >
             {isBought ? <Check size={12} /> : <ShoppingBag size={12} />}
-            {isBought ? 'Bought' : 'Buy'}
+            {isBought ? 'In Stock' : 'Buy'}
           </button>
 
           {/* Taste / Rating */}
@@ -481,6 +362,25 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit }) => {
             <Droplets size={12} strokeWidth={1.5} />
             {rating != null ? `${rating}/10` : 'Taste'}
           </button>
+
+          {/* Taste queue — visible only in To Taste filter */}
+          {tasteQueueActive && (
+            <button
+              type="button"
+              onClick={() => updateEntry(entry.id, {
+                tasteOrder: entry.tasteOrder ? undefined : Date.now(),
+              })}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                entry.tasteOrder
+                  ? 'bg-tea-gold/10 text-tea-gold'
+                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+              }`}
+              title={entry.tasteOrder ? 'Remove from queue' : 'Taste this next'}
+            >
+              <Star size={12} fill={entry.tasteOrder ? 'currentColor' : 'none'} />
+              {entry.tasteOrder ? 'Next' : 'Queue'}
+            </button>
+          )}
 
           {/* Spacer */}
           <div className="flex-1" />

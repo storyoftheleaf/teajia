@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, PenLine, Library, BookOpen, Check, ExternalLink, Mic, Square, Loader2 } from 'lucide-react';
+import { ArrowLeft, PenLine, Library, BookOpen, Check, Mic, Square, Loader2, Share2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries, hydrateCompassEntries } from '../../lib/teaCompassSync';
+import { hydrateNotes, syncNotes } from '../../lib/notesSync';
+import { useNotesStore } from '../../lib/notesStore';
+import { useAppStore } from '../../lib/store';
 import { api, hasToken } from '../../lib/api';
 import type { CompassCategory } from './types';
 import { CompassIcon } from './CompassIcon';
@@ -15,6 +18,7 @@ import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { usePlatformPrivilege } from '../../lib/permissions';
+import { CompassShareModal } from './CompassShareModal';
 
 export type CompassMode = 'capture' | 'browse' | 'ledger';
 
@@ -43,6 +47,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     return entry?.category || 'tea';
   });
 
+  const { activeAccountId, activeAccount } = useAppStore();
+  const { addNote } = useNotesStore();
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -50,6 +57,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
 
   // Incoming pending shares (not yet accepted into compass)
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   // Track dismissed IDs locally for instant UI removal before refetch
   const [dismissedShareIds, setDismissedShareIds] = useState<Set<string>>(new Set());
   // Track which share ID is being acted on for per-card loading state
@@ -152,7 +160,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     // If the current entry is still empty, just switch its category instead of creating a new one
     if (activeEntryId) {
       const current = getEntry(activeEntryId);
-      if (current && !current.name && !current.notes && !current.type && current.photos.length === 0 && current.status === 'logged') {
+      if (current && !current.name && !current.notes && !current.type && current.photos.length === 0 && current.status === 'noted') {
         updateEntry(activeEntryId, { category });
         return;
       }
@@ -190,7 +198,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     // After commit removes the entry from session, check if there are remaining session entries
     const remaining = getSessionEntries().filter(
       (e) => e.id !== activeEntryId &&
-        (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'logged')
+        (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'noted')
     );
     if (remaining.length > 0) {
       setActiveEntry(remaining[0].id);
@@ -214,7 +222,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   useEffect(() => {
     if (!hasToken()) return;
     hydrateCompassEntries();
+    hydrateNotes();
     syncCompassEntries();
+    syncNotes();
     syncIntervalRef.current = setInterval(() => {
       const unsynced = useTeaCompassStore.getState().entries.filter(e => !e.synced);
       if (unsynced.length > 0) {
@@ -237,13 +247,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleVoiceTranscript = useCallback(
     (text: string) => {
       if (!activeEntryId) return;
-      const latest = useTeaCompassStore.getState().entries.find(e => e.id === activeEntryId);
-      if (!latest) return;
-      const currentNotes = latest.notes || '';
-      const updated = currentNotes.trim() ? currentNotes.trim() + '\n\n' + text : text;
-      updateEntry(activeEntryId, { notes: updated });
+      const entry = getEntry(activeEntryId);
+      addNote({
+        accountId: activeAccountId ?? 'guest',
+        compassEntryId: activeEntryId,
+        teaKey: entry?.teaKey,
+        text,
+        sourceType: 'voice',
+        authorId: activeAccountId ?? 'guest',
+        authorName: activeAccount?.name ?? 'You',
+        visibility: 'private',
+      });
+      syncNotes().catch(() => {});
     },
-    [activeEntryId, updateEntry]
+    [activeEntryId, getEntry, addNote, activeAccountId, activeAccount]
   );
 
   const { state: voiceState, errorMessage: voiceError, handlePress: handleVoicePress } = useVoiceRecorder(handleVoiceTranscript);
@@ -254,7 +271,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Tab config
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
-    { id: 'browse', label: 'Library', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
+    { id: 'browse', label: 'Encounters', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
@@ -317,7 +334,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
       {/* ── Content ── */}
       <div
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 pb-[calc(180px+env(safe-area-inset-bottom,0px))]"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 pb-[calc(60px+44px+env(safe-area-inset-bottom,0px))] lg:pb-[60px]"
         role="tabpanel"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
       >
@@ -379,21 +396,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
                       <Check size={14} strokeWidth={2.5} />
                       <span className="flex-1 truncate">{justCommitted.name} saved</span>
-                      {justCommitted.draftProductId && (
-                        <button
-                          type="button"
-                          onClick={() => { setJustCommitted(null); navigate(`/admin/inventory?panel=${encodeURIComponent(justCommitted.draftProductId!)}`); }}
-                          className="flex items-center gap-1 text-tea-gold hover:text-tea-text transition-colors shrink-0"
-                        >
-                          <ExternalLink size={11} /> Inventory
-                        </button>
-                      )}
                       <button
                         type="button"
                         onClick={() => { setJustCommitted(null); setMode('browse'); }}
                         className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                       >
-                        Library
+                        Encounters
                       </button>
                     </div>
                   </motion.div>
@@ -499,76 +507,83 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         </AnimatePresence>
       </div>
 
-      {/* ── Unified action bar (capture mode only) ── */}
+      {/* ── Capture action bar ── */}
       {mode === 'capture' && (
-        <div
-          className="fixed z-30 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2
-                     bottom-[calc(0.875rem+44px+env(safe-area-inset-bottom,0px))]
-                     lg:bottom-3.5"
-        >
+        <>
           <AnimatePresence>
             {voiceError && (
               <motion.p
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
-                className="text-[11px] text-red-400 bg-tea-elevated/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-tea-border shadow-sm max-w-[260px] text-center"
+                className="shrink-0 text-[11px] text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
               >
                 {voiceError}
               </motion.p>
             )}
           </AnimatePresence>
-          <div className="flex items-center rounded-full bg-tea-elevated border border-tea-border shadow-[0_4px_20px_rgba(0,0,0,0.18)] overflow-hidden">
-            {isPlatformPrivileged && (<>
-            {/* Voice button */}
-            <motion.button
-              type="button"
-              onClick={handleVoicePress}
-              disabled={voiceState === 'transcribing'}
-              whileTap={voiceState !== 'transcribing' ? { scale: 0.9 } : undefined}
-              className={`relative h-10 px-4 flex items-center gap-2 transition-colors ${
-                voiceState === 'recording'
-                  ? 'text-tea-gold'
-                  : voiceState === 'transcribing'
-                    ? 'text-tea-text-dim cursor-wait'
-                    : 'text-tea-text-dim hover:text-tea-text'
-              }`}
-              aria-label={voiceState === 'recording' ? 'Stop recording' : 'Voice note'}
-            >
-              {voiceState === 'recording' && (
-                <motion.span
-                  className="absolute inset-0 rounded-full"
-                  animate={{ opacity: [0.08, 0.15, 0.08] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{ background: 'var(--tea-gold)' }}
-                />
-              )}
-              <span className="relative">
-                {voiceState === 'recording' ? (
-                  <Square size={13} fill="currentColor" />
-                ) : voiceState === 'transcribing' ? (
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="block"
-                  >
-                    <Loader2 size={13} />
-                  </motion.span>
-                ) : (
-                  <Mic size={13} />
-                )}
-              </span>
-              {voiceState === 'recording' && (
-                <span className="relative text-[11px] font-medium tracking-wide">Recording</span>
-              )}
-            </motion.button>
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-tea-border shrink-0" />
-            </>)}
+          <div
+            className="shrink-0 border-t border-tea-border bg-tea-bg flex"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          >
+            {/* Record */}
+            {isPlatformPrivileged && (
+              <>
+                <motion.button
+                  type="button"
+                  onClick={handleVoicePress}
+                  disabled={voiceState === 'transcribing'}
+                  className={`relative flex-1 flex items-center justify-center py-3 transition-colors ${
+                    voiceState === 'recording'
+                      ? 'text-tea-gold'
+                      : voiceState === 'transcribing'
+                        ? 'text-tea-text-dim cursor-wait'
+                        : 'text-tea-text/40 hover:text-tea-text/70'
+                  }`}
+                  aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
+                >
+                  {voiceState === 'recording' && (
+                    <motion.span
+                      className="absolute inset-0"
+                      animate={{ opacity: [0.06, 0.12, 0.06] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{ background: 'var(--tea-gold)' }}
+                    />
+                  )}
+                  <span className="relative">
+                    {voiceState === 'recording' ? (
+                      <Square size={14} fill="currentColor" />
+                    ) : voiceState === 'transcribing' ? (
+                      <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
+                        <Loader2 size={14} />
+                      </motion.span>
+                    ) : (
+                      <Mic size={14} />
+                    )}
+                  </span>
+                </motion.button>
+                <div className="w-px self-stretch my-2 bg-tea-border" />
+              </>
+            )}
 
-            {/* Save button */}
-            <motion.button
+            {/* Share */}
+            {hasToken() && activeEntryId && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShareModalOpen(true)}
+                  className="flex-1 flex items-center justify-center py-3 text-tea-text/40 hover:text-tea-text/70 transition-colors"
+                  aria-label="Share"
+                >
+                  <Share2 size={14} strokeWidth={1.5} />
+                </button>
+                <div className="w-px self-stretch my-2 bg-tea-border" />
+              </>
+            )}
+
+            {/* Done */}
+            <button
               type="button"
               onClick={() => {
                 if (!activeEntryId) return;
@@ -576,14 +591,29 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 handleCommitEntry();
               }}
               disabled={!activeEntryId}
-              whileTap={{ scale: 0.97 }}
-              className="h-10 px-5 flex items-center text-[13px] font-semibold text-tea-gold tracking-wide disabled:opacity-40 transition-opacity"
-              aria-label="Save"
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 text-tea-gold font-semibold text-sm disabled:opacity-30 transition-opacity"
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+              aria-label="Done"
             >
-              Save
-            </motion.button>
+              Done
+            </button>
           </div>
-        </div>
+
+          {/* Share modal */}
+          <AnimatePresence>
+            {shareModalOpen && activeEntryId && (() => {
+              const entry = getEntry(activeEntryId);
+              return entry ? (
+                <CompassShareModal
+                  entryId={activeEntryId}
+                  entryName={entry.name}
+                  synced={entry.synced}
+                  onClose={() => setShareModalOpen(false)}
+                />
+              ) : null;
+            })()}
+          </AnimatePresence>
+        </>
       )}
     </div>
   );

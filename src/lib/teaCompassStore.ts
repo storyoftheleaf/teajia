@@ -51,14 +51,13 @@ interface TeaCompassState {
   getSessionEntries: () => TeaCompassEntry[];
 }
 
-/** An entry has meaningful content if it has a name, photo, notes, tasting, or non-default status/type */
+/** An entry has meaningful content if it has a name, photo, notes, or real tasting data.
+ *  Selecting a type, status, or vendor alone does NOT count — those are too easy to tap accidentally. */
 function entryHasContent(entry: TeaCompassEntry): boolean {
   return (
     entry.name.trim().length > 0 ||
     entry.photos.length > 0 ||
     entry.notes.trim().length > 0 ||
-    entry.type != null ||
-    entry.status !== 'logged' ||
     (entry.tasting != null &&
       Object.values(entry.tasting).some((v) =>
         Array.isArray(v) ? v.length > 0 : v != null

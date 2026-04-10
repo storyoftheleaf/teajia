@@ -3,7 +3,7 @@ import type { Currency } from '../../admin/types';
 
 export type TeaType = 'Green' | 'White' | 'Yellow' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware';
 export type TeaForm = 'Loose' | 'Cake' | 'Brick' | 'Tuo' | 'Ball' | 'Bag';
-export type CompassStatus = 'logged' | 'want' | 'buying' | 'bought' | 'incoming';
+export type CompassStatus = 'noted' | 'want' | 'pass' | 'buying' | 'incoming' | 'in_stock' | 'depleted';
 export type CompassCategory = 'tea' | 'teaware';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
@@ -12,7 +12,7 @@ export type TeawareMaterial = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcela
 export type TeawareEra = 'Modern' | '90s' | '80s' | '70s' | 'Pre-70s' | 'Republic' | 'Qing' | 'Unknown';
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'want' | 'bought';
+export type BrowseFilter = 'all' | 'mine' | 'queue' | 'want' | 'pass';
 
 export interface VendorDetails {
   businessCardUrl?: string;
@@ -81,7 +81,10 @@ export interface TeaCompassEntry {
   sampleVerdict?: 'love' | 'like' | 'neutral' | 'pass';
   sampleWouldBuy?: boolean;
 
-  // Pipeline
+  // Tasting queue — timestamp set when entry is explicitly prioritised; higher = sooner
+  tasteOrder?: number;
+
+  // Pipeline — internal, set automatically when ledger purchase is confirmed
   draftProductId?: string;
 
   // Meta
@@ -183,7 +186,8 @@ export function compassShareMetadata(entry: TeaCompassEntry): Record<string, unk
 
 /**
  * Maps a Tea Compass entry to a product draft payload matching the API's expected format.
- * Used when promoting a "bought" compass entry to a Draft product in inventory.
+ * INTERNAL — called only by LedgerView.handleConfirm when a purchase is confirmed.
+ * Do not call from UI components directly.
  */
 export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<string, any> {
   const captureDate = new Date(entry.createdAt).toLocaleDateString(undefined, {
@@ -269,7 +273,7 @@ export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: {
     notes: '',
     photos: [],
     audioClips: [],
-    status: 'logged',
+    status: 'noted',
     createdAt: now,
     updatedAt: now,
     synced: false,

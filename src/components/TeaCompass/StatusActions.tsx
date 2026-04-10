@@ -46,12 +46,12 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
   );
 
   const handleWant = () => {
-    onStatusChange(status === 'want' ? 'logged' : 'want');
+    onStatusChange(status === 'want' ? 'noted' : 'want');
   };
 
   const handleBuyClick = () => {
     if (!entry) {
-      onStatusChange(status === 'bought' ? 'logged' : 'bought');
+      onStatusChange(status === 'in_stock' ? 'noted' : 'in_stock');
       return;
     }
 
@@ -94,7 +94,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
       compassEntryId: entry.id,
     });
 
-    onStatusChange('bought');
+    onStatusChange('in_stock');
 
     setShowQtyPicker(false);
     setJustAdded(true);
@@ -120,7 +120,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
           }`}
         >
           {status === 'want' ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
-          Wishlist
+          Want
         </button>
         <button
           type="button"
@@ -128,7 +128,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
           className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             isInLedger
               ? 'bg-tea-gold/20 text-tea-gold'
-              : status === 'bought'
+              : status === 'in_stock'
                 ? 'bg-tea-gold text-tea-bg'
                 : 'bg-tea-gold/8 text-tea-text-sec active:bg-tea-gold/15 hover:bg-tea-gold/12'
           }`}
@@ -138,16 +138,68 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
               <BookOpen size={14} />
               In Ledger
             </>
-          ) : status === 'bought' ? (
+          ) : status === 'in_stock' ? (
             <>
               <Check size={14} />
-              Bought
+              In Stock
             </>
           ) : (
             'Buy'
           )}
         </button>
       </div>
+
+      <AnimatePresence>
+        {status !== 'pass' ? (
+          <motion.button
+            key="pass-btn"
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              onStatusChange('pass');
+              setTimeout(() => onAddedToLedger?.(), 50);
+            }}
+            className="w-full text-center text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
+          >
+            Not for me
+          </motion.button>
+        ) : (
+          <motion.button
+            key="pass-undo"
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => onStatusChange('noted')}
+            className="w-full text-center text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
+          >
+            Passed · tap to undo
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Incoming — ordered but not yet arrived */}
+      <AnimatePresence>
+        {(status === 'want' || status === 'noted' || status === 'incoming') && (
+          <motion.button
+            key="incoming-btn"
+            type="button"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => onStatusChange(status === 'incoming' ? 'noted' : 'incoming')}
+            className={`w-full text-center text-[11px] transition-colors py-1 ${
+              status === 'incoming'
+                ? 'text-tea-gold/70 hover:text-tea-text-sec'
+                : 'text-tea-text-dim hover:text-tea-text-sec'
+            }`}
+          >
+            {status === 'incoming' ? 'Incoming · tap to undo' : 'Ordered, not arrived yet'}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Quantity picker — slides in when Buy is tapped */}
       <AnimatePresence>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, MapPin, Bookmark, Image } from 'lucide-react';
+import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, MapPin, Bookmark, Image, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
-import { TeaEvent, EventFormData, EventStatus, VenueGuideStep, SessionFlowItem, SavedLocation } from '../../types/events';
+import { TeaEvent, EventFormData, EventStatus, VenueGuideStep, SessionFlowItem, SavedLocation, Venue, VenueSpace } from '../../types/events';
 
 interface EventFormProps {
   isOpen: boolean;
@@ -80,57 +80,31 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [totalCapacity, setTotalCapacity] = useState(12);
   const [status, setStatus] = useState<EventStatus>('draft');
   const [flyerImageUrl, setFlyerImageUrl] = useState('');
-  const [locationName, setLocationName] = useState('');
-  const [addressText, setAddressText] = useState('');
-  const [mapLink, setMapLink] = useState('');
-  const [areaHint, setAreaHint] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
-  const [selectedLocationId, setSelectedLocationId] = useState('');
-  const [showSaveLocation, setShowSaveLocation] = useState(false);
-  const [savingLocation, setSavingLocation] = useState(false);
+  // Venue / space state
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState('');
+  const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
 
   useEffect(() => {
-    api.savedLocations.list().then(setSavedLocations).catch(() => {});
+    api.venues.list().then(setVenues).catch(() => {});
   }, []);
 
-  const handleSelectLocation = (locationId: string) => {
-    setSelectedLocationId(locationId);
-    if (!locationId) return;
-    const loc = savedLocations.find(l => l.id === locationId);
-    if (!loc) return;
-    setLocationName(loc.name);
-    setAddressText(loc.address);
-    setMapLink(loc.mapLink || '');
-  };
+  const selectedVenue = venues.find(v => v.id === selectedVenueId);
 
-  const handleSaveLocation = async () => {
-    if (!locationName.trim() || !addressText.trim()) {
-      showToast('Location name and address are required to save', 'error');
-      return;
-    }
-    setSavingLocation(true);
-    try {
-      const result = await api.savedLocations.create({
-        name: locationName,
-        address: addressText,
-        map_link: mapLink || null,
-        guidelines: null,
-        venue_guide: null,
-      });
-      const refreshed = await api.savedLocations.list();
-      setSavedLocations(refreshed);
-      setSelectedLocationId(result.id);
-      setShowSaveLocation(false);
-      showToast('Location saved', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to save location', 'error');
-    } finally {
-      setSavingLocation(false);
-    }
+  const toggleSpace = (spaceId: string, capacity: number) => {
+    setSelectedSpaceIds(prev => {
+      if (prev.includes(spaceId)) return prev.filter(id => id !== spaceId);
+      return [...prev, spaceId];
+    });
+    // Auto-sum capacity when toggling spaces
+    setTotalCapacity(prev => {
+      const wasSelected = selectedSpaceIds.includes(spaceId);
+      return wasSelected ? Math.max(1, prev - capacity) : prev + capacity;
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,10 +142,12 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         claim_window_minutes: 60,
         status,
         flyer_image_url: flyerImageUrl || null,
-        location_name: locationName.trim() || undefined,
-        address_text: addressText.trim() || undefined,
-        map_link: mapLink.trim() || undefined,
-        area_hint: areaHint.trim() || undefined,
+        venue_id: selectedVenueId || undefined,
+        active_space_ids: selectedSpaceIds.length > 0 ? JSON.stringify(selectedSpaceIds) : undefined,
+        location_name: selectedVenue?.name || undefined,
+        address_text: selectedVenue?.address || undefined,
+        map_link: selectedVenue?.mapLink || undefined,
+        area_hint: selectedVenue?.areaHint || undefined,
       });
       showToast('Event created', 'success');
       onSuccess(result?.id);
@@ -279,95 +255,91 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
             <section className="space-y-4 pt-8">
               <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Location</h3>
 
-              {/* Saved locations picker */}
-              {savedLocations.length > 0 && (
-                <div className="relative">
-                  <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
-                  <select
-                    value={selectedLocationId}
-                    onChange={(e) => handleSelectLocation(e.target.value)}
-                    className={`${selectClass} pl-5`}
-                  >
-                    <option value="">Choose a saved location…</option>
-                    {savedLocations.map(loc => (
-                      <option key={loc.id} value={loc.id}>{loc.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
-                </div>
-              )}
-
-              <Field label="Area Hint">
-                <input
-                  type="text"
-                  value={areaHint}
-                  onChange={(e) => setAreaHint(e.target.value)}
-                  className={inputClass}
-                  placeholder="Central, Hong Kong"
-                />
-              </Field>
-              <Field label="Venue Name">
-                <input
-                  type="text"
-                  value={locationName}
-                  onChange={(e) => { setLocationName(e.target.value); setSelectedLocationId(''); }}
-                  className={inputClass}
-                  placeholder="The Studio at Sheung Wan"
-                />
-              </Field>
-              <Field label="Address">
-                <input
-                  type="text"
-                  value={addressText}
-                  onChange={(e) => { setAddressText(e.target.value); setSelectedLocationId(''); }}
-                  className={inputClass}
-                  placeholder="123 Hollywood Road, Sheung Wan"
-                />
-              </Field>
-              <Field label="Map Link">
-                <input
-                  type="url"
-                  value={mapLink}
-                  onChange={(e) => setMapLink(e.target.value)}
-                  className={inputClass}
-                  placeholder="https://maps.google.com/…"
-                />
-              </Field>
-
-              {/* Save as location prompt */}
-              {locationName && addressText && !selectedLocationId && (
+              {venues.length === 0 ? (
+                <p className="text-xs text-tea-text-dim py-1">
+                  No venues configured yet.{' '}
+                  <a href="/admin/venues" className="text-tea-gold underline-offset-2 hover:underline">
+                    Add a venue
+                  </a>{' '}
+                  to enable space selection.
+                </p>
+              ) : (
                 <>
-                  {showSaveLocation ? (
-                    <div className="bg-tea-bg/50 border border-tea-border rounded-md p-3 space-y-2">
-                      <p className="text-xs text-tea-text-sec">Save "{locationName}" as a reusable location?</p>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={handleSaveLocation}
-                          disabled={savingLocation}
-                          className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
-                        >
-                          {savingLocation ? <Loader2 size={10} className="animate-spin" /> : <Bookmark size={10} />}
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowSaveLocation(false)}
-                          className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                  {/* Venue picker */}
+                  <Field label="Venue">
+                    <div className="relative">
+                      <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
+                      <select
+                        value={selectedVenueId}
+                        onChange={(e) => { setSelectedVenueId(e.target.value); setSelectedSpaceIds([]); }}
+                        className={`${selectClass} pl-5`}
+                      >
+                        <option value="">Choose a venue…</option>
+                        {venues.map(v => (
+                          <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowSaveLocation(true)}
-                      className="flex items-center gap-1.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
-                    >
-                      <Bookmark size={11} />
-                      Save as reusable location
-                    </button>
+                  </Field>
+
+                  {/* Space picker — shown once a venue is selected */}
+                  {selectedVenue && selectedVenue.spaces.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                      <div className="space-y-2">
+                        {selectedVenue.spaces.map(space => {
+                          const active = selectedSpaceIds.includes(space.id);
+                          return (
+                            <button
+                              key={space.id}
+                              type="button"
+                              onClick={() => toggleSpace(space.id, space.capacity)}
+                              className={`w-full flex items-start gap-3 p-3 rounded-md border text-left transition-colors ${
+                                active
+                                  ? 'border-tea-gold/50 bg-tea-gold/5 text-tea-text'
+                                  : 'border-tea-border hover:border-tea-border text-tea-text-sec'
+                              }`}
+                            >
+                              {/* Space photo */}
+                              {space.photos[0] ? (
+                                <div className="w-14 h-14 rounded overflow-hidden border border-tea-border flex-shrink-0">
+                                  <img src={space.photos[0]} alt={space.name} className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-14 h-14 rounded border border-dashed border-tea-border flex items-center justify-center flex-shrink-0">
+                                  <MapPin size={14} className="text-tea-text-dim" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>{space.name}</p>
+                                <p className="text-[11px] text-tea-text-dim mt-0.5">{space.capacity} seats</p>
+                                {space.description && (
+                                  <p className="text-[11px] text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
+                                )}
+                              </div>
+                              <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                                active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
+                              }`}>
+                                {active && <span className="text-tea-bg text-[10px] font-bold leading-none">✓</span>}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedSpaceIds.length > 1 && (
+                        <p className="text-[11px] text-tea-text-sec">
+                          Combined capacity: {selectedVenue.spaces.filter(s => selectedSpaceIds.includes(s.id)).reduce((sum, s) => sum + s.capacity, 0)} seats
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedVenue && selectedVenue.spaces.length === 0 && (
+                    <p className="text-xs text-tea-text-dim">
+                      This venue has no spaces yet.{' '}
+                      <a href="/admin/venues" className="text-tea-gold underline-offset-2 hover:underline">Add spaces</a> to enable selection.
+                    </p>
                   )}
                 </>
               )}

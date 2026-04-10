@@ -17,12 +17,11 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
   const colorCount = flow.getCategoryCount('liquor-color');
   const clearCategory = flow.clearCategory;
   const isDragging = useRef(false);
+  const lastPickedId = useRef<string | null>(null);
 
   const handleSelect = (termId: string) => {
-    if (selected.includes(termId)) {
-      flow.toggleTerm('liquor-color', termId);
-    } else {
-      selected.forEach(id => flow.toggleTerm('liquor-color', id));
+    selected.forEach(id => flow.toggleTerm('liquor-color', id));
+    if (!selected.includes(termId)) {
       flow.toggleTerm('liquor-color', termId);
     }
   };
@@ -30,12 +29,15 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
   const pickColorAt = (clientX: number, rect: DOMRect) => {
     const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const idx = Math.round(x * (colorTerms.length - 1));
-    handleSelect(colorTerms[idx].id);
+    const termId = colorTerms[idx].id;
+    if (termId !== lastPickedId.current) {
+      lastPickedId.current = termId;
+      handleSelect(termId);
+    }
   };
 
   if (compact) {
     const selectedId = selected[0] ?? null;
-    const selectedIdx = selectedId ? colorTerms.findIndex(t => t.id === selectedId) : -1;
     const n = colorTerms.length;
 
     return (
@@ -87,6 +89,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
           }}
           onPointerDown={(e) => {
             isDragging.current = true;
+            lastPickedId.current = null;
             (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
             pickColorAt(e.clientX, e.currentTarget.getBoundingClientRect());
           }}
@@ -114,24 +117,6 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
             );
           })}
 
-          {/* Thumb — wider pill that spans the full bar height */}
-          {selectedIdx >= 0 && (
-            <motion.div
-              className="absolute pointer-events-none"
-              layoutId="color-bar-thumb"
-              style={{
-                top: '50%',
-                left: `${(selectedIdx / n) * 100 + (100 / n / 2)}%`,
-                transform: 'translate(-50%, -50%)',
-                width: 10,
-                height: 40,
-                borderRadius: 5,
-                background: 'rgba(255,255,255,0.95)',
-                boxShadow: '0 1px 8px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(0,0,0,0.15)',
-              }}
-              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-            />
-          )}
         </div>
       </div>
     );

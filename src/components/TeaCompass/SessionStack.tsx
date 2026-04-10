@@ -18,7 +18,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
   const stackEntries = sessionEntries.filter(
     (e) =>
       e.id !== activeEntryId &&
-      (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'logged')
+      (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'noted')
   );
 
   if (stackEntries.length === 0) return null;

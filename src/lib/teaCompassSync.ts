@@ -72,7 +72,7 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   result.notes = result.notes || '';
   result.photos = result.photos || [];
   result.audioClips = result.audioClips || [];
-  result.status = result.status || 'logged';
+  result.status = result.status || 'noted';
   result.category = result.category || 'tea';
   result.createdAt = result.createdAt || new Date().toISOString();
   result.updatedAt = result.updatedAt || new Date().toISOString();

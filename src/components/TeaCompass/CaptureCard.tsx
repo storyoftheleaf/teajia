@@ -1,21 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, Droplets, FlaskConical, Minus, Plus, Share2, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, Droplets, FlaskConical, Minus, Plus, ShoppingCart, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
+import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
 import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS, generateTeaKey } from './types';
-import { CompassShareModal } from './CompassShareModal';
 import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
 import { PriceGrams } from './PriceGrams';
-import { NotesField } from './NotesField';
+import { NoteThread } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { TastingSession } from '../tasting/TastingSession';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
@@ -49,6 +49,19 @@ interface CaptureCardProps {
 }
 
 const EMPTY_TASTING: TastingData = {};
+
+/** One-line descriptions shown next to each type in the picker, for beginners */
+const TEA_TYPE_DESCRIPTIONS: Record<string, string> = {
+  Green:  'Unoxidized · grassy, fresh, vegetal',
+  White:  'Minimal processing · delicate, floral',
+  Yellow: 'Rare, slow-dried · mellow, honeyed',
+  Oolong: 'Partially oxidized · floral to roasted',
+  Red:    'Fully oxidized (called "black" in West)',
+  Dark:   'Aged & fermented heicha (non-puerh)',
+  Sheng:  'Raw puerh · young or aged',
+  Shou:   'Ripe puerh · fermented, earthy',
+  Herbal: 'Flowers, roots & tisanes (no tea leaf)',
+};
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NT: 'NT$', USD: '$', Yuan: '¥', MYR: 'RM', IDR: 'Rp', JPY: '¥', HKD: 'HK$', UNK: '?',
@@ -143,7 +156,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
-  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
@@ -190,6 +202,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [formPopoverOpen, setFormPopoverOpen] = useState(false);
   const typePopoverRef = useRef<HTMLDivElement>(null);
   const formPopoverRef = useRef<HTMLDivElement>(null);
+  // Teaware-specific popovers
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [eraPopoverOpen, setEraPopoverOpen] = useState(false);
+  const [materialPopoverOpen, setMaterialPopoverOpen] = useState(false);
+  const categoryPopoverRef = useRef<HTMLDivElement>(null);
+  const eraPopoverRef = useRef<HTMLDivElement>(null);
+  const materialPopoverRef = useRef<HTMLDivElement>(null);
 
   // Products from database — for autocomplete suggestions
   const productsRef = useRef<any[]>([]);
@@ -239,13 +258,32 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     return () => { cancelled = true; };
   }, []);
 
+  // Tea variety suggestions filtered by selected type (prepended so they appear first)
+  const varietySuggestions = useMemo(() => {
+    if (entry?.category !== 'tea' || entry?.type === 'Teaware') return [];
+    return getTeaVarietySuggestions(entry?.type as Exclude<TeaType, 'Teaware'> | undefined);
+  }, [entry?.category, entry?.type]);
+
+  // Map variety names → { originRegion, chineseName } for auto-fill on selection
+  const varietyNameMap = useMemo(() => {
+    if (entry?.category !== 'tea' || entry?.type === 'Teaware') return {};
+    return buildVarietyDataMap(entry?.type as Exclude<TeaType, 'Teaware'> | undefined);
+  }, [entry?.category, entry?.type]);
+
+  // Hint suggestions shown on empty focus — first 8 primary variety names for selected type
+  const hintSuggestions = useMemo(() => {
+    if (entry?.category !== 'tea' || !entry?.type || entry?.type === 'Teaware') return [];
+    return getTeaVarietyNames(entry.type as Exclude<TeaType, 'Teaware'>).slice(0, 8);
+  }, [entry?.category, entry?.type]);
+
   // Also include compass entry names in suggestions
   const allNameSuggestions = useMemo(() => {
     const compassNames = allEntries
       .filter((e) => e.id !== entryId && e.name.trim().length > 0)
       .map((e) => e.name);
-    return [...new Set([...productNames, ...compassNames])];
-  }, [productNames, allEntries, entryId]);
+    // Variety suggestions come first so they're prioritized in the list
+    return [...new Set([...varietySuggestions, ...productNames, ...compassNames])];
+  }, [varietySuggestions, productNames, allEntries, entryId]);
 
   // Build fuse index from other entries (exclude current)
   const fuseIndex = useMemo(() => {
@@ -274,10 +312,19 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       if (formPopoverOpen && formPopoverRef.current && !formPopoverRef.current.contains(e.target as Node)) {
         setFormPopoverOpen(false);
       }
+      if (categoryPopoverOpen && categoryPopoverRef.current && !categoryPopoverRef.current.contains(e.target as Node)) {
+        setCategoryPopoverOpen(false);
+      }
+      if (eraPopoverOpen && eraPopoverRef.current && !eraPopoverRef.current.contains(e.target as Node)) {
+        setEraPopoverOpen(false);
+      }
+      if (materialPopoverOpen && materialPopoverRef.current && !materialPopoverRef.current.contains(e.target as Node)) {
+        setMaterialPopoverOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [typePopoverOpen, formPopoverOpen]);
+  }, [typePopoverOpen, formPopoverOpen, categoryPopoverOpen, eraPopoverOpen]);
 
   // Debounced input parser — runs when name changes
   useEffect(() => {
@@ -659,183 +706,236 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const hasTeawareName = (entry.name || '').trim().length > 0;
 
     return (
-      <div className="bg-tea-surface rounded-lg p-3 space-y-4">
-        {/* ─── IDENTITY ─── */}
-        <div className="space-y-3">
-          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Identity</p>
-          <TeawarePhotos
-            photos={entry.photos}
-            onPhotosChange={handleTeawarePhotosChange}
-          />
-          <VendorStrip
-            vendorName={entry.vendorName}
-            vendorId={entry.vendorId}
-            vendorDetails={entry.vendorDetails}
-            onVendorSelect={handleVendorSelect}
-            onClear={handleVendorClear}
-            onDetailsChange={handleVendorDetailsChange}
-          />
+      <div className="bg-tea-surface rounded-2xl px-4 py-3 space-y-2">
+
+        {/* Row 1: Vendor + Camera */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <VendorStrip
+              vendorName={entry.vendorName}
+              vendorId={entry.vendorId}
+              vendorDetails={entry.vendorDetails}
+              onVendorSelect={handleVendorSelect}
+              onClear={handleVendorClear}
+              onDetailsChange={handleVendorDetailsChange}
+            />
+          </div>
+          <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+        </div>
+
+        {/* Row 2: Name + Category (mirrors Name + Type) */}
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={entry.name}
             onChange={(e) => update({ name: e.target.value })}
             placeholder="What is it?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+          />
+          <div className="relative shrink-0" ref={categoryPopoverRef}>
+            <button
+              type="button"
+              onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors whitespace-nowrap"
+              style={entry.teawareCategory ? { backgroundColor: 'rgb(var(--tea-gold-rgb) / 0.12)', color: 'var(--tea-gold)' } : undefined}
+            >
+              <span>{entry.teawareCategory || 'Category'}</span>
+              <ChevronDown size={14} strokeWidth={2} />
+            </button>
+            <AnimatePresence>
+              {categoryPopoverOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
+                >
+                  <div className="grid grid-cols-2 gap-1.5" style={{ minWidth: '160px' }}>
+                    {TEAWARE_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          const updates: Record<string, unknown> = { teawareCategory: cat };
+                          if (entry.teawareCategory !== cat) updates.material = undefined;
+                          update(updates);
+                          setCategoryPopoverOpen(false);
+                        }}
+                        className={`${entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Row 3: Era + Material + Origin */}
+        <div className="flex items-center gap-2">
+          <div className="relative shrink-0" ref={eraPopoverRef}>
+            <button
+              type="button"
+              onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setCategoryPopoverOpen(false); setMaterialPopoverOpen(false); }}
+              className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors tabular-nums"
+              style={entry.era ? { color: 'var(--tea-text)' } : undefined}
+            >
+              <span>{entry.era || 'Era'}</span>
+              <ChevronDown size={13} strokeWidth={2} />
+            </button>
+            <AnimatePresence>
+              {eraPopoverOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
+                >
+                  <div className="flex flex-col gap-0.5" style={{ minWidth: '120px' }}>
+                    {TEAWARE_ERAS.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => { update({ era: entry.era === e ? undefined : e }); setEraPopoverOpen(false); }}
+                        className={`text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${entry.era === e ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="relative shrink-0" ref={materialPopoverRef}>
+            <button
+              type="button"
+              onClick={() => { setMaterialPopoverOpen(!materialPopoverOpen); setEraPopoverOpen(false); setCategoryPopoverOpen(false); }}
+              className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
+              style={entry.material ? { color: 'var(--tea-text)' } : undefined}
+            >
+              <span>{entry.material || 'Material'}</span>
+              <ChevronDown size={13} strokeWidth={2} />
+            </button>
+            <AnimatePresence>
+              {materialPopoverOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
+                >
+                  <div className="flex flex-col gap-0.5" style={{ minWidth: '130px' }}>
+                    {materials.map((mat) => (
+                      <button
+                        key={mat}
+                        type="button"
+                        onClick={() => { update({ material: entry.material === mat ? undefined : mat }); setMaterialPopoverOpen(false); }}
+                        className={`text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${entry.material === mat ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                      >
+                        {mat}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <AutocompleteInput
+            value={entry.originRegion || ''}
+            onChange={(val) => update({ originRegion: val || undefined })}
+            suggestions={availableRegions}
+            placeholder="Origin"
+            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
           />
         </div>
 
-        <div className="border-t border-tea-border" />
+        {/* Photos strip — only shown when photos exist */}
+        {entry.photos?.length > 0 && (
+          <TeawarePhotos
+            photos={entry.photos}
+            onPhotosChange={handleTeawarePhotosChange}
+          />
+        )}
 
-        {/* ─── ACQUISITION ─── */}
-        <div className="space-y-3">
-          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Acquisition</p>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 min-w-0">
-              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Price</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={entry.priceAmount ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  update({ priceAmount: val === '' ? undefined : Number(val) });
-                }}
-                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
-                           [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em] block mb-1.5">Size (ml)</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                placeholder="e.g. 120"
-                value={entry.capacityMl ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  update({ capacityMl: val === '' ? undefined : Number(val) });
-                }}
-                className="w-full bg-tea-gold/[0.06] text-tea-text rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums
-                           [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-              />
-            </div>
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {CURRENCIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => handleCurrencyChange(c.value)}
-                className={`${entry.priceCurrency === c.value ? 'tag-selectable-active' : 'tag-selectable'} text-[11px]`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-          {/* Quantity */}
-          <div className="flex items-center gap-3">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Qty</label>
-            <button
-              type="button"
-              onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
-              className="pill w-8 h-8 flex items-center justify-center rounded-lg"
+        <div className="border-t border-tea-border my-1" />
+
+        {/* Row 4: Price + ml (mirrors Price + Grams) */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0 flex items-center bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+            <select
+              value={entry.priceCurrency || 'NT'}
+              onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
+              className="bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none outline-none cursor-pointer appearance-none shrink-0 pl-3 pr-1"
+              style={{ backgroundImage: 'none' }}
             >
-              <Minus size={14} />
-            </button>
-            <span className="text-tea-text text-base font-medium tabular-nums min-w-[2ch] text-center">
-              {entry.quantity || 1}
-            </span>
-            <button
-              type="button"
-              onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
-              className="pill w-8 h-8 flex items-center justify-center rounded-lg"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-        </div>
-
-        <div className="border-t border-tea-border" />
-
-        {/* ─── DETAILS ─── */}
-        <div className="space-y-3">
-          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.12em] font-medium">Details</p>
-          {/* Category */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Category</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {TEAWARE_CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    const updates: Record<string, unknown> = { teawareCategory: cat };
-                    if (entry.teawareCategory !== cat) updates.material = undefined;
-                    update(updates);
-                  }}
-                  className={entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'}
-                >
-                  {cat}
-                </button>
+              {CURRENCIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
               ))}
-            </div>
-          </div>
-          {/* Material */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">
-              {entry.teawareCategory === 'Teapot' || entry.teawareCategory === 'Gaiwan' ? 'Clay / Material' : 'Material'}
-            </label>
-            <div className="flex gap-1.5 flex-wrap">
-              {materials.map((mat) => (
-                <button
-                  key={mat}
-                  type="button"
-                  onClick={() => update({ material: mat })}
-                  className={entry.material === mat ? 'tag-selectable-active' : 'tag-selectable'}
-                >
-                  {mat}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Era */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Age / Era</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {TEAWARE_ERAS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => update({ era: entry.era === e ? undefined : e })}
-                  className={entry.era === e ? 'tag-selectable-active' : 'tag-selectable'}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Origin */}
-          <div className="space-y-1.5">
-            <label className="text-xs text-tea-text-sec uppercase tracking-[0.08em]">Origin</label>
-            <AutocompleteInput
-              value={entry.originRegion || ''}
-              onChange={(val) => update({ originRegion: val || undefined })}
-              suggestions={availableRegions}
-              placeholder="e.g. Yixing, Jingdezhen..."
-              className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors"
+            </select>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="Price"
+              value={entry.priceAmount ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                update({ priceAmount: val === '' ? undefined : Number(val) });
+              }}
+              className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
             />
           </div>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="ml"
+            value={entry.capacityMl ?? ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              update({ capacityMl: val === '' ? undefined : Number(val) });
+            }}
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+          />
         </div>
 
-        <div className="border-t border-tea-border" />
+        {/* Row 5: Qty stepper */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <Minus size={12} />
+          </button>
+          <span className="text-tea-text text-sm font-medium tabular-nums min-w-[2ch] text-center">
+            {entry.quantity || 1}
+          </span>
+          <button
+            type="button"
+            onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <Plus size={12} />
+          </button>
+          <span className="text-[11px] text-tea-text-dim ml-1">qty</span>
+        </div>
 
-        {/* ─── NOTES ─── */}
-        <NotesField
-          notes={entry.notes}
-          onNotesChange={(notes) => update({ notes })}
+        <div className="border-t border-tea-border my-1" />
+
+        {/* Notes */}
+        <NoteThread
+          compassEntryId={entry.id}
+          teaKey={entry.teaKey ?? undefined}
+          compact
         />
 
         {/* Done */}
@@ -843,10 +943,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={handleCommit}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg
-                       bg-tea-gold/10 text-tea-gold text-sm font-semibold
-                       hover:bg-tea-gold/15 active:bg-tea-gold/20
-                       transition-all mt-1"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-tea-gold/10 text-tea-gold text-sm font-semibold hover:bg-tea-gold/15 active:bg-tea-gold/20 transition-all"
           >
             <Check size={15} strokeWidth={2.5} />
             Done
@@ -858,8 +955,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Status helpers ────────────────────────
   const isWant = entry.status === 'want';
-  const isBought = entry.status === 'bought' || entry.status === 'buying';
-  const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
   );
@@ -889,7 +985,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       currency,
       compassEntryId: entry.id,
     });
-    update({ status: 'bought' });
+    update({ status: 'in_stock' });
     setShowBuyPicker(false);
     setJustAddedToLedger(true);
     setTimeout(() => {
@@ -900,7 +996,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Tea card layout ────────────────────────
   return (
-    <div className="bg-tea-surface rounded-lg p-3 space-y-4">
+    <div className="bg-tea-surface rounded-2xl px-4 py-3 space-y-3">
       {/* ← Library back link — shown when navigated from Library */}
       {onReturnToLibrary && (
         <button
@@ -914,15 +1010,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       )}
 
       {/* ─── IDENTITY ─── */}
-      <div className="space-y-3">
-        <VendorStrip
-          vendorName={entry.vendorName}
-          vendorId={entry.vendorId}
-          vendorDetails={entry.vendorDetails}
-          onVendorSelect={handleVendorSelect}
-          onClear={handleVendorClear}
-          onDetailsChange={handleVendorDetailsChange}
-        />
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <VendorStrip
+              vendorName={entry.vendorName}
+              vendorId={entry.vendorId}
+              vendorDetails={entry.vendorDetails}
+              onVendorSelect={handleVendorSelect}
+              onClear={handleVendorClear}
+              onDetailsChange={handleVendorDetailsChange}
+            />
+          </div>
+          <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+        </div>
 
         <div className="flex items-center gap-2">
           <AutocompleteInput
@@ -930,34 +1031,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
             onSelect={handleNameAutocompleteSelect}
-            itemData={productNameMap}
+            itemData={{ ...varietyNameMap, ...productNameMap }}
+            hintSuggestions={hintSuggestions}
           />
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="Year"
-            value={entry.year ?? ''}
-            onChange={(e) => {
-              userTapped.current.add('year');
-              const val = e.target.value;
-              update({ year: val === '' ? undefined : Number(val) });
-            }}
-            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-md px-2 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center placeholder:text-tea-text-dim
-                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-          />
-          <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
-        </div>
-
-        {/* Type button + Region — part of identity */}
-        <div className="flex items-center gap-2">
           <div className="relative shrink-0" ref={typePopoverRef}>
             <button
               type="button"
               onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors"
               style={entry.type ? {
                 backgroundColor: getTypeChipStyle(entry.type).bg,
                 color: getTypeChipStyle(entry.type).text,
@@ -974,32 +1057,71 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border"
+                  className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border"
                 >
-                  <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '200px' }}>
-                    {TEA_TYPES.map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => handleTypeSelect(type)}
-                        className={`${entry.type === type ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
-                      >
-                        {type}
-                      </button>
-                    ))}
+                  <div className="flex flex-col gap-0.5" style={{ minWidth: '240px' }}>
+                    {TEA_TYPES.map((type) => {
+                      const isSelected = entry.type === type;
+                      const chipStyle = getTypeChipStyle(type);
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => handleTypeSelect(type)}
+                          className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-left transition-colors hover:bg-tea-gold/10"
+                          style={isSelected ? { backgroundColor: `${chipStyle.bg}` } : undefined}
+                        >
+                          <span
+                            className="shrink-0 w-2 h-2 rounded-full"
+                            style={{ backgroundColor: chipStyle.text }}
+                          />
+                          <span className="flex-1 min-w-0">
+                            <span className={`text-sm font-medium ${isSelected ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+                              {type}
+                            </span>
+                            {TEA_TYPE_DESCRIPTIONS[type] && (
+                              <span className="block text-[10px] text-tea-text-dim leading-tight mt-0.5">
+                                {TEA_TYPE_DESCRIPTIONS[type]}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+        </div>
+
+        {/* Year + Region */}
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="Year"
+            value={entry.year ?? ''}
+            onChange={(e) => {
+              userTapped.current.add('year');
+              const val = e.target.value;
+              update({ year: val === '' ? undefined : Number(val) });
+            }}
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-2 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center placeholder:text-tea-text-dim
+                       [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+          />
           <AutocompleteInput
             value={entry.originRegion || ''}
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
             suggestions={availableRegions}
             placeholder="Region"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-sm rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
           />
         </div>
+
+
+        <div className="border-t border-tea-border" />
 
         <PriceGrams
           priceAmount={entry.priceAmount}
@@ -1059,17 +1181,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
-      <div className="border-t border-tea-border" />
+      <div className="border-t border-tea-border my-1" />
 
-      {/* ─── Actions row: Tasting · Want · Own · Buy ─── */}
+      {/* ─── Actions row: Tasting · Want · Buy ─── */}
       <div className="space-y-2">
-        <div className="grid gap-px rounded-lg overflow-hidden border border-tea-border" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+        <div className="grid grid-cols-3 gap-2">
           {/* Tasting */}
           <button
             type="button"
             onClick={openTastingOverlay}
-            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors ${
-              hasTasting ? 'text-tea-gold bg-tea-gold/8' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-[11px] whitespace-nowrap transition-colors ${
+              hasTasting ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
             }`}
           >
             <Droplets size={14} strokeWidth={1.5} />
@@ -1079,56 +1201,47 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           {/* Want */}
           <button
             type="button"
-            onClick={() => update({ status: isWant ? 'logged' : 'want' })}
-            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors border-l border-tea-border ${
-              isWant ? 'text-tea-gold bg-tea-gold/8' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            onClick={() => update({ status: isWant ? 'noted' : 'want' })}
+            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-[11px] whitespace-nowrap transition-colors ${
+              isWant ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
             }`}
           >
             {isWant ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
             {isWant ? 'Wanted' : 'Want'}
           </button>
 
-          {/* Own */}
-          <button
-            type="button"
-            onClick={() => { update({ status: isBought ? 'logged' : 'bought' }); setShowBuyPicker(false); }}
-            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors border-l border-tea-border ${
-              isBought ? 'text-tea-gold bg-tea-gold/8' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
-            }`}
-          >
-            <Check size={14} strokeWidth={2} />
-            {isBought ? 'Owned' : 'Own'}
-          </button>
-
-          {/* Buy / In Ledger / Bought */}
+          {/* Buy — always available, opens picker */}
           <button
             type="button"
             onClick={() => {
-              if (isInLedger) {
-                onSwitchToLedger?.();
-              } else if (isBought) {
-                update({ status: 'logged' });
-                setShowBuyPicker(false);
-              } else {
-                const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
-                setBuyingQty(defaultQty);
-                setShowBuyPicker((v) => !v);
-              }
+              const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
+              if (!showBuyPicker) setBuyingQty(defaultQty);
+              setShowBuyPicker((v) => !v);
             }}
-            className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors border-l border-tea-border ${
-              isBought || isInLedger || showBuyPicker
-                ? 'text-tea-gold bg-tea-gold/8'
-                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-[11px] whitespace-nowrap transition-colors ${
+              showBuyPicker ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
             }`}
           >
-            {isInLedger ? <BookOpen size={14} /> : isBought ? <Check size={14} /> : <ShoppingCart size={14} />}
-            {isInLedger ? 'Ledger' : isBought ? 'Bought' : 'Buy'}
+            <ShoppingCart size={14} />
+            Buy
           </button>
         </div>
 
+        {/* Ledger link — shown when purchases have been logged */}
+        {isInLedger && (
+          <button
+            type="button"
+            onClick={onSwitchToLedger}
+            className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+          >
+            <BookOpen size={11} />
+            View purchases in ledger
+          </button>
+        )}
+
         {/* Buy quantity picker */}
         <AnimatePresence>
-          {showBuyPicker && !isBought && !justAddedToLedger && (
+          {showBuyPicker && !justAddedToLedger && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -1227,9 +1340,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         />
       )}
 
-      <NotesField
-        notes={entry.notes}
-        onNotesChange={(notes) => update({ notes })}
+      <NoteThread
+        compassEntryId={entry.id}
+        teaKey={entry.teaKey ?? undefined}
+        compact
+        hideMic
       />
 
       {/* Storage (only for Sheng/Shou/Dark) */}
@@ -1251,35 +1366,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </>
       )}
 
-      {/* Done + Share */}
-      {hasName && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleCommit}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg
-                       bg-tea-gold/10 text-tea-gold text-sm font-semibold
-                       hover:bg-tea-gold/15 active:bg-tea-gold/20
-                       transition-all"
-          >
-            <Check size={15} strokeWidth={2.5} />
-            Done
-          </button>
-          {hasToken() && (
-            <button
-              type="button"
-              onClick={() => setShareModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-lg
-                         bg-tea-surface text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated
-                         transition-colors"
-              aria-label="Share card"
-            >
-              <Share2 size={14} strokeWidth={1.5} />
-            </button>
-          )}
-        </div>
-      )}
-
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>
         {tastingOverlayOpen && (
@@ -1293,6 +1379,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               compassEntryId: entry.id,
               teaKey: entry.teaKey,
             }}
+            initialData={entry.tasting ?? undefined}
             onClose={closeTastingOverlay}
             onAfterSave={(data: TastingData) => {
               setLocalTasting(data);
@@ -1302,16 +1389,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         )}
       </AnimatePresence>
 
-      {/* ─── Share modal ─── */}
-      <AnimatePresence>
-        {shareModalOpen && (
-          <CompassShareModal
-            entryId={entry.id}
-            entryName={entry.name}
-            onClose={() => setShareModalOpen(false)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };

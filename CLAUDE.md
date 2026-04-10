@@ -38,6 +38,10 @@ Banned: `tea-ink`, `tea-paper`, `tea-seal`, `tea-charcoal` (legacy, lie about be
 
 **Run `npm run lint:colors` before committing. No exceptions.**
 
+## MANDATORY: No Horizontal Scroll
+
+**Never use horizontal scroll (`overflow-x-auto`, `overflow-x-scroll`) in any UI component.** Pills, tags, and option lists must always wrap (`flex-wrap`) instead. Horizontal scroll is banned sitewide.
+
 ## MANDATORY: Bottom Navigation Clearance
 
 Bottom tab bar is `h-[44px]` + `env(safe-area-inset-bottom)`, renders below `lg:` only.

@@ -34,7 +34,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
         >
           Clarity
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5">
           {CLARITY_OPTIONS.map(opt => {
             const isSelected = value.clarity === opt.id;
             return (
@@ -42,8 +42,16 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
                 key={opt.id}
                 type="button"
                 onClick={() => onChange({ ...value, clarity: isSelected ? undefined : opt.id as TastingData['clarity'] })}
-                className={`tag-selectable ${isSelected ? 'tag-selectable-active' : ''}`}
-                style={{ fontFamily: 'var(--font-body)', fontSize: '12px' }}
+                className={`tag-selectable flex-1 justify-center ${isSelected ? 'tag-selectable-active' : ''}`}
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '12px',
+                  ...(isSelected && {
+                    background: 'rgb(var(--tea-gold-rgb) / 0.22)',
+                    color: 'var(--tea-gold)',
+                    fontWeight: 600,
+                  }),
+                }}
                 aria-pressed={isSelected}
               >
                 {opt.label}

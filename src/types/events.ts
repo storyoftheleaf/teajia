@@ -21,6 +21,31 @@ export interface SavedLocation {
   updatedAt: string;
 }
 
+export interface VenueSpace {
+  id: string;
+  venueId: string;
+  name: string;
+  capacity: number;
+  description?: string;
+  photos: string[];
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  mapLink?: string;
+  areaHint?: string;
+  arrivalNotes?: string;
+  photos: string[];
+  spaces: VenueSpace[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VenueGuideStep {
   description: string;
   image_url?: string;
@@ -72,6 +97,8 @@ export interface TeaEvent {
   playlistUrl?: string;
   // V2 fields
   briefingCards?: BriefingCard[];
+  venueId?: string;
+  activeSpaceIds?: string[];
   areaHint?: string;           // General area shown before approval (e.g., "Da'an District, Taipei")
   moodHints?: string[];        // Pre-session mood hints (optional)
   interestedList?: InterestSignup[];
@@ -348,6 +375,8 @@ export interface EventFormData {
   status?: EventStatus;
   sessionFlow?: SessionFlowItem[];
   locationId?: string;
+  venueId?: string;
+  activeSpaceIds?: string[];
   // V2 fields
   briefingCards?: BriefingCard[];
   areaHint?: string;

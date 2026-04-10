@@ -307,6 +307,7 @@ CREATE INDEX IF NOT EXISTS idx_teaware_photos_teaware_id ON teaware_photos(teawa
 CREATE TABLE IF NOT EXISTS tea_compass_entries (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL DEFAULT 'admin',
+  account_id TEXT,
   name TEXT,
   chinese_name TEXT,
   type TEXT,
@@ -315,6 +316,7 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   season TEXT,
   storage TEXT,
   origin_region TEXT,
+  tea_key TEXT,
   price_amount REAL,
   price_currency TEXT DEFAULT 'NT',
   price_per_unit_grams REAL,
@@ -341,3 +343,23 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
 
 CREATE INDEX IF NOT EXISTS idx_compass_user_id ON tea_compass_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_compass_status ON tea_compass_entries(status);
+
+CREATE TABLE IF NOT EXISTS compass_shares (
+  id TEXT PRIMARY KEY,
+  source_entry_id TEXT NOT NULL,
+  source_account_id TEXT NOT NULL,
+  source_user_id TEXT NOT NULL,
+  source_user_name TEXT,
+  source_account_name TEXT,
+  tea_key TEXT,
+  shared_metadata TEXT,             -- JSON snapshot of the entry
+  target_account_id TEXT,           -- set for direct pushes
+  invite_token TEXT UNIQUE,         -- set for invite links
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending | accepted | declined
+  claimed_by_user_id TEXT,
+  claimed_at TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_compass_shares_target ON compass_shares(target_account_id, status);
+CREATE INDEX IF NOT EXISTS idx_compass_shares_token ON compass_shares(invite_token);

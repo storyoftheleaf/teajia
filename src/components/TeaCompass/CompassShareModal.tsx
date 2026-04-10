@@ -8,20 +8,24 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Copy, Link as LinkIcon, Send, X } from 'lucide-react';
+import { Check, Copy, Link as LinkIcon, QrCode, Send, X } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
+import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../../lib/api';
 import { fetchStore } from '../../lib/storefrontApi';
+import { syncCompassEntries } from '../../lib/teaCompassSync';
 
 interface CompassShareModalProps {
   entryId: string;
   entryName: string;
+  synced: boolean;
   onClose: () => void;
 }
 
 export const CompassShareModal: React.FC<CompassShareModalProps> = ({
   entryId,
   entryName,
+  synced,
   onClose,
 }) => {
   const [accountSlug, setAccountSlug] = useState('');
@@ -29,6 +33,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [directSent, setDirectSent] = useState(false);
   const [tab, setTab] = useState<'direct' | 'link'>('direct');
+  const [showQr, setShowQr] = useState(false);
 
   const lookupAccountId = async (slug: string): Promise<string | null> => {
     try {
@@ -41,6 +46,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
 
   const directMutation = useMutation({
     mutationFn: async () => {
+      if (!synced) await syncCompassEntries();
       const accountId = await lookupAccountId(accountSlug.trim().toLowerCase());
       if (!accountId) throw new Error(`No account found for "${accountSlug}"`);
       return api.compass.share({ entryId, targetAccountIds: [accountId] });
@@ -53,7 +59,10 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
   });
 
   const linkMutation = useMutation({
-    mutationFn: () => api.compass.share({ entryId, generateInviteLink: true }),
+    mutationFn: async () => {
+      if (!synced) await syncCompassEntries();
+      return api.compass.share({ entryId, generateInviteLink: true });
+    },
     onSuccess: (data: any) => {
       // Worker returns { shares, invite_link: "/share/<token>" }
       const invitePath = data?.invite_link;
@@ -218,14 +227,41 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       {copiedLink ? <Check size={14} className="text-tea-gold" /> : <Copy size={14} />}
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
-                    className="w-full py-2.5 rounded-md bg-tea-gold/10 text-tea-gold text-xs font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Copy size={12} />
-                    {copiedLink ? 'Copied!' : 'Copy link'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="flex-1 py-2.5 rounded-md bg-tea-gold/10 text-tea-gold text-xs font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Copy size={12} />
+                      {copiedLink ? 'Copied!' : 'Copy link'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowQr(v => !v)}
+                      className={`px-3 py-2.5 rounded-md text-xs font-semibold uppercase tracking-[0.08em] transition-colors flex items-center gap-1.5 ${
+                        showQr ? 'bg-tea-gold text-tea-bg' : 'bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15'
+                      }`}
+                    >
+                      <QrCode size={12} />
+                      QR
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {showQr && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex justify-center pt-1"
+                      >
+                        <div className="p-3 bg-white rounded-xl shadow-sm">
+                          <QRCodeSVG value={inviteLink} size={180} />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <button

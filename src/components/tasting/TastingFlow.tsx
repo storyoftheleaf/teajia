@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Circle, Leaf, Wind, Moon, Palette,
+  Circle, Leaf, Moon, Palette,
   Undo2,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
@@ -11,11 +11,10 @@ import { ThroatZone } from './ThroatZone';
 import { StateZone } from './StateZone';
 import { FlavorSection } from './FlavorSection';
 import { AppearanceZone } from './AppearanceZone';
-import { VoiceNoteField } from './VoiceNoteField';
 
 /* ─── Section definition (exported so TastingSession can render the tab bar) ─── */
 
-export type SectionId = 'body' | 'throat' | 'state' | 'flavor' | 'appearance';
+export type SectionId = 'body' | 'state' | 'flavor' | 'appearance';
 
 export interface SectionDef {
   id: SectionId;
@@ -23,13 +22,11 @@ export interface SectionDef {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
 }
 
-/** Somatic flow: sensation first, naming last */
 export const ALL_SECTIONS: SectionDef[] = [
-  { id: 'body',       label: 'Sensation', icon: Circle },
-  { id: 'throat',     label: 'Movement',  icon: Wind },
-  { id: 'state',      label: 'Feeling',   icon: Moon },
-  { id: 'flavor',     label: 'Flavor',    icon: Leaf },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'body',       label: 'Body',   icon: Circle },
+  { id: 'state',      label: 'Feel',   icon: Moon },
+  { id: 'flavor',     label: 'Flavor', icon: Leaf },
+  { id: 'appearance', label: 'Look',   icon: Palette },
 ];
 
 /* ─── Transition variants ─── */
@@ -57,17 +54,10 @@ interface TastingFlowProps {
   mode: 'admin' | 'customer';
   value: TastingData;
   onChange: (data: TastingData) => void;
-  teaType?: string;
   /** When provided, section state is controlled by the parent (TastingSession).
    *  When omitted, TastingFlow manages section state internally (admin views). */
   activeSectionId?: SectionId;
   onSectionChange?: (id: SectionId) => void;
-  /** Whether the note panel is open — controlled by parent when provided */
-  showNote?: boolean;
-  /** Incrementing signal to start recording — fires on every hold gesture */
-  startNoteSignal?: number;
-  /** Incrementing signal from parent to stop recording (on pointer release) */
-  stopNoteSignal?: number;
   /** Expose section counts back to parent for badge rendering */
   onCountsChange?: (counts: Record<SectionId, number>) => void;
 }
@@ -75,12 +65,8 @@ interface TastingFlowProps {
 export const TastingFlow: React.FC<TastingFlowProps> = ({
   value,
   onChange,
-  teaType,
   activeSectionId: controlledSectionId,
   onSectionChange: onControlledSectionChange,
-  showNote = false,
-  startNoteSignal = 0,
-  stopNoteSignal = 0,
   onCountsChange,
 }) => {
   // Uncontrolled fallback — used when admin views don't provide activeSectionId
@@ -123,9 +109,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     (sectionId: SectionId): number => {
       switch (sectionId) {
         case 'body':
-          return flow.getCategoryCount('body');
-        case 'throat':
           return (
+            flow.getCategoryCount('body') +
             flow.getCategoryCount('finish') +
             (value.cleanliness ? 1 : 0) +
             (value.huiGan ? 1 : 0)
@@ -151,7 +136,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     if (!onCountsChange) return;
     onCountsChange({
       body:       getSectionCount('body'),
-      throat:     getSectionCount('throat'),
       state:      getSectionCount('state'),
       flavor:     getSectionCount('flavor'),
       appearance: getSectionCount('appearance'),
@@ -201,13 +185,17 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   function renderSectionContent(sectionId: SectionId) {
     switch (sectionId) {
       case 'body':
-        return <BodyZone flow={flow} value={value} onChange={onChange} />;
-      case 'throat':
-        return <ThroatZone flow={flow} value={value} onChange={onChange} />;
+        return (
+          <>
+            <BodyZone flow={flow} value={value} onChange={onChange} />
+            <div className="divider-warm my-3" />
+            <ThroatZone flow={flow} value={value} onChange={onChange} />
+          </>
+        );
       case 'state':
         return <StateZone flow={flow} value={value} onChange={onChange} />;
       case 'flavor':
-        return <FlavorSection flow={flow} value={value} onChange={onChange} teaType={teaType} />;
+        return <FlavorSection flow={flow} value={value} onChange={onChange} />;
       case 'appearance':
         return <AppearanceZone flow={flow} value={value} onChange={onChange} />;
       default:
@@ -229,36 +217,18 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
           onTouchEnd={handleTouchEnd}
         >
           <AnimatePresence initial={false} custom={direction} mode="wait">
-            {showNote ? (
-              <motion.div
-                key="notes-panel"
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.15 }}
-                className="px-3 py-4"
-              >
-                <VoiceNoteField
-                  values={value.notes || []}
-                  onChange={(notes) => onChange({ ...value, notes: notes.length ? notes : undefined })}
-                  startSignal={startNoteSignal}
-                  stopSignal={stopNoteSignal}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key={activeSection.id + animKey}
-                custom={direction}
-                variants={sectionVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={sectionTransition}
-                className="px-4 pb-4 pt-3"
-              >
-                {renderSectionContent(activeSection.id)}
-              </motion.div>
-            )}
+            <motion.div
+              key={activeSection.id + animKey}
+              custom={direction}
+              variants={sectionVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={sectionTransition}
+              className="px-4 pb-4 pt-3"
+            >
+              {renderSectionContent(activeSection.id)}
+            </motion.div>
           </AnimatePresence>
         </div>
       </div>

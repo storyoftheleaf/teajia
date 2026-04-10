@@ -132,9 +132,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onExtracted, onPhoto
       <button
         type="button"
         onClick={handleCapture}
-        className={`w-8 h-8 flex items-center justify-center rounded-md bg-tea-surface shrink-0 transition-colors ${
+        className={`w-8 h-8 flex items-center justify-center rounded-xl bg-tea-elevated border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors ${
           state === 'loading' ? 'animate-pulse' : ''
-        } ${state === 'done' ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+        } ${state === 'done' ? 'text-tea-gold' : ''}`}
         aria-label="Capture photo"
         disabled={state === 'loading'}
       >

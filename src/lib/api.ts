@@ -871,6 +871,60 @@ export const api = {
     },
   },
 
+  venues: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    create: async (data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${id}`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${id}`, {
+        method: 'DELETE', headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    uploadPhoto: async (venueId: string, file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = localStorage.getItem('teajia_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${venueId}/photos`, {
+        method: 'POST', headers, body: formData,
+      });
+      return handleResponse(res);
+    },
+    createSpace: async (venueId: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${venueId}/spaces`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateSpace: async (venueId: string, spaceId: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${venueId}/spaces/${spaceId}`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    deleteSpace: async (venueId: string, spaceId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${venueId}/spaces/${spaceId}`, {
+        method: 'DELETE', headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   savedLocations: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/locations`, {
@@ -1522,6 +1576,63 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/sample-sets/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  notes: {
+    /** Push unsynced notes (upsert + soft-deletes) */
+    sync: async (notes: Record<string, unknown>[]): Promise<void> => {
+      const token = getToken();
+      const res = await fetchWithTimeout(`${API_URL}/api/notes/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ notes }),
+      });
+      return handleResponse(res);
+    },
+
+    /** Push unsynced sessions */
+    syncSessions: async (sessions: Record<string, unknown>[]): Promise<void> => {
+      const token = getToken();
+      const res = await fetchWithTimeout(`${API_URL}/api/note-sessions/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ sessions }),
+      });
+      return handleResponse(res);
+    },
+
+    /** Fetch all notes for the current account */
+    getAll: async (): Promise<{ notes: Record<string, unknown>[] }> => {
+      const token = getToken();
+      const res = await fetchWithTimeout(`${API_URL}/api/notes`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      return handleResponse(res);
+    },
+
+    /** Fetch notes for a specific tea_key */
+    forTea: async (teaKey: string): Promise<{ notes: Record<string, unknown>[] }> => {
+      const token = getToken();
+      const res = await fetchWithTimeout(`${API_URL}/api/notes?tea_key=${encodeURIComponent(teaKey)}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      return handleResponse(res);
+    },
+
+    /** Fetch notes for a compass entry (draft) */
+    forCompassEntry: async (compassEntryId: string): Promise<{ notes: Record<string, unknown>[] }> => {
+      const token = getToken();
+      const res = await fetchWithTimeout(`${API_URL}/api/notes?compass_entry_id=${encodeURIComponent(compassEntryId)}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       return handleResponse(res);
     },

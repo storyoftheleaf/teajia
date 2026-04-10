@@ -1653,7 +1653,7 @@ export const SourcesView = () => {
                               </div>
                               <div className="text-[10px] text-tea-text-dim flex items-center gap-1">
                                 {entry.type && <span className="uppercase">{entry.type}</span>}
-                                {entry.status === 'bought' && <span className="text-emerald-400">bought</span>}
+                                {entry.status === 'in_stock' && <span className="text-emerald-400">in stock</span>}
                                 {entry.status === 'want' && <span className="text-amber-400">want</span>}
                               </div>
                             </div>
@@ -1872,17 +1872,17 @@ export const SourcesView = () => {
                 );
               })()}
 
-              {/* ── Sampled, Not Bought ── */}
+              {/* ── Not Yet Acquired ── */}
               {(() => {
                 const pipeline = compassEntries.filter(
                   (e) =>
                     (e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())) &&
-                    (e.status === 'logged' || e.status === 'want')
+                    (e.status === 'noted' || e.status === 'want')
                 );
                 if (pipeline.length === 0) return null;
 
                 const wants = pipeline.filter((e) => e.status === 'want');
-                const logged = pipeline.filter((e) => e.status === 'logged');
+                const logged = pipeline.filter((e) => e.status === 'noted');
 
                 return (
                   <CollapsibleSection title={`Pipeline (${pipeline.length})`}>
@@ -1937,7 +1937,7 @@ export const SourcesView = () => {
                   (e) => e.vendorId === panelSource.id || (e.vendorName && e.vendorName.toLowerCase() === panelSource.name.toLowerCase())
                 );
                 for (const e of vendorCompass) {
-                  const statusLabel = e.status === 'bought' ? 'Purchased' : e.status === 'want' ? 'Wishlisted' : 'Noted';
+                  const statusLabel = e.status === 'in_stock' ? 'Purchased' : e.status === 'want' ? 'Wishlisted' : 'Noted';
                   events.push({
                     date: e.createdAt,
                     type: 'compass',

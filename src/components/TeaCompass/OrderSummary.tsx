@@ -4,8 +4,7 @@ import { X, Check, Minus, Plus } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import type { TeaCompassEntry, TeaForm } from './types';
-import { GRAM_PRESETS, DEFAULT_GRAMS, compassEntryToProductDraft } from './types';
-import { api, isConfigured, hasToken } from '../../lib/api';
+import { GRAM_PRESETS, DEFAULT_GRAMS } from './types';
 import type { Currency } from '../../admin/types';
 
 interface OrderSummaryProps {
@@ -315,13 +314,13 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
   const addLineItem = useLedgerStore((s) => s.addLineItem);
 
   const handleConfirm = useCallback(async () => {
-    // First, update all entries to 'bought' status with quantities
+    // First, update all entries to 'in_stock' status with quantities
     const updatedEntries: TeaCompassEntry[] = [];
     for (const entry of buyingEntries) {
       const qty = quantities[entry.id] ?? 1;
       const total = getLinePrice(entry, qty);
       const updates: Partial<TeaCompassEntry> = {
-        status: 'bought' as const,
+        status: 'in_stock' as const,
         buyTotal: total,
       };
       if (entry.category === 'teaware' || isUnitBased(entry.form)) {
@@ -360,24 +359,6 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
     }
 
     setConfirmed(true);
-
-    // Then, attempt to create draft products in the background (non-blocking)
-    if (isConfigured && hasToken()) {
-      for (const entry of updatedEntries) {
-        if (entry.draftProductId) continue; // Already has a draft
-        try {
-          const payload = compassEntryToProductDraft(entry);
-          const created = await api.products.create(payload);
-          if (created?.id) {
-            updateEntry(entry.id, { draftProductId: created.id });
-          }
-        } catch (err) {
-          // Draft creation failed (offline, auth, etc.) — that's fine.
-          // Entry is still 'bought' locally. Draft can be created later.
-          console.debug('Draft product creation failed for compass entry:', entry.id, err);
-        }
-      }
-    }
 
     setTimeout(() => {
       onClose();

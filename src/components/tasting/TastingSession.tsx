@@ -9,8 +9,12 @@ import type { TastingData, CustomerTasting } from '../../types';
 import { TastingFlow, ALL_SECTIONS, type SectionId } from './TastingFlow';
 import { useAppStore } from '../../lib/store';
 import { syncTastingJournal } from '../../lib/tastingJournalSync';
+import { injectTastingNote } from '../shared/NoteThread';
+import { useNotesStore } from '../../lib/notesStore';
+import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
+import { VoiceNoteField } from './VoiceNoteField';
 
 export interface TastingItem {
   id: string;
@@ -76,7 +80,8 @@ const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea,
 }) => {
-  const { addTasting, updateTasting, activeAccountId, tastingJournal } = useAppStore();
+  const { addTasting, updateTasting, activeAccountId, activeAccount, tastingJournal } = useAppStore();
+  const { addNote } = useNotesStore();
   const isGuest = !hasToken();
   const [tastingData, setTastingData] = useState<TastingData>(initialData ?? {});
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
@@ -95,42 +100,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
   const [showNote, setShowNote] = useState(false);
-  const [startNoteSignal, setStartNoteSignal] = useState(0);
-  const [stopNoteSignal, setStopNoteSignal] = useState(0);
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
-    body: 0, throat: 0, state: 0, flavor: 0, appearance: 0,
+    body: 0, state: 0, flavor: 0, appearance: 0,
   });
-
-  // Long-press on Note
-  const noteHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const noteDidLongPress = useRef(false);
-
-  const handleNotePointerDown = useCallback((e: React.PointerEvent) => {
-    noteDidLongPress.current = false;
-    noteHoldTimer.current = setTimeout(() => {
-      noteDidLongPress.current = true;
-      setShowNote(true);
-      setStartNoteSignal(s => s + 1); // fires every hold, not just first mount
-      if (navigator.vibrate) navigator.vibrate(30);
-    }, 350);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-
-  const handleNotePointerUp = useCallback(() => {
-    if (noteHoldTimer.current) { clearTimeout(noteHoldTimer.current); noteHoldTimer.current = null; }
-    if (!noteDidLongPress.current) {
-      setShowNote(v => !v);
-    } else {
-      // Release after long-press: stop the recording
-      setStopNoteSignal(s => s + 1);
-    }
-    noteDidLongPress.current = false;
-  }, []);
-
-  const handleNotePointerCancel = useCallback(() => {
-    if (noteHoldTimer.current) { clearTimeout(noteHoldTimer.current); noteHoldTimer.current = null; }
-    noteDidLongPress.current = false;
-  }, []);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
@@ -227,6 +199,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         };
         addTasting(entry);
         setSavedEntryId(entryId);
+        // Inject tasting artifact into the shared note thread
+        if (item.compassEntryId || item.teaKey) {
+          injectTastingNote({
+            teaKey: item.teaKey,
+            compassEntryId: item.compassEntryId,
+            tastingId: entryId,
+            tastingData,
+            authorId: activeAccountId ?? 'guest',
+            authorName: activeAccount?.name ?? 'You',
+            accountId: activeAccountId ?? 'guest',
+          });
+        }
         // Domain side effect (e.g. update compass store entry)
         onAfterSave?.(tastingData);
         // Fire-and-forget sync to server
@@ -238,8 +222,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     }
 
     setSaveState('saved');
-    saveTimerRef.current = setTimeout(() => setPhase('saved'), 400);
-  }, [item, tastingData, addTasting, onSave, onAfterSave, adminMode, activeAccountId, saveState]);
+    saveTimerRef.current = setTimeout(() => onClose(), 600);
+  }, [item, tastingData, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, saveState, onClose]);
 
   const handleVerdictSelect = useCallback((v: Verdict) => {
     setVerdict(v);
@@ -310,26 +294,23 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 min-h-0 flex flex-col"
           >
-            {/* TastingFlow fills all available space — fade bottom edge as scroll hint (#8) */}
+            {/* Structured sections */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
-              <div className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
+              <div
+                className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
                 style={{ background: 'linear-gradient(to bottom, transparent, var(--tea-bg))' }}
               />
               <TastingFlow
                 mode="customer"
                 value={tastingData}
                 onChange={handleTastingChange}
-                teaType={item.type}
                 activeSectionId={activeSectionId}
                 onSectionChange={setActiveSectionId}
-                showNote={showNote}
-                startNoteSignal={startNoteSignal}
-                stopNoteSignal={stopNoteSignal}
                 onCountsChange={setSectionCounts}
               />
             </div>
 
-            {/* Bottom bar — elevated surface (#10) */}
+            {/* Bottom bar */}
             <div
               className="shrink-0 border-t border-tea-border bg-tea-bg"
               style={{
@@ -337,20 +318,57 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 boxShadow: '0 -4px 16px rgba(0,0,0,0.25)',
               }}
             >
+              {/* Note panel — slides down when open */}
+              <AnimatePresence>
+                {showNote && (
+                  <motion.div
+                    key="note-panel"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden border-b border-tea-border"
+                  >
+                    <div className="px-4 py-3">
+                      <VoiceNoteField
+                        values={tastingData.notes || []}
+                        onChange={(notes) => {
+                          const prev = tastingData.notes || [];
+                          // Write newly added notes into the shared thread
+                          if (notes.length > prev.length && (item.compassEntryId || item.teaKey)) {
+                            notes.slice(prev.length).forEach(text => {
+                              addNote({
+                                accountId: activeAccountId ?? 'guest',
+                                teaKey: item.teaKey,
+                                compassEntryId: item.compassEntryId,
+                                text,
+                                sourceType: 'manual',
+                                authorId: activeAccountId ?? 'guest',
+                                authorName: activeAccount?.name ?? 'You',
+                                visibility: 'private',
+                              });
+                            });
+                            syncNotes().catch(() => {});
+                          }
+                          handleTastingChange({ ...tastingData, notes: notes.length ? notes : undefined });
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Section tabs + mic */}
               <LayoutGroup>
                 <div className="flex">
                   {ALL_SECTIONS.map((section) => {
-                    const isActive = section.id === activeSectionId;
+                    const isActive = section.id === activeSectionId && !showNote;
                     const count = sectionCounts[section.id];
                     return (
                       <button
                         key={section.id}
-                        onClick={() => {
-                          setActiveSectionId(section.id);
-                          setShowNote(false);
-                        }}
-                        className={`relative flex-1 flex items-center justify-center gap-1.5 py-3 transition-colors duration-200 ${
+                        onClick={() => { setActiveSectionId(section.id); setShowNote(false); }}
+                        className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 ${
                           isActive ? 'text-tea-gold font-semibold' : 'text-tea-text/40 hover:text-tea-text/70'
                         }`}
                         style={{
@@ -360,8 +378,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                           textTransform: 'uppercase',
                         }}
                       >
-                        {/* Active pill — hidden when note panel is open so it can slide to mic */}
-                        {isActive && !showNote && (
+                        {isActive && (
                           <motion.div
                             layoutId="tasting-tab-bg"
                             className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
@@ -369,31 +386,44 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                             transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                           />
                         )}
-                        <span className="relative z-[1]">{section.label}</span>
                         {count > 0 && (
-                          <span className={`relative z-[1] text-[9px] font-bold ${isActive ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+                          <motion.span
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                            className={`absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full text-[10px] font-bold ${
+                              isActive ? 'bg-tea-gold' : 'bg-tea-text/20'
+                            }`}
+                            style={{
+                              top: -8,
+                              left: '50%',
+                              x: '-50%',
+                              color: isActive ? 'var(--tea-bg)' : 'var(--tea-text)',
+                              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                              lineHeight: '16px',
+                              letterSpacing: 0,
+                              textTransform: 'none',
+                            }}
+                          >
                             {count}
-                          </span>
+                          </motion.span>
                         )}
+                        <span className="relative z-[1]">{section.label}</span>
                       </button>
                     );
                   })}
 
-                  {/* Mic — lives in the tab row as a 5th equal cell */}
+                  {/* Mic — 5th tab cell */}
                   <button
-                    onPointerDown={handleNotePointerDown}
-                    onPointerUp={handleNotePointerUp}
-                    onPointerCancel={handleNotePointerCancel}
+                    onClick={() => setShowNote(v => !v)}
                     aria-pressed={showNote}
-                    title="Tap to type · Hold to record"
-                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 select-none ${
+                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 ${
                       showNote
                         ? 'text-tea-gold'
                         : (tastingData.notes?.length ?? 0) > 0
                           ? 'text-tea-gold/60'
                           : 'text-tea-text/40 hover:text-tea-text/70'
                     }`}
-                    style={{ touchAction: 'none' }}
                   >
                     {showNote && (
                       <motion.div
@@ -403,12 +433,18 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
                     )}
-                    <span className="relative z-[1] flex items-center gap-1">
-                      <Mic size={14} />
-                      {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
-                        <span className="text-[9px] font-bold">{tastingData.notes!.length}</span>
-                      )}
-                    </span>
+                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
+                      <motion.span
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                        className="absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full bg-tea-text/20 text-[10px] font-bold"
+                        style={{ top: -8, left: '50%', x: '-50%', color: 'var(--tea-text)', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", lineHeight: '16px', letterSpacing: 0, textTransform: 'none' }}
+                      >
+                        {tastingData.notes!.length}
+                      </motion.span>
+                    )}
+                    <span className="relative z-[1]"><Mic size={14} /></span>
                   </button>
                 </div>
               </LayoutGroup>

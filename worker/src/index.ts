@@ -946,6 +946,15 @@ const handleCreateProduct: Handler = async (request, env) => {
   const stmt = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`);
   await stmt.bind(id, ...cols.map(c => body[c] ?? null)).run();
 
+  // Write PURCHASE_RECEIPT ledger entry if product has initial stock
+  const initialStock = Number(body.stock_grams) || 0;
+  if (initialStock > 0) {
+    await buildStockLedgerEntry(
+      env, id, initialStock, initialStock, 'PURCHASE_RECEIPT',
+      null, null, null, 'Initial stock from Tea Compass purchase', accountId
+    ).run();
+  }
+
   return json({ id }, 201);
 };
 
@@ -1059,7 +1068,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   const extraStmts: D1PreparedStatement[] = [];
   if (body.stock_grams !== undefined) {
     const current = await env.DB.prepare(
-      'SELECT stock_grams, given_name, product_name FROM products WHERE id = ? AND account_id = ?'
+      'SELECT stock_grams, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(params.id, accountId).first();
     if (current) {
       const oldStock = Number(current.stock_grams) || 0;
@@ -1069,6 +1078,20 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
         const name = current.given_name || current.product_name || params.id;
         extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`, accountId));
         extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id, accountId));
+        // Sync compass entry status on stock transitions
+        if (current.source_compass_entry_id) {
+          if (newStock <= 0 && oldStock > 0) {
+            extraStmts.push(
+              env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'")
+                .bind(current.source_compass_entry_id)
+            );
+          } else if (newStock > 0 && oldStock <= 0) {
+            extraStmts.push(
+              env.DB.prepare("UPDATE tea_compass_entries SET status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND status = 'depleted'")
+                .bind(current.source_compass_entry_id)
+            );
+          }
+        }
       }
     } else {
       return json({ error: 'Product not found' }, 404);
@@ -1287,7 +1310,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const products = new Map<string, any>();
   for (const pid of productIds) {
     const p = await env.DB.prepare(
-      'SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+      'SELECT id, stock_grams, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(pid, accountId).first();
     if (p) products.set(pid as string, p);
   }
@@ -1319,6 +1342,13 @@ const handleFulfillInvoice: Handler = async (request, env) => {
         `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
         userEmail, 'product', item.product_id as string, accountId
       ));
+      // Set linked compass entry to depleted
+      if (product.source_compass_entry_id) {
+        stmts.push(
+          env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'")
+            .bind(product.source_compass_entry_id)
+        );
+      }
     }
   }
 
@@ -1378,7 +1408,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
 
     for (const item of items.results as any[]) {
       const product = await env.DB.prepare(
-        'SELECT id, stock_grams, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+        'SELECT id, stock_grams, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
       ).bind(item.product_id, accountId).first();
       const currentStock = product ? Number(product.stock_grams) || 0 : 0;
       const qty = Number(item.quantity) || 0;
@@ -1398,6 +1428,13 @@ const handleVoidInvoice: Handler = async (request, env) => {
           env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ?")
             .bind(item.product_id, accountId)
         );
+        // Restore linked compass entry from depleted to in_stock
+        if (product.source_compass_entry_id) {
+          stmts.push(
+            env.DB.prepare("UPDATE tea_compass_entries SET status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND status = 'depleted'")
+              .bind(product.source_compass_entry_id)
+          );
+        }
       }
     }
   }
@@ -3511,6 +3548,139 @@ const handleDeleteSavedLocation: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Venues ──
+
+const handleGetVenues: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const venues = await env.DB.prepare(
+    'SELECT * FROM venues WHERE account_id = ? ORDER BY name ASC'
+  ).bind(accountId).all();
+  const spaces = await env.DB.prepare(
+    'SELECT * FROM venue_spaces WHERE account_id = ? ORDER BY venue_id, sort_order ASC, name ASC'
+  ).bind(accountId).all();
+  // Attach spaces to their venue
+  const spacesByVenue: Record<string, any[]> = {};
+  for (const s of spaces.results) {
+    const vid = s.venue_id as string;
+    if (!spacesByVenue[vid]) spacesByVenue[vid] = [];
+    spacesByVenue[vid].push({ ...s, photos: s.photos ? JSON.parse(s.photos as string) : [] });
+  }
+  const result = venues.results.map(v => ({
+    ...v,
+    photos: v.photos ? JSON.parse(v.photos as string) : [],
+    spaces: spacesByVenue[v.id as string] || [],
+  }));
+  return json(result);
+};
+
+const handleCreateVenue: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const body = await request.json() as Record<string, any>;
+  if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO venues (id, account_id, name, address, map_link, area_hint, arrival_notes, photos)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, accountId, body.name, body.address,
+    body.map_link || null, body.area_hint || null, body.arrival_notes || null,
+    body.photos ? JSON.stringify(body.photos) : null
+  ).run();
+  return json({ id, name: body.name }, 201);
+};
+
+const handleUpdateVenue: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const body = await request.json() as Record<string, any>;
+  delete body.account_id;
+  if (body.photos && typeof body.photos !== 'string') body.photos = JSON.stringify(body.photos);
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE venues SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  return json({ success: true });
+};
+
+const handleDeleteVenue: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  await env.DB.prepare('DELETE FROM venues WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).run();
+  return json({ success: true });
+};
+
+const handleCreateVenueSpace: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const body = await request.json() as Record<string, any>;
+  if (!body.name || !body.capacity) return json({ error: 'name and capacity are required' }, 400);
+  // Verify venue belongs to this account
+  const venue = await env.DB.prepare('SELECT id FROM venues WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!venue) return json({ error: 'Venue not found' }, 404);
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO venue_spaces (id, account_id, venue_id, name, capacity, description, photos, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, accountId, params.id, body.name, body.capacity,
+    body.description || null,
+    body.photos ? JSON.stringify(body.photos) : null,
+    body.sort_order ?? 0
+  ).run();
+  return json({ id, name: body.name }, 201);
+};
+
+const handleUpdateVenueSpace: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const body = await request.json() as Record<string, any>;
+  delete body.account_id;
+  delete body.venue_id;
+  if (body.photos && typeof body.photos !== 'string') body.photos = JSON.stringify(body.photos);
+  const cols = Object.keys(body);
+  if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE venue_spaces SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.spaceId, accountId).run();
+  return json({ success: true });
+};
+
+const handleDeleteVenueSpace: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  await env.DB.prepare('DELETE FROM venue_spaces WHERE id = ? AND account_id = ?')
+    .bind(params.spaceId, accountId).run();
+  return json({ success: true });
+};
+
+const handleUploadVenuePhoto: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No file provided' }, 400);
+  // Reuse the existing flyer upload bucket
+  const key = `venues/${accountId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  await (env as any).FLYER_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  const url = `https://flyers.teajia.com/${key}`;
+  return json({ url }, 201);
+};
+
 // ── Newsletter ──
 
 // Public: newsletter signup. We tag the subscription with an optional
@@ -3909,6 +4079,90 @@ const handleDeleteCompassEntry: Handler = async (request, env, params) => {
   ).bind(params.id, userId, accountId).run();
 
   return json({ success: true });
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   NOTES — unified note thread (tea_key or compass_entry_id anchored)
+───────────────────────────────────────────────────────────────────────────── */
+
+const handleGetNotes: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const url = new URL(request.url);
+  const teaKey = url.searchParams.get('tea_key');
+  const compassEntryId = url.searchParams.get('compass_entry_id');
+  const sessionId = url.searchParams.get('session_id');
+
+  let query = 'SELECT * FROM notes WHERE account_id = ? AND (deleted IS NULL OR deleted = 0)';
+  const binds: unknown[] = [accountId];
+
+  if (teaKey) { query += ' AND tea_key = ?'; binds.push(teaKey); }
+  else if (compassEntryId) { query += ' AND compass_entry_id = ?'; binds.push(compassEntryId); }
+  else if (sessionId) { query += ' AND session_id = ?'; binds.push(sessionId); }
+
+  query += ' ORDER BY created_at ASC';
+
+  const rows = await env.DB.prepare(query).bind(...binds).all();
+  return json({ notes: rows.results ?? [] });
+};
+
+const handleSyncNotes: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as { notes: Record<string, any>[] };
+  if (!Array.isArray(body.notes)) return json({ error: 'notes array required' }, 400);
+
+  const now = new Date().toISOString();
+  const stmts = body.notes.map(n => {
+    if (n.deleted) {
+      return env.DB.prepare('DELETE FROM notes WHERE id = ? AND account_id = ?').bind(n.id, accountId);
+    }
+    return env.DB.prepare(`
+      INSERT INTO notes (id, account_id, tea_key, compass_entry_id, session_id,
+        text, source_type, tasting_id, tasting_snapshot, author_id, author_name,
+        visibility, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        text = excluded.text,
+        tea_key = excluded.tea_key,
+        visibility = excluded.visibility
+    `).bind(
+      n.id, accountId,
+      n.tea_key ?? null, n.compass_entry_id ?? null, n.session_id ?? null,
+      n.text, n.source_type ?? 'manual',
+      n.tasting_id ?? null, n.tasting_snapshot ?? null,
+      n.author_id, n.author_name,
+      n.visibility ?? 'private',
+      n.created_at ?? now,
+    );
+  });
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  return json({ synced: stmts.length });
+};
+
+const handleSyncNoteSessions: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as { sessions: Record<string, any>[] };
+  if (!Array.isArray(body.sessions)) return json({ error: 'sessions array required' }, 400);
+
+  const stmts = body.sessions.map(s =>
+    env.DB.prepare(`
+      INSERT INTO note_sessions (id, account_id, title, session_date, location, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET title = excluded.title, location = excluded.location
+    `).bind(s.id, accountId, s.title ?? null, s.session_date, s.location ?? null, s.created_at)
+  );
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+  return json({ synced: stmts.length });
 };
 
 const handleSyncCompassEntries: Handler = async (request, env) => {
@@ -6408,11 +6662,21 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/rsvp/:token/post-session', handleGetPostSession],
   ['POST', '/api/rsvp/:token/tasting-notes', handleSubmitTastingNotes],
 
-  // Saved Locations — Admin
+  // Saved Locations — Admin (legacy, kept for edit-form compat)
   ['GET', '/api/admin/locations', handleGetSavedLocations],
   ['POST', '/api/admin/locations', handleCreateSavedLocation],
   ['PUT', '/api/admin/locations/:id', handleUpdateSavedLocation],
   ['DELETE', '/api/admin/locations/:id', handleDeleteSavedLocation],
+
+  // Venues — Admin
+  ['GET',    '/api/admin/venues',                      handleGetVenues],
+  ['POST',   '/api/admin/venues',                      handleCreateVenue],
+  ['PUT',    '/api/admin/venues/:id',                  handleUpdateVenue],
+  ['DELETE', '/api/admin/venues/:id',                  handleDeleteVenue],
+  ['POST',   '/api/admin/venues/:id/photos',           handleUploadVenuePhoto],
+  ['POST',   '/api/admin/venues/:id/spaces',           handleCreateVenueSpace],
+  ['PUT',    '/api/admin/venues/:id/spaces/:spaceId',  handleUpdateVenueSpace],
+  ['DELETE', '/api/admin/venues/:id/spaces/:spaceId',  handleDeleteVenueSpace],
 
   // Events — Admin
   ['GET', '/api/admin/events', handleGetEvents],
@@ -6471,6 +6735,11 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],
   ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
   ['POST', '/api/compass/sync', handleSyncCompassEntries],
+
+  // Notes — unified thread
+  ['GET',  '/api/notes',              handleGetNotes],
+  ['POST', '/api/notes/sync',         handleSyncNotes],
+  ['POST', '/api/note-sessions/sync', handleSyncNoteSessions],
 
   // Compass Sharing
   ['POST', '/api/compass/share', handleCompassShare],

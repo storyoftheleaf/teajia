@@ -62,8 +62,6 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
     sample.grams = grams;
     sample.originRegion = region.trim() || undefined;
 
-    addSample(sample);
-
     // Also create a compass entry (tea category, isSample flag) so samples appear in Tea Compass Browse
     const compassEntry = createEmptyEntry('tea', {
       vendorName: sourceName,
@@ -76,6 +74,11 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
     compassEntry.isSample = true;
     compassEntry.sampleSetId = setId;
     compassEntry.sampleGrams = grams;
+
+    // Bi-directional link: sample knows its compass entry and vice versa
+    sample.compassEntryId = compassEntry.id;
+
+    addSample(sample);
     addCompassEntry(compassEntry);
 
     // Add sample id to the set

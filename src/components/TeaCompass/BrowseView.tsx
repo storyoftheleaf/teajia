@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { ChevronDown, Store, Plus, Search, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Plus, Search, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
-import { VendorInfoPanel } from './VendorInfoPanel';
 import { CompassIcon } from './CompassIcon';
-import type { TeaCompassEntry, BrowseGrouping, BrowseFilter, VendorDetails } from './types';
+import type { TeaCompassEntry, BrowseFilter } from './types';
 
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
@@ -19,42 +19,49 @@ function getDateGroup(dateStr: string): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const entryDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = (today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
-
   if (diffDays < 1) return 'Today';
   if (diffDays < 2) return 'Yesterday';
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
-  const { entries, browseGrouping, browseFilter, setBrowseGrouping, setBrowseFilter } = useTeaCompassStore();
-  const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+function hasTastingData(e: TeaCompassEntry): boolean {
+  return !!(e.tasting && Object.values(e.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null));
+}
 
-  const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
+// ─── Section header ──────────────────────────────────────────────────────────
+
+const SectionHeader: React.FC<{ label: string; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
+  <div className="flex items-center justify-between mb-2.5">
+    <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
+      {label}
+    </span>
+    <span className="flex items-center gap-2">
+      {right}
+      <span className="text-[10px] text-tea-text-dim num">{count}</span>
+    </span>
+  </div>
+);
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
+  const { entries, browseFilter, setBrowseFilter, removeEntry } = useTeaCompassStore();
+  const [cleanupDismissed, setCleanupDismissed] = useState(false);
+  const sampleSets = useSampleStore((s) => s.sampleSets);
+
+  const sampleSetMap = useMemo(
+    () => new Map(sampleSets.map((s) => [s.id, s])),
+    [sampleSets]
+  );
+
+  // Guard: remap any legacy filter value from localStorage
+  React.useEffect(() => {
+    const valid: BrowseFilter[] = ['all', 'mine', 'queue', 'want', 'pass'];
+    if (!valid.includes(browseFilter as BrowseFilter)) setBrowseFilter('all');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get vendor details from the most recent entry for a given vendor name
-  const getVendorDetailsForGroup = useCallback((vendorNameKey: string): { details?: VendorDetails; vendorId?: string } => {
-    for (const e of entries) {
-      if ((e.vendorName || 'No Vendor') === vendorNameKey && e.vendorDetails) {
-        const hasInfo = e.vendorDetails.businessCardUrl || e.vendorDetails.storefrontUrl ||
-          e.vendorDetails.lat != null || e.vendorDetails.phone ||
-          e.vendorDetails.whatsapp || e.vendorDetails.wechat || e.vendorDetails.line;
-        if (hasInfo) return { details: e.vendorDetails, vendorId: e.vendorId };
-      }
-    }
-    const withId = entries.find((e) => (e.vendorName || 'No Vendor') === vendorNameKey && e.vendorId);
-    return { details: undefined, vendorId: withId?.vendorId };
-  }, [entries]);
-
-  const handleVendorDetailsChange = useCallback((vendorNameKey: string, details: VendorDetails) => {
-    for (const e of entries) {
-      if ((e.vendorName || 'No Vendor') === vendorNameKey) {
-        updateEntry(e.id, { vendorDetails: details });
-      }
-    }
-  }, [entries, updateEntry]);
-
-  // Fuse.js instance for fuzzy search
   const fuseInstance = useMemo(() => new Fuse(entries, {
     keys: [
       { name: 'name', weight: 2 },
@@ -66,12 +73,6 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     ],
     threshold: 0.35,
     includeScore: true,
-    getFn: (entry, path) => {
-      if (path[0] === 'tasting.flavor') {
-        return (entry.tasting?.flavor || []).join(' ');
-      }
-      return Fuse.config.getFn(entry, path);
-    },
   }), [entries]);
 
   const searchResults = useMemo(() => {
@@ -79,49 +80,258 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     return new Set(fuseInstance.search(searchQuery.trim()).map((r) => r.item.id));
   }, [searchQuery, fuseInstance]);
 
-  const filteredEntries = useMemo(() => {
-    let result = entries;
-    // Apply text search
-    if (searchResults !== null) {
-      result = result.filter((e) => searchResults.has(e.id));
-    }
-    // Apply status filter
-    if (browseFilter === 'want') return result.filter((e) => e.status === 'want');
-    if (browseFilter === 'bought') return result.filter((e) => e.status === 'bought' || e.status === 'buying');
-    return result;
-  }, [entries, browseFilter, searchResults]);
+  // ─── Counts (for filter pills) ────────────────────────────────────────────
 
-  const counts = useMemo(() => ({
-    all: entries.length,
-    want: entries.filter((e) => e.status === 'want').length,
-    bought: entries.filter((e) => e.status === 'bought' || e.status === 'buying').length,
-  }), [entries]);
+  const counts = useMemo(() => {
+    const queueCount = entries.filter((e) =>
+      e.isSample || (
+        !hasTastingData(e) &&
+        e.status !== 'pass' &&
+        (e.status === 'in_stock' || e.status === 'incoming')
+      )
+    ).length;
 
-  const groups = useMemo(() => {
+    return {
+      all:   entries.length,
+      mine:  entries.filter((e) => e.status === 'in_stock' || e.status === 'incoming' || e.status === 'depleted').length,
+      queue: queueCount,
+      want:  entries.filter((e) => e.status === 'want').length,
+      pass:  entries.filter((e) => e.status === 'pass').length,
+    };
+  }, [entries]);
+
+  // Entries that have no name, notes, photos, or tasting data — safe to bulk-delete
+  const emptyEntries = useMemo(() =>
+    entries.filter((e) =>
+      e.name.trim() === '' &&
+      e.notes.trim() === '' &&
+      e.photos.length === 0 &&
+      !hasTastingData(e)
+    ),
+    [entries]
+  );
+
+  const handleCleanup = () => {
+    if (!window.confirm(`Delete ${emptyEntries.length} entries with no name, notes, or tasting data?`)) return;
+    emptyEntries.forEach((e) => removeEntry(e.id));
+    setCleanupDismissed(true);
+  };
+
+  const filterOptions: { value: BrowseFilter; label: string; count: number }[] = [
+    { value: 'all',   label: 'All',   count: counts.all },
+    { value: 'mine',  label: 'Mine',  count: counts.mine },
+    { value: 'queue', label: 'Queue', count: counts.queue },
+    { value: 'want',  label: 'Want',  count: counts.want },
+    { value: 'pass',  label: 'Pass',  count: counts.pass },
+  ];
+
+  // ─── Render helpers ───────────────────────────────────────────────────────
+
+const renderEntries = (list: TeaCompassEntry[], opts?: {
+    dimPassed?: boolean;
+    dimTasted?: boolean;
+    tasteQueueActive?: boolean;
+  }) => (
+    <div className="space-y-1.5">
+      <AnimatePresence initial={false}>
+        {list.map((entry) => {
+          const dim = (opts?.dimPassed && entry.status === 'pass') ||
+                      (opts?.dimTasted && hasTastingData(entry));
+          return (
+            <motion.div
+              key={entry.id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: dim ? 0.55 : 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <BrowseCard
+                entry={entry}
+                onEdit={onEditEntry}
+                tasteQueueActive={opts?.tasteQueueActive}
+              />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </div>
+  );
+
+  // ─── "All" view: date-grouped ─────────────────────────────────────────────
+
+  const renderAll = (result: TeaCompassEntry[]) => {
     const grouped = new Map<string, TeaCompassEntry[]>();
-    const sorted = [...filteredEntries].sort(
+    const sorted = [...result].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     for (const entry of sorted) {
-      const key = browseGrouping === 'date'
-        ? getDateGroup(entry.createdAt)
-        : (entry.vendorName || 'No Vendor');
+      const key = getDateGroup(entry.createdAt);
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(entry);
     }
-    return Array.from(grouped.entries());
-  }, [filteredEntries, browseGrouping]);
+    return (
+      <div className="space-y-5">
+        {Array.from(grouped.entries()).map(([date, group]) => (
+          <div key={date}>
+            <SectionHeader label={date} count={group.length} />
+            {renderEntries(group, { dimPassed: true })}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
-  const groupingOptions: { value: BrowseGrouping; label: string }[] = [
-    { value: 'date', label: 'By Date' },
-    { value: 'vendor', label: 'By Vendor' },
-  ];
+  // ─── "Mine" view: status-grouped (Incoming → In Stock → Depleted) ─────────
 
-  const filterOptions: { value: BrowseFilter; label: string; count: number }[] = [
-    { value: 'all', label: 'All', count: counts.all },
-    { value: 'want', label: 'Wishlist', count: counts.want },
-    { value: 'bought', label: 'Bought', count: counts.bought },
-  ];
+  const renderMine = (result: TeaCompassEntry[]) => {
+    const incoming = result.filter((e) => e.status === 'incoming');
+    const inStock  = result.filter((e) => e.status === 'in_stock');
+    const depleted = result.filter((e) => e.status === 'depleted');
+
+    if (result.length === 0) {
+      return (
+        <div className="py-10 text-center space-y-1">
+          <p className="text-[13px] text-tea-text font-serif">Nothing in stock yet</p>
+          <p className="text-[12px] text-tea-text-dim">Buy a tea from Capture to add it here.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-5">
+        {incoming.length > 0 && (
+          <div>
+            <SectionHeader label="Incoming" count={incoming.length} />
+            {renderEntries(incoming)}
+          </div>
+        )}
+        {inStock.length > 0 && (
+          <div>
+            <SectionHeader label="In Stock" count={inStock.length} />
+            {renderEntries(inStock)}
+          </div>
+        )}
+        {depleted.length > 0 && (
+          <div>
+            <SectionHeader label="Depleted" count={depleted.length} />
+            {renderEntries(depleted, { dimPassed: false })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── "Queue" view: sample sets + untasted owned ───────────────────────────
+
+  const renderQueue = (result: TeaCompassEntry[]) => {
+    const sampleEntries = result.filter((e) => e.isSample);
+    const tasteEntries  = result.filter((e) => !e.isSample);
+
+    // Group samples by set
+    const bySet = new Map<string, TeaCompassEntry[]>();
+    for (const e of sampleEntries) {
+      const key = e.sampleSetId || '_unsorted';
+      if (!bySet.has(key)) bySet.set(key, []);
+      bySet.get(key)!.push(e);
+    }
+
+    // Sort untasted: queued first, then oldest
+    const sortedTaste = [...tasteEntries].sort((a, b) => {
+      if (a.tasteOrder && b.tasteOrder) return b.tasteOrder - a.tasteOrder;
+      if (a.tasteOrder) return -1;
+      if (b.tasteOrder) return 1;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    if (result.length === 0) {
+      return (
+        <div className="py-10 text-center space-y-1">
+          <p className="text-[13px] text-tea-text font-serif">All caught up</p>
+          <p className="text-[12px] text-tea-text-dim">Every tea in your collection has tasting notes.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-5">
+        {/* Sample sets */}
+        {Array.from(bySet.entries()).map(([setId, setEntries]) => {
+          const set = sampleSetMap.get(setId);
+          const tastedCount = setEntries.filter(hasTastingData).length;
+          const allTasted = tastedCount === setEntries.length;
+          return (
+            <div key={setId}>
+              <SectionHeader
+                label={set?.name || (setId === '_unsorted' ? 'Samples' : 'Sample Set')}
+                count={setEntries.length}
+                right={
+                  <span className={`text-[10px] num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
+                    {tastedCount}/{setEntries.length} tasted
+                  </span>
+                }
+              />
+              {renderEntries(setEntries, { dimTasted: true })}
+            </div>
+          );
+        })}
+
+        {/* Untasted in-stock / incoming */}
+        {sortedTaste.length > 0 && (
+          <div>
+            <SectionHeader label="To Taste" count={sortedTaste.length} />
+            {renderEntries(sortedTaste, { tasteQueueActive: true })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── Flat views (Want, Pass) ──────────────────────────────────────────────
+
+  const renderFlat = (result: TeaCompassEntry[], emptyMessage: string) => {
+    if (result.length === 0) {
+      return (
+        <div className="py-10 text-center">
+          <p className="text-[13px] text-tea-text-dim font-serif">{emptyMessage}</p>
+        </div>
+      );
+    }
+    const sorted = [...result].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return renderEntries(sorted);
+  };
+
+  // ─── Apply search + filter ────────────────────────────────────────────────
+
+  const baseEntries = useMemo(() => {
+    let result = entries;
+    if (searchResults !== null) result = result.filter((e) => searchResults.has(e.id));
+    return result;
+  }, [entries, searchResults]);
+
+  const filteredForView = useMemo(() => {
+    switch (browseFilter) {
+      case 'mine':
+        return baseEntries.filter((e) => e.status === 'in_stock' || e.status === 'incoming' || e.status === 'depleted');
+      case 'queue':
+        return baseEntries.filter((e) =>
+          e.isSample || (
+            !hasTastingData(e) &&
+            e.status !== 'pass' &&
+            (e.status === 'in_stock' || e.status === 'incoming')
+          )
+        );
+      case 'want':
+        return baseEntries.filter((e) => e.status === 'want');
+      case 'pass':
+        return baseEntries.filter((e) => e.status === 'pass');
+      default:
+        return baseEntries;
+    }
+  }, [baseEntries, browseFilter]);
+
+  // ─── Empty state ──────────────────────────────────────────────────────────
 
   if (entries.length === 0) {
     return (
@@ -143,9 +353,11 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     );
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-3 animate-[fadeIn_0.3s_ease-out]">
-      {/* Search bar */}
+      {/* Search */}
       <div className="relative">
         <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
         <input
@@ -167,156 +379,84 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
         )}
       </div>
 
-      {/* Controls row: grouping segment + filter pills + new capture */}
-      <div className="flex items-center gap-2">
-        {/* Grouping — segment control (same style as Tea/Teaware toggle in Capture) */}
-        <div className="relative flex rounded-md bg-tea-surface p-0.5 shrink-0">
-          <motion.div
-            className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-elevated shadow-sm"
-            animate={{
-              left: browseGrouping === 'date' ? '2px' : '50%',
-              right: browseGrouping === 'vendor' ? '2px' : '50%',
-            }}
-            transition={{ duration: 0.12, ease: 'easeOut' }}
-          />
-          {groupingOptions.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setBrowseGrouping(opt.value)}
-              className={`relative z-[1] px-3 py-1 text-[11px] font-medium rounded-[5px] transition-colors ${
-                browseGrouping === opt.value ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Filter pills */}
-        <div className="flex gap-1 flex-1 overflow-x-auto">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setBrowseFilter(opt.value)}
-              className={`shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                browseFilter === opt.value
-                  ? 'bg-tea-elevated text-tea-text-sec'
-                  : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
-              }`}
-            >
-              {opt.label}{opt.count > 0 ? ` ${opt.count}` : ''}
-            </button>
-          ))}
-        </div>
-
-        {/* New capture */}
+      {/* Filter pills + New — single row, no scroll */}
+      <div className="flex items-center gap-1.5">
+        {filterOptions.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setBrowseFilter(opt.value)}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+              browseFilter === opt.value
+                ? 'bg-tea-elevated text-tea-text-sec'
+                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+            }`}
+          >
+            {opt.label}{opt.count > 0 ? ` ${opt.count}` : ''}
+          </button>
+        ))}
+        <div className="flex-1" />
         <button
           type="button"
           onClick={onNewCapture}
-          className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold transition-colors hover:bg-tea-gold/15"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold transition-colors hover:bg-tea-gold/15 shrink-0"
         >
           <Plus size={11} />
           New
         </button>
       </div>
 
+      {/* Cleanup banner — shown when empty test entries exist */}
+      <AnimatePresence>
+        {!cleanupDismissed && emptyEntries.length >= 3 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface text-[12px]">
+              <Trash2 size={12} className="text-tea-text-dim shrink-0" />
+              <span className="flex-1 text-tea-text-sec">
+                {emptyEntries.length} entries have no name, notes, or tasting data
+              </span>
+              <button
+                type="button"
+                onClick={handleCleanup}
+                className="text-red-400 hover:text-red-300 font-medium transition-colors shrink-0"
+              >
+                Clean up
+              </button>
+              <button
+                type="button"
+                onClick={() => setCleanupDismissed(true)}
+                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0 ml-1"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Search empty state */}
-      {searchQuery && filteredEntries.length === 0 && (
+      {searchQuery && filteredForView.length === 0 && (
         <div className="py-10 text-center">
           <p className="text-[13px] text-tea-text-dim">No teas matching "{searchQuery}"</p>
         </div>
       )}
 
-      <div className="space-y-5">
-        {groups.map(([groupName, groupEntries]) => {
-          const isVendorGrouping = browseGrouping === 'vendor';
-          const vendorExpanded = expandedVendors.has(groupName);
-          const vendorInfo = isVendorGrouping ? getVendorDetailsForGroup(groupName) : null;
-
-          return (
-            <div key={groupName}>
-              {isVendorGrouping && groupName !== 'No Vendor' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setExpandedVendors((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(groupName)) next.delete(groupName);
-                      else next.add(groupName);
-                      return next;
-                    })}
-                    className="flex items-center justify-between w-full mb-2.5 group"
-                  >
-                    <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium group-hover:text-tea-gold transition-colors">
-                      <Store size={12} className="text-tea-gold/50" />
-                      {groupName}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="text-[10px] text-tea-text-dim num">
-                        {groupEntries.length}
-                      </span>
-                      <motion.span
-                        animate={{ rotate: vendorExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-tea-text-dim"
-                      >
-                        <ChevronDown size={12} />
-                      </motion.span>
-                    </span>
-                  </button>
-                  <AnimatePresence>
-                    {vendorExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden mb-3"
-                      >
-                        <VendorInfoPanel
-                          vendorName={groupName}
-                          vendorId={vendorInfo?.vendorId}
-                          vendorDetails={vendorInfo?.details}
-                          onDetailsChange={(details) => handleVendorDetailsChange(groupName, details)}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
-                    {groupName}
-                  </span>
-                  <span className="text-[10px] text-tea-text-dim num">
-                    {groupEntries.length}
-                  </span>
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <AnimatePresence initial={false}>
-                  {groupEntries.map((entry) => (
-                    <motion.div
-                      key={entry.id}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <BrowseCard
-                        entry={entry}
-                        onEdit={onEditEntry}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* View */}
+      {!searchQuery || filteredForView.length > 0 ? (
+        <>
+          {browseFilter === 'all'   && renderAll(filteredForView)}
+          {browseFilter === 'mine'  && renderMine(filteredForView)}
+          {browseFilter === 'queue' && renderQueue(filteredForView)}
+          {browseFilter === 'want'  && renderFlat(filteredForView, 'Nothing on your want list yet.')}
+          {browseFilter === 'pass'  && renderFlat(filteredForView, 'No passed teas.')}
+        </>
+      ) : null}
     </div>
   );
 };

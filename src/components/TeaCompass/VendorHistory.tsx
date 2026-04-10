@@ -53,7 +53,7 @@ const SORT_ORDER: Record<HistoryItem['status'], number> = {
 function compassStatusToHistoryStatus(s: TeaCompassEntry['status']): HistoryItem['status'] {
   if (s === 'want') return 'want';
   if (s === 'buying') return 'buying';
-  if (s === 'bought') return 'bought';
+  if (s === 'in_stock') return 'bought';
   return 'logged';
 }
 

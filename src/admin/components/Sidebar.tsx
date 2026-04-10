@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical, UserCog, Settings, ShieldCheck } from 'lucide-react';
+import { X, Calendar, LayoutDashboard, Package, Users, ClipboardList, Camera, Compass, FlaskConical, UserCog, Settings, ShieldCheck, MapPin } from 'lucide-react';
 import type { PlatformRole } from '../../types';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import { Icons } from '../../components/Icons';
@@ -127,6 +127,7 @@ export const Sidebar = ({
     isMember && { id: 'capture',  path: '/admin/capture',  label: 'Capture',     icon: <Camera     className="w-5 h-5" strokeWidth={2} /> },
     isMember && { id: 'samples',  path: '/admin/samples',  label: 'Samples',     icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
     isMember && { id: 'events',   path: '/admin/events',   label: 'Events',      icon: <Calendar   className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'venues',   path: '/admin/venues',   label: 'Venues',      icon: <MapPin     className="w-5 h-5" strokeWidth={2} /> },
     // Operations
     isStaff  && { id: 'activity', path: '/admin/activity', label: 'Activity',    icon: <ClipboardList className="w-5 h-5" strokeWidth={2} /> },
     isStaff  && { id: 'people',   path: '/admin/people',   label: 'People',      icon: <Users      className="w-5 h-5" strokeWidth={2} /> },
