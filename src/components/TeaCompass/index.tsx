@@ -5,7 +5,7 @@ import { ArrowLeft, PenLine, Library, BookOpen, Check, Mic, Square, Loader2, Sha
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
-import { hydrateNotes, syncNotes } from '../../lib/notesSync';
+import { syncNotes } from '../../lib/notesSync';
 import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
 import { api, hasToken } from '../../lib/api';
@@ -216,18 +216,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setMode(newMode);
   }, [activeEntryId, startNewCapture, activeCategory]);
 
-  // ── Notes hydration ──
-  // Compass hydration / debounced push / online-retry all live in
-  // `useCompassSync` (mounted at the app root in `App.tsx`), mirroring
-  // `useFavoritesSync` / `useTastingJournalSync` / `useOfflineSync`. That
-  // hook runs while authenticated regardless of whether this view is
-  // mounted, so compass data stays fresh across navigation. Notes still
-  // hydrate/push from here until a parallel `useNotesSync` hook exists.
-  useEffect(() => {
-    if (!hasToken()) return;
-    hydrateNotes();
-    syncNotes();
-  }, []);
+  // Compass + notes hydration / debounced push / online-retry all live
+  // in `useCompassSync` and `useNotesSync` at the app root in `App.tsx`,
+  // alongside `useFavoritesSync` / `useTastingJournalSync` / `useOfflineSync`.
+  // Those hooks run while authenticated regardless of whether this view is
+  // mounted, so compass + notes data stays fresh across navigation.
 
   const handleVoiceTranscript = useCallback(
     (text: string) => {
