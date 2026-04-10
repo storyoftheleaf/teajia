@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Music, Image, MessageCircle, ExternalLink } from 'lucide-react';
+import { Music, Image, MessageCircle, ExternalLink, BookOpen } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
 import type { TeaMenuItem } from '../../types/events';
 
@@ -8,6 +8,7 @@ interface PostSessionArchiveProps {
   playlistUrl?: string;
   galleryImages?: string[];
   aggregatedNotes?: string[];
+  sessionNotes?: string;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
   playlistUrl,
   galleryImages,
   aggregatedNotes,
+  sessionNotes,
   className = '',
 }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -24,8 +26,9 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
   const hasPlaylist = !!playlistUrl;
   const hasGallery = galleryImages && galleryImages.length > 0;
   const hasNotes = aggregatedNotes && aggregatedNotes.length > 0;
+  const hasSessionNotes = !!sessionNotes && sessionNotes.trim().length > 0;
 
-  if (!hasMenu && !hasPlaylist && !hasGallery && !hasNotes) return null;
+  if (!hasMenu && !hasPlaylist && !hasGallery && !hasNotes && !hasSessionNotes) return null;
 
   return (
     <div className={`${className}`}>
@@ -89,6 +92,19 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
                 </p>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Host Session Notes */}
+      {hasSessionNotes && (
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-5">
+            <BookOpen className="w-4 h-4 text-tea-gold" />
+            <h4 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h4>
+          </div>
+          <div className="bg-tea-surface border border-tea-border rounded-md p-5">
+            <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{sessionNotes}</p>
           </div>
         </div>
       )}

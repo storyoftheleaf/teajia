@@ -278,6 +278,7 @@ const GuestManagement: React.FC = () => {
                       .filter((imp): imp is string => typeof imp === 'string' && imp.trim().length > 0)
                   : undefined
               }
+              sessionNotes={typeof postSession?.session_notes === 'string' ? postSession.session_notes : undefined}
               className="mb-10"
             />
           </Suspense>

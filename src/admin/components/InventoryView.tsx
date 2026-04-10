@@ -20,6 +20,7 @@ import { TastingEditorModal } from './TastingEditorModal';
 import { StockLedgerPanel } from './StockLedgerPanel';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TeaDetailsModal } from './TeaDetailsModal';
+import { ContentLinksEditor } from './ContentLinksEditor';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -784,6 +785,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
   const [panelHistoryOpen, setPanelHistoryOpen] = useState(false);
+  const [showContentLinks, setShowContentLinks] = useState(false);
   useEffect(() => { setPanelDirty(false); }, [panelProduct?.id]);
 
   // Feature: Product Events & Tasting Aggregation
@@ -2245,6 +2247,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
                                 )}
                             </button>
+                            <button onClick={() => { setShowContentLinks(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                                <Tag size={14} /> Content Links
+                            </button>
                             <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <FileSpreadsheet size={14} /> Import CSV
                             </button>
@@ -3123,6 +3128,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- MODALS --- */}
+      {showContentLinks && (
+        <ContentLinksEditor
+          products={products}
+          onClose={() => setShowContentLinks(false)}
+        />
+      )}
+
       <QrCodeModal isOpen={!!qrProduct} onClose={() => setQrProduct(null)} product={qrProduct} />
 
       {/* Tea Details Modal (AlcoveCard) */}

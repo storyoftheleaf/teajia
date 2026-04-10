@@ -1,11 +1,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Story, ContentType, InventoryItem } from '../types';
+import { Story, ContentType } from '../types';
 import { Icons } from './Icons';
 import { CardContainer } from './shared/CardContainer';
 import { LEARN_CURRICULUM, LEARN_PATHS } from '../constants';
-import { useInventory } from '../context/InventoryContext';
 import { useProductReferences } from './reader/ProductReferences';
 import { api } from '../lib/api';
 
@@ -13,20 +12,6 @@ interface LearnCurriculumProps {
   onStoryClick: (story: Story) => void;
   watchedStories: Record<string, boolean>;
 }
-
-// Map modules to the tea types they cover
-const MODULE_TEA_TYPES: Record<string, string[]> = {
-  'm1': [],  // Foundation — no specific type
-  'm2': ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark'],  // All six families
-  'm3': [],  // Water & Temperature — no specific type
-  'm4': [],  // The Palate — no specific type
-  'm5': [],  // Vessel Selection — teaware
-  'm6': [],  // Geography — all types by origin
-};
-
-const MODULE_CATEGORY: Record<string, 'tea' | 'ware' | null> = {
-  'm5': 'ware',  // Vessel module → show teaware
-};
 
 // Static icon maps - prevent recreation on every render
 const CONTENT_TYPE_ICONS: Record<ContentType, React.ReactNode> = {
@@ -45,22 +30,17 @@ const PATH_ICONS: Record<string, React.ReactNode> = {
 };
 
 // ----------------------------------------------------------------
-// Per-module "Explore in the collection" block. Prefers the
-// `module_products` xref table (editor-curated) and falls back to
-// the hardcoded MODULE_TEA_TYPES / MODULE_CATEGORY type filter so
-// existing modules keep a sensible default until they're curated.
-// Links use the /shop?product=<id> modal convention (Task 2).
+// Per-module "Explore in the collection" block. Driven exclusively
+// by the `module_products` xref table (curated via admin Content Links).
+// Renders nothing when no xref rows exist for this module.
+// Links use the /shop?product=<id> modal convention.
 // ----------------------------------------------------------------
-const ModuleExplore: React.FC<{ moduleId: string; fallbackIds: string[] }> = ({
-  moduleId,
-  fallbackIds,
-}) => {
+const ModuleExplore: React.FC<{ moduleId: string }> = ({ moduleId }) => {
   const navigate = useNavigate();
   const resolved = useProductReferences({
     sourceId: moduleId,
     queryKey: 'module-products',
     fetcher: api.publicXref.modules,
-    fallbackIds,
   });
   const products = resolved.slice(0, 3);
   if (products.length === 0) return null;
@@ -96,7 +76,6 @@ const ModuleExplore: React.FC<{ moduleId: string; fallbackIds: string[] }> = ({
 
 export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, watchedStories }) => {
   const navigate = useNavigate();
-  const { inventory } = useInventory();
   const [viewMode, setViewMode] = useState<'courses' | 'paths'>('courses');
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
@@ -373,24 +352,9 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                          </div>
 
                          {/* End-of-module product exploration —
-                             prefers module_products xref, falls back
-                             to the hardcoded type/category filter. */}
-                         {(() => {
-                           const teaTypes = MODULE_TEA_TYPES[module.id] || [];
-                           const category = MODULE_CATEGORY[module.id] ?? null;
-
-                           let fallbackProducts: InventoryItem[] = [];
-                           if (category === 'ware') {
-                             fallbackProducts = inventory.filter(p => p.category === 'ware').slice(0, 3);
-                           } else if (teaTypes.length > 0) {
-                             fallbackProducts = inventory.filter(p =>
-                               teaTypes.includes(p.type) && p.category === 'tea'
-                             ).slice(0, 3);
-                           }
-                           const fallbackIds = fallbackProducts.map(p => p.id);
-
-                           return <ModuleExplore moduleId={module.id} fallbackIds={fallbackIds} />;
-                         })()}
+                             driven by module_products xref (curated in admin → Content Links).
+                             Renders nothing until products are linked. */}
+                         <ModuleExplore moduleId={module.id} />
                      </div>
                  </div>
              );
