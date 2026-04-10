@@ -4,15 +4,17 @@ import { api } from '../../lib/api';
 export type RecorderState = 'idle' | 'recording' | 'transcribing' | 'error';
 
 function getSupportedMimeType(): string {
-  if (typeof MediaRecorder === 'undefined') return 'audio/webm';
+  if (typeof MediaRecorder === 'undefined') return 'audio/mp4';
+  if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
   if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
   if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
   if (MediaRecorder.isTypeSupported('audio/wav')) return 'audio/wav';
-  return 'audio/webm';
+  return 'audio/mp4';
 }
 
 export function useVoiceRecorder(onTranscript: (text: string) => void) {
   const [state, setState] = useState<RecorderState>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -25,12 +27,13 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
 
   useEffect(() => {
     if (state === 'error') {
-      const t = setTimeout(() => setState('idle'), 2000);
+      const t = setTimeout(() => { setState('idle'); setErrorMessage(null); }, 4000);
       return () => clearTimeout(t);
     }
   }, [state]);
 
   const startRecording = useCallback(async () => {
+    setErrorMessage(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -54,14 +57,22 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
           const result = await api.transcribeAudio(blob);
           if (result.text?.trim()) onTranscript(result.text.trim());
           setState('idle');
-        } catch {
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Transcription failed';
+          setErrorMessage(msg);
           setState('error');
         }
       };
 
       recorder.start(250);
       setState('recording');
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('not allowed')) {
+        setErrorMessage('Microphone access denied.');
+      } else {
+        setErrorMessage(msg || 'Could not start recording.');
+      }
       setState('error');
     }
   }, [onTranscript]);
@@ -77,5 +88,5 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
     else if (state === 'idle') startRecording();
   }, [state, startRecording, stopRecording]);
 
-  return { state, handlePress };
+  return { state, errorMessage, handlePress };
 }

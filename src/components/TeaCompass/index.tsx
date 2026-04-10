@@ -246,7 +246,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     [activeEntryId, updateEntry]
   );
 
-  const { state: voiceState, handlePress: handleVoicePress } = useVoiceRecorder(handleVoiceTranscript);
+  const { state: voiceState, errorMessage: voiceError, handlePress: handleVoicePress } = useVoiceRecorder(handleVoiceTranscript);
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const pendingIncomingCount = visibleShares.length;
@@ -502,10 +502,22 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {/* ── Unified action bar (capture mode only) ── */}
       {mode === 'capture' && (
         <div
-          className="fixed z-30 left-1/2 -translate-x-1/2
+          className="fixed z-30 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2
                      bottom-[calc(0.875rem+44px+env(safe-area-inset-bottom,0px))]
                      lg:bottom-3.5"
         >
+          <AnimatePresence>
+            {voiceError && (
+              <motion.p
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                className="text-[11px] text-red-400 bg-tea-elevated/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-tea-border shadow-sm max-w-[260px] text-center"
+              >
+                {voiceError}
+              </motion.p>
+            )}
+          </AnimatePresence>
           <div className="flex items-center rounded-full bg-tea-elevated border border-tea-border shadow-[0_4px_20px_rgba(0,0,0,0.18)] overflow-hidden">
             {isPlatformPrivileged && (<>
             {/* Voice button */}
