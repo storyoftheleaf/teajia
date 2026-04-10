@@ -40,6 +40,10 @@
           "label": "Sweet",
           "terms": [
             {
+              "id": "sweet",
+              "label": "Sweet"
+            },
+            {
               "id": "honey",
               "label": "Honey"
             },
@@ -60,6 +64,10 @@
         {
           "label": "Fruity",
           "terms": [
+            {
+              "id": "fruity",
+              "label": "Fruity"
+            },
             {
               "id": "stone-fruit",
               "label": "Stone fruit"
@@ -102,6 +110,10 @@
           "label": "Nutty & grain",
           "terms": [
             {
+              "id": "nutty",
+              "label": "Nutty"
+            },
+            {
               "id": "chestnut",
               "label": "Chestnut"
             },
@@ -126,6 +138,10 @@
         {
           "label": "Roasted & warm",
           "terms": [
+            {
+              "id": "roasted",
+              "label": "Roasted"
+            },
             {
               "id": "charcoal",
               "label": "Charcoal"
@@ -156,6 +172,10 @@
           "label": "Woody",
           "terms": [
             {
+              "id": "woody",
+              "label": "Woody"
+            },
+            {
               "id": "camphor",
               "label": "Camphor"
             },
@@ -178,10 +198,6 @@
             {
               "id": "pine",
               "label": "Pine"
-            },
-            {
-              "id": "woody",
-              "label": "Woody"
             }
           ]
         },
@@ -226,6 +242,10 @@
         {
           "label": "Fresh & vegetal",
           "terms": [
+            {
+              "id": "fresh",
+              "label": "Fresh"
+            },
             {
               "id": "fresh-grass",
               "label": "Fresh grass"
