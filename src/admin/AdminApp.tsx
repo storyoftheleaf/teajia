@@ -4,7 +4,18 @@ import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, 
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isConfigured, hasToken, clearToken, getTokenClaims, isTokenExpired, SESSION_EXPIRED_EVENT, ACCOUNT_MISMATCH_EVENT, hydrateAccountStateFromToken } from '../lib/api';
+import {
+  isConfigured,
+  hasToken,
+  clearToken,
+  getTokenClaims,
+  isTokenExpired,
+  SESSION_EXPIRED_EVENT,
+  ACCOUNT_MISMATCH_EVENT,
+  hydrateAccountStateFromToken,
+  ensureTokenRefreshed,
+  shouldProactivelyRefreshToken,
+} from '../lib/api';
 import { Product } from './types';
 import { useProducts, useRates } from './hooks/useAdminData';
 import { useAppStore } from './store';
@@ -84,13 +95,12 @@ const AdminContent = () => {
   } = useAppStore();
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // On mount, check that the token exists AND isn't expired
-    if (!hasToken()) return false;
-    if (isTokenExpired()) {
-      clearToken();
-      return false;
-    }
-    return true;
+    // On mount, trust the stored token if one exists. We used to clear it
+    // here when it was within 60s of expiry, but that meant the admin app
+    // forced users to re-login right at the 30-day boundary. Now the first
+    // authenticated request triggers a silent refresh (see the effect
+    // below) and only truly dead tokens get cleared.
+    return hasToken();
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   // currencyOpen state removed — currency selector moved to InventoryView options menu
@@ -127,6 +137,49 @@ const AdminContent = () => {
       hydrateAccountStateFromToken();
     }
   }, [isAuthenticated]);
+
+  // Silent refresh on mount: if the token is either already expired (past
+  // the client-side buffer) or within the refresh threshold, try to swap it
+  // for a fresh one *before* the admin views start firing API calls. This
+  // stops the 401 → SESSION_EXPIRED cascade that used to boot active users
+  // right at the 30-day boundary.
+  useEffect(() => {
+    if (!hasToken()) return;
+    let cancelled = false;
+    (async () => {
+      if (isTokenExpired() || shouldProactivelyRefreshToken()) {
+        const ok = await ensureTokenRefreshed();
+        if (!ok && isTokenExpired()) {
+          // Truly dead — clear and prompt login. This is the graceful
+          // fallback for someone who hasn't opened the app in over a month.
+          clearToken();
+          clearAccountState();
+          if (!cancelled) {
+            setIsAuthenticated(false);
+            setIsLoginOpen(true);
+          }
+        } else if (!cancelled) {
+          hydrateAccountStateFromToken();
+          setIsAuthenticated(true);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the session alive when the tab returns from background on mobile.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!hasToken()) return;
+      if (shouldProactivelyRefreshToken()) {
+        void ensureTokenRefreshed();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   // Modals
   const [isLoginOpen, setIsLoginOpen] = useState(false);
