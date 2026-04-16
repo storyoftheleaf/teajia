@@ -28,6 +28,9 @@ export interface TokenClaims {
   sub: string;
   email: string;
   name: string;
+  // Optional — callers pass `username` when present so the client can show
+  // it without an extra /me round-trip.
+  username?: string | null;
   // Legacy role field — kept for backwards compatibility with the old
   // requireAdmin/requireOwner helpers. New code should use memberships.
   role?: string;
@@ -38,14 +41,47 @@ export interface TokenClaims {
   exp?: number;
 }
 
+// ── JWT helpers ──
+// Token lifetime: 30 days (was 7). Long-lived login keeps users signed in
+// across long gaps without a refresh round-trip. We *also* slide the expiry
+// every time an authenticated request is served (see maybeIssueRefreshedToken
+// and the /api/auth/refresh endpoint) so regular users never see a kick-out.
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
+// When a valid token has less than this many seconds left, /api/auth/me and
+// /api/auth/refresh will issue a brand-new token. 14 days gives plenty of
+// headroom for infrequent users.
+const TOKEN_REFRESH_THRESHOLD_SECONDS = 60 * 60 * 24 * 14; // 14 days
+// A recently-expired token (within this grace window) can still be refreshed —
+// useful when a user reopens the browser after the deadline passes.
+const TOKEN_REFRESH_GRACE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+// UTF-8 safe base64 encode/decode. `btoa`/`atob` only accept Latin-1 code
+// points, so any Unicode content (e.g. a Chinese name on the user profile)
+// blows up with InvalidCharacterError and breaks login / profile updates /
+// account switches. TextEncoder/TextDecoder round-trip cleanly.
+function b64encodeUtf8(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function b64decodeUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 // Simple JWT implementation using Web Crypto
 async function createToken(
   secret: string,
-  claims: Omit<TokenClaims, 'iat' | 'exp'>
+  claims: Omit<TokenClaims, 'iat' | 'exp'>,
+  ttlSeconds: number = TOKEN_TTL_SECONDS,
 ): Promise<string> {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const header = b64encodeUtf8(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
-  const payload = btoa(JSON.stringify({ ...claims, iat: now, exp: now + 604800 })); // 7 days
+  const payload = b64encodeUtf8(JSON.stringify({ ...claims, iat: now, exp: now + ttlSeconds }));
   const data = `${header}.${payload}`;
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
@@ -61,8 +97,27 @@ async function verifyToken(token: string, secret: string): Promise<boolean> {
     const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
     const valid = await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(`${header}.${payload}`));
     if (!valid) return false;
-    const claims = JSON.parse(atob(payload));
+    const claims = JSON.parse(b64decodeUtf8(payload));
     return claims.exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+// Like verifyToken but also returns tokens that have expired within the grace
+// window — used by the refresh endpoint so a user can reopen the tab a few
+// days after expiry and silently get a new session.
+async function verifyTokenAllowingGrace(token: string, secret: string): Promise<boolean> {
+  try {
+    const [header, payload, sig] = token.split('.');
+    if (!header || !payload || !sig) return false;
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(`${header}.${payload}`));
+    if (!valid) return false;
+    const claims = JSON.parse(b64decodeUtf8(payload));
+    const now = Math.floor(Date.now() / 1000);
+    return typeof claims.exp === 'number' && (now - claims.exp) < TOKEN_REFRESH_GRACE_SECONDS;
   } catch {
     return false;
   }
@@ -92,10 +147,43 @@ function parseToken(token: string): TokenClaims | null {
   try {
     const [, payload] = token.split('.');
     if (!payload) return null;
-    return JSON.parse(atob(payload)) as TokenClaims;
+    return JSON.parse(b64decodeUtf8(payload)) as TokenClaims;
   } catch {
     return null;
   }
+}
+
+// If the current token is within the refresh threshold of expiry, mint a
+// fresh one (same claims, new iat/exp). Returns null when no refresh is
+// needed so callers can skip the JWT signing cost. Callers include the
+// returned token in a `refreshed_token` response field, which the client
+// transparently swaps in.
+async function maybeIssueRefreshedToken(
+  env: Env,
+  claims: TokenClaims,
+): Promise<string | null> {
+  if (typeof claims.exp !== 'number') return null;
+  const now = Math.floor(Date.now() / 1000);
+  const secondsLeft = claims.exp - now;
+  if (secondsLeft > TOKEN_REFRESH_THRESHOLD_SECONDS) return null;
+
+  // Refresh memberships from the DB so the new token also picks up any
+  // account changes (adds/removals) that happened since the last login.
+  const memberships = await loadMemberships(env, claims.sub);
+  const activeAccountId = claims.active_account_id
+    || memberships[0]?.account_id
+    || null;
+
+  return createToken(env.JWT_SECRET, {
+    sub: claims.sub,
+    email: claims.email,
+    name: claims.name,
+    role: claims.role,
+    platform_role: claims.platform_role,
+    memberships,
+    active_account_id: activeAccountId,
+    ...(claims as any).username ? { username: (claims as any).username } : {},
+  } as Omit<TokenClaims, 'iat' | 'exp'>);
 }
 
 // ── Multi-account helpers ──
@@ -561,14 +649,80 @@ const handleGetMe: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
 
+  // Sliding session — if the token is within 14 days of expiry, hand the
+  // client a fresh one. The client picks this up automatically (see
+  // `handleResponse` in src/lib/api.ts) so users never hit the 30-day wall
+  // while they're actively using the app.
+  const refreshedToken = await maybeIssueRefreshedToken(env, claims);
+
   // Try to fetch fresh user data from DB
   try {
     const user = await env.DB.prepare('SELECT id, email, username, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
-    if (user) return json(user);
+    if (user) {
+      return json({ ...user, ...(refreshedToken ? { refreshed_token: refreshedToken } : {}) });
+    }
   } catch {}
 
   // Fallback to token claims
-  return json({ id: claims.sub, email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
+  return json({
+    id: claims.sub,
+    email: claims.email,
+    username: (claims as any).username ?? null,
+    name: claims.name,
+    role: claims.role,
+    ...(refreshedToken ? { refreshed_token: refreshedToken } : {}),
+  });
+};
+
+// POST /api/auth/refresh — issues a new token for the caller.
+// Accepts a currently-valid token OR a recently-expired one (within the
+// grace window). This lets a user reopen the app after a long break and
+// silently get a new session without seeing a login screen. We don't issue
+// tokens for users who no longer exist in the DB.
+const handleRefreshToken: Handler = async (request, env) => {
+  const token = isAuthed(request);
+  if (!token) return json({ error: 'Unauthorized' }, 401);
+
+  const validNow = await verifyToken(token, env.JWT_SECRET);
+  const validWithGrace = validNow || await verifyTokenAllowingGrace(token, env.JWT_SECRET);
+  if (!validWithGrace) return json({ error: 'Invalid or expired token' }, 401);
+
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  // Confirm the user still exists. If the user was deleted since the token
+  // was issued we refuse the refresh instead of handing out a fresh token.
+  let user: Record<string, unknown> | null = null;
+  try {
+    user = await env.DB.prepare(
+      'SELECT id, email, username, name, role, platform_role FROM users WHERE id = ?'
+    ).bind(claims.sub).first() as any;
+  } catch {
+    // If the users table is unavailable (e.g., early bootstrap), fall back
+    // to claims so we at least don't kick out the dev admin.
+  }
+
+  const memberships = await loadMemberships(env, claims.sub);
+  const activeAccountId = claims.active_account_id
+    || memberships[0]?.account_id
+    || null;
+
+  const newToken = await createToken(env.JWT_SECRET, {
+    sub: claims.sub,
+    email: (user?.email as string) ?? claims.email,
+    name: (user?.name as string) ?? claims.name,
+    role: (user?.role as string) ?? claims.role ?? 'user',
+    platform_role: (user?.platform_role as PlatformRole) ?? claims.platform_role ?? null,
+    username: (user?.username as string | null) ?? (claims as any).username ?? null,
+    memberships,
+    active_account_id: activeAccountId,
+  });
+
+  return json({
+    token: newToken,
+    memberships,
+    active_account_id: activeAccountId,
+  });
 };
 
 // ── Change Password ──
@@ -6586,6 +6740,7 @@ const routes: [string, string, Handler][] = [
   // Auth
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],
+  ['POST', '/api/auth/refresh', handleRefreshToken],
   ['GET', '/api/auth/me', handleGetMe],
   ['PUT', '/api/auth/change-password', handleChangePassword],
   ['PUT', '/api/auth/profile', handleUpdateProfile],

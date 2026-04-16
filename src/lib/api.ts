@@ -39,6 +39,11 @@ import { useAppStore } from './store';
 const API_URL = import.meta.env.VITE_API_URL || '';
 const REQUEST_TIMEOUT_MS = 30_000;
 
+// Once the token has less than this many seconds left, nudge a background
+// refresh on the next authenticated call. Matches the server-side threshold
+// (14 days) so slide refreshes land while there's still plenty of headroom.
+const PROACTIVE_REFRESH_THRESHOLD_SECONDS = 60 * 60 * 24 * 14;
+
 function getToken(): string | null {
   return localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token');
 }
@@ -67,8 +72,23 @@ export function isTokenExpired(): boolean {
   return Date.now() >= claims.exp * 1000 - 60_000;
 }
 
+/** True when the stored token is valid but within 14 days of expiry. */
+export function shouldProactivelyRefreshToken(): boolean {
+  const claims = getTokenClaims();
+  if (!claims?.exp) return false;
+  const secondsLeft = claims.exp - Math.floor(Date.now() / 1000);
+  return secondsLeft > 0 && secondsLeft < PROACTIVE_REFRESH_THRESHOLD_SECONDS;
+}
+
 function authHeaders(): Record<string, string> {
-  if (isTokenExpired()) clearToken();
+  // NOTE: we intentionally do NOT clear the token preemptively here. Clearing
+  // before we've actually tried the server means a brief clock skew or a
+  // near-expiry call immediately logs the user out. Instead the request is
+  // sent; if the server says 401 we attempt a refresh (handleResponse). If
+  // the refresh also fails, only then do we clear. Background refreshes are
+  // scheduled by `maybeScheduleBackgroundRefresh` when we're inside the
+  // threshold.
+  maybeScheduleBackgroundRefresh();
   const currentToken = getToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (currentToken) {
@@ -82,6 +102,59 @@ function authHeaders(): Record<string, string> {
     }
   }
   return headers;
+}
+
+// ── Silent refresh machinery ──────────────────────────────────────────────
+// Coordinates ongoing refresh calls so many concurrent requests don't each
+// fire their own refresh when a page first loads a stale token.
+let inFlightRefresh: Promise<boolean> | null = null;
+let lastRefreshAttemptAt = 0;
+
+async function refreshTokenNow(): Promise<boolean> {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const res = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => null);
+    if (data?.token && typeof data.token === 'string') {
+      setToken(data.token);
+      // Refresh the Zustand store so memberships stay aligned with the JWT.
+      try { hydrateAccountStateFromToken(); } catch { /* ignore */ }
+      return true;
+    }
+    return false;
+  } catch {
+    // Network error — keep the old token; next success will retry.
+    return false;
+  }
+}
+
+/** Shared silent refresh; concurrent callers see the same promise. */
+export function ensureTokenRefreshed(): Promise<boolean> {
+  if (!inFlightRefresh) {
+    lastRefreshAttemptAt = Date.now();
+    inFlightRefresh = refreshTokenNow().finally(() => {
+      inFlightRefresh = null;
+    });
+  }
+  return inFlightRefresh;
+}
+
+function maybeScheduleBackgroundRefresh() {
+  if (!shouldProactivelyRefreshToken()) return;
+  // Throttle — don't retry more than once per minute on failure, since the
+  // refresh helper is best-effort and we don't want to hammer the API while
+  // a Worker deploy is cycling.
+  if (Date.now() - lastRefreshAttemptAt < 60_000) return;
+  // Fire and forget; errors are tolerated.
+  void ensureTokenRefreshed();
 }
 
 /** Fetch with an AbortController timeout. */
@@ -114,10 +187,20 @@ async function handleResponse(res: Response) {
     throw new Error(`Request failed (${res.status})`);
   }
   if (!res.ok) {
-    // Detect expired/invalid session
+    // Detect expired/invalid session.
+    //
+    // A 401 no longer clears the token on its own — we attempt one silent
+    // refresh first. If the refresh succeeds, the *caller* of this API has
+    // still failed (the original request was made with the old token and
+    // the body has been consumed), but the next call will use the new
+    // token and succeed. Only if the refresh itself fails do we give up
+    // and fire SESSION_EXPIRED so the UI can prompt a re-login.
     if (res.status === 401 && hasToken()) {
-      clearToken();
-      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      const refreshed = await ensureTokenRefreshed();
+      if (!refreshed) {
+        clearToken();
+        window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      }
     }
     // Detect account access denial — clear active account and prompt UI reload
     if (res.status === 403 && data?.error === 'Account access denied') {
@@ -131,6 +214,15 @@ async function handleResponse(res: Response) {
       ? data.error
       : `Request failed (${res.status})`;
     throw new Error(message);
+  }
+  // Adopt any sliding-refresh token the server stapled onto the response
+  // (currently /api/auth/me does this). Keeps the client JWT fresh without
+  // an extra round-trip.
+  if (data && typeof data === 'object' && typeof data.refreshed_token === 'string') {
+    try {
+      setToken(data.refreshed_token);
+      hydrateAccountStateFromToken();
+    } catch { /* ignore */ }
   }
   return data;
 }
@@ -147,13 +239,26 @@ export interface TokenClaims {
   active_account_id?: string;
 }
 
+/**
+ * UTF-8 safe base64 decode. Plain `atob` returns a binary string whose code
+ * units are the raw bytes — feeding that to JSON.parse corrupts any
+ * non-ASCII character (e.g. a Chinese `name` claim). TextDecoder gives us
+ * the original UTF-8 string back.
+ */
+function b64decodeUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 export function getTokenClaims(): TokenClaims | null {
   const token = getToken();
   if (!token) return null;
   try {
     const [, payload] = token.split('.');
     if (!payload) return null;
-    return JSON.parse(atob(payload));
+    return JSON.parse(b64decodeUtf8(payload));
   } catch {
     return null;
   }
@@ -205,6 +310,8 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** Explicit refresh — rarely needed directly; prefer `ensureTokenRefreshed`. */
+    refresh: async (): Promise<boolean> => ensureTokenRefreshed(),
     me: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/me`, {
         headers: authHeaders(),
@@ -647,7 +754,8 @@ export const api = {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
-    if (isTokenExpired()) clearToken();
+    // Note: we don't preemptively clear the token here — handleResponse
+    // silently refreshes on 401 and only clears on refresh failure.
     const token = getToken();
     const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
       method: 'POST',

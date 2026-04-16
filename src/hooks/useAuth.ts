@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api, setToken, clearToken, hasToken, getTokenClaims, SESSION_EXPIRED_EVENT } from '../lib/api';
+import {
+  api,
+  setToken,
+  clearToken,
+  hasToken,
+  getTokenClaims,
+  SESSION_EXPIRED_EVENT,
+  shouldProactivelyRefreshToken,
+  ensureTokenRefreshed,
+} from '../lib/api';
 
 export interface AuthUser {
   email: string;
@@ -39,21 +48,56 @@ export function useAuth(): UseAuthReturn {
       setIsLoading(true);
       const data = await api.auth.me();
       setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role });
-    } catch {
-      // Token expired or invalid
-      clearToken();
-      setUser(null);
+    } catch (err: any) {
+      // Only clear the session when the server explicitly rejected the token.
+      // Transient issues (offline, CORS hiccup, timeout, 5xx) used to boot
+      // the user out here — now we keep the local session and let
+      // handleResponse's silent-refresh flow decide. The SESSION_EXPIRED
+      // event is what actually triggers clearing, centrally.
+      const msg = typeof err?.message === 'string' ? err.message : '';
+      const explicitAuthFailure = /\b(401|unauthorized|invalid token|expired)\b/i.test(msg);
+      if (explicitAuthFailure) {
+        clearToken();
+        setUser(null);
+      }
+      // Otherwise keep the current user — the token is still there and
+      // another sync/api call may succeed once the network recovers.
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Check session on mount if we have a token
+  // Check session on mount if we have a token.
+  //
+  // If the token is within the refresh threshold (e.g., user hasn't opened
+  // the app for a couple of weeks on a 30-day token), fire a silent refresh
+  // first so we never hit the server with a soon-to-expire token.
   useEffect(() => {
-    if (hasToken()) {
-      checkSession();
-    }
+    if (!hasToken()) return;
+    let cancelled = false;
+    (async () => {
+      if (shouldProactivelyRefreshToken()) {
+        await ensureTokenRefreshed();
+      }
+      if (!cancelled) await checkSession();
+    })();
+    return () => { cancelled = true; };
   }, [checkSession]);
+
+  // When the tab returns from background, check the session. Mobile browsers
+  // pause JS for long periods — this catches tokens that rolled through the
+  // refresh window while the tab was asleep so the user never sees a 401.
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!hasToken()) return;
+      if (shouldProactivelyRefreshToken()) {
+        void ensureTokenRefreshed();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   // Clear React auth state when a 401 triggers session expiry
   useEffect(() => {
