@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, PenLine, Library, BookOpen, Check, Mic, Square, Loader2, Share2 } from 'lucide-react';
+import { ArrowLeft, PenLine, Library, BookOpen, Check, Mic, Square, Loader2, Share2, Layers } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -21,6 +21,7 @@ import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { CompassShareModal } from './CompassShareModal';
+import { BatchCaptureRow } from './BatchCaptureRow';
 
 export type CompassMode = 'capture' | 'browse' | 'ledger';
 
@@ -130,6 +131,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Track whether the user navigated to Capture from the Library (to show back link)
   const [fromLibrary, setFromLibrary] = useState(false);
+
+  // Batch entry mode — rapid-fire name + type row for vendor table sessions
+  const [batchMode, setBatchMode] = useState(false);
 
   // Track just-committed entry for banner
   const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
@@ -321,7 +325,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Tab config
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
-    { id: 'browse', label: 'Encounters', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
+    { id: 'browse', label: 'Journal', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
@@ -404,6 +408,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 onDiscardEntry={handleDiscardSessionEntry}
               />
 
+              {/* Batch mode row — rapid-fire entry for vendor tables */}
+              {batchMode && (
+                <BatchCaptureRow />
+              )}
+
               {/* Tea / Teaware tab toggle */}
               <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
                 <motion.div
@@ -452,7 +461,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onClick={() => { setJustCommitted(null); setMode('browse'); }}
                         className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                       >
-                        Encounters
+                        Journal
                       </button>
                     </div>
                   </motion.div>
@@ -617,6 +626,22 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <div className="w-px self-stretch my-2 bg-tea-border" />
               </>
             )}
+
+            {/* Batch mode toggle */}
+            <>
+              <button
+                type="button"
+                onClick={() => setBatchMode((v) => !v)}
+                className={`flex-1 flex items-center justify-center py-3 transition-colors ${
+                  batchMode ? 'text-tea-gold' : 'text-tea-text/40 hover:text-tea-text/70'
+                }`}
+                title="Batch entry mode — rapidly add multiple teas"
+                aria-label="Batch entry"
+              >
+                <Layers size={14} strokeWidth={1.5} />
+              </button>
+              <div className="w-px self-stretch my-2 bg-tea-border" />
+            </>
 
             {/* Share */}
             {hasToken() && activeEntryId && (

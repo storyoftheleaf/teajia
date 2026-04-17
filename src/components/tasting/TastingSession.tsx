@@ -294,6 +294,33 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 min-h-0 flex flex-col"
           >
+            {/* Brewing context strip */}
+            <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-tea-border/50 bg-tea-surface/20">
+              <span className="text-[10px] text-tea-text-dim uppercase tracking-wider shrink-0">Brew</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="°C"
+                value={tastingData.brewingTemp ?? ''}
+                onChange={(e) => handleTastingChange({ ...tastingData, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
+                className="w-12 bg-tea-elevated text-tea-text text-[11px] px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <input
+                type="text"
+                placeholder="time"
+                value={tastingData.brewingTime ?? ''}
+                onChange={(e) => handleTastingChange({ ...tastingData, brewingTime: e.target.value || undefined })}
+                className="w-14 bg-tea-elevated text-tea-text text-[11px] px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
+              />
+              <input
+                type="text"
+                placeholder="vessel"
+                value={tastingData.brewingVessel ?? ''}
+                onChange={(e) => handleTastingChange({ ...tastingData, brewingVessel: e.target.value || undefined })}
+                className="flex-1 min-w-0 bg-tea-elevated text-tea-text text-[11px] px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
+              />
+            </div>
+
             {/* Structured sections */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
               <div

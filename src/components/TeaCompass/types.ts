@@ -84,6 +84,9 @@ export interface TeaCompassEntry {
   // Tasting queue — timestamp set when entry is explicitly prioritised; higher = sooner
   tasteOrder?: number;
 
+  // Retaste timeline — each tasting session appended; current tasting is also in .tasting
+  tastingHistory?: Array<{ data: TastingData; date: string; note?: string }>;
+
   // Pipeline — internal, set automatically when ledger purchase is confirmed
   draftProductId?: string;
 

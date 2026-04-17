@@ -23,6 +23,11 @@ export interface TastingData {
   notes?: string[];             // separate note entries (text / transcribed voice)
   voiceNote?: string;           // legacy single concatenated note
 
+  // Brewing context (session conditions)
+  brewingTemp?: number;      // Celsius
+  brewingTime?: string;      // e.g. "30s", "1m"
+  brewingVessel?: string;    // e.g. "Gaiwan", "Yixing", "Glass"
+
   // Admin only
   brewing?: string[];
 

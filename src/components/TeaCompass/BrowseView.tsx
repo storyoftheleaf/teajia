@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, X, Trash2 } from 'lucide-react';
+import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal } from 'lucide-react';
+import { CompareView } from './CompareView';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -22,6 +23,7 @@ function getDateGroup(dateStr: string): string {
   const diffDays = (today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24);
   if (diffDays < 1) return 'Today';
   if (diffDays < 2) return 'Yesterday';
+  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'long' });
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
@@ -47,8 +49,10 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
   const navigate = useNavigate();
-  const { entries, browseFilter, setBrowseFilter, removeEntry } = useTeaCompassStore();
+  const { entries, browseFilter, setBrowseFilter, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
   const sampleSets = useSampleStore((s) => s.sampleSets);
 
   const sampleSetMap = useMemo(
@@ -151,6 +155,16 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 entry={entry}
                 onEdit={onEditEntry}
                 tasteQueueActive={opts?.tasteQueueActive}
+                isCompareSelected={compareIds.has(entry.id)}
+                onToggleCompare={(id) => {
+                  setCompareIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(id)) next.delete(id);
+                    else if (next.size < 3) next.add(id);
+                    return next;
+                  });
+                }
+                }
               />
             </motion.div>
           );
@@ -261,6 +275,23 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           const set = sampleSetMap.get(setId);
           const tastedCount = setEntries.filter(hasTastingData).length;
           const allTasted = tastedCount === setEntries.length;
+
+          // Decision summary counts — use sampleVerdict if set, else quality fallback
+          const verdictCounts = allTasted ? setEntries.reduce((acc, e) => {
+            const v = e.sampleVerdict ?? (
+              e.tasting?.quality != null
+                ? e.tasting.quality >= 8 ? 'love' : e.tasting.quality >= 6 ? 'like' : e.tasting.quality >= 4 ? 'neutral' : 'pass'
+                : null
+            );
+            if (v) acc[v] = (acc[v] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) : null;
+
+          const loveList = allTasted ? setEntries.filter((e) => {
+            const v = e.sampleVerdict ?? (e.tasting?.quality != null ? (e.tasting.quality >= 8 ? 'love' : e.tasting.quality >= 6 ? 'like' : 'pass') : null);
+            return v === 'love' || v === 'like';
+          }) : [];
+
           return (
             <div key={setId}>
               <SectionHeader
@@ -283,6 +314,46 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 }
               />
               {renderEntries(setEntries, { dimTasted: true })}
+
+              {/* Decision summary — shown when all samples tasted */}
+              {allTasted && verdictCounts && (
+                <div className="mt-2 rounded-lg bg-tea-surface/60 border border-tea-border px-3 py-2.5 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-serif">Set verdict</span>
+                    <div className="flex items-center gap-2.5">
+                      {verdictCounts['love'] && (
+                        <span className="flex items-center gap-1 text-[11px] text-tea-text-sec">
+                          <Heart size={10} className="text-red-400/70" fill="currentColor" /> {verdictCounts['love']}
+                        </span>
+                      )}
+                      {verdictCounts['like'] && (
+                        <span className="flex items-center gap-1 text-[11px] text-tea-text-sec">
+                          <ThumbsUp size={10} className="text-tea-gold/60" /> {verdictCounts['like']}
+                        </span>
+                      )}
+                      {verdictCounts['neutral'] && (
+                        <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+                          <Minus size={10} /> {verdictCounts['neutral']}
+                        </span>
+                      )}
+                      {verdictCounts['pass'] && (
+                        <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+                          <ThumbsDown size={10} /> {verdictCounts['pass']}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {loveList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => loveList.forEach((e) => updateEntry(e.id, { status: 'want' }))}
+                      className="w-full py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-medium hover:bg-tea-gold/15 transition-colors"
+                    >
+                      Order {loveList.length} tea{loveList.length !== 1 ? 's' : ''}? → Mark as Want
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -376,7 +447,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search teas, vendors, regions…"
+          placeholder="Search by name, region, vendor…"
           className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2
                      outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
         />
@@ -400,23 +471,69 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             onClick={() => setBrowseFilter(opt.value)}
             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
               browseFilter === opt.value
-                ? 'bg-tea-elevated text-tea-text-sec'
+                ? 'bg-tea-gold/15 text-tea-gold font-semibold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
             }`}
           >
-            {opt.label}{opt.count > 0 ? ` ${opt.count}` : ''}
+            {opt.label} {opt.count}
           </button>
         ))}
         <div className="flex-1" />
+        {/* Compare mode toggle */}
+        <button
+          type="button"
+          onClick={() => { setCompareIds(new Set()); setCompareOpen(false); }}
+          className={`p-1.5 rounded-md transition-colors shrink-0 ${
+            compareIds.size > 0 ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+          }`}
+          title="Compare teas"
+        >
+          <SplitSquareHorizontal size={13} />
+        </button>
+        <div className="w-px h-3 bg-tea-border" />
         <button
           type="button"
           onClick={onNewCapture}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold transition-colors hover:bg-tea-gold/15 shrink-0"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold transition-colors hover:bg-tea-gold/15 border border-tea-gold/20 shrink-0"
         >
           <Plus size={11} />
           New
         </button>
       </div>
+
+      {/* Compare selection bar */}
+      <AnimatePresence>
+        {compareIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface border border-tea-gold/20 text-[12px]">
+              <SplitSquareHorizontal size={11} className="text-tea-gold shrink-0" />
+              <span className="flex-1 text-tea-text-sec">{compareIds.size} selected</span>
+              {compareIds.size >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => setCompareOpen(true)}
+                  className="text-tea-gold font-medium hover:text-tea-gold/80 transition-colors"
+                >
+                  Compare →
+                </button>
+              )}
+              <span className="text-tea-text-dim text-[10px]">tap cards to select</span>
+              <button
+                type="button"
+                onClick={() => setCompareIds(new Set())}
+                className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cleanup banner — shown when empty test entries exist */}
       <AnimatePresence>
@@ -466,9 +583,25 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           {browseFilter === 'mine'  && renderMine(filteredForView)}
           {browseFilter === 'queue' && renderQueue(filteredForView)}
           {browseFilter === 'want'  && renderFlat(filteredForView, 'Nothing on your want list yet.')}
-          {browseFilter === 'pass'  && renderFlat(filteredForView, 'No passed teas.')}
+          {browseFilter === 'pass'  && renderFlat(filteredForView, 'Nothing passed — every tea still has a chance.')}
         </>
       ) : null}
+
+      {/* Compare view — full-screen panel */}
+      {compareOpen && compareIds.size >= 2 && (
+        <CompareView
+          entries={entries.filter((e) => compareIds.has(e.id))}
+          onClose={() => setCompareOpen(false)}
+          onRemove={(id) => {
+            setCompareIds((prev) => {
+              const next = new Set(prev);
+              next.delete(id);
+              if (next.size < 2) setCompareOpen(false);
+              return next;
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

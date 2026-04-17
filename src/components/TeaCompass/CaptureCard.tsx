@@ -24,6 +24,7 @@ import { PhotoCapture } from './PhotoCapture';
 import type { ExtractedTeaData } from './PhotoCapture';
 import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
+import { IntentBar } from './IntentBar';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -46,6 +47,8 @@ interface CaptureCardProps {
   onCommit?: () => void;
   /** When set, shows a "← Library" back link at the top (navigated from Library via Edit) */
   onReturnToLibrary?: () => void;
+  /** Start in collapsed (thin) mode */
+  initialCollapsed?: boolean;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -137,7 +140,7 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -154,6 +157,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
 
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
 
@@ -619,6 +623,78 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
   if (!entry) return null;
+
+  // ── Thin / collapsed mode ─────────────────────────────────────────────────
+  if (collapsed) {
+    const chipStyle = entry.type ? getTypeChipStyle(entry.type) : null;
+    const hasTastingC = entry.tasting && Object.values(entry.tasting).some(
+      (v) => Array.isArray(v) ? v.length > 0 : v != null
+    );
+    return (
+      <div className="bg-tea-surface rounded-2xl px-4 py-2.5 space-y-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={entry.name}
+            onChange={(e) => updateEntry(entryId, { name: e.target.value })}
+            placeholder="What are you tasting?"
+            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+          />
+          {entry.type && chipStyle && (
+            <span
+              className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-lg"
+              style={{ backgroundColor: chipStyle.bg, color: chipStyle.text }}
+            >
+              {entry.type}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => { setTastingOverlayOpen(true); }}
+            className={`shrink-0 p-2 rounded-xl transition-colors ${hasTastingC ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'}`}
+            title="Quick taste"
+          >
+            <Droplets size={14} strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="shrink-0 p-2 rounded-xl bg-tea-elevated text-tea-text-dim hover:text-tea-text transition-colors"
+            title="Expand"
+          >
+            <ChevronDown size={14} />
+          </button>
+        </div>
+
+        {tastingOverlayOpen && (
+          <TastingSession
+            item={{
+              id: entry.id,
+              name: entry.name,
+              type: entry.type,
+              image: entry.photos?.[0],
+              sourceType: 'compass',
+              compassEntryId: entry.id,
+              teaKey: entry.teaKey,
+            }}
+            initialData={entry.tasting ?? undefined}
+            onClose={() => setTastingOverlayOpen(false)}
+            onAfterSave={(data: TastingData) => {
+              setLocalTasting(data);
+              const existingHistory = entry.tastingHistory || [];
+              const today = new Date().toDateString();
+              const lastEntry = existingHistory[existingHistory.length - 1];
+              const lastWasToday = lastEntry && new Date(lastEntry.date).toDateString() === today;
+              const history = lastWasToday
+                ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
+                : [...existingHistory, { data, date: new Date().toISOString() }];
+              updateEntry(entryId, { tasting: data, tastingHistory: history });
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   const isTeaware = entry.category === 'teaware';
   const isSample = !!entry.isSample;
@@ -1108,6 +1184,19 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </div>
         </div>
 
+        {/* Rating badge — shown when a quality score exists */}
+        {entry.tasting?.quality != null && (
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-[12px] font-semibold tabular-nums"
+              style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
+            >
+              {entry.tasting.quality}/10
+            </span>
+            <span className="text-[11px] text-tea-text-dim">quality</span>
+          </div>
+        )}
+
         {/* Year + Region */}
         <div className="flex items-center gap-2">
           <input
@@ -1346,6 +1435,14 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       </div>
 
+      {hasTasting && entry.tasting && (entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
+        <div className="flex items-center gap-2 flex-wrap text-[11px] text-tea-text-dim px-0.5">
+          {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
+          {entry.tasting.brewingTemp && <span>{entry.tasting.brewingTemp}°C</span>}
+          {entry.tasting.brewingTime && <span>{entry.tasting.brewingTime}</span>}
+        </div>
+      )}
+
       {hasTasting && entry.tasting && (
         <TastingProfileStrip
           value={entry.tasting}
@@ -1359,6 +1456,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         compact
         hideMic
       />
+
+      <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
 
       {/* Storage (only for Sheng/Shou/Dark) */}
       {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
@@ -1396,7 +1495,14 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             onClose={closeTastingOverlay}
             onAfterSave={(data: TastingData) => {
               setLocalTasting(data);
-              update({ tasting: data });
+              const existingHistory = entry.tastingHistory || [];
+              const today = new Date().toDateString();
+              const lastEntry = existingHistory[existingHistory.length - 1];
+              const lastWasToday = lastEntry && new Date(lastEntry.date).toDateString() === today;
+              const history = lastWasToday
+                ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
+                : [...existingHistory, { data, date: new Date().toISOString() }];
+              update({ tasting: data, tastingHistory: history });
             }}
           />
         )}

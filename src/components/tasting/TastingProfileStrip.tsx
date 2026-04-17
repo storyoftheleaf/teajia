@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Droplets, Waves, Timer, Flame, Circle } from 'lucide-react';
 import {
   resolveTermLabel,
   resolveTermIcon,
@@ -23,6 +23,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   finish: 'FINISH',
   feeling: 'FEEL',
   'liquor-color': 'COLOR',
+};
+
+/** Category header icons */
+const CATEGORY_HEADER_ICONS: Record<string, React.FC<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  flavor: (props) => <Droplets {...props} />,
+  body: (props) => <Waves {...props} />,
+  finish: (props) => <Timer {...props} />,
+  feeling: (props) => <Flame {...props} />,
+  'liquor-color': (props) => <Circle {...props} />,
+};
+
+/** Category header font weight classes */
+const CATEGORY_LABEL_CLASS: Record<string, string> = {
+  flavor: 'font-semibold text-tea-text-dim',
+  body: 'font-medium text-tea-text-dim',
+  finish: 'font-medium text-tea-text-dim',
+  feeling: 'font-normal text-tea-text-dim/70',
+  'liquor-color': 'font-normal text-tea-text-dim/70',
 };
 
 /** Category-specific tint classes for term backgrounds */
@@ -60,10 +78,44 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
   const needsCompact = totalTerms > MAX_VISIBLE && !expanded;
 
   // In compact mode, distribute the visible budget across groups
+  // Also track which categories got 0 visible terms (fully hidden)
   let termsRemaining = COLLAPSED_SHOW;
+  const hiddenCategoryLabels: string[] = [];
+
+  // Pre-calculate visibility in compact mode for the expand hint
+  if (needsCompact) {
+    let budget = COLLAPSED_SHOW;
+    for (const group of groupedTerms) {
+      if (budget <= 0) {
+        hiddenCategoryLabels.push(group.label);
+      } else {
+        const shown = Math.min(group.terms.length, budget);
+        budget -= shown;
+      }
+    }
+  }
+
+  const expandHint = hiddenCategoryLabels.length > 0
+    ? `+${totalTerms - COLLAPSED_SHOW} more · ${hiddenCategoryLabels.join(', ')}`
+    : `+${totalTerms - COLLAPSED_SHOW} more`;
 
   return (
     <div className="space-y-2">
+      {/* "Show less" at TOP when expanded */}
+      {expanded && totalTerms > MAX_VISIBLE && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          aria-expanded={true}
+          aria-label="Show fewer tasting notes"
+          className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors ml-0.5 min-h-[44px]"
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          <ChevronDown size={10} className="rotate-180" />
+          <span>Show less</span>
+        </button>
+      )}
+
       <AnimatePresence mode="popLayout">
         {groupedTerms.map(group => {
           // In compact mode, limit terms shown per group
@@ -72,6 +124,60 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
             if (termsRemaining <= 0) return null;
             visibleTerms = group.terms.slice(0, termsRemaining);
             termsRemaining -= visibleTerms.length;
+          }
+
+          const isSingleTerm = visibleTerms.length === 1 && group.categoryId !== 'flavor';
+          const HeaderIcon = CATEGORY_HEADER_ICONS[group.categoryId];
+          const labelClass = CATEGORY_LABEL_CLASS[group.categoryId] || 'font-medium text-tea-text-dim';
+
+          // Single-term inline treatment (not flavor category)
+          if (isSingleTerm) {
+            const termId = visibleTerms[0];
+            const isColor = group.categoryId === 'liquor-color';
+            const hex = isColor ? LIQUOR_COLORS[termId] : null;
+            const Icon = !isColor ? resolveTermIcon(termId) : null;
+            const termLabel = resolveTermLabel(termId);
+
+            return (
+              <motion.div
+                key={group.categoryId}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15 }}
+                layout
+                className="flex items-center gap-1 ml-0.5"
+              >
+                {HeaderIcon && (
+                  <HeaderIcon size={9} className="shrink-0 text-tea-text-dim" />
+                )}
+                <span
+                  className={`text-[10px] uppercase tracking-[0.12em] ${labelClass}`}
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {group.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(group.categoryId, termId)}
+                  className="group flex items-center gap-1 ml-1"
+                >
+                  {hex ? (
+                    <span
+                      className="shrink-0 rounded-full"
+                      style={{ width: 12, height: 12, background: hex, display: 'inline-block' }}
+                    />
+                  ) : Icon ? (
+                    <Icon size={11} className="shrink-0 text-tea-text-sec" />
+                  ) : null}
+                  <span className="text-[10px] text-tea-text-sec">{termLabel}</span>
+                  <X
+                    size={9}
+                    className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity"
+                  />
+                </button>
+              </motion.div>
+            );
           }
 
           return (
@@ -83,11 +189,12 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
               transition={{ duration: 0.15 }}
               layout
             >
-              {/* Tiny category label */}
+              {/* Category label with icon */}
               <div
-                className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium mb-1 ml-0.5"
+                className={`flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] ${labelClass} mb-1 ml-0.5`}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
+                {HeaderIcon && <HeaderIcon size={9} className="shrink-0" />}
                 {group.label}
               </div>
 
@@ -117,8 +224,8 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
                           <span
                             className="shrink-0 rounded-full"
                             style={{
-                              width: 10,
-                              height: 10,
+                              width: 12,
+                              height: 12,
                               background: hex,
                               display: 'inline-block',
                             }}
@@ -141,23 +248,18 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
         })}
       </AnimatePresence>
 
-      {/* Expand / collapse toggle for compact mode */}
-      {totalTerms > MAX_VISIBLE && (
+      {/* Expand toggle — only shown when NOT expanded */}
+      {!expanded && totalTerms > MAX_VISIBLE && (
         <button
           type="button"
-          onClick={() => setExpanded(prev => !prev)}
-          aria-expanded={expanded}
-          aria-label={expanded ? 'Show fewer tasting notes' : `Show ${totalTerms - COLLAPSED_SHOW} more tasting notes`}
+          onClick={() => setExpanded(true)}
+          aria-expanded={false}
+          aria-label={`Show ${totalTerms - COLLAPSED_SHOW} more tasting notes`}
           className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5 min-h-[44px]"
           style={{ fontFamily: 'var(--font-body)' }}
         >
-          <span>
-            {expanded ? 'Show less' : `+${totalTerms - COLLAPSED_SHOW} more`}
-          </span>
-          <ChevronDown
-            size={10}
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
-          />
+          <span>{expandHint}</span>
+          <ChevronDown size={10} />
         </button>
       )}
     </div>
