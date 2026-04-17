@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, PenLine, Library, BookOpen, Check, Mic, Square, Loader2, Share2, Layers } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Library, BookOpen, Check, Mic, Square, Loader2, Share2, Layers } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -22,8 +22,9 @@ import { useVoiceRecorder } from './useVoiceRecorder';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { CompassShareModal } from './CompassShareModal';
 import { BatchCaptureRow } from './BatchCaptureRow';
+import SampleSetCreator from '../../samples/SampleSetCreator';
 
-export type CompassMode = 'capture' | 'browse' | 'ledger';
+export type CompassMode = 'sourcing' | 'tasting' | 'buying';
 
 interface TeaCompassProps {
   onBack?: () => void;
@@ -64,8 +65,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Mode: capture (editing an entry), browse (list), or ledger (transactions)
-  const [mode, setMode] = useState<CompassMode>(initialMode || 'capture');
+  // Mode: sourcing (editing an entry), tasting (list), or buying (transactions)
+  const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -126,7 +127,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Sync mode when the route's ?tab= param changes (e.g. bottom nav Ledger → Compass)
   useEffect(() => {
-    setMode(initialMode || 'capture');
+    setMode(initialMode || 'sourcing');
   }, [initialMode]);
 
   // Track whether the user navigated to Capture from the Library (to show back link)
@@ -143,20 +144,20 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   useEffect(() => {
     if (initialEntryId && getEntry(initialEntryId)) {
       setActiveEntry(initialEntryId);
-      setMode('capture');
+      setMode('sourcing');
     }
   }, [initialEntryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When activeEntryId changes externally, switch to capture mode
+  // When activeEntryId changes externally, switch to sourcing mode
   useEffect(() => {
-    if (activeEntryId && mode !== 'capture') {
-      setMode('capture');
+    if (activeEntryId && mode !== 'sourcing') {
+      setMode('sourcing');
     }
   }, [activeEntryId]);
 
-  // Auto-start a capture when opening in capture mode with no active entry
+  // Auto-start a capture when opening in sourcing mode with no active entry
   useEffect(() => {
-    if (mode === 'capture' && !activeEntryId) {
+    if (mode === 'sourcing' && !activeEntryId) {
       startNewCapture(activeCategory);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -167,7 +168,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleNewCapture = useCallback((category?: CompassCategory) => {
     startNewCapture(category || activeCategory);
     setFromLibrary(false);
-    setMode('capture');
+    setMode('sourcing');
   }, [startNewCapture, activeCategory]);
 
   const handleCategorySwitch = useCallback((category: CompassCategory) => {
@@ -180,13 +181,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       }
     }
     startNewCapture(category);
-    setMode('capture');
+    setMode('sourcing');
   }, [startNewCapture, activeEntryId, getEntry, updateEntry]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
       setActiveEntry(id);
-      setMode('capture');
+      setMode('sourcing');
     },
     [setActiveEntry]
   );
@@ -195,7 +196,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     (id: string) => {
       setActiveEntry(id);
       setFromLibrary(true);
-      setMode('capture');
+      setMode('sourcing');
     },
     [setActiveEntry]
   );
@@ -286,7 +287,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [discardEntry]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
-    if (newMode === 'capture' && !activeEntryId) {
+    if (newMode === 'sourcing' && !activeEntryId) {
       startNewCapture(activeCategory);
     }
     setMode(newMode);
@@ -322,11 +323,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const pendingIncomingCount = visibleShares.length;
 
+  const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>('tea');
+
+  const handleCaptureOption = useCallback((opt: 'tea' | 'teaware' | 'samples') => {
+    setCaptureOption(opt);
+    if (opt !== 'samples') handleCategorySwitch(opt as CompassCategory);
+  }, [handleCategorySwitch]);
+
   // Tab config
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
-    { id: 'capture', label: 'Capture', icon: PenLine },
-    { id: 'browse', label: 'Sessions', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
-    { id: 'ledger', label: 'Ledger', icon: BookOpen },
+    { id: 'sourcing', label: 'Sourcing', icon: FlaskConical },
+    { id: 'tasting', label: 'Tasting', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
+    { id: 'buying', label: 'Buying', icon: BookOpen },
   ];
 
   return (
@@ -343,7 +351,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         </button>
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <CompassIcon className="w-5 h-5 text-tea-gold shrink-0" filled={mode === 'capture'} />
+          <CompassIcon className="w-5 h-5 text-tea-gold shrink-0" filled={mode === 'sourcing'} />
           <h2 className="text-tea-text font-serif text-[15px] tracking-wide truncate">Tea Compass</h2>
         </div>
         <SyncIndicator />
@@ -388,96 +396,95 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
       {/* ── Content ── */}
       <div
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 pb-[calc(60px+44px+env(safe-area-inset-bottom,0px))] lg:pb-[60px]"
+        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[calc(60px+44px+env(safe-area-inset-bottom,0px))] lg:pb-[60px] ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 py-3'}`}
         role="tabpanel"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
       >
         <AnimatePresence mode="wait">
-          {mode === 'capture' ? (
+          {mode === 'sourcing' ? (
             <motion.div
-              key="capture"
+              key="sourcing"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              <SessionStack
-                sessionEntries={sessionEntries}
-                activeEntryId={activeEntryId}
-                onSelectEntry={handleSelectEntry}
-                onDiscardEntry={handleDiscardSessionEntry}
-              />
-
-              {/* Batch mode row — rapid-fire entry for vendor tables */}
-              {batchMode && (
-                <BatchCaptureRow />
-              )}
-
-              {/* Tea / Teaware tab toggle */}
+              {/* Tea / Teaware / Samples 3-way toggle */}
               <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
                 <motion.div
                   className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
-                  animate={{ left: activeCategory === 'tea' ? '2px' : '50%', right: activeCategory === 'teaware' ? '2px' : '50%' }}
+                  animate={{
+                    left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                    right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                  }}
                   transition={{ duration: 0.1, ease: 'easeOut' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => handleCategorySwitch('tea')}
-                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
-                    activeCategory === 'tea'
-                      ? 'text-tea-text'
-                      : 'text-tea-text-dim hover:text-tea-text-sec'
-                  }`}
-                >
+                <button type="button" onClick={() => handleCaptureOption('tea')}
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                   Tea
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleCategorySwitch('teaware')}
-                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${
-                    activeCategory === 'teaware'
-                      ? 'text-tea-text'
-                      : 'text-tea-text-dim hover:text-tea-text-sec'
-                  }`}
-                >
+                <button type="button" onClick={() => handleCaptureOption('teaware')}
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                   Teaware
+                </button>
+                <button type="button" onClick={() => handleCaptureOption('samples')}
+                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                  Samples
                 </button>
               </div>
 
-              {/* Just-committed banner */}
-              <AnimatePresence>
-                {justCommitted && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden mb-3"
-                  >
-                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
-                      <Check size={14} strokeWidth={2.5} />
-                      <span className="flex-1 truncate">{justCommitted.name} saved</span>
-                      <button
-                        type="button"
-                        onClick={() => { setJustCommitted(null); setMode('browse'); }}
-                        className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-                      >
-                        Sessions
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {captureOption === 'samples' ? (
+                <SampleSetCreator />
+              ) : (
+                <>
+                  <SessionStack
+                    sessionEntries={sessionEntries}
+                    activeEntryId={activeEntryId}
+                    onSelectEntry={handleSelectEntry}
+                    onDiscardEntry={handleDiscardSessionEntry}
+                  />
 
-              <CaptureCard
-                entryId={activeEntryId}
-                onSwitchToLedger={() => handleSwitchMode('ledger')}
-                onCommit={handleCommitEntry}
-                onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('browse'); } : undefined}
-              />
+                  {/* Batch mode row — rapid-fire entry for vendor tables */}
+                  {batchMode && (
+                    <BatchCaptureRow />
+                  )}
+
+                  {/* Just-committed banner */}
+                  <AnimatePresence>
+                    {justCommitted && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden mb-3"
+                      >
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
+                          <Check size={14} strokeWidth={2.5} />
+                          <span className="flex-1 truncate">{justCommitted.name} saved</span>
+                          <button
+                            type="button"
+                            onClick={() => { setJustCommitted(null); setMode('tasting'); }}
+                            className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                          >
+                            Sessions
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <CaptureCard
+                    entryId={activeEntryId}
+                    onSwitchToLedger={() => handleSwitchMode('buying')}
+                    onCommit={handleCommitEntry}
+                    onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
+                  />
+                </>
+              )}
             </motion.div>
-          ) : mode === 'browse' ? (
+          ) : mode === 'tasting' ? (
             <motion.div
-              key="browse"
+              key="tasting"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -549,7 +556,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </motion.div>
           ) : (
             <motion.div
-              key="ledger"
+              key="buying"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -559,7 +566,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 embedded
                 onOpenEntry={(entryId) => {
                   setActiveEntry(entryId);
-                  setMode('capture');
+                  setMode('sourcing');
                 }}
               />
             </motion.div>
@@ -568,7 +575,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
 
       {/* ── Capture action bar ── */}
-      {mode === 'capture' && (
+      {mode === 'sourcing' && captureOption !== 'samples' && (
         <>
           <AnimatePresence>
             {voiceError && (
@@ -613,13 +620,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   )}
                   <span className="relative">
                     {voiceState === 'recording' ? (
-                      <Square size={14} fill="currentColor" />
+                      <Square size={20} fill="currentColor" />
                     ) : voiceState === 'transcribing' ? (
                       <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
-                        <Loader2 size={14} />
+                        <Loader2 size={20} />
                       </motion.span>
                     ) : (
-                      <Mic size={14} />
+                      <Mic size={20} />
                     )}
                   </span>
                 </motion.button>
@@ -653,21 +660,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   aria-label="Share"
                 >
                   <Share2 size={14} strokeWidth={1.5} />
-                </button>
-                <div className="w-px self-stretch my-2 bg-tea-border" />
-              </>
-            )}
-
-            {/* Discard — only for unsaved pending entries */}
-            {isPendingEntry && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleDiscardActive}
-                  className="flex-1 flex items-center justify-center py-3 text-tea-text-dim hover:text-red-400 transition-colors text-sm"
-                  aria-label="Discard entry"
-                >
-                  Discard
                 </button>
                 <div className="w-px self-stretch my-2 bg-tea-border" />
               </>

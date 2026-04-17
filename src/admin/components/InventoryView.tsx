@@ -1114,7 +1114,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (product.year) updates.year = product.year;
     updateCompassEntry(newId, updates);
     setRowDropdownId(null);
-    navigate(`/admin/compass?tab=capture`);
+    navigate(`/admin/compass?tab=sourcing`);
   }, [startNewCapture, updateCompassEntry, navigate]);
 
   const handleProductUpdate = async (id: string, field: keyof Product, value: any) => {
@@ -3474,7 +3474,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                             <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Encounter</span>
                             <button
-                              onClick={() => navigate(`/admin/compass?tab=ledger&entry=${encodeURIComponent(linkId)}`)}
+                              onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)}
                               className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
                             >
                               <Globe size={10} />

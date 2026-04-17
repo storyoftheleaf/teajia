@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Printer, Trash2, Edit3, Package, Leaf, X, ChevronRight, ChevronDown, ArrowLeft, Archive, Info, Compass, ShoppingBag, UserCircle, Download } from 'lucide-react';
+import { Plus, Printer, Trash2, Edit3, Package, Leaf, X, ChevronDown, ChevronUp, ArrowLeft, Archive, Info, Compass, ShoppingBag, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSampleStore } from './sampleStore';
 import { createEmptySample, createEmptySampleSet, SAMPLE_GRAM_PRESETS, SAMPLE_STATUS_CONFIG } from './types';
@@ -28,7 +28,6 @@ const PURPOSE_LABEL: Record<string, string> = {
   panel: 'Panel',
 };
 
-// Compact type abbreviations for mobile display
 const TYPE_SHORT: Record<string, string> = {
   Green: 'GRN',
   White: 'WHT',
@@ -41,18 +40,18 @@ const TYPE_SHORT: Record<string, string> = {
   Herbal: 'HRB',
 };
 
-// ── Quick-Add Bar ──────────────────────────────────────────────────────
+// ── Quick-Add Sheet ────────────────────────────────────────────────────
 
-interface QuickAddBarProps {
+interface QuickAddSheetProps {
   setId: string;
   sourceName?: string;
   sourceId?: string;
+  onClose: () => void;
 }
 
-function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
+function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetProps) {
   const { addSample, updateSampleSet, getSampleSet } = useSampleStore();
   const addCompassEntry = useTeaCompassStore((s) => s.addEntry);
-  const nameRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState('');
   const [chineseName, setChineseName] = useState<string | undefined>(undefined);
@@ -101,7 +100,6 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
     sample.originRegion = region.trim() || undefined;
     sample.teaKey = generateTeaKey({ name: trimmed, type, year: year ? parseInt(year, 10) : undefined, originRegion: region.trim() || undefined });
 
-    // Also create a compass entry (tea category, isSample flag) so samples appear in Tea Compass Browse
     const compassEntry = createEmptyEntry('tea', {
       vendorName: sourceName,
       vendorId: sourceId,
@@ -116,13 +114,11 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
     compassEntry.sampleGrams = grams;
     compassEntry.teaKey = sample.teaKey;
 
-    // Bi-directional link: sample knows its compass entry and vice versa
     sample.compassEntryId = compassEntry.id;
 
     addSample(sample);
     addCompassEntry(compassEntry);
 
-    // Add sample id to the set
     const set = getSampleSet(setId);
     if (set) {
       updateSampleSet(setId, {
@@ -130,14 +126,10 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
       });
     }
 
-    // Reset fields, keep type sticky for batch entry
     setName('');
     setChineseName(undefined);
     setYear('');
     setRegion('');
-    // grams and type stay — usually same for a batch
-    setTimeout(() => nameRef.current?.focus(), 50);
-
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1200);
   }, [name, type, year, grams, region, chineseName, setId, sourceName, sourceId, addSample, updateSampleSet, getSampleSet, addCompassEntry]);
@@ -149,134 +141,161 @@ function QuickAddBar({ setId, sourceName, sourceId }: QuickAddBarProps) {
     }
   };
 
+  const inputCls = "w-full bg-tea-surface/60 text-tea-text rounded-lg px-3 py-2.5 text-sm border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim";
+
   return (
-    <div className="bg-tea-surface z-40 lg:sticky lg:bottom-0"
-      style={{ boxShadow: '0 -2px 12px color-mix(in srgb, var(--tea-text) 20%, transparent)' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="w-full max-w-lg bg-tea-surface rounded-t-xl"
+        style={{ maxHeight: 'calc(100dvh - 60px)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3"
+             style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
+          <span className="text-sm font-semibold text-tea-text">Add Sample</span>
+          <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {addedFeedback && (
+                <motion.span
+                  initial={{ opacity: 0, x: 4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[11px] text-tea-gold"
+                >
+                  Added ✓
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <button onClick={onClose} className="nav-control nav-control-close">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
 
-      {/* Added feedback toast */}
-      <AnimatePresence>
-        {addedFeedback && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="text-[11px] text-tea-gold px-3 py-1"
-          >
-            Sample added
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <div className="px-4 pt-3 pb-4 space-y-3">
+          {/* Name — outside any overflow container so autocomplete dropdown isn't clipped */}
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">
+              Tea Name <span className="text-tea-text-dim normal-case tracking-normal">— required</span>
+            </label>
+            <AutocompleteInput
+              value={name}
+              onChange={setName}
+              suggestions={varietySuggestions}
+              itemData={varietyNameMap}
+              hintSuggestions={hintSuggestions}
+              onSelect={handleVarietySelect}
+              placeholder="e.g. Tie Guan Yin, Da Hong Pao…"
+              className={inputCls}
+            />
+            {duplicateProduct && (
+              <div className="text-[11px] text-tea-gold mt-1.5 flex items-center gap-1.5">
+                <span>Already in stock:</span>
+                <span className="font-medium">{(duplicateProduct as any).givenName || (duplicateProduct as any).productName}</span>
+                {(duplicateProduct as any).stockGrams > 0 && (
+                  <span className="text-tea-text-dim num">({(duplicateProduct as any).stockGrams}g)</span>
+                )}
+              </div>
+            )}
+          </div>
 
-      {/* Type pills — always visible */}
-      <div className="flex gap-1 px-3 pt-2 overflow-x-auto scrollbar-hide">
-        {TEA_TYPES.filter(t => t !== 'Teaware').map((t) => (
-          <button
-            key={t}
-            className={`pill shrink-0 text-[11px] ${type === t ? 'pill-active' : ''}`}
-            onClick={() => setType(type === t ? undefined : t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+          {/* Type + Year on one row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Type</label>
+              <select
+                value={type || ''}
+                onChange={(e) => setType((e.target.value as TeaType) || undefined)}
+                className={inputCls + ' appearance-none cursor-pointer'}
+                style={{ color: type ? 'var(--tea-text)' : 'var(--tea-text-dim)' }}
+              >
+                <option value="">— select —</option>
+                {TEA_TYPES.filter(t => t !== 'Teaware').map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Year</label>
+              <input
+                type="number"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. 2023"
+                className={inputCls + ' num'}
+              />
+            </div>
+          </div>
 
-      {/* Main input row */}
-      <div className="flex items-center gap-2 px-3 py-2">
-        {/* Name input with variety autocomplete */}
-        <AutocompleteInput
-          value={name}
-          onChange={setName}
-          suggestions={varietySuggestions}
-          itemData={varietyNameMap}
-          hintSuggestions={hintSuggestions}
-          onSelect={handleVarietySelect}
-          placeholder="Tea name *"
-          className="flex-1 min-w-0 bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm
-                     placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-        />
+          {/* Region */}
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Region</label>
+            <input
+              type="text"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Wuyi, Phoenix Mountain…"
+              className={inputCls}
+            />
+          </div>
 
-        {/* Year input */}
-        <input
-          type="number"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Yr"
-          className="w-14 bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm text-center num
-                     placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-        />
+          {/* Grams */}
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Grams</label>
+            <div className="flex flex-wrap gap-1 items-center">
+              {SAMPLE_GRAM_PRESETS.map((g) => (
+                <button
+                  key={g}
+                  className={`pill num ${grams === g ? 'pill-active' : ''}`}
+                  onClick={() => setGrams(g)}
+                >
+                  {g}g
+                </button>
+              ))}
+              <input
+                type="number"
+                min="1"
+                max="500"
+                value={SAMPLE_GRAM_PRESETS.includes(grams) ? '' : grams}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (!isNaN(v) && v > 0) setGrams(v);
+                }}
+                placeholder="custom"
+                className="w-20 bg-tea-surface/60 text-tea-text rounded-lg px-2 py-1 text-xs num
+                           border border-tea-border focus:border-tea-gold/40 outline-none
+                           placeholder:text-tea-text-dim"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Add button */}
-        <button
-          onClick={handleAdd}
-          disabled={!name.trim()}
-          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-                     bg-tea-gold/20 text-tea-gold disabled:opacity-30 disabled:cursor-default
-                     active:scale-95 transition-transform"
-        >
-          <Plus size={18} />
-        </button>
-      </div>
-
-      {/* Autocomplete hint */}
-      <div className="text-[10px] text-tea-text-dim px-3 pb-0.5">Name required · Suggestions from your tea database</div>
-
-      {duplicateProduct && (
-        <div className="text-[10px] text-tea-gold px-3 pb-0.5 flex items-center gap-1">
-          <span>Already in stock:</span>
-          <span className="font-medium">{(duplicateProduct as any).givenName || (duplicateProduct as any).productName}</span>
-          {(duplicateProduct as any).stockGrams > 0 && (
-            <span className="text-tea-text-dim num">({(duplicateProduct as any).stockGrams}g)</span>
-          )}
-        </div>
-      )}
-
-      {/* Grams presets row */}
-      <div className="flex items-center gap-1 px-3 pb-1 overflow-x-auto scrollbar-hide">
-        <span className="text-[10px] uppercase tracking-wider text-tea-text-dim mr-1 shrink-0">g</span>
-        {SAMPLE_GRAM_PRESETS.map((g) => (
+        <div className="px-4 pb-5 pt-1">
           <button
-            key={g}
-            className={`pill num ${grams === g ? 'pill-active' : ''}`}
-            onClick={() => setGrams(g)}
+            onClick={handleAdd}
+            disabled={!name.trim()}
+            className="w-full pill pill-active flex items-center justify-center gap-1.5 py-2.5 text-sm font-semibold disabled:opacity-30 disabled:cursor-default"
           >
-            {g}
+            <Plus size={14} />
+            Add Sample
           </button>
-        ))}
-      </div>
-
-      {/* Custom gram input */}
-      <div className="flex items-center gap-1 px-3 pb-1">
-        <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">custom g</span>
-        <input
-          type="number"
-          min="1"
-          max="500"
-          value={SAMPLE_GRAM_PRESETS.includes(grams) ? '' : grams}
-          onChange={(e) => {
-            const v = parseInt(e.target.value, 10);
-            if (!isNaN(v) && v > 0) setGrams(v);
-          }}
-          placeholder="—"
-          className="w-14 bg-tea-bg text-tea-text rounded px-2 py-1 text-xs num text-center
-                     placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-        />
-      </div>
-
-      {/* Region row */}
-      <div className="flex items-center gap-2 px-3 pb-2">
-        <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">Region</span>
-        <input
-          type="text"
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="e.g. Wuyi, Yixing..."
-          className="flex-1 bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm
-                     placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-        />
-      </div>
-    </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -308,7 +327,6 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
       transition={{ duration: 0.2 }}
       className={`flex items-center gap-2 px-3 py-2 bg-tea-surface rounded mb-1.5 ${sample.status === 'untasted' ? 'opacity-60' : ''}`}
     >
-      {/* Bulk select checkbox */}
       {bulkMode && (
         <button
           onClick={() => onToggleSelect?.(sample.id)}
@@ -319,12 +337,10 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         </button>
       )}
 
-      {/* Type badge */}
-      <span className={`badge-status badge-status-gold text-[10px] shrink-0 w-8 text-center`}>
+      <span className="badge-status badge-status-gold text-[10px] shrink-0 w-8 text-center">
         {sample.type ? TYPE_SHORT[sample.type] || sample.type.slice(0, 3).toUpperCase() : '---'}
       </span>
 
-      {/* Name + details */}
       <div className="flex-1 min-w-0">
         <div className="text-sm text-tea-text truncate">{sample.name || 'Unnamed'}</div>
         <div className="flex items-center gap-2 text-[11px] text-tea-text-dim">
@@ -349,7 +365,6 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         )}
       </div>
 
-      {/* Status — tappable to cycle */}
       <button
         onClick={() => {
           const order: SampleStatus[] = ['untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'];
@@ -363,7 +378,6 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         {statusCfg.label}
       </button>
 
-      {/* Actions */}
       <button
         onClick={() => onEdit(sample.id)}
         className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"
@@ -421,42 +435,54 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
   );
 }
 
-// ── Set List Item ──────────────────────────────────────────────────────
+// ── Batch Card ─────────────────────────────────────────────────────────
 
-interface SetListItemProps {
+interface BatchCardProps {
   sampleSet: SampleSet;
-  sampleCount: number;
-  isActive: boolean;
-  onClick: () => void;
   tastedCount: number;
   totalCount: number;
+  favoriteCount: number;
+  graduatedCount: number;
+  passedCount: number;
+  onClick: () => void;
 }
 
-function SetListItem({ sampleSet, sampleCount, isActive, onClick, tastedCount, totalCount }: SetListItemProps) {
+function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduatedCount, passedCount, onClick }: BatchCardProps) {
   const purposeLabel = PURPOSE_LABEL[sampleSet.purpose] ?? sampleSet.purpose;
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-2.5 rounded mb-1 transition-colors ${
-        isActive
-          ? 'bg-tea-gold/10 text-tea-gold'
-          : 'bg-tea-surface text-tea-text hover:bg-tea-surface/80'
-      }`}
+      className="w-full text-left bg-tea-surface rounded-lg px-4 py-3 hover:bg-tea-elevated active:scale-[0.99] transition-all"
     >
-      <div className="flex items-center gap-2">
-        {isActive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span className="text-sm font-medium truncate flex-1">
-          {sampleSet.name || 'Untitled Batch'}
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-tea-text truncate">
+            {sampleSet.name || 'Untitled Batch'}
+          </div>
+          {sampleSet.sourceName && (
+            <div className="text-[11px] text-tea-text-dim truncate mt-0.5">{sampleSet.sourceName}</div>
+          )}
+        </div>
+        <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-gold">
+          {purposeLabel}
         </span>
-        <span className="text-[11px] text-tea-text-dim num">{sampleCount}</span>
       </div>
-      {sampleSet.sourceName && (
-        <div className="text-[11px] text-tea-text-dim ml-5 truncate">{sampleSet.sourceName}</div>
+      <div className="text-[11px] text-tea-text-sec mt-1.5">
+        <span className="num">{tastedCount}</span> / <span className="num">{totalCount}</span> tasted
+      </div>
+      {(favoriteCount > 0 || graduatedCount > 0 || passedCount > 0) && (
+        <div className="flex items-center gap-3 mt-1">
+          {favoriteCount > 0 && (
+            <span className="text-[10px] text-tea-text-dim num">{favoriteCount} fav</span>
+          )}
+          {graduatedCount > 0 && (
+            <span className="text-[10px] text-tea-gold num">{graduatedCount} in stock</span>
+          )}
+          {passedCount > 0 && (
+            <span className="text-[10px] text-tea-text-dim num">{passedCount} passed</span>
+          )}
+        </div>
       )}
-      <div className="flex items-center gap-2 ml-5 mt-0.5">
-        <span className="text-[10px] text-tea-text-dim num">{tastedCount}/{totalCount} tasted</span>
-        <span className="text-[10px] badge-status text-[9px]">{purposeLabel}</span>
-      </div>
     </button>
   );
 }
@@ -479,7 +505,6 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
 
   const [vendorOnly, setVendorOnly] = useState(!!defaultVendorId);
 
-  // Show entries not already in this set
   const candidates = compassEntries.filter(
     e => e.category === 'tea' &&
          !existingCompassIds.has(e.id) &&
@@ -635,8 +660,10 @@ export default function SampleSetCreator() {
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'set' | 'all'>('set');
+  const [view, setView] = useState<'batches' | 'batch' | 'all'>('batches');
   const [showCompassImport, setShowCompassImport] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [batchDetailsOpen, setBatchDetailsOpen] = useState(false);
   const [vendorSearchOpen, setVendorSearchOpen] = useState(false);
   const [vendorQuery, setVendorQuery] = useState('');
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -647,55 +674,48 @@ export default function SampleSetCreator() {
   const activeSet = visibleSets.find((s) => s.id === activeSetId);
   const activeSamples = activeSetId ? getSamplesForSet(activeSetId) : [];
 
-  // Reset filter + search when set changes
   useEffect(() => {
     setStatusFilter('all');
     setSearchQuery('');
   }, [activeSetId]);
 
-  // Hydration guard: if store loaded from localStorage after mount, pick first set
   useEffect(() => {
     if (!activeSetId && visibleSets.length > 0) {
       setActiveSetId(visibleSets[0].id);
     }
   }, [visibleSets.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filtered + searched samples
   const filteredSamples = (statusFilter === 'all' ? activeSamples : activeSamples.filter(s => s.status === statusFilter))
     .filter(s => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.originRegion?.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // All samples view
   const allSamples = samples;
   const allFilteredSamples = (statusFilter === 'all' ? allSamples : allSamples.filter(s => s.status === statusFilter))
     .filter(s => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.originRegion?.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const displaySamples = viewMode === 'all' ? allFilteredSamples : filteredSamples;
-
   const batchComplete = useMemo(() =>
     activeSamples.length > 0 && activeSamples.every(s => s.status !== 'untasted'),
     [activeSamples]
   );
-  const batchStats = useMemo(() => {
-    if (!batchComplete) return null;
-    return {
-      favorite: activeSamples.filter(s => s.status === 'favorite').length,
-      toOrder: activeSamples.filter(s => s.status === 'ordering' || s.status === 'ordered').length,
-      passed: activeSamples.filter(s => s.status === 'passed').length,
-      graduated: activeSamples.filter(s => s.productId).length,
-    };
-  }, [activeSamples, batchComplete]);
 
-  // Create new set
+  const statusCounts = useMemo(() => ({
+    untasted: activeSamples.filter(s => s.status === 'untasted').length,
+    tasted: activeSamples.filter(s => s.status === 'tasted').length,
+    favorite: activeSamples.filter(s => s.status === 'favorite').length,
+    ordering: activeSamples.filter(s => s.status === 'ordering' || s.status === 'ordered').length,
+    passed: activeSamples.filter(s => s.status === 'passed').length,
+    graduated: activeSamples.filter(s => s.productId).length,
+  }), [activeSamples]);
+
   const handleNewSet = useCallback(() => {
     const newSet = createEmptySampleSet({ purpose: 'sourcing' });
     addSampleSet(newSet);
     setActiveSetId(newSet.id);
-    setViewMode('set');
+    setView('batch');
+    setBatchDetailsOpen(true);
   }, [addSampleSet]);
 
-  // Delete set
   const handleDeleteSet = useCallback(
     (id: string) => {
       removeSampleSet(id);
@@ -706,7 +726,6 @@ export default function SampleSetCreator() {
     [activeSetId, visibleSets, removeSampleSet]
   );
 
-  // Delete sample
   const handleDeleteSample = useCallback(
     (id: string) => {
       removeSample(id);
@@ -714,12 +733,10 @@ export default function SampleSetCreator() {
     [removeSample]
   );
 
-  // Navigate to compass entry for tasting
   const handleTaste = useCallback((compassEntryId: string) => {
     navigate(`/admin/compass?entry=${compassEntryId}`);
   }, [navigate]);
 
-  // Graduate sample to inventory product
   const handleGraduate = useCallback(async (sample: TeaSample) => {
     if (!window.confirm(`Graduate "${sample.name}" to inventory? This creates a draft product.`)) return;
     try {
@@ -763,7 +780,6 @@ export default function SampleSetCreator() {
     }
   }, [compassEntries, updateSample, updateCompassEntry]);
 
-  // Status change with compass sync
   const handleStatusChange = useCallback((sampleId: string, status: SampleStatus) => {
     updateSampleStatus(sampleId, status);
     const sample = samples.find(s => s.id === sampleId);
@@ -784,24 +800,36 @@ export default function SampleSetCreator() {
     }
   }, [updateSampleStatus, samples, updateCompassEntry]);
 
-  // Auto-create first set if none exist
   useEffect(() => {
     if (sampleSets.length === 0) {
       handleNewSet();
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
-    <div className="min-h-screen bg-tea-bg text-tea-text lg:flex lg:flex-col lg:h-screen lg:overflow-hidden">
-      {/* Page header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0"
+  const toggleBulkSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // ── Screen 1: Batch List ─────────────────────────────────────────────
+
+  const renderBatchList = () => (
+    <div className="min-h-screen bg-tea-bg text-tea-text">
+      <div className="flex items-center justify-between px-4 pt-4 pb-3"
         style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
         <div className="flex items-center gap-2">
           <Package size={20} className="text-tea-gold" />
-          <h1 className="text-lg font-semibold text-tea-text">Batches</h1>
-          {visibleSets.length > 0 && (
-            <span className="text-[11px] text-tea-text-dim num ml-1">{visibleSets.length}</span>
-          )}
+          <h1 className="text-lg font-semibold text-tea-text">Samples</h1>
+          <span className="text-[11px] text-tea-text-dim num ml-1">{visibleSets.length} batch{visibleSets.length !== 1 ? 'es' : ''}</span>
+          <button
+            onClick={() => { setView('all'); setStatusFilter('all'); setSearchQuery(''); }}
+            className="text-[11px] text-tea-gold hover:opacity-80 transition-opacity ml-0.5"
+          >
+            · All →
+          </button>
         </div>
         <button onClick={handleNewSet} className="pill pill-active flex items-center gap-1">
           <Plus size={12} />
@@ -810,13 +838,13 @@ export default function SampleSetCreator() {
       </div>
 
       {ledgerPromptName && (
-        <div className="flex items-center gap-3 px-4 py-2.5 text-sm shrink-0"
+        <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
              style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <span className="flex-1 text-[12px] text-tea-text-sec truncate">
             <span className="text-tea-text font-medium">{ledgerPromptName}</span> marked as ordered
           </span>
           <button
-            onClick={() => { navigate('/admin/compass?tab=ledger'); setLedgerPromptName(null); }}
+            onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
             className="pill pill-active text-[11px] shrink-0"
           >
             Open Ledger
@@ -827,151 +855,167 @@ export default function SampleSetCreator() {
         </div>
       )}
 
-      {/* Body — two columns on desktop, stacked on mobile */}
-      <div className="lg:flex lg:flex-1 lg:overflow-hidden">
+      <div className="px-4 pt-4 pb-24">
+        {visibleSets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-tea-text-dim">
+            <Leaf size={32} className="mb-3 opacity-30" />
+            <p className="text-sm">No batches yet. Tap + New Batch to start sourcing.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {visibleSets.map((ss) => {
+              const setsamples = getSamplesForSet(ss.id);
+              const total = setsamples.length;
+              const tasted = setsamples.filter(s => s.status !== 'untasted').length;
+              const fav = setsamples.filter(s => s.status === 'favorite').length;
+              const graduated = setsamples.filter(s => s.productId).length;
+              const passed = setsamples.filter(s => s.status === 'passed').length;
+              return (
+                <BatchCard
+                  key={ss.id}
+                  sampleSet={ss}
+                  tastedCount={tasted}
+                  totalCount={total}
+                  favoriteCount={fav}
+                  graduatedCount={graduated}
+                  passedCount={passed}
+                  onClick={() => { setActiveSetId(ss.id); setView('batch'); }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-        {/* Set list — vertical sidebar on desktop */}
-        <div
-          className="lg:w-52 lg:shrink-0 lg:flex lg:flex-col lg:overflow-y-auto"
-          style={{ borderRight: '1px solid var(--tea-accent-sub)' }}
-        >
-          {/* Mobile: horizontal scroll (shown only when >1 set) */}
-          {visibleSets.length > 1 && (
-            <div className="flex gap-1 overflow-x-auto scrollbar-hide px-3 py-2 lg:hidden">
-              {visibleSets.map((ss) => {
-                const setsamples = getSamplesForSet(ss.id);
-                const count = setsamples.length;
-                const tasted = setsamples.filter(s => s.status !== 'untasted').length;
-                return (
-                  <SetListItem
-                    key={ss.id}
-                    sampleSet={ss}
-                    sampleCount={count}
-                    isActive={ss.id === activeSetId}
-                    onClick={() => { setActiveSetId(ss.id); setViewMode('set'); }}
-                    tastedCount={tasted}
-                    totalCount={count}
-                  />
-                );
-              })}
-            </div>
-          )}
+  // ── Screen 2: Batch Detail ───────────────────────────────────────────
 
-          {/* Desktop: vertical list */}
-          <div className="hidden lg:flex lg:flex-col gap-1 p-2 flex-1">
-            {/* All Batches toggle */}
+  const renderBatchDetail = () => {
+    if (!activeSet) {
+      return (
+        <div className="min-h-screen bg-tea-bg text-tea-text flex flex-col items-center justify-center text-tea-text-dim">
+          <Leaf size={32} className="mb-3 opacity-30" />
+          <p className="text-sm">Select or create a batch</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-tea-bg text-tea-text">
+        {/* Top bar */}
+        <div className="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0"
+          style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
+          <button
+            onClick={() => setView('batches')}
+            className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="Back to batches"
+          >
+            <ArrowLeft size={20} />
+          </button>
+
+          {/* Inline-editable batch name */}
+          <input
+            type="text"
+            value={activeSet.name}
+            onChange={(e) => updateSampleSet(activeSet.id, { name: e.target.value })}
+            placeholder="Batch name..."
+            className="flex-1 min-w-0 bg-transparent text-tea-text text-sm font-medium
+                       placeholder:text-tea-text-dim focus:outline-none"
+          />
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => setViewMode(viewMode === 'all' ? 'set' : 'all')}
-              className={`w-full text-left px-3 py-2 rounded mb-1 text-sm transition-colors ${
-                viewMode === 'all' ? 'bg-tea-gold/10 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-              }`}
+              onClick={() => setShowLabels(true)}
+              className="nav-control nav-control-sm"
+              title="Print labels"
             >
-              All Batches · <span className="num">{samples.length}</span>
+              <Printer size={15} />
             </button>
-
-            {visibleSets.length === 0 ? (
-              <p className="text-[11px] text-tea-text-dim px-2 py-6 text-center">No batches yet</p>
-            ) : (
-              visibleSets.map((ss) => {
-                const setsamples = getSamplesForSet(ss.id);
-                const count = setsamples.length;
-                const tasted = setsamples.filter(s => s.status !== 'untasted').length;
-                return (
-                  <SetListItem
-                    key={ss.id}
-                    sampleSet={ss}
-                    sampleCount={count}
-                    isActive={ss.id === activeSetId && viewMode === 'set'}
-                    onClick={() => { setActiveSetId(ss.id); setViewMode('set'); }}
-                    tastedCount={tasted}
-                    totalCount={count}
-                  />
-                );
-              })
-            )}
+            <button
+              onClick={() => setShowCompassImport(true)}
+              className="nav-control nav-control-sm"
+              title="Import from Compass"
+            >
+              <Download size={15} />
+            </button>
+            <button
+              onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
+              className={`pill text-[10px] ${bulkMode ? 'pill-active' : ''}`}
+            >
+              {bulkMode ? 'Cancel' : 'Select'}
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Archive this batch? It will be hidden from the active list.')) {
+                  archiveSampleSet(activeSet.id);
+                  const next = visibleSets.find(s => s.id !== activeSet.id && !s.archived);
+                  setActiveSetId(next?.id ?? null);
+                  setView('batches');
+                }
+              }}
+              className="nav-control nav-control-sm"
+              title="Archive batch"
+            >
+              <Archive size={15} />
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm(`Delete "${activeSet.name || 'this batch'}"? This will permanently delete all ${activeSamples.length} sample${activeSamples.length !== 1 ? 's' : ''} and their tasting records.`)) {
+                  handleDeleteSet(activeSet.id);
+                  setView('batches');
+                }
+              }}
+              className="nav-control nav-control-sm"
+              title="Delete batch"
+              style={{ color: 'var(--tea-text-dim)' }}
+            >
+              <Trash2 size={15} />
+            </button>
           </div>
         </div>
 
-        {/* Editor column */}
-        <div className="lg:flex-1 lg:flex lg:flex-col lg:overflow-hidden">
-          {viewMode === 'all' ? (
-            /* All Batches view */
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
-              <h2 className="text-base font-semibold text-tea-text mb-3">
-                All Batches · <span className="num text-tea-text-dim">{samples.length}</span>
-              </h2>
-              {/* Search */}
-              <div className="mb-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search samples..."
-                  className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
-                             placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-                />
-              </div>
-              {/* Status filter */}
-              <div className="flex gap-1 mb-2 overflow-x-auto scrollbar-hide">
-                {(['all', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStatusFilter(s)}
-                    className={`pill text-[10px] shrink-0 ${statusFilter === s ? 'pill-active' : ''}`}
-                  >
-                    {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
-                  </button>
-                ))}
-              </div>
-              <div className="inset-panel p-2 min-h-[120px]">
-                {allFilteredSamples.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
-                    <Leaf size={24} className="mb-2 opacity-40" />
-                    <p className="text-sm">No samples match</p>
-                  </div>
-                ) : (
-                  <AnimatePresence mode="popLayout">
-                    {allFilteredSamples.map((sample) => (
-                      <SampleCard
-                        key={sample.id}
-                        sample={sample}
-                        onEdit={setEditingSampleId}
-                        onDelete={handleDeleteSample}
-                        onStatusChange={handleStatusChange}
-                        onTaste={handleTaste}
-                        onGraduate={handleGraduate}
-                        bulkMode={bulkMode}
-                        isSelected={selectedIds.has(sample.id)}
-                        onToggleSelect={(id) => setSelectedIds(prev => {
-                          const next = new Set(prev);
-                          next.has(id) ? next.delete(id) : next.add(id);
-                          return next;
-                        })}
-                        noteCount={sample.compassEntryId ? (compassNoteCountMap[sample.compassEntryId] || 0) : 0}
-                      />
-                    ))}
-                  </AnimatePresence>
-                )}
-              </div>
-            </div>
-          ) : activeSet ? (
-            <>
-              {/* Scrollable form + sample list */}
-              <div className="flex-1 overflow-y-auto px-4 pt-4 pb-[180px] lg:pb-4">
-                {/* Set name */}
-                <input
-                  type="text"
-                  value={activeSet.name}
-                  onChange={(e) => updateSampleSet(activeSet.id, { name: e.target.value })}
-                  placeholder="Batch name (e.g. March 2026 — Wuyi trip)"
-                  className="w-full bg-transparent text-tea-text text-base font-medium mb-3
-                             placeholder:text-tea-text-dim focus:outline-none pb-1"
-                  style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}
-                />
+        {ledgerPromptName && (
+          <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
+               style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
+            <span className="flex-1 text-[12px] text-tea-text-sec truncate">
+              <span className="text-tea-text font-medium">{ledgerPromptName}</span> marked as ordered
+            </span>
+            <button
+              onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
+              className="pill pill-active text-[11px] shrink-0"
+            >
+              Open Ledger
+            </button>
+            <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-dim hover:text-tea-text">
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
-                {/* Purpose + Source on one line on desktop */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-3">
-                  <div className="flex items-center gap-1.5 shrink-0">
+        {/* Batch details collapsible */}
+        <div style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
+          <button
+            onClick={() => setBatchDetailsOpen(!batchDetailsOpen)}
+            className="w-full flex items-center justify-between px-4 py-2 text-[11px] text-tea-text-dim hover:text-tea-text transition-colors"
+          >
+            <span>Batch details</span>
+            {batchDetailsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          <AnimatePresence>
+            {batchDetailsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 pb-3 space-y-3">
+                  {/* Purpose pills */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] uppercase tracking-wider text-tea-text-dim">Purpose</span>
                     {PURPOSE_OPTIONS.map((p) => (
                       <button
@@ -983,7 +1027,9 @@ export default function SampleSetCreator() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2 flex-1 min-w-[160px] relative">
+
+                  {/* Source with vendor autocomplete */}
+                  <div className="flex items-center gap-2 relative">
                     <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">Source</span>
                     <div className="flex-1 relative">
                       <input
@@ -1032,11 +1078,13 @@ export default function SampleSetCreator() {
                       )}
                     </div>
                   </div>
+
+                  {/* Vendor contact links */}
                   {(() => {
                     const linkedVendor = vendors.find((v: any) => v.id === activeSet.sourceId);
                     if (!linkedVendor || (!linkedVendor.whatsapp && !linkedVendor.phone && !linkedVendor.email)) return null;
                     return (
-                      <div className="flex flex-wrap gap-3 mt-1.5">
+                      <div className="flex flex-wrap gap-3">
                         {linkedVendor.whatsapp && (
                           <a
                             href={`https://wa.me/${String(linkedVendor.whatsapp).replace(/\D/g, '')}`}
@@ -1059,218 +1107,258 @@ export default function SampleSetCreator() {
                       </div>
                     );
                   })()}
-                </div>
 
-                {/* Customer picker — only for customer-gifted batches */}
-                {activeSet.purpose === 'customer-gifted' && (
-                  <div className="flex items-center gap-2 mb-3 relative">
-                    <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">
-                      <UserCircle size={12} className="inline mr-0.5" />Customer
-                    </span>
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={activeSet.customerName || ''}
-                        onChange={(e) => {
-                          updateSampleSet(activeSet.id, { customerName: e.target.value, customerId: undefined });
-                          setCustomerQuery(e.target.value);
-                          setCustomerSearchOpen(true);
-                        }}
-                        onFocus={() => setCustomerSearchOpen(true)}
-                        onBlur={() => setTimeout(() => setCustomerSearchOpen(false), 150)}
-                        placeholder="Select customer..."
-                        className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm
-                                   placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-                      />
-                      {activeSet.customerId && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-tea-gold">✓ linked</span>
-                      )}
-                      {customerSearchOpen && (
-                        <div className="absolute top-full left-0 right-0 z-50 bg-tea-elevated rounded shadow-lg mt-0.5 max-h-40 overflow-y-auto"
-                             style={{ border: '1px solid var(--tea-border)' }}>
-                          {allCustomers
-                            .filter(c => !c.tags?.includes('vendor'))
-                            .filter(c => !customerQuery.trim() || c.name.toLowerCase().includes(customerQuery.toLowerCase()))
-                            .slice(0, 8)
-                            .map(c => (
-                              <button
-                                key={c.id}
-                                className="w-full text-left px-3 py-2 text-sm text-tea-text hover:bg-tea-surface transition-colors"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  updateSampleSet(activeSet.id, { customerName: c.name, customerId: c.id });
-                                  setCustomerSearchOpen(false);
-                                  setCustomerQuery('');
-                                }}
-                              >
-                                <div>{c.name}</div>
-                                {c.company && <div className="text-[10px] text-tea-text-dim">{c.company}</div>}
-                              </button>
-                            ))
-                          }
-                          {customerQuery && !allCustomers.find(c => c.name.toLowerCase() === customerQuery.toLowerCase()) && (
-                            <div className="px-3 py-2 text-[11px] text-tea-text-dim italic">Type to search or enter a name</div>
-                          )}
-                        </div>
-                      )}
+                  {/* Customer picker — customer-gifted only */}
+                  {activeSet.purpose === 'customer-gifted' && (
+                    <div className="flex items-center gap-2 relative">
+                      <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">Customer</span>
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={activeSet.customerName || ''}
+                          onChange={(e) => {
+                            updateSampleSet(activeSet.id, { customerName: e.target.value, customerId: undefined });
+                            setCustomerQuery(e.target.value);
+                            setCustomerSearchOpen(true);
+                          }}
+                          onFocus={() => setCustomerSearchOpen(true)}
+                          onBlur={() => setTimeout(() => setCustomerSearchOpen(false), 150)}
+                          placeholder="Select customer..."
+                          className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm
+                                     placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
+                        />
+                        {activeSet.customerId && (
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-tea-gold">✓ linked</span>
+                        )}
+                        {customerSearchOpen && (
+                          <div className="absolute top-full left-0 right-0 z-50 bg-tea-elevated rounded shadow-lg mt-0.5 max-h-40 overflow-y-auto"
+                               style={{ border: '1px solid var(--tea-border)' }}>
+                            {allCustomers
+                              .filter(c => !c.tags?.includes('vendor'))
+                              .filter(c => !customerQuery.trim() || c.name.toLowerCase().includes(customerQuery.toLowerCase()))
+                              .slice(0, 8)
+                              .map(c => (
+                                <button
+                                  key={c.id}
+                                  className="w-full text-left px-3 py-2 text-sm text-tea-text hover:bg-tea-surface transition-colors"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateSampleSet(activeSet.id, { customerName: c.name, customerId: c.id });
+                                    setCustomerSearchOpen(false);
+                                    setCustomerQuery('');
+                                  }}
+                                >
+                                  <div>{c.name}</div>
+                                  {c.company && <div className="text-[10px] text-tea-text-dim">{c.company}</div>}
+                                </button>
+                              ))
+                            }
+                            {customerQuery && !allCustomers.find(c => c.name.toLowerCase() === customerQuery.toLowerCase()) && (
+                              <div className="px-3 py-2 text-[11px] text-tea-text-dim italic">Type to search or enter a name</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Notes */}
-                <textarea
-                  value={activeSet.notes || ''}
-                  onChange={(e) => updateSampleSet(activeSet.id, { notes: e.target.value })}
-                  placeholder="Notes..."
-                  rows={2}
-                  className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm mb-3
-                             placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30
-                             resize-none"
-                />
-
-                {/* Actions bar */}
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <div className="flex-1 text-[11px] text-tea-text-sec">
-                    <span className="num">{activeSamples.length}</span> sample{activeSamples.length !== 1 ? 's' : ''}
-                  </div>
-                  {/* Bulk select toggle */}
-                  <button
-                    onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
-                    className={`pill text-[11px] ${bulkMode ? 'pill-active' : ''}`}
-                  >
-                    {bulkMode ? 'Cancel' : 'Select'}
-                  </button>
-                  <button className="pill flex items-center gap-1" onClick={() => setShowLabels(true)}>
-                    <Printer size={12} />
-                    Print Labels
-                  </button>
-                  <button className="pill flex items-center gap-1" onClick={() => setShowCompassImport(true)}>
-                    <Download size={12} />
-                    Import
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Archive this batch? It will be hidden from the active list.')) {
-                        archiveSampleSet(activeSet.id);
-                        const next = visibleSets.find(s => s.id !== activeSet.id && !s.archived);
-                        setActiveSetId(next?.id ?? null);
-                      }
-                    }}
-                    className="pill flex items-center gap-1 text-tea-text-dim hover:text-tea-text"
-                  >
-                    <Archive size={12} />
-                    Archive
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`Delete "${activeSet.name || 'this batch'}"? This will permanently delete all ${activeSamples.length} sample${activeSamples.length !== 1 ? 's' : ''} and their tasting records.`)) {
-                        handleDeleteSet(activeSet.id);
-                      }
-                    }}
-                    className="pill text-red-400 hover:text-red-300"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-
-                {batchComplete && batchStats && (
-                  <div className="rounded-lg px-3 py-2.5 mb-3 flex flex-wrap items-center gap-x-4 gap-y-1"
-                       style={{ background: 'color-mix(in srgb, var(--tea-gold) 8%, var(--tea-surface))' }}>
-                    <span className="text-[10px] uppercase tracking-wider text-tea-gold font-medium w-full">Batch Complete</span>
-                    {batchStats.favorite > 0 && <span className="text-[11px] text-tea-text-sec">{batchStats.favorite} favorite</span>}
-                    {batchStats.toOrder > 0 && <span className="text-[11px] text-tea-text-sec">{batchStats.toOrder} to order</span>}
-                    {batchStats.passed > 0 && <span className="text-[11px] text-tea-text-dim">{batchStats.passed} passed</span>}
-                    {batchStats.graduated > 0 && <span className="text-[11px] text-tea-gold">{batchStats.graduated} in inventory</span>}
-                  </div>
-                )}
-
-                {/* Search */}
-                <div className="mb-2">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search samples..."
-                    className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
-                               placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
+                  {/* Notes */}
+                  <textarea
+                    value={activeSet.notes || ''}
+                    onChange={(e) => updateSampleSet(activeSet.id, { notes: e.target.value })}
+                    placeholder="Notes..."
+                    rows={2}
+                    className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm
+                               placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30 resize-none"
                   />
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-                {/* Status filter */}
-                <div className="flex gap-1 mb-2 overflow-x-auto scrollbar-hide">
-                  {(['all', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setStatusFilter(s)}
-                      className={`pill text-[10px] shrink-0 ${statusFilter === s ? 'pill-active' : ''}`}
-                    >
-                      {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
-                    </button>
-                  ))}
-                </div>
+        {/* Completion stats bar */}
+        {activeSamples.length > 0 && (
+          <div
+            className={`px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1`}
+            style={batchComplete ? { background: 'color-mix(in srgb, var(--tea-gold) 8%, var(--tea-surface))' } : { borderBottom: '1px solid var(--tea-accent-sub)' }}
+          >
+            {batchComplete && (
+              <span className="text-[10px] uppercase tracking-wider text-tea-gold font-medium w-full">Batch complete</span>
+            )}
+            {[
+              { label: 'untasted', count: statusCounts.untasted },
+              { label: 'tasted', count: statusCounts.tasted },
+              { label: 'favorite', count: statusCounts.favorite },
+              { label: 'to order', count: statusCounts.ordering },
+              { label: 'passed', count: statusCounts.passed },
+              { label: 'graduated', count: statusCounts.graduated },
+            ].map(({ label, count }) => (
+              <span
+                key={label}
+                className={`text-[11px] num ${count > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+              >
+                {count} {label}
+              </span>
+            ))}
+          </div>
+        )}
 
-                {/* Sample list */}
-                <div className="inset-panel p-2 min-h-[120px]">
-                  {filteredSamples.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
-                      <Leaf size={24} className="mb-2 opacity-40" />
-                      <p className="text-sm">{activeSamples.length === 0 ? 'No samples yet' : 'No samples match'}</p>
-                      {activeSamples.length === 0 && <p className="text-xs mt-1">Use the quick-add bar below</p>}
-                    </div>
-                  ) : (
-                    <AnimatePresence mode="popLayout">
-                      {filteredSamples.map((sample) => (
-                        <SampleCard
-                          key={sample.id}
-                          sample={sample}
-                          onEdit={setEditingSampleId}
-                          onDelete={handleDeleteSample}
-                          onStatusChange={handleStatusChange}
-                          onTaste={handleTaste}
-                          onGraduate={handleGraduate}
-                          bulkMode={bulkMode}
-                          isSelected={selectedIds.has(sample.id)}
-                          onToggleSelect={(id) => setSelectedIds(prev => {
-                            const next = new Set(prev);
-                            next.has(id) ? next.delete(id) : next.add(id);
-                            return next;
-                          })}
-                          noteCount={sample.compassEntryId ? (compassNoteCountMap[sample.compassEntryId] || 0) : 0}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  )}
-                </div>
+        {/* Scrollable content */}
+        <div className="px-4 pt-3 pb-[100px]">
+          {/* Search */}
+          <div className="mb-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search samples..."
+              className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
+                         placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
+            />
+          </div>
+
+          {/* Status filter pills */}
+          <div className="flex flex-wrap gap-1 mb-3">
+            {(['all', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`pill text-[10px] ${statusFilter === s ? 'pill-active' : ''}`}
+              >
+                {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sample list */}
+          <div className="inset-panel p-2 min-h-[120px]">
+            {filteredSamples.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
+                <Leaf size={24} className="mb-2 opacity-40" />
+                <p className="text-sm">{activeSamples.length === 0 ? 'No samples yet' : 'No samples match'}</p>
+                {activeSamples.length === 0 && <p className="text-xs mt-1">Tap + to add your first sample</p>}
               </div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {filteredSamples.map((sample) => (
+                  <SampleCard
+                    key={sample.id}
+                    sample={sample}
+                    onEdit={setEditingSampleId}
+                    onDelete={handleDeleteSample}
+                    onStatusChange={handleStatusChange}
+                    onTaste={handleTaste}
+                    onGraduate={handleGraduate}
+                    bulkMode={bulkMode}
+                    isSelected={selectedIds.has(sample.id)}
+                    onToggleSelect={toggleBulkSelect}
+                    noteCount={sample.compassEntryId ? (compassNoteCountMap[sample.compassEntryId] || 0) : 0}
+                  />
+                ))}
+              </AnimatePresence>
+            )}
+          </div>
+        </div>
 
-              {/* Quick-add bar — desktop: sticky bottom of editor column */}
-              <div className="hidden lg:block shrink-0">
-                <QuickAddBar
-                  setId={activeSet.id}
-                  sourceName={activeSet.sourceName}
-                  sourceId={activeSet.sourceId}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 py-16 text-tea-text-dim">
-              <Leaf size={32} className="mb-3 opacity-30" />
-              <p className="text-sm">Select or create a batch</p>
+        {/* FAB */}
+        <button
+          onClick={() => setShowQuickAdd(true)}
+          className="fixed right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center
+                     bg-tea-gold/20 text-tea-gold active:scale-95 transition-transform shadow-lg
+                     lg:bottom-5"
+          style={{
+            bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 12px)',
+          }}
+          aria-label="Add sample"
+        >
+          <Plus size={22} />
+        </button>
+      </div>
+    );
+  };
+
+  // ── Screen 3: All Samples ────────────────────────────────────────────
+
+  const renderAllSamples = () => (
+    <div className="min-h-screen bg-tea-bg text-tea-text">
+      <div className="flex items-center gap-2 px-3 pt-3 pb-2"
+        style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
+        <button
+          onClick={() => setView('batches')}
+          className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+          aria-label="Back to batches"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-sm font-semibold text-tea-text">
+          All Samples <span className="text-tea-text-dim num">· {allSamples.length}</span>
+        </h1>
+      </div>
+
+      <div className="px-4 pt-3 pb-24">
+        {/* Search */}
+        <div className="mb-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search samples..."
+            className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
+                       placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
+          />
+        </div>
+
+        {/* Status filter */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          {(['all', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`pill text-[10px] ${statusFilter === s ? 'pill-active' : ''}`}
+            >
+              {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
+            </button>
+          ))}
+        </div>
+
+        <div className="inset-panel p-2 min-h-[120px]">
+          {allFilteredSamples.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
+              <Leaf size={24} className="mb-2 opacity-40" />
+              <p className="text-sm">No samples match</p>
             </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {allFilteredSamples.map((sample) => (
+                <SampleCard
+                  key={sample.id}
+                  sample={sample}
+                  onEdit={setEditingSampleId}
+                  onDelete={handleDeleteSample}
+                  onStatusChange={handleStatusChange}
+                  onTaste={handleTaste}
+                  onGraduate={handleGraduate}
+                  bulkMode={bulkMode}
+                  isSelected={selectedIds.has(sample.id)}
+                  onToggleSelect={toggleBulkSelect}
+                  noteCount={sample.compassEntryId ? (compassNoteCountMap[sample.compassEntryId] || 0) : 0}
+                />
+              ))}
+            </AnimatePresence>
           )}
         </div>
       </div>
+    </div>
+  );
 
-      {/* Mobile: quick-add bar fixed at bottom */}
-      {activeSet && viewMode === 'set' && (
-        <div className="lg:hidden fixed left-0 right-0 bottom-[44px] z-40">
-          <QuickAddBar
-            setId={activeSet.id}
-            sourceName={activeSet.sourceName}
-            sourceId={activeSet.sourceId}
-          />
-        </div>
-      )}
+  // ── Root render ──────────────────────────────────────────────────────
+
+  return (
+    <>
+      {view === 'batches' && renderBatchList()}
+      {view === 'batch' && renderBatchDetail()}
+      {view === 'all' && renderAllSamples()}
 
       {/* Bulk action bar */}
       {bulkMode && selectedIds.size > 0 && (
@@ -1292,6 +1380,18 @@ export default function SampleSetCreator() {
           ))}
         </div>
       )}
+
+      {/* Quick-Add Sheet */}
+      <AnimatePresence>
+        {showQuickAdd && activeSet && (
+          <QuickAddSheet
+            setId={activeSet.id}
+            sourceName={activeSet.sourceName}
+            sourceId={activeSet.sourceId}
+            onClose={() => setShowQuickAdd(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Inline Edit Modal */}
       <AnimatePresence>
@@ -1327,7 +1427,7 @@ export default function SampleSetCreator() {
           <SampleLabelSheet samples={activeSamples} showSetName={activeSet.name} />
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -1356,7 +1456,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
     [sample, sampleId, updateSample]
   );
 
-  // Escape key to close
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
@@ -1382,7 +1481,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         style={{ maxHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px) - 60px)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-tea-text">Edit Sample</h3>
           <button onClick={onClose} className="nav-control nav-control-close">
@@ -1390,9 +1488,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </button>
         </div>
 
-        {/* Edit fields */}
         <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '60vh' }}>
-          {/* Name */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Name</label>
             <AutocompleteInput
@@ -1407,7 +1503,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             />
           </div>
 
-          {/* Chinese name */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Chinese Name</label>
             <input
@@ -1419,7 +1514,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             />
           </div>
 
-          {/* Type pills */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Type</label>
             <div className="flex flex-wrap gap-1">
@@ -1435,7 +1529,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             </div>
           </div>
 
-          {/* Year + Grams row */}
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Year</label>
@@ -1476,7 +1569,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             </div>
           </div>
 
-          {/* Region */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Region</label>
             <input
@@ -1488,7 +1580,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             />
           </div>
 
-          {/* Status pills */}
           <div>
             <div className="flex items-center gap-1 mb-1">
               <label className="text-[10px] uppercase tracking-wider text-tea-text-dim">Status</label>
@@ -1515,7 +1606,6 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             </div>
           </div>
 
-          {/* Notes */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Notes</label>
             <textarea

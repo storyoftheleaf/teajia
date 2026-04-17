@@ -44,7 +44,6 @@ import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { TeaCompass } from '../components/TeaCompass';
 import type { CompassMode } from '../components/TeaCompass';
-import SampleSetCreator from '../samples/SampleSetCreator';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -58,7 +57,10 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const tab = params.get('tab');
   const entryId = params.get('entry');
   const initialMode: CompassMode | undefined =
-    tab === 'ledger' ? 'ledger' : tab === 'capture' ? 'capture' : tab === 'browse' ? 'browse' : undefined;
+    tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
+    tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
+    tab === 'tasting' ? 'tasting' : tab === 'browse' ? 'tasting' :
+    undefined;
   return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} />;
 };
 
@@ -514,11 +516,7 @@ const AdminContent = () => {
               <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
               <Route path="venues" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
-              <Route path="samples" element={
-                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
-                  <PageTransition><SampleSetCreator /></PageTransition>
-                </ProtectedRoute>
-              } />
+              <Route path="samples" element={<Navigate to="/admin/compass?tab=sourcing" replace />} />
 
               {/* Operations — staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />

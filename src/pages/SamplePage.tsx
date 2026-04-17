@@ -485,7 +485,7 @@ const SamplePage: React.FC = () => {
             transition={{ delay: 0.45 }}
           >
             <button
-              onClick={() => navigate(`/admin/compass?tab=capture&fromSample=${sample.id}`)}
+              onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
               className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
             >
               <ExternalLink size={16} />

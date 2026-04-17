@@ -1689,7 +1689,7 @@ export const SourcesView = () => {
                           <button
                             key={entry.id}
                             type="button"
-                            onClick={() => navigate(`/admin/compass?tab=capture&entry=${encodeURIComponent(entry.id)}`)}
+                            onClick={() => navigate(`/admin/compass?tab=sourcing&entry=${encodeURIComponent(entry.id)}`)}
                             className="w-full flex items-center gap-2 py-1.5 text-xs rounded-md hover:bg-tea-surface/50 transition-colors text-left -mx-1 px-1"
                           >
                             {entry.photos?.[0] && (
