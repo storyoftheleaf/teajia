@@ -523,6 +523,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     [entry, entryId, updateEntry]
   );
 
+  const handlePhotoReplaced = useCallback(
+    (_localUrl: string, serverUrl: string) => {
+      // onPhotoTaken already added serverUrl; nothing extra to do here
+      // (local preview is managed inside PhotoCapture component state)
+      void serverUrl;
+    },
+    []
+  );
+
   // Handle teaware photos change
   const handleTeawarePhotosChange = useCallback(
     (photos: string[]) => {
@@ -720,7 +729,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               onDetailsChange={handleVendorDetailsChange}
             />
           </div>
-          <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+          <PhotoCapture
+            onExtracted={handleExtracted}
+            onPhotoTaken={handlePhotoTaken}
+            onPhotoReplaced={handlePhotoReplaced}
+            photos={entry.photos}
+            onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+          />
         </div>
 
         {/* Row 2: Name + Category (mirrors Name + Type) */}
@@ -856,14 +871,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
           />
         </div>
-
-        {/* Photos strip — only shown when photos exist */}
-        {entry.photos?.length > 0 && (
-          <TeawarePhotos
-            photos={entry.photos}
-            onPhotosChange={handleTeawarePhotosChange}
-          />
-        )}
 
         <div className="border-t border-tea-border my-1" />
 
@@ -1022,7 +1029,13 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               onDetailsChange={handleVendorDetailsChange}
             />
           </div>
-          <PhotoCapture onExtracted={handleExtracted} onPhotoTaken={handlePhotoTaken} />
+          <PhotoCapture
+            onExtracted={handleExtracted}
+            onPhotoTaken={handlePhotoTaken}
+            onPhotoReplaced={handlePhotoReplaced}
+            photos={entry.photos}
+            onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+          />
         </div>
 
         <div className="flex items-center gap-2">

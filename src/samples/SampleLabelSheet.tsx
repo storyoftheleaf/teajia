@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Printer, Columns3, Columns2, Grid2x2, FileDown } from 'lucide-react';
+import { Printer, Columns3, Columns2, Grid2x2 } from 'lucide-react';
 /** Minimal shape for label printing — works with TeaSample or TeaCompassEntry */
 interface LabelItem {
   id: string;
@@ -86,15 +86,10 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
 }) => {
   const [columns, setColumns] = useState<number>(initialColumns);
   const [labelSize, setLabelSize] = useState<'small' | 'medium'>(initialSize);
-  const [toastVisible, setToastVisible] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(samples.map(s => s.id)));
 
   const handlePrint = useCallback(() => {
     window.print();
-  }, []);
-
-  const handleExportPdf = useCallback(() => {
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2500);
   }, []);
 
   if (samples.length === 0) {
@@ -215,18 +210,13 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
               <h2 className="text-lg font-serif text-tea-text">{showSetName}</h2>
             )}
             <p className="text-sm text-tea-text-sec">
-              {samples.length} label{samples.length !== 1 ? 's' : ''} ready to print
+              {selectedIds.size} of {samples.length} label{samples.length !== 1 ? 's' : ''} selected
+            </p>
+            <p className="text-xs text-tea-text-dim mt-0.5">
+              QR codes link to a public tasting page at teajia.co/s/— guests can scan and log their notes.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportPdf}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
-                         bg-tea-surface text-tea-text-sec hover:text-tea-text transition-colors"
-            >
-              <FileDown size={14} />
-              Export PDF
-            </button>
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider
@@ -277,6 +267,37 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Per-sample selection */}
+        <div className="print-hide border-t pt-3" style={{ borderColor: 'var(--tea-accent-sub)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs uppercase tracking-wider text-tea-text-dim">Select labels</span>
+            <div className="flex gap-3 text-xs text-tea-text-dim">
+              <button onClick={() => setSelectedIds(new Set(samples.map(s => s.id)))} className="hover:text-tea-text transition-colors">All</button>
+              <button onClick={() => setSelectedIds(new Set())} className="hover:text-tea-text transition-colors">None</button>
+            </div>
+          </div>
+          <div className="max-h-40 overflow-y-auto space-y-0.5">
+            {samples.map((s) => (
+              <label key={s.id} className="flex items-center gap-2 px-1 py-1 rounded cursor-pointer hover:bg-tea-surface transition-colors">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(s.id)}
+                  onChange={() => {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      next.has(s.id) ? next.delete(s.id) : next.add(s.id);
+                      return next;
+                    });
+                  }}
+                  className="accent-[var(--tea-gold)]"
+                />
+                <span className="text-sm text-tea-text truncate flex-1">{s.name || 'Unnamed'}</span>
+                {s.type && <span className="text-[10px] text-tea-text-dim shrink-0">{s.type}</span>}
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ---- Label grid (visible on screen + print) ---- */}
@@ -288,21 +309,13 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
               gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
             }}
           >
-            {samples.map((sample) => (
+            {samples.filter(s => selectedIds.has(s.id)).map((sample) => (
               <LabelCell key={sample.id} sample={sample} size={labelSize} qrBaseUrl={qrBaseUrl} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* ---- Coming soon toast ---- */}
-      {toastVisible && (
-        <div className="print-hide fixed bottom-20 left-1/2 -translate-x-1/2 z-50
-                        bg-tea-surface text-tea-text text-sm px-4 py-2.5 rounded-lg shadow-lg
-                        animate-fade-in">
-          PDF export coming soon
-        </div>
-      )}
     </>
   );
 };

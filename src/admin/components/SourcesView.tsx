@@ -19,6 +19,7 @@ import { TeaTable } from './TeaTable';
 import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { useSampleStore } from '../../samples/sampleStore';
 import type { Currency } from '../types';
 
 // ── Add/Edit Source Modal ──
@@ -243,6 +244,10 @@ export const SourcesView = () => {
   // Ledger & Compass stores
   const ledgerTransactions = useLedgerStore((s) => s.transactions);
   const compassEntries = useTeaCompassStore((s) => s.entries);
+
+  // Sample store
+  const sampleSets = useSampleStore((s) => s.sampleSets);
+  const getSamplesForSet = useSampleStore((s) => s.getSamplesForSet);
 
   // Expanded source — shows inline inventory table
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
@@ -676,6 +681,45 @@ export const SourcesView = () => {
                 navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
               }}
             />
+            {(() => {
+              const vendorBatches = sampleSets.filter(
+                ss => ss.sourceId === source.id ||
+                      (ss.sourceName && ss.sourceName.toLowerCase() === source.name.toLowerCase())
+              );
+              if (vendorBatches.length === 0) return null;
+              return (
+                <div className="mt-4 pt-3 mx-4" style={{ borderTop: '1px solid var(--tea-accent-sub)' }}>
+                  <p className="text-[10px] uppercase tracking-wider text-tea-text-dim mb-2 font-medium">
+                    Sample Batches · {vendorBatches.length}
+                  </p>
+                  <div className="space-y-1">
+                    {vendorBatches.map((batch) => {
+                      const batchSamples = getSamplesForSet(batch.id);
+                      const tasted = batchSamples.filter(s => s.status !== 'untasted').length;
+                      const graduated = batchSamples.filter(s => s.productId).length;
+                      return (
+                        <div
+                          key={batch.id}
+                          className="flex items-center gap-3 px-3 py-2 rounded bg-tea-surface text-sm"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-tea-text truncate">{batch.name || 'Untitled Batch'}</div>
+                            <div className="text-[10px] text-tea-text-dim">
+                              {batchSamples.length} sample{batchSamples.length !== 1 ? 's' : ''} ·{' '}
+                              {tasted}/{batchSamples.length} tasted
+                              {graduated > 0 && ` · ${graduated} in inventory`}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-tea-text-dim shrink-0">
+                            {new Date(batch.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </td>
       </tr>
@@ -921,14 +965,17 @@ export const SourcesView = () => {
                 <Plus size={14} /> New
               </button>
 
+              <div className="w-px h-4 bg-tea-border mx-1"></div>
+
               {/* Columns Toggle */}
               <div className="relative">
                 <button
                   onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                  className={`p-1.5 rounded-lg transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Show/Hide Columns"
                 >
-                  <Columns size={15} />
+                  <Columns size={14} />
+                  <span className="hidden xl:inline tracking-wide">Cols</span>
                 </button>
                 {showColumnsPopover && (
                   <>
@@ -959,10 +1006,11 @@ export const SourcesView = () => {
                     const el = document.getElementById('sources-groupby-dropdown');
                     if (el) el.classList.toggle('hidden');
                   }}
-                  className={`flex items-center gap-1 p-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Group By"
                 >
-                  <Layers size={15} />
+                  <Layers size={14} />
+                  <span className="hidden xl:inline tracking-wide">Group</span>
                 </button>
                 <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
                   {GROUPBY_OPTIONS.map(opt => (

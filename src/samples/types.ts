@@ -68,6 +68,9 @@ export interface SampleSet {
   sharedWith?: string[];       // Customer tokens
   panelAccountIds?: string[];  // Account IDs invited to taste as a panel
   notes?: string;
+  archived?: boolean;
+  customerId?: string;      // Customer ID for customer-gifted batches
+  customerName?: string;    // Denormalized customer name
   createdAt: string;
   updatedAt: string;
 }
@@ -132,7 +135,7 @@ export const SAMPLE_STATUS_CONFIG: Record<SampleStatus, { label: string; color: 
   untasted: { label: 'Untasted', color: 'bg-tea-surface text-tea-text-sec' },
   tasted: { label: 'Tasted', color: 'bg-tea-accent-sub text-tea-gold' },
   favorite: { label: 'Favorite', color: 'bg-tea-gold/10 text-tea-gold' },
-  ordering: { label: 'Ordering', color: 'bg-tea-gold-lt/10 text-tea-gold-lt' },
+  ordering: { label: 'To Order', color: 'bg-tea-gold-lt/10 text-tea-gold-lt' },
   ordered: { label: 'Ordered', color: 'bg-tea-gold/15 text-tea-gold' },
   passed: { label: 'Passed', color: 'bg-tea-surface text-tea-text-dim' },
 };

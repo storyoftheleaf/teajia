@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -30,7 +31,7 @@ function hasTastingData(e: TeaCompassEntry): boolean {
 
 // ─── Section header ──────────────────────────────────────────────────────────
 
-const SectionHeader: React.FC<{ label: string; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
+const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
   <div className="flex items-center justify-between mb-2.5">
     <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
       {label}
@@ -45,6 +46,7 @@ const SectionHeader: React.FC<{ label: string; count: number; right?: React.Reac
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
+  const navigate = useNavigate();
   const { entries, browseFilter, setBrowseFilter, removeEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const sampleSets = useSampleStore((s) => s.sampleSets);
@@ -262,7 +264,17 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           return (
             <div key={setId}>
               <SectionHeader
-                label={set?.name || (setId === '_unsorted' ? 'Samples' : 'Sample Set')}
+                label={
+                  set ? (
+                    <button
+                      onClick={() => navigate('/admin/samples')}
+                      className="hover:text-tea-gold transition-colors"
+                      title="Open batch in Samples"
+                    >
+                      {set.name || 'Untitled Batch'}
+                    </button>
+                  ) : (setId === '_unsorted' ? 'Samples' : 'Sample Set')
+                }
                 count={setEntries.length}
                 right={
                   <span className={`text-[10px] num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>

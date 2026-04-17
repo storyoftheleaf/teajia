@@ -5,6 +5,8 @@ import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
 import { Customer, CustomerTag } from '../types';
+import { useSampleStore } from '../../samples/sampleStore';
+import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
 
 const TAG_OPTIONS: CustomerTag[] = ['wholesale', 'retail', 'friend', 'vendor', 'vip', 'inactive'];
 
@@ -214,6 +216,25 @@ const CustomerDetail = ({
   const [journey, setJourney] = useState<any>(null);
   const [loadingJourney, setLoadingJourney] = useState(false);
   const [showJourney, setShowJourney] = useState(false);
+  const [showSampleTastings, setShowSampleTastings] = useState(false);
+
+  const allSamples = useSampleStore((s) => s.samples);
+  const customerTastings = useMemo(() => {
+    const results: Array<{ sampleName: string; verdict: string; date: string; rating?: number }> = [];
+    allSamples.forEach(sample => {
+      sample.tastings
+        .filter(t => t.tasterId === customer.id)
+        .forEach(t => {
+          results.push({
+            sampleName: sample.name,
+            verdict: t.verdict,
+            date: t.createdAt,
+            rating: t.rating,
+          });
+        });
+    });
+    return results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [allSamples, customer.id]);
 
   const isVendor = customer.tags.includes('vendor');
 
@@ -445,6 +466,12 @@ const CustomerDetail = ({
             </div>
           )}
 
+          {/* ── Contact ────────────────────────────────── */}
+          <div className="flex items-center gap-3 pt-1">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">Contact</span>
+            <div className="flex-1 h-px bg-tea-accent-sub"></div>
+          </div>
+
           {/* Contact Info */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-4">
             <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Contact Information</h4>
@@ -464,6 +491,12 @@ const CustomerDetail = ({
               <p className="text-sm text-tea-text whitespace-pre-wrap leading-relaxed">{customer.notes}</p>
             </div>
           )}
+
+          {/* ── History ────────────────────────────────── */}
+          <div className="flex items-center gap-3 pt-1">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">History</span>
+            <div className="flex-1 h-px bg-tea-accent-sub"></div>
+          </div>
 
           {/* Events Attended */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -666,6 +699,52 @@ const CustomerDetail = ({
                         <div className="text-[10px] text-tea-text-sec">
                           {tea.order_count} order{tea.order_count !== 1 ? 's' : ''}
                         </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sample Tastings */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <button
+              onClick={() => setShowSampleTastings(!showSampleTastings)}
+              className="w-full flex justify-between items-center"
+            >
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+                <span>⬡</span> Sample Tastings
+                {customerTastings.length > 0 && (
+                  <span className="text-tea-gold num">{customerTastings.length}</span>
+                )}
+              </h4>
+              {showSampleTastings
+                ? <ChevronUp size={14} className="text-tea-text-sec" />
+                : <ChevronDown size={14} className="text-tea-text-sec" />}
+            </button>
+
+            {showSampleTastings && (
+              <div className="mt-4 space-y-2">
+                {customerTastings.length === 0 ? (
+                  <p className="text-tea-text-sec text-sm italic">No sample tastings yet.</p>
+                ) : (
+                  customerTastings.map((t, i) => (
+                    <div key={i} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-tea-text font-medium truncate">{t.sampleName}</div>
+                        <div className="text-[11px] text-tea-text-sec">
+                          {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className={`text-[11px] font-medium capitalize ${
+                          t.verdict === 'love' ? 'text-tea-gold' :
+                          t.verdict === 'like' ? 'text-emerald-400' :
+                          t.verdict === 'pass' ? 'text-tea-text-dim' :
+                          'text-tea-text-sec'
+                        }`}>{t.verdict}</div>
+                        {t.rating && <div className="text-[10px] text-tea-text-dim num">{t.rating}/10</div>}
                       </div>
                     </div>
                   ))

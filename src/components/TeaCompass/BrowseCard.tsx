@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Pencil, Trash2, Store, Check, Loader2, Camera,
   Mic, BookmarkPlus, BookmarkCheck, ChevronDown, ChevronUp,
-  ShoppingBag, Droplets, AlertTriangle, Star,
+  ShoppingBag, Droplets, AlertTriangle, Star, ChevronLeft, ChevronRight, X,
 } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -85,6 +86,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const [photoUploading, setPhotoUploading] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const validPhotos = (entry.photos || []).filter(Boolean);
 
   // Reset confirm-delete after 3s of no interaction
   useEffect(() => {
@@ -92,6 +96,18 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     const t = setTimeout(() => setConfirmDelete(false), 3000);
     return () => clearTimeout(t);
   }, [confirmDelete]);
+
+  // Lightbox keyboard navigation
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowRight') setLightboxIndex((i) => i !== null ? Math.min(i + 1, validPhotos.length - 1) : null);
+      if (e.key === 'ArrowLeft') setLightboxIndex((i) => i !== null ? Math.max(i - 1, 0) : null);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [lightboxIndex, validPhotos.length]);
 
 
 
@@ -146,13 +162,25 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           aria-expanded={expanded}
         >
           <div className="flex gap-3 px-3 pt-2.5 pb-2">
-            {/* Photo thumbnail */}
-            {entry.photos.length > 0 && (
-              <img
-                src={entry.photos[0]}
-                alt=""
-                className="w-11 h-11 rounded-md object-cover shrink-0 mt-0.5"
-              />
+            {/* Photo thumbnail — clickable, opens lightbox */}
+            {validPhotos.length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex(0); }}
+                className="relative shrink-0 mt-0.5 group"
+                aria-label="View photos"
+              >
+                <img
+                  src={validPhotos[0]}
+                  alt=""
+                  className="w-11 h-11 rounded-md object-cover"
+                />
+                {validPhotos.length > 1 && (
+                  <span className="absolute bottom-0.5 right-0.5 text-[9px] font-semibold text-white bg-black/50 rounded px-0.5 leading-tight">
+                    +{validPhotos.length - 1}
+                  </span>
+                )}
+              </button>
             )}
 
             {/* Text content */}
@@ -244,8 +272,16 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               <div className="border-t border-tea-border px-3 pt-3 pb-2 space-y-3">
                 {/* Photo strip with + tile */}
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {entry.photos.map((url, i) => (
-                    <img key={i} src={url} alt="" className="w-20 h-20 rounded-md object-cover shrink-0" />
+                  {validPhotos.map((url, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setLightboxIndex(i)}
+                      className="shrink-0"
+                      aria-label={`View photo ${i + 1}`}
+                    >
+                      <img src={url} alt="" className="w-20 h-20 rounded-md object-cover" />
+                    </button>
                   ))}
                   <button
                     type="button"
@@ -426,7 +462,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               id: entry.id,
               name: entry.name,
               type: entry.type,
-              image: entry.photos?.[0],
+              image: validPhotos[0],
               sourceType: 'compass',
               compassEntryId: entry.id,
             }}
@@ -435,6 +471,69 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           />
         )}
       </AnimatePresence>
+
+      {/* ── Photo lightbox ── */}
+      {lightboxIndex !== null && validPhotos[lightboxIndex] && createPortal(
+        <motion.div
+          key="browse-lightbox"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.88)' }}
+          onClick={() => setLightboxIndex(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+          >
+            <X size={18} />
+          </button>
+          {lightboxIndex > 0 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          )}
+          <motion.img
+            key={lightboxIndex}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.15 }}
+            src={validPhotos[lightboxIndex]}
+            alt={`Photo ${lightboxIndex + 1}`}
+            className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          {lightboxIndex < validPhotos.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            >
+              <ChevronRight size={20} />
+            </button>
+          )}
+          {validPhotos.length > 1 && (
+            <div className="absolute bottom-6 flex gap-1.5">
+              {validPhotos.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-white' : 'bg-white/30'}`}
+                />
+              ))}
+            </div>
+          )}
+        </motion.div>,
+        document.body
+      )}
     </>
   );
 };

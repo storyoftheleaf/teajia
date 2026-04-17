@@ -45,6 +45,9 @@ interface TeaCompassState {
   setBrowseGrouping: (grouping: BrowseGrouping) => void;
   setBrowseFilter: (filter: BrowseFilter) => void;
 
+  // Discard a pending capture without saving. For committed entries being re-edited, just exits the session.
+  discardEntry: (id: string) => void;
+
   // Helpers
   getEntry: (id: string) => TeaCompassEntry | undefined;
   getBuyingEntries: () => TeaCompassEntry[]; // legacy
@@ -154,6 +157,24 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           set((state) => ({
             sessionEntryIds: state.sessionEntryIds.filter((sid) => sid !== id),
             activeEntryId: state.activeEntryId === id ? null : state.activeEntryId,
+          }));
+        }
+      },
+
+      discardEntry: (id) => {
+        const state = get();
+        const isPending = state.pendingEntries.some((e) => e.id === id);
+        if (isPending) {
+          set((s) => ({
+            pendingEntries: s.pendingEntries.filter((e) => e.id !== id),
+            sessionEntryIds: s.sessionEntryIds.filter((sid) => sid !== id),
+            activeEntryId: s.activeEntryId === id ? null : s.activeEntryId,
+          }));
+        } else {
+          // Committed entry being re-edited — exit session without deleting
+          set((s) => ({
+            sessionEntryIds: s.sessionEntryIds.filter((sid) => sid !== id),
+            activeEntryId: s.activeEntryId === id ? null : s.activeEntryId,
           }));
         }
       },

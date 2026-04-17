@@ -120,26 +120,29 @@ export const Sidebar = ({
     { id: 'shop', path: '/shop', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} /> },
   ];
 
-  // Back-of-house nav filtered by role tier
-  const bohItems: NavItem[] = [
-    // Member tools
-    isMember && { id: 'compass',  path: '/admin/compass',  label: 'Tea Compass', icon: <Compass    className="w-5 h-5" strokeWidth={2} /> },
-    isMember && { id: 'capture',  path: '/admin/capture',  label: 'Capture',     icon: <Camera     className="w-5 h-5" strokeWidth={2} /> },
-    isMember && { id: 'samples',  path: '/admin/samples',  label: 'Samples',     icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
-    isMember && { id: 'events',   path: '/admin/events',   label: 'Events',      icon: <Calendar   className="w-5 h-5" strokeWidth={2} /> },
-    isMember && { id: 'venues',   path: '/admin/venues',   label: 'Venues',      icon: <MapPin     className="w-5 h-5" strokeWidth={2} /> },
-    // Operations
-    isStaff  && { id: 'activity', path: '/admin/activity', label: 'Activity',    icon: <ClipboardList className="w-5 h-5" strokeWidth={2} /> },
-    isStaff  && { id: 'people',   path: '/admin/people',   label: 'People',      icon: <Users      className="w-5 h-5" strokeWidth={2} /> },
-    // Management
-    isAdmin  && { id: 'inventory',        path: '/admin/inventory',        label: 'Inventory', icon: <Package        className="w-5 h-5" strokeWidth={2} /> },
-    isAdmin  && { id: 'dashboard',        path: '/admin/dashboard',        label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" strokeWidth={2} /> },
-    isAdmin  && { id: 'team',             path: '/admin/team',             label: 'Team',      icon: <UserCog        className="w-5 h-5" strokeWidth={2} /> },
-    isAdmin  && { id: 'account-settings', path: '/admin/account-settings', label: 'Account',   icon: <Settings       className="w-5 h-5" strokeWidth={2} /> },
+  // Back-of-house nav — split by role tier for grouped rendering
+  const fieldItems: NavItem[] = [
+    isMember && { id: 'compass',  path: '/admin/compass',  label: 'Tea Compass',  icon: <Compass      className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'capture',  path: '/admin/capture',  label: 'Capture',      icon: <Camera       className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'samples',  path: '/admin/samples',  label: 'Samples',      icon: <FlaskConical className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'events',   path: '/admin/events',   label: 'Events',       icon: <Calendar     className="w-5 h-5" strokeWidth={2} /> },
+    isMember && { id: 'venues',   path: '/admin/venues',   label: 'Venues',       icon: <MapPin       className="w-5 h-5" strokeWidth={2} /> },
+  ].filter(Boolean) as NavItem[];
+
+  const opsItems: NavItem[] = [
+    isStaff && { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <ClipboardList className="w-5 h-5" strokeWidth={2} /> },
+    isStaff && { id: 'people',   path: '/admin/people',   label: 'People',   icon: <Users         className="w-5 h-5" strokeWidth={2} /> },
+  ].filter(Boolean) as NavItem[];
+
+  const mgmtItems: NavItem[] = [
+    isAdmin && { id: 'inventory',        path: '/admin/inventory',        label: 'Inventory', icon: <Package         className="w-5 h-5" strokeWidth={2} /> },
+    isAdmin && { id: 'dashboard',        path: '/admin/dashboard',        label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" strokeWidth={2} /> },
+    isAdmin && { id: 'team',             path: '/admin/team',             label: 'Team',      icon: <UserCog         className="w-5 h-5" strokeWidth={2} /> },
+    isAdmin && { id: 'account-settings', path: '/admin/account-settings', label: 'Account',   icon: <Settings        className="w-5 h-5" strokeWidth={2} /> },
     (isAdmin && platformRole) && { id: 'platform', path: '/admin/platform', label: 'Platform', icon: <ShieldCheck className="w-5 h-5" strokeWidth={2} /> },
   ].filter(Boolean) as NavItem[];
 
-  const bohLabel = isAdmin ? 'Admin' : 'Back of House';
+  const hasBoh = isMember && (fieldItems.length + opsItems.length + mgmtItems.length) > 0;
 
   const handleNav = () => {
     setIsMobileOpen(false);
@@ -185,18 +188,61 @@ export const Sidebar = ({
       </nav>
 
       {/* Back of House Navigation */}
-      {isMember && bohItems.length > 0 && (
-        <nav className="flex flex-col gap-1 px-3 pt-2 pb-4" aria-label="Back of house" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
-          <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/50 font-sans font-medium px-4 py-2">{bohLabel}</span>
-          {bohItems.map((item, index) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              isActive={currentPath === item.path || currentPath.startsWith(item.path + '/')}
-              onClick={handleNav}
-              animationDelay={(browseItems.length + index) * 50}
-            />
-          ))}
+      {hasBoh && (
+        <nav className="flex flex-col px-3 pt-2 pb-4" aria-label="Back of house" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+          {/* Sourcing & Field */}
+          {fieldItems.length > 0 && (
+            <div className="mb-1">
+              <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium px-4 py-2 block">Field</span>
+              <div className="flex flex-col gap-1">
+                {fieldItems.map((item, index) => (
+                  <NavButton
+                    key={item.id}
+                    item={item}
+                    isActive={currentPath === item.path || currentPath.startsWith(item.path + '/')}
+                    onClick={handleNav}
+                    animationDelay={(browseItems.length + index) * 50}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Operations */}
+          {opsItems.length > 0 && (
+            <div className="mb-1" style={{ borderTop: '1px solid var(--tea-accent-sub)', paddingTop: '4px', marginTop: '4px' }}>
+              <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium px-4 py-2 block">Operations</span>
+              <div className="flex flex-col gap-1">
+                {opsItems.map((item, index) => (
+                  <NavButton
+                    key={item.id}
+                    item={item}
+                    isActive={currentPath === item.path || currentPath.startsWith(item.path + '/')}
+                    onClick={handleNav}
+                    animationDelay={(browseItems.length + fieldItems.length + index) * 50}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Management */}
+          {mgmtItems.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--tea-accent-sub)', paddingTop: '4px', marginTop: '4px' }}>
+              <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium px-4 py-2 block">Manage</span>
+              <div className="flex flex-col gap-1">
+                {mgmtItems.map((item, index) => (
+                  <NavButton
+                    key={item.id}
+                    item={item}
+                    isActive={currentPath === item.path || currentPath.startsWith(item.path + '/')}
+                    onClick={handleNav}
+                    animationDelay={(browseItems.length + fieldItems.length + opsItems.length + index) * 50}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </nav>
       )}
 

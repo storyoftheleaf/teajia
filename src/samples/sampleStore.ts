@@ -17,6 +17,20 @@ interface SampleStoreState {
   removeSample: (id: string) => void;
   addTasting: (sampleId: string, tasting: SampleTasting) => void;
   updateSampleStatus: (id: string, status: SampleStatus) => void;
+  bulkUpdateStatus: (ids: string[], status: SampleStatus) => void;
+  archiveSampleSet: (id: string) => void;
+  importFromCompass: (compassEntries: Array<{
+    id: string;
+    name: string;
+    chineseName?: string;
+    type?: string;
+    year?: number;
+    originRegion?: string;
+    grams?: number;
+    vendorId?: string;
+    vendorName?: string;
+    teaKey?: string;
+  }>, setId: string) => void;
 
   // Set actions
   addSampleSet: (set: SampleSet) => void;
@@ -90,6 +104,15 @@ export const useSampleStore = create<SampleStoreState>()(
           ),
         })),
 
+      bulkUpdateStatus: (ids, status) => {
+        const idSet = new Set(ids);
+        set((state) => ({
+          samples: state.samples.map((s) =>
+            idSet.has(s.id) ? { ...s, status, updatedAt: new Date().toISOString(), synced: false } : s
+          ),
+        }));
+      },
+
       addSampleSet: (sampleSet) =>
         set((state) => ({
           sampleSets: [sampleSet, ...state.sampleSets],
@@ -116,6 +139,50 @@ export const useSampleStore = create<SampleStoreState>()(
                 : state.activeSampleId,
           };
         }),
+
+      archiveSampleSet: (id) => {
+        set((state) => ({
+          sampleSets: state.sampleSets.map((ss) =>
+            ss.id === id ? { ...ss, archived: true, updatedAt: new Date().toISOString() } : ss
+          ),
+          activeSetId: state.activeSetId === id ? null : state.activeSetId,
+        }));
+      },
+
+      importFromCompass: (compassEntries, setId) => {
+        const now = new Date().toISOString();
+        const newSamples: TeaSample[] = compassEntries.map((ce) => ({
+          id: crypto.randomUUID(),
+          name: ce.name,
+          chineseName: ce.chineseName,
+          type: ce.type as any,
+          year: ce.year,
+          originRegion: ce.originRegion,
+          sourceId: ce.vendorId,
+          sourceName: ce.vendorName,
+          teaKey: ce.teaKey,
+          compassEntryId: ce.id,
+          setId,
+          tastings: [],
+          status: 'untasted' as const,
+          grams: ce.grams || 10,
+          photos: [],
+          createdAt: now,
+          updatedAt: now,
+          createdBy: 'admin' as const,
+          synced: false,
+        }));
+        set((state) => {
+          return {
+            samples: [...newSamples, ...state.samples],
+            sampleSets: state.sampleSets.map((ss) =>
+              ss.id === setId
+                ? { ...ss, sampleIds: [...ss.sampleIds, ...newSamples.map((s) => s.id)], updatedAt: now }
+                : ss
+            ),
+          };
+        });
+      },
 
       setActiveSample: (id) => set({ activeSampleId: id }),
       setActiveSet: (id) => set({ activeSetId: id }),

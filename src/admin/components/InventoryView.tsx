@@ -2152,14 +2152,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </button>
                     </div>
 
+                    <div className="w-px h-4 bg-tea-border mx-1"></div>
+
                     {/* Columns Toggle */}
                     <div className="relative">
                       <button
                         onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                        className={`p-1.5 rounded-lg transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors text-xs ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Show/Hide Columns"
                       >
-                        <Columns size={15} />
+                        <Columns size={14} />
+                        <span className="hidden xl:inline tracking-wide">Cols</span>
                       </button>
                       {showColumnsPopover && (
                         <>
@@ -2187,10 +2190,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowGroupByDropdown(!showGroupByDropdown)}
-                        className={`flex items-center gap-1 p-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Group By"
                       >
-                        <Layers size={15} />
+                        <Layers size={14} />
+                        <span className="hidden xl:inline tracking-wide">Group</span>
                       </button>
                       {showGroupByDropdown && (
                         <>
@@ -2999,7 +3003,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 )}
                                 {visibleCols.map((col, colIdx) => renderCell(product, col.key, globalIdx, colIdx))}
                                 <td className="px-2 align-middle text-right">
-                                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                     {!isEditMode && (
                                       <>
                                         <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>
@@ -3087,7 +3091,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                                 {/* Actions */}
                                 <td className="px-2 align-middle text-right">
-                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                                         {!isEditMode && (
                                             <>
                                                 <button onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`${product.isFeatured ? 'text-tea-accent hover:text-tea-accent/80' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? "Remove star" : "Star this tea"}><Star size={13} className={product.isFeatured ? "fill-tea-accent" : ""} /></button>

@@ -8,6 +8,8 @@ import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
 import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
+import { useSampleStore } from '../../samples/sampleStore';
+import type { SampleTasting } from '../../samples/types';
 import { api, hasToken } from '../../lib/api';
 import type { CompassCategory } from './types';
 import { CompassIcon } from './CompassIcon';
@@ -37,8 +39,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
+  const discardEntry = useTeaCompassStore((s) => s.discardEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getEntry = useTeaCompassStore((s) => s.getEntry);
+  const isPendingEntry = useTeaCompassStore((s) =>
+    s.activeEntryId != null && s.pendingEntries.some((e) => e.id === s.activeEntryId)
+  );
   const getSessionEntries = useTeaCompassStore((s) => s.getSessionEntries);
   const activeCategory: CompassCategory = useTeaCompassStore((s) => {
     const id = s.activeEntryId;
@@ -49,6 +55,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const { activeAccountId, activeAccount } = useAppStore();
   const { addNote } = useNotesStore();
+
+  const addSampleTasting = useSampleStore((s) => s.addTasting);
+  const updateSampleStatus = useSampleStore((s) => s.updateSampleStatus);
+  const samplesList = useSampleStore((s) => s.samples);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -187,8 +197,44 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   );
 
   const handleCommitEntry = useCallback(() => {
+    // Always clear fromLibrary when committing — the new entry shouldn't inherit it
+    setFromLibrary(false);
+
     // Capture committed entry info before it's removed from session
     const committed = activeEntryId ? getEntry(activeEntryId) : null;
+
+    // If this compass entry is linked to a sample, write tasting data back
+    if (committed?.isSample && committed.id && committed.tasting &&
+        Object.values(committed.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null)) {
+      const linkedSample = samplesList.find((s) => s.compassEntryId === committed.id);
+      if (linkedSample) {
+        const tastingRecord: SampleTasting = {
+          id: crypto.randomUUID(),
+          tasterId: 'admin',
+          tasting: committed.tasting,
+          verdict: committed.sampleVerdict || 'neutral',
+          wouldBuy: committed.sampleWouldBuy || false,
+          personalNote: committed.notes || undefined,
+          createdAt: new Date().toISOString(),
+        };
+        addSampleTasting(linkedSample.id, tastingRecord);
+        // addTasting in sampleStore auto-advances status from untasted → tasted
+
+        // Auto-advance sample status based on tasting verdict
+        const verdict = committed.sampleVerdict;
+        if (verdict === 'love' &&
+            (linkedSample.status === 'untasted' || linkedSample.status === 'tasted')) {
+          updateSampleStatus(linkedSample.id, 'favorite');
+        } else if (verdict === 'pass' &&
+                   linkedSample.status !== 'ordered' &&
+                   linkedSample.status !== 'ordering' &&
+                   linkedSample.status !== 'favorite') {
+          updateSampleStatus(linkedSample.id, 'passed');
+        }
+        // 'like' and 'neutral' — addTasting already advances untasted → tasted
+      }
+    }
+
     if (committed) {
       setJustCommitted({ name: committed.name || 'Entry', draftProductId: committed.draftProductId });
       if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
@@ -207,7 +253,33 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
       );
     }
-  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry]);
+  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary]);
+
+  const handleDiscardActive = useCallback(() => {
+    if (!activeEntryId) return;
+    const entry = getEntry(activeEntryId);
+    const hasContent = entry && (
+      entry.name.trim().length > 0 ||
+      entry.photos.length > 0 ||
+      entry.notes.trim().length > 0 ||
+      (entry.tasting != null && Object.values(entry.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null))
+    );
+    if (hasContent && !window.confirm('Discard this entry?')) return;
+
+    // Grab remaining session entries before discarding
+    const remaining = getSessionEntries().filter((e) => e.id !== activeEntryId);
+    discardEntry(activeEntryId);
+
+    if (remaining.length > 0) {
+      setActiveEntry(remaining[0].id);
+    } else {
+      startNewCapture(activeCategory);
+    }
+  }, [activeEntryId, getEntry, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
+
+  const handleDiscardSessionEntry = useCallback((id: string) => {
+    discardEntry(id);
+  }, [discardEntry]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
     if (newMode === 'capture' && !activeEntryId) {
@@ -329,6 +401,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 sessionEntries={sessionEntries}
                 activeEntryId={activeEntryId}
                 onSelectEntry={handleSelectEntry}
+                onDiscardEntry={handleDiscardSessionEntry}
               />
 
               {/* Tea / Teaware tab toggle */}
@@ -555,6 +628,21 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   aria-label="Share"
                 >
                   <Share2 size={14} strokeWidth={1.5} />
+                </button>
+                <div className="w-px self-stretch my-2 bg-tea-border" />
+              </>
+            )}
+
+            {/* Discard — only for unsaved pending entries */}
+            {isPendingEntry && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleDiscardActive}
+                  className="flex-1 flex items-center justify-center py-3 text-tea-text-dim hover:text-red-400 transition-colors text-sm"
+                  aria-label="Discard entry"
+                >
+                  Discard
                 </button>
                 <div className="w-px self-stretch my-2 bg-tea-border" />
               </>
