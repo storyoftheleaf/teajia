@@ -103,14 +103,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
         URL.revokeObjectURL(localUrl);
       } else {
-        setPendingPreviews((prev) =>
-          prev.map((p) => p.localUrl === localUrl ? { ...p, uploading: false, failed: true } : p)
-        );
+        // Upload failed — keep the local blob URL so the capture is not lost
+        onPhotoTaken(localUrl);
+        setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
       }
     } catch {
-      setPendingPreviews((prev) =>
-        prev.map((p) => p.localUrl === localUrl ? { ...p, uploading: false, failed: true } : p)
-      );
+      // Same fallback on unexpected error
+      onPhotoTaken(localUrl);
+      setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
     }
   };
 
@@ -273,7 +273,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 type="button"
                 onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
                 className="absolute inset-0 flex items-center justify-center rounded-lg bg-red-500/20 text-red-400"
-                title="Upload failed — tap to dismiss"
+                aria-label="Upload failed, tap to dismiss"
               >
                 <X size={10} />
               </button>

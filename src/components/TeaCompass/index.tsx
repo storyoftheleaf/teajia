@@ -325,7 +325,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Tab config
   const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
     { id: 'capture', label: 'Capture', icon: PenLine },
-    { id: 'browse', label: 'Journal', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
+    { id: 'browse', label: 'Sessions', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'ledger', label: 'Ledger', icon: BookOpen },
   ];
 
@@ -461,7 +461,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onClick={() => { setJustCommitted(null); setMode('browse'); }}
                         className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                       >
-                        Journal
+                        Sessions
                       </button>
                     </div>
                   </motion.div>

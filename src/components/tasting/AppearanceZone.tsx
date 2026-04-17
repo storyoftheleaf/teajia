@@ -60,6 +60,42 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
           })}
         </div>
       </div>
+
+      <div className="divider-warm my-4" />
+
+      {/* Brewing context */}
+      <div>
+        <div
+          className="text-[13px] text-tea-text font-medium mb-2"
+          style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
+        >
+          Brewing
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="°C"
+            value={value.brewingTemp ?? ''}
+            onChange={(e) => onChange({ ...value, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
+            className="w-14 bg-tea-elevated text-tea-text text-[12px] px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <input
+            type="text"
+            placeholder="time"
+            value={value.brewingTime ?? ''}
+            onChange={(e) => onChange({ ...value, brewingTime: e.target.value || undefined })}
+            className="w-16 bg-tea-elevated text-tea-text text-[12px] px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
+          />
+          <input
+            type="text"
+            placeholder="vessel"
+            value={value.brewingVessel ?? ''}
+            onChange={(e) => onChange({ ...value, brewingVessel: e.target.value || undefined })}
+            className="flex-1 min-w-0 bg-tea-elevated text-tea-text text-[12px] px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
+          />
+        </div>
+      </div>
     </div>
   );
 };
