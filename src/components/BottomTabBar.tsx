@@ -20,6 +20,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
   hidden = false,
+  onAccountClick,
   onLaunchPadClick,
 }) => {
   const navigate = useNavigate();
@@ -153,6 +154,33 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               {renderTabButton(section, index + leftSections.length + 1)}
             </React.Fragment>
           ))}
+
+          {/* Account */}
+          {onAccountClick && (
+            <>
+              <div className="w-px h-4 bg-tea-gold/10 self-center flex-shrink-0" />
+              <button
+                onClick={onAccountClick}
+                className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+                title="Account"
+                aria-label="Account"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-[18px] h-[18px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </nav>
     </LayoutGroup>

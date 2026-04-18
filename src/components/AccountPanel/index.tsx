@@ -131,9 +131,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   // Save trigger and animate in on mount
   useEffect(() => {
     triggerRef.current = document.activeElement as HTMLElement;
-    requestAnimationFrame(() => setIsVisible(true));
+    // Double-RAF: first frame establishes the off-screen starting state,
+    // second frame triggers the CSS transition into view.
+    requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)));
     return () => {
-      requestAnimationFrame(() => triggerRef.current?.focus());
+      triggerRef.current?.focus();
     };
   }, []);
 
@@ -321,7 +323,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
@@ -370,7 +372,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 relative">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 relative">
           {/* Grain texture overlay — design bible SVG noise */}
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
 
