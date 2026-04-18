@@ -1,4 +1,5 @@
 export type EventStatus = 'draft' | 'active' | 'closed' | 'archived';
+export type EventFormat = 'private_tasting' | 'public_tasting' | 'workshop' | 'pop_up' | 'wholesale_showing' | 'other';
 export type AttendeeStatus = 'requested' | 'confirmed' | 'waitlist' | 'cancelled' | 'denied';
 export type AccessTier = 'standard' | 'golden';
 export type TeaPreference = 'light_floral' | 'rich_roasted' | 'aged_earthy' | 'surprise_me';
@@ -93,6 +94,7 @@ export interface TeaEvent {
   claimWindowMinutes: number;
   timezone: string;
   status: EventStatus;
+  format?: EventFormat;
   sessionFlow?: SessionFlowItem[];
   playlistUrl?: string;
   // V2 fields
@@ -373,6 +375,7 @@ export interface EventFormData {
   claimWindowMinutes?: number;
   timezone?: string;
   status?: EventStatus;
+  format?: EventFormat;
   sessionFlow?: SessionFlowItem[];
   locationId?: string;
   venueId?: string;

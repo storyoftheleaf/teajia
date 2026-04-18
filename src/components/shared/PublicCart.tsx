@@ -27,13 +27,20 @@ export interface PublicCartProps {
    * default. Used by per-store storefronts under /store/:slug.
    */
   whatsappNumber?: string;
+  onClose?: () => void;
 }
 
 type CheckoutStep = 'CART' | 'INQUIRY' | 'CONFIRM';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber }) => {
+const STEPS = [
+  { key: 'CART' as const, label: 'Cart' },
+  { key: 'INQUIRY' as const, label: 'Details' },
+  { key: 'CONFIRM' as const, label: 'Review' },
+];
+
+export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, onClose }) => {
   const effectiveWhatsAppNumber = whatsappNumber && whatsappNumber.trim() ? whatsappNumber : TEAJIA_WHATSAPP_NUMBER;
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
@@ -59,8 +66,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   }, [currency, rates]);
 
   const orderRef = useMemo(() => {
+    const stored = localStorage.getItem('teajia_orderRef');
+    if (stored) return stored;
     const d = new Date();
-    return `TJ-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 900 + 100)}`;
+    const ref = `TJ-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 900 + 100)}`;
+    localStorage.setItem('teajia_orderRef', ref);
+    return ref;
   }, []);
 
   // ── Effects ──────────────────────────────────────────────────────────────
@@ -222,8 +233,38 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
   // ── Render ───────────────────────────────────────────────────────────────
 
+  const currentStepIndex = STEPS.findIndex(s => s.key === step);
+
   return (
     <>
+      {/* Step indicator + currency selector */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-tea-border bg-tea-surface flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {STEPS.map((s, i) => (
+            <React.Fragment key={s.key}>
+              <span className={`text-[11px] uppercase tracking-[0.15em] transition-colors duration-300 ${step === s.key ? 'text-tea-gold' : currentStepIndex > i ? 'text-tea-text-sec/60' : 'text-tea-text/20'}`}>
+                {s.label}
+              </span>
+              {i < STEPS.length - 1 && (
+                <span className={`text-[11px] transition-colors duration-300 ${currentStepIndex > i ? 'text-tea-gold/30' : 'text-tea-text/15'}`}>·</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        {rates.length > 0 && (
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as any)}
+            className="bg-transparent border-none text-[11px] text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors"
+            aria-label="Currency"
+          >
+            {rates.map(r => (
+              <option key={r.currency} value={r.currency}>{r.currency}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto relative tea-card-scroll">
         <div className="surface-warm-inset mx-2 mt-2 mb-2 p-4 min-h-full">
@@ -265,7 +306,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                     <path d="M36 16 c0 -4 2 -8 2 -8" />
                     <line x1="4" y1="56" x2="48" y2="56" />
                   </svg>
-                  <p className="font-serif italic text-tea-text/40">Your ledger is empty.</p>
+                  <p className="font-serif italic text-tea-text/40">Nothing added yet.</p>
+                  <p className="text-xs text-tea-text/30 mt-1">Browse the shop and add teas to begin.</p>
                   <style>{`
                     @keyframes teaCupFloat {
                       0%, 100% { transform: translateY(0px); }
@@ -295,9 +337,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               <p className="font-serif text-sm text-tea-text/70 italic mb-4">
                 Fill in your details below. Your order inquiry will be generated automatically.
               </p>
-              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-gold/20 rounded-lg border border-tea-border" id="inquiry-form">
+              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-sm border border-tea-border" id="inquiry-form">
                 <div>
-                  <label htmlFor="inquiry-name" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-name" className="block text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Name *
                   </label>
                   <div className="relative">
@@ -325,15 +367,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-contact" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-contact" className="block text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Contact *
                   </label>
                   <div className="relative">
                     <input
                       id="inquiry-contact"
-                      name="phone"
-                      type="tel"
-                      autoComplete="tel"
+                      name="contact"
+                      type="text"
+                      autoComplete="email"
+                      inputMode="email"
                       value={details.contact}
                       onChange={(e) => handleFieldChange('contact', e.target.value)}
                       onBlur={() => handleFieldBlur('contact')}
@@ -353,7 +396,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-location" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-location" className="block text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Shipping Location *
                   </label>
                   <div className="relative">
@@ -381,7 +424,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-notes" className="block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-notes" className="block text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Special Requests (Optional)
                   </label>
                   <textarea
@@ -415,20 +458,20 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               {/* Customer details summary */}
               <div className="bg-tea-accent-sub border border-tea-border rounded-md p-4 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Name</span>
+                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Name</span>
                   <span className="text-sm text-tea-text">{details.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</span>
+                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</span>
                   <span className="text-sm text-tea-text">{details.contact}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Location</span>
+                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Location</span>
                   <span className="text-sm text-tea-text">{details.location}</span>
                 </div>
                 {details.notes && (
                   <div className="flex justify-between">
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</span>
+                    <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</span>
                     <span className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</span>
                   </div>
                 )}
@@ -436,7 +479,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {/* Order items summary */}
               <div className="bg-tea-surface border border-tea-border rounded-md p-4 space-y-3">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-2">Items</p>
+                <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-2">Items</p>
                 {cart.map(item => (
                   <div key={item.id} className="flex justify-between items-center text-sm border-b border-tea-border pb-2 last:border-0 last:pb-0">
                     <div>
@@ -454,7 +497,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
               </div>
 
-              <p className="text-[10px] text-tea-text-sec text-center font-mono">{orderRef}</p>
+              <p className="text-[11px] text-tea-text-sec text-center font-mono">{orderRef}</p>
 
               {/* Persistent success message */}
               {successMessage?.show && (
@@ -462,8 +505,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   <div className="flex items-center gap-2">
                     <Icons.Check className="w-4 h-4" />
                     <span className="text-xs uppercase tracking-[0.15em] font-medium">
-                      {successMessage.type === 'whatsapp' && 'Opened WhatsApp — inquiry sent!'}
-                      {successMessage.type === 'email' && 'Opened email client — inquiry ready!'}
+                      {successMessage.type === 'whatsapp' && 'WhatsApp opened — tap Send to complete'}
+                      {successMessage.type === 'email' && 'Email client opened — review and send'}
                       {successMessage.type === 'copy' && 'Copied to clipboard!'}
                     </span>
                   </div>
@@ -493,7 +536,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       : 'border-tea-green/30 hover:bg-tea-green/10 text-tea-green'
                   }`}>
                   <Icons.Message className="w-4 h-4" />
-                  <span className="text-[10px] uppercase tracking-[0.15em]">Send via WhatsApp</span>
+                  <span className="text-[11px] uppercase tracking-[0.15em]">Send via WhatsApp</span>
                   {preferredChannel === 'whatsapp' && <span className="text-xs ml-1 text-tea-green">Recommended</span>}
                 </button>
                 <button onClick={handleEmail}
@@ -502,12 +545,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       ? 'border-tea-border bg-tea-accent-sub text-tea-text shadow-md'
                       : 'border-tea-border hover:bg-tea-accent-sub text-tea-text'
                   }`}>
-                  <span className="text-[10px] uppercase tracking-[0.15em]">Send via Email</span>
+                  <span className="text-[11px] uppercase tracking-[0.15em]">Send via Email</span>
                   {preferredChannel === 'email' && <span className="text-xs ml-1 text-tea-text-sec">Recommended</span>}
                 </button>
                 <button onClick={handleCopy}
                   className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:bg-tea-accent-sub text-tea-text transition-colors min-h-[44px]">
-                  <span className="text-[10px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
+                  <span className="text-[11px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
                 </button>
               </div>
 
@@ -525,24 +568,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           <div className="flex flex-col gap-4">
             {!isEmpty && (
               <div className="bg-tea-accent-sub border border-tea-border rounded-md px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-medium mb-1.5">How ordering works</p>
+                <p className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium mb-1.5">How ordering works</p>
                 <p className="text-xs text-tea-text-sec leading-relaxed">
                   We confirm every order personally — availability, pricing, and shipping are confirmed via WhatsApp or email. This is a personal service, not an automated checkout.
                 </p>
-              </div>
-            )}
-            {rates.length > 0 && (
-              <div className="flex items-center justify-end gap-2 mb-2">
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Currency</span>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as any)}
-                  className="bg-tea-surface border border-tea-border rounded px-2 py-1 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                >
-                  {rates.map(r => (
-                    <option key={r.currency} value={r.currency}>{r.currency}</option>
-                  ))}
-                </select>
               </div>
             )}
             <div className="flex justify-between items-center font-serif text-xl text-tea-text">
@@ -580,6 +609,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
         )}
         {step === 'CONFIRM' && (
           <div className="flex flex-col gap-3">
+            {successMessage?.show && onClose && (
+              <Button
+                onClick={onClose}
+                variant="primary"
+                fullWidth
+                className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
+              >
+                Done
+              </Button>
+            )}
             <Button
               onClick={() => setStep('INQUIRY')}
               variant="secondary"

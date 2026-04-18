@@ -16,11 +16,12 @@ import { TeaCompass } from '../TeaCompass';
 import { AdminMiniDashboard } from '../admin-overlay/AdminMiniDashboard';
 import type { Currency } from '../../admin/types';
 
-type PanelView = 'main' | 'signin' | 'signup' | 'collection' | 'tasting-journal' | 'tea-compass' | 'saved-stories' | 'reading-history' | 'change-password' | 'edit-profile';
+import type { PanelView } from './types';
 
 interface AccountPanelProps {
   onClose: () => void;
   onNavigateToStory?: (storyId: string) => void;
+  initialView?: PanelView;
 }
 
 const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
@@ -32,7 +33,7 @@ const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
   { code: 'IDR', label: 'Indonesian Rupiah', symbol: 'Rp' },
 ];
 
-export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory }) => {
+export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory, initialView }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
@@ -46,6 +47,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const STORAGE_KEY = 'teajia-account-view';
 
   const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
+    if (initialView) return initialView;
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as PanelView | null;
       if (saved && PERSISTABLE_VIEWS.includes(saved)) return saved;

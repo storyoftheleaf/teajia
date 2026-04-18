@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
-import { TeaEvent, EventFormData, EventStatus, VenueGuideStep, SessionFlowItem, SavedLocation, Venue, VenueSpace } from '../../types/events';
+import { TeaEvent, EventFormData, EventStatus, EventFormat, VenueGuideStep, SessionFlowItem, SavedLocation, Venue, VenueSpace } from '../../types/events';
 
 interface EventFormProps {
   isOpen: boolean;
@@ -32,6 +32,7 @@ const emptyForm: EventFormData = {
   totalCapacity: 12,
   claimWindowMinutes: 60,
   status: 'draft',
+  format: 'private_tasting' as EventFormat,
   flyerImageUrl: '',
   locationName: '',
   addressText: '',
@@ -79,6 +80,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [eventEndDate, setEventEndDate] = useState('');
   const [totalCapacity, setTotalCapacity] = useState(12);
   const [status, setStatus] = useState<EventStatus>('draft');
+  const [format, setFormat] = useState<EventFormat>('private_tasting');
   const [flyerImageUrl, setFlyerImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -141,6 +143,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         total_capacity: totalCapacity,
         claim_window_minutes: 60,
         status,
+        event_format: format,
         flyer_image_url: flyerImageUrl || null,
         venue_id: selectedVenueId || undefined,
         active_space_ids: selectedSpaceIds.length > 0 ? JSON.stringify(selectedSpaceIds) : undefined,
@@ -249,6 +252,25 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   </div>
                 </Field>
               </div>
+            </section>
+
+            {/* Format */}
+            <section className="space-y-5 py-8">
+              <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Format</h3>
+              <Field label="Format">
+                <select
+                  value={format}
+                  onChange={e => setFormat(e.target.value as EventFormat)}
+                  className={selectClass}
+                >
+                  <option value="private_tasting">Private Tasting</option>
+                  <option value="public_tasting">Public Tasting</option>
+                  <option value="workshop">Workshop</option>
+                  <option value="pop_up">Pop-up</option>
+                  <option value="wholesale_showing">Wholesale Showing</option>
+                  <option value="other">Other</option>
+                </select>
+              </Field>
             </section>
 
             {/* Location */}
@@ -459,6 +481,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       mapLink: initialData.mapLink || '',
       guidelinesText: initialData.guidelinesText || '',
       areaHint: initialData.areaHint || '',
+      format: initialData.format,
       venueGuide: initialData.venueGuide || { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' },
       sessionFlow: initialData.sessionFlow || [],
     });
@@ -621,6 +644,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         total_capacity: form.totalCapacity,
         claim_window_minutes: form.claimWindowMinutes,
         status: form.status,
+        event_format: form.format || 'private_tasting',
         flyer_image_url: form.flyerImageUrl || null,
         location_name: form.locationName || null,
         address_text: form.addressText || null,
@@ -758,6 +782,20 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     </div>
                   </Field>
                 </div>
+                <Field label="Format">
+                  <select
+                    value={form.format || 'private_tasting'}
+                    onChange={e => updateField('format', e.target.value as EventFormat)}
+                    className={selectClass}
+                  >
+                    <option value="private_tasting">Private Tasting</option>
+                    <option value="public_tasting">Public Tasting</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="pop_up">Pop-up</option>
+                    <option value="wholesale_showing">Wholesale Showing</option>
+                    <option value="other">Other</option>
+                  </select>
+                </Field>
               </div>
               {/* Right — Flyer */}
               <div className="space-y-4">

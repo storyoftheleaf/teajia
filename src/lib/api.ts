@@ -1603,6 +1603,21 @@ export const api = {
     },
   },
 
+  catalog: {
+    list: async (): Promise<{ products: any[]; trust_tier: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/catalog`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    seed: async (targetAccountId: string, productIds: string[]): Promise<{ seeded: string[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/catalog/seed`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ target_account_id: targetAccountId, product_ids: productIds }),
+      });
+      return handleResponse(res);
+    },
+  },
+
   platform: {
     listUsers: async (): Promise<{ users: PlatformUser[] }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/platform/users`, {

@@ -1277,6 +1277,105 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+const handleGetCatalog: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const tierRow = await env.DB.prepare('SELECT trust_tier FROM accounts WHERE id = ?').bind(accountId).first();
+  const trust_tier = (tierRow?.trust_tier as string) || 'basic';
+
+  const platformRow = await env.DB.prepare('SELECT id, whatsapp_number FROM accounts WHERE is_platform_owner = 1 LIMIT 1').first();
+  if (!platformRow) return json({ error: 'Platform account not configured' }, 500);
+  const platformId = platformRow.id as string;
+  const platformWhatsapp = (platformRow.whatsapp_number as string) || null;
+
+  if (accountId === platformId) return json({ error: 'Platform account uses inventory directly' }, 403);
+
+  const result = await env.DB.prepare(
+    `SELECT id, type, form, given_name, chinese_name, product_name, year, origin_country, origin_region,
+            description, tasting_notes, image_url, additional_images, lore, show_wisdom, processing_notes,
+            terroir, mood, experience, tea_key, tasting, status, is_featured, is_curated, material,
+            capacity_ml, teaware_category, quantity_units, stock_grams, wholesale_price
+     FROM products
+     WHERE account_id = ? AND catalog_visible = 1 AND status != 'Archived'
+     ORDER BY type, given_name`
+  ).bind(platformId).all();
+
+  const products = (result.results as any[]).map(p => {
+    if (typeof p.tasting_notes === 'string') {
+      try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }
+    }
+    if (typeof p.additional_images === 'string') {
+      try { p.additional_images = JSON.parse(p.additional_images); } catch { p.additional_images = []; }
+    }
+    if (typeof p.tasting === 'string') {
+      try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
+    }
+
+    const out: Record<string, any> = {
+      id: p.id, type: p.type, form: p.form, given_name: p.given_name, chinese_name: p.chinese_name,
+      product_name: p.product_name, year: p.year, origin_country: p.origin_country,
+      origin_region: p.origin_region, description: p.description, tasting_notes: p.tasting_notes,
+      image_url: p.image_url, additional_images: p.additional_images, lore: p.lore,
+      show_wisdom: p.show_wisdom, processing_notes: p.processing_notes, terroir: p.terroir,
+      mood: p.mood, experience: p.experience, tea_key: p.tea_key, tasting: p.tasting,
+      status: p.status, is_featured: p.is_featured, is_curated: p.is_curated,
+      material: p.material, capacity_ml: p.capacity_ml, teaware_category: p.teaware_category,
+      quantity_units: p.quantity_units,
+      is_available: (p.stock_grams || 0) > 0,
+    };
+    if (trust_tier === 'verified' || trust_tier === 'partner') {
+      out.wholesale_price = p.wholesale_price;
+    }
+    return out;
+  });
+
+  return json({ products, trust_tier, platform_whatsapp: platformWhatsapp });
+};
+
+const handleSeedCatalog: Handler = async (request, env) => {
+  const token = isAuthed(request);
+  const claims = token ? parseToken(token) : null;
+  if (claims?.platform_role !== 'platform_owner') return json({ error: 'Platform owner only' }, 403);
+
+  const body = await request.json() as { target_account_id?: string; product_ids?: string[] };
+  if (!body.target_account_id || !Array.isArray(body.product_ids) || body.product_ids.length === 0) {
+    return json({ error: 'target_account_id and product_ids are required' }, 400);
+  }
+  const { target_account_id, product_ids } = body;
+
+  const rows = await env.DB.prepare(
+    `SELECT * FROM products WHERE id IN (${product_ids.map(() => '?').join(', ')})`
+  ).bind(...product_ids).all();
+
+  const COPY_COLS = [
+    'type', 'form', 'given_name', 'chinese_name', 'product_name', 'year',
+    'origin_country', 'origin_region', 'description', 'tasting_notes', 'image_url',
+    'additional_images', 'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood',
+    'experience', 'tea_key', 'tasting', 'material', 'capacity_ml', 'teaware_category',
+    'quantity_units', 'is_featured', 'is_curated', 'can_reorder',
+  ];
+
+  const insertedIds: string[] = [];
+  const stmts: D1PreparedStatement[] = [];
+
+  for (const src of rows.results as any[]) {
+    const id = crypto.randomUUID();
+    insertedIds.push(id);
+    const cols = ['id', 'account_id', 'status', 'is_public', 'stock_grams', 'price_per_gram_usd', 'fixed_retail_price_usd', ...COPY_COLS];
+    const vals = [id, target_account_id, 'Draft', 0, 0, src.wholesale_price ?? 0, null, ...COPY_COLS.map(c => src[c] ?? null)];
+    const placeholders = cols.map(() => '?').join(', ');
+    stmts.push(
+      env.DB.prepare(`INSERT INTO products (${cols.join(', ')}) VALUES (${placeholders})`).bind(...vals)
+    );
+  }
+
+  await env.DB.batch(stmts);
+
+  return json({ seeded: insertedIds });
+};
+
 // ── Product Events (cross-link: which events featured this product) ──
 const handleGetProductEvents: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
@@ -3242,8 +3341,8 @@ const handleCreateEvent: Handler = async (request, env) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url, location_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       timezone, status, session_flow, playlist_url, location_id, event_format)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
@@ -3265,7 +3364,8 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.status || 'draft',
     body.session_flow ? (typeof body.session_flow === 'string' ? body.session_flow : JSON.stringify(body.session_flow)) : null,
     body.playlist_url || null,
-    body.location_id || null
+    body.location_id || null,
+    body.event_format || 'private_tasting'
   ).run();
 
   return json({ id, slug: body.slug }, 201);
@@ -3282,6 +3382,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (body.session_flow && typeof body.session_flow !== 'string') {
     body.session_flow = JSON.stringify(body.session_flow);
   }
+  if (body.event_format === undefined) delete body.event_format;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
@@ -3505,8 +3606,8 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)`
+       timezone, status, session_flow, playlist_url, event_format)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -3526,7 +3627,8 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.claim_window_minutes,
     source.timezone,
     source.session_flow,
-    source.playlist_url
+    source.playlist_url,
+    source.event_format || 'private_tasting'
   ).run();
 
   const menu = await env.DB.prepare(
@@ -6799,6 +6901,10 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['GET', '/api/products/:id/events', handleGetProductEvents],
+
+  // Wholesale Catalog
+  ['GET', '/api/catalog', handleGetCatalog],
+  ['POST', '/api/catalog/seed', handleSeedCatalog],
 
   // Exchange Rates
   ['GET', '/api/rates', handleGetRates],

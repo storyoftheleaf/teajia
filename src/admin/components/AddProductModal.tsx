@@ -189,7 +189,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { aiPromptTemplate, draftProduct, setDraftProduct } = useAppStore();
+  const { aiPromptTemplate, draftProduct, setDraftProduct, memberships, activeAccountId } = useAppStore();
+  const isPlatformAccount = memberships.find(m => m.account_id === activeAccountId)?.is_platform_account ?? false;
 
   const [tastingData, setTastingData] = useState<TastingData>({});
   const [tastingOpen, setTastingOpen] = useState(false);
@@ -230,6 +231,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     mood: '',
     experience: '',
     teaKey: '',
+    wholesalePrice: '',
+    catalogVisible: false,
   });
 
   const isEditMode = !!initialData;
@@ -287,6 +290,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         mood: initialData.mood || '',
         experience: initialData.experience || '',
         teaKey: (initialData as any).tea_key || '',
+        wholesalePrice: (initialData as any).wholesalePrice ? (initialData as any).wholesalePrice.toString() : '',
+        catalogVisible: (initialData as any).catalogVisible || false,
       });
       setTastingData(initialData.tasting || {});
       setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes || initialData.tasting));
@@ -327,6 +332,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         mood: '',
         experience: '',
         teaKey: '',
+        wholesalePrice: '',
+        catalogVisible: false,
       });
       setTastingData({});
       setWisdomOpen(false);
@@ -508,6 +515,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             tea_key: formData.teaKey || null,
             recheck_stock: formData.recheckStock ? 1 : 0,
             in_transit: formData.inTransit ? 1 : 0,
+            ...(isPlatformAccount ? {
+              wholesale_price: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : null,
+              catalog_visible: formData.catalogVisible ? 1 : 0,
+            } : {}),
         };
 
         let productId: string | undefined;
@@ -652,6 +663,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="hidden" />
                     <Star size={12} /> Curated
                 </label>
+                {isPlatformAccount && (
+                  <label className={`pill cursor-pointer select-none font-bold ${formData.catalogVisible ? 'pill-active' : ''}`}>
+                    <input type="checkbox" checked={formData.catalogVisible} onChange={e => setFormData(prev => ({ ...prev, catalogVisible: e.target.checked }))} className="hidden" />
+                    In Catalog
+                  </label>
+                )}
             </div>
 
             {/* CLASSIFICATION ROW */}
@@ -824,6 +841,21 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                        />
                     </div>
                  </div>
+
+                 {/* WHOLESALE PRICE — platform accounts only */}
+                 {isPlatformAccount && (
+                   <div className="pt-2.5 border-t border-dashed border-tea-border">
+                     <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Wholesale Price (USD/g)</label>
+                     <input
+                       type="number"
+                       step="0.0001"
+                       value={formData.wholesalePrice}
+                       onChange={e => setFormData(prev => ({ ...prev, wholesalePrice: e.target.value }))}
+                       placeholder="0.0000"
+                       className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
+                     />
+                   </div>
+                 )}
 
                  {/* STOCK */}
                  <div className="pt-2">

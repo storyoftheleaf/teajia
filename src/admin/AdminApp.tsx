@@ -42,6 +42,7 @@ import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
+import { CatalogView } from './views/CatalogView';
 import { TeaCompass } from '../components/TeaCompass';
 import type { CompassMode } from '../components/TeaCompass';
 
@@ -214,6 +215,7 @@ const AdminContent = () => {
   });
 
   const loading = productsLoading;
+  const activeMembership = memberships.find((m) => m.account_id === activeAccountId);
 
   // Extract unique vendors with tea counts for source suggestions
   const vendorSuggestions = useMemo(() => {
@@ -436,21 +438,17 @@ const AdminContent = () => {
            )}
 
            {/* Current account badge — so staff never forget which store they're acting on */}
-           {(() => {
-             const activeMembership = memberships.find((m) => m.account_id === activeAccountId);
-             if (!activeMembership) return null;
-             return (
-               <div
-                 className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-gold-lt shrink-0"
-                 title={`Active account: ${activeMembership.account_name}`}
-               >
-                 <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" />
-                 <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
-                   {activeMembership.account_name}
-                 </span>
-               </div>
-             );
-           })()}
+           {activeMembership && (
+             <div
+               className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-gold-lt shrink-0"
+               title={`Active account: ${activeMembership.account_name}`}
+             >
+               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" />
+               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
+                 {activeMembership.account_name}
+               </span>
+             </div>
+           )}
 
            {/* Right: Currency selector */}
            <div className="flex items-center ml-auto shrink-0 relative">
@@ -484,7 +482,7 @@ const AdminContent = () => {
               <Route path="home" element={
                 <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <AdminHomeView platformRole={platformRole} isStaff={isStaff} isAdmin={isAdmin} />
+                    <AdminHomeView platformRole={platformRole} isStaff={isStaff} isAdmin={isAdmin} isPlatformAccount={!!activeMembership?.is_platform_account} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
@@ -548,7 +546,11 @@ const AdminContent = () => {
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
-              <Route path="catalog" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="catalog" element={
+                activeMembership?.is_platform_account
+                  ? <Navigate to="/admin/inventory" replace />
+                  : <ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogView /></PageTransition></ProtectedRoute>
+              } />
               <Route path="teaware" element={<Navigate to="/admin/inventory" replace />} />
               <Route path="personal" element={<Navigate to="/admin/inventory" replace />} />
               <Route path="customers" element={<Navigate to="/admin/people" replace />} />

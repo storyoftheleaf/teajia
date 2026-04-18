@@ -61,6 +61,8 @@ import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ImagePreloaderProvider } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
+import { LaunchPad } from './components/LaunchPad';
+import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
@@ -196,7 +198,7 @@ const AppContent = () => {
       setViewState('BROWSE');
       setSelectedStory(null);
       setIsSectionTransitioning(false);
-    }, 120);
+    }, 75);
   }, [activeSection, navigate]);
 
   const [viewState, setViewState] = useState<ViewState>('BROWSE');
@@ -226,6 +228,8 @@ const AppContent = () => {
   // Modal State
   const [showContact, setShowContact] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountInitialView, setAccountInitialView] = useState<PanelView | undefined>(undefined);
+  const [showLaunchPad, setShowLaunchPad] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // UI Feedback State
@@ -429,9 +433,12 @@ const AppContent = () => {
     setIsCartOpen(true);
   }, []);
 
-  const handleOpenAccount = () => {
+  const handleOpenAccount = (view?: PanelView) => {
+    setAccountInitialView(view);
     setShowAccountModal(true);
   };
+
+  const handleOpenLaunchPad = () => setShowLaunchPad(true);
 
   // Allow any component to open the account panel via a custom event
   useEffect(() => {
@@ -446,6 +453,7 @@ const AppContent = () => {
 
   const handleCloseAccount = () => {
     setShowAccountModal(false);
+    setAccountInitialView(undefined);
   };
 
   const getSectionIcon = (section: Section, active: boolean) => {
@@ -700,8 +708,16 @@ const AppContent = () => {
 
       {/* --- ACCOUNT MODAL --- */}
       {showAccountModal && (
-        <AccountPanel onClose={handleCloseAccount} />
+        <AccountPanel onClose={handleCloseAccount} initialView={accountInitialView} />
       )}
+
+      {/* --- LAUNCHPAD --- */}
+      <LaunchPad
+        isOpen={showLaunchPad}
+        onClose={() => setShowLaunchPad(false)}
+        onNavigateHome={() => setActiveSection('HOME')}
+        onOpenAccount={handleOpenAccount}
+      />
 
       {/* --- CONTACT MODAL --- */}
       {showContact && (
@@ -757,7 +773,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} hidden={false} onAccountClick={handleOpenAccount} />
+      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} hidden={false} onAccountClick={handleOpenAccount} onLaunchPadClick={handleOpenLaunchPad} />
 
       </div>
 

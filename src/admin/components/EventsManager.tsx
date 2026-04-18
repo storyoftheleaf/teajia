@@ -116,6 +116,11 @@ export const EventsManager: React.FC = () => {
                       <span className={`text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[event.status]}`}>
                         {event.status}
                       </span>
+                      {event.format && event.format !== 'private_tasting' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-tea-text-sec/10 text-tea-text-sec capitalize">
+                          {event.format.replace(/_/g, ' ')}
+                        </span>
+                      )}
                       {/* Request count badge */}
                       {requested > 0 && (
                         <span className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full font-medium">

@@ -173,6 +173,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
               onAddItem={props.onAddItem}
               isOpen={isOpen}
               whatsappNumber={props.whatsappNumber}
+              onClose={onClose}
             />
           </div>
         ) : null}

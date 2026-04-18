@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "lsof -ti:7777 >/dev/null 2>&1 || vite",
     "build": "vite build",
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",
@@ -34,6 +34,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.27",
+    "playwright": "^1.59.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
     "terser": "^5.44.1",

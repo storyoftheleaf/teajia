@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/',
     server: {
-      port: 3000,
+      port: 7777,
+      strictPort: true,
       host: 'localhost',
       cors: true,
     },

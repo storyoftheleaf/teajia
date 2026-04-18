@@ -56,6 +56,8 @@ export interface Product {
   tasting?: TastingData;
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
   teaKey?: string; // Normalised tea identity key — shared across accounts for cross-store review aggregation
+  wholesalePrice?: number;
+  catalogVisible?: boolean;
 }
 
 export interface Invoice {

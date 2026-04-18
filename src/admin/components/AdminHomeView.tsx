@@ -79,11 +79,20 @@ export const AdminHomeView: React.FC<{
   platformRole?: PlatformRole;
   isStaff?: boolean;
   isAdmin?: boolean;
-}> = ({ platformRole, isStaff = false, isAdmin = false }) => {
+  isPlatformAccount?: boolean;
+}> = ({ platformRole, isStaff = false, isAdmin = false, isPlatformAccount = false }) => {
   const navigate = useNavigate();
 
+  const catalogTile: TileData = {
+    id: 'catalog', label: 'Catalog', sub: 'Source from Teajia', icon: Package, path: '/admin/catalog',
+  };
+
   const mgmtTiles = isAdmin
-    ? [...managementTiles, ...(platformRole ? [platformTile] : [])]
+    ? [
+        ...(!isPlatformAccount ? [catalogTile] : []),
+        ...managementTiles,
+        ...(platformRole ? [platformTile] : []),
+      ]
     : [];
 
   const hubLabel = isAdmin ? 'Admin' : 'Back of House';

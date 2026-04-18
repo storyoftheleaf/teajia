@@ -13,13 +13,14 @@ interface BottomTabBarProps {
   onNavigate: (section: Section) => void;
   hidden?: boolean;
   onAccountClick?: () => void;
+  onLaunchPadClick?: () => void;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
   hidden = false,
-  onAccountClick
+  onLaunchPadClick,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,18 +29,22 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const centerLongPress = useLongPress({
     delay: 500,
     onLongPress: () => {
-      if ('vibrate' in navigator) { navigator.vibrate?.(30); }
+      if ('vibrate' in navigator) { navigator.vibrate?.(20); }
+      onLaunchPadClick?.();
+    },
+    onClick: () => {
       if (isOnAdmin) {
         navigate('/');
         onNavigate('HOME');
-      } else {
-        navigate('/admin');
+        return;
       }
-    },
-    onClick: () => {
-      onNavigate('HOME');
-      // Scroll after navigation completes (setActiveSection has a 120ms delay before navigate)
-      setTimeout(() => window.scrollTo({ top: 0 }), 150);
+      if (activeSection === 'HOME') {
+        // Already home — open launchpad on second tap
+        onLaunchPadClick?.();
+      } else {
+        onNavigate('HOME');
+        setTimeout(() => window.scrollTo({ top: 0 }), 150);
+      }
     },
   });
 
@@ -131,8 +136,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               WebkitUserSelect: 'none',
               touchAction: 'manipulation',
             }}
-            title="Home · Long press for admin"
-            aria-label="Return to home, long press to toggle admin"
+            title="Home · Long press for launchpad"
+            aria-label="Return to home, long press to open launchpad"
           >
             <LogoText
               size="sm"
