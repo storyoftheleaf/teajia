@@ -9,6 +9,9 @@ interface Env {
   // Optional — set SENDER_EMAIL to enable invite emails via MailChannels
   SENDER_EMAIL?: string;
   SENDER_NAME?: string;
+  // Optional — set to enable Google OAuth sign-in
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -184,6 +187,35 @@ async function maybeIssueRefreshedToken(
     active_account_id: activeAccountId,
     ...(claims as any).username ? { username: (claims as any).username } : {},
   } as Omit<TokenClaims, 'iat' | 'exp'>);
+}
+
+// ── Google OAuth state helpers ──
+// State = hex_timestamp.hmac_sig — verifiable without server-side storage
+async function signOAuthState(secret: string): Promise<string> {
+  const ts = Date.now().toString(16);
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(ts));
+  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${ts}.${sigHex}`;
+}
+
+async function verifyOAuthState(state: string, secret: string): Promise<boolean> {
+  const dotIdx = state.lastIndexOf('.');
+  if (dotIdx < 0) return false;
+  const ts = state.slice(0, dotIdx);
+  const givenSig = state.slice(dotIdx + 1);
+  const tsNum = parseInt(ts, 16);
+  if (isNaN(tsNum) || Date.now() - tsNum > 10 * 60 * 1000) return false;
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(ts));
+  const expectedSig = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return expectedSig === givenSig;
 }
 
 // ── Multi-account helpers ──
@@ -977,6 +1009,91 @@ const handleResetPassword: Handler = async (request, env) => {
   ]);
 
   return json({ ok: true, message: 'Password has been reset successfully. You can now sign in.' });
+};
+
+// ── Google OAuth ──
+const handleGoogleAuth: Handler = async (request, env) => {
+  if (!env.GOOGLE_CLIENT_ID) return json({ error: 'Google OAuth not configured' }, 503);
+  const origin = new URL(request.url).origin;
+  const redirectUri = `${origin}/api/auth/google/callback`;
+  const state = await signOAuthState(env.JWT_SECRET);
+  const params = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    access_type: 'online',
+    prompt: 'select_account',
+  });
+  return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`, 302);
+};
+
+const handleGoogleCallback: Handler = async (request, env) => {
+  const url = new URL(request.url);
+  const origin = url.origin;
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const errorParam = url.searchParams.get('error');
+
+  if (errorParam) return Response.redirect(`${origin}/admin?oauth_error=${encodeURIComponent(errorParam)}`, 302);
+  if (!code || !state) return Response.redirect(`${origin}/admin?oauth_error=missing_params`, 302);
+  if (!await verifyOAuthState(state, env.JWT_SECRET)) return Response.redirect(`${origin}/admin?oauth_error=invalid_state`, 302);
+
+  const redirectUri = `${origin}/api/auth/google/callback`;
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: env.GOOGLE_CLIENT_ID!,
+      client_secret: env.GOOGLE_CLIENT_SECRET!,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  });
+  if (!tokenRes.ok) return Response.redirect(`${origin}/admin?oauth_error=token_exchange_failed`, 302);
+
+  const { access_token } = await tokenRes.json() as { access_token: string };
+
+  const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+  if (!userInfoRes.ok) return Response.redirect(`${origin}/admin?oauth_error=userinfo_failed`, 302);
+
+  const gUser = await userInfoRes.json() as { id: string; email: string; name: string };
+
+  // Find by google_id first; fall back to email to link existing accounts
+  let user = await env.DB.prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1').bind(gUser.id).first() as any;
+  if (!user) {
+    user = await env.DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(gUser.email).first() as any;
+    if (user) {
+      await env.DB.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(gUser.id, user.id).run();
+    }
+  }
+  if (!user) {
+    const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      'INSERT INTO users (id, email, username, name, password_hash, role, google_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, gUser.email, null, gUser.name, '', 'user', gUser.id).run();
+    user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first() as any;
+  }
+  if (!user) return Response.redirect(`${origin}/admin?oauth_error=account_error`, 302);
+
+  const memberships = await loadMemberships(env, user.id as string);
+  const activeAccountId = memberships[0]?.account_id || null;
+  const token = await createToken(env.JWT_SECRET, {
+    sub: user.id as string,
+    email: user.email as string,
+    role: user.role as string,
+    platform_role: (user.platform_role as PlatformRole) ?? null,
+    name: user.name as string,
+    username: (user.username as string | null) ?? null,
+    memberships,
+    active_account_id: activeAccountId,
+  });
+
+  return Response.redirect(`${origin}/admin#oauth_token=${token}`, 302);
 };
 
 const handleGetProducts: Handler = async (request, env) => {
@@ -6849,6 +6966,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
   ['POST', '/api/auth/forgot-password', handleForgotPassword],
   ['POST', '/api/auth/reset-password', handleResetPassword],
+  ['GET', '/api/auth/google', handleGoogleAuth],
+  ['GET', '/api/auth/google/callback', handleGoogleCallback],
 
   // Accounts / Multi-store
   ['GET', '/api/accounts/me', handleGetAccountsMe],

@@ -107,12 +107,18 @@ function authHeaders(): Record<string, string> {
 // ── Silent refresh machinery ──────────────────────────────────────────────
 // Coordinates ongoing refresh calls so many concurrent requests don't each
 // fire their own refresh when a page first loads a stale token.
-let inFlightRefresh: Promise<boolean> | null = null;
+//
+// 'refreshed'     — new token issued and stored; retry the original call
+// 'rejected'      — server explicitly rejected the token (non-2xx); log out
+// 'network_error' — couldn't reach the refresh endpoint; keep existing token
+type RefreshResult = 'refreshed' | 'rejected' | 'network_error';
+
+let inFlightRefresh: Promise<RefreshResult> | null = null;
 let lastRefreshAttemptAt = 0;
 
-async function refreshTokenNow(): Promise<boolean> {
+async function refreshTokenNow(): Promise<RefreshResult> {
   const token = getToken();
-  if (!token) return false;
+  if (!token) return 'rejected';
   try {
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
@@ -121,23 +127,23 @@ async function refreshTokenNow(): Promise<boolean> {
         'Authorization': `Bearer ${token}`,
       },
     });
-    if (!res.ok) return false;
+    if (!res.ok) return 'rejected';
     const data = await res.json().catch(() => null);
     if (data?.token && typeof data.token === 'string') {
       setToken(data.token);
       // Refresh the Zustand store so memberships stay aligned with the JWT.
       try { hydrateAccountStateFromToken(); } catch { /* ignore */ }
-      return true;
+      return 'refreshed';
     }
-    return false;
+    return 'rejected';
   } catch {
     // Network error — keep the old token; next success will retry.
-    return false;
+    return 'network_error';
   }
 }
 
 /** Shared silent refresh; concurrent callers see the same promise. */
-export function ensureTokenRefreshed(): Promise<boolean> {
+export function ensureTokenRefreshed(): Promise<RefreshResult> {
   if (!inFlightRefresh) {
     lastRefreshAttemptAt = Date.now();
     inFlightRefresh = refreshTokenNow().finally(() => {
@@ -196,11 +202,14 @@ async function handleResponse(res: Response) {
     // token and succeed. Only if the refresh itself fails do we give up
     // and fire SESSION_EXPIRED so the UI can prompt a re-login.
     if (res.status === 401 && hasToken()) {
-      const refreshed = await ensureTokenRefreshed();
-      if (!refreshed) {
+      const refreshResult = await ensureTokenRefreshed();
+      if (refreshResult === 'rejected') {
         clearToken();
         window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
       }
+      // 'network_error': keep the token — transient issue, next call may succeed.
+      // 'refreshed': new token stored; the *original* request already failed but
+      //              the caller's next attempt will use the new token.
     }
     // Detect account access denial — clear active account and prompt UI reload
     if (res.status === 403 && data?.error === 'Account access denied') {
@@ -311,7 +320,7 @@ export const api = {
       return handleResponse(res);
     },
     /** Explicit refresh — rarely needed directly; prefer `ensureTokenRefreshed`. */
-    refresh: async (): Promise<boolean> => ensureTokenRefreshed(),
+    refresh: async (): Promise<boolean> => ensureTokenRefreshed().then(r => r === 'refreshed'),
     me: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/me`, {
         headers: authHeaders(),

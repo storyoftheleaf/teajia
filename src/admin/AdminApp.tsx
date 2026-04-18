@@ -8,6 +8,7 @@ import {
   isConfigured,
   hasToken,
   clearToken,
+  setToken,
   getTokenClaims,
   isTokenExpired,
   SESSION_EXPIRED_EVENT,
@@ -98,11 +99,15 @@ const AdminContent = () => {
   } = useAppStore();
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // On mount, trust the stored token if one exists. We used to clear it
-    // here when it was within 60s of expiry, but that meant the admin app
-    // forced users to re-login right at the 30-day boundary. Now the first
-    // authenticated request triggers a silent refresh (see the effect
-    // below) and only truly dead tokens get cleared.
+    // Grab token from Google OAuth redirect (#oauth_token=...) before first render
+    const hash = window.location.hash;
+    if (hash.includes('oauth_token=')) {
+      const oauthToken = new URLSearchParams(hash.slice(1)).get('oauth_token');
+      if (oauthToken) {
+        setToken(oauthToken);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
     return hasToken();
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -134,6 +139,27 @@ const AdminContent = () => {
     };
   }, [clearAccountState]);
 
+  // Handle Google OAuth error redirects (?oauth_error=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get('oauth_error');
+    if (oauthError) {
+      const messages: Record<string, string> = {
+        access_denied: 'Google sign-in was cancelled.',
+        invalid_state: 'Sign-in session expired. Please try again.',
+        token_exchange_failed: 'Could not complete Google sign-in. Please try again.',
+        userinfo_failed: 'Could not retrieve your Google profile.',
+        account_error: 'Could not create or link your account.',
+      };
+      showToast(messages[oauthError] || 'Google sign-in failed. Please try again.', 'error');
+      setIsLoginOpen(true);
+      params.delete('oauth_error');
+      const newSearch = params.toString();
+      window.history.replaceState(null, '', window.location.pathname + (newSearch ? `?${newSearch}` : ''));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Hydrate account state from JWT on mount (and whenever auth changes)
   useEffect(() => {
     if (isAuthenticated) {
@@ -151,8 +177,8 @@ const AdminContent = () => {
     let cancelled = false;
     (async () => {
       if (isTokenExpired() || shouldProactivelyRefreshToken()) {
-        const ok = await ensureTokenRefreshed();
-        if (!ok && isTokenExpired()) {
+        const refreshResult = await ensureTokenRefreshed();
+        if (refreshResult === 'rejected' && isTokenExpired()) {
           // Truly dead — clear and prompt login. This is the graceful
           // fallback for someone who hasn't opened the app in over a month.
           clearToken();
