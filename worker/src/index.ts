@@ -12,6 +12,8 @@ interface Env {
   // Optional — set to enable Google OAuth sign-in
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  // Optional — set to 'true' to enable hard-coded dev admin credentials
+  ENABLE_DEV_ADMIN?: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -560,8 +562,8 @@ const handleLogin: Handler = async (request, env) => {
     // Table may not exist yet — fall through to env-based auth
   }
 
-  // Dev admin shortcut: login "aaa" / password "asdfghjkl" → owner role
-  if (identifier === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
+  // Dev backdoor — only active when ENABLE_DEV_ADMIN=true
+  if (env.ENABLE_DEV_ADMIN === 'true' && identifier === 'aaa' && computedHash === '5c80565db6f29da0b01aa12522c37b32f121cbe47a861ef7f006cb22922dffa1') {
     // Ensure user exists in DB for consistency, and ensure they have a
     // membership in the Bali account with owner role.
     try {
@@ -1188,6 +1190,20 @@ const handleCreateProduct: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+
+  // Basic validation
+  const { product_name, year } = body;
+  if (!product_name?.trim()) return new Response(JSON.stringify({ error: 'product_name is required' }), { status: 400 });
+  if (year && (!/^\d{4}$/.test(String(year)) || Number(year) < 1900 || Number(year) > 2100)) {
+    return new Response(JSON.stringify({ error: 'year must be a 4-digit number' }), { status: 400 });
+  }
+  // validate numeric fields are non-negative
+  for (const field of ['price', 'cost', 'stock']) {
+    if (body[field] !== undefined && Number(body[field]) < 0) {
+      return new Response(JSON.stringify({ error: `${field} cannot be negative` }), { status: 400 });
+    }
+  }
+
   // Strip any client-supplied account_id — we force the current account.
   delete body.account_id;
   // Set quantity_purchased: use quantity_units for teaware, stock_grams for tea
@@ -1235,6 +1251,10 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const { products } = await request.json() as { products: Record<string, any>[] };
+
+  if (!Array.isArray(products) || products.length > 100) {
+    return new Response(JSON.stringify({ error: 'Bulk create limited to 100 products per request' }), { status: 400 });
+  }
 
   // Pre-resolve all vendor names to vendor_ids (batch for efficiency, scoped)
   const vendorCache: Record<string, string> = {};
@@ -1369,7 +1389,24 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     }
   }
 
-  const cols = Object.keys(body);
+  const ALLOWED_UPDATE_COLUMNS = new Set([
+    'product_name', 'type', 'origin', 'year', 'harvest', 'form', 'price', 'cost',
+    'stock', 'stock_unit', 'status', 'description', 'notes', 'tags', 'moods',
+    'tasting_notes', 'brewing_notes', 'vendor', 'vendor_url', 'image_url',
+    'altitude', 'cultivar', 'processing', 'format',
+    // Extended product fields
+    'given_name', 'chinese_name', 'origin_country', 'origin_region', 'stock_grams',
+    'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'quantity_purchased',
+    'low_stock_threshold', 'recheck_stock', 'markup_multiplier', 'fixed_retail_price_usd',
+    'is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated',
+    'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
+    'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
+    'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
+    'tasting', 'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
+    'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
+    'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
+  ]);
+  const cols = Object.keys(body).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
@@ -1738,7 +1775,12 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     userEmail, 'invoice', invoice_id, accountId
   ));
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (err: any) {
+    console.error('handleFulfillInvoice batch failed:', err);
+    return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
+  }
 
   return json({ success: true });
 };
@@ -1824,7 +1866,12 @@ const handleVoidInvoice: Handler = async (request, env) => {
     userEmail, 'invoice', invoice_id, accountId
   ));
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (err: any) {
+    console.error('handleVoidInvoice batch failed:', err);
+    return json({ error: 'Void failed — no changes were committed' }, 500);
+  }
   return json({ success: true });
 };
 
@@ -1877,7 +1924,12 @@ const handleSplitInvoice: Handler = async (request, env) => {
     `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
     userEmail, 'invoice', newId, accountId));
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (err: any) {
+    console.error('handleSplitInvoice batch failed:', err);
+    return json({ error: 'Split failed — no changes were committed' }, 500);
+  }
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
 };
 
@@ -7237,35 +7289,44 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/products/:id/projects', projectProductXref.listByProduct],
 ];
 
+const ALLOWED_ORIGINS = [
+  'https://teajia.com',
+  'https://teajia.pages.dev',
+  'http://localhost:3000',
+  'http://localhost:4321',
+];
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const origin = request.headers.get('Origin') || '*';
+    const origin = request.headers.get('Origin') || '';
+    const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
 
     // CORS preflight — cache for 24h to eliminate redundant OPTIONS round-trips
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
         headers: {
-          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Origin': corsOrigin,
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account',
           'Access-Control-Max-Age': '86400',
+          'Vary': 'Origin',
         },
       });
     }
 
     const match = matchRoute(request.method, url.pathname, routes);
     if (!match) {
-      return cors(json({ error: 'Not found' }, 404), origin);
+      return cors(json({ error: 'Not found' }, 404), corsOrigin);
     }
 
     try {
       const response = await match.handler(request, env, match.params);
-      return cors(response, origin);
+      return cors(response, corsOrigin);
     } catch (err: any) {
       console.error('Worker error:', err);
-      return cors(json({ error: err.message || 'Internal server error' }, 500), origin);
+      return cors(json({ error: err.message || 'Internal server error' }, 500), corsOrigin);
     }
   },
 
