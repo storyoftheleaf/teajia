@@ -65,7 +65,7 @@ const TEA_COLUMN_DEFS = [
   { key: 'type', label: 'Type', defaultWidth: 'w-[10%]' },
   { key: 'year', label: 'Year', defaultWidth: 'w-[7%]' },
   { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
-  { key: 'stockGrams', label: 'Stock', defaultWidth: 'w-[8%]' },
+  { key: 'stockGrams', label: 'Stock (g)', defaultWidth: 'w-[8%]' },
   { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[9%]' },
   { key: 'costPerGramUSD', label: 'Cost/g', defaultWidth: 'w-[8%]' },
@@ -286,7 +286,8 @@ const GhostInput = ({
     className = '',
     placeholder = '',
     inputMode,
-    id
+    id,
+    ariaLabel,
 }: {
     value: string | number,
     onSave: (val: any) => void,
@@ -295,7 +296,8 @@ const GhostInput = ({
     className?: string,
     placeholder?: string,
     inputMode?: string,
-    id?: string
+    id?: string,
+    ariaLabel?: string,
 }) => {
     const [localValue, setLocalValue] = useState(value);
     
@@ -324,6 +326,7 @@ const GhostInput = ({
     return (
         <input
             id={id}
+            aria-label={ariaLabel}
             type={type}
             value={localValue || ''}
             onChange={(e) => setLocalValue(e.target.value)}
@@ -681,6 +684,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     savedViews, activeViewId, saveView, deleteView, setActiveView,
     inventoryGroupBy, setInventoryGroupBy,
     inventorySortConfig, setInventorySortConfig,
+    inventoryPriceMode: priceMode, setInventoryPriceMode: setPriceMode,
     aiPromptTemplate,
     currency,
     setCurrency,
@@ -709,7 +713,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showMobileGroupBy, setShowMobileGroupBy] = useState(false);
   const [showGroupByDropdown, setShowGroupByDropdown] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
-  const [priceMode, setPriceMode] = useState<'retail' | 'cost'>('retail');
   const [viewTabsExpanded, setViewTabsExpanded] = useState(false);
 
   // Reset glossary mode when switching categories
@@ -740,6 +743,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 2: Column Show/Hide popover
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
 
   // Feature 3: Row Grouping collapsed state
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -1548,6 +1552,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   value={product.productName}
                   onSave={(val) => handleProductUpdate(product.id, 'productName', val)}
                   className="font-serif text-sm text-tea-text tracking-wide truncate"
+                  ariaLabel="Product name"
                 />
               ) : (
                 <>
@@ -1582,7 +1587,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.year || ''} onSave={(val) => handleProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-text-sec tabular-nums" />
+              <GhostInput id={ghostId} ariaLabel="Year" value={product.year || ''} onSave={(val) => handleProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-text-sec tabular-nums" />
             ) : <span className="text-xs text-tea-text-sec font-sans tabular-nums">{product.year || '-'}</span>}
           </td>
         );
@@ -1590,7 +1595,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.originRegion} onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-text-sec truncate" />
+              <GhostInput id={ghostId} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-text-sec truncate" />
             ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.originRegion}</span>}
           </td>
         );
@@ -1600,7 +1605,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
               <div className="flex items-center gap-1">
-                <GhostInput id={ghostId} value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" className="num text-xs" />
+                <GhostInput id={ghostId} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" className="num text-xs" />
                 <button title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-[10px] transition-colors ${product.recheckStock ? 'text-amber-400 hover:text-tea-text-sec' : 'text-tea-border hover:text-amber-400'}`}>&#9888;</button>
               </div>
             ) : (
@@ -1620,7 +1625,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" className="num text-xs" />
+              <GhostInput id={ghostId} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" className="num text-xs" />
             ) : <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
           </td>
         );
@@ -1635,7 +1640,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={sellingPrice?.toFixed(2)} onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" className="num text-xs" />
+              <GhostInput id={ghostId} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" className="num text-xs" />
             ) : <span className={`num text-xs ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}>{sellingPrice != null ? fmtNum(sellingPrice) : '-'}</span>}
           </td>
         );
@@ -1644,7 +1649,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.material || ''} onSave={(val) => handleProductUpdate(product.id, 'material', val)} className="font-sans text-xs text-tea-text-sec truncate" />
+              <GhostInput id={ghostId} ariaLabel="Material" value={product.material || ''} onSave={(val) => handleProductUpdate(product.id, 'material', val)} className="font-sans text-xs text-tea-text-sec truncate" />
             ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.material || '-'}</span>}
           </td>
         );
@@ -1652,7 +1657,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.teawareCategory || ''} onSave={(val) => handleProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-xs text-tea-text-sec truncate" />
+              <GhostInput id={ghostId} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => handleProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-xs text-tea-text-sec truncate" />
             ) : <span className="text-xs text-tea-text-sec font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>}
           </td>
         );
@@ -1660,7 +1665,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.capacityMl || ''} onSave={(val) => handleProductUpdate(product.id, 'capacityMl', val)} type="number" className="num text-xs" />
+              <GhostInput id={ghostId} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => handleProductUpdate(product.id, 'capacityMl', val)} type="number" className="num text-xs" />
             ) : <span className="num text-xs text-tea-text-sec">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>}
           </td>
         );
@@ -1668,7 +1673,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         return (
           <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
             {isEditMode ? (
-              <GhostInput id={ghostId} value={product.quantityUnits || ''} onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)} type="number" className="num text-xs" />
+              <GhostInput id={ghostId} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)} type="number" className="num text-xs" />
             ) : <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>}
           </td>
         );
@@ -2114,17 +2119,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <div className="flex items-center gap-2 relative">
 
                     {/* Toggle Edit Mode */}
-                    <button
-                        onClick={() => setIsEditMode(!isEditMode)}
-                        className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
-                            isEditMode
-                            ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-accent/90'
-                            : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
-                        }`}
-                    >
-                        {isEditMode ? <Check size={14} /> : <Pencil size={14} />}
-                        {isEditMode ? 'Done' : 'Edit'}
-                    </button>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <button
+                          onClick={() => setIsEditMode(!isEditMode)}
+                          className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
+                              isEditMode
+                              ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-accent/90'
+                              : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
+                          }`}
+                      >
+                          {isEditMode ? <Check size={14} /> : <Pencil size={14} />}
+                          {isEditMode ? 'Done' : 'Edit'}
+                      </button>
+                      {isEditMode && (
+                        <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.12em] px-1 whitespace-nowrap">
+                          Select rows, then choose a field to bulk-edit
+                        </span>
+                      )}
+                    </div>
 
                     <div className="w-px h-4 bg-tea-border mx-1"></div>
 
@@ -2167,10 +2179,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showColumnsPopover && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2" role="menu">
                             <div className="px-3 pb-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                             {activeColumnDefs.map(col => (
-                              <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <label key={col.key} role="menuitem" className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                 <input
                                   type="checkbox"
                                   checked={inventoryColumns.includes(col.key)}
@@ -2199,10 +2211,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showGroupByDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowGroupByDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
+                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1" role="menu">
                             {GROUPBY_OPTIONS.map(opt => (
                               <button
                                 key={opt.value}
+                                role="menuitem"
                                 onClick={() => {
                                   setInventoryGroupBy(opt.value || null);
                                   setShowGroupByDropdown(false);
@@ -2210,6 +2223,43 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                               >
                                 {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Vendor Filter Dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowVendorDropdown(!showVendorDropdown)}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${vendorFilter ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                        title="Filter by vendor"
+                      >
+                        <User size={14} />
+                        <span className="hidden xl:inline tracking-wide">Vendor</span>
+                        {vendorFilter && <XIcon size={11} onClick={(e) => { e.stopPropagation(); setSearchParams({}); setShowVendorDropdown(false); }} className="ml-0.5 hover:text-tea-text" />}
+                      </button>
+                      {showVendorDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowVendorDropdown(false)} />
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 max-h-60 overflow-y-auto" role="menu">
+                            <button
+                              role="menuitem"
+                              onClick={() => { setSearchParams({}); setShowVendorDropdown(false); }}
+                              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${!vendorFilter ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                            >
+                              All Vendors
+                            </button>
+                            {[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => (
+                              <button
+                                key={vendor}
+                                role="menuitem"
+                                onClick={() => { setSearchParams({ vendor: vendor! }); setShowVendorDropdown(false); }}
+                                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors truncate ${vendorFilter === vendor ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                              >
+                                {vendor}
                               </button>
                             ))}
                           </div>
@@ -2228,20 +2278,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {showOptions && (
                         <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
-                            <button 
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col" role="menu">
+                            <button
+                                role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}
                                 className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                             >
                                 <AlertTriangle size={14} /> Low Stock Alerts
                             </button>
                             <button
+                                role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Unverified' ? 'All' : 'Unverified'); setShowOptions(false); }}
                                 className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                             >
                                 <CheckSquare size={14} /> Stock Verification
                             </button>
                             <button
+                                role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
                                 className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-accent' : 'text-tea-text-sec'}`}
                             >
@@ -2251,17 +2304,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <span className="ml-auto bg-tea-accent/20 text-tea-accent text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
                                 )}
                             </button>
-                            <button onClick={() => { setShowContentLinks(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { setShowContentLinks(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Tag size={14} /> Content Links
                             </button>
-                            <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <FileSpreadsheet size={14} /> Import CSV
                             </button>
-                            <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Download size={14} /> Export CSV
                             </button>
-                            <button 
-                                onClick={() => { handleBulkEnrich(); setShowOptions(false); }} 
+                            <button
+                                role="menuitem"
+                                onClick={() => { handleBulkEnrich(); setShowOptions(false); }}
                                 disabled={isEnriching}
                                 className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                             >
@@ -2269,7 +2323,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 Enrich Missing Wisdom
                             </button>
                             <div className="h-px bg-tea-border my-1"></div>
-                            <button onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-accent hover:bg-tea-accent/10 flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-accent hover:bg-tea-accent/10 flex items-center gap-2 transition-colors">
                                 <Trash2 size={14} /> Wipe Database
                             </button>
                         </div>
