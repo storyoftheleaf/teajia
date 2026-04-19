@@ -646,9 +646,11 @@ type LedgerFilter = 'all' | 'purchase' | 'sale' | 'draft' | 'confirmed';
 interface LedgerViewProps {
   embedded?: boolean;
   onOpenEntry?: (entryId: string) => void;
+  /** External search query from the tab-level search bar */
+  searchQuery?: string;
 }
 
-export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry }) => {
+export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, searchQuery = '' }) => {
   const transactions = useLedgerStore((s) => s.transactions);
   const createTransaction = useLedgerStore((s) => s.createTransaction);
   const openPurchaseOrder = useAppStore((s) => s.openPurchaseOrder);
@@ -670,8 +672,16 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry })
     if (filter === 'confirmed') list = list.filter((t) => t.status === 'confirmed');
     if (filter === 'purchase') list = list.filter((t) => t.direction === 'purchase');
     if (filter === 'sale') list = list.filter((t) => t.direction === 'sale');
+    // Apply text search across counterparty name and line item names
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter((t) =>
+        (t.counterpartyName || '').toLowerCase().includes(q) ||
+        (t.items || []).some((item) => (item.name || '').toLowerCase().includes(q))
+      );
+    }
     return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [transactions, filter]);
+  }, [transactions, filter, searchQuery]);
 
   const filterOptions: { value: LedgerFilter; label: string; count: number }[] = [
     { value: 'all', label: 'All', count: counts.all },

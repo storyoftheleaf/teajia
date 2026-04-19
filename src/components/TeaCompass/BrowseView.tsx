@@ -13,6 +13,8 @@ import type { TeaCompassEntry, BrowseFilter } from './types';
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
   onNewCapture: () => void;
+  /** External search query — when provided, overrides and hides the internal search input */
+  externalSearchQuery?: string;
 }
 
 function getDateGroup(dateStr: string): string {
@@ -47,7 +49,7 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery }) => {
   const navigate = useNavigate();
   const { entries, browseFilter, setBrowseFilter, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -66,7 +68,9 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     if (!valid.includes(browseFilter as BrowseFilter)) setBrowseFilter('all');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  // When an external query is provided (from the tab-level search bar), use it; otherwise use internal
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
 
   const fuseInstance = useMemo(() => new Fuse(entries, {
     keys: [
@@ -440,27 +444,29 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
 
   return (
     <div className="space-y-3 animate-[fadeIn_0.3s_ease-out]">
-      {/* Search */}
-      <div className="relative">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by name, region, vendor…"
-          className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2
-                     outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
+      {/* Search — hidden when parent provides externalSearchQuery */}
+      {externalSearchQuery === undefined && (
+        <div className="relative">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+          <input
+            type="text"
+            value={internalSearchQuery}
+            onChange={(e) => setInternalSearchQuery(e.target.value)}
+            placeholder="Search by name, region, vendor…"
+            className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2
+                       outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+          />
+          {internalSearchQuery && (
+            <button
+              type="button"
+              onClick={() => setInternalSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filter pills + New — single row, no scroll */}
       <div className="flex items-center gap-1.5">
