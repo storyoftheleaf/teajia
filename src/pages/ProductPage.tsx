@@ -9,6 +9,7 @@ import { HapticSlider } from '../components/shared/HapticSlider';
 import { fmtPrice, fmtPricePerGram, fmtNum } from '../utils/formatNumber';
 import { CardImage } from '../components/shared/CardImage';
 import type { InventoryItem } from '../types';
+import { getBrewingProfile } from '../data/brewing-profiles';
 
 /**
  * Full product detail page at /shop/product/:id
@@ -386,18 +387,55 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </button>
           </div>
 
-          {/* Brewing guide link — tea products only */}
-          {item.category === 'tea' && (
-            <div className="mt-4 pt-4 border-t border-tea-border">
-              <Link
-                to="/learn"
-                className="inline-flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
-              >
-                <span className="uppercase tracking-[0.12em]">How to prepare this tea</span>
-                <Icons.Back className="w-3 h-3 rotate-180" />
-              </Link>
-            </div>
-          )}
+          {/* Brewing profile — tea products only */}
+          {item.category === 'tea' && (() => {
+            const profile = getBrewingProfile(item.type);
+            if (!profile) return null;
+            return (
+              <div className="mt-4 pt-4 border-t border-tea-border">
+                <h3 className="text-[11px] uppercase tracking-[0.15em] text-tea-gold mb-3">
+                  How to Brew
+                </h3>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
+                      Water
+                    </dt>
+                    <dd className="text-xs text-tea-text-sec">{profile.waterTemp}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
+                      Steep
+                    </dt>
+                    <dd className="text-xs text-tea-text-sec">{profile.steepTime}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
+                      Leaf ratio
+                    </dt>
+                    <dd className="text-xs text-tea-text-sec">{profile.leafRatio}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
+                      Vessel
+                    </dt>
+                    <dd className="text-xs text-tea-text-sec">{profile.vessel}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
+                      Infusions
+                    </dt>
+                    <dd className="text-xs text-tea-text-sec">{profile.infusions}</dd>
+                  </div>
+                </dl>
+                {profile.notes && (
+                  <p className="mt-3 text-[11px] text-tea-text-dim leading-relaxed italic border-l border-tea-border pl-3">
+                    {profile.notes}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

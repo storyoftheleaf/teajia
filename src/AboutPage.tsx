@@ -19,8 +19,15 @@ export default function AboutPage() {
         <div className="w-12 h-[1px] bg-tea-gold" />
       </div>
 
-      {/* Photo placeholder */}
-      <div className="aspect-[3/2] bg-tea-elevated rounded-lg mb-12 md:mb-16" />
+      {/* Hero image — full-width editorial strip */}
+      {/* Adrian: drop your wide establishing image here (landscape, 3:2 or 16:9) */}
+      <div className="aspect-[3/2] md:aspect-[16/7] bg-tea-elevated rounded-lg mb-12 md:mb-16 overflow-hidden">
+        <img
+          src=""
+          alt="TeajiA — the practice"
+          className="w-full h-full object-cover"
+        />
+      </div>
 
       {/* What TeajiA is */}
       <div className="mb-16 md:mb-20">
@@ -33,6 +40,25 @@ export default function AboutPage() {
         <p className="text-tea-text-sec leading-relaxed">
           The work is rooted in Taiwan and mainland China but draws from everywhere tea is taken seriously. Based between Bali and Santa Cruz, TeajiA brings together design, education, and commerce into a single place — not as separate categories, but as parts of the same conversation about how tea fits into a considered life.
         </p>
+      </div>
+
+      {/* Editorial image pair — sourcing / origin context */}
+      {/* Adrian: drop two images here — works best as a wide landscape + square pair */}
+      <div className="mb-16 md:mb-20 grid grid-cols-2 gap-3 md:gap-4">
+        <div className="aspect-[4/3] bg-tea-elevated rounded-md overflow-hidden">
+          <img
+            src=""
+            alt="Origin sourcing"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="aspect-[4/3] bg-tea-elevated rounded-md overflow-hidden">
+          <img
+            src=""
+            alt="Tea session"
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
 
       {/* Founder story */}
@@ -70,6 +96,16 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Wide contextual image — teaware, a garden, or a session space */}
+      {/* Adrian: drop a full-width horizontal image here (16:9 or 3:1 works well) */}
+      <div className="mb-16 md:mb-20 aspect-[3/1] bg-tea-elevated rounded-md overflow-hidden">
+        <img
+          src=""
+          alt="The practice"
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {/* Brand philosophy */}
