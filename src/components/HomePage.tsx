@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
+import { api } from '../lib/api';
 
 // Track across mounts — animation plays once per session
 let hasAnimated = false;
@@ -25,6 +26,9 @@ const CharacterRevealCapture: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -72,10 +76,20 @@ const CharacterRevealCapture: React.FC = () => {
   // 5. Email rises from below (82% → 95%)
   const emailP = ease(Math.max(0, Math.min(1, (progress - 0.82) / 0.13)));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: wire up email capture
-    if (email.trim()) setEmail('');
+    if (!email.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await api.newsletter.subscribe(email);
+      setEmail('');
+      setSubmitted(true);
+    } catch {
+      setError('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isVisible = progress > 0;
@@ -150,23 +164,33 @@ const CharacterRevealCapture: React.FC = () => {
           >
             <p className="text-base italic font-light text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>stay connected</p>
             <p className="text-base italic font-light mt-1 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>it's nothing without you</p>
-            <form onSubmit={handleSubmit} className="w-full relative mt-3">
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your email"
-                className="w-full bg-transparent text-base font-light text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim"
-                style={{ fontFamily: 'var(--font-display)', border: 'none', borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)', borderRadius: 0, letterSpacing: '0.04em' }}
-                onFocus={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.5)'; }}
-                onBlur={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.25)'; }}
-              />
-              <button type="submit" className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold" aria-label="Submit email">
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </form>
+            {submitted ? (
+              <p className="mt-4 text-base font-light text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>You're in.</p>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="w-full relative mt-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="your email"
+                    disabled={loading}
+                    className="w-full bg-transparent text-base font-light text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50"
+                    style={{ fontFamily: 'var(--font-display)', border: 'none', borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)', borderRadius: 0, letterSpacing: '0.04em' }}
+                    onFocus={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.5)'; }}
+                    onBlur={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.25)'; }}
+                  />
+                  <button type="submit" disabled={loading} className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold disabled:opacity-50" aria-label="Submit email">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </form>
+                {error && (
+                  <p className="mt-2 text-xs text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>{error}</p>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

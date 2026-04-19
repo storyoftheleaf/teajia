@@ -30,17 +30,23 @@ export const EventsManager: React.FC = () => {
   const { showToast } = useToast();
   const { data: events = [], isLoading, refetch } = useEvents();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [duplicateDialog, setDuplicateDialog] = useState<{ event: TeaEvent; slug: string } | null>(null);
 
   const handleDuplicate = async (e: React.MouseEvent, event: TeaEvent) => {
     e.stopPropagation();
-    const newSlug = prompt('Enter slug for duplicated event:');
-    if (!newSlug) return;
+    setDuplicateDialog({ event, slug: `${event.slug}-copy` });
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!duplicateDialog || !duplicateDialog.slug.trim()) return;
     try {
-      await api.events.duplicate(event.id, newSlug);
+      await api.events.duplicate(duplicateDialog.event.id, duplicateDialog.slug.trim());
       refetch();
       showToast('Event duplicated', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to duplicate', 'error');
+    } finally {
+      setDuplicateDialog(null);
     }
   };
 
@@ -189,6 +195,29 @@ export const EventsManager: React.FC = () => {
         onClose={() => setIsFormOpen(false)}
         onSuccess={handleCreated}
       />
+
+      {/* Duplicate Slug Dialog */}
+      {duplicateDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-tea-text/40 backdrop-blur-sm" onClick={() => setDuplicateDialog(null)}>
+          <div className="bg-tea-surface border border-tea-border rounded-lg p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-serif text-tea-text mb-1">Duplicate Event</h3>
+            <p className="text-xs text-tea-text-sec mb-4">Choose a unique slug for the duplicated event.</p>
+            <input
+              type="text"
+              value={duplicateDialog.slug}
+              onChange={e => setDuplicateDialog(prev => prev ? { ...prev, slug: e.target.value } : null)}
+              className="w-full bg-tea-bg border border-tea-border rounded px-3 py-2 text-sm text-tea-text font-mono outline-none focus:border-tea-gold/50 mb-4"
+              placeholder="event-slug"
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); if (e.key === 'Escape') setDuplicateDialog(null); }}
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDuplicateDialog(null)} className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+              <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="px-4 py-1.5 text-xs bg-tea-gold text-tea-bg rounded hover:bg-tea-gold-lt transition-colors disabled:opacity-40">Duplicate</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
