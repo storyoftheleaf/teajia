@@ -74,7 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_tea_reviews_product ON tea_reviews(product_id);
 
 -- 1. Products Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS products (
-    account_id TEXT,
+    account_id TEXT NOT NULL,
     tea_key TEXT,                                 -- Shared fingerprint across accounts
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     type TEXT NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS products (
 
 -- 1b. Customers Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS customers (
-    account_id TEXT,
+    account_id TEXT NOT NULL,
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     name TEXT NOT NULL,
     company TEXT,
@@ -168,7 +168,7 @@ INSERT OR IGNORE INTO exchange_rates (currency, rate_to_usd) VALUES
 
 -- 3. Invoices Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS invoices (
-    account_id TEXT,
+    account_id TEXT NOT NULL,
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     invoice_number TEXT NOT NULL,
     customer_name TEXT,
@@ -251,6 +251,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     details TEXT,
     entity_type TEXT,             -- product, invoice, customer, etc.
     entity_id TEXT,               -- ID of affected entity
+    account_id TEXT,              -- tenant scope (added for multi-account)
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -363,3 +364,19 @@ CREATE TABLE IF NOT EXISTS compass_shares (
 
 CREATE INDEX IF NOT EXISTS idx_compass_shares_target ON compass_shares(target_account_id, status);
 CREATE INDEX IF NOT EXISTS idx_compass_shares_token ON compass_shares(invite_token);
+
+-- Newsletter Subscribers Table
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  account_id TEXT NOT NULL,
+  subscribed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  status TEXT NOT NULL DEFAULT 'active'
+);
+
+-- Performance indices for common query patterns
+CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, name);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_account_members_user_status ON account_members(user_id, status);
