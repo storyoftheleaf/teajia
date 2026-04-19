@@ -172,26 +172,62 @@ export const EventDetail: React.FC = () => {
         </div>
 
         {/* Capacity bar */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 max-w-[300px]">
-            <div className="h-1.5 bg-tea-bg rounded-full overflow-hidden">
-              <div
-                className="h-full bg-tea-gold rounded-full transition-all duration-500"
-                style={{ width: `${capacityPct}%` }}
-              />
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-3">
+            {/* Three-segment bar */}
+            <div className="flex-1 max-w-[300px]">
+              <div className="h-2 bg-tea-bg rounded-full overflow-hidden flex">
+                {/* Confirmed — solid gold */}
+                <div
+                  className="h-full bg-tea-gold transition-all duration-500 flex-shrink-0"
+                  style={{ width: `${event.totalCapacity > 0 ? Math.min((confirmedCount / event.totalCapacity) * 100, 100) : 0}%` }}
+                />
+                {/* Pending approval — lighter, dashed-pattern via repeating gradient */}
+                <div
+                  className="h-full flex-shrink-0 transition-all duration-500"
+                  style={{
+                    width: `${event.totalCapacity > 0 ? Math.min((requestedCount / event.totalCapacity) * 100, 100 - Math.min((confirmedCount / event.totalCapacity) * 100, 100)) : 0}%`,
+                    background: 'repeating-linear-gradient(90deg, var(--tea-gold) 0px, var(--tea-gold) 3px, transparent 3px, transparent 7px)',
+                    opacity: 0.45,
+                  }}
+                />
+                {/* Waitlist — dimmest */}
+                <div
+                  className="h-full bg-tea-text-sec/25 flex-shrink-0 transition-all duration-500"
+                  style={{ width: `${event.totalCapacity > 0 ? Math.min((waitlistCount / event.totalCapacity) * 100, Math.max(0, 100 - Math.min(((confirmedCount + requestedCount) / event.totalCapacity) * 100, 100))) : 0}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-tea-text-sec flex-wrap">
+              <span className="flex items-center gap-1">
+                <Users size={11} />
+                {confirmedCount}/{event.totalCapacity}
+              </span>
+              {requestedCount > 0 && (
+                <span className="text-tea-text-sec">+{requestedCount} pending</span>
+              )}
+              {waitlistCount > 0 && (
+                <span className="text-tea-text-dim">+{waitlistCount} waitlist</span>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs text-tea-text-sec flex-wrap">
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-[10px] text-tea-text-dim">
             <span className="flex items-center gap-1">
-              <Users size={11} />
-              {confirmedCount}/{event.totalCapacity} confirmed
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-tea-gold" />
+              Confirmed
             </span>
-            {waitlistCount > 0 && (
-              <span className="text-tea-gold">+{waitlistCount} waitlist</span>
-            )}
-            {requestedCount > 0 && (
-              <span className="text-amber-400">+{requestedCount} awaiting approval</span>
-            )}
+            <span className="flex items-center gap-1">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-sm"
+                style={{ background: 'repeating-linear-gradient(90deg, var(--tea-gold) 0px, var(--tea-gold) 2px, transparent 2px, transparent 5px)', opacity: 0.7 }}
+              />
+              Pending
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-tea-text-sec/25" />
+              Waitlist
+            </span>
           </div>
         </div>
 
@@ -211,29 +247,33 @@ export const EventDetail: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-0.5 border-b border-tea-border mb-6 overflow-x-auto scrollbar-hide">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative flex items-center gap-1.5 px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
-              activeTab === tab.key
-                ? 'border-tea-gold text-tea-gold'
-                : 'border-transparent text-tea-text-sec hover:text-tea-text-sec'
-            }`}
-          >
-            {tab.label}
-            {tab.badge !== undefined && tab.badge > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium leading-none ${
+      <div className="relative mb-6">
+        <div className="flex gap-0.5 border-b border-tea-border overflow-x-auto scrollbar-hide">
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`relative flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'bg-tea-gold/20 text-tea-gold'
-                  : 'bg-amber-500/15 text-amber-400'
-              }`}>
-                {tab.badge}
-              </span>
-            )}
-          </button>
-        ))}
+                  ? 'border-tea-gold text-tea-gold'
+                  : 'border-transparent text-tea-text-sec hover:text-tea-text-sec'
+              }`}
+            >
+              {tab.label}
+              {tab.badge !== undefined && tab.badge > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium leading-none ${
+                  activeTab === tab.key
+                    ? 'bg-tea-gold/20 text-tea-gold'
+                    : 'bg-amber-500/15 text-amber-400'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* Right-fade scroll indicator */}
+        <div className="pointer-events-none absolute right-0 inset-y-0 w-8 bg-gradient-to-l from-tea-surface to-transparent" />
       </div>
 
       {/* Tab Content */}

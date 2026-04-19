@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
-import { TeaEvent, EventFormData, EventStatus, EventFormat, VenueGuideStep, SessionFlowItem, SavedLocation, Venue, VenueSpace } from '../../types/events';
+import { TeaEvent, EventFormData, EventStatus, EventFormat, GatheringType, VenueGuideStep, SessionFlowItem, SavedLocation, Venue, VenueSpace } from '../../types/events';
 
 interface EventFormProps {
   isOpen: boolean;
@@ -33,6 +33,7 @@ const emptyForm: EventFormData = {
   claimWindowMinutes: 60,
   status: 'draft',
   format: 'private_tasting' as EventFormat,
+  gatheringType: 'private' as GatheringType,
   flyerImageUrl: '',
   locationName: '',
   addressText: '',
@@ -81,6 +82,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [totalCapacity, setTotalCapacity] = useState(12);
   const [status, setStatus] = useState<EventStatus>('draft');
   const [format, setFormat] = useState<EventFormat>('private_tasting');
+  const [gatheringType, setGatheringType] = useState<GatheringType>('private');
   const [flyerImageUrl, setFlyerImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -144,6 +146,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         claim_window_minutes: 60,
         status,
         event_format: format,
+        gathering_type: gatheringType,
         flyer_image_url: flyerImageUrl || null,
         venue_id: selectedVenueId || undefined,
         active_space_ids: selectedSpaceIds.length > 0 ? JSON.stringify(selectedSpaceIds) : undefined,
@@ -257,6 +260,27 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
             {/* Format */}
             <section className="space-y-5 py-8">
               <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Format</h3>
+              <Field label="Gathering Type">
+                <p className="text-[11px] text-tea-text-dim mb-2">Intimacy &amp; access level</p>
+                <div className="flex rounded-md border border-tea-border overflow-hidden">
+                  {(['private', 'semi-private', 'open', 'bespoke'] as GatheringType[]).map((opt, i, arr) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setGatheringType(opt)}
+                      className={`flex-1 py-2 text-[11px] font-medium transition-colors capitalize ${
+                        i < arr.length - 1 ? 'border-r border-tea-border' : ''
+                      } ${
+                        gatheringType === opt
+                          ? 'bg-tea-gold/15 text-tea-gold'
+                          : 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </Field>
               <Field label="Format">
                 <select
                   value={format}
@@ -303,12 +327,32 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                       </select>
                       <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                     </div>
+                    {selectedVenueId && (
+                      <p className="text-[11px] text-tea-text-dim mt-1.5">
+                        Select the spaces within this venue where the event will be held
+                      </p>
+                    )}
                   </Field>
 
                   {/* Space picker — shown once a venue is selected */}
                   {selectedVenue && selectedVenue.spaces.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        {selectedSpaceIds.length === 0 && (
+                          <p className="text-[11px] text-amber-400">No spaces selected — capacity defaults to 12</p>
+                        )}
+                      </div>
+                      {/* Selected space chips */}
+                      {selectedSpaceIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedVenue.spaces.filter(s => selectedSpaceIds.includes(s.id)).map(s => (
+                            <span key={s.id} className="inline-flex items-center gap-1 text-[11px] bg-tea-gold/10 text-tea-gold px-2 py-0.5 rounded-full">
+                              {s.name} · {s.capacity}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="space-y-2">
                         {selectedVenue.spaces.map(space => {
                           const active = selectedSpaceIds.includes(space.id);
@@ -360,7 +404,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   {selectedVenue && selectedVenue.spaces.length === 0 && (
                     <p className="text-xs text-tea-text-dim">
                       This venue has no spaces yet.{' '}
-                      <a href="/admin/venues" className="text-tea-gold underline-offset-2 hover:underline">Add spaces</a> to enable selection.
+                      <a href="/admin/venues" className="text-tea-gold underline-offset-2 hover:underline" title="Opens venue manager">Add spaces (opens venue manager)</a> to enable selection.
                     </p>
                   )}
                 </>
@@ -482,6 +526,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       guidelinesText: initialData.guidelinesText || '',
       areaHint: initialData.areaHint || '',
       format: initialData.format,
+      gatheringType: initialData.gatheringType || 'private',
       venueGuide: initialData.venueGuide || { steps: [], parking_notes: '', transit_notes: '', arrival_notes: '' },
       sessionFlow: initialData.sessionFlow || [],
     });
@@ -645,6 +690,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         claim_window_minutes: form.claimWindowMinutes,
         status: form.status,
         event_format: form.format || 'private_tasting',
+        gathering_type: form.gatheringType || 'private',
         flyer_image_url: form.flyerImageUrl || null,
         location_name: form.locationName || null,
         address_text: form.addressText || null,
@@ -795,6 +841,27 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     <option value="wholesale_showing">Wholesale Showing</option>
                     <option value="other">Other</option>
                   </select>
+                </Field>
+                <Field label="Gathering Type">
+                  <p className="text-[11px] text-tea-text-dim mb-2">Intimacy &amp; access level</p>
+                  <div className="flex rounded-md border border-tea-border overflow-hidden">
+                    {(['private', 'semi-private', 'open', 'bespoke'] as GatheringType[]).map((opt, i, arr) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => updateField('gatheringType', opt)}
+                        className={`flex-1 py-2 text-[11px] font-medium transition-colors capitalize ${
+                          i < arr.length - 1 ? 'border-r border-tea-border' : ''
+                        } ${
+                          (form.gatheringType || 'private') === opt
+                            ? 'bg-tea-gold/15 text-tea-gold'
+                            : 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
                 </Field>
               </div>
               {/* Right — Flyer */}

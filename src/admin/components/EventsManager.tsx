@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Loader2, Calendar, Copy, Users, Clock, Bell } from 'lucide-react';
+import { Plus, Loader2, Calendar, Copy, Users, Clock, Bell, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
 import { useToast } from './Toast';
@@ -31,6 +31,28 @@ export const EventsManager: React.FC = () => {
   const { data: events = [], isLoading, refetch } = useEvents();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [duplicateDialog, setDuplicateDialog] = useState<{ event: TeaEvent; slug: string } | null>(null);
+  const [searchRaw, setSearchRaw] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setSearchQuery(searchRaw.trim().toLowerCase()), 200);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [searchRaw]);
+
+  const filteredEvents = searchQuery
+    ? events.filter(ev => {
+        const dateStr = formatEventDate(ev.eventDate).toLowerCase();
+        return (
+          ev.title.toLowerCase().includes(searchQuery) ||
+          dateStr.includes(searchQuery) ||
+          (ev.locationName || '').toLowerCase().includes(searchQuery) ||
+          (ev.areaHint || '').toLowerCase().includes(searchQuery) ||
+          ev.status.toLowerCase().includes(searchQuery)
+        );
+      })
+    : events;
 
   const handleDuplicate = async (e: React.MouseEvent, event: TeaEvent) => {
     e.stopPropagation();
@@ -85,6 +107,29 @@ export const EventsManager: React.FC = () => {
         </button>
       </div>
 
+      {/* Search */}
+      {events.length > 0 && (
+        <div className="relative mb-5">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+          <input
+            type="text"
+            value={searchRaw}
+            onChange={e => setSearchRaw(e.target.value)}
+            placeholder="Search by title, date, location, or status…"
+            className="w-full pl-9 pr-8 py-2 text-sm bg-tea-surface border border-tea-border rounded-md text-tea-text placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold focus-visible:ring-2 focus-visible:ring-tea-gold/40"
+          />
+          {searchRaw && (
+            <button
+              onClick={() => setSearchRaw('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text transition-colors"
+              aria-label="Clear search"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Event List */}
       {events.length === 0 ? (
         <div className="bg-tea-surface border border-tea-border rounded-md p-12 text-center">
@@ -98,9 +143,14 @@ export const EventsManager: React.FC = () => {
             Create your first event
           </button>
         </div>
+      ) : filteredEvents.length === 0 ? (
+        <div className="bg-tea-surface border border-tea-border rounded-md p-8 text-center">
+          <p className="text-tea-text-sec text-sm">No events match "{searchQuery}"</p>
+          <button onClick={() => setSearchRaw('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
+        </div>
       ) : (
         <div className="space-y-3">
-          {events.map((event, index) => {
+          {filteredEvents.map((event, index) => {
             const confirmed = (event as any).confirmedCount || 0;
             const waitlist = (event as any).waitlistCount || 0;
             const requested = (event as any).requestedCount || 0;
