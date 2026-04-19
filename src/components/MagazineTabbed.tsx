@@ -6,6 +6,7 @@ import { ArticleCard } from './shared/ArticleCard';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { LoadingSpinner } from './shared/LoadingSpinner';
+import { Icons } from './Icons';
 
 interface MagazineTabbedProps {
   stories: Story[];
@@ -18,6 +19,8 @@ interface MagazineTabbedProps {
   onCartClick?: () => void;
   onAccountClick?: () => void;
   cartItemCount?: number;
+  /** Pass true while stories are being fetched to show a loading skeleton */
+  isContentLoading?: boolean;
 }
 
 type MagazineTab = 'articles' | 'visual';
@@ -33,6 +36,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   onCartClick,
   onAccountClick,
   cartItemCount = 0,
+  isContentLoading = false,
 }) => {
   // Read initial tab from URL hash or use defaultTab
   const [activeTab, setActiveTab] = useState<MagazineTab>(() => {
@@ -189,20 +193,34 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     }
   };
 
+  const renderLoadingSkeleton = () => (
+    <div className="flex flex-col border-t border-tea-border">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-stretch border-b border-tea-border animate-pulse">
+          <div className="flex-1 py-4 pl-5 pr-4 flex flex-col gap-2">
+            <div className="h-2 w-16 bg-tea-surface rounded-sm" />
+            <div className="h-4 w-4/5 bg-tea-surface rounded-sm" />
+            <div className="h-3 w-3/5 bg-tea-elevated rounded-sm" />
+          </div>
+          <div className="w-[88px] bg-tea-elevated shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+
   const renderEmptyState = (type: string) => {
-    const otherTab = type === 'articles' ? 'visual' : 'articles';
     const emptyStateContent = {
       articles: {
-        icon: <Icons.Book className="w-8 h-8 text-tea-text/40" />,
-        title: 'No Articles Yet',
-        message: 'Long-form stories about tea culture, origins, and brewing traditions are coming soon.',
+        icon: <Icons.Book className="w-8 h-8 text-tea-text-dim" />,
+        title: 'Stories coming soon',
+        message: 'Long-form stories about tea culture, origins, and brewing traditions are on their way.',
         suggestion: 'Explore Visual',
         switchTab: 'visual' as MagazineTab,
       },
       'visual': {
-        icon: <Icons.Grid className="w-8 h-8 text-tea-text/40" />,
-        title: 'No Visual Yet',
-        message: 'Visual stories celebrating the artistry and beauty of tea are in the works.',
+        icon: <Icons.Grid className="w-8 h-8 text-tea-text-dim" />,
+        title: 'Stories coming soon',
+        message: 'Visual essays celebrating the artistry and beauty of tea are in the works.',
         suggestion: 'Browse Articles',
         switchTab: 'articles' as MagazineTab,
       }
@@ -212,7 +230,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
     return (
       <div className="flex flex-col items-center justify-center py-32 px-4">
-        <div className="w-20 h-20 bg-tea-gold/5 border border-tea-text/10 rounded-full flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-tea-elevated border border-tea-border rounded-full flex items-center justify-center mb-6">
           {content.icon}
         </div>
         <p className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>
@@ -256,7 +274,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
-            {activeTab === 'articles' ? (
+            {isContentLoading ? renderLoadingSkeleton() : activeTab === 'articles' ? (
               displayedArticles.length > 0 ? renderContent() : renderEmptyState('articles')
             ) : activeTab === 'visual' ? (
               displayedPhotoEssays.length > 0 ? renderContent() : renderEmptyState('visual')

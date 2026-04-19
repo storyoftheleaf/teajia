@@ -430,7 +430,20 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         const isFavorite = userFavorites.has(item.id);
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
                         const price50g = Math.round(pricePerGram * 50 * 100) / 100;
+                        const price100g = Math.round(pricePerGram * 100 * 100) / 100;
                         const showType = activeType !== 'All' || specialFilter !== 'None';
+
+                        // Stock badge logic (tea items only, stock_g is in grams)
+                        const stockG = item.stock_g ?? 0;
+                        const stockBadge: { label: string; cls: string } | null = item.category === 'tea'
+                          ? stockG <= 0
+                            ? { label: 'Sold Out', cls: 'bg-tea-surface text-tea-text-dim' }
+                            : stockG <= 50
+                              ? { label: 'Low Stock', cls: 'bg-tea-elevated text-tea-gold-lt' }
+                              : stockG <= 150
+                                ? { label: 'Limited', cls: 'bg-tea-elevated text-tea-text-sec' }
+                                : null
+                          : null;
 
                         return (
                             <div
@@ -452,6 +465,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                     {tastingCounts.get(item.id)! > 1 && (
                                                         <span className="text-[9px] font-medium leading-none">{tastingCounts.get(item.id)}</span>
                                                     )}
+                                                </span>
+                                            )}
+                                            {/* Stock badge */}
+                                            {stockBadge && (
+                                                <span className={`shrink-0 text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${stockBadge.cls}`}>
+                                                    {stockBadge.label}
                                                 </span>
                                             )}
                                         </div>
@@ -501,7 +520,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 <Icons.Edit className="w-3.5 h-3.5" />
                                             </button>
                                         )}
-                                        <span className="num text-sm text-tea-gold font-medium">{fmtPrice(price50g)}</span>
+                                        {/* Price column: main price + per-100g hint */}
+                                        <div className="text-right">
+                                            <span className="num text-sm text-tea-gold font-medium">{fmtPrice(price50g)}</span>
+                                            {item.category === 'tea' && price100g > 0 && (
+                                                <div className="text-[10px] text-tea-text-dim num leading-none mt-0.5">${price100g.toFixed(2)}/100g</div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
