@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, FlaskConical, Library, BookOpen, Check, Mic, Square, Loader2, Share2, Layers } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Library, BookOpen, Check, Mic, Square, Loader2, Share2, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -325,6 +325,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>('tea');
 
+  // Tab-level search — shared across all tabs; cleared on tab switch
+  const [tabSearchQuery, setTabSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Per-share preview expand state
+  const [expandedShareIds, setExpandedShareIds] = useState<Set<string>>(new Set());
+
+  // Reset search when switching tabs
+  useEffect(() => {
+    setTabSearchQuery('');
+  }, [mode]);
+
   const handleCaptureOption = useCallback((opt: 'tea' | 'teaware' | 'samples') => {
     setCaptureOption(opt);
     if (opt !== 'samples') handleCategorySwitch(opt as CompassCategory);
@@ -358,40 +370,78 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
 
       {/* ── Mode tabs ── */}
-      <div className="flex border-b border-tea-border px-4" role="tablist">
-        {tabs.map((tab) => {
-          const active = mode === tab.id;
-          const Icon = tab.icon;
-          return (
+      <div className="relative border-b border-tea-border">
+        <div className="flex overflow-x-auto scrollbar-hide px-4" role="tablist">
+          {tabs.map((tab) => {
+            const active = mode === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleSwitchMode(tab.id)}
+                role="tab"
+                aria-selected={active}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors relative ${
+                  active
+                    ? 'text-tea-gold'
+                    : 'text-tea-text-dim hover:text-tea-text-sec'
+                }`}
+              >
+                <Icon size={13} strokeWidth={active ? 2 : 1.5} />
+                {tab.label}
+                {tab.badge != null && (
+                  <span className="badge-status badge-status-gold ml-1">
+                    {tab.badge}
+                  </span>
+                )}
+                {active && (
+                  <motion.div
+                    layoutId="compass-tab-indicator"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-tea-gold rounded-full shadow-[0_0_8px_rgba(184,146,78,0.3)]"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {/* Right-fade gradient — indicates scrollable overflow */}
+        <div
+          className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-tea-bg to-transparent"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* ── Tab-level search bar ── */}
+      <div className="shrink-0 px-4 pt-2.5 pb-1">
+        <div className="relative">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={tabSearchQuery}
+            onChange={(e) => setTabSearchQuery(e.target.value)}
+            placeholder={
+              mode === 'sourcing'
+                ? 'Search entries…'
+                : mode === 'tasting'
+                  ? 'Search by name, region, vendor…'
+                  : 'Search transactions…'
+            }
+            className="w-full bg-tea-surface border border-tea-border text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+          />
+          {tabSearchQuery && (
             <button
-              key={tab.id}
               type="button"
-              onClick={() => handleSwitchMode(tab.id)}
-              role="tab"
-              aria-selected={active}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors relative ${
-                active
-                  ? 'text-tea-gold'
-                  : 'text-tea-text-dim hover:text-tea-text-sec'
-              }`}
+              onClick={() => { setTabSearchQuery(''); searchInputRef.current?.focus(); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              aria-label="Clear search"
             >
-              <Icon size={13} strokeWidth={active ? 2 : 1.5} />
-              {tab.label}
-              {tab.badge != null && (
-                <span className="badge-status badge-status-gold ml-1">
-                  {tab.badge}
-                </span>
-              )}
-              {active && (
-                <motion.div
-                  layoutId="compass-tab-indicator"
-                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-tea-gold rounded-full shadow-[0_0_8px_rgba(184,146,78,0.3)]"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
+              <X size={13} />
             </button>
-          );
-        })}
+          )}
+        </div>
       </div>
 
       {/* ── Content ── */}
@@ -493,20 +543,52 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               {/* Pending incoming shares — require explicit accept/decline */}
               {visibleShares.length > 0 && (
                 <div className="mb-4 space-y-2">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium px-0.5">
-                    Incoming — {visibleShares.length}
-                  </p>
+                  {/* Header row: count + bulk actions */}
+                  <div className="flex items-center gap-2 px-0.5">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
+                      {visibleShares.length} pending {visibleShares.length === 1 ? 'share' : 'shares'}
+                    </p>
+                    {visibleShares.length > 1 && (
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => visibleShares.forEach((s) => acceptShareMutation.mutate(s.id))}
+                          disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
+                          className="text-[11px] text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
+                        >
+                          Accept all
+                        </button>
+                        <span className="text-tea-border text-[10px]">·</span>
+                        <button
+                          type="button"
+                          onClick={() => visibleShares.forEach((s) => declineShareMutation.mutate(s.id))}
+                          disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
+                          className="text-[11px] text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
+                        >
+                          Decline all
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {visibleShares.map((share) => {
                     const meta = share.shared_metadata || {};
                     const from = share.source_user_name || share.source_account_name || 'A taster';
                     const isActing = actingShareId === share.id;
+                    const isExpanded = expandedShareIds.has(share.id);
+                    const toggleExpanded = () => setExpandedShareIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(share.id)) next.delete(share.id); else next.add(share.id);
+                      return next;
+                    });
                     return (
                       <div
                         key={share.id}
                         className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
                       >
+                        {/* Card header — always visible */}
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
                             <p className="text-sm font-medium text-tea-text truncate">
                               {meta.name || 'Unnamed card'}
@@ -517,14 +599,79 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               </p>
                             )}
                           </div>
-                          {meta.photo && (
-                            <img
-                              src={meta.photo}
-                              alt={meta.name}
-                              className="w-12 h-12 rounded-md object-cover shrink-0 border border-tea-border"
-                            />
-                          )}
+                          <div className="flex items-start gap-2 shrink-0">
+                            {meta.photo && (
+                              <img
+                                src={meta.photo}
+                                alt={meta.name}
+                                className="w-12 h-12 rounded-md object-cover border border-tea-border"
+                              />
+                            )}
+                            {/* Preview toggle */}
+                            <button
+                              type="button"
+                              onClick={toggleExpanded}
+                              className="mt-0.5 p-1 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                              aria-label={isExpanded ? 'Collapse preview' : 'Expand preview'}
+                            >
+                              {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Inline preview — expanded accordion */}
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.18 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-[12px]">
+                                {meta.originRegion && (
+                                  <div className="flex gap-2">
+                                    <span className="text-tea-text-dim w-14 shrink-0">Origin</span>
+                                    <span className="text-tea-text-sec">{meta.originRegion}</span>
+                                  </div>
+                                )}
+                                {meta.season && (
+                                  <div className="flex gap-2">
+                                    <span className="text-tea-text-dim w-14 shrink-0">Season</span>
+                                    <span className="text-tea-text-sec">{meta.season}</span>
+                                  </div>
+                                )}
+                                {meta.form && (
+                                  <div className="flex gap-2">
+                                    <span className="text-tea-text-dim w-14 shrink-0">Form</span>
+                                    <span className="text-tea-text-sec">{meta.form}</span>
+                                  </div>
+                                )}
+                                {meta.teawareCategory && (
+                                  <div className="flex gap-2">
+                                    <span className="text-tea-text-dim w-14 shrink-0">Category</span>
+                                    <span className="text-tea-text-sec">{meta.teawareCategory}</span>
+                                  </div>
+                                )}
+                                {meta.material && (
+                                  <div className="flex gap-2">
+                                    <span className="text-tea-text-dim w-14 shrink-0">Material</span>
+                                    <span className="text-tea-text-sec">{meta.material}</span>
+                                  </div>
+                                )}
+                                {meta.capacityMl && (
+                                  <div className="flex gap-2">
+                                    <span className="text-tea-text-dim w-14 shrink-0">Capacity</span>
+                                    <span className="text-tea-text-sec">{meta.capacityMl} ml</span>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Accept / Decline — always visible */}
                         <div className="flex gap-2">
                           <button
                             type="button"
@@ -552,6 +699,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               <BrowseView
                 onEditEntry={handleEditEntry}
                 onNewCapture={handleNewCapture}
+                externalSearchQuery={tabSearchQuery}
               />
             </motion.div>
           ) : (
@@ -568,11 +716,29 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   setActiveEntry(entryId);
                   setMode('sourcing');
                 }}
+                searchQuery={tabSearchQuery}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* ── Floating "+ New Entry" button — visible on Tasting and Buying tabs ── */}
+      {mode !== 'sourcing' && (
+        <motion.button
+          type="button"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          onClick={() => handleNewCapture()}
+          className="fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+16px)] right-5 z-20 flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-tea-gold text-tea-gold bg-tea-bg/90 text-[12px] font-semibold tracking-[0.06em] shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-tea-gold/10 transition-colors backdrop-blur-sm"
+          aria-label="New compass entry"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          <Plus size={13} strokeWidth={2} />
+          New Entry
+        </motion.button>
+      )}
 
       {/* ── Capture action bar ── */}
       {mode === 'sourcing' && captureOption !== 'samples' && (
