@@ -97,6 +97,7 @@ interface AppState {
   activeViewId: string | null;
   inventoryGroupBy: string | null;
   inventorySortConfig: { key: string; direction: 'asc' | 'desc' }[];
+  inventoryPriceMode: 'cost' | 'retail';
   setInventoryColumns: (columns: string[]) => void;
   toggleInventoryColumn: (column: string) => void;
   saveView: (view: InventoryViewConfig) => void;
@@ -104,6 +105,7 @@ interface AppState {
   setActiveView: (viewId: string | null) => void;
   setInventoryGroupBy: (groupBy: string | null) => void;
   setInventorySortConfig: (sortConfig: { key: string; direction: 'asc' | 'desc' }[]) => void;
+  setInventoryPriceMode: (mode: 'cost' | 'retail') => void;
 
   // Draft Product (auto-save for AddProductModal)
   draftProduct: Partial<Product> | null;
@@ -304,6 +306,7 @@ export const useAppStore = create<AppState>()(
       activeViewId: null,
       inventoryGroupBy: null,
       inventorySortConfig: [{ key: 'type', direction: 'asc' }],
+      inventoryPriceMode: 'retail' as 'cost' | 'retail',
 
       setInventoryColumns: (columns) => set({ inventoryColumns: columns }),
       toggleInventoryColumn: (column) =>
@@ -326,6 +329,7 @@ export const useAppStore = create<AppState>()(
       setActiveView: (viewId) => set({ activeViewId: viewId }),
       setInventoryGroupBy: (groupBy) => set({ inventoryGroupBy: groupBy }),
       setInventorySortConfig: (sortConfig) => set({ inventorySortConfig: sortConfig }),
+      setInventoryPriceMode: (mode) => set({ inventoryPriceMode: mode }),
 
       // Draft Product
       draftProduct: null,
@@ -378,6 +382,7 @@ export const useAppStore = create<AppState>()(
         activeViewId: state.activeViewId,
         inventoryGroupBy: state.inventoryGroupBy,
         inventorySortConfig: state.inventorySortConfig,
+        inventoryPriceMode: state.inventoryPriceMode,
         draftProduct: state.draftProduct,
         invoiceTemplates: state.invoiceTemplates,
         shopStoreSlug: state.shopStoreSlug,
