@@ -274,14 +274,20 @@ const AdminContent = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Redirect when entering admin at root, or prompt login if not authenticated
+  // Redirect when entering admin at root, or prompt login if not authenticated.
+  // A short delay lets Zustand persist middleware finish rehydrating isDevAdmin
+  // from localStorage before we evaluate isLoggedIn, preventing a false-negative
+  // that would skip the login modal on fresh visits.
   useEffect(() => {
-    if (isLoggedIn && location.pathname === '/admin') {
-      navigate('/admin/home');
-    } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
-      setIsLoginOpen(true);
-    }
-  }, [isLoggedIn, isMember, navigate, location.pathname]);
+    const timer = setTimeout(() => {
+      if (isLoggedIn && location.pathname === '/admin') {
+        navigate('/admin/home');
+      } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
+        setIsLoginOpen(true);
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isLoggedIn, navigate, location.pathname]);
 
   // Close registry drawer when navigating to a different route
   useEffect(() => {

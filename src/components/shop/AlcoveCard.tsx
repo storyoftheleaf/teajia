@@ -224,10 +224,18 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     }
   };
 
-  // Share handler — uses Web Share API with clipboard fallback
+  // Share handler — uses Web Share API with clipboard fallback.
+  // Explicitly builds the share URL with ?product=<id> so the link works even
+  // if the useProductUrl pushState hasn't fired yet.
   const handleShare = async () => {
     const shareText = `${item.name} — ${origin} ${teaType} from Teajia`;
-    const shareUrl = window.location.href;
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', item.id);
+    // Ensure we share the shop path rather than a deep URL
+    if (!url.pathname.includes('/shop') && !url.pathname.includes('/store')) {
+      url.pathname = '/shop';
+    }
+    const shareUrl = url.toString();
 
     if (navigator.share) {
       try {
