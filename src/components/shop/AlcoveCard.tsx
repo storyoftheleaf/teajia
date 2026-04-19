@@ -1102,14 +1102,27 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     background: stockStatus.color,
                     boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
                   }} />
-                  <span style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px", fontWeight: 400,
-                    color: alcoveColors.body,
-                    fontVariantNumeric: "tabular-nums lining-nums",
-                  }}>
-                    {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-                  </span>
+                  <div>
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px", fontWeight: 400,
+                      color: alcoveColors.body,
+                      fontVariantNumeric: "tabular-nums lining-nums",
+                    }}>
+                      {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
+                    </span>
+                    {item.category === 'tea' && pricePerGram > 0 && (
+                      <div style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "9px",
+                        color: "var(--tea-text-dim)",
+                        fontVariantNumeric: "tabular-nums lining-nums",
+                        marginTop: "1px",
+                      }}>
+                        ${(pricePerGram * 100).toFixed(2)}/100g
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {presets.map(p => (
                   <button

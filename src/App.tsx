@@ -399,10 +399,23 @@ const AppContent = () => {
     setSelectedPerson(null);
   };
 
-  const showToast = (message: string) => {
+  const showToast = (message: string, duration = 2000) => {
     setToast({ show: true, message });
-    setTimeout(() => setToast({ show: false, message: '' }), 2000);
+    setTimeout(() => setToast({ show: false, message: '' }), duration);
   };
+
+  // Show API error toast when the Worker is unreachable
+  const apiErrorShownRef = useRef(false);
+  useEffect(() => {
+    if (inventoryError && !apiErrorShownRef.current) {
+      apiErrorShownRef.current = true;
+      showToast('Connection issue — please try again shortly.', 5000);
+    }
+    if (!inventoryError) {
+      apiErrorShownRef.current = false;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inventoryError]);
 
   const toggleSave = (id: string) => {
     const isCurrentlySaved = savedStoryIds[id];
