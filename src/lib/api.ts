@@ -49,14 +49,22 @@ function getToken(): string | null {
 }
 
 export function setToken(token: string) {
-  // Always persist to localStorage so sessions survive browser restarts and deploys
-  localStorage.setItem('teajia_token', token);
-  sessionStorage.removeItem('teajia_token');
+  // Persist to localStorage so sessions survive browser restarts and deploys.
+  // iOS Safari private mode / strict ITP can throw on localStorage.setItem —
+  // fall back to sessionStorage so the session at least survives the tab.
+  try {
+    localStorage.setItem('teajia_token', token);
+    sessionStorage.removeItem('teajia_token');
+  } catch {
+    try {
+      sessionStorage.setItem('teajia_token', token);
+    } catch { /* storage fully blocked — session cannot be persisted */ }
+  }
 }
 
 export function clearToken() {
-  localStorage.removeItem('teajia_token');
-  sessionStorage.removeItem('teajia_token');
+  try { localStorage.removeItem('teajia_token'); } catch { /* ignore */ }
+  try { sessionStorage.removeItem('teajia_token'); } catch { /* ignore */ }
 }
 
 export function hasToken(): boolean {
@@ -119,6 +127,8 @@ let lastRefreshAttemptAt = 0;
 async function refreshTokenNow(): Promise<RefreshResult> {
   const token = getToken();
   if (!token) return 'rejected';
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
@@ -126,8 +136,13 @@ async function refreshTokenNow(): Promise<RefreshResult> {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
+      signal: controller.signal,
     });
-    if (!res.ok) return 'rejected';
+    // 5xx = server temporarily unavailable (cold start, DB blip, deployment).
+    // Do NOT log the user out for a transient infrastructure error — keep the
+    // existing token and let the next API call retry.
+    if (res.status >= 500) return 'network_error';
+    if (!res.ok) return 'rejected'; // 4xx = token genuinely invalid/expired
     const data = await res.json().catch(() => null);
     if (data?.token && typeof data.token === 'string') {
       setToken(data.token);
@@ -137,8 +152,10 @@ async function refreshTokenNow(): Promise<RefreshResult> {
     }
     return 'rejected';
   } catch {
-    // Network error — keep the old token; next success will retry.
+    // Network error or timeout — keep the old token; next success will retry.
     return 'network_error';
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

@@ -388,6 +388,7 @@ export const useAppStore = create<AppState>()(
         shopStoreSlug: state.shopStoreSlug,
         memberships: state.memberships,
         activeAccountId: state.activeAccountId,
+        isDevAdmin: state.isDevAdmin,
       }),
     }
   )

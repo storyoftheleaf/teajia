@@ -134,7 +134,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const auth = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { sidebarCollapsed: collapsed, toggleSidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed: collapsed, toggleSidebarCollapsed, activeAccount } = useAppStore();
 
   // Cart badge pulse animation
   const [badgeAnimating, setBadgeAnimating] = useState(false);
@@ -343,11 +343,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             strokeWidth={2}
           />
           {!collapsed && (
-            <span className={`text-sm font-semibold transition-all duration-300 ${
-              activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-            }`}>
-              Account
-            </span>
+            <div className="min-w-0 flex-1">
+              <span className={`text-sm font-semibold transition-all duration-300 block ${
+                activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+              }`}>
+                Account
+              </span>
+              {(activeAccount?.location_city || activeAccount?.location_country) && (
+                <span className="text-[10px] text-tea-text-sec/50 leading-none block">
+                  ◉ {activeAccount.location_city || activeAccount.location_country}
+                </span>
+              )}
+            </div>
           )}
         </button>
 

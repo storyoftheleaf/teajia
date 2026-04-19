@@ -278,6 +278,15 @@ const AppContent = () => {
 
   // Cart persistence handled by Zustand persist middleware
 
+  // Open search when navigating here from admin with state { openSearch: true }
+  useEffect(() => {
+    if ((location.state as { openSearch?: boolean } | null)?.openSearch) {
+      setShowGlobalSearch(true);
+      // Clear the state so back-navigation doesn't re-trigger it
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
+
   // Global search keyboard shortcut (Cmd/Ctrl+K)
   useEffect(() => {
     const handleSearchShortcut = (e: KeyboardEvent) => {
@@ -447,6 +456,7 @@ const AppContent = () => {
   }, []);
 
   const handleOpenAccount = (view?: PanelView) => {
+    setShowGlobalSearch(false);
     setAccountInitialView(view);
     setShowAccountModal(true);
   };
@@ -543,7 +553,7 @@ const AppContent = () => {
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       {/* Left Sidebar for Desktop */}
-      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => setShowGlobalSearch(true)} cartItemCount={cart.length} topOffset={showAdminBar} />
+      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14' : 'lg:ml-56'} transition-[margin] duration-300 ${showAdminBar ? 'pt-9' : ''}`}>
@@ -800,7 +810,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => setShowGlobalSearch(prev => !prev)} onLaunchPadClick={handleOpenLaunchPad} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }} onLaunchPadClick={handleOpenLaunchPad} />
 
       </div>
 

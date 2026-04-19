@@ -2,7 +2,7 @@ export type ProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dar
 
 export type TeaForm = 'Loose Leaf' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball' | 'Powder' | 'Bag' | 'Other';
 
-export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'UNK';
+export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'AUD' | 'UNK';
 
 import type { TastingData } from '../types';
 

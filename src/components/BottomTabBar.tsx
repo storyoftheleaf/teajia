@@ -5,6 +5,7 @@ import { Section } from '../types';
 
 import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAppStore } from '../lib/store';
 
 
 
@@ -28,6 +29,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isOnAdmin = location.pathname.startsWith('/admin');
+
+  const { activeAccount } = useAppStore();
+  const locationAbbr = activeAccount?.location_country?.slice(0, 2).toUpperCase()
+    ?? activeAccount?.location_city?.slice(0, 2).toUpperCase()
+    ?? null;
 
   const centerLongPress = useLongPress({
     delay: 500,
@@ -184,14 +190,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {/* Far right — Account/Admin icon (fixed narrow slot) */}
           <button
             onClick={onAccountClick}
-            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Account"
             aria-label="Account"
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
@@ -201,6 +207,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <circle cx="12" cy="8" r="4" />
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
+            {locationAbbr && (
+              <span className="text-[7px] leading-none font-mono text-tea-text-sec/60 group-hover:text-tea-text-sec transition-colors pointer-events-none select-none">
+                {locationAbbr}
+              </span>
+            )}
           </button>
 
         </div>

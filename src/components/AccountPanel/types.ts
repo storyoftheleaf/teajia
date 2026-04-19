@@ -8,4 +8,5 @@ export type PanelView =
   | 'saved-stories'
   | 'reading-history'
   | 'change-password'
-  | 'edit-profile';
+  | 'edit-profile'
+  | 'location-switcher';
