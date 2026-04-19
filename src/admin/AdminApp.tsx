@@ -648,7 +648,8 @@ const AdminContent = () => {
         <CommandPalette onAddProduct={() => setIsCreateModalOpen(true)} externalOpen={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
 
         <AdminBottomNav
-          onSearchClick={() => setIsCommandPaletteOpen(true)}
+          onSearchClick={() => setIsCommandPaletteOpen(prev => !prev)}
+          onAccountClick={() => window.dispatchEvent(new Event('open-account-panel'))}
           onCartClick={() => setIsCartOpen(true)}
           cartItemCount={cart.length}
           isMember={isMember}

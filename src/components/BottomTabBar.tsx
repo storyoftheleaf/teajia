@@ -13,6 +13,7 @@ interface BottomTabBarProps {
   onNavigate: (section: Section) => void;
   hidden?: boolean;
   onAccountClick?: () => void;
+  onSearchClick?: () => void;
   onLaunchPadClick?: () => void;
 }
 
@@ -21,6 +22,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   onNavigate,
   hidden = false,
   onAccountClick,
+  onSearchClick,
   onLaunchPadClick,
 }) => {
   const navigate = useNavigate();
@@ -31,7 +33,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     delay: 500,
     onLongPress: () => {
       if ('vibrate' in navigator) { navigator.vibrate?.(20); }
-      onLaunchPadClick?.();
+      navigate('/admin');
     },
     onClick: () => {
       if (isOnAdmin) {
@@ -39,13 +41,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         onNavigate('HOME');
         return;
       }
-      if (activeSection === 'HOME') {
-        // Already home — open launchpad on second tap
-        onLaunchPadClick?.();
-      } else {
-        onNavigate('HOME');
-        setTimeout(() => window.scrollTo({ top: 0 }), 150);
-      }
+      onNavigate('HOME');
+      setTimeout(() => window.scrollTo({ top: 0 }), 150);
     },
   });
 
@@ -80,7 +77,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label={section.label}
       >
         <span
-          className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 pointer-events-none select-none ${
+          className={`text-[14px] tracking-normal lowercase transition-all duration-300 pointer-events-none select-none whitespace-nowrap overflow-hidden ${
             isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
           }`}
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
@@ -119,11 +116,36 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         }}
       >
         <div className="flex w-full px-0 h-full">
+
+          {/* Far left — Search icon (fixed narrow slot) */}
+          <button
+            onClick={onSearchClick}
+            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Search"
+            aria-label="Search"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="22" y2="22" />
+            </svg>
+          </button>
+
+          <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+
           {/* Left sections */}
           {leftSections.map((section, index) => (
             <React.Fragment key={section.id}>
               {renderTabButton(section, index)}
-              <div className="w-px h-4 bg-tea-gold/10 self-center flex-shrink-0" />
+              <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
             </React.Fragment>
           ))}
 
@@ -140,47 +162,47 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             title="Home · Long press for launchpad"
             aria-label="Return to home, long press to open launchpad"
           >
-            <LogoText
-              size="sm"
-              color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
-              className="transition-all duration-300 pointer-events-none"
-            />
+            <span style={{ display: 'inline-block', transform: 'scale(0.78)', transformOrigin: 'center', lineHeight: 0 }}>
+              <LogoText
+                size="sm"
+                color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
+                className="transition-all duration-300 pointer-events-none"
+              />
+            </span>
           </button>
 
           {/* Right sections */}
           {rightSections.map((section, index) => (
             <React.Fragment key={section.id}>
-              <div className="w-px h-4 bg-tea-gold/10 self-center flex-shrink-0" />
+              <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
               {renderTabButton(section, index + leftSections.length + 1)}
             </React.Fragment>
           ))}
 
-          {/* Account */}
-          {onAccountClick && (
-            <>
-              <div className="w-px h-4 bg-tea-gold/10 self-center flex-shrink-0" />
-              <button
-                onClick={onAccountClick}
-                className="flex-1 min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
-                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-                title="Account"
-                aria-label="Account"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-[18px] h-[18px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-                </svg>
-              </button>
-            </>
-          )}
+          <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+
+          {/* Far right — Account/Admin icon (fixed narrow slot) */}
+          <button
+            onClick={onAccountClick}
+            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Account"
+            aria-label="Account"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          </button>
+
         </div>
       </nav>
     </LayoutGroup>

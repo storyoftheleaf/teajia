@@ -4,6 +4,7 @@ import { LogoText } from '../../components/Logos';
 
 interface AdminBottomNavProps {
   onSearchClick: () => void;
+  onAccountClick?: () => void;
   onCartClick: () => void;
   cartItemCount: number;
   isMember: boolean;
@@ -16,6 +17,8 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   isMember,
   isStaff,
   isAdmin,
+  onSearchClick,
+  onAccountClick,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,7 +59,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
           style={{ WebkitTapHighlightColor: 'transparent', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         >
           <span
-            className={`text-[16px] tracking-[0.04em] lowercase transition-all duration-300 pointer-events-none select-none ${
+            className={`text-[14px] tracking-normal lowercase transition-all duration-300 pointer-events-none select-none whitespace-nowrap overflow-hidden ${
               active ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
             }`}
             style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
@@ -99,7 +102,7 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
   })();
 
 
-  const divider = <div className="w-px h-3 bg-tea-gold/10" />;
+  const divider = <div className="w-px h-3 bg-tea-gold/20" />;
 
   return (
     <>
@@ -115,6 +118,23 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
         }}
       >
         <div className="flex items-center w-full px-0 h-full">
+
+          {/* Far left — Search icon */}
+          <button
+            onClick={onSearchClick}
+            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Search"
+            aria-label="Search"
+          >
+            <svg viewBox="0 0 24 24" className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="22" y2="22" />
+            </svg>
+          </button>
+
+          {divider}
+
           {/* Left tabs */}
           {leftTabs.map((tab, i) => (
             <React.Fragment key={tab.id}>
@@ -137,11 +157,13 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
               title="Home (hold to go to storefront)"
               aria-label="Admin home"
             >
-              <LogoText
-                size="sm"
-                color={location.pathname === '/admin/home' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
-                className="transition-all duration-300 pointer-events-none"
-              />
+              <span style={{ display: 'inline-block', transform: 'scale(0.78)', transformOrigin: 'center', lineHeight: 0 }}>
+                <LogoText
+                  size="sm"
+                  color={location.pathname === '/admin/home' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
+                  className="transition-all duration-300 pointer-events-none"
+                />
+              </span>
             </button>
           </div>
 
@@ -152,6 +174,22 @@ export const AdminBottomNav: React.FC<AdminBottomNavProps> = ({
               {renderTab(tab)}
             </React.Fragment>
           ))}
+
+          {divider}
+
+          {/* Far right — Account icon */}
+          <button
+            onClick={onAccountClick}
+            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Account"
+            aria-label="Account"
+          >
+            <svg viewBox="0 0 24 24" className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          </button>
 
         </div>
       </nav>

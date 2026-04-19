@@ -15,11 +15,9 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
   const navigate = useNavigate();
   const { isDevAdmin } = useAppStore();
 
-  // Sync with external open control
+  // Sync with external open control (both directions)
   useEffect(() => {
-    if (externalOpen) {
-      setOpen(true);
-    }
+    if (externalOpen !== undefined) setOpen(externalOpen);
   }, [externalOpen]);
 
   // Load data when palette opens

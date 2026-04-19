@@ -451,6 +451,20 @@ const AppContent = () => {
     setShowAccountModal(true);
   };
 
+  const handleToggleAccount = () => {
+    setShowAccountModal(prev => {
+      if (prev) setAccountInitialView(undefined);
+      return !prev;
+    });
+  };
+
+  const handleNavSection = (section: Section) => {
+    setShowGlobalSearch(false);
+    setShowAccountModal(false);
+    setAccountInitialView(undefined);
+    setActiveSection(section);
+  };
+
   const handleOpenLaunchPad = () => setShowLaunchPad(true);
 
   // Allow any component to open the account panel via a custom event
@@ -786,7 +800,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={setActiveSection} hidden={false} onAccountClick={handleOpenAccount} onLaunchPadClick={handleOpenLaunchPad} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => setShowGlobalSearch(prev => !prev)} onLaunchPadClick={handleOpenLaunchPad} />
 
       </div>
 

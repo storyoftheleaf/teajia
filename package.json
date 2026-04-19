@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "audit": "node scripts/audit.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.44.0",
@@ -34,8 +35,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.27",
-    "playwright": "^1.59.1",
-    "postcss": "^8.5.8",
+"postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
     "terser": "^5.44.1",
     "typescript": "~5.8.2",
