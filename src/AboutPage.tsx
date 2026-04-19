@@ -143,7 +143,9 @@ export default function AboutPage() {
           TeajiA shares roots with a visual art practice — laser-cut work, oracle cards, and objects that come from the same quiet attention as the tea itself.
         </p>
         <a
-          href="#"
+          href="https://adrianrasmussen.com"
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-tea-gold hover:text-tea-gold-lt uppercase tracking-widest text-xs font-medium inline-flex items-center gap-2 transition-colors duration-300"
         >
           Explore the studio

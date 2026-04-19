@@ -738,7 +738,7 @@ const AppContent = () => {
                     <div className="flex flex-col items-center">
                         <Icons.Instagram className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
                         <span className="text-sm uppercase tracking-widest text-tea-text-sec mb-1">Follow Us</span>
-                        <a href="#" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@teajia.journal</a>
+                        <a href="https://www.instagram.com/teajia.foundation/" target="_blank" rel="noopener noreferrer" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@teajia.journal</a>
                     </div>
                 </div>
             </div>

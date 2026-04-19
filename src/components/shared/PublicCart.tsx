@@ -587,6 +587,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
             >
               Send Inquiry
             </Button>
+            {!isEmpty && (
+              <p className="text-tea-text-dim text-xs text-center leading-relaxed">
+                Every order is a personal conversation — we'll confirm details with you on WhatsApp.
+              </p>
+            )}
           </div>
         )}
         {step === 'INQUIRY' && (
