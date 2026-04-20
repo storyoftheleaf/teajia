@@ -12,8 +12,8 @@ const STATUS_STYLES: Record<EventStatus, string> = {
   draft: 'bg-tea-text-sec/10 text-tea-text-sec',
   active: 'bg-tea-gold/15 text-tea-gold',
   closed: 'bg-tea-text-sec/10 text-tea-text-sec',
-  archived: 'bg-tea-text-sec/10 text-tea-text-sec line-through',
-  completed: 'bg-tea-text-sec/10 text-tea-text-sec',
+  archived: 'bg-tea-text-sec/10 text-tea-text-dim line-through',
+  completed: 'bg-emerald-500/10 text-emerald-400',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -47,6 +47,7 @@ export const EventsManager: React.FC = () => {
         const dateStr = formatEventDate(ev.eventDate).toLowerCase();
         return (
           ev.title.toLowerCase().includes(searchQuery) ||
+          (ev.subtitle || '').toLowerCase().includes(searchQuery) ||
           dateStr.includes(searchQuery) ||
           (ev.locationName || '').toLowerCase().includes(searchQuery) ||
           (ev.areaHint || '').toLowerCase().includes(searchQuery) ||
@@ -90,7 +91,7 @@ export const EventsManager: React.FC = () => {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -116,6 +117,7 @@ export const EventsManager: React.FC = () => {
             type="text"
             value={searchRaw}
             onChange={e => setSearchRaw(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') setSearchRaw(''); }}
             placeholder="Search by title, date, location, or status…"
             className="w-full pl-9 pr-8 py-2.5 text-sm bg-tea-surface/60 border border-tea-border text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors rounded-sm"
           />
@@ -155,8 +157,9 @@ export const EventsManager: React.FC = () => {
             const confirmed = (event as any).confirmedCount || 0;
             const waitlist = (event as any).waitlistCount || 0;
             const requested = (event as any).requestedCount || 0;
-            const seatsRemaining = event.totalCapacity - confirmed;
+            const seatsRemaining = Math.max(0, event.totalCapacity - confirmed);
             const isFull = seatsRemaining <= 0;
+            const isPast = new Date(event.eventDate) < new Date();
 
             const d = new Date(event.eventDate);
             const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
@@ -171,12 +174,13 @@ export const EventsManager: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
                 onClick={() => navigate(`/admin/events/${event.id}`)}
-                className="flex gap-5 py-5 border-b border-tea-border cursor-pointer hover:opacity-75 transition-opacity group"
+                aria-label={`${event.title}, ${event.status}, ${formatEventDate(event.eventDate)}`}
+                className={`flex gap-5 py-5 border-b border-tea-border cursor-pointer hover:opacity-75 transition-opacity group${isPast ? ' opacity-50' : ''}`}
               >
                 {/* Date column */}
                 <div className="w-14 shrink-0 text-center pt-0.5">
                   <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{dayName}</div>
-                  <div className="font-serif text-[30px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
+                  <div className={`font-serif text-[30px] font-normal leading-none mt-0.5 ${isPast ? 'text-tea-text-sec' : 'text-tea-text'}`}>{dateNum}</div>
                   <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{monthName}</div>
                 </div>
 
@@ -217,7 +221,7 @@ export const EventsManager: React.FC = () => {
                     {/* Duplicate button */}
                     <button
                       onClick={(e) => handleDuplicate(e, event)}
-                      className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
+                      className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0 mt-0.5"
                       title="Duplicate event"
                     >
                       <Copy size={13} />

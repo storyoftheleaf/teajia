@@ -728,7 +728,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   );
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
 
       {/* ── Section: Basic Info ── */}
       <div className="border border-tea-border rounded-md">
@@ -746,6 +747,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     className={inputClass}
                     placeholder="auto-generated-from-title"
                   />
+                  <p className="text-[10px] text-tea-text-dim mt-1">Must be unique — used in public event URLs</p>
                 </Field>
                 <Field label="Title *">
                   <input
@@ -775,7 +777,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     rows={3}
                   />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Event Date *">
                     <input
                       type="datetime-local"
@@ -794,7 +796,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     />
                   </Field>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Field label="Capacity">
                     <input
                       type="number"
@@ -1067,7 +1069,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
               <Plus size={12} /> Add Step
             </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-tea-border">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-tea-border">
               <Field label="Parking Notes">
                 <input
                   type="text"
@@ -1158,8 +1160,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         )}
       </div>
 
+      </div>
+
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-2 border-t border-tea-border">
+      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border">
         <button
           type="button"
           onClick={onClose}
@@ -1212,37 +1216,28 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
     );
   }
 
-  // Edit mode: centered modal (existing behaviour)
+  // Edit mode: full-screen (same pattern as create)
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-tea-text/70 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto py-8"
-        onClick={onClose}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        className="fixed inset-0 bg-tea-bg z-50 flex flex-col"
       >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          onClick={(e) => e.stopPropagation()}
-          className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-2xl mx-4"
-          style={{ boxShadow: '0 25px 50px -12px var(--tea-bg)' }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
-            <h2 className="text-lg font-serif text-tea-text">Edit Event</h2>
-            <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
-              <X size={18} />
-            </button>
-          </div>
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
+          <h2 className="text-lg font-serif text-tea-text">Edit Event</h2>
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
           <EditForm
             initialData={initialData!}
             onClose={onClose}
             onSuccess={onSuccess}
           />
-        </motion.div>
+        </div>
       </motion.div>
     </AnimatePresence>
   );

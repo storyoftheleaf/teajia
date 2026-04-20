@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, BookOpen, AlarmClock, Star, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -95,7 +95,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                     {Array.from({ length: 5 }, (_, i) => (
                       <Star
                         key={i}
-                        size={9}
+                        size={11}
                         className={i < note.rating! ? 'text-tea-gold' : 'text-tea-text-dim/30'}
                         fill={i < note.rating! ? 'currentColor' : 'none'}
                       />
@@ -209,8 +209,8 @@ const STATUS_STYLES: Record<EventStatus, string> = {
   draft: 'bg-tea-text-sec/10 text-tea-text-sec',
   active: 'bg-tea-gold/15 text-tea-gold',
   closed: 'bg-tea-text-sec/10 text-tea-text-sec',
-  archived: 'bg-tea-text-sec/10 text-tea-text-sec line-through',
-  completed: 'bg-tea-text-sec/10 text-tea-text-sec',
+  archived: 'bg-tea-text-sec/10 text-tea-text-dim line-through',
+  completed: 'bg-emerald-500/10 text-emerald-400',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -234,6 +234,7 @@ export const EventDetail: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [closingRsvp, setClosingRsvp] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
   const [savingBriefing, setSavingBriefing] = useState(false);
   const [briefingCards, setBriefingCards] = useState<BriefingCard[] | null>(null);
 
@@ -243,6 +244,12 @@ export const EventDetail: React.FC = () => {
     enabled: !!id,
   });
 
+  useEffect(() => {
+    if (event && briefingCards === null) {
+      setBriefingCards(event.briefingCards ?? []);
+    }
+  }, [event?.id]);
+
   if (isLoading || !event) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -251,30 +258,12 @@ export const EventDetail: React.FC = () => {
     );
   }
 
-  // Sync local briefing state on first load
-  if (briefingCards === null && event.briefingCards !== undefined) {
-    setBriefingCards(event.briefingCards);
-  }
   const localBriefingCards = briefingCards ?? event.briefingCards ?? [];
 
   const confirmedCount = attendees.filter(a => a.status === 'confirmed').length;
   const waitlistCount = attendees.filter(a => a.status === 'waitlist').length;
   const requestedCount = attendees.filter(a => a.status === 'requested').length;
   const capacityPct = event.totalCapacity > 0 ? Math.min((confirmedCount / event.totalCapacity) * 100, 100) : 0;
-
-  const handleCloseRsvp = async () => {
-    if (!confirm('Close RSVPs for this event? Guests will no longer be able to register.')) return;
-    setClosingRsvp(true);
-    try {
-      await api.events.update(event.id, { status: 'closed' });
-      refetchEvent();
-      showToast('RSVPs closed', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to close', 'error');
-    } finally {
-      setClosingRsvp(false);
-    }
-  };
 
   const handleSaveBriefing = async () => {
     setSavingBriefing(true);
@@ -303,7 +292,7 @@ export const EventDetail: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto overflow-x-hidden">
       {/* Back button */}
       <button
         onClick={() => navigate('/admin/events')}
@@ -350,7 +339,7 @@ export const EventDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <button
               onClick={() => setIsShareOpen(true)}
               className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
@@ -430,7 +419,7 @@ export const EventDetail: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           {event.status === 'active' && (
             <button
-              onClick={handleCloseRsvp}
+              onClick={() => setConfirmClose(true)}
               disabled={closingRsvp}
               className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
             >
@@ -451,7 +440,7 @@ export const EventDetail: React.FC = () => {
               className={`relative flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'border-tea-gold text-tea-gold'
-                  : 'border-transparent text-tea-text-sec hover:text-tea-text-sec'
+                  : 'border-transparent text-tea-text-sec hover:text-tea-text'
               }`}
             >
               {tab.label}
@@ -468,7 +457,7 @@ export const EventDetail: React.FC = () => {
           ))}
         </div>
         {/* Right-fade scroll indicator */}
-        <div className="pointer-events-none absolute right-0 inset-y-0 w-8 bg-gradient-to-l from-tea-surface to-transparent" />
+        <div className="pointer-events-none absolute right-0 inset-y-0 w-8 bg-gradient-to-l from-tea-bg to-transparent" />
       </div>
 
       {/* Tab Content */}
@@ -563,6 +552,58 @@ export const EventDetail: React.FC = () => {
           <PostSessionEditor eventId={event.id} />
         )}
       </motion.div>
+
+      {/* Close RSVP confirmation modal */}
+      <AnimatePresence>
+        {confirmClose && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 8 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 8 }}
+              className="bg-tea-bg border border-tea-border rounded-xl p-6 w-full max-w-sm shadow-2xl"
+            >
+              <h3 className="text-sm font-medium text-tea-text mb-1">Close RSVPs?</h3>
+              <p className="text-xs text-tea-text-sec mb-5">Guests will no longer be able to register. Existing requests are unaffected.</p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setConfirmClose(false)}
+                  className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setConfirmClose(false);
+                    setClosingRsvp(true);
+                    try {
+                      await api.events.update(event.id, { status: 'closed' });
+                      refetchEvent();
+                      showToast('RSVPs closed', 'success');
+                    } catch (err: any) {
+                      showToast(err.message || 'Failed to close', 'error');
+                    } finally {
+                      setClosingRsvp(false);
+                    }
+                  }}
+                  disabled={closingRsvp}
+                  className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                >
+                  {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Event Modal */}
       <EventForm
